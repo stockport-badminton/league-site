@@ -1,0 +1,52 @@
+</div>
+
+    </main><!-- /.container -->
+<footer class="footer fixed-bottom">
+      <div class="container">
+        <span class="text-muted">Sponsored by <img src="//cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x.png?v=1502872689" srcset="//cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x.png?v=1502872689 1x, //cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x@2x.png?v=1502872689 2x" alt="Yehlex" itemprop="logo"></span>
+      </div>
+    </footer>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+    <script type="text/JavaScript">
+
+      class ResponsiveBackgroundImage {
+
+        constructor(element) {
+            this.element = element;
+            this.img = element.querySelector('img');
+            this.src = '';
+
+            this.img.addEventListener('load', () => {
+                this.update();
+            });
+
+            if (this.img.complete) {
+                this.update();
+            }
+        }
+
+        update() {
+            let src = typeof this.img.currentSrc !== 'undefined' ? this.img.currentSrc : this.img.src;
+            if (this.src !== src) {
+                this.src = src;
+                this.element.style.backgroundImage = 'url("' + this.src + '")';
+
+            }
+        }
+    }
+
+    let elements = document.querySelectorAll('.respBgImg');
+    for (let i=0; i<elements.length; i++) {
+      new ResponsiveBackgroundImage(elements[i]);
+    }
+
+    </script>

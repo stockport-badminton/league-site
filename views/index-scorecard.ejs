@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Stockport Badminton Results</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="<%= static_path + "/bootstrap/css/theme/" + theme + "/bootstrap.css" %>" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="<%= static_path + "/bootstrap/css/jumbotron-narrow.css" %>" rel="stylesheet">
+
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header">
+        <ul class="nav nav-pills pull-right">
+          <li class="active"><a href="#">Away</a></li>
+          <li><a href="#">League Tables</a></li>
+          <li><a href="#">Fixtures / Results</a></li>
+          <li><a href="#">Clubs</a></li>
+        </ul>
+        <h3 class="text-muted">Scorecard</h3>
+      </div>
+
+    <!-- error / feedback messages for results entry -->
+      <div id="signupSuccess" class="alert alert-success" style="display:none">
+        <p id="signupSuccessText">Thanks for signing up! You'll be among the first to know when we launch.</p>
+      </div>
+      <div id="signupDuplicate" class="alert alert-success" style="display:none">
+        <p id="signupDuplicateText">Fear not, you're already on the list! You'll be among the first to know when we launch.</p>
+      </div>
+      <div id="signupError" class="alert alert-info" style="display:none">
+        <p id="signupErrorText">Well this is embarrassing. It looks like we're having trouble getting you on the list.</p>
+      </div>
+
+
+      <div class="jumbotron">
+        <h1>The next big thing is coming...</h1>
+        <p class="lead">We're pretty thrilled to unveil our latest creation. Sign up below to be notified when we officially launch!</p>
+        <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Sign up today</a></p>
+      </div>
+
+
+      <div class="footer">
+        <p>&copy; A New Startup 2013</p>
+      </div>
+
+      <!-- Modal -->
+       <div class="modal fade multi-step" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModal" aria-hidden="true">
+         <div class="modal-dialog">
+         <form id="signupForm" role="form">
+           <div class="modal-content">
+             <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+               <h4 class="modal-title step-1" data-step="1">Fixture</h4>
+               <h4 class="modal-title step-2" data-step="2">Home Team</h4>
+               <h4 class="modal-title step-3" data-step="3">Away Team</h4>
+               <h4 class="modal-title step-4" data-step="4">1st Mens</h4>
+               <h4 class="modal-title step-5" data-step="5">1st Ladies</h4>
+               <h4 class="modal-title step-6" data-step="6">2nd Mens</h4>
+               <h4 class="modal-title step-7" data-step="7">2nd Ladies</h4>
+               <h4 class="modal-title step-8" data-step="8">3rd Mens</h4>
+               <h4 class="modal-title step-9" data-step="9">3rd Ladies</h4>
+               <h4 class="modal-title step-10" data-step="10">1st Mixed</h4>
+               <h4 class="modal-title step-11" data-step="11">2nd Mixed</h4>
+               <h4 class="modal-title step-12" data-step="12">3rd Mixed</h4>
+             </div>
+             <div class="modal-body step step-1">
+
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group">
+                   <label for="division"  >Division</label>
+                   <input type="text" class="form-control" id="division" name="division" placeholder="Division">
+                 </div>
+                 <div class="form-group">
+                   <label for="date">Date</label>
+                   <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY">
+                 </div>
+                 <div class="form-group">
+                   <label for="homeTeam">Away Team</label>
+                   <input type="text" class="form-control" id="homeTeam" name="homeTeam" placeholder="Away Team">
+                 </div>
+                 <div class="form-group">
+                   <label for="awayTeam">Away Team</label>
+                   <input type="text" class="form-control" id="awayTeam" name="awayTeam" placeholder="Away Team">
+                 </div>
+             </div>
+             <div class="modal-body step step-2">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-2">
+                   <label for="homeMan1">Man 1</label>
+                   <input type="text" class="form-control" id="homeMan1" name="homeMan1" placeholder="Home Man 1">
+                 </div>
+                 <div class="form-group step-2">
+                   <label for="homeMan2">Man 2</label>
+                   <input type="text" class="form-control" id="homeMan2" name="homeMan2" placeholder="Home Man 2">
+                 </div>
+                 <div class="form-group step-2">
+                   <label for="homeMan3">Man 3</label>
+                   <input type="text" class="form-control" id="homeMan3" name="homeMan3" placeholder="Home Man 3">
+                 </div>
+                 <div class="form-group step-2">
+                   <label for="homeLady1">Lady 1</label>
+                   <input type="text" class="form-control" id="homeLady1" name="homeLady1" placeholder="Home Lady 1">
+                 </div>
+                 <div class="form-group step-2">
+                   <label for="homeLady2">Lady 2</label>
+                   <input type="text" class="form-control" id="homeLady2" name="homeLady2" placeholder="Home Lady 2">
+                 </div>
+                 <div class="form-group step-2">
+                   <label for="homeLady3">Lady 3</label>
+                   <input type="text" class="form-control" id="homeLady3" name="homeLady3" placeholder="Home Lady 3">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-3">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-3">
+                   <label for="awayMan1">Man 1</label>
+                   <input type="text" class="form-control" id="awayMan1" name="awayMan1" placeholder="Away Man 1">
+                 </div>
+                 <div class="form-group step-3">
+                   <label for="awayMan2">Man 2</label>
+                   <input type="text" class="form-control" id="awayMan2" name="awayMan2" placeholder="Away Man 2">
+                 </div>
+                 <div class="form-group step-3">
+                   <label for="awayMan3">Man 3</label>
+                   <input type="text" class="form-control" id="awayMan3" name="awayMan3" placeholder="Away Man 3">
+                 </div>
+                 <div class="form-group step-3">
+                   <label for="awayLady1">Lady 1</label>
+                   <input type="text" class="form-control" id="awayLady1" name="awayLady1" placeholder="Away Lady 1">
+                 </div>
+                 <div class="form-group step-3">
+                   <label for="awayLady2">Lady 2</label>
+                   <input type="text" class="form-control" id="awayLady2" name="awayLady2" placeholder="Away Lady 2">
+                 </div>
+                 <div class="form-group step-3">
+                   <label for="awayLady3">Lady 3</label>
+                   <input type="text" class="form-control" id="awayLady3" name="awayLady3" placeholder="Away Lady 3">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-4">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-4">
+                   <label for="homeFirstMens">Home 1st Mens</label>
+                   <input type="text" class="form-control" id="FirstMenshomeMan1" data-player-type="homeMan1" name="homeMan1" placeholder="Home Man 1">
+                   <input type="text" class="form-control" id="FirstMenshomeMan2" data-player-type="homeMan2" name="homeMan2" placeholder="Home Man 2">
+                 </div>
+                 <div class="form-group step-4">
+                   <label for="awayFirstMens">Away 1st Mens</label>
+                   <input type="text" class="form-control" id="FirstMensawayMan1" data-player-type="awayMan1" name="awayMan1" placeholder="Away Man 1">
+                   <input type="text" class="form-control" id="FirstMensawayMan2" data-player-type="awayMan2" name="awayMan2" placeholder="Away Man 2">
+                 </div>
+                 <div class="form-group step-4">
+                   <label for="game1Score">Game 1</label>
+                   <input type="number" class="form-control" id="homeGame1Score" name="homeGame1Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame1Score" name="awayGame1Score" placeholder="">
+                 </div>
+                 <div class="form-group step-4">
+                   <label for="game1Score">Game 2</label>
+                   <input type="number" class="form-control" id="homeGame2Score" name="homeGame2Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame2Score" name="awayGame2Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-5">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-5">
+                   <label for="homeFirstLadies">Home 1st Ladies</label>
+                   <input type="text" class="form-control" id="FirstLadieshomeLady1" data-player-type="homeLady1" name="homeLady1" placeholder="Home Lady 1">
+                   <input type="text" class="form-control" id="FirstLadieshomeLady2" data-player-type="homeLady2" name="homeLady2" placeholder="Home Lady 2">
+                 </div>
+                 <div class="form-group step-5">
+                   <label for="awayFirstLadies">Away 1st Ladies</label>
+                   <input type="text" class="form-control" id="FirstLadiesawayLady1" data-player-type="awayLady1" name="awayLady1" placeholder="Away Lady 1">
+                   <input type="text" class="form-control" id="FirstLadiesawayLady2" data-player-type="awayLady2" name="awayLady2" placeholder="Away Lady 2">
+                 </div>
+                 <div class="form-group step-5">
+                   <label for="game1Score">Game 3</label>
+                   <input type="number" class="form-control" id="homeGame3Score" name="homeGame3Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame3Score" name="awayGame3Score" placeholder="">
+                 </div>
+                 <div class="form-group step-5">
+                   <label for="game1Score">Game 4</label>
+                   <input type="number" class="form-control" id="homeGame4Score" name="homeGame4Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame4Score" name="awayGame4Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-6">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-6">
+                   <label for="homeFirstMens">Home 2nd Mens</label>
+                   <input type="text" class="form-control" id="SecondMenshomeMan1" data-player-type="homeMan1" name="homeMan1" placeholder="Home Man 1">
+                   <input type="text" class="form-control" id="SecondMenshomeMan3" data-player-type="homeMan3" name="homeMan3" placeholder="Home Man 3">
+                 </div>
+                 <div class="form-group step-6">
+                   <label for="awayFirstMens">Away 2nd Mens</label>
+                   <input type="text" class="form-control" id="SecondMensawayMan1" data-player-type="awayMan1" name="awayMan1" placeholder="Away Man 1">
+                   <input type="text" class="form-control" id="SecondMensawayMan3" data-player-type="awayMan3" name="awayMan3" placeholder="Away Man 3">
+                 </div>
+                 <div class="form-group step-6">
+                   <label for="game1Score">Game 5</label>
+                   <input type="number" class="form-control" id="homeGame5Score" name="homeGame5Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame5Score" name="awayGame5Score" placeholder="">
+                 </div>
+                 <div class="form-group step-6">
+                   <label for="game1Score">Game 6</label>
+                   <input type="number" class="form-control" id="homeGame6Score" name="homeGame6Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame6Score" name="awayGame6Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-7">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-7">
+                   <label for="homeFirstLadies">Home 2nd Ladies</label>
+                   <input type="text" class="form-control" id="SecondLadieshomeLady1" data-player-type="homeLady1" name="homeLady1" placeholder="Home Lady 1">
+                   <input type="text" class="form-control" id="SecondLadieshomeLady3" data-player-type="homeLady3" name="homeLady3" placeholder="Home Lady 3">
+                 </div>
+                 <div class="form-group step-7">
+                   <label for="awayFirstLadies">Away 2nd Ladies</label>
+                   <input type="text" class="form-control" id="SecondLadiesawayLady1" data-player-type="awayLady1" name="awayLady1" placeholder="Away Lady 1">
+                   <input type="text" class="form-control" id="SecondLadiesawayLady3" data-player-type="awayLady3" name="awayLady3" placeholder="Away Lady 3">
+                 </div>
+                 <div class="form-group step-7">
+                   <label for="game1Score">Game 7</label>
+                   <input type="number" class="form-control" id="homeGame7Score" name="homeGame7Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame7Score" name="awayGame7Score" placeholder="">
+                 </div>
+                 <div class="form-group step-7">
+                   <label for="game1Score">Game 8</label>
+                   <input type="number" class="form-control" id="homeGame8Score" name="homeGame8Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame8Score" name="awayGame8Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-8">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-8">
+                   <label for="homeFirstMens">Home 3rd Mens</label>
+                   <input type="text" class="form-control" id="ThirdMenshomeMan2" data-player-type="homeMan2" name="homeMan2" placeholder="Home Man 2">
+                   <input type="text" class="form-control" id="ThirdMenshomeMan3" data-player-type="homeMan3" name="homeMan3" placeholder="Home Man 3">
+                 </div>
+                 <div class="form-group step-8">
+                   <label for="awayFirstMens">Away 3rd Mens</label>
+                   <input type="text" class="form-control" id="ThirdMensawayMan2" data-player-type="awayMan2" name="awayMan2" placeholder="Away Man 2">
+                   <input type="text" class="form-control" id="ThirdMensawayMan3" data-player-type="awayMan3" name="awayMan3" placeholder="Away Man 3">
+                 </div>
+                 <div class="form-group step-8">
+                   <label for="game1Score">Game 9</label>
+                   <input type="number" class="form-control" id="homeGame9Score" name="homeGame9Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame9Score" name="awayGame9Score" placeholder="">
+                 </div>
+                 <div class="form-group step-8">
+                   <label for="game1Score">Game 10</label>
+                   <input type="number" class="form-control" id="homeGame10Score" name="homeGame10Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame10Score" name="awayGame10Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-9">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-9">
+                   <label for="homeFirstLadies">Home 3rd Ladies</label>
+                   <input type="text" class="form-control" id="ThirdLadieshomeLady2" data-player-type="homeLady2" name="homeLady2" placeholder="Home Lady 2">
+                   <input type="text" class="form-control" id="ThirdLadieshomeLady3" data-player-type="homeLady3" name="homeLady3" placeholder="Home Lady 3">
+                 </div>
+                 <div class="form-group step-9">
+                   <label for="awayFirstLadies">Away 3rd Ladies</label>
+                   <input type="text" class="form-control" id="ThirdLadiesawayLady2" data-player-type="awayLady2" name="awayLady2" placeholder="Away Lady 2">
+                   <input type="text" class="form-control" id="ThirdLadiesawayLady3" data-player-type="awayLady3" name="awayLady3" placeholder="Away Lady 3">
+                 </div>
+                 <div class="form-group step-9">
+                   <label for="game1Score">Game 11</label>
+                   <input type="number" class="form-control" id="homeGame11Score" name="homeGame11Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame11Score" name="awayGame11Score" placeholder="">
+                 </div>
+                 <div class="form-group step-9">
+                   <label for="game1Score">Game 12</label>
+                   <input type="number" class="form-control" id="homeGame12Score" name="homeGame12Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame12Score" name="awayGame12Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-10">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-10">
+                   <label for="homeFirstMens">Home 1st Mixed</label>
+                   <input type="text" class="form-control" id="FirstMixedhomeMan1" data-player-type="homeMan1" name="homeMan1" placeholder="Home Man 1">
+                   <input type="text" class="form-control" id="FirstMixedhomeLady1" data-player-type="homeLady1" name="homeLady1" placeholder="Home Lady 1">
+                 </div>
+                 <div class="form-group step-10">
+                   <label for="awayFirstMens">Away 1st Mixed</label>
+                   <input type="text" class="form-control" id="FirstMixedawayMan1" data-player-type="awayMan1" name="awayMan1" placeholder="Away Man 1">
+                   <input type="text" class="form-control" id="FirstMixedawayLady1" data-player-type="awayLady1" name="awayLady1" placeholder="Away Lady 1">
+                 </div>
+                 <div class="form-group step-10">
+                   <label for="game1Score">Game 13</label>
+                   <input type="number" class="form-control" id="homeGame13Score" name="homeGame13Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame13Score" name="awayGame13Score" placeholder="">
+                 </div>
+                 <div class="form-group step-10">
+                   <label for="game1Score">Game 14</label>
+                   <input type="number" class="form-control" id="homeGame14Score" name="homeGame14Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame14Score" name="awayGame14Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-11">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-11">
+                   <label for="homeSecondMens">Home 2nd Mixed</label>
+                   <input type="text" class="form-control" id="SecondMixedhomeMan2" data-player-type="homeMan2" name="homeMan2" placeholder="Home Man 2">
+                   <input type="text" class="form-control" id="SecondMixedhomeLady2" data-player-type="homeLady2" name="homeLady2" placeholder="Home Lady 2">
+                 </div>
+                 <div class="form-group step-11">
+                   <label for="awaySecondMens">Away 2nd Mixed</label>
+                   <input type="text" class="form-control" id="SecondMixedawayMan2" data-player-type="awayMan2" name="awayMan2" placeholder="Away Man 2">
+                   <input type="text" class="form-control" id="SecondMixedawayLady2" data-player-type="awayLady2" name="awayLady2" placeholder="Away Lady 2">
+                 </div>
+                 <div class="form-group step-11">
+                   <label for="game1Score">Game 15</label>
+                   <input type="number" class="form-control" id="homeGame15Score" name="homeGame15Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame15Score" name="awayGame15Score" placeholder="">
+                 </div>
+                 <div class="form-group step-11">
+                   <label for="game1Score">Game 16</label>
+                   <input type="number" class="form-control" id="homeGame16Score" name="homeGame16Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame16Score" name="awayGame16Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-body step step-12">
+                 <input type="hidden" id="theme" name="theme" value="flatly"/>
+                 <div class="form-group step-12">
+                   <label for="homeFirstMens">Home 3rd Mixed</label>
+                   <input type="text" class="form-control" id="FirstMixedhomeMan3" data-player-type="homeMan3" name="homeMan3" placeholder="Home Man 3">
+                   <input type="text" class="form-control" id="FirstMixedhomeLady3" data-player-type="homeLady3" name="homeLady3" placeholder="Home Lady 3">
+                 </div>
+                 <div class="form-group step-12">
+                   <label for="awayFirstMens">Away 3rd Mixed</label>
+                   <input type="text" class="form-control" id="FirstMixedawayMan3" data-player-type="awayMan3" name="awayMan3" placeholder="Away Man 3">
+                   <input type="text" class="form-control" id="FirstMixedawayLady3" data-player-type="awayLady3" name="awayLady3" placeholder="Away Lady 3">
+                 </div>
+                 <div class="form-group step-12">
+                   <label for="game1Score">Game 17</label>
+                   <input type="number" class="form-control" id="homeGame17Score" name="homeGame17Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame17Score" name="awayGame17Score" placeholder="">
+                 </div>
+                 <div class="form-group step-12">
+                   <label for="game1Score">Game 18</label>
+                   <input type="number" class="form-control" id="homeGame18Score" name="homeGame18Score" placeholder="">
+                   <input type="number" class="form-control" id="awayGame18Score" name="awayGame18Score" placeholder="">
+                 </div>
+
+             </div>
+             <div class="modal-footer">
+                <button type="button" class="btn btn-primary step step-1" data-step="1" onclick="sendEvent('2')">Continue</button>
+                <button type="button" class="btn btn-primary step step-2" data-step="2" onclick="sendEvent('1')">Back</button>
+                <button type="button" class="btn btn-primary step step-2" data-step="2" onclick="sendEvent('3')">Continue</button>
+                <button type="button" class="btn btn-primary step step-3" data-step="3" onclick="sendEvent('2')">Back</button>
+                <button type="button" class="btn btn-primary step step-3" data-step="3" onclick="sendEvent('4')">Continue</button>
+                <button type="button" class="btn btn-primary step step-4" data-step="4" onclick="sendEvent('3')">Back</button>
+                <button type="button" class="btn btn-primary step step-4" data-step="4" onclick="sendEvent('5')">Continue</button>
+                <button type="button" class="btn btn-primary step step-5" data-step="5" onclick="sendEvent('4')">Back</button>
+                <button type="button" class="btn btn-primary step step-5" data-step="5" onclick="sendEvent('6')">Continue</button>
+                <button type="button" class="btn btn-primary step step-6" data-step="6" onclick="sendEvent('5')">Back</button>
+                <button type="button" class="btn btn-primary step step-6" data-step="6" onclick="sendEvent('7')">Continue</button>
+                <button type="button" class="btn btn-primary step step-7" data-step="7" onclick="sendEvent('6')">Back</button>
+                <button type="button" class="btn btn-primary step step-7" data-step="7" onclick="sendEvent('8')">Continue</button>
+                <button type="button" class="btn btn-primary step step-8" data-step="8" onclick="sendEvent('7')">Back</button>
+                <button type="button" class="btn btn-primary step step-8" data-step="8" onclick="sendEvent('9')">Continue</button>
+                <button type="button" class="btn btn-primary step step-9" data-step="9" onclick="sendEvent('8')">Back</button>
+                <button type="button" class="btn btn-primary step step-9" data-step="9" onclick="sendEvent('10')">Continue</button>
+                <button type="button" class="btn btn-primary step step-10" data-step="10" onclick="sendEvent('9')">Back</button>
+                <button type="button" class="btn btn-primary step step-10" data-step="10" onclick="sendEvent('11')">Continue</button>
+                <button type="button" class="btn btn-primary step step-11" data-step="11" onclick="sendEvent('10')">Back</button>
+                <button type="button" class="btn btn-primary step step-11" data-step="11" onclick="sendEvent('12')">Continue</button>
+                <button type="button" class="btn btn-primary step step-12" data-step="12" onclick="sendEvent('11')">Back</button>
+                <button id="signup" type="button" class="btn btn-primary step step-12" data-step="12" >Submit</button>
+
+             </div>
+           </div><!-- /.modal-content -->
+         </div><!-- /.modal-dialog -->
+       </div><!-- /.modal -->
+
+    </div> <!-- /container -->
+
+    <script src="<%= static_path + "/jquery/jquery-1.11.3.min.js" %>"></script>
+    <script src="<%= static_path + "/bootstrap/js/bootstrap.min.js" %>"></script>
+    <script type="text/javascript">
+    $(document).ready(function() {
+      $("#signup").click(function() {
+        $.post( "/scorecard", $("#signupForm").serialize(),
+                function(data) {
+                  console.log(data);
+                  $("#signupSuccess").show();
+                }
+              )
+              .error(function(xhr) {
+                switch(xhr.status) {
+                  case 409:
+                    $("#signupDuplicate").show();
+                    break;
+                  default:
+                    $("#signupError").show();
+                }
+              })
+              .always(function() {
+                $("#signupModal").modal('hide');
+              });
+      })
+      $(".form-group.step-2 input, .form-group.step-3 input").change(function() {
+        console.log($(this).val() + '-' + $(this).attr("id"));
+
+        $("[data-player-type=" + $(this).attr("id") + "]").val($(this).val());
+      })
+    });
+
+
++function($) {
+    'use strict';
+
+    var modals = $('.modal.multi-step');
+
+    modals.each(function(idx, modal) {
+        var $modal = $(modal);
+        var $buttons = $modal.find('button.step');
+        var total_num_steps = $buttons.length;
+        var $progress = $modal.find('.m-progress');
+        var $progress_bar = $modal.find('.m-progress-bar');
+        var $progress_stats = $modal.find('.m-progress-stats');
+        var $progress_current = $modal.find('.m-progress-current');
+        var $progress_total = $modal.find('.m-progress-total');
+        var $progress_complete  = $modal.find('.m-progress-complete');
+        var reset_on_close = $modal.attr('reset-on-close') === 'true';
+
+        function reset() {
+            $modal.find('.step').hide();
+            $modal.find('[data-step]').hide();
+        }
+
+        function completeSteps() {
+            $progress_stats.hide();
+            $progress_complete.show();
+            $modal.find('.progress-text').animate({
+                top: '-2em'
+            });
+            $modal.find('.complete-indicator').animate({
+                top: '-2em'
+            });
+            $progress_bar.addClass('completed');
+        }
+
+        function getPercentComplete(current_step, total_steps) {
+            return Math.min(current_step / total_steps * 100, 100) + '%';
+        }
+
+        function updateProgress(current, total) {
+            $progress_bar.animate({
+                width: getPercentComplete(current, total)
+            });
+            if (current - 1 >= total_num_steps) {
+                completeSteps();
+            } else {
+                $progress_current.text(current);
+            }
+
+            $progress.find('[data-progress]').each(function() {
+                var dp = $(this);
+                if (dp.data().progress <= current - 1) {
+                    dp.addClass('completed');
+                } else {
+                    dp.removeClass('completed');
+                }
+            });
+        }
+
+        function goToStep(step) {
+            reset();
+            var to_show = $modal.find('.step-' + step);
+            if (to_show.length === 0) {
+                // at the last step, nothing else to show
+                return;
+            }
+            to_show.show();
+            var current = parseInt(step, 10);
+            updateProgress(current, total_num_steps);
+            findFirstFocusableInput(to_show).focus();
+        }
+
+        function findFirstFocusableInput(parent) {
+            var candidates = [parent.find('input'), parent.find('select'),
+                              parent.find('textarea'),parent.find('button')],
+                winner = parent;
+            $.each(candidates, function() {
+                if (this.length > 0) {
+                    winner = this[0];
+                    return false;
+                }
+            });
+            return $(winner);
+        }
+
+        function bindEventsToModal($modal) {
+            var data_steps = [];
+            $('[data-step]').each(function() {
+                var step = $(this).data().step;
+                if (step && $.inArray(step, data_steps) === -1) {
+                    data_steps.push(step);
+                }
+            });
+
+            $.each(data_steps, function(i, v) {
+                $modal.on('next.m.' + v, {step: v}, function(e) {
+                    goToStep(e.data.step);
+                });
+            });
+        }
+
+        function initialize() {
+            reset();
+            updateProgress(1, total_num_steps);
+            $modal.find('.step-1').show();
+            $progress_complete.hide();
+            $progress_total.text(total_num_steps);
+            bindEventsToModal($modal, total_num_steps);
+            $modal.data({
+                total_num_steps: $buttons.length,
+            });
+            if (reset_on_close){
+                //Bootstrap 2.3.2
+                $modal.on('hidden', function () {
+                    reset();
+                    $modal.find('.step-1').show();
+                })
+                //Bootstrap 3
+                $modal.on('hidden.bs.modal', function () {
+                    reset();
+                    $modal.find('.step-1').show();
+                })
+            }
+        }
+
+        initialize();
+    })
+}(jQuery);
+
+sendEvent = function(page) {
+    $('#signupModal').trigger('next.m.' + page);
+}
+    </script>
+  </body>
+</html>
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<% include header.ejs %>
+
+
+      <div class="jumbotron">
+        <% if (error) { %>
+          <p>Something seems to have gone wrong</p>
+        <% }
+        else { %>
+        <ul class="list-inline">
+            <li>
+              <span class="primarySpace">Name</span>
+              <span class="secondarySpace">Match Day |  Venue</span>
+              <span class="actionSpace">Actions</span>
+             </li>
+            <%
+
+            team_list.forEach(function(team){ %>
+
+            <li>
+              <span class="primarySpace"><a href="/team/<%= team._id %>"><%= team.name %></a></span>
+              <span class="secondarySpace"><%= team.matchDay %>&nbsp;&nbsp;|&nbsp;&nbsp;
+              <%= team.venue.name %></span>
+              <span class="actionSpace">
+                <a href="/team/<%= team._id %>/delete">Delete</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="/team/<%= team._id %>/update">Update</a>
+              </span>
+            </li>
+
+            <%
+          })
+
+            %>
+        </ul>
+        <% } %>
+        <p><%= reqparams.clubid %></p>
+      </div>
+<% include footer.ejs %>

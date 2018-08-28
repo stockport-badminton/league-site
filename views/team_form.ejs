@@ -1,0 +1,47 @@
+<% include header.ejs %>
+
+<div class="modal-dialog">
+  <form id="signupForm" role="form" method="post" action="/team/create">
+    <div class="modal-content">
+      <div class="modal-body">
+          <div class="form-group">
+            <label for="name" >Team Name</label>
+            <input type="text" class="form-control" id="team_name" name="team_name" placeholder="Team Name">
+          </div>
+          <div class="form-group">
+            <label for="start_time">Start Time</label>
+            <input type="text" class="form-control" id="startTime" name="startTime" placeholder="Start Time">
+          </div>
+          <div class="form-group">
+            <label for="end_time">End Time</label>
+            <input type="text" class="form-control" id="endTime" name="endTime" placeholder="End Time">
+          </div>
+          <div class="form-group">
+            <label for="matchDay">Match Day</label>
+            <select name="matchDay" id="matchDay" class="form-control">
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="team">team</label>
+            <select name="team" id="team" class="form-control">
+              <% team_list.forEach(function(team){ %>
+                <option value="<%= team._id.toString() %>"><%= team.name %></option>
+              <% }) %>
+
+            </select>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button id="submit" type="submit" class="btn btn-primary">Submit</button>
+      </div>
+    </div>
+  </form>
+</div>
+<% include footer.ejs %>

@@ -1,0 +1,19 @@
+<% include header.ejs %>
+
+
+      <div class="jumbotron">
+        <% if (error) { %>
+          <p>Something seems to have gone wrong</p>
+        <% }
+        else { %>
+        <ul>
+            <li id="Players">Players: <%= data.player_count[0].players %></li>
+            <li id="Players_F">Female Players: <%= data.player_female_count[0].players %></li>
+            <li id="Players_M">Male Players<%= data.player_male_count[0].players %></li>
+          <!--   <li id="Teams">Teams: <%= data.team_count %></li>
+            <li id="Venues">Venues: <%= data.venue_count %></li> -->
+        </ul>
+        <% } %>
+      </div>
+
+<% include footer.ejs %>

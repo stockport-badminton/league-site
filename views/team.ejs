@@ -1,0 +1,25 @@
+<% include header.ejs %>
+
+
+      <div class="jumbotron">
+        <% if (error) { %>
+          <p>Something seems to have gone wrong</p>
+        <% }
+        else { %>
+        <div class="playerDetail">
+
+<p>
+Name: <%= detail_team.name %> <br />
+Venue: <%= detail_team.venue.name %><br />
+Match Night: <%= detail_team.matchDay %> <br />
+</p>
+
+
+            <%
+
+            %>
+            </div>
+        <% } %>
+
+      </div>
+<% include footer.ejs %>

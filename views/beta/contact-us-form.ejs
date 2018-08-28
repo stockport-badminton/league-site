@@ -1,0 +1,91 @@
+<% include header.ejs %>
+
+<% include nav.ejs %>
+
+<form role="form" id="contactUs" action="/contact-us" method="post">
+  <div class="form-group">
+    <label for="contactType">Are you trying to get in touch with a committee member of a specific club?</label>
+    <select class="form-control" name="contactType" id="contactType">
+      <option disabled selected>Choose..</option>
+      <option value="Clubs">Club Secretaries</option>
+      <option value="League">League Representatives</option>
+    </select>
+  </div>
+  <div class="form-group d-none" id="clubsDropDown">
+    <label for="clubSelect">Which club are you contacting?</label>
+    <select class="form-control" id="clubSelect" name="clubSelect">
+      <option disabled selected>Choose a Club</option>
+      <option value="Aerospace">Aerospace</option>
+      <option value="Astrazenca">Astrazenca</option>
+      <option value="AltrinchamCentral">Altrincham Central</option>
+      <option value="BramhallQueensgate">Bramhall Village</option>
+      <option value="CAP">C.A.P</option>
+      <option value="Canute">Canute</option>
+      <option value="Carrington">Carrington</option>
+      <option value="CheadleHulme">Cheadle Hulme</option>
+      <option value="CollegeGreen">College Green</option>
+      <option value="David Lloyd">David Lloyd</option>
+      <option value="Disley">Disley</option>
+      <option value="Dome">Dome</option>
+      <option value="GHAP">G.H.A.P</option>
+      <option value="Macclesfield">Macclesfield</option>
+      <option value="Manor">Manor</option>
+      <option value="Mellor">Mellor</option>
+      <option value="New Mills">New Mills</option>
+      <option value="Parrs Wood">Parrs Wood</option>
+      <option value="Poynton">Poynton</option>
+      <option value="Racketeer">Racketeer</option>
+      <option value="Shell">Shell</option>
+      <option value="Syddal Park">Syddal Park</option>
+      <option value="Tatton">Tatton</option>
+    </select>
+  </div>
+  <div class="form-group d-none" id="leagueDropDown">
+    <label for="leagueSelect">Which committee member are you contacting</label>
+    <select name="leagueSelect" id="leagueSelect" class="form-control">
+      <option disabled selected>Choose...</option>
+      <option value="league">League Secretary</option>
+      <option value="results">Results Secretary</option>
+      <option value="tournament">Tournament Secretary</option>
+      <option value="messer">Messer Secretary</option>
+      <option value="juniors">Juniors Secretary</option>
+      <option value="juniortournament">Junior Tournaments Secretary</option>
+      <option value="chair">Chair</option>
+      <option value="treasurer">Treasurer</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="contactEmail">Email address</label>
+    <input type="email" class="form-control" id="contactEmail" name="contactEmail" aria-describedby="emailHelp" placeholder="Enter email">
+    <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+  </div>
+  <div class="form-group">
+    <label for="contactQuery">Message that you want to send to the club contact</label>
+    <textarea class="form-control" id="contactQuery" name="contactQuery" rows="3"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<% include footer.ejs %>
+
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('#contactType').change(function(){
+      switch ($('#contactType').val()) {
+        case 'Clubs':
+          $('#clubsDropDown').attr('class','form-group d-block');
+          $('#leaugeDropDown').attr('class','form-group d-none');
+          break;
+        case 'League':
+          $('#leagueDropDown').attr('class','form-group d-block');
+          $('#clubsDropDown').attr('class','form-group d-none');
+          break;
+        default:
+      }
+    })
+  })
+</script>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+<% include header.ejs %>
+
+
+      <div class="jumbotron">
+        <% if (error) { %>
+          <p>Something seems to have gone wrong</p>
+        <% }
+        else { %>
+        <div class="playerDetail">
+
+<p>
+
+<% player_list.forEach(function(player){ %>
+Name: <%= player.name %> <br />
+Gender: <%= player.gender %><br />
+Team: <%= player.team.name %> <br />
+Registration: <%= player.date_of_registration %>
+<%
+})
+
+%>
+</p>
+
+
+            <%
+
+            %>
+            </div>
+        <% } %>
+
+      </div>
+<% include footer.ejs %>

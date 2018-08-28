@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>A New Startup: Sign Up Today!</title>
+
+    <!-- GMD CSS -->
+	<link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.css">
+	<link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+  </head>
+
+  <body>
+  <header class="mdc-toolbar" data-mdc-auto-init="MDCToolbar">
+  <div class="mdc-toolbar__row mdc-menu-anchor">
+    <section class="mdc-toolbar__section mdc-toolbar__section--align-start">
+      <a href="#" class="material-icons mdc-toolbar__icon--menu" id="menuIcon">menu</a>
+	  <div class="mdc-simple-menu" tabindex="-1" data-mdc-auto-init="MDCSimpleMenu">
+		  <ul class="mdc-simple-menu__items mdc-list" role="menu" aria-hidden="true">
+			<li class="mdc-list-item" role="menuitem" tabindex="0">
+			  Scorecard
+			</li>
+			<li class="mdc-list-item" role="menuitem" tabindex="0">
+			  League Tables
+			</li>
+			<li class="mdc-list-item" role="menuitem" tabindex="0">
+			  Register Player
+			</li>
+		  </ul>
+		</div>
+      <span class="mdc-toolbar__title">Scorecard</span>
+    </section>
+  </div>
+</header>
+
+<main>
+
+  <div class="jumbotron">
+    This is the mongodb test page.
+  </div>
+</main>
+<script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.js"></script>
+<script>
+	mdc.autoInit();
+	let menu = new mdc.menu.MDCSimpleMenu(document.querySelector('.mdc-simple-menu'));
+	// Add event listener to some button to toggle the menu on and off.
+	document.querySelector('#menuIcon').addEventListener('click', () => menu.open = !menu.open);
+</script>
+
+  </body>
+</html>

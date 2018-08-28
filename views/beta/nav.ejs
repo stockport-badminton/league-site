@@ -1,0 +1,63 @@
+<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" href="/">
+        <span class="d-lg-block d-none">Stockport &amp; District Badminton League</span>
+        <span class="d-block d-lg-none">SDBL</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="https://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Tables</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="/tables/Premier">Premier</a>
+              <a class="dropdown-item" href="/tables/Division-1">Division 1</a>
+              <a class="dropdown-item" href="/tables/Division-2">Division 2</a>
+              <a class="dropdown-item" href="/tables/Division-3">Division 3</a>
+              <a class="dropdown-item" href="/tables/Division-4">Division 4</a>
+            </div>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="https://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Results</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="/results/Premier">Premier</a>
+              <a class="dropdown-item" href="/results/Division-1">Division 1</a>
+              <a class="dropdown-item" href="/results/Division-2">Division 2</a>
+              <a class="dropdown-item" href="/results/Division-3">Division 3</a>
+              <a class="dropdown-item" href="/results/Division-4">Division 4</a>
+            </div>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="https://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Messer</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="<%= static_path %>/beta/docs/sdblmessertrophyrules.pdf">Rules</a>
+              <a class="dropdown-item" href="<%= static_path %>/beta/docs/MesserASection1819.pdf">A Section Draw</a>
+              <a class="dropdown-item" href="<%= static_path %>/beta/docs/MesserBSection1819.pdf">B Section Draw</a>
+              <a class="dropdown-item disabled">Scoresheet</a>
+            </div>
+          </li>
+          <li class="nav-item dropdown"><a class="nav-link" href="/info/clubs">Clubs</a></li>
+          <li class="class="nav-item"><a class="nav-link" href="<%= static_path %>/beta/docs/Scorecard-20172018.xls">Scorecards</a></li>
+          <li class="nav-item"><a class="nav-link" href="<%= static_path %>/beta/docs/sdblleaguerules.pdf">Rules</a></li>
+          <li class="nav-item"><a class="nav-link" href="//sdblhistory.wikidot.com/">Nostalgia</a></li>
+          <li class="nav-item"><a class="nav-link" href="/contact-us">Contact Us</a></li>
+
+        </ul>
+      </div>
+    </nav>
+
+    <main role="main" class="container respBgImg">
+      <img src="<%= static_path %>/beta/images/bg/1920.png"
+        sizes="
+          100vw"
+        srcset="
+          <%= static_path %>/beta/images/bg/1920.png 1920w,
+          <%= static_path %>/beta/images/bg/640v.png 640w,
+          <%= static_path %>/beta/images/bg/320v.png 320w,
+          <%= static_path %>/beta/images/bg/1600.png 1600w,
+          <%= static_path %>/beta/images/bg/1366.png 1366w,
+          <%= static_path %>/beta/images/bg/1024.png 1024w,
+          <%= static_path %>/beta/images/bg/768l.png 768w" >
+      <div class="starter-template">
