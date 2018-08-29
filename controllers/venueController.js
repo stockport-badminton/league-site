@@ -30,6 +30,19 @@ exports.venue_create_post = function(req, res) {
   })
 };
 
+exports.venue_batch_create = function(req, res){
+  Venue.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Venue delete form on GET
 exports.venue_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Venue delete GET');

@@ -28,6 +28,29 @@ exports.create = function(fixtureObj,done){
   }
 }
 
+exports.createBatch = function(tablename,BatchObj,done){
+  if(db.isObject(BatchObj)){
+    var sql = 'INSERT INTO `'+tablename+'` (';
+    var containerArray = [];
+    var updateArray = [];
+    var updateArrayVars = [];
+    var updateArrayValues = [];
+    for (x in BatchObj){
+      console.log(BatchObj[x]);
+      updateArray = [];
+      for (y in BatchObj[x]){
+        updateArray.push(BatchObj[x][y]);
+      }
+      containerArray.push(updateArray)
+    }
+    console.log(containerArray);
+    done(null,containerArray);
+  }
+  else{
+    return done(err);
+  }
+}
+
 // GET
 exports.getAll = function(done){
   db.get().query('SELECT * FROM `fixture`', function (err, rows){

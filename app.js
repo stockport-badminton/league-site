@@ -447,6 +447,9 @@
     /* POST request for creating Fixture. */
     router.post('/fixture/create',checkJwt, fixture_controller.fixture_create_post);
 
+    /* POST request for batch creating Fixture. */
+    router.post('/fixture/batch-create',checkJwt, fixture_controller.fixture_batch_create);
+
     /* GET request to delete Fixture. */
     router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
 
@@ -498,6 +501,9 @@
 
     /* POST request for creating Venue. */
     router.post('/venue/create',checkJwt, venue_controller.venue_create_post);
+
+    /* POST request for batch creating Venue. */
+    router.post('/venue/batch-create',checkJwt, venue_controller.venue_batch_create);
 
     /* GET request to delete Venue. */
     router.get('/venue/:id/delete', venue_controller.venue_delete_get);

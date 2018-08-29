@@ -3,6 +3,10 @@ var League = require('../models/league.js');
 // Display list of all Leagues
 exports.league_list = function(req, res) {
     League.getAll(function(err,rows){
+      if (err){
+        console.log(err);
+        res.send(err);
+      }
       console.log(rows);
       res.send(rows);
     })
