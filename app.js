@@ -503,7 +503,7 @@
     router.post('/venue/create',checkJwt, venue_controller.venue_create_post);
 
     /* POST request for batch creating Venue. */
-    router.post('/venue/batch-create',checkJwt, venue_controller.venue_batch_create);
+    router.post('/venue/batchCreate',checkJwt, venue_controller.venue_batch_create);
 
     /* GET request to delete Venue. */
     router.get('/venue/:id/delete', venue_controller.venue_delete_get);
