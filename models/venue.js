@@ -12,21 +12,21 @@ exports.create = function(name,address,gMapUrl,done){
 exports.createBatch = function(BatchObj,done){
   if(db.isObject(BatchObj)){
     var fields = BatchObj.fields.join("`,`");
-    var sql = "INSERT INTO `"+BatchObj.tablename+"` (`"+fields+"`) VALUES ";
+    var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
     // console.log(sql);
     var containerArray = [];
     var updateArray = [];
-    var updateValuesString = "";
+    var updateValuesString = '';
     for (x in BatchObj.data){
       updateArray = [];
       for (y in BatchObj.data[x]){
         updateArray.push(BatchObj.data[x][y]);
       }
-      updateValuesString = "('"+updateArray.join("','")+"')"
+      updateValuesString = '("'+updateArray.join('","')+'")'
       containerArray.push(updateValuesString)
     }
     // console.log(containerArray);
-    sql = sql + containerArray.join(",")
+    sql = sql + containerArray.join(',')
     // console.log(sql);
     db.get().query(sql,function(err,result){
       if (err) return done(err);
@@ -34,7 +34,7 @@ exports.createBatch = function(BatchObj,done){
     })
   }
   else{
-    return done("not object");
+    return done('not object');
   }
 }
 
