@@ -38,8 +38,14 @@
               <a class="dropdown-item disabled">Scoresheet</a>
             </div>
           </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="https://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Scorecards</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="<%= static_path %>/beta/docs/Scorecard-20182019.xls">Scorecard.XLS</a>
+              <a class="dropdown-item" href="<%= static_path %>/beta/docs/Scorecard-20172018.xlsx" title="newer versions of excel">Scorecard.XLSX</a>
+            </div>
+          </li>
           <li class="nav-item dropdown"><a class="nav-link" href="/info/clubs">Clubs</a></li>
-          <li class="class="nav-item"><a class="nav-link" href="<%= static_path %>/beta/docs/Scorecard-20172018.xls">Scorecards</a></li>
           <li class="nav-item"><a class="nav-link" href="<%= static_path %>/beta/docs/sdblleaguerules.pdf">Rules</a></li>
           <li class="nav-item"><a class="nav-link" href="//sdblhistory.wikidot.com/">Nostalgia</a></li>
           <li class="nav-item"><a class="nav-link" href="/contact-us">Contact Us</a></li>
