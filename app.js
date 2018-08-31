@@ -38,6 +38,7 @@
 
     var app = express();
     app.use('/static', express.static(path.join(__dirname,'/static')));
+    app.use(express.static('rootfiles'));
     app.set('view engine', 'ejs');
     app.set('views', __dirname + '/views');
     app.use(bodyParser.json());
