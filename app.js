@@ -78,7 +78,9 @@
         res.render('beta/homepage', {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false'
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Homepage",
+            pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport."
         });
     });
 
@@ -86,7 +88,9 @@
         res.render('beta/contact-us-form', {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false'
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Contact Us",
+            pageDescription : "Get in touch with your league representatives, or club secretaries"
         });
     });
 
@@ -284,7 +288,10 @@
         res.render('beta/table-' + req.params.league, {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false'
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "League Table: "+ req.params.league,
+            pageDescription : "Find out how your teams are peforming this season"
+
         });
     });
 
@@ -292,7 +299,9 @@
         res.render('beta/results-' + req.params.league, {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false'
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Fixtures & Results: " + req.params.league,
+            pageDescription : "Find out how the teams in your division have got on, and check when your next match is"
         });
     });
 
@@ -300,7 +309,10 @@
         res.render('beta/clubs', {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false'
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Local Badminton Club Information",
+            pageDescription : "Find your local badminton clubs, when they play, where they play."
+
         });
     });
 
