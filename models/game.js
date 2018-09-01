@@ -28,6 +28,35 @@ exports.create = function(gameObj,done){
   }
 }
 
+exports.createBatch = function(BatchObj,done){
+  if(db.isObject(BatchObj)){
+    var fields = BatchObj.fields.join("`,`");
+    var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
+    // console.log(sql);
+    var containerArray = [];
+    var updateArray = [];
+    var updateValuesString = '';
+    for (x in BatchObj.data){
+      updateArray = [];
+      for (y in BatchObj.data[x]){
+        updateArray.push(BatchObj.data[x][y]);
+      }
+      updateValuesString = '("'+updateArray.join('","')+'")'
+      containerArray.push(updateValuesString)
+    }
+    // console.log(containerArray);
+    sql = sql + containerArray.join(',')
+    // console.log(sql);
+    db.get().query(sql,function(err,result){
+      if (err) return done(err);
+      done(null,result)
+    })
+  }
+  else{
+    return done('not object');
+  }
+}
+
 // GET
 exports.getAll = function(done){
   db.get().query('SELECT * FROM `game`', function (err, rows){

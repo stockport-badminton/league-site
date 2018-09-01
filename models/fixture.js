@@ -28,26 +28,32 @@ exports.create = function(fixtureObj,done){
   }
 }
 
-exports.createBatch = function(tablename,BatchObj,done){
+exports.createBatch = function(BatchObj,done){
   if(db.isObject(BatchObj)){
-    var sql = 'INSERT INTO `'+tablename+'` (';
+    var fields = BatchObj.fields.join("`,`");
+    var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
+    // console.log(sql);
     var containerArray = [];
     var updateArray = [];
-    var updateArrayVars = [];
-    var updateArrayValues = [];
-    for (x in BatchObj){
-      console.log(BatchObj[x]);
+    var updateValuesString = '';
+    for (x in BatchObj.data){
       updateArray = [];
-      for (y in BatchObj[x]){
-        updateArray.push(BatchObj[x][y]);
+      for (y in BatchObj.data[x]){
+        updateArray.push(BatchObj.data[x][y]);
       }
-      containerArray.push(updateArray)
+      updateValuesString = '("'+updateArray.join('","')+'")'
+      containerArray.push(updateValuesString)
     }
-    console.log(containerArray);
-    done(null,containerArray);
+    // console.log(containerArray);
+    sql = sql + containerArray.join(',')
+    // console.log(sql);
+    db.get().query(sql,function(err,result){
+      if (err) return done(err);
+      done(null,result)
+    })
   }
   else{
-    return done(err);
+    return done('not object');
   }
 }
 

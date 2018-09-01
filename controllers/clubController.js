@@ -30,6 +30,19 @@ exports.club_create_post = function(req, res) {
   })
 };
 
+exports.club_batch_create = function(req, res){
+  Club.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Club delete form on GET
 exports.club_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Club delete GET');

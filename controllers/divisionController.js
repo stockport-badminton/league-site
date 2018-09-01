@@ -38,6 +38,19 @@ exports.division_create_post = function(req, res) {
   })
 };
 
+exports.fixture_batch_create = function(req, res){
+  Fixture.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Division delete form on GET
 exports.division_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Division delete GET');

@@ -50,6 +50,19 @@ exports.game_create_post = function(req, res) {
     })
 };
 
+exports.game_batch_create = function(req, res){
+  Game.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Game delete form on GET
 exports.game_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Game delete GET');

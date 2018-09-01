@@ -138,6 +138,19 @@ exports.player_create_post = function(req, res, next) {
 
 };
 
+exports.player_batch_create = function(req, res){
+  Player.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Player delete form on GET
 exports.player_delete_get = function(req, res) {
   async.waterfall([

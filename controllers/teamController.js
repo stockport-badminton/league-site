@@ -34,6 +34,19 @@ exports.team_create_post = function(req, res) {
   })
 };
 
+exports.teams_batch_create = function(req, res){
+  Team.createBatch(req.body,function(err,result){
+    if(err){
+      res.send(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Team delete form on GET
 exports.team_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Team delete GET');

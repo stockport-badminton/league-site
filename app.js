@@ -327,6 +327,10 @@
     /* POST request for creating Player. */
     router.post('/player/create',checkJwt, player_controller.player_create);
 
+    /* POST request for batch creating Fixture. */
+    router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
+
+
     /* GET request to delete Player. */
     router.get('/player/:id/delete', player_controller.player_delete_get);
 
@@ -352,6 +356,10 @@
 
     /* POST request for creating Team. */
     router.post('/team/create',checkJwt, team_controller.team_create_post);
+
+    /* POST request for batch creating Fixture. */
+    router.post('/team/batch-create',checkJwt, team_controller.team_batch_create);
+
 
     /* GET request to delete Team. */
     router.get('/team/:id/delete', team_controller.team_delete_get);
@@ -408,6 +416,10 @@
     /* POST request for creating Club. */
     router.post('/club/create',checkJwt, club_controller.club_create_post);
 
+    /* POST request for batch creating Fixture. */
+    router.post('/club/batch-create',checkJwt, club_controller.club_batch_create);
+
+
     /* GET request to delete Club. */
     router.get('/club/:id/delete', club_controller.club_delete_get);
 
@@ -433,6 +445,10 @@
 
     /* POST request for creating Division. */
     router.post('/division/create',checkJwt, division_controller.division_create_post);
+
+    /* POST request for batch creating Fixture. */
+    router.post('/division/batch-create',checkJwt, division_controller.division_batch_create);
+
 
     /* GET request to delete Division. */
     router.get('/division/:id/delete', division_controller.division_delete_get);
@@ -489,6 +505,9 @@
     /* POST request for creating Game. */
     router.post('/game/create',checkJwt, game_controller.game_create_post);
 
+    /* POST request for batch creating Games. */
+    router.post('/game/batch-create',checkJwt, game_controller.game_batch_create);
+
     /* GET request to delete Game. */
     router.get('/game/:id/delete', game_controller.game_delete_get);
 
@@ -516,7 +535,7 @@
     router.post('/venue/create',checkJwt, venue_controller.venue_create_post);
 
     /* POST request for batch creating Venue. */
-    router.post('/venue/batchCreate',checkJwt, venue_controller.venue_batch_create);
+    router.post('/venue/batch-create',checkJwt, venue_controller.venue_batch_create);
 
     /* GET request to delete Venue. */
     router.get('/venue/:id/delete', venue_controller.venue_delete_get);
