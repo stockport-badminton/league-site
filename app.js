@@ -358,7 +358,7 @@
     router.post('/team/create',checkJwt, team_controller.team_create_post);
 
     /* POST request for batch creating Fixture. */
-    router.post('/team/batch-create',checkJwt, team_controller.team_batch_create);
+    router.post('/team/batch-create',checkJwt, team_controller.teams_batch_create);
 
 
     /* GET request to delete Team. */
