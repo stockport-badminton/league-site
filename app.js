@@ -556,3 +556,13 @@
     router.get('/venues',checkJwt, venue_controller.venue_list);
 
     app.use('/',router);
+
+    app.use(function(req, res, next){
+        res.status(404).render('beta/404-error', {
+            static_path: '/static',
+            theme: process.env.THEME || 'flatly',
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Can't find the page your looking for",
+            pageDescription : "HTTP 404 Error"
+        });
+    });
