@@ -436,7 +436,10 @@
     router.get('/club/:id',checkJwt, club_controller.club_detail);
 
     /* GET request for list of all Club items. */
-    router.get('/clubs',checkJwt, club_controller.club_list);
+    router.get('/clubs', club_controller.club_list);
+
+    /* GET request for list of all Club items. */
+    router.get('/clubs-v2', club_controller.club_list_detail);
 
     /// DIVISION ROUTES ///
 
@@ -553,29 +556,25 @@
     router.get('/venue/:id',checkJwt, venue_controller.venue_detail);
 
     /* GET request for list of all Venue items. */
-    router.get('/venues',checkJwt, venue_controller.venue_list);
+    router.get('/venues', venue_controller.venue_list);
 
-    // app.use('/',router);
+     app.use('/',router);
 
     // Handle 404
-    app.use(function(req, res) {
+    /* app.use(function(req, res) {
         res.status(404);
        res.render('beta/404-error', {
            static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Can't find the page your looking for",
            pageDescription : "HTTP 404 Error"
        });
-    });
+    }); */
 
     // Handle 500
     app.use(function(error, req, res, next) {
         res.status(500);
        res.render('beta/500-error', {
            static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "HTTP 500 Error",
            pageDescription : "HTTP 500 Error",
            error:error

@@ -8,6 +8,33 @@ exports.club_list = function(req, res) {
     })
 };
 
+// Display list of all Clubs
+exports.club_list_detail = function(req, res) {
+    Club.clubDetail(function(err,result){
+      if(err){
+        // console.log(result)
+        res.status(500);
+       res.render('beta/club-v2', {
+           static_path: '/static',
+           pageTitle : "Clubs - Error",
+           pageDescription : "Clubs - Error",
+           error: error
+       });
+      }
+      else{
+        // console.log(result)
+        res.status(200);
+       res.render('beta/club-v2', {
+           static_path: '/static',
+           pageTitle : "Clubs",
+           pageDescription : "Clubs",
+           result: result,
+           error: false
+       });
+      }
+    })
+};
+
 // Display detail page for a specific Club
 exports.club_detail = function(req, res) {
     Club.getById(req.params.id,function(err,row){

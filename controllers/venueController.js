@@ -2,9 +2,32 @@ var Venue = require('../models/venue');
 
 // Display list of all Venues
 exports.venue_list = function(req, res) {
-    Venue.getAll(function(err,rows){
-      console.log(rows);
-      res.send(rows);
+    Venue.getAll(function(err,result){
+      if(err){
+        // console.log(result)
+        res.status(500);
+       res.render('beta/venues', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Venues - Error",
+           pageDescription : "Venues - Error",
+           error: error
+       });
+      }
+      else{
+        // console.log(result)
+        res.status(200);
+       res.render('beta/venues', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Venues",
+           pageDescription : "Venues",
+           result: result,
+           error: false
+       });
+      }
     })
 };
 

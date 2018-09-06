@@ -1,0 +1,40 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+  <% if (error) { %>
+    <p>Something seems to have gone wrong</p>
+    <p><%= error %></p>
+  <% }
+  else { %>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Home Team</th>
+          <th>Away Team</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+    <% result.forEach(function(row){ %>
+      <tr>
+          <td><%= row['name'] %></td>
+          <td><a href="<%= row['gMapUrl'] %>"><%= row['address'] %></a></td>
+      </tr>
+    <% }) %>
+      </tbody>
+    </table>
+   <% } %>
+
+
+
+
+<% include footer.ejs %>
+
+
+</body>
+</html>

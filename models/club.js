@@ -46,6 +46,13 @@ exports.getAll = function(done){
   })
 }
 
+exports.clubDetail = function(done){
+  db.get().query('SELECT a.name, a.venue, a.address, a.gMapURL AS clubVenueURL, a.matchNightText,a.clubNightText, a.clubWebsite, venue.name AS matchVenueName, venue.gMapUrl ASmatchVenueURL FROM (SELECT club.name, venue.name AS venue, venue.gMapUrl,venue.address, club.matchNightText, club.clubNightText, club.clubWebsite,club.matchVenue FROM badminton.club JOIN badminton.venue WHERE venue.id =club.venue) AS a JOIN badminton.venue WHERE (a.matchVenue = venue.id OR a.matchVenue = NULL) ORDER BY a.name', function (err, rows){
+    if (err) return done(err);
+    done(null, rows);
+  })
+}
+
 // GET
 exports.getById = function(clubId,done){
   db.get().query('SELECT * FROM `club` WHERE `id` = ?',clubId, function (err, rows){

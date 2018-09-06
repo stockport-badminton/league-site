@@ -18,6 +18,6 @@
     "mysql": "^2.16.0"
   },
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "RDS_HOSTNAME=localhost RDS_PORT=3306 RDS_USERNAME=root RDS_PASSWORD=BwzCWv3dFz2d5KFNXGd6 AUTH0_DOMAIN=stockport-badminton.eu.auth0.com AUTH0_AUDIENCE=stockport-badminton.co.uk nodemon app.js"
   }
 }

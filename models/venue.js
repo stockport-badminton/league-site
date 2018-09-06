@@ -40,7 +40,7 @@ exports.createBatch = function(BatchObj,done){
 
 // GET
 exports.getAll = function(done){
-  db.get().query('SELECT * FROM `venue`', function (err, rows){
+  db.get().query('SELECT name, address, gMapUrl FROM `venue`', function (err, rows){
     if (err) return done(err);
     done(null, rows);
   })
