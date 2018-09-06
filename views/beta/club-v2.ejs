@@ -21,7 +21,7 @@
     <% result.forEach(function(row){ %>
       <tr>
         <% if (row['clubWebsite'] != ''){ %>
-          <td><a href="<%= row['clubWebsite'] %>"><%= row['name'] %></a></td>
+          <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
         <% }
         else { %>
           <td><%= row['name'] %></td>
@@ -31,11 +31,11 @@
           <td><%= row['clubNightText'] %></td>
           <%
             if (row['venue'] == row['matchVenueName']) { %>
-          <td><a href="<%= row['clubVenueURL'] %>"><%= row['address'] %></a></td>
+          <td><a href="<%= row['clubVenueURL'] %>" target="_blank"><%= row['address'] %></a></td>
           <% }
             else { %>
-              <td>Club: <a href="<%= row['clubVenueURL'] %>"><%= row['address'] %></a><br />
-              Matches: <a href="<%= row['matchVenueURL'] %>"><%= row['matchVenueName'] %></a></td>
+              <td>Club: <a href="<%= row['clubVenueURL'] %>" target="_blank"><%= row['address'] %></a><br />
+              Matches: <a href="<%= row['matchVenueURL'] %>" target="_blank"><%= row['matchVenueName'] %></a></td>
           <% }
           %>
       </tr>
@@ -46,24 +46,8 @@
    <% } %>
 
 
-
-
 <% include footer.ejs %>
 
 
 </body>
 </html>
-
-
-CREATE TABLE `club` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) NOT NULL,
-  `venue` int(11) DEFAULT NULL,
-  `matchNightText` varchar(100) DEFAULT NULL,
-  `clubNightText` varchar(45) DEFAULT NULL,
-  `clubNight` enum('Mon','Tue','Wed','Thu','Fri','Sat','Sun','None') DEFAULT NULL,
-  `clubNightCourts` int(11) DEFAULT NULL,
-  `clubWebsite` varchar(100) DEFAULT NULL,
-  `matchVenue` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4
