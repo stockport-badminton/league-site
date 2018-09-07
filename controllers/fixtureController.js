@@ -61,10 +61,11 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         res.status(200);
        res.render('beta/fixtures-results', {
            static_path: '/static',
-           pageTitle : "Fixtures & Results: ",
+           pageTitle : "Fixtures & Results: " + req.params.division,
            pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
            result: result,
-           error: false
+           error: false,
+           division : req.params.division
        });
       }
     })

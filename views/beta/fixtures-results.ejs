@@ -7,8 +7,9 @@
     <p><%= error %></p>
   <% }
   else { %>
+    <h1><%= division.replace('-',' ') %></h1>
     <div class="table-responsive"></div>
-    <table class="table">
+    <table class="table" id="results-table">
       <thead>
         <tr>
           <th>Date</th>
