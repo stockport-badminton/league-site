@@ -52,7 +52,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
       default:
         next(err);
     }
-    Fixture.getFixtureDetails(function(err,result){
+    Fixture.getFixtureDetails(divisionId, function(err,result){
       if (err){
         next(err);
       }
