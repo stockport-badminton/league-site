@@ -1,16 +1,14 @@
 <% include header.ejs %>
 <% include nav.ejs %>
 
-<% include header.ejs %>
-<% include nav.ejs %>
-
 
   <% if (error) { %>
     <p>Something seems to have gone wrong</p>
     <p><%= error %></p>
   <% }
   else { %>
-    <table border="1">
+    <div class="table-responsive"></div>
+    <table class="table">
       <thead>
         <tr>
           <th>Date</th>
@@ -22,12 +20,20 @@
       <tbody>
     <% result.forEach(function(row){ %>
       <tr>
-          <td><%= row['name'] %></td>
-          <td><a href="<%= row['gMapUrl'] %>"><%= row['address'] %></a></td>
+          <td><%= new Date(row['date']).getDate() %>/<%= (new Date(row['date']).getMonth())+1 %>/<%= new Date(row['date']).getFullYear() %></td>
+          <td><%= row['homeTeam'] %></td>
+          <td><%= row['awayTeam'] %></td>
+          <% if(row['homeScore'] != null){ %>
+          <td><%= row['homeScore'] %>-<%= row['awayScore'] %></td>
+          <% }
+          else { %>
+           <td>&nbsp;</td>
+          <% } %>
       </tr>
     <% }) %>
       </tbody>
     </table>
+  </div>
    <% } %>
 
 

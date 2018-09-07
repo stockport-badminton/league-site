@@ -501,7 +501,10 @@
     router.get('/fixture/:id',checkJwt, fixture_controller.fixture_detail);
 
     /* GET request for list of all Fixture items. */
-    router.get('/fixtures',checkJwt, fixture_controller.fixture_list);
+    router.get('/fixtures', fixture_controller.fixture_list);
+
+    /* GET request for list of all Fixture items. */
+    router.get('/fixtures-v2/:division', fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 

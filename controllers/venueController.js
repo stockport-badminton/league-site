@@ -13,8 +13,6 @@ exports.venue_list = function(req, res,next) {
         res.status(200);
        res.render('beta/venues', {
            static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Venues",
            pageDescription : "Venues",
            result: result,

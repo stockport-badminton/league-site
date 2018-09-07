@@ -30,6 +30,46 @@ exports.fixture_detail = function(req, res) {
     })
 };
 
+// Display detail page for a specific Fixture
+exports.fixture_detail_byDivision = function(req, res,next) {
+    var divisionId = 0;
+    switch (req.params.division) {
+      case 'Division-1':
+        divisionId = 8
+        break;
+      case 'Premier':
+        divisionId = 7
+        break;
+      case 'Division-2':
+        divisionId = 9
+        break;
+      case 'Division-3':
+        divisionId = 10
+        break;
+      case 'Division-4':
+        divisionId = 11
+        break;
+      default:
+        next(err);
+    }
+    Fixture.getFixtureDetails(function(err,result){
+      if (err){
+        next(err);
+      }
+      else{
+        // console.log(result)
+        res.status(200);
+       res.render('beta/fixtures-results', {
+           static_path: '/static',
+           pageTitle : "Fixtures & Results: ",
+           pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+           result: result,
+           error: false
+       });
+      }
+    })
+};
+
 // Display Fixture create form on GET
 exports.fixture_create_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Fixture create GET');

@@ -65,6 +65,15 @@ exports.getAll = function(done){
   })
 }
 
+exports.getFixtureDetails = function(done){
+  db.get().query('Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam', function (err, result){
+    if (err) return done(err);
+    done(null, result);
+  })
+}
+
+
+
 // GET
 exports.getById = function(fixtureId,done){
   db.get().query('SELECT * FROM `fixture` WHERE `id` = ?',fixtureId, function (err, rows){
