@@ -112,6 +112,9 @@
       var params = {
         Destination: { /* required */
           ToAddresses: [
+          ],
+          BccAddresses: [
+            'stockport.badders.results@gmail.com'
           ]
         },
         Message: { /* required */
@@ -561,14 +564,14 @@
      app.use('/',router);
 
     // Handle 404
-    /* app.use(function(req, res) {
+     app.use(function(req, res) {
         res.status(404);
        res.render('beta/404-error', {
            static_path: '/static',
            pageTitle : "Can't find the page your looking for",
            pageDescription : "HTTP 404 Error"
        });
-    }); */
+    });
 
     // Handle 500
     app.use(function(error, req, res, next) {

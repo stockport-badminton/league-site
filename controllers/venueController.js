@@ -25,10 +25,15 @@ exports.venue_list = function(req, res,next) {
 };
 
 // Display detail page for a specific Venue
-exports.venue_detail = function(req, res) {
+exports.venue_detail = function(req, res,next) {
     Venue.getById(req.params.id,function(err,row){
+      if (err){
+        next(err)
+      }
+      else {
       console.log(row);
       res.send(row);
+      }
     })
 };
 
@@ -46,11 +51,11 @@ exports.venue_create_post = function(req, res) {
   })
 };
 
-exports.venue_batch_create = function(req, res){
+exports.venue_batch_create = function(req, res,next){
   Venue.createBatch(req.body,function(err,result){
     if(err){
-      res.send(err);
-      console.log(err);
+      next(err);
+      // console.log(err);
     }
     else{
       // console.log(result)
@@ -65,11 +70,16 @@ exports.venue_delete_get = function(req, res) {
 };
 
 // Handle Venue delete on POST
-exports.venue_delete_post = function(req, res) {
+exports.venue_delete_post = function(req, res,next) {
     Venue.deleteById(req.params.id,function(err,row){
+      if (err){
+        next(err);
+      }
+      else {
       console.log(req.params)
       console.log(row);
       res.send(row);
+      }
     })
 };
 
@@ -79,10 +89,15 @@ exports.venue_update_get = function(req, res) {
 };
 
 // Handle Venue update on POST
-exports.venue_update_post = function(req, res) {
+exports.venue_update_post = function(req, res,next) {
     Venue.updateById(req.body.name, req.body.address, req.body.gMapUrl, req.params.id, function(err,row){
+      if (err){
+        next(err)
+      }
+      else {
       console.log(req.body);
       console.log(row);
       res.send(row);
+      }
     })
 };
