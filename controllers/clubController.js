@@ -9,25 +9,20 @@ exports.club_list = function(req, res) {
 };
 
 // Display list of all Clubs
-exports.club_list_detail = function(req, res) {
+exports.club_list_detail = function(req, res, next) {
     Club.clubDetail(function(err,result){
       if(err){
         // console.log(result)
         res.status(500);
-       res.render('beta/club-v2', {
-           static_path: '/static',
-           pageTitle : "Clubs - Error",
-           pageDescription : "Clubs - Error",
-           error: error
-       });
+        next(err);
       }
       else{
         // console.log(result)
         res.status(200);
        res.render('beta/club-v2', {
            static_path: '/static',
-           pageTitle : "Clubs",
-           pageDescription : "Clubs",
+           pageTitle : "Local Badminton Club Information",
+           pageDescription : "Find your local badminton clubs, when they play, where they play.",
            result: result,
            error: false
        });

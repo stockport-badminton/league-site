@@ -1,19 +1,12 @@
 var Venue = require('../models/venue');
 
 // Display list of all Venues
-exports.venue_list = function(req, res) {
+exports.venue_list = function(req, res,next) {
     Venue.getAll(function(err,result){
       if(err){
         // console.log(result)
         res.status(500);
-       res.render('beta/venues', {
-           static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
-           pageTitle : "Venues - Error",
-           pageDescription : "Venues - Error",
-           error: error
-       });
+        next(err);
       }
       else{
         // console.log(result)

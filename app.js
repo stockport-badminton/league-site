@@ -305,7 +305,7 @@
         });
     });
 
-    app.get('/info/clubs', function(req, res) {
+    app.get('/club-v2', function(req, res) {
         res.render('beta/clubs', {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
@@ -439,7 +439,7 @@
     router.get('/clubs', club_controller.club_list);
 
     /* GET request for list of all Club items. */
-    router.get('/clubs-v2', club_controller.club_list_detail);
+    router.get('/info/clubs', club_controller.club_list_detail);
 
     /// DIVISION ROUTES ///
 
