@@ -298,7 +298,7 @@
         });
     });
 
-    app.get('/results/:league', function(req, res) {
+    app.get('/fixtures-v2/:league', function(req, res) {
         res.render('beta/results-' + req.params.league, {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',
@@ -504,7 +504,7 @@
     router.get('/fixtures', fixture_controller.fixture_list);
 
     /* GET request for list of all Fixture items. */
-    router.get('/fixtures-v2/:division', fixture_controller.fixture_detail_byDivision);
+    router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 
