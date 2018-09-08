@@ -21,7 +21,17 @@
       <tbody>
     <% result.forEach(function(row){ %>
       <tr>
-          <td><%= new Date(row['date']).getDate() %>/<%= (new Date(row['date']).getMonth())+1 %>/<%= new Date(row['date']).getFullYear() %></td>
+        <%
+          var MyDate = new Date(row['date']);
+          var MyDateString;
+
+          // MyDate.setDate(MyDate.getDate() + 20);
+
+          MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                       + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                       + MyDate.getFullYear();
+        %>
+          <td><%= MyDateString %></td>
           <td><%= row['homeTeam'] %></td>
           <td><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){ %>
