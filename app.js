@@ -298,27 +298,6 @@
         });
     });
 
-    app.get('/fixtures-v2/:league', function(req, res) {
-        res.render('beta/results-' + req.params.league, {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Fixtures & Results: " + req.params.league,
-            pageDescription : "Find out how the teams in your division have got on, and check when your next match is"
-        });
-    });
-
-    app.get('/club-v2', function(req, res) {
-        res.render('beta/clubs', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Local Badminton Club Information",
-            pageDescription : "Find your local badminton clubs, when they play, where they play."
-
-        });
-    });
-
     /// PLAYER ROUTES ///
 
     /* GET catalog home page. */
@@ -484,6 +463,12 @@
 
     /* POST request for batch creating Fixture. */
     router.post('/fixture/batch-create',checkJwt, fixture_controller.fixture_batch_create);
+
+    /* POST request for batch creating Fixture. */
+    router.post('/fixture/enter-result',checkJwt, fixture_controller.fixture_update_by_team_name);
+
+    /* POST request for batch creating Fixture. */
+    //router.post('/fixture/batch-update',checkJwt, fixture_controller.fixture_batch_update);
 
     /* GET request to delete Fixture. */
     router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);

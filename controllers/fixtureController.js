@@ -104,6 +104,19 @@ exports.fixture_batch_create = function(req, res){
   })
 }
 
+exports.fixture_update_by_team_name = function(req, res,next){
+  Fixture.updateByTeamNames(req.body,function(err,result){
+    if(err){
+      next(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
 // Display Fixture delete form on GET
 exports.fixture_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Fixture delete GET');
