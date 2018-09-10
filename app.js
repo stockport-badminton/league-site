@@ -390,6 +390,9 @@
     /* GET request for list of all League items. */
     router.get('/leagues',checkJwt, league_controller.league_list);
 
+    /* GET request for list of all League items. */
+    router.get('/table/:division', league_controller.league_table);
+
     /// CLUB ROUTES ///
 
     /* GET request for creating a Club. NOTE This must come before routes that display Club (uses id) */

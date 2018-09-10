@@ -63,3 +63,29 @@ exports.league_update = function(req, res) {
       res.send(row);
     })
 };
+
+var League = require('../models/league.js');
+
+// Display list of all Leagues
+exports.league_table = function(req,res,next) {
+    League.getLeagueTable(req.params.division,function(err,result){
+      if (err){
+        console.log(err);
+        next(err);
+      }
+      else{
+          // console.log(result)
+          res.status(200);
+         res.render('beta/tables', {
+             static_path: '/static',
+             theme: process.env.THEME || 'flatly',
+             flask_debug: process.env.FLASK_DEBUG || 'false',
+             pageTitle : "League Table: "+ req.params.division.replace('-',' '),
+             pageDescription : "Find out how your teams are peforming this season",
+             division : req.params.division.replace('-',' '),
+             result : result,
+             error : err
+         });
+      }
+    })
+};
