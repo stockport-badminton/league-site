@@ -287,17 +287,6 @@
       }
     });
 
-    app.get('/tables/:league', function(req, res) {
-        res.render('beta/table-' + req.params.league, {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "League Table: "+ req.params.league,
-            pageDescription : "Find out how your teams are peforming this season"
-
-        });
-    });
-
     /// PLAYER ROUTES ///
 
     /* GET catalog home page. */
@@ -391,7 +380,7 @@
     router.get('/leagues',checkJwt, league_controller.league_list);
 
     /* GET request for list of all League items. */
-    router.get('/table/:division', league_controller.league_table);
+    router.get('/tables/:division', league_controller.league_table);
 
     /// CLUB ROUTES ///
 
