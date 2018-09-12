@@ -86,7 +86,7 @@
     });
 
     app.get('/protected-page',function(req,res){
-      res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=offline_access,apis&redirect=https://stockport-badminton.co.uk/auth0-callback')
+      res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=offline_access&redirect=https://stockport-badminton.co.uk/auth0-callback')
     })
 
     app.get('/auth0-callback',function(req,res,next){
