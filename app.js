@@ -6,6 +6,7 @@
     var bodyParser = require('body-parser');
     var expressValidator = require('express-validator');
     var path = require('path');
+    var request = require('request');
     const jwt = require('express-jwt');
     const jwtAuthz = require('express-jwt-authz');
     const jwksRsa = require('jwks-rsa');
@@ -83,6 +84,34 @@
             pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport."
         });
     });
+
+    app.get('/protected-page',function(req,res){
+      res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=apis&redirect=http://127.0.0.1:3000/auth0-callback')
+    })
+
+    app.get('/auth0-callback',function(req,res,next){
+      console.log('reached auth-callback');
+      var options = {
+        method:'POST',
+        url:'https://'+process.env.AUTH0_DOMAIN+'/oauth/token',
+        headers:{
+          'content-type':'application/json'
+        },
+        body:{
+          grant_type:'authorization_code',
+          client_id:process.env.AUTH0_CLIENTID,
+          client_secret:process.env.AUTH0_CLIENT_SECRET,
+          code:req.params.code,
+          redirect_uri:'http://127.0.0.1:3000/auth0-callback'
+        },
+        json:true
+      };
+      request(options,function(err,res,body){
+        if(err) throw new Error(err);
+        console.log(body);
+        next(body);
+      })
+    })
 
     app.get('/contact-us', function(req, res) {
         res.render('beta/contact-us-form', {
