@@ -91,6 +91,7 @@
 
     app.get('/auth0-callback',function(req,res,next){
       console.log('reached auth-callback');
+      console.log(req);
       var options = {
         method:'POST',
         url:'https://'+process.env.AUTH0_DOMAIN+'/oauth/token',
@@ -101,7 +102,7 @@
           grant_type:'authorization_code',
           client_id:process.env.AUTH0_CLIENTID,
           client_secret:process.env.AUTH0_CLIENT_SECRET,
-          code:req.params.code,
+          code:req.query.code,
           redirect_uri:'https://stockport-badminton.co.uk/auth0-callback'
         },
         json:true
