@@ -73,6 +73,13 @@
     var fixture_controller = require(__dirname + '/controllers/fixtureController');
     var league_controller = require(__dirname + '/controllers/leagueController');
 
+    app.use(function(req, res, next) {
+      res.locals.loggedIn = false;
+      if (req.session.passport && typeof req.session.passport.user != 'undefined') {
+        res.locals.loggedIn = true;
+      }
+      next();
+    });
 
 
     app.get('/', function(req, res) {
@@ -86,7 +93,17 @@
     });
 
     app.get('/protected-page',function(req,res){
-      res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=offline_access&redirect=https://stockport-badminton.co.uk/auth0-callback')
+      if (!res.locals.loggedIn){
+        res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=offline_access&redirect=https://stockport-badminton.co.uk/auth0-callback')
+      }
+      else {
+         res.render('/beta/page-behind-login',{
+           static_path : '/static',
+           pageTitle : "Hidden Page",
+           pageDescription : "Some page you need to login to to get to",
+
+         })
+      }
     })
 
     app.get('/auth0-callback',function(req,res,next){
@@ -109,7 +126,7 @@
       request(options,function(err,res,body){
         if(err) throw new Error(err);
         console.log(body);
-        next(JSON.stringify(body));
+        res.redirect('/protected-page',body)
       })
     })
 
