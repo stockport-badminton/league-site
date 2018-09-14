@@ -11,6 +11,8 @@
     const jwtAuthz = require('express-jwt-authz');
     const jwksRsa = require('jwks-rsa');
 
+
+
     if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
       throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
     }
@@ -61,6 +63,44 @@
         })
       }
     })
+
+    var session = require('express-session');
+
+    //session-related stuff
+    var sess = {
+     secret: 'CHANGE THIS SECRET',
+     cookie: {},
+     resave: false,
+     saveUninitialized: true
+    };
+
+    if (app.get('env') === 'production') {
+     sess.cookie.secure = true; // serve secure cookies, requires https
+    }
+
+    app.use(session(sess));
+    var Auth0Strategy = require('passport-auth0'),
+    passport = require('passport');
+
+    //passport-auth0
+    var strategy = new Auth0Strategy({
+      domain: process.env.AUTH0_DOMAIN,
+      clientID: process.env.AUTH0_CLIENTID,
+      clientSecret: process.env.AUTH0_CLIENT_SECRET, // Replace this with the client secret for your app
+      callbackURL: 'http://localhost:3000/auth0-callback'
+     },
+     function(accessToken, refreshToken, extraParams, profile, done) {
+       // accessToken is the token to call Auth0 API (not needed in the most cases)
+       // extraParams.id_token has the JSON Web Token
+       // profile has all the information from the user
+       return done(null, profile);
+     }
+    );
+
+    passport.use(strategy);
+
+    app.use(passport.initialize());
+    app.use(passport.session());
 
 
     // Require controller modules
