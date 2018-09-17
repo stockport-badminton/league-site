@@ -66,7 +66,6 @@ exports.getAll = function(done){
 }
 
 exports.getRecent = function(done){
-  sql = "Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = 8 ORDER BY a.date";
   othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
@@ -81,7 +80,6 @@ exports.getRecent = function(done){
 }
 
 exports.getupComing = function(done){
-  sql = "Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = 8 ORDER BY a.date";
   othersql = "select a.fixId, a.date, a.status, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is null AND date between now() and adddate(now(),7) order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
@@ -128,7 +126,33 @@ exports.updateByTeamNames = function(updateObj,done){
       }
       else{
         console.log(result);
-        return done(null, result);
+        if(result['affectRows'] == 1 && result['changedRows'] ==1) {
+          var options = {
+            method:'POST',
+            url:'https://hooks.zapier.com/hooks/catch/3751975/qz5xbm/',
+            headers:{
+              'content-type':'application/json'
+            },
+            body:{
+              "message" : "Result: "+updateObj.homeTeam+" vs "+updateObj.awayTeam+" : "+updateObj.homeScore+"-"+updateObj.awayScore+" #badminton #stockport https://stockport-badminton.co.uk"
+            },
+            json:true
+          };
+          request(options,function(err,res,body){
+            if(err){
+              throw new Error(err);
+              return done(err);
+            }
+            else {
+              console.log(body);
+              return done(null,result)
+            }
+
+          })
+        }
+        else {
+          return done("nothing updates - teams probably didn't match up ");
+        }
       }
     })
   }
