@@ -1,4 +1,6 @@
 var Fixture = require('../models/fixture');
+var request = require('request');
+
 
 // Display list of all Fixtures
 exports.fixture_list = function(req, res) {

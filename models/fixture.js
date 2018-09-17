@@ -1,4 +1,5 @@
 var db = require('../db_connect.js');
+var request = require('request');
 
 // POST
 exports.create = function(fixtureObj,done){
@@ -126,7 +127,7 @@ exports.updateByTeamNames = function(updateObj,done){
       }
       else{
         console.log(result);
-        if(result['affectRows'] == 1 && result['changedRows'] ==1) {
+        if(result['affectedRows'] == 1 && result['changedRows'] ==1) {
           var options = {
             method:'POST',
             url:'https://hooks.zapier.com/hooks/catch/3751975/qz5xbm/',
