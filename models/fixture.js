@@ -65,13 +65,27 @@ exports.getAll = function(done){
   })
 }
 
+exports.getRecent = function(done){
+  sql = "Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = 8 ORDER BY a.date";
+  othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
+  db.get().query(othersql,function(err,result){
+    if (err) {
+      console.log(err);
+      return done(err);
+    }
+    else {
+      console.log(result);
+      done(null,result);
+    }
+  })
+}
+
 exports.getFixtureDetails = function(division, done){
   db.get().query('Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = '+ division +' ORDER BY a.date', function (err, result){
     if (err) return done(err);
     done(null, result);
   })
 }
-
 
 
 // GET

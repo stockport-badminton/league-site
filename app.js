@@ -78,15 +78,15 @@
     var league_controller = require(__dirname + '/controllers/leagueController');
 
 
-    app.get('/', function(req, res) {
+  /*  app.get('/', function(req, res) {
+
         res.render('beta/homepage', {
             static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
             pageTitle : "Homepage",
             pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport."
         });
-    });
+    }); */
+
 
     app.get('/protected-page',function(req,res){
       if (!res.locals.loggedIn){
@@ -521,6 +521,8 @@
 
     /* GET request for list of all Fixture items. */
     router.get('/fixtures', fixture_controller.fixture_list);
+
+    router.get('/', fixture_controller.fixture_get_recent);
 
     /* GET request for list of all Fixture items. */
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);

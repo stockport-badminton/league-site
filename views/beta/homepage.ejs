@@ -1,6 +1,7 @@
 <% include header.ejs %>
 <% include nav.ejs %>
 
+<div class="col-md-6">
 <h1>Welcome Back!</h1>
         <p class="lead">New season, new site, new look! <br />
         I hope you find everything you're looking for here as you did before.<br />
@@ -9,7 +10,23 @@
         <h3>Recent updates</h3>
         <p>All the fixtures are now online and the tables are up to date for the new season.<br />
         Also, thanks to Darren Corner from New Mills for our new background image.</p>
+</div>
+<div class="col-md-6">
+  <h1>Recent Results</h1>
+  <% result.forEach(function(row){ %>
+    <%
+      var MyDate = new Date(row['date']);
+      var MyDateString;
 
+      // MyDate.setDate(MyDate.getDate() + 20);
+
+      MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                   + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                   + MyDate.getFullYear();
+    %>
+    <%= MyDateString %>&nbsp;&nbsp;&nbsp;<%= row['homeTeam'] %> vs <%= row['awayTeam'] %>: &nbsp;<%= row['homeScore'] %>-<%= row['awayScore'] %><br />
+  <% }) %>
+</div>
 <% include footer.ejs %>
 
 
