@@ -522,7 +522,7 @@
     /* GET request for list of all Fixture items. */
     router.get('/fixtures', fixture_controller.fixture_list);
 
-    router.get('/', fixture_controller.fixture_get_recent);
+    router.get('/', fixture_controller.fixture_get_summary);
 
     /* GET request for list of all Fixture items. */
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
