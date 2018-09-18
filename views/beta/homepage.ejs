@@ -14,6 +14,7 @@
 <div class="col-md-4">
   <h1>Recent Results</h1>
   <% result.forEach(function(row){ %>
+    <div class="row">
     <%
       var MyDate = new Date(row['date']);
       var MyDateString;
@@ -24,12 +25,14 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
     %>
-    <%= MyDateString %>&nbsp;&nbsp;&nbsp;<%= row['homeTeam'] %> vs <%= row['awayTeam'] %>: &nbsp;<%= row['homeScore'] %>-<%= row['awayScore'] %><br />
+      <div class="col-3"><%= MyDateString %></div><div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-2"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+    </div>
   <% }) %>
 </div>
 <div class="col-md-4">
   <h1>Upcoming Fixtures</h1>
   <% row.forEach(function(result){ %>
+  <div class="row">
     <%
       var MyDate = new Date(result['date']);
       var MyDateString;
@@ -40,7 +43,8 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
     %>
-    <%= MyDateString %>&nbsp;&nbsp;&nbsp;<%= result['homeTeam'] %> vs <%= result['awayTeam'] %><br />
+    <div class="col-3"><%= MyDateString %></div><div class="col"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
+  </div>
   <% }) %>
 </div>
 <% include footer.ejs %>
