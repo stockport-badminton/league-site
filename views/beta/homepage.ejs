@@ -25,7 +25,7 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
     %>
-      <div class="col-3"><%= MyDateString %></div><div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-2"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+      <div class="col-3"><%= MyDateString %></div><div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
     </div>
   <% }) %>
 </div>
