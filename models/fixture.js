@@ -81,7 +81,7 @@ exports.getRecent = function(done){
 }
 
 exports.getupComing = function(done){
-  othersql = "select a.fixId, a.date, a.status, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is null AND date between now() and adddate(now(),7) order by date";
+  othersql = "select a.fixId, a.date, a.status, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-1) and adddate(now(),7) order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
       console.log(err);
@@ -135,7 +135,7 @@ exports.updateByTeamNames = function(updateObj,done){
               'content-type':'application/json'
             },
             body:{
-              "message" : "Result: "+updateObj.homeTeam+" vs "+updateObj.awayTeam+" : "+updateObj.homeScore+"-"+updateObj.awayScore+" #badminton #stockport https://stockport-badminton.co.uk"
+              "message" : "Result: "+updateObj.homeTeam+" vs "+updateObj.awayTeam+" : "+updateObj.homeScore+"-"+updateObj.awayScore+" #badminton #stockport #sdbl #result https://stockport-badminton.co.uk"
             },
             json:true
           };
@@ -152,7 +152,8 @@ exports.updateByTeamNames = function(updateObj,done){
           })
         }
         else {
-          return done("nothing updates - teams probably didn't match up ");
+          throw new Error("nothing updated - teams probably didn't match up")
+          return done("nothing updated - teams probably didn't match up ");
         }
       }
     })
