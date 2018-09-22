@@ -20,17 +20,32 @@
       </thead>
       <tbody>
     <% result.forEach(function(row){ %>
-      <tr>
-        <%
-          var MyDate = new Date(row['date']);
-          var MyDateString;
+      <%
+        var rowClass = '';
+        var resultValue = '';
+        var MyDate = new Date(row['date']);
+        var NowDate = Date.now();
+        if ((MyDate < NowDate) && (row['homeScore'] == null)) {
+          rowClass = 'table-danger'
+          var resultValue = 'Awaiting Result';
+        }
+        var MyDateString;
 
-          // MyDate.setDate(MyDate.getDate() + 20);
+        // MyDate.setDate(MyDate.getDate() + 20);
 
-          MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
-                       + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-                       + MyDate.getFullYear();
-        %>
+        MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                     + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                     + MyDate.getFullYear();
+      %>
+
+      <% if (row['status'] == 'rearranging'){
+        var rowClass = 'table-warning';
+        var resultValue = 'Rearranging';
+       }
+       %>
+
+      <tr class="<%= rowClass %>">
+
           <td><%= MyDateString %></td>
           <td><%= row['homeTeam'] %></td>
           <td><%= row['awayTeam'] %></td>
@@ -38,7 +53,7 @@
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %></td>
           <% }
           else { %>
-           <td>&nbsp;</td>
+           <td><%= resultValue %></td>
           <% } %>
       </tr>
     <% }) %>
