@@ -6,7 +6,9 @@
       $('#results-table').DataTable( {
         "columnDefs": [
           { "type": "date-euro", "targets": 0 }
-        ]
+        ],
+        pageLength:20,
+        stateSave:true
       });
   } );
 </script>
