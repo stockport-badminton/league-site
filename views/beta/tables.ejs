@@ -1,5 +1,3 @@
-<% include header.ejs %>
-<% include nav.ejs %>
 
 <% include header.ejs %>
 <% include nav.ejs %>
@@ -22,13 +20,24 @@
 					</tr>
 				</thead>
 				<tbody>
-          <% result.forEach(function(row){ %>
+          <% result.forEach(function(row){
+            var n = (row['pointsFor'] / row['played']);
+            if(Number.isNaN(n)){
+              var n = 0;
+            }
+            else{
+              if (!(Number.isInteger(n))){
+                n = n.toFixed(1);
+              }
+            }
+
+            %>
 					<tr>
 						<td><%= row['name'] %></td>
 						<td><%= row['played'] %></td>
 						<td><%= row['pointsFor'] %></td>
 						<td><%= row['pointsAgainst'] %></td>
-						<td><%= row['pointsFor'] / row['played'] %></td>
+						<td><%= n %></td>
 					</tr>
 					<% }) %>
 				</tbody>
