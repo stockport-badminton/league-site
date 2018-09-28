@@ -121,11 +121,8 @@ exports.deleteById = function(fixtureId,done){
 exports.updateByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
     var sql = 'update badminton.fixture set homeScore = ?, awayScore = ? Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
-<<<<<<< HEAD
+
     db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.awayTeam,updateObj.homeTeam],function(err,result,fields){
-=======
-    db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.homeTeam,updateObj.awayTeam],function(err,result){
->>>>>>> b93338b5a10afae8b737dbb6f6e1c86c34d7fff4
       if (err) {
         return done(err);
       }
