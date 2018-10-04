@@ -43,6 +43,13 @@ exports.player_list = function(req, res) {
     })
 };
 
+// Return list of players eligible based on team
+exports.eligible_players_list = function(req, res) {
+    Player.findElgiblePlayersFromTeamId(req.params.id,req.params.gender,function(err,rows){
+      res.send(rows);
+    })
+};
+
 // Display detail page for a specific Player
 exports.player_detail = function(req, res) {
   Player.getById(req.params.id,function(err,rows){

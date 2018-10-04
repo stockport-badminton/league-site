@@ -46,6 +46,58 @@ exports.getAll = function(done){
 }
 
 // GET
+exports.getTeams = function(searchObject,done){
+  if(db.isObject(searchObject)){
+    console.log(searchObject);
+    var sql = 'SELECT * FROM `team`';
+    var whereTerms = [];
+    if (!searchObject.divisionId){
+      console.log("no division id");
+    }
+    else {
+      whereTerms.push('`division` = '+searchObject.divisionId);
+    }
+    if (!searchObject.teamName){
+      console.log("no teamName");
+    }
+    else {
+      whereTerms.push('`name` = "'+searchObject.teamName + '"');
+    }
+    if (!searchObject.clubid){
+      console.log("no club id");
+    }
+    else {
+      whereTerms.push('`club` = '+searchObject.clubid);
+    }
+    console.log(whereTerms)
+
+    if (whereTerms.length > 0) {
+      if (whereTerms.length > 1){
+        var conditions = whereTerms.join(' AND ');
+      }
+      else {
+        var conditions = whereTerms[0];
+      }
+      conditions = ' WHERE ' + conditions;
+      console.log(conditions);
+      sql = sql + conditions
+    }
+    db.get().query(sql, function (err, rows){
+      if (err) {
+        return done(err);
+      }
+      else {
+        done(null, rows);
+      }
+
+    })
+  }
+  else{
+    return done('not object');
+  }
+}
+
+// GET
 exports.getById = function(teamId,done){
   db.get().query('SELECT * FROM `team` WHERE `id` = ?',teamId, function (err, rows){
     if (err) return done(err);

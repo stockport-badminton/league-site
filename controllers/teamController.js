@@ -1,10 +1,24 @@
 var Team = require('../models/teams');
 
 // Display list of all Teams
-exports.team_list = function(req, res,next) {
+exports.team_list = function(req,res,next) {
     Team.getAll(function(err,rows){
       console.log(rows);
       res.send(rows);
+    })
+};
+
+// Display list of all Teams
+exports.team_search = function(req,res,next) {
+    Team.getTeams(req.body,function(err,rows){
+      if(err){
+        res.send(err);
+        console.log(err);
+      }
+      else{
+        // console.log(result)
+        res.send(rows);
+      }
     })
 };
 

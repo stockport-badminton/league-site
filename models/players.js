@@ -92,6 +92,17 @@ exports.search = function(searchTerms,done){
   })
 }
 
+exports.findElgiblePlayersFromTeamId = function(id,gender,done){
+  db.get().query('select player.id, player.first_name, player.family_name from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ?',[id,gender],function(err,result){
+    if (err){
+      return done(err)
+    }
+    else{
+      done(null,result);
+    }
+  })
+}
+
 exports.count = function(searchTerm,done){
   if (searchTerm == ""){
     db.get().query('SELECT COUNT(*) as `players` FROM `player`', function (err,result){
@@ -111,6 +122,14 @@ exports.count = function(searchTerm,done){
 
 // GET
 exports.getById = function(playerId,done){
+  db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+// GET
+exports.findByName = function(searchObject,done){
   db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
     if (err) return done(err);
     done(null,rows);

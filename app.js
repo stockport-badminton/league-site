@@ -41,6 +41,8 @@
 
     var app = express();
     app.use('/static', express.static(path.join(__dirname,'/static')));
+    app.use('/scripts', express.static(__dirname + '/node_modules/'));
+
     app.use(express.static('rootfiles'));
     app.set('view engine', 'ejs');
     app.set('views', __dirname + '/views');
@@ -100,6 +102,37 @@
 
          })
       }
+    })
+
+    app.get('/scorecard-beta',function(req,res){
+      res.render('index-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:[
+          {
+            id:7,
+            name:"Premier"
+          },
+          {
+            id:8,
+            name:"Division 1"
+          },
+          {
+            id:9,
+            name:"Division 2"
+          },
+          {
+            id:10,
+            name:"Division 3"
+          },
+          {
+            id:11,
+            name:"Division 4"
+          }
+        ]
+      })
     })
 
     app.get('/auth0-callback',function(req,res,next){
@@ -359,6 +392,9 @@
     /* GET request for one Player. */
     router.get('/player/:id', player_controller.player_detail);
 
+    /* GET request for one Player. */
+    router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
+
     /* GET request for list of all Player items. */
     router.get('/players/club-:clubid?/team-:teamid?/gender-:gender?', player_controller.player_list);
 
@@ -393,7 +429,10 @@
     router.get('/teams/:clubid/:venue/:matchDay', team_controller.team_list); */
 
     /* GET request for list of all Team items. */
-    router.get('/teams',checkJwt, team_controller.team_list);
+    router.get('/teams', team_controller.team_list);
+
+    /* GET request for list of all Team items. */
+    router.post('/teams', team_controller.team_search);
 
     /// LEAGUE ROUTES ///
 
