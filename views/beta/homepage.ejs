@@ -14,18 +14,22 @@
 <div class="col-md-4">
   <h1>Recent Results</h1>
   <% result.forEach(function(row){ %>
-    <div class="row">
+    <div class="row" itemscope itemtype="http://schema.org/Event">
     <%
       var MyDate = new Date(row['date']);
-      var MyDateString;
+      var MyDateString, otherDateString;
 
       // MyDate.setDate(MyDate.getDate() + 20);
 
       MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
+
+       otherDateString = MyDate.getFullYear() + '/'
+                      + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                      + ('0' + MyDate.getDate()).slice(-2)
     %>
-      <div class="col-3"><%= MyDateString %></div><div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+      <div class="col-3" itemprop="startDate" content="<%= otherDateString %>"><%= MyDateString %></div><div class="col" itemprop="name"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
     </div>
   <% }) %>
 </div>
