@@ -135,6 +135,25 @@
       })
     })
 
+
+
+    app.post('/scorecard-beta',function(req,res){
+      if (errors){
+
+      }
+      else{
+
+      }
+      var result = JSON.stringify(req.body);
+      res.render('beta/scorecard-received',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard Received",
+        pageDescription : "Enter some results!",
+        result: result
+      })
+    })
+
     app.get('/auth0-callback',function(req,res,next){
       console.log('reached auth-callback');
       var options = {
@@ -166,6 +185,16 @@
             flask_debug: process.env.FLASK_DEBUG || 'false',
             pageTitle : "Contact Us",
             pageDescription : "Get in touch with your league representatives, or club secretaries"
+        });
+    });
+
+    app.get('/messer-rules', function(req, res) {
+        res.render('beta/messer-rules', {
+            static_path: '/static',
+            theme: process.env.THEME || 'flatly',
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Messer Tropy Rules",
+            pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
         });
     });
 

@@ -6,6 +6,12 @@ body {
   padding: 1rem 0.5rem;
   text-align: center;
 }
+ol#rules{
+  text-align:left;
+}
+ol#rules li {
+  margin:1em 0em 0em 0em;
+}
 
 .respBgImg {
   background-size: cover;
