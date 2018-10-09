@@ -198,6 +198,16 @@
         });
     });
 
+    app.get('/rules', function(req, res) {
+        res.render('beta/rules', {
+            static_path: '/static',
+            theme: process.env.THEME || 'flatly',
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Stockport & District Badminton League Rules",
+            pageDescription : "Rules and regulations for the Stockport and District Badminton League"
+        });
+    });
+
     app.post('/contact-us', (req, res) => {
       req.checkBody('contactEmail', 'must enter an email address').notEmpty();
       req.checkBody('contactQuery', 'Please enter something in message field.').notEmpty();
