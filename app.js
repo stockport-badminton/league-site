@@ -570,6 +570,9 @@
     /* GET request for creating a Fixture. NOTE This must come before routes that display Fixture (uses id) */
     router.get('/fixture/create', fixture_controller.fixture_create_get);
 
+    /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
+    router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
+
     /* POST request for creating Fixture. */
     router.post('/fixture/create',checkJwt, fixture_controller.fixture_create_post);
 

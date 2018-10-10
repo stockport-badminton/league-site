@@ -1,8 +1,56 @@
 var Fixture = require('../models/fixture');
 var request = require('request');
+var AWS = require('aws-sdk');
 
 
 // Display list of all Fixtures
+exports.getLateScorecards = function(req, res) {
+    Fixture.getCardsDueToday(function(err,row){
+      var params = {
+        Destination: { /* required */
+          ToAddresses: [
+            'stockport.badders.results@gmail.com'
+          ]
+        },
+        Message: { /* required */
+          Body: {
+            Html: {
+             Charset: 'UTF-8',
+             Data: ''
+            }
+           },
+           Subject: {
+            Charset: 'UTF-8',
+            Data: 'Todays outstanding fixtures'
+           }
+          },
+        Source: 'stockport.badders.results@gmail.com', /* required */
+        ReplyToAddresses: [
+            'stockport.badders.results@gmail.com'
+        ],
+      };
+      if (err){
+        params.Message.Body.Html.Data = JSON.stringify(err);
+        console.log(err);
+      }
+      else{
+        params.Message.Body.Html.Data = JSON.stringify(row);
+      }
+      var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      ses.sendEmail(params, function(err, data) {
+        if (err) {
+          console.log(err, err.stack); // an error occurred
+          res.send(err);
+        }
+        else {
+          console.log(data);           // successful response
+          res.send(data);
+        }
+      })
+    })
+};
+
+// Display fixtures played 6 days ago that haven't had results entered
 exports.fixture_list = function(req, res) {
     Fixture.getAll(function(err,row){
       if (err){
