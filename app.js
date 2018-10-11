@@ -583,6 +583,9 @@
     router.post('/fixture/enter-result',checkJwt, fixture_controller.fixture_update_by_team_name);
 
     /* POST request for batch creating Fixture. */
+    router.patch('/fixture/rearrange',checkJwt, fixture_controller.fixture_rearrange_by_team_name);
+
+    /* POST request for batch creating Fixture. */
     //router.post('/fixture/batch-update',checkJwt, fixture_controller.fixture_batch_update);
 
     /* GET request to delete Fixture. */
@@ -593,6 +596,12 @@
 
     /* GET request to update Fixture. */
     router.get('/fixture/:id/update', fixture_controller.fixture_update_get);
+
+    /* GET request to update Fixture. */
+    router.get('/fixture/home-:homeTeam/away-:awayTeam', fixture_controller.fixture_id_from_team_names);
+
+    /* GET request to get fixture id from home and away team ids. */
+    router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixture_id);
 
     // POST request to update Fixture
     router.patch('/fixture/:id',checkJwt, fixture_controller.fixture_update_post);

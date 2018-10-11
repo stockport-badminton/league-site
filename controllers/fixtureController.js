@@ -3,7 +3,8 @@ var request = require('request');
 var AWS = require('aws-sdk');
 
 
-// Display list of all Fixtures
+
+// Display fixtures played 6 days ago that haven't had results entered
 exports.getLateScorecards = function(req, res) {
     Fixture.getCardsDueToday(function(err,row){
       var params = {
@@ -50,7 +51,7 @@ exports.getLateScorecards = function(req, res) {
     })
 };
 
-// Display fixtures played 6 days ago that haven't had results entered
+// Display list of all Fixtures
 exports.fixture_list = function(req, res) {
     Fixture.getAll(function(err,row){
       if (err){
@@ -60,6 +61,39 @@ exports.fixture_list = function(req, res) {
       else{
         console.log(req.body);
         console.log(row);
+        res.send(row);
+      }
+    })
+};
+
+// Return fixture id given home and away team ids
+exports.fixture_id = function(req, res) {
+    obj = {
+      "homeTeam":req.params.homeTeam,
+      "awayTeam":req.params.awayTeam
+    }
+    console.log(JSON.stringify(obj));
+    Fixture.getFixtureId(obj,function(err,row){
+      if (err){
+        res.send(err);
+      }
+      else{
+        res.send(row);
+      }
+    })
+};
+
+// Return fixture id given home and away team names
+exports.fixture_id_from_team_names = function(req, res) {
+    obj = {
+      "homeTeam":req.params.homeTeam,
+      "awayTeam":req.params.awayTeam
+    }
+    Fixture.getFixtureIdFromTeamNames(obj,function(err,row){
+      if (err){
+        res.send(err);
+      }
+      else{
         res.send(row);
       }
     })
@@ -84,6 +118,9 @@ exports.fixture_detail = function(req, res) {
 exports.fixture_detail_byDivision = function(req, res,next) {
     var divisionId = 0;
     switch (req.params.division) {
+      case 'All':
+        divisionId = 0
+        break;
       case 'Division-1':
         divisionId = 8
         break;
@@ -186,6 +223,19 @@ exports.fixture_batch_create = function(req, res){
 
 exports.fixture_update_by_team_name = function(req, res,next){
   Fixture.updateByTeamNames(req.body,function(err,result){
+    if(err){
+      next(err);
+      console.log(err);
+    }
+    else{
+      // console.log(result)
+      res.send(result);
+    }
+  })
+}
+
+exports.fixture_rearrange_by_team_name = function(req, res,next){
+  Fixture.rearrangeByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
       console.log(err);

@@ -111,7 +111,13 @@ exports.getupComing = function(done){
 }
 
 exports.getFixtureDetails = function(division, done){
-  db.get().query('Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = '+ division +' ORDER BY a.date', function (err, result){
+  if (division == 0){
+    var sql = 'Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam ORDER BY a.date'
+  }
+  else{
+    var sql = 'Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = '+ division +' ORDER BY a.date'
+  }
+  db.get().query(sql, function (err, result){
     if (err) return done(err);
     done(null, result);
   })
@@ -132,6 +138,58 @@ exports.deleteById = function(fixtureId,done){
     if (err) return done(err);
     done(null,rows);
   })
+}
+
+exports.getFixtureIdFromTeamNames = function(obj,done){
+  if(db.isObject(obj)){
+    var sql = 'select fixtureId, homeTeamName, team.name as awayTeamName, homeTeamId, team.id as awayTeamId from (select fixture.id as fixtureId, team.name as homeTeamName, team.id as homeTeamId, fixture.homeTeam, fixture.awayTeam from fixture join team where team.id = fixture.homeTeam and team.name = ?) as a join team where awayTeam = team.id and team.name = ?';
+    db.get().query(sql,[obj.homeTeam, obj.awayTeam],function(err,result){
+      if (err){
+        return done(err)
+      }
+      else {
+        done(null,result);
+      }
+    })
+  }
+  else {
+    return done(err);
+  }
+}
+
+exports.getFixtureId = function(obj,done){
+  if(db.isObject(obj)){
+    var sql = 'select id from fixture where awayTeam = ? AND homeTeam = ?';
+    db.get().query(sql,[obj.homeTeam, obj.awayTeam],function(err,result){
+      if (err){
+        return done(err)
+      }
+      else {
+        done(null,result);
+      }
+    })
+  }
+  else {
+    return done(err);
+  }
+}
+
+exports.rearrangeByTeamNames = function(updateObj,done){
+  if(db.isObject(updateObj)){
+    var sql = 'update badminton.fixture set date = ?, status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+
+    db.get().query(sql,[updateObj.date,updateObj.awayTeam,updateObj.homeTeam],function(err,result,fields){
+      if (err) {
+        return done(err);
+      }
+      else{
+        done(null,result);
+      }
+    })
+  }
+  else {
+    return done(err);
+  }
 }
 
 exports.updateByTeamNames = function(updateObj,done){
