@@ -131,27 +131,38 @@
             id:11,
             name:"Division 4"
           }
-        ]
+        ],
+        errors:null,
+        scorecardData: null
       })
     })
 
 
 
     app.post('/scorecard-beta',function(req,res){
-      if (errors){
-
+      if (err){
+        res.render('beta/index-scorecard',{
+          static_path:'/static',
+          theme:process.env.THEME || 'flatly',
+          pageTitle : "Scorecard Received",
+          pageDescription : "Enter some results!",
+          result: null,
+          errors: err,
+          scorecardData: null
+        })
       }
       else{
-
+        var result = JSON.stringify(req.body);
+        res.render('beta/index-scorecard',{
+          static_path:'/static',
+          theme:process.env.THEME || 'flatly',
+          pageTitle : "Scorecard Received",
+          pageDescription : "Enter some results!",
+          result: null,
+          errors: null,
+          scorecardData: result
+        })
       }
-      var result = JSON.stringify(req.body);
-      res.render('beta/scorecard-received',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard Received",
-        pageDescription : "Enter some results!",
-        result: result
-      })
     })
 
     app.get('/auth0-callback',function(req,res,next){
