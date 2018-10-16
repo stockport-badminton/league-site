@@ -131,35 +131,82 @@
             id:11,
             name:"Division 4"
           }
-        ],
-        errors:null,
-        scorecardData: null
+        ]
       })
     })
 
 
 
     app.post('/scorecard-beta',function(req,res){
-      if (err){
-        res.render('beta/index-scorecard',{
+
+      req.checkBody('Game1homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game1awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game2homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game2awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game3homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game3awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game4homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game4awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game5homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game5awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game6homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game6awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game7homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game7awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game8homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game8awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game9homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game9awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game10homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game10awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game11homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game11awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game12homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game12awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game13homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game13awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game14homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game14awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game15homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game15awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game16homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game16awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game17homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game17awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game18homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('Game18awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
+      req.checkBody('homeMan1', 'Please choose a player.').notEmpty();
+      req.checkBody('homeMan2', 'Please choose a player.').notEmpty();
+      req.checkBody('homeMan3', 'Please choose a player.').notEmpty();
+      req.checkBody('homeLady1', 'Please choose a player.').notEmpty();
+      req.checkBody('homeLady2', 'Please choose a player.').notEmpty();
+      req.checkBody('homeLady3', 'Please choose a player.').notEmpty();
+      req.checkBody('awayMan1', 'Please choose a player.').notEmpty();
+      req.checkBody('awayMan2', 'Please choose a player.').notEmpty();
+      req.checkBody('awayMan3', 'Please choose a player.').notEmpty();
+      req.checkBody('awayLady1', 'Please choose a player.').notEmpty();
+      req.checkBody('awayLady2', 'Please choose a player.').notEmpty();
+      req.checkBody('awayLady3', 'Please choose a player.').notEmpty();
+
+      var errors = req.validationErrors();
+
+      if (errors){
+        res.render('index-scorecard',{
           static_path:'/static',
           theme:process.env.THEME || 'flatly',
-          pageTitle : "Scorecard Received",
+          pageTitle : "Scorecard Received - Errors",
           pageDescription : "Enter some results!",
-          result: null,
-          errors: err,
-          scorecardData: null
+          errors: errors
         })
       }
       else{
         var result = JSON.stringify(req.body);
-        res.render('beta/index-scorecard',{
+
+        res.render('index-scorecard',{
           static_path:'/static',
           theme:process.env.THEME || 'flatly',
-          pageTitle : "Scorecard Received",
+          pageTitle : "Scorecard Received - No Errors",
           pageDescription : "Enter some results!",
-          result: null,
-          errors: null,
           scorecardData: result
         })
       }
@@ -421,7 +468,10 @@
     router.get('/player/create', player_controller.player_create_get);
 
     /* POST request for creating Player. */
-    router.post('/player/create',checkJwt, player_controller.player_create);
+    router.post('/player/create', player_controller.player_create);
+
+    /* POST request for creating Player. */
+    router.post('/player/createByName',checkJwt, player_controller.player_create_by_name);
 
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);

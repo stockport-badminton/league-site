@@ -1,4 +1,5 @@
 var Fixture = require('../models/fixture');
+var Game = require('../models/game');
 var request = require('request');
 var AWS = require('aws-sdk');
 
@@ -35,7 +36,9 @@ exports.getLateScorecards = function(req, res) {
         console.log(err);
       }
       else{
-        params.Message.Body.Html.Data = JSON.stringify(row);
+        for (var x = 0; x < row.length; x++){
+            params.Message.Body.Html.Data += row[x]['date'] + " - "+ row[x]['homeTeam'] + " - " + row[x]['awayTeam']
+        }
       }
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       ses.sendEmail(params, function(err, data) {

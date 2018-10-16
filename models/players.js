@@ -10,6 +10,24 @@ exports.create = function(first_name,family_name,team,club,gender,done){
 
 }
 
+exports.createByName = function(obj,done){
+  if(db.isObject(obj)){
+    sql = 'insert into badminton.player (first_name, family_name, gender, club, team, date_of_registration) values (?, ?, ?,(select id from club where name = ?),(select id from team where name = ?),?)'
+    console.log(JSON.stringify(obj));
+    db.get().query(sql,[obj.first_name, obj.family_name, obj.gender,obj.clubName, obj.teamName, obj.date],function(err,result){
+      if (err){
+        return done(err);
+      }
+      else {
+        done(null,result);
+      }
+    })
+  }
+  else {
+    return done('not object');
+  }
+}
+
 exports.createBatch = function(BatchObj,done){
   if(db.isObject(BatchObj)){
     var fields = BatchObj.fields.join("`,`");
@@ -125,6 +143,17 @@ exports.getById = function(playerId,done){
   db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
     if (err) return done(err);
     done(null,rows);
+  })
+}
+
+exports.getPlayerClubandTeamById = function(playerId,done){
+  db.get().query("select playerId, playerName, clubName, team.name as teamName, date_of_registration from (select playerId, playerName, club.name as clubName, teamId, date_of_registration from (select player.id as playerId, concat(player.first_name, ' ', player.family_name) as playerName, player.club as clubID, player.team as teamId, player.date_of_registration from player where id = ?) as a join club where clubId = club.id) as b join team where teamId = team.id",[playerId],function(err, rows){
+    if (err){
+      return done(err)
+    }
+    else{
+      done(null,rows)
+    }
   })
 }
 

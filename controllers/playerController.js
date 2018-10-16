@@ -59,14 +59,15 @@ exports.player_detail = function(req, res) {
 };
 
 // Display Player create form on GET
-exports.player_create_get = function(req, res) {
+exports.player_create_get = function(req, res, next) {
   async.parallel({
-    teams:function(callback){
-      Team.find(callback);
+    clubs:function(callback){
+      Club.getAll(callback);
     },
   }, function(err,results){
     if(err){return next(err)};
-    res.render('player_form', { title: 'Create Player', static_path:'/static', theme:'flatly',team_list:results.teams });
+    console.log(results);
+    res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',club_list:results.clubs });
   })
 
 };
@@ -77,12 +78,34 @@ exports.player_create = function(req,res){
     if (err){
       res.send(err);
     }
-    console.log(req.body);
-    console.log(row);
-    res.send(row);
+    else {
+      console.log(row);
+      Player.getPlayerClubandTeamById(row.insertId,function(err,rows){
+        if (err){
+          res.send(err)
+        }
+        else{
+          res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',result:req.body, row:rows });
+          console.log(req.body);
+          console.log(rows);
+        }
+      })
+
+    }
   })
 
 }
+
+// Handle Player create on POST
+exports.player_create_by_name = function(req,res){
+  Player.createByName(req.body, function(err,row){
+    if (err){
+      res.send(err);
+    }
+    res.send(row);
+  })
+}
+
 exports.player_create_post = function(req, res, next) {
 
     req.checkBody('first_name', 'First name must be specified.').notEmpty(); //We won't force Alphanumeric, because people might have spaces.

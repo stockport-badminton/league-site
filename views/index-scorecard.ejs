@@ -15,18 +15,24 @@
 
       <div class="jumbotron">
         <h1>The next big thing is coming...</h1>
-        <% if(errors){ %>
-          <p>Looks like something went wrong</p>
-          <p><%= JSON.stringify(errors) %></p>
+        <% if (typeof errors !== 'undefined') {
+            if (errors !== false){
+        %>
+            <p>Looks like something went wrong</p>
+            <p><%= JSON.stringify(errors) %></p>
+          <% } %>
         <% } %>
-        <% if(scorecardData){ %>
+        <% if (typeof scorecardData !== 'undefined'){ %>
           <p>Some Scorecard Data</p>
           <p><%= JSON.stringify(scorecardData) %></p>
         <% } %>
+        <% if (typeof result !== 'undefined') { %>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>
+        <% } %>
       </div>
 
       <!-- Modal -->
+      <% if (typeof result !== 'undefined'){ %>
        <div class="modal fade multi-step" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModal" aria-hidden="true">
          <div class="modal-dialog">
          <form id="signupForm" role="form" action="/scorecard-beta" method="post">
@@ -502,13 +508,14 @@
            </div><!-- /.modal-content -->
          </div><!-- /.modal-dialog -->
        </div><!-- /.modal -->
-
+    <% } %>
     <% include beta/footer.ejs %>
     <script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
 
     <script type="text/javascript">
-    $(document).ready(function() {
 
+    $(document).ready(function() {
+      <% if (typeof result !== 'undefined'){ %>
       $(".form-group.step-2 input, .form-group.step-3 input").change(function() {
         console.log($(this).val() + '-' + $(this).attr("id"));
 
@@ -580,10 +587,12 @@
         var inputPlayer = $(this)[0].id
         console.log(inputPlayerName+'-'+inputPlayerId+'-'+inputPlayer);
       })
+      
+      <% } %>
     });
 
 
-
+    <% if (typeof result !== 'undefined'){ %>
     +function($) {
     'use strict';
 
@@ -769,6 +778,7 @@
     sendEvent = function(page) {
     $('#signupModal').trigger('next.m.' + page);
     }
+    <% } %>
     </script>
 
     </body>
