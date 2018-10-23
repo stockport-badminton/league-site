@@ -46,10 +46,14 @@ exports.createBatch = function(BatchObj,done){
     }
     // console.log(containerArray);
     sql = sql + containerArray.join(',')
-    // console.log(sql);
+    console.log(sql);
     db.get().query(sql,function(err,result){
-      if (err) return done(err);
-      done(null,result)
+      if (err) {
+        return done(err);
+      }
+      else {
+        done(null,result)
+      }  
     })
   }
   else{

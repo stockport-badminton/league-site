@@ -135,10 +135,7 @@
       })
     })
 
-
-
-    app.post('/scorecard-beta',function(req,res){
-
+    function validateScorecard (req,res,next){
       req.checkBody('Game1homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
       req.checkBody('Game1awayScore', 'must be between 0 and 30').isInt({min:0, max:30});
       req.checkBody('Game2homeScore', 'must be between 0 and 30').isInt({min:0, max:30});
@@ -190,26 +187,27 @@
 
       var errors = req.validationErrors();
 
-      if (errors){
-        res.render('index-scorecard',{
-          static_path:'/static',
-          theme:process.env.THEME || 'flatly',
-          pageTitle : "Scorecard Received - Errors",
-          pageDescription : "Enter some results!",
-          errors: errors
-        })
+      if (errors) {
+        var response = { errors: [] };
+        errors.forEach(function(err) {
+          response.errors.push(err.msg);
+        });
+        res.statusCode = 400;
+        return res.json(response);
       }
-      else{
-        var result = JSON.stringify(req.body);
+      return next()
+    }
 
-        res.render('index-scorecard',{
-          static_path:'/static',
-          theme:process.env.THEME || 'flatly',
-          pageTitle : "Scorecard Received - No Errors",
-          pageDescription : "Enter some results!",
-          scorecardData: result
-        })
-      }
+    app.post('/scorecard-beta',validateScorecard, fixture_controller.full_fixture_post);
+
+    app.get('/scorecard-received',function(req,res,next){
+      res.render('index-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard Received - No Errors",
+        pageDescription : "Enter some results!",
+        scorecardData: req.body
+      })
     })
 
     app.get('/auth0-callback',function(req,res,next){
@@ -642,6 +640,9 @@
 
     /* POST request for batch creating Fixture. */
     router.post('/fixture/enter-result',checkJwt, fixture_controller.fixture_update_by_team_name);
+
+    /* POST request for batch creating Fixture. */
+    router.post('/fixture/enter-full-result', fixture_controller.full_fixture_post);
 
     /* POST request for batch creating Fixture. */
     router.patch('/fixture/rearrange',checkJwt, fixture_controller.fixture_rearrange_by_team_name);

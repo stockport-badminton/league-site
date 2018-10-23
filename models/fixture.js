@@ -160,11 +160,13 @@ exports.getFixtureIdFromTeamNames = function(obj,done){
 exports.getFixtureId = function(obj,done){
   if(db.isObject(obj)){
     var sql = 'select id from fixture where awayTeam = ? AND homeTeam = ?';
-    db.get().query(sql,[obj.homeTeam, obj.awayTeam],function(err,result){
+    console.log(obj);
+    db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
       if (err){
         return done(err)
       }
       else {
+        console.log(result);
         done(null,result);
       }
     })
@@ -176,9 +178,16 @@ exports.getFixtureId = function(obj,done){
 
 exports.rearrangeByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
-    var sql = 'update badminton.fixture set date = ?, status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+    if (updateObj.date == null ){
+      var sql = 'update badminton.fixture set status = "rearranging" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+      var sqlArray = [updateObj.awayTeam,updateObj.homeTeam]
+    }
+    else {
+      var sqlArray = [updateObj.date,updateObj.awayTeam,updateObj.homeTeam]
+      var sql = 'update badminton.fixture set date = ?, status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+    }
 
-    db.get().query(sql,[updateObj.date,updateObj.awayTeam,updateObj.homeTeam],function(err,result,fields){
+    db.get().query(sql,sqlArray,function(err,result,fields){
       if (err) {
         return done(err);
       }

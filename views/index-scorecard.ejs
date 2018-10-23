@@ -397,9 +397,9 @@
                  </div>
                  <div class="form-group step-12 ThirdMixed">
                    <label for="awayThirdMixed">Away 3rd Mixed</label>
-                   <select class="form-control playerInput" id="ThirdMixedawayMan3" data-player-type="awayMan3" name="awayMan3" placeholder="Away Man 3">
+                   <select class="form-control playerInput" id="ThirdMixedawayMan3" data-player-type="awayMan3" name="ThirdMixedawayMan3" placeholder="Away Man 3">
                    </select>
-                   <select class="form-control playerInput" id="ThirdMixedawayLady3" data-player-type="awayLady3" name="awayLady3" placeholder="Away Lady 3">
+                   <select class="form-control playerInput" id="ThirdMixedawayLady3" data-player-type="awayLady3" name="ThirdMixedawayLady3" placeholder="Away Lady 3">
                    </select>
                  </div>
                  <div class="form-group step-12 ThirdMixed">
@@ -472,8 +472,8 @@
                      <div class="col-3"></div>
                    </div>
                    <div id="finalScore"></div>
-                   <input type="hidden" name="homeScore" value="">
-                   <input type="hidden" name="awayScore" value="">
+                   <input type="hidden" id="homeScore" name="homeScore" value="">
+                   <input type="hidden" id="awayScore" name="awayScore" value="">
                  </div>
 
              </div>
@@ -587,7 +587,7 @@
         var inputPlayer = $(this)[0].id
         console.log(inputPlayerName+'-'+inputPlayerId+'-'+inputPlayer);
       })
-      
+
       <% } %>
     });
 
@@ -709,6 +709,8 @@
                   console.log("points: "+matchSummary.homeTeamTotalPoints+"-"+matchSummary.awayTeamTotalPoints+"<br />"+matchSummary.homeTeamTotalGames+"-"+matchSummary.awayTeamTotalGames);
                 }
                 $('#finalScore')[0].innerHTML = "Points: "+matchSummary.homeTeamTotalPoints+"-"+matchSummary.awayTeamTotalPoints+"<br />Games:"+matchSummary.homeTeamTotalGames+"-"+matchSummary.awayTeamTotalGames
+                $('#homeScore')[0].value = matchSummary.homeTeamTotalGames;
+                $('#awayScore')[0].value = matchSummary.awayTeamTotalGames;
               }
 
             }
