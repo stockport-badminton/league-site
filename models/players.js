@@ -74,6 +74,21 @@ exports.getAll = function(done){
   })
 }
 
+exports.getPlayerStats = function(done){
+  db.get().query("select name, sum(forPoints) as forPoints, sum(againstPoints) as againstPoints, sum(gamesWon) as gamesWon, sum(gamesPlayed) as gamesPlayed from (select concat(player.first_name, ' ', player.family_name) as name, sum(homeScore) as forPoints, sum(awayScore) as againstPoints, sum(gamesWon) as gamesWon, sum(gamesPlayed) as gamesPlayed from (select homePlayer1, homeScore, awayScore, case when homeScore > awayScore then 1 else 0 end as gamesWon, case when homeScore is not null then 1 else 0 end as gamesPlayed from game) as a join player where homePlayer1 = player.id group by name union select concat(player.first_name, ' ', player.family_name) as name, sum(homeScore) as forPoints, sum(awayScore) as againstPoints, sum(gamesWon) as gamesWon, sum(gamesPlayed) as gamesPlayed from (select homePlayer2, homeScore, awayScore, case when homeScore > awayScore then 1 else 0 end as gamesWon, case when homeScore is not null then 1 else 0 end as gamesPlayed from game) as a join player where homePlayer2 = player.id group by name union select concat(player.first_name, ' ', player.family_name) as name, sum(awayScore) as forPoints, sum(homeScore) as againstPoints, sum(gamesWon) as gamesWon, sum(gamesPlayed) as gamesPlayed from (select awayPlayer1, homeScore, awayScore, case when awayScore > homeScore then 1 else 0 end as gamesWon, case when homeScore is not null then 1 else 0 end as gamesPlayed from game) as a join player where awayPlayer1 = player.id group by name union select concat(player.first_name, ' ', player.family_name) as name, sum(awayScore) as forPoints, sum(homeScore) as againstPoints, sum(gamesWon) as gamesWon, sum(gamesPlayed) as gamesPlayed from (select awayPlayer2, homeScore, awayScore, case when awayScore > homeScore then 1 else 0 end as gamesWon, case when homeScore is not null then 1 else 0 end as gamesPlayed from game) as a join player where awayPlayer2 = player.id group by name) as b group by name", function (err,rows){
+    if (err){
+      console.log("getPlayerStats model error")
+      console.log(err)
+      return done(err)
+    }
+    else{
+      console.log("getPlayerStats model success")
+      console.log(rows)
+      done(null,rows)
+    }
+  })
+}
+
 exports.search = function(searchTerms,done){
   console.log(searchTerms);
   var sql = 'SELECT * FROM `player`';

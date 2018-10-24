@@ -1,0 +1,81 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+
+    <h1>Player Stats</h1>
+    <div class="table-responsive">
+    <table class="table" id="results-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Aces For</th>
+          <th>Aces Against</th>
+          <th>Games Played</th>
+          <th>Games Won</th>
+          <th>Games Won / Match</th>
+          <th>Pts For / Game</th>
+          <th>Pts Against / Game</th>
+        </tr>
+      </thead>
+      <tbody>
+    <% result.forEach(function(row){ %>
+
+
+      <tr>
+
+          <td><%= row['name'] %></td>
+          <td><%= row['forPoints'] %></td>
+          <td><%= row['againstPoints'] %></td>
+          <td><%= row['gamesPlayed'] %></td>
+          <td><%= row['gamesWon'] %></td>
+          <%
+          var n = row['gamesWon']/(row['gamesPlayed'] / 6);
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%= n %></td>
+          <%
+          n = row['forPoints'] / row['gamesPlayed'];
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%=  n %></td>
+          <%
+          n = row['againstPoints'] / row['gamesPlayed'];
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%= n %></td>
+      </tr>
+    <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+
+
+
+<% include footer.ejs %>
+<% include datatables.ejs %>
+
+</body>
+</html>

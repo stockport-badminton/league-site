@@ -460,7 +460,7 @@
     /// PLAYER ROUTES ///
 
     /* GET catalog home page. */
-    router.get('/players',checkJwt, player_controller.index);
+    router.get('/players', player_controller.index);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', player_controller.player_create_get);
@@ -489,6 +489,9 @@
 
     /* GET request for one Player. */
     router.get('/player/:id', player_controller.player_detail);
+
+    /* GET request for one Player. */
+    router.get('/player-stats', player_controller.all_player_stats);
 
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
