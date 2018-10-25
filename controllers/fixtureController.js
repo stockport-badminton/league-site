@@ -308,7 +308,7 @@ exports.full_fixture_post = function(req,res){
         awayLady1 : req.body.awayLady1,
         awayLady2 : req.body.awayLady2,
         awayLady3 : req.body.awayLady3,
-        status:"completed",
+        status:"complete",
         homeScore:req.body.homeScore,
         awayScore:req.body.awayScore
       }
