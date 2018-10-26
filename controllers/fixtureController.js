@@ -506,7 +506,7 @@ exports.full_fixture_post = function(req,res){
                 theme:process.env.THEME || 'flatly',
                 pageTitle : "Scorecard Received - No Errors",
                 pageDescription : "Enter some results!",
-                scorecardData: gameResult
+                scorecardData: gameObject
               })
             }
           })
