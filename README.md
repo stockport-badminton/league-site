@@ -7,6 +7,9 @@ This application uses AWS, Express, Bootstrap, MySQL, EJS, Auth0 to literally th
 * REST API for league, division, club, team, venue & player endpoints - all secured using the auth0 service.
 * Fixtures, results and tables drvien out of DB
 * POST requests locked down with access tokens using Auth0
+* prototype results entry (my use only!)
+* rudimentary stats for players based on results entry
+
 
 ## Future Stuff
 * UI for CRUD for fixtures & results
