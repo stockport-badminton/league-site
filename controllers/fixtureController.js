@@ -292,6 +292,28 @@ exports.full_fixture_post = function(req,res){
       theme:process.env.THEME || 'flatly',
       pageTitle : "Scorecard Received - Errors",
       pageDescription : "Something went wrong",
+      result:[
+        {
+          id:7,
+          name:"Premier"
+        },
+        {
+          id:8,
+          name:"Division 1"
+        },
+        {
+          id:9,
+          name:"Division 2"
+        },
+        {
+          id:10,
+          name:"Division 3"
+        },
+        {
+          id:11,
+          name:"Division 4"
+        }
+      ],
       errors: errors.array()
     })
   }

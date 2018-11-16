@@ -138,331 +138,72 @@
     const { body,validationResult } = require("express-validator/check");
     const { sanitizeBody } = require("express-validator/filter");
 
+    function greaterThan21(value,{req,path}){
+      var otherValue = path.replace('away','home')
+      // console.log(otherValue)
+      // console.log(value)
+      // console.log(path)
+      // console.log(req.body[path])
+      if (value < 21 && req.body[otherValue] < 21){
+          return false
+      }
+      else{
+        return value
+      }
+    }
+
+    function differenceOfTwo(value,{req,path}){
+        var otherValue = path.replace('away','home')
+        if (Math.abs(value - req.body[otherValue]) < 2){
+          if (value < 30 && req.body[otherValue] < 30){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+    }
+
     let validateScorecard = [
       body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game1homeScore) < 2){
-          if (value < 30 && req.body.Game1homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game1homeScore)||(req.body.Game1homeScore < 21 && value < req.body.Game1homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game2homeScore) < 2){
-          if (value < 30 && req.body.Game2homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game2homeScore)||(req.body.Game2homeScore < 21 && value < req.body.Game2homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game3homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game3homeScore) < 2){
-          if (value < 30 && req.body.Game3homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game3homeScore)||(req.body.Game3homeScore < 21 && value < req.body.Game3homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game4homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game4homeScore) < 2){
-          if (value < 30 && req.body.Game4homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game4homeScore)||(req.body.Game4homeScore < 21 && value < req.body.Game4homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game5homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game5homeScore) < 2){
-          if (value < 30 && req.body.Game5homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game5homeScore)||(req.body.Game5homeScore < 21 && value < req.body.Game5homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game6homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game6homeScore) < 2){
-          if (value < 30 && req.body.Game6homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game6homeScore)||(req.body.Game6homeScore < 21 && value < req.body.Game6homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game7homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game7homeScore) < 2){
-          if (value < 30 && req.body.Game7homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game7homeScore)||(req.body.Game7homeScore < 21 && value < req.body.Game7homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game8homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game8homeScore) < 2){
-          if (value < 30 && req.body.Game8homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game8homeScore)||(req.body.Game8homeScore < 21 && value < req.body.Game8homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game9homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game9homeScore) < 2){
-          if (value < 30 && req.body.Game9homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game9homeScore)||(req.body.Game9homeScore < 21 && value < req.body.Game9homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game10homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game10homeScore) < 2){
-          if (value < 30 && req.body.Game10homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game10homeScore)||(req.body.Game10homeScore < 21 && value < req.body.Game10homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game11homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game11homeScore) < 2){
-          if (value < 30 && req.body.Game11homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game11homeScore)||(req.body.Game11homeScore < 21 && value < req.body.Game11homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game12homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game12homeScore) < 2){
-          if (value < 30 && req.body.Game12homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game12homeScore)||(req.body.Game12homeScore < 21 && value < req.body.Game12homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game13homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game13homeScore) < 2){
-          if (value < 30 && req.body.Game13homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game13homeScore)||(req.body.Game13homeScore < 21 && value < req.body.Game13homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game14homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game14homeScore) < 2){
-          if (value < 30 && req.body.Game14homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game14homeScore)||(req.body.Game14homeScore < 21 && value < req.body.Game14homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game15homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game15homeScore) < 2){
-          if (value < 30 && req.body.Game15homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game15homeScore)||(req.body.Game15homeScore < 21 && value < req.body.Game15homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game16homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game16homeScore) < 2){
-          if (value < 30 && req.body.Game16homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game16homeScore)||(req.body.Game16homeScore < 21 && value < req.body.Game16homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game17homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game17homeScore) < 2){
-          if (value < 30 && req.body.Game17homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game17homeScore)||(req.body.Game17homeScore < 21 && value < req.body.Game17homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('Game18homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom((value,{ req }) => {
-        if (Math.abs(value - req.body.Game18homeScore) < 2){
-          if (value < 30 && req.body.Game18homeScore < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-      }).withMessage("winning score isn't 2 greater than losing score").custom((value,{req}) => {
-        if ((value < 21 && value > req.body.Game18homeScore)||(req.body.game18homeScore < 21 && value < req.body.Game18homeScore)){
-            return false
-        }
-        else{
-          return value
-        }
-      }).withMessage("one of the teams needs to score at least 21"),
+      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
       body('homeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
         if (value != 0){
           if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
@@ -471,6 +212,9 @@
           else {
             return value
           }
+        }
+        else {
+          return value
         }
       }).withMessage("can't use the same player more than once"),
       body('homeMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -481,6 +225,9 @@
           else {
             return value
           }
+        }
+        else {
+          return value
         }
 
       }).withMessage("can't use the same player more than once"),
@@ -493,6 +240,9 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('homeLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -503,6 +253,9 @@
           else {
             return value
           }
+        }
+        else {
+          return value
         }
 
       }).withMessage("can't use the same player more than once"),
@@ -515,6 +268,9 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('homeLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -526,16 +282,22 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('awayMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
         if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
+          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
             return false
           }
           else {
             return value
           }
+        }
+        else {
+          return value
         }
 
       }).withMessage("can't use the same player more than once"),
@@ -548,6 +310,9 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('awayMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -558,6 +323,9 @@
           else {
             return value
           }
+        }
+        else {
+          return value
         }
 
       }).withMessage("can't use the same player more than once"),
@@ -570,6 +338,9 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('awayLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -581,6 +352,9 @@
             return value
           }
         }
+        else {
+          return value
+        }
 
       }).withMessage("can't use the same player more than once"),
       body('awayLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
@@ -591,6 +365,9 @@
           else {
             return value
           }
+        }
+        else {
+          return value
         }
 
       }).withMessage("can't use the same player more than once")
