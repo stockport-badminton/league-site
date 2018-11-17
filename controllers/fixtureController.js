@@ -75,6 +75,23 @@ exports.fixture_list = function(req, res) {
     })
 };
 
+// Display list of all Fixtures
+exports.get_fixture_players_details = function(req, res) {
+    Fixture.getMatchPlayerOrderDetails(function(err,row){
+      if (err){
+        res.send(err);
+      }
+      else{
+        res.render('beta/fixture-players', {
+            static_path: '/static',
+            pageTitle : "Fixture Player Details",
+            pageDescription : "Find out who played which matches and in what order",
+            result: row
+        });
+      }
+    })
+};
+
 // Return fixture id given home and away team ids
 exports.fixture_id = function(req, res) {
     obj = {

@@ -58,6 +58,19 @@ exports.createBatch = function(BatchObj,done){
   }
 }
 
+exports.getMatchPlayerOrderDetails = function(done){
+  db.get().query('select playerNames.id, playerNames.date, team.name, playerNames.Man1, playerNames.Man2, playerNames.Man3, playerNames.Lady1, playerNames.Lady2, playerNames.Lady3 FROM (select fixture.id, fixture.date, fixture.homeTeam as Team, concat(homeMan1.first_name," ",homeMan1.family_name) as Man1, concat(homeMan2.first_name," ",homeMan2.family_name) as Man2, concat(homeMan3.first_name," ",homeMan3.family_name) as Man3, concat(homeLady1.first_name," ",homeLady1.family_name) as Lady1, concat(homeLady2.first_name," ",homeLady2.family_name) as Lady2, concat(homeLady3.first_name," ",homeLady3.family_name) as Lady3 from fixture join player homeMan1 on fixture.homeMan1 = homeMan1.id join player homeMan2 on fixture.homeMan2 = homeMan2.id join player homeMan3 on fixture.homeMan3 = homeMan3.id join player homeLady1 on fixture.homeLady1 = homeLady1.id join player homeLady2 on fixture.homeLady2 = homeLady2.id join player homeLady3 on fixture.homeLady3 = homeLady3.id UNION ALL select fixture.id, fixture.date, fixture.awayTeam as Team, concat(awayMan1.first_name," ",awayMan1.family_name) as Man1, concat(awayMan2.first_name," ",awayMan2.family_name) as Man2, concat(awayMan3.first_name," ",awayMan3.family_name) as Man3, concat(awayLady1.first_name," ",awayLady1.family_name) as Lady1, concat(awayLady2.first_name," ",awayLady2.family_name) as Lady2, concat(awayLady3.first_name," ",awayLady3.family_name) as Lady3 from fixture join player awayMan1 on fixture.awayMan1 = awayMan1.id join player awayMan2 on fixture.awayMan2 = awayMan2.id join player awayMan3 on fixture.awayMan3 = awayMan3.id join player awayLady1 on fixture.awayLady1 = awayLady1.id join player awayLady2 on fixture.awayLady2 = awayLady2.id join player awayLady3 on fixture.awayLady3 = awayLady3.id) as playerNames JOIN team where playerNames.Team = team.id order by name, date',function(err,rows){
+    if (err) {
+      console.log(err);
+      return done(err);
+    }
+    else {
+      console.log(rows);
+      done(null,rows);
+    }
+  })
+}
+
 // GET
 exports.getAll = function(done){
   db.get().query('SELECT * FROM `fixture`', function (err, rows){

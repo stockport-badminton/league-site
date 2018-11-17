@@ -1,0 +1,54 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+
+    <h1>Fixture Players</h1>
+    <div class="table-responsive">
+    <table class="table" id="results-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Team</th>
+          <th>Man 1</th>
+          <th>Man 2</th>
+          <th>Man 3</th>
+          <th>Lady 1</th>
+          <th>Lady 2</th>
+          <th>Lady 3</th>
+        </tr>
+      </thead>
+      <tbody>
+    <% result.forEach(function(row){
+
+      var MyDate = new Date(row['date']);
+      var MyDateString;
+      // MyDate.setDate(MyDate.getDate() + 20);
+      MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                   + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                   + MyDate.getFullYear();
+
+      %>
+      <tr>
+          <td><%= MyDateString %></td>
+          <td><%= row['name'] %></td>
+          <td><%= row['Man1'] %></td>
+          <td><%= row['Man2'] %></td>
+          <td><%= row['Man3'] %></td>
+          <td><%= row['Lady1'] %></td>
+          <td><%= row['Lady2'] %></td>
+          <td><%= row['Lady3'] %></td>
+      </tr>
+    <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+
+
+
+<% include footer.ejs %>
+<% include datatables.ejs %>
+
+</body>
+</html>

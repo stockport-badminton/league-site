@@ -857,6 +857,9 @@
     router.get('/fixture/:id',checkJwt, fixture_controller.fixture_detail);
 
     /* GET request for list of all Fixture items. */
+    router.get('/fixture-players', fixture_controller.get_fixture_players_details);
+
+    /* GET request for list of all Fixture items. */
     router.get('/fixtures', fixture_controller.fixture_list);
 
     router.get('/', fixture_controller.fixture_get_summary);
