@@ -15,7 +15,8 @@ exports.connect = function(done) {
     'host'     : hostname,
     'user'     : username,
     'password' : password,
-    'database' : database
+    'database' : database,
+    'multipleStatements':true
   })
   done()
 }
