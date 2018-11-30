@@ -60,7 +60,7 @@ exports.player_detail = function(req, res) {
 
 exports.all_player_stats = function (req, res,next){
   console.log("what the fuck is going on!")
-  Player.getPlayerStats(function(err,result){
+  Player.getPlayerStats(req.params,function(err,result){
     console.log("all_player_stats controller")
     if (err){
       console.log("all_player_stats controller error")
@@ -68,7 +68,7 @@ exports.all_player_stats = function (req, res,next){
     }
     else {
       console.log("all_player_stats controller success")
-      console.log(result);
+      // console.log(result);
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',

@@ -673,6 +673,9 @@
     router.get('/player/:id', player_controller.player_detail);
 
     /* GET request for one Player. */
+    router.get('/player-stats/:divisionId?/:gameType?', player_controller.all_player_stats);
+
+    /* GET request for one Player. */
     router.get('/player-stats', player_controller.all_player_stats);
 
     /* GET request for one Player. */
