@@ -5,19 +5,24 @@
   "dependencies": {
     "async": "^2.5.0",
     "auth0-js": "^9.7.3",
+    "auth0-lock": "^11.12.1",
     "aws-sdk": "latest",
     "body-parser": "latest",
+    "connect-ensure-login": "^0.1.1",
     "cookie-parser": "^1.4.3",
     "ejs": "latest",
     "express": "latest",
     "express-jwt": "^5.3.1",
     "express-jwt-authz": "^1.0.0",
+    "express-session": "^1.15.6",
     "express-validator": "^4.2.0",
     "jsonwebtoken": "^8.3.0",
     "jwks-rsa": "^1.3.0",
-    "mysql": "^2.16.0"
+    "mysql": "^2.16.0",
+    "passport": "^0.4.0",
+    "passport-auth0": "^1.0.0"
   },
   "scripts": {
-    "start": "RDS_HOSTNAME=localhost RDS_PORT=3306 RDS_USERNAME=root RDS_PASSWORD=BwzCWv3dFz2d5KFNXGd6 AUTH0_DOMAIN=stockport-badminton.eu.auth0.com AUTH0_AUDIENCE=stockport-badminton.co.uk nodemon app.js"
+    "start": "nodemon app.js"
   }
 }

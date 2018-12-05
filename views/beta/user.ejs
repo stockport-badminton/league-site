@@ -1,0 +1,17 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+<h1>Welcom <%= user.nickname %></h1>
+<img src="<%= user.picture %>" alt="">
+<h2>User Profile</h2>
+<p>This is teh content of <%= user %></p>
+<p>Note <code>_raw</code> and <code>_json</code> properties have been immitted</p>
+<pre><%= userProfile %></pre>
+
+
+<% include footer.ejs %>
+
+
+</body>
+</html>

@@ -66,7 +66,53 @@
       }
     })
 
+    var session = require('express-session');
+    // config express-session
+    var sess = {
+      secret: 'ThisisMySecret',
+      cookie: {},
+      resave: false,
+      saveUninitialized: true
+    };
 
+    if (app.get('env') === 'production') {
+      sess.cookie.secure = true; // serve secure cookies, requires https
+    }
+
+    app.use(session(sess));
+
+    var passport = require('passport');
+    var Auth0Strategy = require('passport-auth0');
+
+    // Configure Passport to use Auth0
+    var strategy = new Auth0Strategy(
+      {
+        domain: process.env.AUTH0_DOMAIN,
+        clientID: process.env.AUTH0_CLIENTID,
+        clientSecret: process.env.AUTH0_CLIENT_SECRET,
+        callbackURL:
+          process.env.AUTH0_CALLBACK_URL || 'http://localhost:3000/callback'
+      },
+      function (accessToken, refreshToken, extraParams, profile, done) {
+        // accessToken is the token to call Auth0 API (not needed in the most cases)
+        // extraParams.id_token has the JSON Web Token
+        // profile has all the information from the user
+        return done(null, profile);
+      }
+    );
+
+    passport.use(strategy);
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // You can use this section to keep a smaller payload
+    passport.serializeUser(function (user, done) {
+      done(null, user);
+    });
+
+    passport.deserializeUser(function (user, done) {
+      done(null, user);
+    });
 
 
     // Require controller modules
@@ -78,6 +124,8 @@
     var game_controller = require(__dirname + '/controllers/gameController');
     var fixture_controller = require(__dirname + '/controllers/fixtureController');
     var league_controller = require(__dirname + '/controllers/leagueController');
+    var userInViews = require(__dirname + '/models/userInViews')
+    var secured = require(__dirname + '/models/secured')
 
 
   /*  app.get('/', function(req, res) {
@@ -89,22 +137,47 @@
         });
     }); */
 
+    app.use(userInViews())
 
-    app.get('/protected-page',function(req,res){
-      if (!res.locals.loggedIn){
-        res.redirect('https://'+process.env.AUTH0_DOMAIN+'/authorize?response_type=code&client_id='+process.env.AUTH0_CLIENTID+'&scope=offline_access&redirect=https://stockport-badminton.co.uk/auth0-callback')
-      }
-      else {
-         res.render('/beta/page-behind-login',{
-           static_path : '/static',
-           pageTitle : "Hidden Page",
-           pageDescription : "Some page you need to login to to get to",
+    app.get('/login', passport.authenticate('auth0', {
+      scope: 'openid email profile'
+    }), function (req, res) {
+      res.redirect('/');
+    });
 
-         })
-      }
-    })
+    // Perform the final stage of authentication and redirect to previously requested URL or '/user'
+    app.get('/callback', function (req, res, next) {
+      passport.authenticate('auth0', function (err, user, info) {
+        if (err) { return next(err); }
+        if (!user) { return res.redirect('/login'); }
+        req.logIn(user, function (err) {
+          if (err) { return next(err); }
+          const returnTo = req.session.returnTo;
+          delete req.session.returnTo;
+          res.redirect(returnTo || '/user');
+        });
+      })(req, res, next);
+    });
 
-    app.get('/scorecard-beta',function(req,res){
+    // Perform session logout and redirect to homepage
+    app.get('/logout', (req, res) => {
+      req.logout();
+      res.redirect('/');
+    });
+
+    app.get('/user', secured(), function (req, res, next) {
+      const { _raw, _json, ...userProfile } = req.user;
+      res.render('beta/user', {
+        userProfile: JSON.stringify(userProfile, null, 2),
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "User Profile",
+        pageDescription : "User Profile",
+      });
+    });
+
+
+    app.get('/scorecard-beta',secured(),function(req,res){
       res.render('index-scorecard',{
         static_path:'/static',
         theme:process.env.THEME || 'flatly',
