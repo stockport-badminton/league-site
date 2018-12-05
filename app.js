@@ -166,7 +166,7 @@
     });
 
     app.get('/user', secured(), function (req, res, next) {
-      const { _raw, _json, ...userProfile } = req.user;
+      const { _raw, _json, userProfile } = req.user;
       res.render('beta/user', {
         userProfile: JSON.stringify(userProfile, null, 2),
         static_path:'/static',

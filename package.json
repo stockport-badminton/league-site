@@ -23,7 +23,6 @@
     "passport-auth0": "^1.0.0"
   },
   "scripts": {
-    "dev": "RDS_HOSTNAME=localhost RDS_PORT=3306 RDS_USERNAME=root RDS_PASSWORD=BwzCWv3dFz2d5KFNXGd6 AUTH0_DOMAIN=stockport-badminton.eu.auth0.com AUTH0_AUDIENCE=stockport-badminton.co.uk AUTH0_CLIENTID=qPyIFbbqysl8s6Y6ZLhH8MWmTZICw5uo AUTH0_CLIENT_SECRET=xZvq0sOl7kqIsRpbePTsM31zkKejYoi1szfHwHJkEbhqktUlulxEd6DygYEF8l0B nodemon app.js",
-    "start": "RDS_HOSTNAME=badminton.chjpverryxux.us-east-2.rds.amazonaws.com RDS_PORT=3306 RDS_USERNAME=badminton RDS_PASSWORD=Mar1gold AUTH0_DOMAIN=stockport-badminton.eu.auth0.com AUTH0_AUDIENCE=stockport-badminton.co.uk AUTH0_CLIENTID=lq5LYLH7d6DaUhZxFNzNaIn4L6fT0ZsF AUTH0_CLIENT_SECRET=0_v6ZN-itxB3m_FQNhkoPowOl7G1BzeKFcJ5Ty9HeuzXtqjCNrbGXWyBm2qEr56M nodemon app.js"
+    "start": "nodemon app.js"
   }
 }
