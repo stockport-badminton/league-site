@@ -52,7 +52,7 @@ exports.clubDetail = function(done){
       return done(err);
     }
     else{
-      console.log(rows);
+      // console.log(rows);
       done(null, rows);
     }
 
@@ -79,7 +79,7 @@ exports.deleteById = function(clubId,done){
 exports.updateById = function(name, venue, clubId,done){
   db.get().query('UPDATE `club` SET `name` = ?, `venue` = ? WHERE `id` = ?',[name, venue, clubId], function (err, rows){
     if (err) return done(err);
-    console.log(rows);
+    // console.log(rows);
     done(null,rows);
   })
 }

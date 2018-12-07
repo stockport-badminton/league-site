@@ -48,7 +48,7 @@ exports.getLeagueTable = function(division,done){
       return done(err);
     }
     else {
-      console.log(result);
+      // console.log(result);
       done(null,result);
     }
   })

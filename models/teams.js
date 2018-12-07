@@ -48,7 +48,7 @@ exports.getAll = function(done){
 // GET
 exports.getTeams = function(searchObject,done){
   if(db.isObject(searchObject)){
-    console.log(searchObject);
+    // console.log(searchObject);
     var sql = 'SELECT * FROM `team`';
     var whereTerms = [];
     if (!searchObject.divisionId){
@@ -69,7 +69,7 @@ exports.getTeams = function(searchObject,done){
     else {
       whereTerms.push('`club` = '+searchObject.clubid);
     }
-    console.log(whereTerms)
+    // console.log(whereTerms)
 
     if (whereTerms.length > 0) {
       if (whereTerms.length > 1){
@@ -79,7 +79,7 @@ exports.getTeams = function(searchObject,done){
         var conditions = whereTerms[0];
       }
       conditions = ' WHERE ' + conditions;
-      console.log(conditions);
+      // console.log(conditions);
       sql = sql + conditions
     }
     db.get().query(sql, function (err, rows){
@@ -120,7 +120,7 @@ exports.updateById = function(teamObj,teamId,done){
     var updateArray = [];
     var updateArrayVars = [];
     for (x in teamObj){
-      console.log(teamObj[x]);
+      // console.log(teamObj[x]);
       updateArray.push('`'+ x +'` = ?');
       updateArrayVars.push(teamObj[x]);
     }
@@ -128,10 +128,10 @@ exports.updateById = function(teamObj,teamId,done){
     updateArrayVars.push(teamId);
     //console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
-    console.log(sql);
+    // console.log(sql);
     db.get().query(sql,updateArrayVars, function (err, rows){
       if (err) return done(err);
-      console.log(rows);
+      // console.log(rows);
       done(null,rows);
     })
   }
