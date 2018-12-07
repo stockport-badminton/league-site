@@ -53,7 +53,7 @@ exports.getLateScorecards = function(req, res) {
           res.send(err);
         }
         else {
-          console.log(data);           // successful response
+          //console.log(data);           // successful response
           res.send(data);
         }
       })
@@ -68,8 +68,8 @@ exports.fixture_list = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -98,7 +98,7 @@ exports.fixture_id = function(req, res) {
       "homeTeam":req.params.homeTeam,
       "awayTeam":req.params.awayTeam
     }
-    console.log(JSON.stringify(obj));
+    // console.log(JSON.stringify(obj));
     Fixture.getFixtureId(obj,function(err,row){
       if (err){
         res.send(err);
@@ -133,8 +133,8 @@ exports.fixture_detail = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -197,8 +197,8 @@ exports.fixture_create_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -220,7 +220,7 @@ exports.fixture_get_summary = function(req, res,next) {
             next(err);
           }
           else{
-            console.log(result);
+            // console.log(result);
             res.render('beta/homepage', {
                 static_path: '/static',
                 pageTitle : "Homepage",
@@ -286,8 +286,8 @@ exports.fixture_delete_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -338,13 +338,13 @@ exports.full_fixture_post = function(req,res){
     Fixture.getFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
         console.log("getFixtureId sucess")
-        console.log(res)
+        // console.log(res)
         res.send(err);
       }
       else {
         console.log("getFixtureId err")
-        console.log(res)
-        console.log(FixtureIdResult);
+        // console.log(res)
+        // console.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -371,8 +371,8 @@ exports.full_fixture_post = function(req,res){
           }
           else {
             console.log("updateById sucess")
-            console.log(res)
-            console.log(fixResult)
+            // console.log(res)
+            // console.log(fixResult)
             var gameObject = {
               tablename:"game",
               fields:[
@@ -575,8 +575,8 @@ exports.fixture_update_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
