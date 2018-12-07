@@ -498,16 +498,12 @@
         url:'https://www.google.com/recaptcha/api/siteverify?secret=6LdHZH8UAAAAABnLY-0qKrYHwfvdLANp19_IDoDm&response='+req.body['g-recaptcha-response'],
       };
       request(options,function(err,res,body){
-        if(err || !body.success){
-          if (err){
+        if(err){
             throw new Error(err);
             return done(err);
-          }
-          else{
-            return next(" your not a human");
-          }
         }
         else {
+          if (body.success){
             if (!errors.isEmpty()) {
                 console.log(errors.array());
                 res.render('beta/contact-us-form-delivered', {
@@ -696,6 +692,10 @@
                 }
               });
             }
+          }
+          else {
+            return next(" your not a human")
+          }
         }
 
       })
