@@ -140,7 +140,8 @@
     app.use(userInViews())
 
     app.get('/login', passport.authenticate('auth0', {
-      scope: 'openid email profile'
+      scope: 'openid email profile',
+      rememberLastLogin: false
     }), function (req, res) {
       res.redirect('/');
     });
@@ -213,10 +214,6 @@
 
     function greaterThan21(value,{req,path}){
       var otherValue = path.replace('away','home')
-      // console.log(otherValue)
-      // console.log(value)
-      // console.log(path)
-      // console.log(req.body[path])
       if (value < 21 && req.body[otherValue] < 21){
           return false
       }
@@ -458,30 +455,6 @@
       })
     })
 
-    app.get('/auth0-callback',function(req,res,next){
-      console.log('reached auth-callback');
-      var options = {
-        method:'POST',
-        url:'https://'+process.env.AUTH0_DOMAIN+'/oauth/token',
-        headers:{
-          'content-type':'application/json'
-        },
-        body:{
-          grant_type:'authorization_code',
-          client_id:process.env.AUTH0_CLIENTID,
-          client_secret:process.env.AUTH0_CLIENT_SECRET,
-          code:req.query.code,
-          redirect_uri:'https://stockport-badminton.co.uk/auth0-callback'
-        },
-        json:true
-      };
-      request(options,function(err,res,body){
-        if(err) throw new Error(err);
-        console.log(body);
-        res.redirect('/protected-page',body)
-      })
-    })
-
     app.get('/contact-us', function(req, res) {
         res.render('beta/contact-us-form', {
             static_path: '/static',
@@ -520,6 +493,21 @@
       sanitizeBody('contactQuery').trim();
 
       var errors = validationResult(req);
+      var options = {
+        method:'POST',
+        url:'https://www.google.com/recaptcha/api/siteverify?secret=6LdHZH8UAAAAABnLY-0qKrYHwfvdLANp19_IDoDm&response='+req.body['g-recaptcha-response'],
+      };
+      request(options,function(err,res,body){
+        if(err){
+          throw new Error(err);
+          return done(err);
+        }
+        else {
+          console.log(res);
+          console.log(body);
+        }
+
+      })
       if (!errors.isEmpty()) {
           console.log(errors.array());
           res.render('beta/contact-us-form-delivered', {
@@ -1009,7 +997,8 @@
        res.render('beta/404-error', {
            static_path: '/static',
            pageTitle : "Can't find the page your looking for",
-           pageDescription : "HTTP 404 Error"
+           pageDescription : "HTTP 404 Error",
+           error:error
        });
     });
 
