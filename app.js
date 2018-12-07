@@ -496,14 +496,17 @@
       var options = {
         method:'POST',
         url:'https://www.google.com/recaptcha/api/siteverify?secret=6LdHZH8UAAAAABnLY-0qKrYHwfvdLANp19_IDoDm&response='+req.body['g-recaptcha-response'],
+        json:true
       };
       request(options,function(err,res,body){
         if(err){
+            console.log(err);
             throw new Error(err);
             return done(err);
         }
         else {
           if (body.success){
+            // console.log("got here");
             if (!errors.isEmpty()) {
                 console.log(errors.array());
                 res.render('beta/contact-us-form-delivered', {
@@ -515,7 +518,7 @@
             return;
             }
             else {
-              console.log(req.body);
+              // console.log(req.body);
               var params = {
                 Destination: { /* required */
                   ToAddresses: [
@@ -673,7 +676,7 @@
               // Create sendEmail params
 
 
-              console.log(params);
+              // console.log(params);
               var ses = new AWS.SES({apiVersion: '2010-12-01'});
 
               ses.sendEmail(params, function(err, data) {
@@ -681,7 +684,7 @@
                   console.log(err, err.stack); // an error occurred
                 }
                 else {
-                  console.log(data);           // successful response
+                  // console.log(data);           // successful response
                   res.render('beta/contact-us-form-delivered', {
                       static_path: '/static',
                       theme: process.env.THEME || 'flatly',
@@ -694,6 +697,7 @@
             }
           }
           else {
+            // console.log("got here instead");
             return next(" your not a human")
           }
         }
