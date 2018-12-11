@@ -692,7 +692,7 @@
               })
               .catch(error => {
                 console.log(error);
-                res.send(error);
+                return next("Sorry something went wrong sending your email.");
               })
 
               /* ses.sendEmail(params, function(err, res, data) {
