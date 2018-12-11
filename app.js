@@ -461,7 +461,7 @@
             theme: process.env.THEME || 'flatly',
             flask_debug: process.env.FLASK_DEBUG || 'false',
             pageTitle : "Contact Us",
-            pageDescription : "Get in touch with your league representatives, or club secretaries".
+            pageDescription : "Get in touch with your league representatives, or club secretaries",
             recaptcha : process.env.RECAPTCHA
         });
     });
