@@ -499,7 +499,7 @@
         url:'https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+req.body['g-recaptcha-response'],
         json:true
       };
-      request(options,function(err,res,body){
+      request(options,function(err,response,body){
         if(err){
             console.log(err);
             throw new Error(err);
@@ -679,8 +679,8 @@
 
               // console.log(params);
               var ses = new AWS.SES({apiVersion: '2010-12-01'});
-              const sendPromise = ses.sendEmail(params)
-              sendEmail
+              const sendPromise = ses.sendEmail(params).promise();
+              sendPromise
               .then(data => {
                 res.render('beta/contact-us-form-delivered', {
                     static_path: '/static',
@@ -691,6 +691,7 @@
                 });
               })
               .catch(error => {
+                console.log(error);
                 res.send(error);
               })
 
