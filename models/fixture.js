@@ -218,9 +218,10 @@ exports.updateByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
     var sql = 'update badminton.fixture set homeScore = ?, awayScore = ? Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
 
-    db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.awayTeam,updateObj.homeTeam],function(err,result,fields){
+    db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.awayTeam,updateObj.homeTeam],function(error,result,fields){
       if (err) {
-        return done(err);
+        return done(error);
+        console.log(error);
       }
       else{
         // console.log(result);
@@ -238,6 +239,7 @@ exports.updateByTeamNames = function(updateObj,done){
           };
           request(options,function(err,res,body){
             if(err){
+              console.log(err)
               throw new Error(err);
               return done(err);
             }
@@ -256,7 +258,8 @@ exports.updateByTeamNames = function(updateObj,done){
     })
   }
   else {
-    return done(err);
+    console.log(error);
+    return done(error);
   }
 }
 

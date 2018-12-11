@@ -1019,8 +1019,7 @@
        res.render('beta/404-error', {
            static_path: '/static',
            pageTitle : "Can't find the page your looking for",
-           pageDescription : "HTTP 404 Error",
-           error:error
+           pageDescription : "HTTP 404 Error"
        });
     });
 
