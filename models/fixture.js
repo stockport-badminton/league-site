@@ -240,7 +240,6 @@ exports.updateByTeamNames = function(updateObj,done){
           request(options,function(err,res,body){
             if(err){
               console.log(err)
-              throw new Error(err);
               return done(err);
             }
             else {
@@ -251,8 +250,7 @@ exports.updateByTeamNames = function(updateObj,done){
           })
         }
         else {
-          throw new Error("nothing updated - teams probably didn't match up")
-          return done("nothing updated - teams probably didn't match up ");
+          return done("nothing updated - teams probably didn't match up or the result was already entered ");
         }
       }
     })
