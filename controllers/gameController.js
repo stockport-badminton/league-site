@@ -8,8 +8,8 @@ exports.game_list = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -23,8 +23,8 @@ exports.game_detail = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -43,8 +43,8 @@ exports.game_create_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -76,8 +76,8 @@ exports.game_delete_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })
@@ -96,8 +96,8 @@ exports.game_update_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })

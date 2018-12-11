@@ -66,7 +66,7 @@ exports.deleteById = function(venueId,done){
 exports.updateById = function(name,address,gMapUrl, venueId,done){
   db.get().query('UPDATE `venue` SET `name` = ?, `address` = ?, `gMapUrl` = ? WHERE `id` = ?',[name,address,gMapUrl, venueId], function (err, rows){
     if (err) return done(err);
-    console.log(rows);
+    // console.log(rows);
     done(null,rows);
   })
 }

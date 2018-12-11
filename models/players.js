@@ -13,7 +13,7 @@ exports.create = function(first_name,family_name,team,club,gender,done){
 exports.createByName = function(obj,done){
   if(db.isObject(obj)){
     sql = 'insert into badminton.player (first_name, family_name, gender, club, team, date_of_registration) values (?, ?, ?,(select id from club where name = ?),(select id from team where name = ?),?)'
-    console.log(JSON.stringify(obj));
+    // console.log(JSON.stringify(obj));
     db.get().query(sql,[obj.first_name, obj.family_name, obj.gender,obj.clubName, obj.teamName, obj.date],function(err,result){
       if (err){
         return done(err);
@@ -61,7 +61,7 @@ exports.createBatch = function(BatchObj,done){
 exports.updateById = function(first_name,family_name,team,club,gender,playerId,done){
   db.get().query('UPDATE `player` SET `first_name` = ?, `family_name` = ?, `team` = ?, `club` = ?, `gender` = ? WHERE `id` = ?',[first_name,family_name,team,club,gender,playerId], function (err, rows){
     if (err) return done(err);
-    console.log(rows);
+    // console.log(rows);
     done(null,rows);
   })
 }
@@ -75,7 +75,7 @@ exports.getAll = function(done){
 }
 
 exports.getPlayerStats = function(searchTerms,done){
-  console.log(searchTerms);
+  // console.log(searchTerms);
 
   var whereTerms = [];
   var whereValue = []
@@ -107,9 +107,9 @@ exports.getPlayerStats = function(searchTerms,done){
         return done(err)
       }
       else{
-        console.log(this.sql)
-        console.log("getPlayerStats model success")
-        //console.log(rows[2])
+        // console.log(this.sql)
+        // console.log("getPlayerStats model success")
+        // console.log(rows[2])
         done(null,rows[2])
       }
     })
@@ -123,8 +123,8 @@ exports.getPlayerStats = function(searchTerms,done){
         return done(err)
       }
       else{
-        console.log(this.sql)
-        console.log("getPlayerStats model success")
+        // console.log(this.sql)
+        // console.log("getPlayerStats model success")
         //console.log(rows[2])
         done(null,rows[2])
       }
@@ -161,7 +161,7 @@ exports.search = function(searchTerms,done){
   if (whereTerms.length > 0) {
     var conditions = whereTerms.join(' AND ');
     conditions = ' WHERE ' + conditions;
-    console.log(conditions);
+    // console.log(conditions);
     sql = sql + conditions
   }
   db.get().query(sql, function (err, rows){
@@ -185,14 +185,14 @@ exports.count = function(searchTerm,done){
   if (searchTerm == ""){
     db.get().query('SELECT COUNT(*) as `players` FROM `player`', function (err,result){
       if (err) return done(err);
-      console.log(searchTerm + " model:" + JSON.stringify(result));
+      // console.log(searchTerm + " model:" + JSON.stringify(result));
       done(null,result);
     })
   }
   else {
     db.get().query('SELECT COUNT(*) as `players` FROM `player` WHERE `gender` = ?',searchTerm, function (err,result){
       if (err) return done(err);
-      console.log(searchTerm + " model:" + JSON.stringify(result));
+      // console.log(searchTerm + " model:" + JSON.stringify(result));
       done(null,result);
     })
   }

@@ -4,10 +4,10 @@ var Division = require('../models/division');
 exports.division_list = function(req, res) {
     Division.getAll(function(err,rows){
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.send(err);
       }
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -15,7 +15,7 @@ exports.division_list = function(req, res) {
 // Display detail page for a specific Division
 exports.division_detail = function(req, res) {
     Division.getById(req.params.id,function(err,rows){
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -29,11 +29,11 @@ exports.division_create_get = function(req, res) {
 exports.division_create_post = function(req, res) {
   Division.create(req.body.name, req.body.league, req.body.rank, function(err,row){
     if (err){
-      console.log(err);
+      // console.log(err);
       res.send(err);
     }
-    console.log(req.body);
-    console.log(row);
+    // console.log(req.body);
+    // console.log(row);
     res.send(row);
   })
 };
@@ -42,7 +42,7 @@ exports.division_batch_create = function(req, res){
   Division.createBatch(req.body,function(err,result){
     if(err){
       res.send(err);
-      console.log(err);
+      // console.log(err);
     }
     else{
       // console.log(result)
@@ -59,7 +59,7 @@ exports.division_delete_get = function(req, res) {
 // Handle Division delete on POST
 exports.division_delete_post = function(req, res) {
     Division.deleteById(req.params.id,function(err,rows){
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -72,8 +72,8 @@ exports.division_update_get = function(req, res) {
 // Handle Division update on POST
 exports.division_update_post = function(req, res) {
     Division.updateById(req.body.name, req.body.league, req.body.rank, req.params.id, function(err,row){
-      console.log(req.body);
-      console.log(row);
+      // console.log(req.body);
+      // console.log(row);
       res.send(row);
     })
 };

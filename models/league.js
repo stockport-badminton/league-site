@@ -37,7 +37,7 @@ exports.deleteById = function(leagueId,done){
 exports.updateById = function(name, admin, url, leagueId,done){
   db.get().query('UPDATE `league` SET `name` = ?, `admin` = ?, `url` = ? WHERE `id` = ?',[name, admin, url, leagueId], function (err, rows){
     if (err) return done(err);
-    console.log(rows);
+    //console.log(rows);
     done(null,rows);
   })
 }

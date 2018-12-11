@@ -7,7 +7,7 @@ exports.league_list = function(req, res) {
         console.log(err);
         res.send(err);
       }
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -15,7 +15,7 @@ exports.league_list = function(req, res) {
 // Display detail page for a specific League
 exports.league_detail = function(req, res) {
     League.getById(req.params.id,function(err,row){
-      console.log(row);
+      // console.log(row);
       res.send(row);
     })
     // res.send('NOT IMPLEMENTED: League detail: ' + req.params.id);
@@ -29,8 +29,8 @@ exports.league_create_get = function(req, res) {
 // Handle League create on POST
 exports.league_create_post = function(req, res) {
   League.create(req.body.name, req.body.admin, req.body.url, function(err,row){
-    console.log(req.body);
-    console.log(row);
+    // console.log(req.body);
+    // console.log(row);
     res.send(row);
   })
   res.send('NOT IMPLEMENTED: League create POST');
@@ -39,8 +39,8 @@ exports.league_create_post = function(req, res) {
 // Handle League delete on DELETE
 exports.league_delete = function(req, res) {
     League.deleteById(req.params.id,function(err,row){
-      console.log(req.params)
-      console.log(row);
+      // console.log(req.params)
+      // console.log(row);
       res.send(row);
     })
 };
@@ -58,8 +58,8 @@ exports.league_update_get = function(req, res) {
 // Handle League update on PATCH
 exports.league_update = function(req, res) {
     League.updateById(req.body.name, req.body.admin, req.body.url, req.params.id, function(err,row){
-      console.log(req.body);
-      console.log(row);
+      // console.log(req.body);
+      // console.log(row);
       res.send(row);
     })
 };

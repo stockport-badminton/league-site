@@ -9,16 +9,16 @@ exports.create = function(fixtureObj,done){
     var updateArrayVars = [];
     var updateArrayValues = []
     for (x in fixtureObj){
-      console.log(fixtureObj[x]);
+      // console.log(fixtureObj[x]);
       updateArray.push('`'+ x +'`');
       updateArrayVars.push(fixtureObj[x]);
       updateArrayValues.push('?');
     }
     var updateVars = updateArray.join(',');
     var updateValues = updateArrayValues.join(',');
-    console.log(updateVars);
+    // console.log(updateVars);
     sql = sql + updateVars + ') VALUES (' + updateValues + ')';
-    console.log(sql);
+    // console.log(sql);
     db.get().query(sql,updateArrayVars,function(err,result){
       if (err) return done(err);
       done(null,result);
@@ -65,7 +65,7 @@ exports.getMatchPlayerOrderDetails = function(done){
       return done(err);
     }
     else {
-      console.log(rows);
+      // console.log(rows);
       done(null,rows);
     }
   })
@@ -87,7 +87,7 @@ exports.getRecent = function(done){
       return done(err);
     }
     else {
-      console.log(result);
+      // console.log(result);
       done(null,result);
     }
   })
@@ -103,7 +103,7 @@ exports.getCardsDueToday = function(done){
       return done(err);
     }
     else {
-      console.log(result);
+      // console.log(result);
       done(null,result);
     }
   })
@@ -117,7 +117,7 @@ exports.getupComing = function(done){
       return done(err);
     }
     else {
-      console.log(result);
+      // console.log(result);
       done(null,result);
     }
   })
@@ -173,13 +173,13 @@ exports.getFixtureIdFromTeamNames = function(obj,done){
 exports.getFixtureId = function(obj,done){
   if(db.isObject(obj)){
     var sql = 'select id from fixture where awayTeam = ? AND homeTeam = ?';
-    console.log(obj);
+    // console.log(obj);
     db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
       if (err){
         return done(err)
       }
       else {
-        console.log(result);
+        // console.log(result);
         done(null,result);
       }
     })
@@ -223,7 +223,7 @@ exports.updateByTeamNames = function(updateObj,done){
         return done(err);
       }
       else{
-        console.log(result);
+        // console.log(result);
         if(result['affectedRows'] == 1 && result['changedRows'] ==1) {
           var options = {
             method:'POST',
@@ -242,7 +242,7 @@ exports.updateByTeamNames = function(updateObj,done){
               return done(err);
             }
             else {
-              console.log(body);
+              // console.log(body);
               return done(null,result)
             }
 
@@ -267,17 +267,17 @@ exports.updateById = function(fixtureObj,fixtureId,done){
     var updateArray = [];
     var updateArrayVars = [];
     for (x in fixtureObj){
-      console.log(fixtureObj[x]);
+      // console.log(fixtureObj[x]);
       updateArray.push('`'+ x +'` = ?');
       updateArrayVars.push(fixtureObj[x]);
     }
     var updateVars = updateArray.join(', ');
     updateArrayVars.push(fixtureId);
-    console.log(updateVars);
+    // console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
     db.get().query(sql,updateArrayVars, function (err, rows){
       if (err) return done(err);
-      console.log(rows);
+      // console.log(rows);
       done(null,rows);
     })
   }

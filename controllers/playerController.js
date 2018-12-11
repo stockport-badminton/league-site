@@ -29,7 +29,7 @@ exports.index = function(req, res) {
             Venue.count(callback);
         },*/
     }, function(err, results) {
-      console.log("results: " + results);
+      // console.log("results: " + results);
       var flattenedResult = JSON.stringify(results);
       res.render('index', { title: 'Stockport League website', static_path:'/static', theme:'flatly', error: err, data: results, dataString:flattenedResult });
     });
@@ -38,7 +38,7 @@ exports.index = function(req, res) {
 // Display list of all Players
 exports.player_list = function(req, res) {
     Player.search(req.params,function(err,rows){
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -53,21 +53,21 @@ exports.eligible_players_list = function(req, res) {
 // Display detail page for a specific Player
 exports.player_detail = function(req, res) {
   Player.getById(req.params.id,function(err,rows){
-    console.log(rows);
+    // console.log(rows);
     res.send(rows);
   })
 };
 
 exports.all_player_stats = function (req, res,next){
-  console.log("what the fuck is going on!")
+  // console.log("what the fuck is going on!")
   Player.getPlayerStats(req.params,function(err,result){
-    console.log("all_player_stats controller")
+    // console.log("all_player_stats controller")
     if (err){
-      console.log("all_player_stats controller error")
+      // console.log("all_player_stats controller error")
       return next(err)
     }
     else {
-      console.log("all_player_stats controller success")
+      // console.log("all_player_stats controller success")
       // console.log(result);
       res.render('beta/player-stats', {
            static_path: '/static',
@@ -89,7 +89,7 @@ exports.player_create_get = function(req, res, next) {
     },
   }, function(err,results){
     if(err){return next(err)};
-    console.log(results);
+    // console.log(results);
     res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',club_list:results.clubs });
   })
 
@@ -102,15 +102,15 @@ exports.player_create = function(req,res){
       res.send(err);
     }
     else {
-      console.log(row);
+      // console.log(row);
       Player.getPlayerClubandTeamById(row.insertId,function(err,rows){
         if (err){
           res.send(err)
         }
         else{
           res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',result:req.body, row:rows });
-          console.log(req.body);
-          console.log(rows);
+          // console.log(req.body);
+          // console.log(rows);
         }
       })
 
@@ -233,8 +233,8 @@ function(err, result){
 // Handle Player delete on POST
 exports.player_delete = function(req, res) {
     Player.deleteById(req.params.id,function(err,row){
-      console.log(req.params)
-      console.log(row);
+      // console.log(req.params)
+      // console.log(row);
       res.send(row);
     })
 };
@@ -250,8 +250,8 @@ exports.player_update_post = function(req, res) {
     if (err){
       res.send(err);
     }
-    console.log(req.body);
-    console.log(row);
+    // console.log(req.body);
+    // console.log(row);
     res.send(row);
   })
 };

@@ -53,7 +53,7 @@ exports.getLateScorecards = function(req, res) {
           res.send(err);
         }
         else {
-          //console.log(data);           // successful response
+          // console.log(data);           // successful response
           res.send(data);
         }
       })

@@ -29,7 +29,7 @@ exports.venue_detail = function(req, res,next) {
         next(err)
       }
       else {
-      console.log(row);
+      // console.log(row);
       res.send(row);
       }
     })
@@ -43,8 +43,8 @@ exports.venue_create_get = function(req, res) {
 // Handle Venue create on POST
 exports.venue_create_post = function(req, res) {
   Venue.create(req.body.name, req.body.address, req.body.gMapUrl, function(err,row){
-    console.log(req.body);
-    console.log(row);
+    // console.log(req.body);
+    // console.log(row);
     res.send(row);
   })
 };
@@ -74,8 +74,8 @@ exports.venue_delete_post = function(req, res,next) {
         next(err);
       }
       else {
-      console.log(req.params)
-      console.log(row);
+      // console.log(req.params)
+      // console.log(row);
       res.send(row);
       }
     })
@@ -93,8 +93,8 @@ exports.venue_update_post = function(req, res,next) {
         next(err)
       }
       else {
-      console.log(req.body);
-      console.log(row);
+      // console.log(req.body);
+      // console.log(row);
       res.send(row);
       }
     })

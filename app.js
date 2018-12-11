@@ -461,7 +461,8 @@
             theme: process.env.THEME || 'flatly',
             flask_debug: process.env.FLASK_DEBUG || 'false',
             pageTitle : "Contact Us",
-            pageDescription : "Get in touch with your league representatives, or club secretaries"
+            pageDescription : "Get in touch with your league representatives, or club secretaries".
+            recaptcha : process.env.RECAPTCHA
         });
     });
 
@@ -495,7 +496,7 @@
       var errors = validationResult(req);
       var options = {
         method:'POST',
-        url:'https://www.google.com/recaptcha/api/siteverify?secret=6LdHZH8UAAAAABnLY-0qKrYHwfvdLANp19_IDoDm&response='+req.body['g-recaptcha-response'],
+        url:'https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+req.body['g-recaptcha-response'],
         json:true
       };
       request(options,function(err,res,body){
@@ -678,8 +679,22 @@
 
               // console.log(params);
               var ses = new AWS.SES({apiVersion: '2010-12-01'});
+              const sendPromise = ses.sendEmail(params)
+              sendEmail
+              .then(data => {
+                res.render('beta/contact-us-form-delivered', {
+                    static_path: '/static',
+                    theme: process.env.THEME || 'flatly',
+                    flask_debug: process.env.FLASK_DEBUG || 'false',
+                    pageTitle: 'Contact Us - Success',
+                    pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you'
+                });
+              })
+              .catch(error => {
+                res.send(error);
+              })
 
-              ses.sendEmail(params, function(err, data) {
+              /* ses.sendEmail(params, function(err, res, data) {
                 if (err) {
                   console.log(err, err.stack); // an error occurred
                 }
@@ -693,7 +708,7 @@
                       pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you'
                   });
                 }
-              });
+              }); */
             }
           }
           else {

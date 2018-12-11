@@ -3,7 +3,7 @@ var Team = require('../models/teams');
 // Display list of all Teams
 exports.team_list = function(req,res,next) {
     Team.getAll(function(err,rows){
-      console.log(rows);
+      // console.log(rows);
       res.send(rows);
     })
 };
@@ -25,7 +25,7 @@ exports.team_search = function(req,res,next) {
 // Display detail page for a specific Team
 exports.team_detail = function(req, res) {
     Team.getById(req.params.id,function(err,row){
-      console.log(row);
+      // console.log(row);
       res.send(row);
     })
 };
@@ -42,8 +42,8 @@ exports.team_create_post = function(req, res) {
       console.log(err);
       res.send(err);
     }
-    console.log(req.body);
-    console.log(row);
+    // console.log(req.body);
+    // console.log(row);
     res.send(row);
   })
 };
@@ -69,8 +69,8 @@ exports.team_delete_get = function(req, res) {
 // Handle Team delete on POST
 exports.team_delete_post = function(req, res) {
     Team.deleteById(req.params.id,function(err,row){
-      console.log(req.params)
-      console.log(row);
+      // console.log(req.params)
+      // console.log(row);
       res.send(row);
     })
 };
@@ -88,8 +88,8 @@ exports.team_update_post = function(req, res) {
         console.log(err);
       }
       else{
-        console.log(req.body);
-        console.log(row);
+        // console.log(req.body);
+        // console.log(row);
         res.send(row);
       }
     })

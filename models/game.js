@@ -8,16 +8,16 @@ exports.create = function(gameObj,done){
     var updateArrayVars = [];
     var updateArrayValues = []
     for (x in gameObj){
-      console.log(gameObj[x]);
+      // console.log(gameObj[x]);
       updateArray.push('`'+ x +'`');
       updateArrayVars.push(gameObj[x]);
       updateArrayValues.push('?');
     }
     var updateVars = updateArray.join(',');
     var updateValues = updateArrayValues.join(',');
-    console.log(updateVars);
+    // console.log(updateVars);
     sql = sql + updateVars + ') VALUES (' + updateValues + ')';
-    console.log(sql);
+    // console.log(sql);
     db.get().query(sql,updateArrayVars,function(err,result){
       if (err) return done(err);
       done(null,result);
@@ -46,14 +46,14 @@ exports.createBatch = function(BatchObj,done){
     }
     // console.log(containerArray);
     sql = sql + containerArray.join(',')
-    console.log(sql);
+    // console.log(sql);
     db.get().query(sql,function(err,result){
       if (err) {
         return done(err);
       }
       else {
         done(null,result)
-      }  
+      }
     })
   }
   else{
@@ -92,17 +92,17 @@ exports.updateById = function(gameObj,gameId,done){
     var updateArray = [];
     var updateArrayVars = [];
     for (x in gameObj){
-      console.log(gameObj[x]);
+      // console.log(gameObj[x]);
       updateArray.push('`'+ x +'` = ?');
       updateArrayVars.push(gameObj[x]);
     }
     var updateVars = updateArray.join(', ');
     updateArrayVars.push(gameId);
-    console.log(updateVars);
+    // console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
     db.get().query(sql,updateArrayVars, function (err, rows){
       if (err) return done(err);
-      console.log(rows);
+      // console.log(rows);
       done(null,rows);
     })
   }
