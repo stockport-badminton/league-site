@@ -93,6 +93,14 @@ exports.getRecent = function(done){
   })
 }
 
+exports.getOutstandingResults = function(done){
+  db.get().query("SELECT a.id, a.date, a.homeTeam, a.homeTeamId, team.name AS awayTeam, team.id as awayTeamId, a.homeScore, a.awayScore FROM (SELECT fixture.id, fixture.date, team.name AS homeTeam, team.id as homeTeamId, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM badminton.fixture JOIN badminton.team WHERE fixture.homeTeam = team.id) AS a JOIN badminton.team WHERE a.awayTeam = team.id AND homeScore IS NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND ADDDATE(NOW(),1) ORDER BY date", function (err, rows){
+    if (err) return done(err);
+    done(null, rows);
+  })
+}
+
+
 
 
 exports.getCardsDueToday = function(done){

@@ -60,6 +60,26 @@ exports.getLateScorecards = function(req, res) {
     })
 };
 
+
+exports.fixture_outstanding = function(req,res,next){
+  Fixture.getOutstandingResults(function(err,result){
+    if(err){
+      next(err)
+    }
+    else {
+      res.render('results-short', {
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Quick Results Entry",
+        pageDescription : "Quick Results Entry",
+        result:result,
+        stringResult:JSON.stringify(result)
+      });
+    }
+  })
+}
+
+
 // Display list of all Fixtures
 exports.fixture_list = function(req, res) {
     Fixture.getAll(function(err,row){
@@ -259,6 +279,7 @@ exports.fixture_update_by_team_name = function(req, res,next){
     }
   })
 }
+
 
 exports.fixture_rearrange_by_team_name = function(req, res,next){
   Fixture.rearrangeByTeamNames(req.body,function(err,result){

@@ -1,16 +1,6 @@
 <% include beta/header.ejs %>
 <% include beta/nav.ejs %>
 
-    <!-- error / feedback messages for results entry -->
-      <div id="signupSuccess" class="alert alert-success" style="display:none">
-        <p id="signupSuccessText">Thanks for signing up! You'll be among the first to know when we launch.</p>
-      </div>
-      <div id="signupDuplicate" class="alert alert-success" style="display:none">
-        <p id="signupDuplicateText">Fear not, you're already on the list! You'll be among the first to know when we launch.</p>
-      </div>
-      <div id="signupError" class="alert alert-info" style="display:none">
-        <p id="signupErrorText">Well this is embarrassing. It looks like we're having trouble getting you on the list.</p>
-      </div>
       <%
       var hasErrors, hasScorecardData, hasResult = false
       %>
