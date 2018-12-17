@@ -48,14 +48,16 @@
           <input type="hidden" id="awayTeamId" name="awayTeamId" value="">
           <input type="hidden" id="awayTeamName" name="awayTeamName" value="">
         </div>
-        <div class="form-group d-none">
-          <label for="homeTeamScore">Home Team Score</label>
-          <input type="number" min="0" max="18" class="form-control" id="homeTeamScore" name="homeTeamScore" placeholder="">
-        </div>
-        <div class="form-group d-none">
-          <label for="awayTeamScore">Away Team Score</label>
-          <input type="number" min="0" max="18" class="form-control" id="awayTeamScoreDisabled" name="awayTeamScoreDisabled" placeholder="" disabled>
-          <input type="hidden" value="" id="awayTeamScore" name="awayTeamScore">
+        <div class="row">
+          <div class="form-group d-none col-sm-12">
+            <label for="homeTeamScore">Home Team Score</label>
+            <input type="number" min="0" max="18" class="form-control" id="homeTeamScore" name="homeTeamScore" placeholder="">
+          </div>
+          <div class="form-group d-none col-sm-12">
+            <label for="awayTeamScore">Away Team Score</label>
+            <input type="number" min="0" max="18" class="form-control" id="awayTeamScoreDisabled" name="awayTeamScoreDisabled" placeholder="" disabled>
+            <input type="hidden" value="" id="awayTeamScore" name="awayTeamScore">
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -77,7 +79,7 @@ $(document).ready(function(){
     $('#awayTeam').parent().attr('class','form-group');
     $('#awayTeam > option[value*="'+ selectedAwayTeam +'"]').attr('selected',true)
     $('#awayTeam').attr('disabled',true)
-    $('#homeTeamScore, #awayTeamScoreDisabled').parent().attr('class','form-group')
+    $('#homeTeamScore, #awayTeamScoreDisabled').parent().attr('class','form-group col-sm-12')
     $('#homeTeamId').val($('#homeTeam')[0].selectedOptions[0].value)
     $('#homeTeamName').val($('#homeTeam')[0].selectedOptions[0].text)
     $('#awayTeamId').val($('#awayTeam')[0].selectedOptions[0].value)
