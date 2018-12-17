@@ -2,19 +2,19 @@
 <% include beta/nav.ejs %>
 
 <% if (typeof success !== 'undefined'){ %>
-  <div class="alert alert-success" role="alert">
+  <div class="alert alert-success col-12" role="alert" style="max-height:3rem">
     Result Entered Successfully
   </div>
 <% } %>
 <% if (typeof error !== 'undefined'){ %>
-  <div class="alert alert-success" role="alert">
+  <div class="alert alert-success col-12" role="alert" style="max-height:3rem">
     Something went wrong: <%= error %>
   </div>
 <% } %>
 <% if (typeof result !== 'undefined'){ %>
 
-<div class="modal-dialog">
-  <form id="signupForm" role="form" method="post" action="/fixture/short-result">
+
+  <form id="signupForm" role="form" method="post" action="/fixture/short-result" class="col-12">
     <div class="modal-content">
       <div class="modal-body">
         <div class="form-group">
@@ -63,7 +63,6 @@
       </div>
     </div>
   </form>
-</div>
 <% } %>
 <% include beta/footer.ejs %>
 <% if (typeof result !== 'undefined'){ %>
