@@ -1,10 +1,20 @@
 <% include beta/header.ejs %>
 <% include beta/nav.ejs %>
 
+<% if (typeof success !== 'undefined'){ %>
+  <div class="alert alert-success" role="alert">
+    Result Entered Successfully
+  </div>
+<% } %>
+<% if (typeof error !== 'undefined'){ %>
+  <div class="alert alert-success" role="alert">
+    Something went wrong: <%= error %>
+  </div>
+<% } %>
 <% if (typeof result !== 'undefined'){ %>
 
 <div class="modal-dialog">
-  <form id="signupForm" role="form" method="post" action="/player/create">
+  <form id="signupForm" role="form" method="post" action="/fixture/short-result">
     <div class="modal-content">
       <div class="modal-body">
         <div class="form-group">
@@ -12,7 +22,7 @@
           <select class="form-control" id="outstandingResults" name="outstandingResults" placeholder="Choose...">
             <option disabled selected>Choose...</option>
             <% result.forEach(function(row){ %>
-              <option value="<%= row.id %>"><%= row.homeTeam %> vs <%= row.awayTeam %></option>
+              <option value="<%= row.id %>" data-homeTeam="<%= row.homeTeamId %>" data-awayTeam="<%= row.awayTeamId %>"><%= row.homeTeam %> vs <%= row.awayTeam %></option>
             <% }) %>
           </select>
         </div>
@@ -21,25 +31,31 @@
           <select class="form-control" id="homeTeam" name="homeTeam" placeholder="Home Team">
             <option disabled selected>Choose...</option>
             <% result.forEach(function(row){ %>
-              <option value="<%= row.homeTeamId %>"><%= row.homeTeamName %></option>
+              <option value="<%= row.homeTeamId %>"><%= row.homeTeam %></option>
             <% }) %>
           </select>
+          <input type="hidden" id="homeTeamId" name="homeTeamId" value="">
+          <input type="hidden" id="homeTeamName" name="homeTeamName" value="">
         </div>
         <div class="form-group d-none">
-          <label for="homeTeam">Away Team</label>
+          <label for="awayTeam">Away Team</label>
           <select class="form-control" id="awayTeam" name="awayTeam" placeholder="Away Team">
           <option disabled selected>Choose...</option>
           <% result.forEach(function(row){ %>
-            <option value="<%= row.awayTeamId %>"><%= row.awayTeamName %></option>
+            <option value="<%= row.awayTeamId %>"><%= row.awayTeam %></option>
           <% }) %>
+          </select>
+          <input type="hidden" id="awayTeamId" name="awayTeamId" value="">
+          <input type="hidden" id="awayTeamName" name="awayTeamName" value="">
         </div>
-        <div class="form-group">
+        <div class="form-group d-none">
           <label for="homeTeamScore">Home Team Score</label>
           <input type="number" min="0" max="18" class="form-control" id="homeTeamScore" name="homeTeamScore" placeholder="">
         </div>
-        <div class="form-group">
+        <div class="form-group d-none">
           <label for="awayTeamScore">Away Team Score</label>
-          <input type="number" min="0" max="18" class="form-control" id="awayTeamScore" name="awayTeamScore" placeholder="">
+          <input type="number" min="0" max="18" class="form-control" id="awayTeamScoreDisabled" name="awayTeamScoreDisabled" placeholder="" disabled>
+          <input type="hidden" value="" id="awayTeamScore" name="awayTeamScore">
         </div>
       </div>
       <div class="modal-footer">
@@ -50,3 +66,31 @@
 </div>
 <% } %>
 <% include beta/footer.ejs %>
+<% if (typeof result !== 'undefined'){ %>
+<script type="text/javascript">
+$(document).ready(function(){
+  $('#outstandingResults').change(function(){
+    var selectedHomeTeam = $(this)[0].selectedOptions[0].attributes['data-hometeam'].value
+    var selectedAwayTeam = $(this)[0].selectedOptions[0].attributes['data-awayteam'].value
+    $('#homeTeam').parent().attr('class','form-group');
+    $('#homeTeam > option[value*="'+ selectedHomeTeam +'"]').attr('selected',true)
+    $('#homeTeam').attr('disabled',true)
+    $('#awayTeam').parent().attr('class','form-group');
+    $('#awayTeam > option[value*="'+ selectedAwayTeam +'"]').attr('selected',true)
+    $('#awayTeam').attr('disabled',true)
+    $('#homeTeamScore, #awayTeamScoreDisabled').parent().attr('class','form-group')
+    $('#homeTeamId').val($('#homeTeam')[0].selectedOptions[0].value)
+    $('#homeTeamName').val($('#homeTeam')[0].selectedOptions[0].text)
+    $('#awayTeamId').val($('#awayTeam')[0].selectedOptions[0].value)
+    $('#awayTeamName').val($('#awayTeam')[0].selectedOptions[0].text)
+  })
+  $('#homeTeamScore').change(function(){
+    var calcOtherScore = 18 - $(this)[0].value;
+    $('#awayTeamScoreDisabled').val(calcOtherScore)
+    $('#awayTeamScore').val(calcOtherScore)
+  })
+
+})
+
+</script>
+<% } %>

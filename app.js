@@ -908,8 +908,11 @@ let validateContactUs = [
     /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
     router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
 
-    /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
+    /* Get request for quick results form */
     router.get('/fixture/short-result', fixture_controller.fixture_outstanding);
+
+    /* POST request for sending the quick result to */
+    router.post('/fixture/short-result', fixture_controller.fixture_outstanding_post);
 
     /* POST request for creating Fixture. */
     router.post('/fixture/create',checkJwt, fixture_controller.fixture_create_post);
@@ -944,7 +947,7 @@ let validateContactUs = [
     /* GET request to get fixture id from home and away team ids. */
     router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixture_id);
 
-    // POST request to update Fixture
+    // PATCH request to update Fixture
     router.patch('/fixture/:id',checkJwt, fixture_controller.fixture_update_post);
 
     /* GET request for one Fixture. */

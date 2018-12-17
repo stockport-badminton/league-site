@@ -79,6 +79,50 @@ exports.fixture_outstanding = function(req,res,next){
   })
 }
 
+// Handle Fixture update on POST
+exports.fixture_outstanding_post = function(req, res,next) {
+
+  var reqBody = {
+    "homeScore":1*(req.body.homeTeamScore),
+    "awayScore":18-req.body.homeTeamScore,
+    "status":"completed"
+  }
+  // res.send(req.body)
+  Fixture.updateById(reqBody,req.body.outstandingResults,function(err,row){
+    if (err){
+      next(err);
+    }
+    else{
+      zapObject = {
+        "homeTeam":req.body.homeTeamName,
+        "awayTeam":req.body.awayTeamName,
+        "homeScore":1*(req.body.homeTeamScore),
+        "awayScore":1*(req.body.awayTeamScore)
+      }
+      Fixture.sendResultZap(zapObject,function(err,zapRes){
+        if(err) {next(err)}
+        else{
+          Fixture.getOutstandingResults(function(err,result){
+            if(err){
+              next(err)
+            }
+            else {
+              res.render('results-short', {
+                static_path:'/static',
+                theme:process.env.THEME || 'flatly',
+                pageTitle : "Quick Results Entry - Success",
+                pageDescription : "Quick Results Entry - Success",
+                result:result,
+                zapRes:zapRes,
+                success:true,
+              });
+            }
+          })
+        }
+      })
+    }
+  })
+};
 
 // Display list of all Fixtures
 exports.fixture_list = function(req, res) {
@@ -587,6 +631,9 @@ exports.full_fixture_post = function(req,res){
     })
   }
 }
+
+
+
 
 // Handle Fixture update on POST
 exports.fixture_update_post = function(req, res) {

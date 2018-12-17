@@ -269,6 +269,38 @@ exports.updateByTeamNames = function(updateObj,done){
   }
 }
 
+exports.sendResultZap = function(zapObject,done){
+  if (db.isObject(zapObject)){
+    var options = {
+      method:'POST',
+      url:'https://hooks.zapier.com/hooks/catch/3751975/qz5xbm/',
+      headers:{
+        'content-type':'application/json'
+      },
+      body:{
+        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #badminton #stockport #sdbl #result https://stockport-badminton.co.uk"
+      },
+      json:true
+    };
+    request(options,function(err,res,body){
+      if(err){
+        // console.log(err)
+        return done(err);
+      }
+      else {
+        // console.log(body);
+        return done(null,body)
+      }
+
+    })
+  }
+  else {
+    return done("you've not supplied an object");
+  }
+
+
+}
+
 // PATCH
 exports.updateById = function(fixtureObj,fixtureId,done){
   if (db.isObject(fixtureObj)){
@@ -287,7 +319,7 @@ exports.updateById = function(fixtureObj,fixtureId,done){
     db.get().query(sql,updateArrayVars, function (err, rows){
       if (err) return done(err);
       // console.log(rows);
-      done(null,rows);
+      return done(null,rows);
     })
   }
   else {
