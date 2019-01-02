@@ -139,9 +139,10 @@
 
     app.use(userInViews())
 
+
+
     app.get('/login', passport.authenticate('auth0', {
-      scope: 'openid email profile',
-      rememberLastLogin: false
+      scope: 'openid email profile'
     }), function (req, res) {
       res.redirect('/');
     });
@@ -150,7 +151,15 @@
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
         if (err) { return next(err); }
-        if (!user) { return res.redirect('/login'); }
+        if (!user) {
+          res.render('beta/failed-login', {
+            static_path:'/static',
+            theme:process.env.THEME || 'flatly',
+            pageTitle : "Access Denied",
+            pageDescription : "Access Denied",
+          });
+          // retur res.redirect('/login');
+        }
         req.logIn(user, function (err) {
           if (err) { return next(err); }
           const returnTo = req.session.returnTo;
@@ -163,7 +172,7 @@
     // Perform session logout and redirect to homepage
     app.get('/logout', (req, res) => {
       req.logout();
-      res.redirect('/');
+      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'returnTo=https://stockport-badminton.co.uk');
     });
 
     app.get('/user', secured(), function (req, res, next) {
@@ -178,7 +187,7 @@
     });
 
 
-    app.get('/scorecard-beta',function(req,res){
+    app.get('/scorecard-beta', secured(), function(req,res){
       res.render('index-scorecard',{
         static_path:'/static',
         theme:process.env.THEME || 'flatly',

@@ -229,7 +229,6 @@ exports.updateByTeamNames = function(updateObj,done){
     db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.awayTeam,updateObj.homeTeam],function(error,result,fields){
       if (error) {
         return done(error);
-        console.log(error);
       }
       else{
         // console.log(result);
@@ -247,11 +246,9 @@ exports.updateByTeamNames = function(updateObj,done){
           };
           request(options,function(err,res,body){
             if(err){
-              console.log(err)
               return done(err);
             }
             else {
-              // console.log(body);
               return done(null,result)
             }
 
@@ -297,8 +294,6 @@ exports.sendResultZap = function(zapObject,done){
   else {
     return done("you've not supplied an object");
   }
-
-
 }
 
 // PATCH
