@@ -74,6 +74,50 @@ exports.getAll = function(done){
   })
 }
 
+exports.getNamesClubsTeams = function(searchTerms,done){
+  var whereTerms = [];
+  var whereValue = []
+  if (!searchTerms.club){
+    // console.log("no club name");
+  }
+  else {
+    whereTerms.push('`clubName` = ?');
+    whereValue.push(searchTerms.club)
+  }
+  if (!searchTerms.team){
+    // console.log("no team name");
+  }
+  else {
+    whereTerms.push('`teamName` = ?');
+    whereValue.push(searchTerms.team)
+  }
+  if (!searchTerms.gender){
+    // console.log("no gender");
+  }
+  else {
+    whereTerms.push('`gender` = ?');
+    whereValue.push(searchTerms.gender)
+  }
+  // console.log(whereTerms)
+
+  if (whereTerms.length > 0) {
+    var conditions = whereTerms.join(' AND ');
+    // console.log(conditions);
+    conditions = ' WHERE '+ conditions
+    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id ) as b"+conditions,whereValue,function(err,rows){
+      // console.log(this.sql);
+      if (err) return done(err);
+      done(null,rows);
+    })
+  }
+  else {
+    db.get().query("select playerId, a.name, gender, date_of_registration, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id",function(err,rows){
+      if (err) return done(err);
+      done(null,rows);
+    })
+  }
+}
+
 exports.getPlayerStats = function(searchTerms,done){
   // console.log(searchTerms);
 

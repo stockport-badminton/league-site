@@ -139,8 +139,6 @@
 
     app.use(userInViews())
 
-
-
     app.get('/login', passport.authenticate('auth0', {
       scope: 'openid email profile'
     }), function (req, res) {
@@ -150,6 +148,10 @@
     // Perform the final stage of authentication and redirect to previously requested URL or '/user'
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
+        console.log('USER:')
+        console.log(user)
+        console.log('INFO:')
+        console.log(info)
         if (err) { return next(err); }
         if (!user) {
           res.render('beta/failed-login', {
@@ -739,10 +741,10 @@ let validateContactUs = [
     /// PLAYER ROUTES ///
 
     /* GET catalog home page. */
-    router.get('/players', player_controller.index);
+    router.get('/players/club-:club?/team-:team?/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
-    router.get('/player/create', player_controller.player_create_get);
+    router.get('/player/create',secured(), player_controller.player_create_get);
 
     /* POST request for creating Player. */
     router.post('/player/create', player_controller.player_create);
@@ -777,6 +779,7 @@ let validateContactUs = [
 
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
+
 
     /* GET request for list of all Player items. */
     router.get('/players/club-:clubid?/team-:teamid?/gender-:gender?', player_controller.player_list);
@@ -918,7 +921,7 @@ let validateContactUs = [
     router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
 
     /* Get request for quick results form */
-    router.get('/fixture/short-result', fixture_controller.fixture_outstanding);
+    router.get('/fixture/short-result',secured(), fixture_controller.fixture_outstanding);
 
     /* POST request for sending the quick result to */
     router.post('/fixture/short-result', fixture_controller.fixture_outstanding_post);

@@ -1,14 +1,23 @@
 <% include header.ejs %>
 <% include nav.ejs %>
 
+<div class="col-12">
+
+<%
+
+var userString = JSON.stringify(user);
+
+%>
 
 <h1>Welcome <%= user.nickname %></h1>
 <img src="<%= user.picture %>" alt="">
 <h2>User Profile</h2>
-<p>This is the content of <%= user %></p>
-<p>Note <code>_raw</code> and <code>_json</code> properties have been immitted</p>
-<pre><%= userProfile %></pre>
-
+<p>This is the content of <%= userString %></p>
+<p>Note <code>_raw</code> and <code>_json</code> properties have been ommitted</p>
+<code>
+  <%= userString %>
+</code>
+</div>
 
 <% include footer.ejs %>
 

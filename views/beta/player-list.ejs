@@ -1,0 +1,64 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+  <% if (typeof errors !== 'undefined') { %>
+    <p>Something seems to have gone wrong</p>
+    <p><%= error %></p>
+  <% }
+  else { %>
+    <h1>Registered Players</h1>
+    <div class="table-responsive">
+    <table class="table" id="results-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Club</th>
+          <th>Team</th>
+          <th>Gender</th>
+          <th>Registered</th>
+        </tr>
+      </thead>
+      <tbody>
+    <% result.forEach(function(row){ %>
+      <%
+        var MyDate = new Date(row['date_of_registration']);
+        var MyDateString;
+
+        // MyDate.setDate(MyDate.getDate() + 20);
+
+        MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                     + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                     + MyDate.getFullYear();
+      %>
+
+      <tr>
+
+          <td><%= row['name'] %></td>
+          <td><%= row['clubName'] %></td>
+          <td><%= row['teamName'] %></td>
+          <td><%= row['gender'] %></td>
+          <td><%= MyDateString %></td>
+      </tr>
+    <% }) %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+   <% } %>
+
+
+
+
+<% include footer.ejs %>
+<% include datatables.ejs %>
+
+</body>
+</html>

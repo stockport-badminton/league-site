@@ -43,6 +43,30 @@ exports.player_list = function(req, res) {
     })
 };
 
+
+// Display list of all Players
+exports.player_list_clubs_teams = function(req, res) {
+    Player.getNamesClubsTeams(req.params, function(err,rows){
+      // console.log(rows);
+      if (err){
+        // console.log("all_player_stats controller error")
+        return next(err)
+      }
+      else {
+        // console.log("all_player_stats controller success")
+        // console.log(result);
+        res.render('beta/player-list', {
+             static_path: '/static',
+             theme: process.env.THEME || 'flatly',
+             flask_debug: process.env.FLASK_DEBUG || 'false',
+             pageTitle : "Player Registrations",
+             pageDescription : "List of players registered to teams in the Stockport League",
+             result : rows
+         });
+      }
+    })
+};
+
 // Return list of players eligible based on team
 exports.eligible_players_list = function(req, res) {
     Player.findElgiblePlayersFromTeamId(req.params.id,req.params.gender,function(err,rows){
