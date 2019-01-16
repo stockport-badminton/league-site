@@ -742,6 +742,10 @@ let validateContactUs = [
 
     /* GET catalog home page. */
     router.get('/players/club-:club?/team-:team?/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
+    router.get('/players/club-:club?', secured(),player_controller.player_list_clubs_teams);
+    router.get('/players/team-:team?', secured(),player_controller.player_list_clubs_teams);
+    router.get('/players/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
+    router.get('/players', secured(),player_controller.player_list_clubs_teams);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create',secured(), player_controller.player_create_get);
