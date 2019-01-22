@@ -54,6 +54,20 @@ exports.getById = function(divisionId,done){
   })
 }
 
+exports.getByName = function(divisionName,done){
+  db.get().query('SELECT * FROM `division` WHERE levenshtein(`name`,?) < 1',divisionName, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+exports.getAllAndSelectedByName = function(leagueId,divisionName,done){
+  db.get().query('select *, CASE WHEN levenshtein(division.name, ?) < 1 THEN true ELSE false END as selected from division WHERE league = ?',[divisionName,leagueId],function(err,rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
 // DELETE
 exports.deleteById = function(divisionId,done){
   db.get().query('DELETE FROM `division` WHERE `id` = ?',divisionId, function (err, rows){

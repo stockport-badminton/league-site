@@ -10,6 +10,10 @@
     const jwt = require('express-jwt');
     const jwtAuthz = require('express-jwt-authz');
     const jwksRsa = require('jwks-rsa');
+    const formidable = require('formidable')
+    const exceljs = require('exceljs')
+    const fs = require('fs');
+
 
 
 
@@ -54,6 +58,7 @@
 
     var db = require('./db_connect');
     var port = process.env.PORT || 3000;
+
     // Connect to MySQL on start
     db.connect(function(err) {
       if (err) {
@@ -188,6 +193,14 @@
       });
     });
 
+    app.get('/upload-scoresheet',function(req,res){
+      res.render('beta/file-upload',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Upload Scorecard",
+        pageDescription : "Enter some results!",
+      })
+    })
 
     app.get('/scorecard-beta', secured(), function(req,res){
       res.render('index-scorecard',{
@@ -234,7 +247,7 @@
     }
 
     function containsProfanity(value,{req}){
-      var substringsArray = ["ahole","anus","ash0le","ash0les","asholes","ass","Ass Monkey","Assface","assh0le","assh0lez","asshole","assholes","assholz","asswipe","azzhole","bassterds","bastard","bastards","bastardz","basterds","basterdz","Biatch","bitch","bitches","Blow Job","boffing","butthole","buttwipe","c0ck","c0cks","c0k","Carpet Muncher","cawk","cawks","Clit","cnts","cntz"," cock","cockhead","cock-head","cocks","CockSucker","cock-sucker","crap","cum","cunt","cunts","cuntz","dick","dild0","dild0s","dildo","dildos","dilld0","dilld0s","dominatricks","dominatrics","dominatrix","dyke","enema","f u c k","f u c k e r","fag","fag1t","faget","fagg1t","faggit","faggot","fagit","fags","fagz","faig","faigs","fart","flipping the bird","fuck","fucker","fuckin","fucking","fucks","Fudge Packer","fuk","Fukah","Fuken","fuker","Fukin","Fukk","Fukkah","Fukken","Fukker","Fukkin","g00k","gay","gayboy","gaygirl","gays","gayz","God-damned","h00r","h0ar","h0re","hells","hoar","hoor","hoore","jackoff","jap","japs","jerk-off","jisim","jiss","jizm","jizz","knob","knobs","knobz","kunt","kunts","kuntz","Lesbian","Lezzian","Lipshits","Lipshitz","masochist","masokist","massterbait","masstrbait","masstrbate","masterbaiter","masterbate","masterbates","Motha Fucker","Motha Fuker","Motha Fukkah","Motha Fukker","Mother Fucker","Mother Fukah","Mother Fuker","Mother Fukkah","Mother Fukker","mother-fucker","Mutha Fucker","Mutha Fukah","Mutha Fuker","Mutha Fukkah","Mutha Fukker","n1gr","nastt","nigger;","nigur;","niiger;","niigr;","orafis","orgasim;","orgasm","orgasum","oriface","orifice","orifiss","packi","packie","packy","paki","pakie","paky","pecker","peeenus","peeenusss","peenus","peinus","pen1s","penas","penis","penis-breath","penus","penuus","Phuc","Phuck","Phuk","Phuker","Phukker","polac","polack","polak","Poonani","pr1c","pr1ck","pr1k","pusse","pussee","pussy","puuke","puuker","queer","queers","queerz","qweers","qweerz","qweir","recktum","rectum","retard","sadist","scank","schlong","screwing","semen","sex","sexy","Sh!t","sh1t","sh1ter","sh1ts","sh1tter","sh1tz","shit","shits","shitter","Shitty","Shity","shitz","Shyt","Shyte","Shytty","Shyty","skanck","skank","skankee","skankey","skanks","Skanky","slut","sluts","Slutty","slutz","son-of-a-bitch","tit","turd","va1jina","vag1na","vagiina","vagina","vaj1na","vajina","vullva","vulva","w0p","wh00r","wh0re","whore","xrated","xxx","b!+ch","bitch","blowjob","clit","arschloch","fuck","shit","ass","asshole","b!tch","b17ch","b1tch","bastard","bi+ch","boiolas","buceta","c0ck","cawk","chink","cipa","clits","cock","cum","cunt","dildo","dirsa","ejakulate","fatass","fcuk","fuk","fux0r","hoer","hore","jism","kawk","l3itch","l3i+ch","lesbian","masturbate","masterbat*","masterbat3","motherfucker","s.o.b.","mofo","nazi","nigga","nigger","nutsack","phuck","pimpis","pusse","pussy","scrotum","sh!t","shemale","shi+","sh!+","slut","smut","teets","tits","boobs","b00bs","teez","testical","testicle","titt","w00se","jackoff","wank","whoar","whore","*damn","*dyke","*fuck*","*shit*","@$$","amcik","andskota","arse*","assrammer","ayir","bi7ch","bitch*","bollock*","breasts","butt-pirate","cabron","cazzo","chraa","chuj","Cock*","cunt*","d4mn","daygo","dego","dick*","dike*","dupa","dziwka","ejackulate","Ekrem*","Ekto","enculer","faen","fag*","fanculo","fanny","feces","feg","Felcher","ficken","fitt*","Flikker","foreskin","Fotze","Fu(*","fuk*","futkretzn","gay","gook","guiena","h0r","h4x0r"," hell ","helvete","hoer*","honkey","Huevon","hui","injun","jizz","kanker*","kike","klootzak","kraut","knulle","kuk","kuksuger","Kurac","kurwa","kusi*","kyrpa*","lesbo","mamhoon","masturbat*","merd*","mibun","monkleigh","mouliewop","muie","mulkku","muschi","nazis","nepesaurio","nigger*","orospu","paska*","perse","picka","pierdol*","pillu*","pimmel","piss*","pizda","poontsee","poop","porn","p0rn","pr0n","preteen","pula","pule","puta","puto","qahbeh","queef*","rautenberg","schaffer","scheiss*","schlampe","schmuck","screw","sh!t*","sharmuta","sharmute","shipal","shiz","skribz","skurwysyn","sphencter","spic","spierdalaj","splooge","suka","b00b*","testicle*","titt*","twat","vittu","wank*","wetback*","wichser","wop*","yed","zabourah"];
+      var substringsArray = ["forex","ahole","anus","ash0le","ash0les","asholes","ass","Ass Monkey","Assface","assh0le","assh0lez","asshole","assholes","assholz","asswipe","azzhole","bassterds","bastard","bastards","bastardz","basterds","basterdz","Biatch","bitch","bitches","Blow Job","boffing","butthole","buttwipe","c0ck","c0cks","c0k","Carpet Muncher","cawk","cawks","Clit","cnts","cntz"," cock","cockhead","cock-head","cocks","CockSucker","cock-sucker","crap","cum","cunt","cunts","cuntz","dick","dild0","dild0s","dildo","dildos","dilld0","dilld0s","dominatricks","dominatrics","dominatrix","dyke","enema","f u c k","f u c k e r","fag","fag1t","faget","fagg1t","faggit","faggot","fagit","fags","fagz","faig","faigs","fart","flipping the bird","fuck","fucker","fuckin","fucking","fucks","Fudge Packer","fuk","Fukah","Fuken","fuker","Fukin","Fukk","Fukkah","Fukken","Fukker","Fukkin","g00k","gay","gayboy","gaygirl","gays","gayz","God-damned","h00r","h0ar","h0re","hells","hoar","hoor","hoore","jackoff","jap","japs","jerk-off","jisim","jiss","jizm","jizz","knob","knobs","knobz","kunt","kunts","kuntz","Lesbian","Lezzian","Lipshits","Lipshitz","masochist","masokist","massterbait","masstrbait","masstrbate","masterbaiter","masterbate","masterbates","Motha Fucker","Motha Fuker","Motha Fukkah","Motha Fukker","Mother Fucker","Mother Fukah","Mother Fuker","Mother Fukkah","Mother Fukker","mother-fucker","Mutha Fucker","Mutha Fukah","Mutha Fuker","Mutha Fukkah","Mutha Fukker","n1gr","nastt","nigger;","nigur;","niiger;","niigr;","orafis","orgasim;","orgasm","orgasum","oriface","orifice","orifiss","packi","packie","packy","paki","pakie","paky","pecker","peeenus","peeenusss","peenus","peinus","pen1s","penas","penis","penis-breath","penus","penuus","Phuc","Phuck","Phuk","Phuker","Phukker","polac","polack","polak","Poonani","pr1c","pr1ck","pr1k","pusse","pussee","pussy","puuke","puuker","queer","queers","queerz","qweers","qweerz","qweir","recktum","rectum","retard","sadist","scank","schlong","screwing","semen","sex","sexy","Sh!t","sh1t","sh1ter","sh1ts","sh1tter","sh1tz","shit","shits","shitter","Shitty","Shity","shitz","Shyt","Shyte","Shytty","Shyty","skanck","skank","skankee","skankey","skanks","Skanky","slut","sluts","Slutty","slutz","son-of-a-bitch","tit","turd","va1jina","vag1na","vagiina","vagina","vaj1na","vajina","vullva","vulva","w0p","wh00r","wh0re","whore","xrated","xxx","b!+ch","bitch","blowjob","clit","arschloch","fuck","shit","ass","asshole","b!tch","b17ch","b1tch","bastard","bi+ch","boiolas","buceta","c0ck","cawk","chink","cipa","clits","cock","cum","cunt","dildo","dirsa","ejakulate","fatass","fcuk","fuk","fux0r","hoer","hore","jism","kawk","l3itch","l3i+ch","lesbian","masturbate","masterbat*","masterbat3","motherfucker","s.o.b.","mofo","nazi","nigga","nigger","nutsack","phuck","pimpis","pusse","pussy","scrotum","sh!t","shemale","shi+","sh!+","slut","smut","teets","tits","boobs","b00bs","teez","testical","testicle","titt","w00se","jackoff","wank","whoar","whore","*damn","*dyke","*fuck*","*shit*","@$$","amcik","andskota","arse*","assrammer","ayir","bi7ch","bitch*","bollock*","breasts","butt-pirate","cabron","cazzo","chraa","chuj","Cock*","cunt*","d4mn","daygo","dego","dick*","dike*","dupa","dziwka","ejackulate","Ekrem*","Ekto","enculer","faen","fag*","fanculo","fanny","feces","feg","Felcher","ficken","fitt*","Flikker","foreskin","Fotze","Fu(*","fuk*","futkretzn","gay","gook","guiena","h0r","h4x0r"," hell ","helvete","hoer*","honkey","Huevon","hui","injun","jizz","kanker*","kike","klootzak","kraut","knulle","kuk","kuksuger","Kurac","kurwa","kusi*","kyrpa*","lesbo","mamhoon","masturbat*","merd*","mibun","monkleigh","mouliewop","muie","mulkku","muschi","nazis","nepesaurio","nigger*","orospu","paska*","perse","picka","pierdol*","pillu*","pimmel","piss*","pizda","poontsee","poop","porn","p0rn","pr0n","preteen","pula","pule","puta","puto","qahbeh","queef*","rautenberg","schaffer","scheiss*","schlampe","schmuck","screw","sh!t*","sharmuta","sharmute","shipal","shiz","skribz","skurwysyn","sphencter","spic","spierdalaj","splooge","suka","b00b*","testicle*","titt*","twat","vittu","wank*","wetback*","wichser","wop*","yed","zabourah"];
 
       if (substringsArray.some(function(v) { return value.indexOf(v) >= 0; })) {
         console.log('containsProfanity fail')
@@ -471,6 +484,101 @@
     ]
 
     app.post('/scorecard-beta',validateScorecard, fixture_controller.full_fixture_post);
+
+    app.post('/submit-form', (req,res,next) => {
+      new formidable.IncomingForm().parse(req, function(err,fields, files){
+        var oldpath = files.document.path;
+        var newpath = path.join(__dirname,'/static') + files.document.name;
+        fs.rename(oldpath, newpath, function (err) {
+          if (err) throw err;
+          console.log('File uploaded and moved!');
+          var workbook = new exceljs.Workbook();
+          workbook.xlsx.readFile(newpath).then(function() {
+            // use workbook
+            var worksheet = workbook.getWorksheet(1)
+            var MyDate = new Date(worksheet.getCell('E1').value);
+            var MyDateString;
+            MyDateString = MyDate.getFullYear() + '-'
+                         + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
+                         + ('0' + MyDate.getDate()).slice(-2)
+            var data = [];
+            data.push({
+              division: worksheet.getCell('C1').value,
+              date: MyDateString,
+              home_team: worksheet.getCell('B3').value,
+              away_team: worksheet.getCell('E3').value,
+              home_man_1: worksheet.getCell('B5').value,
+              home_man_2: worksheet.getCell('B6').value,
+              home_man_3: worksheet.getCell('B7').value,
+              home_lady_1: worksheet.getCell('B8').value,
+              home_lady_2: worksheet.getCell('B9').value,
+              home_lady_3: worksheet.getCell('B10').value,
+              away_man_1: worksheet.getCell('E5').value,
+              away_man_2: worksheet.getCell('E6').value,
+              away_man_3: worksheet.getCell('E7').value,
+              away_lady_1: worksheet.getCell('E8').value,
+              away_lady_2: worksheet.getCell('E9').value,
+              away_lady_3: worksheet.getCell('E10').value,
+              Game1homeScore: worksheet.getCell('B14').value,
+              Game1awayScore: worksheet.getCell('C14').value,
+              Game2homeScore: worksheet.getCell('D14').value,
+              Game2awayScore: worksheet.getCell('E14').value,
+              Game3homeScore: worksheet.getCell('B15').value,
+              Game3awayScore: worksheet.getCell('C15').value,
+              Game4homeScore: worksheet.getCell('D15').value,
+              Game4awayScore: worksheet.getCell('E15').value,
+              Game5homeScore: worksheet.getCell('B16').value,
+              Game5awayScore: worksheet.getCell('C16').value,
+              Game6homeScore: worksheet.getCell('D16').value,
+              Game6awayScore: worksheet.getCell('E16').value,
+              Game7homeScore: worksheet.getCell('B17').value,
+              Game7awayScore: worksheet.getCell('C17').value,
+              Game8homeScore: worksheet.getCell('D17').value,
+              Game8awayScore: worksheet.getCell('E17').value,
+              Game9homeScore: worksheet.getCell('B18').value,
+              Game9awayScore: worksheet.getCell('C18').value,
+              Game10homeScore: worksheet.getCell('D18').value,
+              Game10awayScore: worksheet.getCell('E18').value,
+              Game11homeScore: worksheet.getCell('B19').value,
+              Game11awayScore: worksheet.getCell('C19').value,
+              Game12homeScore: worksheet.getCell('D19').value,
+              Game12awayScore: worksheet.getCell('E19').value,
+              Game13homeScore: worksheet.getCell('B20').value,
+              Game13awayScore: worksheet.getCell('C20').value,
+              Game14homeScore: worksheet.getCell('D20').value,
+              Game14awayScore: worksheet.getCell('E20').value,
+              Game15homeScore: worksheet.getCell('B21').value,
+              Game15awayScore: worksheet.getCell('C21').value,
+              Game16homeScore: worksheet.getCell('D21').value,
+              Game16awayScore: worksheet.getCell('E21').value,
+              Game17homeScore: worksheet.getCell('B22').value,
+              Game17awayScore: worksheet.getCell('C22').value,
+              Game18homeScore: worksheet.getCell('D22').value,
+              Game18awayScore: worksheet.getCell('E22').value,
+              homeMan1XdPos:worksheet.getCell('C5').value,
+              homeMan2XdPos:worksheet.getCell('C6').value,
+              homeMan3XdPos:worksheet.getCell('C7').value,
+              homeLady1XdPos:worksheet.getCell('C8').value,
+              homeLady2XdPos:worksheet.getCell('C9').value,
+              homeLady3XdPos:worksheet.getCell('C10').value,
+              awayMan1XdPos:worksheet.getCell('F5').value,
+              awayMan2XdPos:worksheet.getCell('F6').value,
+              awayMan3XdPos:worksheet.getCell('F7').value,
+              awayLady1XdPos:worksheet.getCell('F8').value,
+              awayLady2XdPos:worksheet.getCell('F9').value,
+              awayLady3XdPos:worksheet.getCell('F10').value
+            })
+            //console.log(data);
+            fixture_controller.fixture_populate_scorecard(data,req,res,next)
+          })
+          .catch(function(e) {
+            console.log('error', 'an error occurred')
+            res.status(500).json({error: e.message})
+          })
+        });
+
+      })
+    })
 
     app.get('/scorecard-received',function(req,res,next){
       res.render('index-scorecard',{

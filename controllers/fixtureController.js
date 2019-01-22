@@ -1,3 +1,6 @@
+var Division = require('../models/division');
+var Team = require('../models/teams');
+var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var request = require('request');
@@ -359,9 +362,12 @@ exports.fixture_delete_post = function(req, res) {
 };
 
 // Display Fixture update form on GET
-exports.fixture_update_get = function(req, res) {
+exports.fixture_update_get = function(req, res, next) {
     res.send('NOT IMPLEMENTED: Fixture update GET');
 };
+
+
+
 
 const { validationResult } = require("express-validator/check");
 
@@ -632,7 +638,90 @@ exports.full_fixture_post = function(req,res){
   }
 }
 
-
+exports.fixture_populate_scorecard = function(data,req,res,next){
+  Division.getAllAndSelectedByName(1,data[0].division,function(err,divisionRows){
+    if(err){
+      next(err)
+    }
+    else {
+      console.log(divisionRows)
+      Division.getByName(data[0].division,function(err,divisionIdRows){
+        if (err) {
+          next(err)
+        }
+        else{
+          console.log(divisionIdRows)
+          Team.getAllAndSelectedByName(data[0].home_team,divisionIdRows[0].id,function(err,homeTeamRows){
+            if (err) {
+              next(err)
+            }
+            else{
+              console.log(homeTeamRows)
+              Team.getAllAndSelectedByName(data[0].away_team,divisionIdRows[0].id,function(err,awayTeamRows){
+                if (err) {
+                  next(err)
+                }
+                else{
+                  console.log(awayTeamRows)
+                  Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Male',data[0].home_man_1,data[0].home_man_2,data[0].home_man_3,function(err,homeMenRows){
+                    if(err){
+                      next(err)
+                    }
+                    else{
+                      console.log(homeMenRows)
+                      Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Female',data[0].home_lady_1,data[0].home_lady_2,data[0].home_lady_3,function(err,homeLadiesRows){
+                        if(err){
+                          next(err)
+                        }
+                        else{
+                          console.log(homeLadiesRows)
+                          Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Male',data[0].away_man_1,data[0].away_man_2,data[0].away_man_3,function(err,awayMenRows){
+                            if(err){
+                              next(err)
+                            }
+                            else{
+                              console.log(awayMenRows)
+                              Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Female',data[0].away_lady_1,data[0].away_lady_2,data[0].away_lady_3,function(err,awayLadiesRows){
+                                if(err){
+                                  next(err)
+                                }
+                                else{
+                                  console.log(awayLadiesRows)
+                                  var renderData = {
+                                    "divisionRows":divisionRows,
+                                    "divisionIdRows":divisionIdRows,
+                                    "homeTeamRows":homeTeamRows,
+                                    "awayTeamRows":awayTeamRows,
+                                    "homeMenRows":homeMenRows,
+                                    "homeLadiesRows":homeLadiesRows,
+                                    "awayMenRows":awayMenRows,
+                                    "awayLadiesRows":awayLadiesRows
+                                  };
+                                  res.render('populated-scorecard', {
+                                      static_path: '/static',
+                                      pageTitle : "Spreadsheet Upload Scorecard",
+                                      pageDescription : "Show result of uploading scorecard",
+                                      result : renderData,
+                                      data : data[0]
+                                  });
+                                }
+                            })
+                          }
+                        })
+                      }
+                    })
+                  }
+                })
+              }
+            })
+          }
+        })
+        console.log(data);
+      }
+    })
+  }
+})
+}
 
 
 // Handle Fixture update on POST

@@ -225,6 +225,13 @@ exports.findElgiblePlayersFromTeamId = function(id,gender,done){
   })
 }
 
+exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, first, second, third,done){
+  db.get().query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender],function(err,rows){
+    if(err) return done(err)
+    done(null,rows)
+  })
+}
+
 exports.count = function(searchTerm,done){
   if (searchTerm == ""){
     db.get().query('SELECT COUNT(*) as `players` FROM `player`', function (err,result){
@@ -243,6 +250,20 @@ exports.count = function(searchTerm,done){
 }
 
 // GET
+exports.getByName = function(playerName,done){
+  db.get().query('SELECT * FROM player where levenshtein(concat(first_name," ",family_name), ?) < 4',playerName, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+exports.getByNameAndTeam = function(playerName,teamId,distance,done){
+  db.get().query('select * from (select player.id as playerId, concat(first_name," ",family_name) as playerName, team.id as teamId, team.name as teamName from player join team where player.team = team.id) as playerClub where teamId=? AND levenshtein(playerName,?) < ?',[teamid,playerName,distance], function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
 exports.getById = function(playerId,done){
   db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
     if (err) return done(err);
