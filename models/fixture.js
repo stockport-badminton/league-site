@@ -144,6 +144,13 @@ exports.getFixtureDetails = function(division, done){
   })
 }
 
+exports.getFixtureDetailsById = function(fixtureId,done){
+  db.get().query('Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND fixtureId = ? ',fixtureId,function(err,rows){
+    if (err) return done(err);
+    done(null,rows)
+  })
+}
+
 
 // GET
 exports.getById = function(fixtureId,done){

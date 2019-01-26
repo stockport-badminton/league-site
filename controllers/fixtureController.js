@@ -622,13 +622,29 @@ exports.full_fixture_post = function(req,res){
               }
               else {
                 console.log("createBatch sucess")
-                res.render('index-scorecard',{
-                  static_path:'/static',
-                  theme:process.env.THEME || 'flatly',
-                  pageTitle : "Scorecard Received - No Errors",
-                  pageDescription : "Enter some results!",
-                  scorecardData: gameObject
+                Fixture.getFixtureDetailsById(FixtureIdResult[0].id,function(err,getFixtureDetailsResult){
+                  if(err) res.send(err)
+                  zapObject = {
+                    "homeTeam":getFixtureDetailsResult[0].homeTeam,
+                    "awayTeam":getFixtureDetailsResult[0].awayTeam,
+                    "homeScore":getFixtureDetailsResult[0].homeScore,
+                    "awayScore":getFixtureDetailsResult[0].awayScore
+                   }
+                  console.log(zapObject)
+                  Fixture.sendResultZap(zapObject,function(err,zapRes){
+                    if (err) res.send(err)
+                    res.render('index-scorecard',{
+                      static_path:'/static',
+                      theme:process.env.THEME || 'flatly',
+                      pageTitle : "Scorecard Received - No Errors",
+                      pageDescription : "Enter some results!",
+                      scorecardData: gameObject
+                    })
+                  })
+
                 })
+
+
               }
             })
           }
