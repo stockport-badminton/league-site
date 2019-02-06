@@ -89,3 +89,24 @@ exports.league_table = function(req,res,next) {
       }
     })
 };
+
+exports.all_league_tables = function(req,res,next) {
+    League.getAllLeagueTables(function(err,result){
+      if (err){
+        console.log(err);
+        next(err);
+      }
+      else{
+          // console.log(result)
+          res.status(200);
+         res.render('beta/all-tables', {
+             static_path: '/static',
+             theme: process.env.THEME || 'flatly',
+             flask_debug: process.env.FLASK_DEBUG || 'false',
+             pageTitle : "League Tables",
+             pageDescription : "Find out how your teams are peforming this season",
+             result : result
+         });
+      }
+    })
+};

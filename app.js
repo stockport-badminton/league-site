@@ -959,7 +959,12 @@ let validateContactUs = [
     router.get('/leagues',checkJwt, league_controller.league_list);
 
     /* GET request for list of all League items. */
+    router.get('/tables/All', league_controller.all_league_tables);
+    
+    /* GET request for list of all League items. */
     router.get('/tables/:division', league_controller.league_table);
+
+
 
     /// CLUB ROUTES ///
 

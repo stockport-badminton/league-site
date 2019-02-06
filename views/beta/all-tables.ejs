@@ -1,0 +1,101 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+
+<% if (typeof errors !== 'undefined') { %>
+<p>Something seems to have gone wrong</p>
+<p>
+  <%= error %>
+</p>
+<% }
+  if (typeof result !== 'undefined'){
+    var current = ""
+    result.forEach(function(row){
+      var n = (row['pointsFor'] / row['played']);
+      if(Number.isNaN(n)){
+        var n = 0;
+      }
+      else{
+        if (!(Number.isInteger(n))){
+          n = n.toFixed(1);
+        }
+      }
+      if (row['division'] == current) {
+        %>
+        <tr>
+          <td>
+            <%= row['name'] %>
+          </td>
+          <td>
+            <%= row['played'] %>
+          </td>
+          <td>
+            <%= row['pointsFor'] %>
+          </td>
+          <td>
+            <%= row['pointsAgainst'] %>
+          </td>
+          <td>
+            <%= n %>
+          </td>
+        </tr>
+        <%
+      }
+      else {
+        if (current != "" ){
+        %>
+      </tbody>
+    </table>
+  </div>
+  </div>
+        <%
+      }
+        current = row['division'];
+        %>
+  <div class="col-md-4">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>
+              <%= row['divisionName'] %>
+            </th>
+            <th>p</th>
+            <th>w</th>
+            <th>l</th>
+            <th>avg</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <%= row['name'] %>
+            </td>
+            <td>
+              <%= row['played'] %>
+            </td>
+            <td>
+              <%= row['pointsFor'] %>
+            </td>
+            <td>
+              <%= row['pointsAgainst'] %>
+            </td>
+            <td>
+              <%= n %>
+            </td>
+          </tr>
+          <%
+      }
+    })
+}
+  %>
+</tbody>
+</table>
+</div>
+</div>
+<% include footer.ejs %>
+
+
+</body>
+
+</html>

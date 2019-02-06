@@ -53,3 +53,10 @@ exports.getLeagueTable = function(division,done){
     }
   })
 }
+
+exports.getAllLeagueTables = function(done){
+  db.get().query('SELECT division.name as divisionName, id as division, c.name, c.played, c.pointsFor, c.pointsAgainst FROM (SELECT team.name, b.played, b.pointsFor, b.pointsAgainst, team.division FROM (SELECT a.date, SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId FROM (SELECT fixture.date, CASE WHEN fixture.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.homeScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.homeScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, homeScore AS pointsFor, awayScore AS pointsAgainst, fixture.homeTeam AS teamId FROM badminton.fixture UNION ALL SELECT fixture.date, CASE WHEN fixture.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.awayScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.awayScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, awayScore AS pointsFor, homeScore AS pointsAgainst, fixture.awayTeam AS teamId FROM badminton.fixture) AS a GROUP BY a.teamid) AS b JOIN badminton.team WHERE team.id = b.teamId) AS c JOIN badminton.division WHERE c.division = division.id AND division.league = 1 ORDER BY division, pointsFor DESC',function(err,result){
+    if (err) return done(err);
+    done(null,result);
+  })
+}
