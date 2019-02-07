@@ -12,6 +12,7 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Contact</th>
           <th>Match Night</th>
           <th>Club Night</th>
           <th>Venue</th>
@@ -24,9 +25,14 @@
           <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
         <% }
         else { %>
+
           <td><%= row['name'] %></td>
         <% } %>
-
+          <td>
+            <button type="button" class="btn btn-primary openForm" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>">
+              Get in touch
+            </button>
+          </td>
           <td><%= row['matchNightText'] %></td>
           <td><%= row['clubNightText'] %></td>
           <%
@@ -45,9 +51,57 @@
     </div>
    <% } %>
 
+   <!-- Modal -->
+   <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+     <div class="modal-dialog" role="document">
+       <div class="modal-content">
+         <div class="modal-header">
+           <h5 class="modal-title" id="exampleModalLabel">Get in touch with </h5>
+           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+             <span aria-hidden="true">&times;</span>
+           </button>
+         </div>
+         <form role="form" id="contactUs" action="/contact-us" method="post">
+         <div class="modal-body">
+            <input type="hidden" value="" id="clubSelect" name="clubSelect" />
+
+             <div class="form-group">
+               <label for="contactEmail">Email address</label>
+               <input type="email" class="form-control" id="contactEmail" name="contactEmail" aria-describedby="emailHelp" placeholder="Enter email">
+               <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+             </div>
+             <div class="form-group">
+               <label for="contactQuery">Message that you want to send to the club contact</label>
+               <textarea class="form-control" id="contactQuery" name="contactQuery" rows="3"></textarea>
+             </div>
+             <div class="form-group">
+               <div class="g-recaptcha" data-sitekey="<%= recaptcha %>"></div>
+             </div>
+
+
+         </div>
+         <div class="modal-footer">
+           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+           <button type="submit" class="btn btn-primary">Submit</button>
+         </div>
+         </form>
+       </div>
+     </div>
+   </div>
 
 <% include footer.ejs %>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('.openForm').click(function(){
+      var clubName = $(this).attr('data-club')
+      console.log($(this).attr('data-club'))
+      $('#exampleModalLabel').html("Get in touch with " + clubName)
+      $('#clubSelect').val(clubName)
+    })
+  })
+</script>
 
 </body>
 </html>

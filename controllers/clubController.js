@@ -24,7 +24,8 @@ exports.club_list_detail = function(req, res, next) {
            pageTitle : "Local Badminton Club Information",
            pageDescription : "Find your local badminton clubs, when they play, where they play.",
            result: result,
-           error: false
+           error: false,
+           recaptcha : process.env.RECAPTCHA
        });
       }
     })
