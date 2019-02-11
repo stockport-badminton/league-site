@@ -457,7 +457,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstMensawayMan2,
                   homeScore:req.body.Game1homeScore,
                   awayScore:req.body.Game1awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstMens'
                 },
                 {
                   homePlayer1:req.body.FirstMenshomeMan1,
@@ -466,7 +467,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstMensawayMan2,
                   homeScore:req.body.Game2homeScore,
                   awayScore:req.body.Game2awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstMens'
                 },
                 {
                   homePlayer1:req.body.FirstLadieshomeLady1,
@@ -475,7 +477,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstLadiesawayLady2,
                   homeScore:req.body.Game3homeScore,
                   awayScore:req.body.Game3awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstLadies'
                 },
                 {
                   homePlayer1:req.body.FirstLadieshomeLady1,
@@ -484,7 +487,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstLadiesawayLady2,
                   homeScore:req.body.Game4homeScore,
                   awayScore:req.body.Game4awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstLadies'
                 },
                 {
                   homePlayer1:req.body.SecondMenshomeMan1,
@@ -493,7 +497,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondMensawayMan3,
                   homeScore:req.body.Game5homeScore,
                   awayScore:req.body.Game5awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondMens'
                 },
                 {
                   homePlayer1:req.body.SecondMenshomeMan1,
@@ -502,7 +507,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondMensawayMan3,
                   homeScore:req.body.Game6homeScore,
                   awayScore:req.body.Game6awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondMens'
                 },
                 {
                   homePlayer1:req.body.SecondLadieshomeLady1,
@@ -511,7 +517,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondLadiesawayLady3,
                   homeScore:req.body.Game7homeScore,
                   awayScore:req.body.Game7awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondLadies'
                 },
                 {
                   homePlayer1:req.body.SecondLadieshomeLady1,
@@ -520,7 +527,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondLadiesawayLady3,
                   homeScore:req.body.Game8homeScore,
                   awayScore:req.body.Game8awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondLadies'
                 },
                 {
                   homePlayer1:req.body.ThirdMenshomeMan2,
@@ -529,7 +537,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdMensawayMan3,
                   homeScore:req.body.Game9homeScore,
                   awayScore:req.body.Game9awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdMens'
                 },
                 {
                   homePlayer1:req.body.ThirdMenshomeMan2,
@@ -538,7 +547,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdMensawayMan3,
                   homeScore:req.body.Game10homeScore,
                   awayScore:req.body.Game10awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdMens'
                 },
                 {
                   homePlayer1:req.body.ThirdLadieshomeLady2,
@@ -547,7 +557,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdLadiesawayLady3,
                   homeScore:req.body.Game11homeScore,
                   awayScore:req.body.Game11awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdLadies'
                 },
                 {
                   homePlayer1:req.body.ThirdLadieshomeLady2,
@@ -556,7 +567,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdLadiesawayLady3,
                   homeScore:req.body.Game12homeScore,
                   awayScore:req.body.Game12awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdLadies'
                 },
                 {
                   homePlayer1:req.body.FirstMixedhomeMan1,
@@ -565,7 +577,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstMixedawayLady1,
                   homeScore:req.body.Game13homeScore,
                   awayScore:req.body.Game13awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstMixed'
                 },
                 {
                   homePlayer1:req.body.FirstMixedhomeMan1,
@@ -574,7 +587,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.FirstMixedawayLady1,
                   homeScore:req.body.Game14homeScore,
                   awayScore:req.body.Game14awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'FirstMixed'
                 },
                 {
                   homePlayer1:req.body.SecondMixedhomeMan2,
@@ -583,7 +597,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondMixedawayLady2,
                   homeScore:req.body.Game15homeScore,
                   awayScore:req.body.Game15awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondMixed'
                 },
                 {
                   homePlayer1:req.body.SecondMixedhomeMan2,
@@ -592,7 +607,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.SecondMixedawayLady2,
                   homeScore:req.body.Game16homeScore,
                   awayScore:req.body.Game16awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'SecondMixed'
                 },
                 {
                   homePlayer1:req.body.ThirdMixedhomeMan3,
@@ -601,7 +617,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdMixedawayLady3,
                   homeScore:req.body.Game17homeScore,
                   awayScore:req.body.Game17awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdMixed'
                 },
                 {
                   homePlayer1:req.body.ThirdMixedhomeMan3,
@@ -610,7 +627,8 @@ exports.full_fixture_post = function(req,res){
                   awayPlayer2:req.body.ThirdMixedawayLady3,
                   homeScore:req.body.Game18homeScore,
                   awayScore:req.body.Game18awayScore,
-                  fixture:FixtureIdResult[0].id
+                  fixture:FixtureIdResult[0].id,
+                  gameType:'ThirdMixed'
                 }
               ]
             }
