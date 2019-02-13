@@ -447,7 +447,7 @@ exports.full_fixture_post = function(req,res){
             var gameObject = {
               tablename:"game",
               fields:[
-                "homePlayer1", "homePlayer2", "awayPlayer1","awayPlayer2","homeScore","awayScore","fixture"
+                "homePlayer1", "homePlayer2", "awayPlayer1","awayPlayer2","homeScore","awayScore","fixture","gameType"
               ],
               data:[
                 {
