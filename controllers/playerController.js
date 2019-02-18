@@ -43,6 +43,22 @@ exports.player_list = function(req, res) {
     })
 };
 
+// Display list of all Players
+exports.player_game_data = function(req, res,next) {
+    Player.getPlayerGameData(req.params.id,function(err,rows){
+      if (err) return next(err)
+      res.render('beta/player-game-stats', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Player Game Data:"+ req.params.fullName,
+           pageDescription : "Information about games that "+ req.params.fullName + "played in this season",
+           result : rows,
+           fullName: req.params.fullName
+       });
+    })
+};
+
 
 // Display list of all Players
 exports.player_list_clubs_teams = function(req, res) {

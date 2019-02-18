@@ -496,11 +496,17 @@
           workbook.xlsx.readFile(newpath).then(function() {
             // use workbook
             var worksheet = workbook.getWorksheet(1)
+            console.log("worksheet")
+            console.log(worksheet)
             var MyDate = new Date(worksheet.getCell('E1').value);
+            console.log("MyDate")
+            console.log(MyDate)
             var MyDateString;
             MyDateString = MyDate.getFullYear() + '-'
                          + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
-                         + ('0' + MyDate.getDate()).slice(-2)
+                         + ('0' + MyDate.getDate()).slice(-2);
+            console.log("MyDateString")
+            console.log(MyDateString)
             var data = [];
             data.push({
               division: worksheet.getCell('C1').value,
@@ -882,6 +888,8 @@ let validateContactUs = [
 
     /* GET request for one Player. */
     router.get('/player/:id', player_controller.player_detail);
+    /* GET request for one Player. */
+    router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 
     /* GET request for one Player. */
     router.get('/player-stats/division-:divisionId?/:gameType?', player_controller.all_player_stats);
@@ -960,7 +968,7 @@ let validateContactUs = [
 
     /* GET request for list of all League items. */
     router.get('/tables/All', league_controller.all_league_tables);
-    
+
     /* GET request for list of all League items. */
     router.get('/tables/:division', league_controller.league_table);
 

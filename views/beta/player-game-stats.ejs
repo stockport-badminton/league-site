@@ -7,22 +7,24 @@
     <p><%= error %></p>
   <% }
   else { %>
-    <h1>Registered Players</h1>
+    <h1><%= fullName %></h1>
     <div class="table-responsive">
     <table class="table" id="results-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Club</th>
-          <th>Team</th>
-          <th>Gender</th>
-          <th>Registered</th>
+          <th>date</th>
+          <th>Partner</th>
+          <th>Opponent 1</th>
+          <th>Opponent 2</th>
+          <th>points for</th>
+          <th>points against</th>
+          <th>type</th>
         </tr>
       </thead>
       <tbody>
     <% result.forEach(function(row){ %>
       <%
-        var MyDate = new Date(row['date_of_registration']);
+        var MyDate = new Date(row['date']);
         var MyDateString;
 
         // MyDate.setDate(MyDate.getDate() + 20);
@@ -34,11 +36,13 @@
 
       <tr>
 
-          <td><a href="/playerStats/<%= row['playerID'] %>"><%= row['name'] %></a></td>
-          <td><%= row['clubName'] %></td>
-          <td><%= row['teamName'] %></td>
-          <td><%= row['gender'] %></td>
           <td><%= MyDateString %></td>
+          <td><%= row['partnerName'] %></td>
+          <td><%= row['oppName1'] %></td>
+          <td><%= row['oppName2'] %></td>
+          <td><%= row['score'] %></td>
+          <td><%= row['vsScore'] %></td>
+          <td><%= row['gameType'] %></td>
       </tr>
     <% }) %>
       </tbody>
