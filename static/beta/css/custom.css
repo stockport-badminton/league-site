@@ -19,7 +19,7 @@ ol#rules li {
   background-repeat: no-repeat;
 }
 
-.respBgImg img {
+.respBgImg img.hiddenRespBgImg {
   display: none;
 }
 
