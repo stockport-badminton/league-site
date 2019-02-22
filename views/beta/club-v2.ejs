@@ -7,6 +7,7 @@
     <p><%= error %></p>
   <% }
   else { %>
+    <div id="map"></div>
     <div class="table-responsive">
     <table class="table">
       <thead>
@@ -91,7 +92,38 @@
    </div>
 
 <% include footer.ejs %>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<script>
+// Initialize and add the map
+function initMap() {
+
+  // The location of Uluru
+  var StockportTownHall = {lat:53.4060787,lng:-2.1606755}
+
+  var mellor = {lat: 53.3934509, lng: -2.039702};
+  var coops = {lat: 53.3638036, lng: -2.1883077};
+  // The map, centered at Uluru
+  var map = new google.maps.Map(
+      document.getElementById('map'), {zoom: 10, center: StockportTownHall});
+  // The marker, positioned at Uluru
+  var markerStockPortTownHall = new google.maps.Marker({position: StockportTownHall, map: map});
+  var data = <%- venues %>
+  data.forEach(function(i){
+    console.log(i.Lat + ', ' + i.Lng);
+    var point = {lat:parseFloat(i.Lat), lng:parseFloat(i.lng)}
+    var marker = new google.maps.Marker({position:point,map:map})
+  })
+  var circle = new google.maps.Circle({
+  map: map,
+  radius: 16093,    // 10 miles in metres
+  strokeColor: '#FF0000',
+  strokeOpacity: 0.1,
+  strokeWeight: 0.5,
+  fillColor: '#0000ff',
+  fillOpacity: 0.1,})
+  circle.bindTo('center', markerStockPortTownHall, 'position');
+}
+</script>
 
 <script type="text/javascript">
   $(document).ready(function(){
@@ -102,6 +134,11 @@
       $('#clubSelect').val(clubName)
     })
   })
+</script>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script async defer
+src="https://maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&callback=initMap">
 </script>
 
 </body>

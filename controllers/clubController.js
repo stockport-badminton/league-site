@@ -1,4 +1,5 @@
 var Club = require('../models/club');
+var Venue = require('../models/venue');
 
 // Display list of all Clubs
 exports.club_list = function(req, res) {
@@ -17,16 +18,25 @@ exports.club_list_detail = function(req, res, next) {
         next(err);
       }
       else{
+        Venue.getAll(function(err,venueRows){
+          if(err) {res.status(500); next(err);}
+          else {
+            res.status(200);
+            res.render('beta/club-v2', {
+                 static_path: '/static',
+                 pageTitle : "Local Badminton Club Information",
+                 pageDescription : "Find your local badminton clubs, when they play, where they play.",
+                 result: result,
+                 error: false,
+                 recaptcha : process.env.RECAPTCHA,
+                 mapsApiKey: process.env.GMAPSAPIKEY,
+                 venues:JSON.stringify(venueRows)
+             });
+          }
+
+        })
         // console.log(result)
-        res.status(200);
-       res.render('beta/club-v2', {
-           static_path: '/static',
-           pageTitle : "Local Badminton Club Information",
-           pageDescription : "Find your local badminton clubs, when they play, where they play.",
-           result: result,
-           error: false,
-           recaptcha : process.env.RECAPTCHA
-       });
+
       }
     })
 };
