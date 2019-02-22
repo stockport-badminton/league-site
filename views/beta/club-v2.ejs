@@ -108,9 +108,24 @@ function initMap() {
   var data = <%- venues %>
   data.forEach(function(i){
     var point = {lat:i.Lat, lng:i.Lng}
+    var contentString = '<div id="content">'+
+      '<div id="siteNotice">'+
+      '</div>'+
+      '<h1 id="firstHeading" class="firstHeading">'+ i.name +'</h1>'+
+      '<div id="bodyContent">'+
+      '<p>'+ i.address +'</p>'+
+      '</div>'+
+      '</div>';
+
+  var infowindow = new google.maps.InfoWindow({
+    content: contentString
+  });
     var clubMarker = new google.maps.Marker({position:point, map:map})
+    clubMarker.addListener('click', function() {
+    infowindow.open(map, clubMarker);
+  });
   })
-  
+
   var markerStockPortTownHall = new google.maps.Marker({position: StockportTownHall, map: map});
   var circle = new google.maps.Circle({
   map: map,
