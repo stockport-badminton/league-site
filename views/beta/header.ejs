@@ -9,10 +9,15 @@
       gtag('js', new Date());
 
       gtag('config', 'UA-122186618-1');
+
+      navigator.serviceWorker && navigator.serviceWorker.register('./static/beta/sw.js').then(function(registration) {
+        console.log('Excellent, registered with scope: ', registration.scope);
+      });
     </script>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="manifest" href="manifest.json" />
     <meta name="description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
     <meta name="author" content="">
 
