@@ -17,13 +17,13 @@
       <option disabled selected>Choose a Club</option>
       <option value="Aerospace">Aerospace</option>
       <option value="Astrazenca">Astrazenca</option>
-      <option value="AltrinchamCentral">Altrincham Central</option>
-      <option value="BramhallQueensgate">Bramhall Village</option>
+      <option value="Altrincham Central">Altrincham Central</option>
+      <option value="Bramhall Queensgate">Bramhall Village</option>
       <option value="CAP">C.A.P</option>
       <option value="Canute">Canute</option>
       <option value="Carrington">Carrington</option>
-      <option value="CheadleHulme">Cheadle Hulme</option>
-      <option value="CollegeGreen">College Green</option>
+      <option value="Cheadle Hulme">Cheadle Hulme</option>
+      <option value="College Green">College Green</option>
       <option value="David Lloyd">David Lloyd</option>
       <option value="Disley">Disley</option>
       <option value="Dome">Dome</option>
@@ -32,7 +32,7 @@
       <option value="Manor">Manor</option>
       <option value="Mellor">Mellor</option>
       <option value="New Mills">New Mills</option>
-      <option value="Parrs Wood">Parrs Wood</option>
+      <option value="Parrswood">Parrswood</option>
       <option value="Poynton">Poynton</option>
       <option value="Racketeer">Racketeer</option>
       <option value="Shell">Shell</option>
@@ -85,6 +85,8 @@
           break;
         default:
       }
+    $('.click').click(function(){
+      console.log($(this).attr('data-club'))
     })
   })
 </script>

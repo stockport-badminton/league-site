@@ -709,11 +709,11 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['mel.curwen@ntlworld.com'];
 
             break;
-            case 'AltrinchamCentral':
+            case 'Altrincham Central':
               params.Destination.ToAddresses = ['janecave53@gmail.com'];
 
             break;
-            case 'BramhallQueensgate':
+            case 'Bramhall Village':
               params.Destination.ToAddresses = ['jjackson1969@btinternet.com'];
 
             break;
@@ -729,15 +729,15 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['darrel@thegoughfamily.co.uk'];
 
             break;
-            case 'CheadleHulme':
+            case 'Cheadle Hulme':
               params.Destination.ToAddresses = ['doug.grant@ntlworld.com'];
 
             break;
-            case 'CollegeGreen':
+            case 'College Green':
               params.Destination.ToAddresses = ['paulakite@yahoo.co.uk'];
 
             break;
-            case 'DavidLloyd':
+            case 'David Lloyd':
               params.Destination.ToAddresses = ['dr_barks@yahoo.co.uk'];
 
             break;
@@ -765,11 +765,11 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['enquiries@mellorbadminton.org.uk'];
 
             break;
-            case 'NewMills':
+            case 'New Mills':
               params.Destination.ToAddresses = ['bandibates@tiscali.co.uk'];
 
             break;
-            case 'ParrsWood':
+            case 'Parrswood':
               params.Destination.ToAddresses = ['mikegreatorex@btinternet.com'];
 
             break;
@@ -785,7 +785,7 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['annawiza@aol.co.uk'];
 
             break;
-            case 'SyddalPark':
+            case 'Syddal Park':
               params.Destination.ToAddresses = ['derek.hillesdon@gmail.com'];
 
             break;
