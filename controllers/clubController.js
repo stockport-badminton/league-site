@@ -18,7 +18,7 @@ exports.club_list_detail = function(req, res, next) {
         next(err);
       }
       else{
-        Venue.getAll(function(err,venueRows){
+        Venue.getVenueClubs(function(err,venueRows){
           if(err) {res.status(500); next(err);}
           else {
             res.status(200);
