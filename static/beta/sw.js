@@ -11,6 +11,7 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open('the-magic-cache').then(function(cache) {
       return cache.addAll([
+        '/',
         '/messer-rules',
         '/static/beta/docs/MesserASection1819.pdf',
         '/static/beta/docs/MesserASection1819Results.pdf',
