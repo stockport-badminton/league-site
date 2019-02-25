@@ -19,7 +19,9 @@ self.addEventListener('install', function(e) {
         '/static/beta/css/custom.css',
         '/static/beta/images/bg/1920.png',
         '/touch-icon-192x192.png',
-        '/favicon.ico'
+        '/favicon.ico',
+        '/tables/All',
+        '/results/All'
       ]);
     })
   );
