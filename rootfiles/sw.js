@@ -15,7 +15,11 @@ self.addEventListener('install', function(e) {
         '/messer-rules',
         '/info/clubs',
         '/rules',
-        '/contact-us'
+        '/contact-us',
+        '/static/beta/css/custom.css',
+        '/static/beta/images/bg/1920.png',
+        '/touch-icon-192x192.png',
+        '/favicon.ico'
       ]);
     })
   );
