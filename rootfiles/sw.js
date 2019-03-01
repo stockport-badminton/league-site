@@ -16,8 +16,17 @@ self.addEventListener('fetch', function(evt) {
 function precache() {
   return caches.open(CACHE).then(function (cache) {
     return cache.addAll([
-      './controlled.html',
-      './asset'
+      '/',
+      '/messer-rules',
+      '/info/clubs',
+      '/rules',
+      '/contact-us',
+      '/static/beta/css/custom.css',
+      '/static/beta/images/bg/1920.png',
+      '/touch-icon-192x192.png',
+      '/favicon.ico',
+      '/results/All',
+      '/tables/All'
     ]);
   });
 }
