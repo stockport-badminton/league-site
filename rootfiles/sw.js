@@ -6,7 +6,7 @@ self.addEventListener('install', function(evt) {
 });
 
 self.addEventListener('fetch', function(evt) {
-  console.log('The service worker is serving the asset.');
+  console.log('The service worker is serving the asset:',evt.request.clone().url);
 
   evt.respondWith(fromNetwork(evt.request, 400).catch(function () {
     return fromCache(evt.request);
@@ -38,6 +38,7 @@ function fromNetwork(request, timeout) {
     var timeoutId = setTimeout(reject, timeout);
 
     fetch(request).then(function (response) {
+
       clearTimeout(timeoutId);
       fulfill(response);
     }, reject);
