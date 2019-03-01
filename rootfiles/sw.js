@@ -26,7 +26,8 @@ function precache() {
       '/touch-icon-192x192.png',
       '/favicon.ico',
       '/results/All',
-      '/tables/All'
+      '/tables/All',
+      '/contact-us'
     ]);
   });
 }
