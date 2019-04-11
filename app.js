@@ -202,6 +202,39 @@
       })
     })
 
+
+
+    app.get('/scorecard-beta-nonmodal', secured(), function(req,res){
+      res.render('index-scorecard-nonmodal',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:[
+          {
+            id:7,
+            name:"Premier"
+          },
+          {
+            id:8,
+            name:"Division 1"
+          },
+          {
+            id:9,
+            name:"Division 2"
+          },
+          {
+            id:10,
+            name:"Division 3"
+          },
+          {
+            id:11,
+            name:"Division 4"
+          }
+        ]
+      })
+    })
+
     app.get('/scorecard-beta', secured(), function(req,res){
       res.render('index-scorecard',{
         static_path:'/static',
@@ -1091,6 +1124,9 @@ let validateContactUs = [
     /* GET request for one Fixture. */
     router.get('/fixture/:id',checkJwt, fixture_controller.fixture_detail);
 
+    /* GET request for one Fixture. */
+    router.get('/scorecard/fixture/:id', fixture_controller.getScorecard);
+
     /* GET request for list of all Fixture items. */
     router.get('/fixture-players', fixture_controller.get_fixture_players_details);
 
@@ -1101,6 +1137,9 @@ let validateContactUs = [
 
     /* GET request for list of all Fixture items. */
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
+
+    /* GET request for list of all Fixture items. */
+    router.get('/admin/results/:division', fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 

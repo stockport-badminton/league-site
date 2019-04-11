@@ -208,6 +208,24 @@ exports.fixture_detail = function(req, res) {
 };
 
 // Display detail page for a specific Fixture
+exports.getScorecard = function(req, res) {
+    Fixture.getScorecardDataById(req.params.id, function(err,row){
+      if (err){
+        res.send(err);
+        console.log(err);
+      }
+      else{
+        res.render('beta/viewScorecard', {
+            static_path: '/static',
+            pageTitle : "Scorecard Info",
+            pageDescription : "View scorecard for this match",
+            result: row
+        });
+      }
+    })
+};
+
+// Display detail page for a specific Fixture
 exports.fixture_detail_byDivision = function(req, res,next) {
     var divisionId = 0;
     switch (req.params.division) {
@@ -238,15 +256,32 @@ exports.fixture_detail_byDivision = function(req, res,next) {
       }
       else{
         // console.log(result)
-        res.status(200);
-       res.render('beta/fixtures-results', {
-           static_path: '/static',
-           pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-           pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-           result: result,
-           error: false,
-           division : req.params.division
-       });
+        if (req.path.indexOf('admin') > 0) {
+          res.status(200);
+           res.render('beta/fixtures-results', {
+               static_path: '/static',
+               pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
+               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+               result: result,
+               error: false,
+               division : req.params.division,
+               admin:true
+           });
+
+        }
+        else {
+          res.status(200);
+           res.render('beta/fixtures-results', {
+               static_path: '/static',
+               pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
+               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+               result: result,
+               error: false,
+               division : req.params.division
+           });
+
+        }
+
       }
     })
 };

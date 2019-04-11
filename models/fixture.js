@@ -133,10 +133,10 @@ exports.getupComing = function(done){
 
 exports.getFixtureDetails = function(division, done){
   if (division == 0){
-    var sql = 'Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam ORDER BY a.date'
+    var sql = 'Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam ORDER BY a.date'
   }
   else{
-    var sql = 'Select a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = '+ division +' ORDER BY a.date'
+    var sql = 'Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND team.division = '+ division +' ORDER BY a.date'
   }
   db.get().query(sql, function (err, result){
     if (err) return done(err);
@@ -146,6 +146,13 @@ exports.getFixtureDetails = function(division, done){
 
 exports.getFixtureDetailsById = function(fixtureId,done){
   db.get().query('Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND fixtureId = ? ',fixtureId,function(err,rows){
+    if (err) return done(err);
+    done(null,rows)
+  })
+}
+
+exports.getScorecardDataById = function(fixtureId,done){
+  db.get().query("select date, homeTeam, awayTeam, concat(homePlayer1.first_name, ' ', homePlayer1.family_name) as homePlayer1, concat(homePlayer2.first_name, ' ', homePlayer2.family_name) as homePlayer2, concat(awayPlayer1.first_name, ' ', awayPlayer1.family_name) as awayPlayer1, concat(awayPlayer2.first_name, ' ', awayPlayer2.family_name) as awayPlayer2, homeScore, awayScore, totalHomeScore, totalAwayScore from (SELECT date, homeTeam.name as homeTeam, awayTeam.name as awayTeam, homePlayer1, homePlayer2, awayPlayer1, awayPlayer2, homeScore, awayScore, totalHomeScore, totalAwayScore FROM (SELECT fixture.date, fixture.homeTeam, fixture.awayTeam, fixture.homeScore as totalHomeScore, fixture.awayScore as totalAwayScore, thisGame.homePlayer1, thisGame.homePlayer2, thisGame.awayPlayer1, thisGame.awayPlayer2, thisGame.homeScore, thisGame.awayScore FROM (SELECT * FROM game WHERE fixture = ?) AS thisGame JOIN fixture WHERE fixture.id = thisGame.fixture) as thisFixture JOIN team homeTeam ON thisFixture.homeTeam = homeTeam.id JOIN team awayTeam ON thisFixture.awayTeam = awayTeam.id) as teamFixture JOIN player homePlayer1 ON teamFixture.homePlayer1 = homePlayer1.id JOIN player homePlayer2 ON teamFixture.homePlayer2 = homePlayer2.id JOIN player awayPlayer1 ON teamFixture.awayPlayer1 = awayPlayer1.id JOIN player awayPlayer2 ON teamFixture.awayPlayer2 = awayPlayer2.id",fixtureId,function(err,rows){
     if (err) return done(err);
     done(null,rows)
   })

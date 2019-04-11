@@ -1,0 +1,57 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+<%
+
+var MyDate = new Date(result[0].date);
+var MyDateString;
+MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+             + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+             + MyDate.getFullYear(); %>
+
+<h1 class="w-100">Scorecard</h1>
+<div class="col-md-12 col-lg-9 col-xl-6">
+<div id="FixtureSummary" class="row col-12">
+  <div class="col-4"><%= result[0].homeTeam %></div>
+  <div class="col-1">vs</div>
+  <div class="col-4"><%= result[0].awayTeam %></div>
+  <div class="col-3"></div>
+</div>
+<%
+var totalHomePoints = 0, totalAwayPoints = 0
+result.forEach(function(row,i){
+  %>
+
+  <%
+  totalHomePoints += row.homeScore
+  totalAwayPoints += row.awayScore
+  if (i%2 == 0){ %>
+    <div class="row col-12">
+    <div class="col-4"><%= row.homePlayer1 %> &amp; <%= row.homePlayer2 %></div>
+    <div class="col-1">vs</div>
+    <div class="col-4"><%= row.awayPlayer1 %> &amp; <%= row.awayPlayer2 %></div>
+    <div class="col-3"><%= row.homeScore %>-<%= row.awayScore %><br />
+  <%
+  }
+  else{ %>
+    <%= row.homeScore %>-<%= row.awayScore %></div></div>
+  <% }
+  %>
+
+  <%
+})
+
+%>
+
+<div id="finalScore" class="row col-12">
+  <div class="col-4"><%= result[0].totalHomeScore %></div>
+  <div class="col-1">-</div>
+  <div class="col-4"><%= result[0].totalAwayScore %></div>
+  <div class="col-3"><%= totalHomePoints %>-<%= totalAwayPoints %></div>
+</div>
+</div>
+
+<% include footer.ejs %>
+
+
+</body>
+</html>
