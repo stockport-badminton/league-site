@@ -4,11 +4,11 @@
 <div class="col-md-4">
 <h1>News</h1>
       <p class="lead">
-        Round 4 Messer Results are now online<br />
-        If you've entered the Handicap tournament you can find start time details <a data-toggle="modal" data-target="#tournamentModal" href="#tournamentModal">here</a><br />
+        <strong>Reminder</strong> - Stockport AGM will be held on Monday, 20th May 2019 at 7.30pm at <a href="https://goo.gl/maps/NTW5fvPtYkm" target="_blank">Cheadle Social Club</a><br />
+        Links: <a href="<%= static_path %>/beta/docs/SDBL-AGM-Agenda-2019.doc">Agenda</a> &amp; <a href="<%= static_path %>/beta/docs/SDBL-AGM-Minutes-2018.docx">Minutes from 2018 AGM</a><br />
+        Handicap Tournament Results are now online: <a href="<%= static_path %>/beta/docs/Handicap-Results-2019.xlsx">Knockout</a>, <a href="<%= static_path %>/beta/docs/Handicap-Round-Robin-2019.docx">Round Robin</a>, <a data-toggle="modal" data-target="#tournamentModal" href="#tournamentModal">Winners Gallery</a>
         You can also find the Open Tournament results in the Tournament menu too<br />
-        Reminder: The junior tournament will be held on 16 March 2019 at Poynton Leisure
-Centre.<br />
+        Round 4 Messer Results are now online<br />
         Follow <a href="https://www.twitter.com/BaddersResults" target="_blank">@BaddersResults</a> on twitter to see results as they're entered.<br />
         As always - suggestions are always welcome - use the contact us menu to get in touch with me. Neil
       </p>
@@ -55,30 +55,99 @@ Centre.<br />
 </div>
 
 <div class="modal" id="tournamentModal">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
 
       <!-- Modal Header -->
       <div class="modal-header">
-        <h4 class="modal-title">Tournament Start Times</h4>
+        <h4 class="modal-title">Tournament Winners</h4>
         <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
 
       <!-- Modal body -->
       <div class="modal-body">
-        <strong>Note - Entries are still being accepted for the Ladies’s Singles and Veteran Ladies Doubles.</strong>
-        <h3>SUNDAY MARCH 17th</h3>
-        <p>HANDICAP MENS SINGLES           6.30pm<br />
-        HANDICAP LADIES SINGLES          6.30pm<br />
-        HANDICAP MIXED DOUBLES        6.00pm<br />
-        VETERAN MENS DOUBLES            6.00pm<br />
-        VETERAN LADIES DOUBLES           7.00pm</p>
-        <h3>SUNDAY MARCH 24th</h3>
-        <p>HANDICAP MENS  DOUBLES            6.00pm<br />
-        HANDICAP LADIES DOUBLES           6.00pm<br />
-        VETERAN MENS  SINGLES                6.30pm<br />
-        VETERAN MIXED DOUBLES              6.30pm<br />
-        FAMILY MIXED  DOUBLES                7.00pm</p>
+        <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
+          <div class="carousel-inner">
+              <div class="carousel-item active">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_700x.jpg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_300x.jpg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190317_004.jpg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>Mixed Doubles Handicap Winners</h5>
+                  <p>Rob Skirvin &amp; Lisa Edgar</p>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_700x.jpg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_300x.jpg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_004.jpg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>Family Doubles Handicap Winners</h5>
+                  <p>David Haigh &amp; Claire Millward</p>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_700x.jpg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_300x.jpg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_010.jpg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>Veteran Mixed Doubles Handicap Winners</h5>
+                  <p>Doug Grant &amp; Lorna Beacock</p>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_700x.jpg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_300x.jpg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_008.jpg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>Handicap Mens Singles Winner</h5>
+                  <p>Dave Edgar</p>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_700x.jpg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_300x.jpg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_009.jpg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>Handicap Mens Doubles &amp; Vet Mens Doubles Winners</h5>
+                  <p>Canny Lai &amp; Jason Slevin</p>
+                </div>
+              </div>
+          </div>
+          <a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="sr-only">Previous</span>
+          </a>
+          <a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="sr-only">Next</span>
+          </a>
+        </div>
       </div>
 
       <!-- Modal footer -->
