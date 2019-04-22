@@ -151,8 +151,8 @@
     });
 
     app.get('/chooseUser',function(req,res,next){
-      console.log(req.params.state)
-      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.params.state);
+      console.log(req.query.state)
+      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
     })
 
     // Perform the final stage of authentication and redirect to previously requested URL or '/user'
