@@ -150,6 +150,11 @@
       res.redirect('/');
     });
 
+    app.get('/chooseUser',function(req,res,next){
+      console.log(req.params.state)
+      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.params.state);
+    })
+
     // Perform the final stage of authentication and redirect to previously requested URL or '/user'
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
