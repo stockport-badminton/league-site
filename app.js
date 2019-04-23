@@ -732,7 +732,7 @@ let validateContactUs = [
               Data: 'Somebody is trying to get in touch'
              }
             },
-          Source: 'stockport.badders.results@gmail.com', /* required */
+          Source: req.body.contactEmail, /* required */
           ReplyToAddresses: [
               'stockport.badders.results@gmail.com'
           ],
