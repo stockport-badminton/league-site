@@ -732,9 +732,9 @@ let validateContactUs = [
               Data: 'Somebody is trying to get in touch'
              }
             },
-          Source: req.body.contactEmail, /* required */
+          Source: 'stockport.badders.results@gmail.com', /* required */
           ReplyToAddresses: [
-              'stockport.badders.results@gmail.com'
+              req.body.contactEmail
           ],
         };
         var clubEmail = '';
