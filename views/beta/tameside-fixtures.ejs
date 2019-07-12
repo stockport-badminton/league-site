@@ -26,7 +26,13 @@
             dateRow.fixtures.forEach(function(fixture){
             %>
             <tr>
-            <td><%= dateRow.shortDate %></td>
+                <%
+                var MyDate = new Date(dateRow.date); 
+                MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                     + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                     + MyDate.getFullYear();
+                %>
+            <td><%= MyDateString %></td>
             <td>
             <% if(dateRow.weekend){ %>
                 WEEKEND<br />
@@ -69,6 +75,7 @@
 %>
 
 <% include footer.ejs %>
+<% include datatables.ejs %>
 
 
 </body>
