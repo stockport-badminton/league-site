@@ -1,0 +1,75 @@
+<% include header.ejs %>
+<% include nav.ejs %>
+
+<h1>Tameside Fixtures...</h1>
+<% if (typeof fixturesOutput !== 'undefined') {
+    %>
+    <div class="table-responsive">
+        <table class="table" id="results-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Division</th>
+                </tr>
+            </thead>
+
+    <% fixturesOutput.forEach(function(dateRow){
+        function dotw(dayIndex) {
+            return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dayIndex];
+        }
+        %>
+        
+            
+            <%
+            dateRow.fixtures.forEach(function(fixture){
+            %>
+            <tr>
+            <td><%= dateRow.shortDate %></td>
+            <td>
+            <% if(dateRow.weekend){ %>
+                WEEKEND<br />
+            <% } %>
+            <% if(dateRow.xmas){ %>
+                XMAS<br />
+            <% } %>
+            <% if(dateRow.easter){ %>
+                
+                EASTER<br />
+            <% } %>
+            <% if(dateRow.lewisshield){ %>
+                LEWIS SHIELD<br />
+            <% } %>
+                <%= fixture.homeTeam %></td><td><%= fixture.awayTeam %></td><td><%= fixture.division %><br />
+            </td>
+        </tr>
+            <%
+            }) %>
+            
+        
+    <% }) %>
+        </table>
+    </div>
+    <%
+  }
+%>
+<% if (typeof fixturesCollection !== 'undefined') {
+    %>
+    <pre><%=  fixturesCollection %></pre>
+    <%
+  }
+%>
+
+<% if (typeof seasonCalendar !== 'undefined') {
+    %>
+    <pre><%=  seasonCalendar %></pre>
+    <%
+  }
+%>
+
+<% include footer.ejs %>
+
+
+</body>
+</html>

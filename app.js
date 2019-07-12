@@ -129,6 +129,7 @@
     var game_controller = require(__dirname + '/controllers/gameController');
     var fixture_controller = require(__dirname + '/controllers/fixtureController');
     var league_controller = require(__dirname + '/controllers/leagueController');
+    var fixtureGen_controller = require(__dirname + '/controllers/fixtureGenerator');
     var userInViews = require(__dirname + '/models/userInViews')
     var secured = require(__dirname + '/models/secured')
 
@@ -1083,6 +1084,9 @@ let validateContactUs = [
 
     /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
     router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
+
+    /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
+    router.get('/fixture/generate', fixtureGen_controller.genFixtures);
 
     /* Get request for quick results form */
     router.get('/fixture/short-result',secured(), fixture_controller.fixture_outstanding);
