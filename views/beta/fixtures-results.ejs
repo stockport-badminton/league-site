@@ -48,6 +48,11 @@
         var resultValue = 'Rearranging';
        }
        %>
+       <% if (row['status'] == 'rearranged'){
+        var rowClass = 'table-warning';
+        var resultValue = 'Rearranged';
+       }
+       %>
 
        <% if (row['status'] == 'conceded'){
          var rowClass = 'table-danger';
