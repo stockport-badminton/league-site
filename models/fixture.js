@@ -177,7 +177,7 @@ exports.deleteById = function(fixtureId,done){
 
 exports.getFixtureIdFromTeamNames = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'SELECT fixtureId, homeTeamName, team.name AS awayTeamName, homeTeamId, team.id AS awayTeamId FROM (SELECT fixtureId, team.name AS homeTeamName, team.id AS homeTeamId, homeTeam, awayTeam FROM (SELECT fixture.id AS fixtureId, fixture.homeTeam, fixture.awayTeam FROM fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS a JOIN team WHERE team.id = a.homeTeam AND team.name = ?) AS b JOIN team WHERE awayTeam = team.id AND team.name = ? ';
+    var sql = 'SELECT status, fixtureId, homeTeamName, team.name AS awayTeamName, homeTeamId, team.id AS awayTeamId FROM (SELECT status, fixtureId, team.name AS homeTeamName, team.id AS homeTeamId, homeTeam, awayTeam FROM (SELECT fixture.status, fixture.id AS fixtureId, fixture.homeTeam, fixture.awayTeam FROM fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS a JOIN team WHERE team.id = a.homeTeam AND team.name = ?) AS b JOIN team WHERE awayTeam = team.id AND team.name = ? AND status != "rearranged"';
     db.get().query(sql,[obj.homeTeam, obj.awayTeam],function(err,result){
       if (err){
         return done(err)
