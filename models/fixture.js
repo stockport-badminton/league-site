@@ -177,7 +177,7 @@ exports.deleteById = function(fixtureId,done){
 
 exports.getFixtureIdFromTeamNames = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select fixtureId, homeTeamName, team.name as awayTeamName, homeTeamId, team.id as awayTeamId from (select fixture.id as fixtureId, team.name as homeTeamName, team.id as homeTeamId, fixture.homeTeam, fixture.awayTeam from fixture join team where team.id = fixture.homeTeam and team.name = ?) as a join team where awayTeam = team.id and team.name = ?';
+    var sql = 'SELECT fixtureId, homeTeamName, team.name AS awayTeamName, homeTeamId, team.id AS awayTeamId FROM (SELECT fixtureId, team.name AS homeTeamName, team.id AS homeTeamId, homeTeam, awayTeam FROM (SELECT fixture.id AS fixtureId, fixture.homeTeam, fixture.awayTeam FROM fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS a JOIN team WHERE team.id = a.homeTeam AND team.name = ?) AS b JOIN team WHERE awayTeam = team.id AND team.name = ? ';
     db.get().query(sql,[obj.homeTeam, obj.awayTeam],function(err,result){
       if (err){
         return done(err)
@@ -194,7 +194,7 @@ exports.getFixtureIdFromTeamNames = function(obj,done){
 
 exports.getFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from fixture where awayTeam = ? AND homeTeam = ?';
+    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.id=2 AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
     // console.log(obj);
     db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
       if (err){
