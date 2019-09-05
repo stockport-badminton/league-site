@@ -792,6 +792,10 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['rossowen40@hotmail.com'];
 
             break;
+            case 'G.H.A.P.':
+              params.Destination.ToAddresses = ['rossowen40@hotmail.com'];
+
+            break;
             case 'Macclesfield':
               params.Destination.ToAddresses = ['sueorwin@btinternet.com'];
 
