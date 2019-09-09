@@ -836,6 +836,10 @@ let validateContactUs = [
               params.Destination.ToAddresses = ['plumley123@btinternet.com'];
 
             break;
+            case 'Blue Triangle':
+              params.Destination.ToAddresses = ['francesedavies@sky.com'];
+
+            break;
             default:
               params.Destination.ToAddresses = ['stockport.badders.results@gmail.com'];
 
