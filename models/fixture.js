@@ -218,8 +218,8 @@ exports.rearrangeByTeamNames = function(updateObj,done){
       var sqlArray = [updateObj.awayTeam,updateObj.homeTeam]
     }
     else {
-      var sqlArray = [updateObj.awayTeam,updateObj,homeTeam,updateObj.homeTeam,updateObj,awayTeam,updateObj.date]
-      var sql = 'update badminton.fixture set status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?)); INSERT INTO `badminton`.`fixture` (`id`, `homeTeam`, `awayTeam`, `date`, `status`) VALUES (NULL, (Select id from team where name = ?), (SELECT id from team where name = ?), ?, "outstanding");'
+      var sqlArray = [updateObj.awayTeam,updateObj.homeTeam,updateObj.homeTeam,updateObj.awayTeam,updateObj.date]
+      var sql = 'UPDATE badminton.fixture SET status = "rearranged" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM badminton.fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN badminton.team WHERE c.awayTeam = team.id) AS a JOIN badminton.team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1); INSERT INTO `badminton`.`fixture` (`id`, `homeTeam`, `awayTeam`, `date`, `status`) VALUES (NULL, (Select id from team where name = ?), (SELECT id from team where name = ?), ?, "outstanding");'
     }
 
     db.get().query(sql,sqlArray,function(err,result,fields){
