@@ -218,8 +218,8 @@ exports.rearrangeByTeamNames = function(updateObj,done){
       var sqlArray = [updateObj.awayTeam,updateObj.homeTeam]
     }
     else {
-      var sqlArray = [updateObj.date,updateObj.awayTeam,updateObj.homeTeam]
-      var sql = 'update badminton.fixture set date = ?, status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+      var sqlArray = [updateObj.awayTeam,updateObj,homeTeam,updateObj.homeTeam,updateObj,awayTeam,updateObj.date]
+      var sql = 'update badminton.fixture set status = "rearranged" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?)); INSERT INTO `badminton`.`fixture` (`id`, `homeTeam`, `awayTeam`, `date`, `status`) VALUES (NULL, (Select id from team where name = ?), (SELECT id from team where name = ?), ?, "outstanding");'
     }
 
     db.get().query(sql,sqlArray,function(err,result,fields){
