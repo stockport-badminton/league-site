@@ -744,7 +744,7 @@ let validateContactUs = [
             case 'Aerospace':
               params.Destination.ToAddresses = ['santanareedy@btinternet.com'];
             break;
-            case 'AstraZeneca':
+            case 'Alderley Park':
               params.Destination.ToAddresses = ['mel.curwen@ntlworld.com'];
 
             break;
@@ -786,10 +786,6 @@ let validateContactUs = [
             break;
             case 'Dome':
               params.Destination.ToAddresses = ['janet_knowles@ymail.com'];
-
-            break;
-            case 'GHAP':
-              params.Destination.ToAddresses = ['rossowen40@hotmail.com'];
 
             break;
             case 'G.H.A.P':
