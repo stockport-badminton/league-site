@@ -214,7 +214,7 @@ exports.getFixtureId = function(obj,done){
 exports.rearrangeByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
     if (updateObj.date == null ){
-      var sql = 'update badminton.fixture set status = "rearranging" Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+      var sql = 'UPDATE badminton.fixture SET status = "rearranging" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM badminton.fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN badminton.team WHERE c.awayTeam = team.id) AS a JOIN badminton.team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1);'
       var sqlArray = [updateObj.awayTeam,updateObj.homeTeam]
     }
     else {
