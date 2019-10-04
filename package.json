@@ -27,6 +27,6 @@
     "passport-auth0": "^1.0.0"
   },
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "node app.js"
   }
 }
