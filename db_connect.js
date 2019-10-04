@@ -8,7 +8,7 @@ var state = {
 var hostname = process.env.RDS_HOSTNAME
 var username = process.env.RDS_USERNAME
 var password = process.env.RDS_PASSWORD
-var database = 'badminton'
+var database = process.env.RDS_DATABASE || 'badminton';
 
 exports.connect = function(done) {
   state.pool = mysql.createPool({
