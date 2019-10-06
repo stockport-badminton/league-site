@@ -80,7 +80,7 @@ exports.getAll = function(done){
 }
 
 exports.getRecent = function(done){
-  othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
+  othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
       console.log(err);
@@ -94,7 +94,7 @@ exports.getRecent = function(done){
 }
 
 exports.getOutstandingResults = function(done){
-  db.get().query("SELECT a.id, a.date, a.homeTeam, a.homeTeamId, team.name AS awayTeam, team.id AS awayTeamId, a.homeScore, a.awayScore FROM (SELECT fixture.id, fixture.date, team.name AS homeTeam, team.id AS homeTeamId, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM badminton.fixture JOIN badminton.team WHERE fixture.homeTeam = team.id AND fixture.status NOT IN ('rearranged' , 'rearranging')) AS a JOIN badminton.team WHERE a.awayTeam = team.id AND homeScore IS NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND ADDDATE(NOW(), 1) ORDER BY date", function (err, rows){
+  db.get().query("SELECT a.id, a.date, a.homeTeam, a.homeTeamId, team.name AS awayTeam, team.id AS awayTeamId, a.homeScore, a.awayScore FROM (SELECT fixture.id, fixture.date, team.name AS homeTeam, team.id AS homeTeamId, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team WHERE fixture.homeTeam = team.id AND fixture.status NOT IN ('rearranged' , 'rearranging')) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND ADDDATE(NOW(), 1) ORDER BY date", function (err, rows){
     if (err) return done(err);
     done(null, rows);
   })
@@ -104,7 +104,7 @@ exports.getOutstandingResults = function(done){
 
 
 exports.getCardsDueToday = function(done){
-  othersql = "select fixId, date, status, homeTeam, team.name as awayTeam, homeScore, awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id AND fixture.status not in ('rearranged','rearranging')) as a join badminton.team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-7) and adddate(now(),-6) order by date";
+  othersql = "select fixId, date, status, homeTeam, team.name as awayTeam, homeScore, awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id AND fixture.status not in ('rearranged','rearranging')) as a join team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-7) and adddate(now(),-6) order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
       console.log(err);
@@ -118,7 +118,7 @@ exports.getCardsDueToday = function(done){
 }
 
 exports.getupComing = function(done){
-  othersql = "select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from badminton.fixture join badminton.team where fixture.homeTeam = team.id) as a join badminton.team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-1) and adddate(now(),7) order by date";
+  othersql = "select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-1) and adddate(now(),7) order by date";
   db.get().query(othersql,function(err,result){
     if (err) {
       console.log(err);
@@ -133,10 +133,10 @@ exports.getupComing = function(done){
 
 exports.getFixtureDetails = function(division, done){
   if (division == 0){
-    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM badminton.fixture JOIN badminton.team WHERE team.id = fixture.homeTeam) AS a JOIN badminton.team WHERE team.id = a.awayTeam ) as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
+    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
   }
   else{
-    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM badminton.fixture JOIN badminton.team WHERE team.id = fixture.homeTeam) AS a JOIN badminton.team WHERE team.id = a.awayTeam AND team.division = '+ division +') as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
+    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam AND team.division = '+ division +') as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
   }
   db.get().query(sql, function (err, result){
     if (err) return done(err);
@@ -145,7 +145,7 @@ exports.getFixtureDetails = function(division, done){
 }
 
 exports.getFixtureDetailsById = function(fixtureId,done){
-  db.get().query('Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  badminton.fixture join badminton.team where team.id = fixture.homeTeam) as a join badminton.team where team.id = a.awayTeam AND fixtureId = ? ',fixtureId,function(err,rows){
+  db.get().query('Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  fixture join team where team.id = fixture.homeTeam) as a join team where team.id = a.awayTeam AND fixtureId = ? ',fixtureId,function(err,rows){
     if (err) return done(err);
     done(null,rows)
   })
@@ -214,12 +214,12 @@ exports.getFixtureId = function(obj,done){
 exports.rearrangeByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
     if (updateObj.date == null ){
-      var sql = 'UPDATE badminton.fixture SET status = "rearranging" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM badminton.fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN badminton.team WHERE c.awayTeam = team.id) AS a JOIN badminton.team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1);'
+      var sql = 'UPDATE fixture SET status = "rearranging" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN team WHERE c.awayTeam = team.id) AS a JOIN team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1);'
       var sqlArray = [updateObj.awayTeam,updateObj.homeTeam]
     }
     else {
       var sqlArray = [updateObj.awayTeam,updateObj.homeTeam,updateObj.homeTeam,updateObj.awayTeam,updateObj.date]
-      var sql = 'UPDATE badminton.fixture SET status = "rearranged" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM badminton.fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN badminton.team WHERE c.awayTeam = team.id) AS a JOIN badminton.team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1); INSERT INTO `badminton`.`fixture` (`id`, `homeTeam`, `awayTeam`, `date`, `status`) VALUES (NULL, (Select id from team where name = ?), (SELECT id from team where name = ?), ?, "outstanding");'
+      var sql = 'UPDATE fixture SET status = "rearranged" WHERE id = (SELECT b.id FROM (SELECT a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c.homeTeam, c.awayTeam, team.name AS awayTeamName FROM (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam FROM fixture JOIN season WHERE season.id = 2 AND fixture.date > season.startDate) AS c JOIN team WHERE c.awayTeam = team.id) AS a JOIN team WHERE a.homeTeam = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) order by id desc limit 0,1); INSERT INTO `.`fixture` (`id`, `homeTeam`, `awayTeam`, `date`, `status`) VALUES (NULL, (Select id from team where name = ?), (SELECT id from team where name = ?), ?, "outstanding");'
     }
 
     db.get().query(sql,sqlArray,function(err,result,fields){
@@ -238,7 +238,7 @@ exports.rearrangeByTeamNames = function(updateObj,done){
 
 exports.updateByTeamNames = function(updateObj,done){
   if(db.isObject(updateObj)){
-    var sql = 'update badminton.fixture set homeScore = ?, awayScore = ? Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM badminton.fixture JOIN badminton.team WHERE fixture.awayTeam = team.id) as a Join badminton.team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
+    var sql = 'update fixture set homeScore = ?, awayScore = ? Where id = (Select b.id from (Select a.id, a.homeTeam, a.awayTeam, a.awayTeamName, team.name as HomeTeamName from (SELECT fixture.id, fixture.homeTeam, fixture.awayTeam, team.name as awayTeamName  FROM fixture JOIN team WHERE fixture.awayTeam = team.id) as a Join team where a.homeTeam = team.id) as b Where (b.awayTeamName = ? AND b.homeTeamName = ?))'
 
     db.get().query(sql,[updateObj.homeScore,updateObj.awayScore,updateObj.awayTeam,updateObj.homeTeam],function(error,result,fields){
       if (error) {
@@ -254,7 +254,7 @@ exports.updateByTeamNames = function(updateObj,done){
               'content-type':'application/json'
             },
             body:{
-              "message" : "Result: "+updateObj.homeTeam+" vs "+updateObj.awayTeam+" : "+updateObj.homeScore+"-"+updateObj.awayScore+" #badminton #stockport #sdbl #result https://stockport-badminton.co.uk"
+              "message" : "Result: "+updateObj.homeTeam+" vs "+updateObj.awayTeam+" : "+updateObj.homeScore+"-"+updateObj.awayScore+" ##stockport #sdbl #result https://stockport-co.uk"
             },
             json:true
           };
@@ -289,7 +289,7 @@ exports.sendResultZap = function(zapObject,done){
         'content-type':'application/json'
       },
       body:{
-        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #badminton #stockport #sdbl #result https://stockport-badminton.co.uk"
+        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" ##stockport #sdbl #result https://stockport-co.uk"
       },
       json:true
     };
