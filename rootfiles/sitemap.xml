@@ -18,12 +18,27 @@
   <priority>0.80</priority>
 </url>
 <url>
+  <loc>http://stockport-badminton.co.uk/tables/All/20182019</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
   <loc>http://stockport-badminton.co.uk/results/All</loc>
   <lastmod>2018-10-08T07:18:29+00:00</lastmod>
   <priority>0.80</priority>
 </url>
 <url>
+  <loc>http://stockport-badminton.co.uk/results/All/20182019</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
   <loc>http://stockport-badminton.co.uk/results/Premier</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>http://stockport-badminton.co.uk/results/Premier/20182019</loc>
   <lastmod>2018-10-08T07:18:29+00:00</lastmod>
   <priority>0.80</priority>
 </url>
@@ -44,6 +59,26 @@
 </url>
 <url>
   <loc>http://stockport-badminton.co.uk/results/Division-4</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>http://stockport-badminton.co.uk/results/Division-1/20182019</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>http://stockport-badminton.co.uk/results/Division-2/20182019</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>http://stockport-badminton.co.uk/results/Division-3/20182019</loc>
+  <lastmod>2018-10-08T07:18:29+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>http://stockport-badminton.co.uk/results/Division-4/20182019</loc>
   <lastmod>2018-10-08T07:18:29+00:00</lastmod>
   <priority>0.80</priority>
 </url>

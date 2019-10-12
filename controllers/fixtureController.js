@@ -250,7 +250,8 @@ exports.fixture_detail_byDivision = function(req, res,next) {
       default:
         next(err);
     }
-    Fixture.getFixtureDetails(divisionId, function(err,result){
+
+    Fixture.getFixtureDetails(divisionId, req.params.season, function(err,result){
       if (err){
         next(err);
       }
@@ -265,7 +266,8 @@ exports.fixture_detail_byDivision = function(req, res,next) {
                result: result,
                error: false,
                division : req.params.division,
-               admin:true
+               admin:true,
+               recaptcha:process.env.recaptcha
            });
 
         }

@@ -940,6 +940,7 @@ let validateContactUs = [
 
     /* GET request for one Player. */
     router.get('/player-stats', player_controller.all_player_stats);
+    router.get('/player-stats/:season', player_controller.all_player_stats);
 
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
@@ -1012,9 +1013,11 @@ let validateContactUs = [
 
     /* GET request for list of all League items. */
     router.get('/tables/All', league_controller.all_league_tables);
+    router.get('/tables/All/:season', league_controller.all_league_tables);
 
     /* GET request for list of all League items. */
     router.get('/tables/:division', league_controller.league_table);
+    router.get('/tables/:division/:season', league_controller.league_table);
 
 
 
@@ -1150,9 +1153,11 @@ let validateContactUs = [
 
     /* GET request for list of all Fixture items. */
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
+    router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
 
     /* GET request for list of all Fixture items. */
     router.get('/admin/results/:division', fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division/:season', fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 

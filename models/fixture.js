@@ -131,17 +131,36 @@ exports.getupComing = function(done){
   })
 }
 
-exports.getFixtureDetails = function(division, done){
+exports.getFixtureDetails = function(division,season, done){
+  if (season === undefined){
+    seasonName = ''
+    season = '20192020'
+  }
+  else {
+    seasonName = season + ' as team'
+  }
   if (division == 0){
-    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
+
+  
+    db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',season, function (err, result){
+      if (err) {
+        //console.log(this.sql)
+        return done(err);
+      }
+      done(null, result);
+    })
   }
   else{
-    var sql = 'select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam AND team.division = '+ division +') as b join season where season.id = 2 AND b.date > season.startDate ORDER BY b.date'
+    var sql = 
+    db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeam AND team.division = ?) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',[division,season], function (err, result){
+      if (err) {
+        //console.log(this.sql)
+        return done(err);
+      }
+      done(null, result);
+    })
   }
-  db.get().query(sql, function (err, result){
-    if (err) return done(err);
-    done(null, result);
-  })
+  
 }
 
 exports.getFixtureDetailsById = function(fixtureId,done){

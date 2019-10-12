@@ -68,7 +68,9 @@ var League = require('../models/league.js');
 
 // Display list of all Leagues
 exports.league_table = function(req,res,next) {
-    League.getLeagueTable(req.params.division,function(err,result){
+
+  
+    League.getLeagueTable(req.params.division,req.params.season,function(err,result){
       if (err){
         console.log(err);
         next(err);
@@ -91,7 +93,8 @@ exports.league_table = function(req,res,next) {
 };
 
 exports.all_league_tables = function(req,res,next) {
-    League.getAllLeagueTables(function(err,result){
+
+    League.getAllLeagueTables(req.params.season,function(err,result){
       if (err){
         console.log(err);
         next(err);
