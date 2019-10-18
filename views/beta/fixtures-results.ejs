@@ -10,7 +10,7 @@
     <h1><%= division.replace('-',' ') %></h1>
     <% if (typeof admin !== 'undefined') { %>
 
-      <p><%= user %></p>
+      <p><%= JSON.stringify(user) %></p>
 
     <% } %>
     <div class="table-responsive">
