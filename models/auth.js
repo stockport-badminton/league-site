@@ -12,6 +12,7 @@ exports.getManagementAPIKey = function(done){
         },
         json:true
       }
+      console.log(options);
       request(options,function(err,response,body){
         if (err){
           console.log(err)
@@ -44,6 +45,7 @@ exports.getAPIKey = function(done){
           },
           json:true
         }
+        console.log(options);
         request(options,function(err,response,body){
           if (err){
             console.log(err)
