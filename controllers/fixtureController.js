@@ -5,6 +5,7 @@ var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var request = require('request');
 var AWS = require('aws-sdk');
+var Auth = require('../models/auth.js');
 
 
 
@@ -258,19 +259,39 @@ exports.fixture_detail_byDivision = function(req, res,next) {
       else{
         // console.log(result)
         if (req.path.indexOf('admin') > 0) {
-          res.status(200);
-           res.render('beta/fixtures-results', {
-               user:req.user,
-               static_path: '/static',
-               pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-               result: result,
-               error: false,
-               division : req.params.division,
-               admin:true,
-               recaptcha:process.env.recaptcha
-           });
-
+          Auth.getAPIKey(function (err,apiKey){
+            if (err){
+              next(err);
+            }
+            else{
+              var options = {
+                method:'POST',
+                url:'https://{{auth0_domain}}/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
+                json:true
+              }
+              request(options,function(err,response,userBody){
+                if (err){
+                  console.log(err)
+                  return false
+                }
+                else{
+                  res.status(200);
+                  res.render('beta/fixtures-results', {
+                      user:userBody,
+                      static_path: '/static',
+                      pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
+                      pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+                      result: result,
+                      error: false,
+                      division : req.params.division,
+                      admin:true,
+                      recaptcha:process.env.recaptcha
+                  });
+                }
+              })
+              
+            }
+          })
         }
         else {
           res.status(200);
