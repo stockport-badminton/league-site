@@ -18,6 +18,7 @@ exports.getManagementAPIKey = function(done){
           return false
         }
         else {
+          console.log(body)
           if (body.access_token){
             console.log('token granted')
             return value
@@ -49,6 +50,7 @@ exports.getAPIKey = function(done){
             return false
           }
           else {
+            console.log(body)
             if (body.access_token){
               console.log('token granted')
               return value
