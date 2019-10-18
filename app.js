@@ -1156,8 +1156,8 @@ let validateContactUs = [
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
 
     /* GET request for list of all Fixture items. */
-    router.get('/admin/results/:division', fixture_controller.fixture_detail_byDivision);
-    router.get('/admin/results/:division/:season', fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division', secured(), fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 

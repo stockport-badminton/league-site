@@ -260,6 +260,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         if (req.path.indexOf('admin') > 0) {
           res.status(200);
            res.render('beta/fixtures-results', {
+               user:req.user,
                static_path: '/static',
                pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
                pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
