@@ -274,6 +274,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
                 json:true
               }
               request(options,function(err,response,userBody){
+                console.log(options);
                 if (err){
                   console.log(err)
                   return false
