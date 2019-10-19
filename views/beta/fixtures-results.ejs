@@ -11,6 +11,8 @@
     <% if (typeof admin !== 'undefined') { %>
 
       <p>Welcome!<br />
+        <%= user[0] %><br />
+        <%= JSON.stringify(user[0]) %><br />
         <%= user[0].nickname %><br />
         Club:<%= user[0].app_metadata.club %><br />
         Role:<%= user[0].app_metadata.role %>
