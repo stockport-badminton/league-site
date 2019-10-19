@@ -272,8 +272,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
                 headers:{
                   "Authorization":"Bearer "+apiKey
                 },
-                url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
-                json:true
+                url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
               }
               console.log(options);
               request(options,function(err,response,userBody){
