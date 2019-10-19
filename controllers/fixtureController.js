@@ -259,18 +259,30 @@ exports.fixture_detail_byDivision = function(req, res,next) {
       else{
         // console.log(result)
         if (req.path.indexOf('admin') > 0) {
-          Auth.getAPIKey(function (err,apiKey){
+          var options = {
+            method:'POST',
+            url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
+            body:{
+                "client_id":process.env.AUTH0_CLIENTID,
+                "client_secret":process.env.AUTH0_CLIENT_SECRET,
+                "audience":"http://stockport-badminton.co.uk",
+                "grant_type":"client_credentials"
+            },
+            json:true
+          }
+          // console.log(options);
+          request(options,function(err,response,body){
             if (err){
               console.log("error");
               console.log(err);
               next(err);
             }
             else{
-              console.log(" apikey:" + apiKey)
+              console.log(" apikey:" + body.access_token)
               var options = {
                 method:'POST',
                 headers:{
-                  "Authorization":"Bearer "+apiKey
+                  "Authorization":"Bearer "+body.access_token
                 },
                 url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
                 json:true
