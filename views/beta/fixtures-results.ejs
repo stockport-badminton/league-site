@@ -11,9 +11,9 @@
     <% if (typeof admin !== 'undefined') { %>
 
       <p>Welcome!<br />
-        <%= user.nickname %><br />
-        Club:<%= user.app_metadata.club %><br />
-        Role:<%= user.app_metadata.role %>
+        <%= user[0].nickname %><br />
+        Club:<%= user[0].app_metadata.club %><br />
+        Role:<%= user[0].app_metadata.role %>
       </p>
 
     <% } %>
