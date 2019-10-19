@@ -37,7 +37,7 @@ exports.getLateScorecards = function(req, res) {
       };
       if (err){
         params.Message.Body.Html.Data = JSON.stringify(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         if (row.length > 0){
@@ -53,7 +53,7 @@ exports.getLateScorecards = function(req, res) {
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       ses.sendEmail(params, function(err, data) {
         if (err) {
-          console.log(err, err.stack); // an error occurred
+          // console.log(err, err.stack); // an error occurred
           res.send(err);
         }
         else {
@@ -133,7 +133,7 @@ exports.fixture_list = function(req, res) {
     Fixture.getAll(function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         // console.log(req.body);
@@ -198,7 +198,7 @@ exports.fixture_detail = function(req, res) {
     Fixture.getById(req.params.id, function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         // console.log(req.body);
@@ -213,7 +213,7 @@ exports.getScorecard = function(req, res) {
     Fixture.getScorecardDataById(req.params.id, function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         res.render('beta/viewScorecard', {
@@ -261,6 +261,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         if (req.path.indexOf('admin') > 0) {
           Auth.getAPIKey(function (err,apiKey){
             if (err){
+              console.log(err);
               next(err);
             }
             else{
@@ -325,7 +326,7 @@ exports.fixture_create_post = function(req, res) {
     Fixture.create(req.body, function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         // console.log(req.body);
@@ -341,13 +342,13 @@ exports.fixture_create_post = function(req, res) {
 exports.fixture_get_summary = function(req, res,next) {
     Fixture.getRecent(function(err,row){
       if (err){
-        console.log(err);
+        // console.log(err);
         next(err);
       }
       else{
         Fixture.getupComing(function(err,result){
           if (err){
-            console.log(err);
+            // console.log(err);
             next(err);
           }
           else{
@@ -369,7 +370,7 @@ exports.fixture_batch_create = function(req, res){
   Fixture.createBatch(req.body,function(err,result){
     if(err){
       res.send(err);
-      console.log(err);
+      // console.log(err);
     }
     else{
       // console.log(result)
@@ -382,7 +383,7 @@ exports.fixture_update_by_team_name = function(req, res,next){
   Fixture.updateByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-      console.log(err);
+      // console.log(err);
     }
     else{
       // console.log(result)
@@ -396,7 +397,7 @@ exports.fixture_rearrange_by_team_name = function(req, res,next){
   Fixture.rearrangeByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-      console.log(err);
+      // console.log(err);
     }
     else{
       // console.log(result)
@@ -415,7 +416,7 @@ exports.fixture_delete_post = function(req, res) {
     Fixture.deleteById(req.params.id, function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         // console.log(req.body);
@@ -437,7 +438,7 @@ const { validationResult } = require("express-validator/check");
 
 exports.full_fixture_post = function(req,res){
   var errors = validationResult(req);
-  console.log(errors.array());
+  // console.log(errors.array());
   if (!errors.isEmpty()) {
     res.render('index-scorecard',{
       static_path:'/static',
@@ -472,12 +473,12 @@ exports.full_fixture_post = function(req,res){
   else {
     Fixture.getFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
-        console.log("getFixtureId sucess")
+        // console.log("getFixtureId sucess")
         // console.log(res)
         res.send(err);
       }
       else {
-        console.log("getFixtureId err")
+        // console.log("getFixtureId err")
         // console.log(res)
         // console.log(FixtureIdResult);
         var fixtureObject = {
@@ -497,15 +498,15 @@ exports.full_fixture_post = function(req,res){
           homeScore:req.body.homeScore,
           awayScore:req.body.awayScore
         }
-        console.log(fixtureObject);
+        // console.log(fixtureObject);
         Fixture.updateById(fixtureObject,FixtureIdResult[0].id,function(err,fixResult){
           if (err) {
-            console.log("updateById err")
-            console.log(res)
+            // console.log("updateById err")
+            // console.log(res)
             res.send(err)
           }
           else {
-            console.log("updateById sucess")
+            // console.log("updateById sucess")
             // console.log(res)
             // console.log(fixResult)
             var gameObject = {
@@ -698,12 +699,12 @@ exports.full_fixture_post = function(req,res){
             }
             Game.createBatch(gameObject,function(err,gameResult){
               if (err){
-                console.log("createBatch err")
-                console.log(res)
+                // console.log("createBatch err")
+                // console.log(res)
                 res.send(err)
               }
               else {
-                console.log("createBatch sucess")
+                // console.log("createBatch sucess")
                 Fixture.getFixtureDetailsById(FixtureIdResult[0].id,function(err,getFixtureDetailsResult){
                   if(err) res.send(err)
                   zapObject = {
@@ -712,7 +713,7 @@ exports.full_fixture_post = function(req,res){
                     "homeScore":getFixtureDetailsResult[0].homeScore,
                     "awayScore":getFixtureDetailsResult[0].awayScore
                    }
-                  console.log(zapObject)
+                  // console.log(zapObject)
                   Fixture.sendResultZap(zapObject,function(err,zapRes){
                     if (err) res.send(err)
                     res.render('index-scorecard',{
@@ -742,49 +743,49 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
       next(err)
     }
     else {
-      console.log(divisionRows)
+      // console.log(divisionRows)
       Division.getByName(data[0].division,function(err,divisionIdRows){
         if (err) {
           next(err)
         }
         else{
-          console.log(divisionIdRows)
+          // console.log(divisionIdRows)
           Team.getAllAndSelectedByName(data[0].home_team,divisionIdRows[0].id,function(err,homeTeamRows){
             if (err) {
               next(err)
             }
             else{
-              console.log(homeTeamRows)
+              // console.log(homeTeamRows)
               Team.getAllAndSelectedByName(data[0].away_team,divisionIdRows[0].id,function(err,awayTeamRows){
                 if (err) {
                   next(err)
                 }
                 else{
-                  console.log(awayTeamRows)
+                  // console.log(awayTeamRows)
                   Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Male',data[0].home_man_1,data[0].home_man_2,data[0].home_man_3,function(err,homeMenRows){
                     if(err){
                       next(err)
                     }
                     else{
-                      console.log(homeMenRows)
+                      // console.log(homeMenRows)
                       Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Female',data[0].home_lady_1,data[0].home_lady_2,data[0].home_lady_3,function(err,homeLadiesRows){
                         if(err){
                           next(err)
                         }
                         else{
-                          console.log(homeLadiesRows)
+                          // console.log(homeLadiesRows)
                           Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Male',data[0].away_man_1,data[0].away_man_2,data[0].away_man_3,function(err,awayMenRows){
                             if(err){
                               next(err)
                             }
                             else{
-                              console.log(awayMenRows)
+                              // console.log(awayMenRows)
                               Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Female',data[0].away_lady_1,data[0].away_lady_2,data[0].away_lady_3,function(err,awayLadiesRows){
                                 if(err){
                                   next(err)
                                 }
                                 else{
-                                  console.log(awayLadiesRows)
+                                  // console.log(awayLadiesRows)
                                   var renderData = {
                                     "divisionRows":divisionRows,
                                     "divisionIdRows":divisionIdRows,
@@ -814,7 +815,7 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
             })
           }
         })
-        console.log(data);
+        // console.log(data);
       }
     })
   }
@@ -827,7 +828,7 @@ exports.fixture_update_post = function(req, res) {
     Fixture.updateById(req.body,req.params.id,function(err,row){
       if (err){
         res.send(err);
-        console.log(err);
+        // console.log(err);
       }
       else{
         // console.log(req.body);
