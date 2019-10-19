@@ -274,6 +274,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
                 url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
                 json:true
               }
+              console.log(options);
               request(options,function(err,response,userBody){
                 console.log(options);
                 if (err){
