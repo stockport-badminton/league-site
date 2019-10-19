@@ -1,6 +1,6 @@
 var request = require('request');
 
-exports.getManagementAPIKey = function(){
+exports.getManagementAPIKey = function(done){
   var options = {
         method:'POST',
         url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
@@ -16,24 +16,24 @@ exports.getManagementAPIKey = function(){
       request(options,function(err,response,body){
         if (err){
           console.log(err)
-          return false
+          return done(err);
         }
         else {
           //console.log(body)
           if (body.access_token){
             console.log('token granted')
-            return body.access_token
+            done(body.access_token)
           }
           else {
             console.log('recaptcha fail')
-            return false
+            return done("token fail")
           }
         }
 
       })
 }
 
-exports.getAPIKey = function(){
+exports.getAPIKey = function(done){
     var options = {
           method:'POST',
           url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
@@ -49,17 +49,17 @@ exports.getAPIKey = function(){
         request(options,function(err,response,body){
           if (err){
             console.log(err)
-            return false
+            return done(err)
           }
           else {
             console.log(body)
             if (body.access_token){
               console.log('token granted')
-              return body.access_token
+              done(body.access_token)
             }
             else {
               console.log('recaptcha fail')
-              return false
+              done("token fail")
             }
           }
   
