@@ -23,12 +23,12 @@ exports.contact_us_post = function(req, res) {
 
   var errors = req.validationErrors();
   if (errors) {
-      console.log(errors);
+      //console.log(errors);
       res.render('beta/contact-us-form-delivered', { title: 'Contact Us - Error', static_path:'/static', theme:'flatly', content: errors});
   return;
   }
   else {
-  console.log(req.body);
+  //console.log(req.body);
   var params = {
     Destination: { /* required */
       ToAddresses: [
@@ -183,15 +183,15 @@ exports.contact_us_post = function(req, res) {
   // Create sendEmail params
 
 
-  console.log(params);
+  //console.log(params);
 
 
   ses.sendEmail(params, function(err, data) {
     if (err) {
-      console.log(err, err.stack); // an error occurred
+      //console.log(err, err.stack); // an error occurred
     }
     else {
-      console.log(data);           // successful response
+      //console.log(data);           // successful response
       res.render('beta/contact-us-form-delivered', {
             static_path: '/static',
             theme: process.env.THEME || 'flatly',

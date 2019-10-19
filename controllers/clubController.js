@@ -4,7 +4,7 @@ var Venue = require('../models/venue');
 // Display list of all Clubs
 exports.club_list = function(req, res) {
     Club.getAll(function(err,rows){
-      console.log(rows);
+      //console.log(rows);
       res.send(rows);
     })
 };
@@ -44,7 +44,7 @@ exports.club_list_detail = function(req, res, next) {
 // Display detail page for a specific Club
 exports.club_detail = function(req, res) {
     Club.getById(req.params.id,function(err,row){
-      console.log(row);
+      //console.log(row);
       res.send(row);
     })
 };
@@ -57,8 +57,8 @@ exports.club_create_get = function(req, res) {
 // Handle Club create on POST
 exports.club_create_post = function(req, res) {
   Club.create(req.body.name, req.body.venue, function(err,row){
-    console.log(req.body);
-    console.log(row);
+    //console.log(req.body);
+    //console.log(row);
     res.send(row);
   })
 };
@@ -67,7 +67,7 @@ exports.club_batch_create = function(req, res){
   Club.createBatch(req.body,function(err,result){
     if(err){
       res.send(err);
-      console.log(err);
+      //console.log(err);
     }
     else{
       // console.log(result)
@@ -84,8 +84,8 @@ exports.club_delete_get = function(req, res) {
 // Handle Club delete on POST
 exports.club_delete_post = function(req, res) {
     Club.deleteById(req.params.id,function(err,row){
-      console.log(req.params)
-      console.log(row);
+      //console.log(req.params)
+      //console.log(row);
       res.send(row);
     })
 };
@@ -98,8 +98,8 @@ exports.club_update_get = function(req, res) {
 // Handle Club update on POST
 exports.club_update_post = function(req, res) {
     Club.updateById(req.body.name, req.body.venue, req.params.id, function(err,row){
-      console.log(req.body);
-      console.log(row);
+      //console.log(req.body);
+      //console.log(row);
       res.send(row);
     })
 };

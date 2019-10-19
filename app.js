@@ -130,8 +130,8 @@
     var fixture_controller = require(__dirname + '/controllers/fixtureController');
     var league_controller = require(__dirname + '/controllers/leagueController');
     var fixtureGen_controller = require(__dirname + '/controllers/fixtureGenerator');
-    var userInViews = require(__dirname + '/models/userInViews')
-    var secured = require(__dirname + '/models/secured')
+    var userInViews = require(__dirname + '/models/userInViews');
+    var secured = require(__dirname + '/models/secured');
 
 
   /*  app.get('/', function(req, res) {
@@ -296,7 +296,7 @@
 
       // }
       else{
-        console.log('containsProfanity sucess')
+        // console.log('containsProfanity sucess')
         return value
       }
     }
@@ -530,22 +530,22 @@
         var newpath = path.join(__dirname,'/static/') + files.document.name;
         fs.rename(oldpath, newpath, function (err) {
           if (err) throw err;
-          console.log('File uploaded and moved!');
+          // console.log('File uploaded and moved!');
           var workbook = new exceljs.Workbook();
           workbook.xlsx.readFile(newpath).then(function() {
             // use workbook
             var worksheet = workbook.getWorksheet(1)
-            console.log("worksheet")
-            console.log(worksheet)
+            // console.log("worksheet")
+            // console.log(worksheet)
             var MyDate = new Date(worksheet.getCell('E1').value);
-            console.log("MyDate")
-            console.log(MyDate)
+            // console.log("MyDate")
+            //console.log(MyDate)
             var MyDateString;
             MyDateString = MyDate.getFullYear() + '-'
                          + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
                          + ('0' + MyDate.getDate()).slice(-2);
-            console.log("MyDateString")
-            console.log(MyDateString)
+            // console.log("MyDateString")
+            //console.log(MyDateString)
             var data = [];
             data.push({
               division: worksheet.getCell('C1').value,
@@ -617,7 +617,7 @@
             fixture_controller.fixture_populate_scorecard(data,req,res,next)
           })
           .catch(function(e) {
-            console.log('error', 'an error occurred')
+            //console.log('error', 'an error occurred')
             res.status(500).json({error: e.message})
           })
         });
@@ -674,16 +674,16 @@
       }
       request(options,function(err,response,body){
         if (err){
-          console.log(err)
+          // console.log(err)
           return false
         }
         else {
           if (body.success){
-            console.log('recaptcha sucess')
+            // console.log('recaptcha sucess')
             return value
           }
           else {
-            console.log('recaptcha fail')
+            // console.log('recaptcha fail')
             return false
           }
         }
@@ -700,7 +700,7 @@ let validateContactUs = [
     app.post('/contact-us',validateContactUs, (req, res,next) => {
       var errors = validationResult(req);
       if (!errors.isEmpty()) {
-          console.log(errors.array());
+          // console.log(errors.array());
           res.render('beta/contact-us-form-delivered', {
             pageTitle: 'Contact Us - Error',
             pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
@@ -876,7 +876,7 @@ let validateContactUs = [
 
         // console.log(params);
         var ses = new AWS.SES({apiVersion: '2010-12-01'});
-        console.log(JSON.stringify(params));
+        // console.log(JSON.stringify(params));
         const sendPromise = ses.sendEmail(params).promise();
         sendPromise
         .then(data => {
@@ -890,7 +890,7 @@ let validateContactUs = [
           });
         })
         .catch(error => {
-          console.log(error);
+          // console.log(error);
           return next("Sorry something went wrong sending your email.");
         })
       }
