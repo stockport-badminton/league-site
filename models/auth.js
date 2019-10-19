@@ -33,7 +33,7 @@ exports.getManagementAPIKey = function(){
       })
 }
 
-exports.getAPIKey = function(){
+exports.getAPIKey = function(done){
     var options = {
           method:'POST',
           url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
@@ -55,7 +55,7 @@ exports.getAPIKey = function(){
             console.log(body)
             if (body.access_token){
               console.log('token granted')
-              return body.access_token
+              return done(body.access_token)
             }
             else {
               console.log('recaptcha fail')
