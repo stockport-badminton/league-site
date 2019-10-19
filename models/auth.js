@@ -12,14 +12,14 @@ exports.getManagementAPIKey = function(done){
         },
         json:true
       }
-      console.log(options);
+      //console.log(options);
       request(options,function(err,response,body){
         if (err){
           console.log(err)
           return false
         }
         else {
-          console.log(body)
+          //console.log(body)
           if (body.access_token){
             console.log('token granted')
             return body.access_token
@@ -45,7 +45,7 @@ exports.getAPIKey = function(done){
           },
           json:true
         }
-        console.log(options);
+        // console.log(options);
         request(options,function(err,response,body){
           if (err){
             console.log(err)

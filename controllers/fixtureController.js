@@ -264,9 +264,13 @@ exports.fixture_detail_byDivision = function(req, res,next) {
               next(err);
             }
             else{
+              console.log(apiKey)
               var options = {
                 method:'POST',
-                url:'https://{{auth0_domain}}/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
+                headers:{
+                  "Authorization":"Bearer "+apiKey
+                }
+                url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email',
                 json:true
               }
               request(options,function(err,response,userBody){
