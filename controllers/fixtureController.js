@@ -268,7 +268,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
             else{
               console.log(" apikey:" + apiKey)
               var options = {
-                method:'POST',
+                method:'GET',
                 headers:{
                   "Authorization":"Bearer "+apiKey
                 },
