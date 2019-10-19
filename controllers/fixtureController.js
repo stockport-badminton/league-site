@@ -261,7 +261,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         if (req.path.indexOf('admin') > 0) {
           Auth.getAPIKey(function (err,apiKey){
             if (err){
-              console.log(err);
+              // console.log(err);
               next(err);
             }
             else{
