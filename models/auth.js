@@ -55,7 +55,7 @@ exports.getAPIKey = function(){
             console.log(body)
             if (body.access_token){
               console.log('token granted')
-              return done(body.access_token)
+              return body.access_token
             }
             else {
               console.log('recaptcha fail')
