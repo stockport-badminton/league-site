@@ -23,11 +23,11 @@ exports.getManagementAPIKey = function(done){
           //console.log(body)
           if (body.access_token){
             console.log('token granted')
-            return done(body.access_token)
+            return done(null,body.access_token)
           }
           else {
             console.log('recaptcha fail')
-            return done("token fail")
+            return done(null,"token fail")
           }
         }
 
