@@ -12,9 +12,10 @@ exports.getManagementAPIKey = function(done){
         },
         json:true
       }
-      //console.log(options);
+      console.log(options);
       request(options,function(err,response,body){
         if (err){
+          console.log("getManagementAPIKey error");
           console.log(err)
           return done(err);
         }
