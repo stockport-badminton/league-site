@@ -7,14 +7,18 @@
     <p><%= error %></p>
   <% }
   else { %>
-    <h1><%= division.replace('-',' ') %></h1>
+    <div class="row col-12">
+      <h1><%= division.replace('-',' ') %></h1>
+    </div>
     <% if (typeof admin !== 'undefined') { %>
-
-      <p>Welcome!<br />
-        <%= user %><br />
-        <%= JSON.stringify(user) %><br />
-      </p>
-
+    <div class="row col-12">
+        <p>Welcome!<br />
+          <%= user[0].nickname %><br />
+          Club:<%= user[0].app_metadata.club %><br />
+          Role:<%= user[0].app_metadata.role %>
+        </p>  
+    </div>
+      
     <% } %>
     <div class="table-responsive">
     <table class="table" id="results-table">

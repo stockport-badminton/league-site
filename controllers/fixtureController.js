@@ -257,50 +257,6 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         next(err);
       }
       else{
-        // console.log(result)
-        if (req.path.indexOf('admin') > 0) {
-          Auth.getManagementAPIKey(function (err,apiKey){
-            if (err){
-              console.log("error")
-              console.log(err);
-              next(err);
-            }
-            else{
-              console.log(" apikey:" + apiKey)
-              var options = {
-                method:'GET',
-                headers:{
-                  "Authorization":"Bearer "+apiKey
-                },
-                url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
-              }
-              console.log(options);
-              request(options,function(err,response,userBody){
-                console.log(options);
-                if (err){
-                  console.log(err)
-                  return false
-                }
-                else{
-                  res.status(200);
-                  res.render('beta/fixtures-results', {
-                      user:userBody,
-                      static_path: '/static',
-                      pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-                      pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-                      result: result,
-                      error: false,
-                      division : req.params.division,
-                      admin:true,
-                      recaptcha:process.env.recaptcha
-                  });
-                }
-              })
-              
-            }
-          })
-        }
-        else {
           res.status(200);
            res.render('beta/fixtures-results', {
                static_path: '/static',
@@ -311,11 +267,87 @@ exports.fixture_detail_byDivision = function(req, res,next) {
                division : req.params.division
            });
 
-        }
-
       }
     })
 };
+
+// Display detail page for a specific Fixture
+exports.fixture_detail_byDivision_admin = function(req, res,next) {
+  var divisionId = 0;
+  switch (req.params.division) {
+    case 'All':
+      divisionId = 0
+      break;
+    case 'Division-1':
+      divisionId = 8
+      break;
+    case 'Premier':
+      divisionId = 7
+      break;
+    case 'Division-2':
+      divisionId = 9
+      break;
+    case 'Division-3':
+      divisionId = 10
+      break;
+    case 'Division-4':
+      divisionId = 11
+      break;
+    default:
+      next(err);
+  }
+
+  Fixture.getFixtureDetails(divisionId, req.params.season, function(err,result){
+    if (err){
+      next(err);
+    }
+    else{
+        Auth.getManagementAPIKey(function (err,apiKey){
+          if (err){
+            //console.log("error")
+            //console.log(err);
+            next(err);
+          }
+          else{
+            //console.log(" apikey:" + apiKey)
+            var options = {
+              method:'GET',
+              headers:{
+                "Authorization":"Bearer "+apiKey
+              },
+              url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+            }
+            //console.log(options);
+            request(options,function(err,response,userBody){
+              //console.log(options);
+              if (err){
+                //console.log(err)
+                return false
+              }
+              else{
+                res.status(200);
+                res.render('beta/fixtures-results', {
+                    user:JSON.parse(userBody),
+                    static_path: '/static',
+                    pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
+                    pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+                    result: result,
+                    error: false,
+                    division : req.params.division,
+                    admin:true,
+                    recaptcha:process.env.recaptcha
+                });
+              }
+            })
+            
+          }
+        })
+
+    }
+  })
+};
+
+
 
 // Display Fixture create form on GET
 exports.fixture_create_get = function(req, res) {

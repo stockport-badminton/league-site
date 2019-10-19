@@ -96,7 +96,7 @@
         clientID: process.env.AUTH0_CLIENTID,
         clientSecret: process.env.AUTH0_CLIENT_SECRET,
         callbackURL:
-          process.env.AUTH0_CALLBACK_URL || 'http://localhost:3000/callback'
+          process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:3000/callback'
       },
       function (accessToken, refreshToken, extraParams, profile, done) {
         // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -1156,8 +1156,8 @@ let validateContactUs = [
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
 
     /* GET request for list of all Fixture items. */
-    router.get('/admin/results/:division', secured(), fixture_controller.fixture_detail_byDivision);
-    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division', secured(), fixture_controller.fixture_detail_byDivision_admin);
+    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision_admin);
 
     /// GAME ROUTES ///
 
