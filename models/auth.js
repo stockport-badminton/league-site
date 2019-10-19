@@ -1,6 +1,6 @@
 var request = require('request');
 
-exports.getManagementAPIKey = function(done){
+exports.getManagementAPIKey = function(){
   var options = {
         method:'POST',
         url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
@@ -33,7 +33,7 @@ exports.getManagementAPIKey = function(done){
       })
 }
 
-exports.getAPIKey = function(done){
+exports.getAPIKey = function(){
     var options = {
           method:'POST',
           url:'https://'+ process.env.AUTH0_DOMAIN +'/oauth/token',
