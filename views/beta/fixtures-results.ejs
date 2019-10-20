@@ -29,9 +29,9 @@
           <th>Away Team</th>
           <th>Result</th>
           <% if (typeof admin !== 'undefined') { %>
+            <th>Rearrange?</th>
             <th>Details</th>
-            <th>Edit</th>
-            <th>Confirm</th>
+            <th>Confirm/Enter</th>
           <% } %>
         </tr>
       </thead>
@@ -89,8 +89,12 @@
           <% if (typeof admin !== 'undefined') { %>
             <td><a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>">Rearrange</a></td>
             <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
-            <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Edit</a></td>
-            <td><a href="/fixtures/review/<%= row['fixtureId'] %>">Review</a></td>
+            <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
+              <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Enter</a></td> 
+            <% } 
+            else { %>
+              <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Confirm</a></td> 
+            <% } %>
           <% } %>
       </tr>
     <% }) %>

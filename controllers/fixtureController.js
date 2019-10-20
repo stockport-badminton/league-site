@@ -297,52 +297,66 @@ exports.fixture_detail_byDivision_admin = function(req, res,next) {
       next(err);
   }
 
-  Fixture.getFixtureDetails(divisionId, req.params.season, function(err,result){
+  
+  Auth.getManagementAPIKey(function (err,apiKey){
     if (err){
+      //console.log("error")
+      //console.log(err);
       next(err);
     }
     else{
-        Auth.getManagementAPIKey(function (err,apiKey){
-          if (err){
-            //console.log("error")
-            //console.log(err);
-            next(err);
+      //console.log(" apikey:" + apiKey)
+      var options = {
+        method:'GET',
+        headers:{
+          "Authorization":"Bearer "+apiKey
+        },
+        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+      }
+      //console.log(options);
+      request(options,function(err,response,userBody){
+        //console.log(options);
+        if (err){
+          //console.log(err)
+          return false
+        }
+        else{
+          var user = JSON.parse(userBody);
+          var fixtureSearchObj = {
+            "season":req.params.season,
+            "division":divisionId
           }
-          else{
-            //console.log(" apikey:" + apiKey)
-            var options = {
-              method:'GET',
-              headers:{
-                "Authorization":"Bearer "+apiKey
-              },
-              url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+          if (user[0].app_metadata.club) {
+            fixtureSearchObj.club = user[0].app_metadata.club
+          }
+          if (user[0].app_metadata.club == 'All') {
+            fixtureSearchObj.club = undefined
+          }
+          if (user[0].app_metadata.team) {
+            fixtureSearchObj.team = user[0].app_metadata.team
+          }
+          
+          Fixture.getClubFixtureDetails(fixtureSearchObj, function(err,result){
+            if (err){
+              next(err);
             }
-            //console.log(options);
-            request(options,function(err,response,userBody){
-              //console.log(options);
-              if (err){
-                //console.log(err)
-                return false
-              }
-              else{
-                res.status(200);
-                res.render('beta/fixtures-results', {
-                    user:JSON.parse(userBody),
-                    static_path: '/static',
-                    pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-                    pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-                    result: result,
-                    error: false,
-                    division : req.params.division,
-                    admin:true,
-                    recaptcha:process.env.recaptcha
-                });
-              }
-            })
-            
-          }
-        })
-
+            else{
+              res.status(200);
+              res.render('beta/fixtures-results', {
+                  user:user,
+                  static_path: '/static',
+                  pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
+                  pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+                  result: result,
+                  error: false,
+                  division : req.params.division,
+                  admin:true,
+                  recaptcha:process.env.recaptcha
+              });
+            }
+          })
+        }
+      })
     }
   })
 };

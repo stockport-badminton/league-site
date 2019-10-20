@@ -131,6 +131,71 @@ exports.getupComing = function(done){
   })
 }
 
+exports.getClubFixtureDetails = function(fixtureObj, done){
+  var searchTerms = [];
+  var sqlArray = []
+  var seasonName = ''
+  var clubSeasonName = ''
+  if (!fixtureObj.club){
+    console.log("no club name");
+  }
+  else {
+    searchTerms.push('(d.homeClubName = ? OR d.awayClubName = ?)');
+    sqlArray.push(fixtureObj.club);
+    sqlArray.push(fixtureObj.club);
+  }
+  if (!fixtureObj.team){
+    console.log("no team name");
+  }
+  else {
+    searchTerms.push('(d.homeTeam = ? OR d.awayTeam = ?)');
+    sqlArray.push(fixtureObj.team);
+    sqlArray.push(fixtureObj.team);
+  }
+  if (!fixtureObj.division){
+    console.log("no division name");
+  }
+  else {
+    searchTerms.push('division = ?');
+    sqlArray.push(fixtureObj.division);
+  }
+  if (!fixtureObj.season){
+    console.log("no season");
+    searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
+    sqlArray.push('20192020');
+  }
+  else {
+    searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
+    sqlArray.push(fixtureObj.season);
+    seasonName = fixtureObj.season + ' as team'
+    clubSeasonName = fixtureObj.season + ' as club'
+  }
+  console.log(searchTerms)
+
+  if (searchTerms.length > 0) {
+    var conditions = searchTerms.join(' AND ');
+    conditions = ' WHERE ' + conditions;
+    // console.log(conditions);
+  }
+  /* if (fixtureObj.season === undefined){
+    var seasonName = ''
+    fixtureObj.season = '20192020'
+  }
+  else {
+    var seasonName = season + ' as team'
+  } */
+
+  db.get().query('SELECT d.* FROM (SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS awayTeam, team.club AS awayClub, team.division FROM (SELECT team.name AS homeTeam, team.club AS homeClub, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam AS awayTeamId, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeamId) AS b JOIN club'+clubSeasonName+' WHERE club.id = b.homeClub) AS c JOIN club'+clubSeasonName+' WHERE club.id = c.awayClub) AS d JOIN season'+ conditions +' ORDER BY d.date',sqlArray, function (err, result){
+      console.log(this.sql)
+      if (err) {
+        //console.log(this.sql)
+        return done(err);
+      }
+      done(null, result);
+    })
+  
+}
+
 exports.getFixtureDetails = function(division,season, done){
   if (season === undefined){
     seasonName = ''
