@@ -10,6 +10,7 @@
         <tr>
           <th>Date</th>
           <th>Team</th>
+          <th>Opposition</th>
           <th>Man 1</th>
           <th>Man 2</th>
           <th>Man 3</th>
@@ -31,7 +32,8 @@
       %>
       <tr>
           <td><%= MyDateString %></td>
-          <td><%= row['name'] %></td>
+          <td><%= row['teamName'] %></td>
+          <td><%= row['oppositionName'] %></td>
           <td><%= row['Man1'] %></td>
           <td><%= row['Man2'] %></td>
           <td><%= row['Man3'] %></td>

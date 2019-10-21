@@ -58,8 +58,41 @@ exports.createBatch = function(BatchObj,done){
   }
 }
 
-exports.getMatchPlayerOrderDetails = function(done){
-  db.get().query('select playerNames.id, playerNames.date, team.name, playerNames.Man1, playerNames.Man2, playerNames.Man3, playerNames.Lady1, playerNames.Lady2, playerNames.Lady3 FROM (select fixture.id, fixture.date, fixture.homeTeam as Team, concat(homeMan1.first_name," ",homeMan1.family_name) as Man1, concat(homeMan2.first_name," ",homeMan2.family_name) as Man2, concat(homeMan3.first_name," ",homeMan3.family_name) as Man3, concat(homeLady1.first_name," ",homeLady1.family_name) as Lady1, concat(homeLady2.first_name," ",homeLady2.family_name) as Lady2, concat(homeLady3.first_name," ",homeLady3.family_name) as Lady3 from fixture join player homeMan1 on fixture.homeMan1 = homeMan1.id join player homeMan2 on fixture.homeMan2 = homeMan2.id join player homeMan3 on fixture.homeMan3 = homeMan3.id join player homeLady1 on fixture.homeLady1 = homeLady1.id join player homeLady2 on fixture.homeLady2 = homeLady2.id join player homeLady3 on fixture.homeLady3 = homeLady3.id UNION ALL select fixture.id, fixture.date, fixture.awayTeam as Team, concat(awayMan1.first_name," ",awayMan1.family_name) as Man1, concat(awayMan2.first_name," ",awayMan2.family_name) as Man2, concat(awayMan3.first_name," ",awayMan3.family_name) as Man3, concat(awayLady1.first_name," ",awayLady1.family_name) as Lady1, concat(awayLady2.first_name," ",awayLady2.family_name) as Lady2, concat(awayLady3.first_name," ",awayLady3.family_name) as Lady3 from fixture join player awayMan1 on fixture.awayMan1 = awayMan1.id join player awayMan2 on fixture.awayMan2 = awayMan2.id join player awayMan3 on fixture.awayMan3 = awayMan3.id join player awayLady1 on fixture.awayLady1 = awayLady1.id join player awayLady2 on fixture.awayLady2 = awayLady2.id join player awayLady3 on fixture.awayLady3 = awayLady3.id) as playerNames JOIN team where playerNames.Team = team.id order by name, date',function(err,rows){
+exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
+  var searchTerms = [];
+  var sqlArray = []
+  var seasonName = ''
+  if (!fixtureObj.club){
+    console.log("no club name");
+  }
+  else {
+    searchTerms.push('c.name = ?');
+    sqlArray.push(fixtureObj.club);
+  }
+  if (!fixtureObj.team){
+    console.log("no team name");
+  }
+  else {
+    searchTerms.push('c.teamName = ?');
+    sqlArray.push(fixtureObj.team);
+  }
+  if (!fixtureObj.season || fixtureObj.season == '20192020'){
+    console.log("no season");
+    searchTerms.push('season.name = ? AND c.date > season.startDate AND c.date < season.endDate');
+    sqlArray.push('20192020');
+  }
+  else {
+    searchTerms.push('season.name = ? AND c.date > season.startDate AND c.date < season.endDate');
+    sqlArray.push(fixtureObj.season);
+    seasonName = fixtureObj.season
+  }
+  console.log(searchTerms)
+
+  if (searchTerms.length > 0) {
+    var conditions = searchTerms.join(' AND ');
+    conditions = ' join season WHERE ' + conditions;
+  }
+  db.get().query('select c.* from( SELECT fixturePlayers.*, club'+seasonName+'.name FROM (SELECT playerNames.id, homeTeam.name as teamName, homeTeam.club as clubId, awayTeam.name as oppositionName, playerNames.date, playerNames.Man1, playerNames.Man2, playerNames.Man3, playerNames.Lady1, playerNames.Lady2, playerNames.Lady3 FROM (SELECT fixture.id, fixture.date, fixture.homeTeam AS Team, fixture.awayTeam AS Opposition, CONCAT(homeMan1.first_name, " ", homeMan1.family_name) AS Man1, CONCAT(homeMan2.first_name, " ", homeMan2.family_name) AS Man2, CONCAT(homeMan3.first_name, " ", homeMan3.family_name) AS Man3, CONCAT(homeLady1.first_name, " ", homeLady1.family_name) AS Lady1, CONCAT(homeLady2.first_name, " ", homeLady2.family_name) AS Lady2, CONCAT(homeLady3.first_name, " ", homeLady3.family_name) AS Lady3 FROM fixture JOIN player homeMan1 ON fixture.homeMan1 = homeMan1.id JOIN player homeMan2 ON fixture.homeMan2 = homeMan2.id JOIN player homeMan3 ON fixture.homeMan3 = homeMan3.id JOIN player homeLady1 ON fixture.homeLady1 = homeLady1.id JOIN player homeLady2 ON fixture.homeLady2 = homeLady2.id JOIN player homeLady3 ON fixture.homeLady3 = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture.awayTeam AS Team, fixture.homeTeam AS Opposition, CONCAT(awayMan1.first_name, " ", awayMan1.family_name) AS Man1, CONCAT(awayMan2.first_name, " ", awayMan2.family_name) AS Man2, CONCAT(awayMan3.first_name, " ", awayMan3.family_name) AS Man3, CONCAT(awayLady1.first_name, " ", awayLady1.family_name) AS Lady1, CONCAT(awayLady2.first_name, " ", awayLady2.family_name) AS Lady2, CONCAT(awayLady3.first_name, " ", awayLady3.family_name) AS Lady3 FROM fixture JOIN player awayMan1 ON fixture.awayMan1 = awayMan1.id JOIN player awayMan2 ON fixture.awayMan2 = awayMan2.id JOIN player awayMan3 ON fixture.awayMan3 = awayMan3.id JOIN player awayLady1 ON fixture.awayLady1 = awayLady1.id JOIN player awayLady2 ON fixture.awayLady2 = awayLady2.id JOIN player awayLady3 ON fixture.awayLady3 = awayLady3.id) AS playerNames JOIN team'+seasonName+' homeTeam ON playerNames.Team = homeTeam.id JOIN team'+seasonName+' awayTeam ON playerNames.Opposition = awayTeam.id) AS fixturePlayers JOIN club'+seasonName+' on club'+seasonName+'.id = clubId) as c '+conditions+' ORDER BY name , date',sqlArray,function(err,rows){
     if (err) {
       console.log(err);
       return done(err);

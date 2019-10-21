@@ -145,7 +145,13 @@ exports.fixture_list = function(req, res) {
 
 // Display list of all Fixtures
 exports.get_fixture_players_details = function(req, res) {
-    Fixture.getMatchPlayerOrderDetails(function(err,row){
+
+    var searchObj = {
+    }
+    if (req.params.season !== undefined){
+      searchObj.season = req.params.season
+    }
+    Fixture.getMatchPlayerOrderDetails(searchObj,function(err,row){
       if (err){
         res.send(err);
       }
