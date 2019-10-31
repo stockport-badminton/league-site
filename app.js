@@ -801,7 +801,7 @@ let validateContactUs = [
 
             break;
             case 'Mellor':
-              params.Destination.ToAddresses = ['enquires@mellorbadminton.org.uk'];
+              params.Destination.ToAddresses = ['enquiries@mellorbadminton.org.uk'];
 
             break;
             case 'New Mills':
