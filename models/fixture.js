@@ -311,7 +311,7 @@ exports.getFixtureIdFromTeamNames = function(obj,done){
 
 exports.getFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.id=2 AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
+    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name="20192020" AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
     // console.log(obj);
     db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
       if (err){

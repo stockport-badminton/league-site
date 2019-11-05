@@ -936,11 +936,17 @@ let validateContactUs = [
     router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 
     /* GET request for one Player. */
-    router.get('/player-stats/division-:divisionId?/:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/game-:gameType?/division-:divisionId?', player_controller.all_player_stats);
+    router.get('/player-stats/division-:divisionId?', player_controller.all_player_stats);
+    router.get('/player-stats/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/:season?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/:season?/division-:divisionId?', player_controller.all_player_stats);
+    router.get('/player-stats/:season?/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/:season?', player_controller.all_player_stats);
 
     /* GET request for one Player. */
     router.get('/player-stats', player_controller.all_player_stats);
-    router.get('/player-stats/:season', player_controller.all_player_stats);
 
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);

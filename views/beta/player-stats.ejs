@@ -4,6 +4,41 @@
 
 
     <h1>Player Stats</h1>
+    <div class="row col-12">
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Season
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="/player-stats">Current</a>
+            <a class="dropdown-item" href="/player-stats/20182019">2018-2019</a>
+          </div>
+      </div>
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Division
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+              <a class="dropdown-item" href="/player-stats">All</a>
+              <a class="dropdown-item" href="/player-stats/division-7">Prem</a>
+              <a class="dropdown-item" href="/player-stats/division-8">Division 1</a>
+              <a class="dropdown-item" href="/player-stats/division-9">Division 2</a>
+              <a class="dropdown-item" href="/player-stats/division-10">Division 2</a>
+              <a class="dropdown-item" href="/player-stats/division-11">Division 3</a>
+            </div>
+      </div>
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Type
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="/player-stats">All</a>
+            <a class="dropdown-item" href="/player-stats/game-Mens">Mens</a>
+            <a class="dropdown-item" href="/player-stats/game-Ladies">Ladies</a>
+            <a class="dropdown-item" href="/player-stats/game-Mixed">Mixed</a>
+          </div>
+      </div>     
+    </div>
     <div class="table-responsive">
     <table class="table" id="results-table">
       <thead>
