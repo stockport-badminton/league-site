@@ -820,7 +820,7 @@ let validateContactUs = [
 
             break;
             case 'Poynton':
-              params.Destination.ToAddresses = ['ian.anderson12@ntlworld.com'];
+              params.Destination.ToAddresses = ['poyntonbadminton@btinternet.com'];
 
             break;
             case 'Racketeer':

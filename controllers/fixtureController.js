@@ -528,6 +528,8 @@ exports.full_fixture_post = function(req,res){
     })
   }
   else {
+    logger.log(req.body);
+    console.log(req.body);
     Fixture.getFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
         // console.log("getFixtureId sucess")
@@ -556,6 +558,7 @@ exports.full_fixture_post = function(req,res){
           awayScore:req.body.awayScore
         }
         // console.log(fixtureObject);
+        
         Fixture.updateById(fixtureObject,FixtureIdResult[0].id,function(err,fixResult){
           if (err) {
             // console.log("updateById err")
