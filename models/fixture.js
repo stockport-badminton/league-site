@@ -1,6 +1,11 @@
 var db = require('../db_connect.js');
 var request = require('request');
 
+var logger = require('logzio-nodejs').createLogger({
+  token: 'SRnHXHVJhjbHTCkCYexCgHtyGlPebquU',
+  host: 'listener.logz.io'
+});
+
 // POST
 exports.create = function(fixtureObj,done){
   if (db.isObject(fixtureObj)){
@@ -115,11 +120,13 @@ exports.getAll = function(done){
 exports.getRecent = function(done){
   othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
   db.get().query(othersql,function(err,result){
+    logger.log(this.sql)
     if (err) {
       console.log(err);
       return done(err);
     }
     else {
+      
       // console.log(result);
       done(null,result);
     }
@@ -153,6 +160,7 @@ exports.getCardsDueToday = function(done){
 exports.getupComing = function(done){
   othersql = "select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND status not in ('rearranged','rearranging') AND date between adddate(now(),-1) and adddate(now(),7) order by date";
   db.get().query(othersql,function(err,result){
+    logger.log(this.sql)
     if (err) {
       console.log(err);
       return done(err);
@@ -243,6 +251,7 @@ exports.getFixtureDetails = function(division,season, done){
     db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',season, function (err, result){
       if (err) {
         //console.log(this.sql)
+        logger.log(this.sql)
         return done(err);
       }
       done(null, result);
@@ -340,6 +349,7 @@ exports.rearrangeByTeamNames = function(updateObj,done){
     }
 
     db.get().query(sql,sqlArray,function(err,result,fields){
+      console.log(this.sql)
       if (err) {
         return done(err);
       }
