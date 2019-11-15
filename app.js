@@ -14,7 +14,7 @@
     const exceljs = require('exceljs')
     const fs = require('fs');
     var logger = require('logzio-nodejs').createLogger({
-      token: 'SRnHXHVJhjbHTCkCYexCgHtyGlPebquU',
+      token: process.env.LOGZ_SECRET,
       host: 'listener.logz.io'
   });
 

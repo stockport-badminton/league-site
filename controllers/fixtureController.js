@@ -7,7 +7,7 @@ var request = require('request');
 var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
 var logger = require('logzio-nodejs').createLogger({
-  token: 'SRnHXHVJhjbHTCkCYexCgHtyGlPebquU',
+  token: process.env.LOGZ_SECRET,
   host: 'listener.logz.io'
 });
 

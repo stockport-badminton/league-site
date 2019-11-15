@@ -2,7 +2,7 @@ var db = require('../db_connect.js');
 var request = require('request');
 
 var logger = require('logzio-nodejs').createLogger({
-  token: 'SRnHXHVJhjbHTCkCYexCgHtyGlPebquU',
+  token: process.env.LOGZ_SECRET,
   host: 'listener.logz.io'
 });
 
