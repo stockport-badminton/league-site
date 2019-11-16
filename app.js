@@ -707,7 +707,7 @@ let validateContactUs = [
     app.post('/contact-us',validateContactUs, (req, res,next) => {
       var errors = validationResult(req);
       if (!errors.isEmpty()) {
-          // console.log(errors.array());
+          logger.log(errors.array());
           res.render('beta/contact-us-form-delivered', {
             pageTitle: 'Contact Us - Error',
             pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
@@ -881,7 +881,7 @@ let validateContactUs = [
         // Create sendEmail params
 
 
-        // console.log(params);
+        logger.log(params);
         var ses = new AWS.SES({apiVersion: '2010-12-01'});
         // console.log(JSON.stringify(params));
         const sendPromise = ses.sendEmail(params).promise();
@@ -897,7 +897,7 @@ let validateContactUs = [
           });
         })
         .catch(error => {
-          // console.log(error);
+          logger.log(error);
           return next("Sorry something went wrong sending your email.");
         })
       }

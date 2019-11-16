@@ -160,7 +160,7 @@ exports.getCardsDueToday = function(done){
 exports.getupComing = function(done){
   othersql = "select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND status not in ('rearranged','rearranging') AND date between adddate(now(),-1) and adddate(now(),7) order by date";
   db.get().query(othersql,function(err,result){
-    logger.log(this.sql)
+    // logger.log(this.sql)
     if (err) {
       console.log(err);
       return done(err);
@@ -227,7 +227,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   } */
 
   db.get().query('SELECT d.* FROM (SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS awayTeam, team.club AS awayClub, team.division FROM (SELECT team.name AS homeTeam, team.club AS homeClub, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam AS awayTeamId, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeamId) AS b JOIN club'+clubSeasonName+' WHERE club.id = b.homeClub) AS c JOIN club'+clubSeasonName+' WHERE club.id = c.awayClub) AS d JOIN season'+ conditions +' ORDER BY d.date',sqlArray, function (err, result){
-      console.log(this.sql)
+      // console.log(this.sql)
       if (err) {
         //console.log(this.sql)
         return done(err);
@@ -260,6 +260,7 @@ exports.getFixtureDetails = function(division,season, done){
   else{
     var sql = 
     db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeam AND team.division = ?) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',[division,season], function (err, result){
+      logger.log(this.sql)
       if (err) {
         //console.log(this.sql)
         return done(err);
