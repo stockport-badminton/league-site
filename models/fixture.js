@@ -340,7 +340,7 @@ exports.getFixtureId = function(obj,done){
 
 exports.getOutstandingFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name="20192020" AND fixture.date > season.startDate) AND status = "outstanding" as a where awayTeam = ? AND homeTeam = ?';
+    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name="20192020" AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
     // console.log(obj);
     db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
       if (err){
