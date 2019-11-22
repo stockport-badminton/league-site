@@ -29,17 +29,114 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
 
+        var Man1Status, Man1Note = ""
+        if (row['Man1TeamId'] != row['teamId']{
+          if (row['Man1Rank'] == null){
+            Man1Status = "table-danger";
+            Man1Note = "<br />" + row['Man1TeamName']
+          }
+          else{
+            Man1Status = "table-warning";
+            Man1Note = "<br />" + row['Man1TeamName']
+          }
+        }
+        else {
+          if (row['Man1Rank'] == null){
+            Man1Status = "table-warning";
+          }
+        }
+        var Man2Status, Man2Note = ""
+        if (row['Man2TeamId'] != row['teamId']{
+          if (row['Man2Rank'] == null){
+            Man2Status = "table-danger";
+            Man2Note = "<br />" + row['Man2TeamName']
+          }
+          else{
+            Man2Status = "table-warning";
+            Man2Note = "<br />" + row['Man2TeamName']
+          }
+        }
+        else {
+          if (row['Man2Rank'] == null){
+            Man2Status = "table-warning";
+          }
+        }
+        var Man3Status, Man3Note = ""
+        if (row['Man3TeamId'] != row['teamId']{
+          if (row['Man3Rank'] == null){
+            Man3Status = "table-danger";
+            Man3Note = "<br />" + row['Man3TeamName']
+          }
+          else{
+            Man3Status = "table-warning";
+            Man3Note = "<br />" + row['Man3TeamName']
+          }
+        }
+        else {
+          if (row['Man3Rank'] == null){
+            Man3Status = "table-warning";
+          }
+        }
+        var Lady1Status, Lady1Note = ""
+        if (row['Lady1TeamId'] != row['teamId']{
+          if (row['Lady1Rank'] == null){
+            Lady1Status = "table-danger";
+            Lady1Note = "<br />" + row['Lady1TeamName']
+          }
+          else{
+            Lady1Status = "table-warning";
+            Lady1Note = "<br />" + row['Lady1TeamName']
+          }
+        }
+        else {
+          if (row['Lady1Rank'] == null){
+            Lady1Status = "table-warning";
+          }
+        }
+        var Lady2Status, Lady2Note = ""
+        if (row['Lady2TeamId'] != row['teamId']{
+          if (row['Lady2Rank'] == null){
+            Lady2Status = "table-danger";
+            Lady2Note = "<br />" + row['Lady2TeamName']
+          }
+          else{
+            Lady2Status = "table-warning";
+            Lady2Note = "<br />" + row['Lady2TeamName']
+          }
+        }
+        else {
+          if (row['Lady2Rank'] == null){
+            Lady2Status = "table-warning";
+          }
+        }
+        var Lady3Status, Lady3Note = ""
+        if (row['Lady3TeamId'] != row['teamId']{
+          if (row['Lady3Rank'] == null){
+            Lady3Status = "table-danger";
+            Lady3Note = "<br />" + row['Lady3TeamName']
+          }
+          else{
+            Lady3Status = "table-warning";
+            Lady3Note = "<br />" + row['Lady3TeamName']
+          }
+        }
+        else {
+          if (row['Lady3Rank'] == null){
+            Lady3Status = "table-warning";
+          }
+        }
+
       %>
       <tr>
           <td><%= MyDateString %></td>
           <td><%= row['teamName'] %></td>
           <td><%= row['oppositionName'] %></td>
-          <td><%= row['Man1'] %></td>
-          <td><%= row['Man2'] %></td>
-          <td><%= row['Man3'] %></td>
-          <td><%= row['Lady1'] %></td>
-          <td><%= row['Lady2'] %></td>
-          <td><%= row['Lady3'] %></td>
+          <td class="<%= Man1Status %>"><%= row['Man1'] %><%= Man1Note %></td>
+          <td class="<%= Man2Status %>"><%= row['Man2'] %><%= Man2Note %></td>
+          <td class="<%= Man3Status %>"><%= row['Man3'] %><%= Man3Note %></td>
+          <td class="<%= Lady1Status %>"><%= row['Lady1'] %><%= Lady1Note %></td>
+          <td class="<%= Lady2Status %>"><%= row['Lady2'] %><%= Lady2Note %></td>
+          <td class="<%= Lady3Status %>"><%= row['Lady3'] %><%= Lady3Note %></td>
       </tr>
     <% }) %>
       </tbody>
