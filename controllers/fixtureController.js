@@ -155,6 +155,12 @@ exports.get_fixture_players_details = function(req, res) {
     if (req.params.season !== undefined){
       searchObj.season = req.params.season
     }
+    if (req.params.team !== undefined){
+      searchObj.team = req.params.team
+    }
+    if (req.params.club !== undefined){
+      searchObj.club = req.params.club
+    }
     Fixture.getMatchPlayerOrderDetails(searchObj,function(err,row){
       if (err){
         res.send(err);

@@ -1159,6 +1159,10 @@ let validateContactUs = [
     /* GET request for list of all Fixture items. */
     router.get('/fixture-players', fixture_controller.get_fixture_players_details);
     router.get('/fixture-players/:season', fixture_controller.get_fixture_players_details);
+    router.get('/fixture-players/team-:team?', fixture_controller.get_fixture_players_details);
+    router.get('/fixture-players/club-:club?', fixture_controller.get_fixture_players_details);
+    router.get('/fixture-players/team-:team?/:season?', fixture_controller.get_fixture_players_details);
+    router.get('/fixture-players/club-:club?/:season?', fixture_controller.get_fixture_players_details);
 
     /* GET request for list of all Fixture items. */
     router.get('/fixtures', fixture_controller.fixture_list);
