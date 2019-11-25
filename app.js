@@ -877,14 +877,13 @@ let validateContactUs = [
             default:
           }
         }
-        var loggerPackage = params;
-        logger.log(loggerPackage);
         // Create sendEmail params
         var ses = new AWS.SES({apiVersion: '2010-12-01'});
         // console.log(JSON.stringify(params));
         const sendPromise = ses.sendEmail(params).promise();
         sendPromise
         .then(data => {
+          logger.log(params);
           res.render('beta/contact-us-form-delivered', {
               static_path: '/static',
               theme: process.env.THEME || 'flatly',
