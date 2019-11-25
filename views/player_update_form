@@ -1,4 +1,4 @@
-<%- include ('header.ejs') %>
+<%- include('header.ejs') %>
 
 <div class="modal-dialog">
   <form id="signupForm" role="form" method="post" action="/player/create">
@@ -37,4 +37,4 @@
     </div>
   </form>
 </div>
-<%- include ('footer.ejs') %>
+<%- include('footer.ejs') %>
