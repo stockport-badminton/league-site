@@ -1,5 +1,5 @@
-<% include header.ejs %>
-<% include nav.ejs %>
+<%- include header.ejs %>
+<%- include nav.ejs %>
 <%
 
 var MyDate = new Date(result[0].date);
@@ -50,7 +50,7 @@ result.forEach(function(row,i){
 </div>
 </div>
 
-<% include footer.ejs %>
+<%- include footer.ejs %>
 
 
 </body>
