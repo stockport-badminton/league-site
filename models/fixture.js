@@ -1,10 +1,10 @@
 var db = require('../db_connect.js');
 var request = require('request');
 
-var logger = require('logzio-nodejs').createLogger({
-  token: process.env.LOGZ_SECRET,
-  host: 'listener.logz.io'
-});
+// var logger = require('logzio-nodejs').createLogger({
+//  token: process.env.LOGZ_SECRET,
+//  host: 'listener.logz.io'
+// });
 
 // POST
 exports.create = function(fixtureObj,done){
@@ -99,7 +99,7 @@ exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
   }
 
   db.get().query("SELECT c.* FROM (SELECT fixturePlayers.*, club"+seasonName+".name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as teamName, homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as oppositionName, playerNames.Man1, playerNames.Man1Rank, Man1Team.name as Man1TeamName, playerNames.Man2, playerNames.Man2Rank, Man2Team.name as Man2TeamName, playerNames.Man3, playerNames.Man3Rank, Man3Team.name as Man3TeamName, playerNames.Lady1, playerNames.Lady1Rank, Lady1Team.name as Lady1TeamName, playerNames.Lady2, playerNames.Lady2Rank, Lady2Team.name as Lady2TeamName, playerNames.Lady3, playerNames.Lady3Rank, Lady3Team.name as Lady3TeamName FROM (SELECT fixture.id, fixture.date, fixture.homeTeam AS Team, fixture.awayTeam AS Opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS Man1, homeMan1.rank AS Man1Rank, homeMan1.team AS Man1TeamId, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS Man2, homeMan2.rank AS Man2Rank, homeMan2.team AS Man2TeamId, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS Man3, homeMan3.rank AS Man3Rank, homeMan3.team AS Man3TeamId, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS Lady1, homeLady1.rank AS Lady1Rank, homeLady1.team AS Lady1TeamId, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS Lady2, homeLady2.rank AS Lady2Rank, homeLady2.team AS Lady2TeamId, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS Lady3, homeLady3.rank AS Lady3Rank, homeLady3.team AS Lady3TeamId FROM fixture JOIN player homeMan1 ON fixture.homeMan1 = homeMan1.id JOIN player homeMan2 ON fixture.homeMan2 = homeMan2.id JOIN player homeMan3 ON fixture.homeMan3 = homeMan3.id JOIN player homeLady1 ON fixture.homeLady1 = homeLady1.id JOIN player homeLady2 ON fixture.homeLady2 = homeLady2.id JOIN player homeLady3 ON fixture.homeLady3 = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture.awayTeam AS Team, fixture.homeTeam AS Opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS Man1, awayMan1.rank AS Man1Rank, awayMan1.team AS Man1TeamId, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS Man2, awayMan2.rank AS Man2Rank, awayMan2.team AS Man2TeamId, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS Man3, awayMan3.rank AS Man3Rank, awayMan3.team AS Man3TeamId, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS Lady1, awayLady1.rank AS Lady1Rank, awayLady1.team AS Lady1TeamId, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS Lady2, awayLady2.rank AS Lady2Rank, awayLady2.team AS Lady2TeamId, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS Lady3, awayLady3.rank AS Lady3Rank, awayLady3.team AS Lady3TeamId FROM fixture JOIN player awayMan1 ON fixture.awayMan1 = awayMan1.id JOIN player awayMan2 ON fixture.awayMan2 = awayMan2.id JOIN player awayMan3 ON fixture.awayMan3 = awayMan3.id JOIN player awayLady1 ON fixture.awayLady1 = awayLady1.id JOIN player awayLady2 ON fixture.awayLady2 = awayLady2.id JOIN player awayLady3 ON fixture.awayLady3 = awayLady3.id) AS playerNames JOIN team"+seasonName+" homeTeam ON playerNames.Team = homeTeam.id JOIN team"+seasonName+" awayTeam ON playerNames.Opposition = awayTeam.id join team"+seasonName+" Man1Team on playerNames.Man1TeamID = Man1Team.id join team"+seasonName+" Man2Team on playerNames.Man2TeamID = Man2Team.id join team"+seasonName+" Man3Team on playerNames.Man3TeamID = Man3Team.id join team"+seasonName+" Lady1Team on playerNames.Lady1TeamID = Lady1Team.id join team"+seasonName+" Lady2Team on playerNames.Lady2TeamID = Lady2Team.id join team"+seasonName+" Lady3Team on playerNames.Lady3TeamID = Lady3Team.id) AS fixturePlayers JOIN club"+seasonName+" ON club"+seasonName+".id = clubId) AS c "+conditions+" ORDER BY name , date",sqlArray,function(err,rows){
-    logger.log(this.sql)
+    // logger.log(this.sql)
     console.log(this.sql)
     if (err) {
       console.log(err);
@@ -123,7 +123,7 @@ exports.getAll = function(done){
 exports.getRecent = function(done){
   othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
   db.get().query(othersql,function(err,result){
-    logger.log(this.sql)
+    // logger.log(this.sql)
     if (err) {
       console.log(err);
       return done(err);
@@ -254,7 +254,7 @@ exports.getFixtureDetails = function(division,season, done){
     db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',season, function (err, result){
       if (err) {
         //console.log(this.sql)
-        logger.log(this.sql)
+        // logger.log(this.sql)
         return done(err);
       }
       done(null, result);
@@ -263,7 +263,7 @@ exports.getFixtureDetails = function(division,season, done){
   else{
     var sql = 
     db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeam AND team.division = ?) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',[division,season], function (err, result){
-      logger.log(this.sql)
+      // logger.log(this.sql)
       if (err) {
         //console.log(this.sql)
         return done(err);

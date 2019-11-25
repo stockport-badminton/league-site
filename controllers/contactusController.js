@@ -23,7 +23,7 @@ exports.contact_us_post = function(req, res) {
 
   var errors = req.validationErrors();
   if (errors) {
-      //console.log(errors);
+      // logger.log(errors);
       res.render('beta/contact-us-form-delivered', { title: 'Contact Us - Error', static_path:'/static', theme:'flatly', content: errors});
   return;
   }
@@ -183,12 +183,13 @@ exports.contact_us_post = function(req, res) {
   // Create sendEmail params
 
 
-  //console.log(params);
+  // logger.log(params);
 
 
   ses.sendEmail(params, function(err, data) {
     if (err) {
-      //console.log(err, err.stack); // an error occurred
+      // logger.log(err); // an error occurred
+      // logger.log(err.stack)
     }
     else {
       //console.log(data);           // successful response
