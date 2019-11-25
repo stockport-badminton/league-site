@@ -1,6 +1,6 @@
 <% include offline-header.ejs %>
 
-<%- include (nav.ejs) %>
+<%- include ('nav.ejs') %>
 
 <form role="form" id="contactUs" action="/contact-us" method="post">
   <div class="form-group">
@@ -70,7 +70,7 @@
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
-<%- include (footer.ejs) %>
+<%- include ('footer.ejs') %>
 
 <script type="text/javascript">
   $(document).ready(function(){
