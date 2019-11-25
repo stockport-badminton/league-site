@@ -1245,12 +1245,12 @@ let validateContactUs = [
     });
 
     // Handle 500
-     app.use(function(error, req, res) {
-        res.status(500);
-       res.render('beta/500-error', {
-           static_path: '/static',
-          pageTitle : "HTTP 500 Error",
-           pageDescription : "HTTP 500 Error",
-           error:error
-       });
-     });
+    app.use(function(error, req, res, next) {
+      res.status(500);
+      res.render('beta/500-error', {
+        static_path: '/static',
+        pageTitle : "HTTP 500 Error",
+        pageDescription : "HTTP 500 Error",
+        error:error
+      });
+    });
