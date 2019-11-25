@@ -893,7 +893,7 @@ let validateContactUs = [
           });
         })
         .catch(error => {
-          logger.log(error);
+          //logger.log(error);
           return next("Sorry something went wrong sending your email.");
         })
       }
