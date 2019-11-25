@@ -883,7 +883,6 @@ let validateContactUs = [
         const sendPromise = ses.sendEmail(params).promise();
         sendPromise
         .then(data => {
-          logger.log(params);
           res.render('beta/contact-us-form-delivered', {
               static_path: '/static',
               theme: process.env.THEME || 'flatly',
