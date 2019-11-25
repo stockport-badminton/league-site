@@ -6,10 +6,10 @@ var Game = require('../models/game');
 var request = require('request');
 var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
-// var logger = require('logzio-nodejs').createLogger({
-//  token: process.env.LOGZ_SECRET,
-//  host: 'listener.logz.io'
-// });
+ var logger = require('logzio-nodejs').createLogger({
+  token: process.env.LOGZ_SECRET,
+  host: 'listener.logz.io'
+ });
 
 
 
@@ -534,7 +534,7 @@ exports.full_fixture_post = function(req,res){
     })
   }
   else {
-    // logger.log(req.body);
+     logger.log(req.body);
     console.log(req.body);
     Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
