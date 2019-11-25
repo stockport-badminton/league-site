@@ -1,10 +1,10 @@
-<% include header.ejs %>
-<% include nav.ejs %>
+<%- include header.ejs -%>
+<%- include nav.ejs -%>
 
 <div class="col-md-4">
 <h1>News</h1>
       <p class="lead">
-        <strong class="font-weight-bold">Tournament News!</strong><br />
+        <strong class="font-weight-bold">Tournament Results!</strong><br />
         <a href="#" data-toggle="modal" data-target="#tournamentStatTimesModal" class="font-weight-bold text-primary">Start Times</a><br />
         Note - Entries are still being accepted for the Women’s Singles, ‘B’ Singles, ‘B’ and ‘C’ Womens’ Doubles and ‘C’ Mixed Doubles.<br />
         The Supervet Womens Doubles and Supervet Mixed Doubles will not take place due to lack of entries.<br />
@@ -70,7 +70,7 @@
               <div class="carousel-item active">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_1280x.jpg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/.jpg" media="(min-width: 1024px)">
                     <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_700x.jpg" media="(min-width: 760px)">
                     <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_300x.jpg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
@@ -196,7 +196,7 @@
   </div>
 </div>
 
-<% include footer.ejs %>
+<%- include footer.ejs -%>
 
 
 </body>
