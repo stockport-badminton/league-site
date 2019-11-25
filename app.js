@@ -879,9 +879,6 @@ let validateContactUs = [
         }
 
         // Create sendEmail params
-
-
-        logger.log(params);
         var ses = new AWS.SES({apiVersion: '2010-12-01'});
         // console.log(JSON.stringify(params));
         const sendPromise = ses.sendEmail(params).promise();
@@ -895,6 +892,7 @@ let validateContactUs = [
               pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
               message: 'Success - we\'ve sent your email to your chosen contact'
           });
+          logger.log(params);
         })
         .catch(error => {
           logger.log(error);
