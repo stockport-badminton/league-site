@@ -707,7 +707,7 @@ let validateContactUs = [
     app.post('/contact-us',validateContactUs, (req, res,next) => {
       var errors = validationResult(req);
       if (!errors.isEmpty()) {
-          logger.log(errors.array());
+          // logger.log(errors.array());
           res.render('beta/contact-us-form-delivered', {
             pageTitle: 'Contact Us - Error',
             pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
