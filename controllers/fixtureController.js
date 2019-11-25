@@ -403,13 +403,13 @@ exports.fixture_create_post = function(req, res) {
 
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = function(req, res,next) {
-    Fixture.getRecent(function(err,row){
+    Fixture.getRecent(function(err,recentResults){
       if (err){
         // console.log(err);
         next(err);
       }
       else{
-        Fixture.getupComing(function(err,result){
+        Fixture.getupComing(function(err,upcomingFixtures){
           if (err){
             // console.log(err);
             next(err);
@@ -420,8 +420,8 @@ exports.fixture_get_summary = function(req, res,next) {
                 static_path: '/static',
                 pageTitle : "Homepage",
                 pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
-                result : row,
-                row : result
+                result : recentResults,
+                row : upcomingFixtures
             });
           }
         })

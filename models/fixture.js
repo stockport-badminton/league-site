@@ -161,9 +161,7 @@ exports.getCardsDueToday = function(done){
 }
 
 exports.getupComing = function(done){
-  othersql = "select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND status not in ('rearranged','rearranging') AND date between adddate(now(),-1) and adddate(now(),7) order by date";
-  db.get().query(othersql,function(err,result){
-    // logger.log(this.sql)
+  db.get().query("select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND status not in ('rearranged','rearranging') AND date between adddate(now(),-1) and adddate(now(),7) order by date",function(err,result){
     if (err) {
       console.log(err);
       return done(err);
