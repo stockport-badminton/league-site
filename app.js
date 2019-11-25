@@ -878,7 +878,7 @@ let validateContactUs = [
           }
         }
         var loggerPackage = params;
-        logger.log(loggerPackage)l
+        logger.log(loggerPackage);
         // Create sendEmail params
         var ses = new AWS.SES({apiVersion: '2010-12-01'});
         // console.log(JSON.stringify(params));
