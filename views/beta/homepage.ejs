@@ -1,13 +1,12 @@
-<%- include('header.ejs') %>
-<%- include('nav.ejs') %>
+<%- include('./header.ejs') %>
+<%- include('./nav.ejs') %>
 
 <div class="col-md-4">
 <h1>News</h1>
       <p class="lead">
         <strong class="font-weight-bold">Tournament Results!</strong><br />
-        <a href="#" data-toggle="modal" data-target="#tournamentStatTimesModal" class="font-weight-bold text-primary">Start Times</a><br />
-        Note - Entries are still being accepted for the Women’s Singles, ‘B’ Singles, ‘B’ and ‘C’ Womens’ Doubles and ‘C’ Mixed Doubles.<br />
-        The Supervet Womens Doubles and Supervet Mixed Doubles will not take place due to lack of entries.<br />
+        <a href="#" data-toggle="modal" data-target="#tournamentModal" class="font-weight-bold text-primary">Photos</a><br />
+        Results are in the menu<br />
         Follow <a href="https://www.twitter.com/BaddersResults" target="_blank">@BaddersResults</a> on twitter to see results as they're entered.<br />
         As always - suggestions are always welcome - use the contact us menu to get in touch with me. Neil
       </p>
@@ -70,71 +69,118 @@
               <div class="carousel-item active">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament2019/.jpg" media="(min-width: 1024px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_700x.jpg" media="(min-width: 760px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190317_004_300x.jpg" media="(min-width: 320px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/Mens-Singles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/Mens-Singles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/Mens-Singles.jpeg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
-                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190317_004.jpg" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/Mens-Singles.jpeg" width="100%" border=0 alt="" title=""/>
                 </picture>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5>Mixed Doubles Handicap Winners</h5>
-                  <p>Rob Skirvin &amp; Lisa Edgar</p>
+                  <h5>Open Mens Singles Winner</h5>
                 </div>
               </div>
               <div class="carousel-item">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_1280x.jpg" media="(min-width: 1024px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_700x.jpg" media="(min-width: 760px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_004_300x.jpg" media="(min-width: 320px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/Men-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/Men-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/Men-Doubles.jpeg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
-                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_004.jpg" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/Mens-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
                 </picture>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5>Family Doubles Handicap Winners</h5>
-                  <p>David Haigh &amp; Claire Millward</p>
+                  <h5>Open Mens Doubles Winners</h5>
                 </div>
               </div>
               <div class="carousel-item">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_1280x.jpg" media="(min-width: 1024px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_700x.jpg" media="(min-width: 760px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_010_300x.jpg" media="(min-width: 320px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/Ladies-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/Ladies-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/Ladies-Doubles.jpeg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
-                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_010.jpg" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/Ladies-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
                 </picture>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5>Veteran Mixed Doubles Handicap Winners</h5>
-                  <p>Doug Grant &amp; Lorna Beacock</p>
+                  <h5>Open Ladies Doubles Winners</h5>
                 </div>
               </div>
               <div class="carousel-item">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_1280x.jpg" media="(min-width: 1024px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_700x.jpg" media="(min-width: 760px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_008_300x.jpg" media="(min-width: 320px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/Mixed-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/Mixed-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/Mixed-Doubles.jpeg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
-                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_008.jpg" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/Mixed-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
                 </picture>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5>Handicap Mens Singles Winner</h5>
-                  <p>Dave Edgar</p>
+                  <h5>Open Mixed Doubles Winners</h5>
                 </div>
               </div>
               <div class="carousel-item">
                 <picture>
                     <!--[if IE 9]><video style="display: none;"><![endif]-->
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_1280x.jpg" media="(min-width: 1024px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_700x.jpg" media="(min-width: 760px)">
-                    <source srcset="<%= static_path %>/beta/images/tournament/WP_20190324_009_300x.jpg" media="(min-width: 320px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/Supervet-Mens-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/Supervet-Mens-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/Supervet-Mens-Doubles.jpeg" media="(min-width: 320px)">
                     <!--[if IE 9]></video><![endif]-->
-                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament/WP_20190324_009.jpg" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/Supervet-Mens-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
                 </picture>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5>Handicap Mens Doubles &amp; Vet Mens Doubles Winners</h5>
-                  <p>Canny Lai &amp; Jason Slevin</p>
+                  <h5>Supervet Mens Doubles Winners</h5>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/B-Mens-Singles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/B-Mens-Singles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/B-Mens-Singles.jpeg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/B-Mens-Singles.jpeg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>B Mens Singles Winner</h5>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/B-Mixed-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/B-Mixed-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/B-Mixed-Doubles.jpeg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/B-Mixed-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>B Mixed Doubles Winners</h5>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/C-Mens-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/C-Mens-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/C-Mens-Doubles.jpeg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/C-Mens-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>C Mens Doubles Winners</h5>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <picture>
+                    <!--[if IE 9]><video style="display: none;"><![endif]-->
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/1024/C-Mixed-Doubles.jpeg" media="(min-width: 1024px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/760/C-Mixed-Doubles.jpeg" media="(min-width: 760px)">
+                    <source srcset="<%= static_path %>/beta/images/tournament2019/300/C-Mixed-Doubles.jpeg" media="(min-width: 320px)">
+                    <!--[if IE 9]></video><![endif]-->
+                    <img class="d-block img-fluid" src="<%= static_path %>/beta/images/tournament2019/1024/C-Mixed-Doubles.jpeg" width="100%" border=0 alt="" title=""/>
+                </picture>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>C Mixed Doubles Winners</h5>
                 </div>
               </div>
           </div>
