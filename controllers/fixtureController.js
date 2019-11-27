@@ -534,7 +534,7 @@ exports.full_fixture_post = function(req,res){
     })
   }
   else {
-     logger.log(req.body);
+    logger.log(req.body);
     console.log(req.body);
     Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
@@ -782,18 +782,38 @@ exports.full_fixture_post = function(req,res){
                   // console.log(zapObject)
                   Fixture.sendResultZap(zapObject,function(err,zapRes){
                     if (err) res.send(err)
-                    res.render('index-scorecard',{
-                      static_path:'/static',
-                      theme:process.env.THEME || 'flatly',
-                      pageTitle : "Scorecard Received - No Errors",
-                      pageDescription : "Enter some results!",
-                      scorecardData: gameObject
+                    Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam,function(err,homeTeamNomPlayers){
+                      if (err) res.send(err)
+                      Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,homeTeamNomPlayers){
+                        if (err) res.send(err)
+                        var searchObj = {};
+                        searchObj.team = getFixtureDetailsResult[0].homeTeam
+                        searchObj.limit = 4
+                        Fixture.getMatchPlayerOrderDetails(fixtureObj,function(err,homeTeamFixturePlayers){
+                          if (err) res.send(err)
+                          var searchObj = {};
+                          searchObj.team = getFixtureDetailsResult[0].awayTeam
+                          searchObj.limit = 4
+                          Fixture.getMatchPlayerOrderDetails(fixtureObj,function(err,awayTeamFixturePlayers){
+                            if (err) res.send(err)
+                            res.render('index-scorecard',{
+                              static_path:'/static',
+                              theme:process.env.THEME || 'flatly',
+                              pageTitle : "Scorecard Received - No Errors",
+                              pageDescription : "Enter some results!",
+                              scorecardData: gameObject,
+                              homeTeamNomPlayers:homeTeamNomPlayers,
+                              awayTeamNomPlayers:awayTeamNomPlayers,
+                              homeTeamFixturePlayers:homeTeamFixturePlayers,
+                              awayTeamFixturePlayers:awayTeamFixturePlayers
+                            })
+                          })
+                        })
+                      })
+
                     })
                   })
-
                 })
-
-
               }
             })
           }

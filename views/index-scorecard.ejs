@@ -1,5 +1,5 @@
-<% include beta/header.ejs %>
-<% include beta/nav.ejs %>
+<%- include('beta/header.ejs') %>
+<%- include('beta/nav.ejs') %>
 
       <%
       var hasErrors, hasScorecardData, hasResult = false
@@ -30,7 +30,7 @@
         <% } %>
         <% if (hasScorecardData) { %>
           <p>Some Scorecard Data</p>
-          <p><%= JSON.stringify(scorecardData) %></p>
+          <%- include('recentPlayerHistory.ejs') %>
         <% } %>
         <% if (hasResult && !hasErrors) { %>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>

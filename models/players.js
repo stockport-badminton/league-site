@@ -74,6 +74,17 @@ exports.getAll = function(done){
   })
 }
 
+// GET
+exports.getNominatedPlayers = function(teamName,done){
+  db.get().query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.rank IS NOT NULL ORDER BY gender , player.rank",teamName, function (err, rows){
+    if (err) return done(err);
+    done(null, rows);
+  })
+}
+
+
+
+
 exports.getNamesClubsTeams = function(searchTerms,done){
   var whereTerms = [];
   var whereValue = []
