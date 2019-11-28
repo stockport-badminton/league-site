@@ -1,4 +1,8 @@
 var db = require('../db_connect.js');
+var logger = require('logzio-nodejs').createLogger({
+  token: process.env.LOGZ_SECRET,
+  host: 'listener.logz.io'
+ });
 
 // POST
 exports.create = function(first_name,family_name,team,club,gender,done){
@@ -77,6 +81,7 @@ exports.getAll = function(done){
 // GET
 exports.getNominatedPlayers = function(teamName,done){
   db.get().query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.rank IS NOT NULL ORDER BY gender , player.rank",teamName, function (err, rows){
+    logger.log(this.sql)
     if (err) return done(err);
     done(null, rows);
   })

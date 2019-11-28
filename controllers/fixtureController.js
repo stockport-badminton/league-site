@@ -784,17 +784,17 @@ exports.full_fixture_post = function(req,res){
                     if (err) res.send(err)
                     Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam,function(err,homeTeamNomPlayers){
                       if (err) res.send(err)
-                      Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,homeTeamNomPlayers){
+                      Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,awayTeamNomPlayers){
                         if (err) res.send(err)
                         var searchObj = {};
                         searchObj.team = getFixtureDetailsResult[0].homeTeam
                         searchObj.limit = 4
-                        Fixture.getMatchPlayerOrderDetails(fixtureObj,function(err,homeTeamFixturePlayers){
+                        Fixture.getMatchPlayerOrderDetails(searchObj,function(err,homeTeamFixturePlayers){
                           if (err) res.send(err)
                           var searchObj = {};
                           searchObj.team = getFixtureDetailsResult[0].awayTeam
                           searchObj.limit = 4
-                          Fixture.getMatchPlayerOrderDetails(fixtureObj,function(err,awayTeamFixturePlayers){
+                          Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
                             if (err) res.send(err)
                             res.render('index-scorecard',{
                               static_path:'/static',
