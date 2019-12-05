@@ -1136,6 +1136,9 @@ let validateContactUs = [
     router.patch('/fixture/rearrange',checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 
     /* POST request for batch creating Fixture. */
+    router.post('/fixture/rearrangement', fixture_controller.fixture_rearrange_by_team_name);
+
+    /* POST request for batch creating Fixture. */
     //router.post('/fixture/batch-update',checkJwt, fixture_controller.fixture_batch_update);
 
     /* GET request to delete Fixture. */

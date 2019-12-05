@@ -87,7 +87,7 @@
            <td><%= resultValue %></td>
           <% } %>
           <% if (typeof admin !== 'undefined') { %>
-            <td><a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>">Rearrange</a></td>
+            <td><a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a></td>
             <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
             <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
               <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Enter</a></td> 
@@ -122,23 +122,21 @@
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <form role="form" id="contactUs" action="/fixture/rearrangment" method="post">
-        <div class="modal-body">
+        <form role="form" id="contactUs" action="/fixture/rearrangement" method="post">
+        <div class="modal-body" id="rearrangementModal">
 
             <div class="form-group">
               <label for="contactEmail">New Fixture Date</label>
               <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY">
               <small id="emailHelp" class="form-text text-muted">Leave this blank if you haven't fixed a date yet.</small>
+              <input type="hidden" name="fixtureId" id="fixtureId" value="" />
+              <input type="hidden" name="homeTeam" id="homeTeam" value="" />
+              <input type="hidden" name="awayTeam" id="awayTeam" value="" />
             </div>
-            <div class="form-group">
-              <div class="g-recaptcha" data-sitekey="<%= recaptcha %>"></div>
-            </div>
-
-
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Submit</button>
+          <button type="button" id="fixtureRearange" class="btn btn-primary">Submit</button>
         </div>
         </form>
       </div>
@@ -150,6 +148,28 @@
 
 <%- include('footer.ejs') %>
 <%- include('datatables.ejs') %>
+
+<% if (typeof admin !== 'undefined') { %>
+  <script type="text/javascript">
+
+    $(document).ready(function(){
+      $('a[data-toggle=modal]').click(function(){
+        $('#fixtureId')[0].value = $(this)[0]['attributes']['data-fixtureId'].value;
+        $('#homeTeam')[0].value = $(this).parent().siblings()[1].textContent;
+        $('#awayTeam')[0].value = $(this).parent().siblings()[2].textContent;
+      })
+
+      $('#fixtureRearange').click(function(){
+        $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
+               console.log(data);
+               $('#rearrangementModal').html('<p>Fixture Updated!</p>');
+               $('#fixtureRearange').remove();
+            });
+      })
+    })
+    
+  </script>
+<% } %>
 
 </body>
 </html>
