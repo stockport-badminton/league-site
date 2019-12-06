@@ -3,6 +3,8 @@ var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
   host: 'listener.logz.io'
  });
+const levenshtein = require('node-levenshtein')
+
 
 // POST
 exports.create = function(first_name,family_name,team,club,gender,done){
@@ -264,8 +266,60 @@ exports.findElgiblePlayersFromTeamId = function(id,gender,done){
 
 exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, first, second, third,done){
   db.get().query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender],function(err,rows){
+    logger.log(this.sql);
     if(err) return done(err)
     done(null,rows)
+  })
+}
+
+exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = function(teamName,gender,first, second,third,done){
+  db.get().query('SELECT player.id ,player.first_name ,player.family_name FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.name like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[teamName, gender],function(err,rows){
+    logger.log(this.sql);
+    if(err) return done(err)
+    else {
+      rows[0].first = 1;
+      rows[0].second = 1;
+      rows[0].third = 1;
+      let lowestFirstIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,first)];
+      let lowestSecondIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,second)];
+      let lowestThirdIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,third)]
+      for (let i = 1; i < rows.length; i++){ 
+        rowFirstLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,first);
+        rowSecondLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,second);
+        rowThirdLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,third);
+        if (lowestFirstIndex[1] > rowFirstLevenshtein) {
+          rows[lowestFirstIndex[0]].first = 0;
+          rows[i].first = 1;
+          lowestFirstIndex[0] = i;
+          lowestFirstIndex[1] = rowFirstLevenshtein;
+        } 
+        else {
+          rows[i].first = 0;
+        }
+        if (lowestSecondIndex[1] > rowSecondLevenshtein) {
+          rows[lowestSecondIndex[0]].second = 0;
+          rows[i].second = 1;
+          lowestSecondIndex[0] = i;
+          lowestSecondIndex[1] = rowSecondLevenshtein;
+        } 
+        else {
+          rows[i].second = 0;
+        }
+
+        if (lowestThirdIndex[1] > rowThirdLevenshtein) {
+          rows[lowestThirdIndex[0]].third = 0;
+          rows[i].third = 1;
+          lowestThirdIndex[0] = i;
+          lowestThirdIndex[1] = rowThirdLevenshtein;
+        } 
+        else {
+          rows[i].third = 0;
+        }
+      }
+      
+      done(null,rows)
+    }
+    
   })
 }
 

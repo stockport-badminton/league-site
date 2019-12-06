@@ -848,25 +848,25 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
                 }
                 else{
                   // console.log(awayTeamRows)
-                  Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Male',data[0].home_man_1,data[0].home_man_2,data[0].home_man_3,function(err,homeMenRows){
+                  Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].home_team,'Male',data[0].home_man_1,data[0].home_man_2,data[0].home_man_3,function(err,homeMenRows){
                     if(err){
                       next(err)
                     }
                     else{
                       // console.log(homeMenRows)
-                      Player.findElgiblePlayersFromTeamIdAndSelected(data[0].home_team,'Female',data[0].home_lady_1,data[0].home_lady_2,data[0].home_lady_3,function(err,homeLadiesRows){
+                      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].home_team,'Female',data[0].home_lady_1,data[0].home_lady_2,data[0].home_lady_3,function(err,homeLadiesRows){
                         if(err){
                           next(err)
                         }
                         else{
                           // console.log(homeLadiesRows)
-                          Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Male',data[0].away_man_1,data[0].away_man_2,data[0].away_man_3,function(err,awayMenRows){
+                          Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].away_team,'Male',data[0].away_man_1,data[0].away_man_2,data[0].away_man_3,function(err,awayMenRows){
                             if(err){
                               next(err)
                             }
                             else{
                               // console.log(awayMenRows)
-                              Player.findElgiblePlayersFromTeamIdAndSelected(data[0].away_team,'Female',data[0].away_lady_1,data[0].away_lady_2,data[0].away_lady_3,function(err,awayLadiesRows){
+                              Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].away_team,'Female',data[0].away_lady_1,data[0].away_lady_2,data[0].away_lady_3,function(err,awayLadiesRows){
                                 if(err){
                                   next(err)
                                 }

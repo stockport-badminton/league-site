@@ -55,14 +55,14 @@ exports.getById = function(divisionId,done){
 }
 
 exports.getByName = function(divisionName,done){
-  db.get().query('SELECT * FROM `division` WHERE levenshtein(`name`,?) < 1',divisionName, function (err, rows){
+  db.get().query('SELECT * FROM `division` WHERE name = ?',divisionName, function (err, rows){
     if (err) return done(err);
     done(null,rows);
   })
 }
 
 exports.getAllAndSelectedByName = function(leagueId,divisionName,done){
-  db.get().query('select *, CASE WHEN levenshtein(division.name, ?) < 1 THEN true ELSE false END as selected from division WHERE league = ?',[divisionName,leagueId],function(err,rows){
+  db.get().query('select *, CASE WHEN division.name = ? THEN true ELSE false END as selected from division WHERE league = ?',[divisionName,leagueId],function(err,rows){
     if (err) return done(err);
     done(null,rows);
   })

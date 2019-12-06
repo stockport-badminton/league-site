@@ -107,14 +107,14 @@ exports.getById = function(teamId,done){
 
 // GET
 exports.getByName = function(teamName,done){
-  db.get().query('SELECT * FROM `team` WHERE levenshtein(`name`,?) < 1',teamName, function (err, rows){
+  db.get().query('SELECT * FROM `team` WHERE `name` = ?',teamName, function (err, rows){
     if (err) return done(err);
     done(null,rows);
   })
 }
 
 exports.getAllAndSelectedByName = function(teamName,divisionId,done){
-  db.get().query('select *, CASE WHEN levenshtein(team.name, ?) < 1 THEN true ELSE false END as selected from team WHERE division = ?',[teamName,divisionId],function(err,rows){
+  db.get().query('select *, CASE WHEN team.name = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamName,divisionId],function(err,rows){
     if (err) return done(err);
     done(null,rows);
   })
