@@ -1,9 +1,11 @@
 <%- include('header.ejs') %>
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
 <%- include('nav.ejs') %>
 
 <div class="col-12">
-  <form method="POST" enctype="multipart/form-data" action="/submit-form">
-  <input type="file" name="document" />
+  <form method="POST" action="/submit-form">
+  <input type="file" name="scoresheet" id="scoresheet" />
   <input type="submit" />
 </form>
 </div>
@@ -11,6 +13,92 @@
 
 <%- include('footer.ejs') %>
 
+<script>
+function handleFile(e) {
+  var files = e.target.files, f = files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var data = new Uint8Array(e.target.result);
+    var workbook = XLSX.read(data, {type: 'array'});
+    var worksheet = workbook.Sheets['Match Info'];
+    var matchDate = worksheet['E1'] ? worksheet['E1'].w : undefined;
+    //console.log(matchDate);
+    console.log(worksheet);
+    var MyDate = new Date(matchDate);
+    console.log(MyDate);
+    var MyDateString = "";
+    MyDateString = MyDate.getFullYear() + '-'
+      + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
+      + ('0' + MyDate.getDate()).slice(-2);
+      console.log(MyDateString);
+    $('form').append('<input type="hidden" id="date" name="date" value="'+ MyDateString +'" />');
+    $('form').append('<input type="hidden" id="division" name="division" value="'+ (worksheet['C1'] ? worksheet['C1'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_team" name="home_team" value="'+ (worksheet['B3'] ? worksheet['B3'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_team" name="away_team" value="'+ (worksheet['E3'] ? worksheet['E3'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_man_1" name="home_man_1" value="'+ (worksheet['B5'] ? worksheet['B5'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_man_2" name="home_man_2" value="'+ (worksheet['B6'] ? worksheet['B6'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_man_3" name="home_man_3" value="'+ (worksheet['B7'] ? worksheet['B7'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_lady_1" name="home_lady_1" value="'+ (worksheet['B8'] ? worksheet['B8'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_lady_2" name="home_lady_2" value="'+ (worksheet['B9'] ? worksheet['B9'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="home_lady_3" name="home_lady_3" value="'+ (worksheet['B10'] ? worksheet['B10'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_man_1" name="away_man_1" value="'+ (worksheet['E5'] ? worksheet['E5'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_man_2" name="away_man_2" value="'+ (worksheet['E6'] ? worksheet['E6'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_man_3" name="away_man_3" value="'+ (worksheet['E7'] ? worksheet['E7'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_lady_1" name="away_lady_1" value="'+ (worksheet['E8'] ? worksheet['E8'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_lady_2" name="away_lady_2" value="'+ (worksheet['E9'] ? worksheet['E9'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="away_lady_3" name="away_lady_3" value="'+ (worksheet['E10'] ? worksheet['E10'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game1homeScore" name="Game1homeScore" value="'+ (worksheet['B14'] ? worksheet['B14'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game1awayScore" name="Game1awayScore" value="'+ (worksheet['C14'] ? worksheet['C14'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game2homeScore" name="Game2homeScore" value="'+ (worksheet['D14'] ? worksheet['D14'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game2awayScore" name="Game2awayScore" value="'+ (worksheet['E14'] ? worksheet['E14'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game3homeScore" name="Game3homeScore" value="'+ (worksheet['B15'] ? worksheet['B15'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game3awayScore" name="Game3awayScore" value="'+ (worksheet['C15'] ? worksheet['C15'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game4homeScore" name="Game4homeScore" value="'+ (worksheet['D15'] ? worksheet['D15'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game4awayScore" name="Game4awayScore" value="'+ (worksheet['E15'] ? worksheet['E15'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game5homeScore" name="Game5homeScore" value="'+ (worksheet['B16'] ? worksheet['B16'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game5awayScore" name="Game5awayScore" value="'+ (worksheet['C16'] ? worksheet['C16'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game6homeScore" name="Game6homeScore" value="'+ (worksheet['D16'] ? worksheet['D16'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game6awayScore" name="Game6awayScore" value="'+ (worksheet['E16'] ? worksheet['E16'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game7homeScore" name="Game7homeScore" value="'+ (worksheet['B17'] ? worksheet['B17'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game7awayScore" name="Game7awayScore" value="'+ (worksheet['C17'] ? worksheet['C17'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game8homeScore" name="Game8homeScore" value="'+ (worksheet['D17'] ? worksheet['D17'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game8awayScore" name="Game8awayScore" value="'+ (worksheet['E17'] ? worksheet['E17'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game9homeScore" name="Game9homeScore" value="'+ (worksheet['B18'] ? worksheet['B18'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game9awayScore" name="Game9awayScore" value="'+ (worksheet['C18'] ? worksheet['C18'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game10homeScore" name="Game10homeScore" value="'+ (worksheet['D18'] ? worksheet['D18'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game10awayScore" name="Game10awayScore" value="'+ (worksheet['E18'] ? worksheet['E18'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game11homeScore" name="Game11homeScore" value="'+ (worksheet['B19'] ? worksheet['B19'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game11awayScore" name="Game11awayScore" value="'+ (worksheet['C19'] ? worksheet['C19'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game12homeScore" name="Game12homeScore" value="'+ (worksheet['D19'] ? worksheet['D19'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game12awayScore" name="Game12awayScore" value="'+ (worksheet['E19'] ? worksheet['E19'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game13homeScore" name="Game13homeScore" value="'+ (worksheet['B20'] ? worksheet['B20'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game13awayScore" name="Game13awayScore" value="'+ (worksheet['C20'] ? worksheet['C20'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game14homeScore" name="Game14homeScore" value="'+ (worksheet['D20'] ? worksheet['D20'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game14awayScore" name="Game14awayScore" value="'+ (worksheet['E20'] ? worksheet['E20'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game15homeScore" name="Game15homeScore" value="'+ (worksheet['B21'] ? worksheet['B21'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game15awayScore" name="Game15awayScore" value="'+ (worksheet['C21'] ? worksheet['C21'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game16homeScore" name="Game16homeScore" value="'+ (worksheet['D21'] ? worksheet['D21'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game16awayScore" name="Game16awayScore" value="'+ (worksheet['E21'] ? worksheet['E21'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game17homeScore" name="Game17homeScore" value="'+ (worksheet['B22'] ? worksheet['B22'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game17awayScore" name="Game17awayScore" value="'+ (worksheet['C22'] ? worksheet['C22'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game18homeScore" name="Game18homeScore" value="'+ (worksheet['D22'] ? worksheet['D22'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="Game18awayScore" name="Game18awayScore" value="'+ (worksheet['E22'] ? worksheet['E22'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeMan1XdPos" name="homeMan1XdPos" value="'+ (worksheet['C5'] ? worksheet['C5'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeMan2XdPos" name="homeMan2XdPos" value="'+ (worksheet['C6'] ? worksheet['C6'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeMan3XdPos" name="homeMan3XdPos" value="'+ (worksheet['C7'] ? worksheet['C7'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeLady1XdPos" name="homeLady1XdPos" value="'+ (worksheet['C8'] ? worksheet['C8'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeLady2XdPos" name="homeLady2XdPos" value="'+ (worksheet['C9'] ? worksheet['C9'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="homeLady3XdPos" name="homeLady3XdPos" value="'+ (worksheet['C10'] ? worksheet['C10'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayMan1XdPos" name="awayMan1XdPos" value="'+ (worksheet['F5'] ? worksheet['F5'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayMan2XdPos" name="awayMan2XdPos" value="'+ (worksheet['F6'] ? worksheet['F6'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayMan3XdPos" name="awayMan3XdPos" value="'+ (worksheet['F7'] ? worksheet['F7'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayLady1XdPos" name="awayLady1XdPos" value="'+ (worksheet['F8'] ? worksheet['F8'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayLady2XdPos" name="awayLady2XdPos" value="'+ (worksheet['F9'] ? worksheet['F9'].v : undefined) +'" />');
+    $('form').append('<input type="hidden" id="awayLady3XdPos" name="awayLady3XdPos" value="'+ (worksheet['F10'] ? worksheet['F10'].v : undefined) +'" />');};
+  reader.readAsArrayBuffer(f);
+}
+document.getElementById('scoresheet').addEventListener('change', handleFile, false);
+</script>
 
 </body>
 </html>

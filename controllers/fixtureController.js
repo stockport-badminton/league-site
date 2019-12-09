@@ -824,49 +824,51 @@ exports.full_fixture_post = function(req,res){
 }
 
 exports.fixture_populate_scorecard = function(data,req,res,next){
-  Division.getAllAndSelectedByName(1,data[0].division,function(err,divisionRows){
+  //console.log(data);
+  //console.log(data.date);
+  Division.getAllAndSelectedByName(1,data.division,function(err,divisionRows){
     if(err){
       next(err)
     }
     else {
       // console.log(divisionRows)
-      Division.getByName(data[0].division,function(err,divisionIdRows){
+      Division.getByName(data.division,function(err,divisionIdRows){
         if (err) {
           next(err)
         }
         else{
           // console.log(divisionIdRows)
-          Team.getAllAndSelectedByName(data[0].home_team,divisionIdRows[0].id,function(err,homeTeamRows){
+          Team.getAllAndSelectedByName(data.home_team,divisionIdRows[0].id,function(err,homeTeamRows){
             if (err) {
               next(err)
             }
             else{
               // console.log(homeTeamRows)
-              Team.getAllAndSelectedByName(data[0].away_team,divisionIdRows[0].id,function(err,awayTeamRows){
+              Team.getAllAndSelectedByName(data.away_team,divisionIdRows[0].id,function(err,awayTeamRows){
                 if (err) {
                   next(err)
                 }
                 else{
                   // console.log(awayTeamRows)
-                  Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].home_team,'Male',data[0].home_man_1,data[0].home_man_2,data[0].home_man_3,function(err,homeMenRows){
+                  Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.home_team,'Male',data.home_man_1,data.home_man_2,data.home_man_3,function(err,homeMenRows){
                     if(err){
                       next(err)
                     }
                     else{
                       // console.log(homeMenRows)
-                      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].home_team,'Female',data[0].home_lady_1,data[0].home_lady_2,data[0].home_lady_3,function(err,homeLadiesRows){
+                      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.home_team,'Female',data.home_lady_1,data.home_lady_2,data.home_lady_3,function(err,homeLadiesRows){
                         if(err){
                           next(err)
                         }
                         else{
                           // console.log(homeLadiesRows)
-                          Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].away_team,'Male',data[0].away_man_1,data[0].away_man_2,data[0].away_man_3,function(err,awayMenRows){
+                          Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.away_team,'Male',data.away_man_1,data.away_man_2,data.away_man_3,function(err,awayMenRows){
                             if(err){
                               next(err)
                             }
                             else{
                               // console.log(awayMenRows)
-                              Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data[0].away_team,'Female',data[0].away_lady_1,data[0].away_lady_2,data[0].away_lady_3,function(err,awayLadiesRows){
+                              Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.away_team,'Female',data.away_lady_1,data.away_lady_2,data.away_lady_3,function(err,awayLadiesRows){
                                 if(err){
                                   next(err)
                                 }
@@ -887,7 +889,7 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
                                       pageTitle : "Spreadsheet Upload Scorecard",
                                       pageDescription : "Show result of uploading scorecard",
                                       result : renderData,
-                                      data : data[0]
+                                      data : data
                                   });
                                 }
                             })

@@ -532,29 +532,29 @@
     app.post('/scorecard-beta',validateScorecard, fixture_controller.full_fixture_post);
 
     app.post('/submit-form', (req,res,next) => {
-      new formidable.IncomingForm().parse(req, function(err,fields, files){
+      /* new formidable.IncomingForm().parse(req, function(err,fields, files){
         var oldpath = files.document.path;
+        var testPath = files[Object.keys(files)[0]];
         var newpath = path.join(__dirname,'/static/') + files.document.name;
         fs.rename(oldpath, newpath, function (err) {
           if (err) throw err;
           // console.log('File uploaded and moved!');
           var workbook = new exceljs.Workbook();
-          workbook.xlsx.readFile(newpath).then(function() {
-            // use workbook
+          workbook.xlsx.readFile(testPath).then(function() {
             var worksheet = workbook.getWorksheet(1)
-            // console.log("worksheet")
-            // console.log(worksheet)
             var MyDate = new Date(worksheet.getCell('E1').value);
-            // console.log("MyDate")
-            //console.log(MyDate)
             var MyDateString;
             MyDateString = MyDate.getFullYear() + '-'
                          + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
                          + ('0' + MyDate.getDate()).slice(-2);
             // console.log("MyDateString")
-            //console.log(MyDateString)
+            //console.log(MyDateString) */
             var data = [];
-            data.push({
+            //console.log(req);
+            console.log(req.body);
+            var data = req.body;
+            console.log(data);
+            /* data.push({
               division: worksheet.getCell('C1').value,
               date: MyDateString,
               home_team: worksheet.getCell('B3').value,
@@ -619,18 +619,11 @@
               awayLady1XdPos:worksheet.getCell('F8').value,
               awayLady2XdPos:worksheet.getCell('F9').value,
               awayLady3XdPos:worksheet.getCell('F10').value
-            })
+            }) */
             //console.log(data);
             fixture_controller.fixture_populate_scorecard(data,req,res,next)
-          })
-          .catch(function(e) {
-            //console.log('error', 'an error occurred')
-            res.status(500).json({error: e.message})
-          })
-        });
-
-      })
-    })
+          }
+    )
 
     app.get('/scorecard-received',function(req,res,next){
       res.render('index-scorecard',{
@@ -1133,10 +1126,10 @@ let validateContactUs = [
     router.post('/fixture/enter-full-result', fixture_controller.full_fixture_post);
 
     /* POST request for batch creating Fixture. */
-    router.patch('/fixture/rearrange',checkJwt, fixture_controller.fixture_rearrange_by_team_name);
+    router.post('/fixture/rearrangement', fixture_controller.fixture_rearrange_by_team_name);
 
     /* POST request for batch creating Fixture. */
-    router.post('/fixture/rearrangement', fixture_controller.fixture_rearrange_by_team_name);
+    router.patch('/fixture/rearrange',checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 
     /* POST request for batch creating Fixture. */
     //router.post('/fixture/batch-update',checkJwt, fixture_controller.fixture_batch_update);
