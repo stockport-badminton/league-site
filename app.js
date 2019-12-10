@@ -522,7 +522,7 @@
             return value
           }
         }
-        else {
+        else { 
           return value
         }
 
@@ -532,98 +532,12 @@
     app.post('/scorecard-beta',validateScorecard, fixture_controller.full_fixture_post);
 
     app.post('/submit-form', (req,res,next) => {
-      /* new formidable.IncomingForm().parse(req, function(err,fields, files){
-        var oldpath = files.document.path;
-        var testPath = files[Object.keys(files)[0]];
-        var newpath = path.join(__dirname,'/static/') + files.document.name;
-        fs.rename(oldpath, newpath, function (err) {
-          if (err) throw err;
-          // console.log('File uploaded and moved!');
-          var workbook = new exceljs.Workbook();
-          workbook.xlsx.readFile(testPath).then(function() {
-            var worksheet = workbook.getWorksheet(1)
-            var MyDate = new Date(worksheet.getCell('E1').value);
-            var MyDateString;
-            MyDateString = MyDate.getFullYear() + '-'
-                         + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
-                         + ('0' + MyDate.getDate()).slice(-2);
-            // console.log("MyDateString")
-            //console.log(MyDateString) */
-            var data = [];
-            //console.log(req);
-            console.log(req.body);
-            var data = req.body;
-            console.log(data);
-            /* data.push({
-              division: worksheet.getCell('C1').value,
-              date: MyDateString,
-              home_team: worksheet.getCell('B3').value,
-              away_team: worksheet.getCell('E3').value,
-              home_man_1: worksheet.getCell('B5').value,
-              home_man_2: worksheet.getCell('B6').value,
-              home_man_3: worksheet.getCell('B7').value,
-              home_lady_1: worksheet.getCell('B8').value,
-              home_lady_2: worksheet.getCell('B9').value,
-              home_lady_3: worksheet.getCell('B10').value,
-              away_man_1: worksheet.getCell('E5').value,
-              away_man_2: worksheet.getCell('E6').value,
-              away_man_3: worksheet.getCell('E7').value,
-              away_lady_1: worksheet.getCell('E8').value,
-              away_lady_2: worksheet.getCell('E9').value,
-              away_lady_3: worksheet.getCell('E10').value,
-              Game1homeScore: worksheet.getCell('B14').value,
-              Game1awayScore: worksheet.getCell('C14').value,
-              Game2homeScore: worksheet.getCell('D14').value,
-              Game2awayScore: worksheet.getCell('E14').value,
-              Game3homeScore: worksheet.getCell('B15').value,
-              Game3awayScore: worksheet.getCell('C15').value,
-              Game4homeScore: worksheet.getCell('D15').value,
-              Game4awayScore: worksheet.getCell('E15').value,
-              Game5homeScore: worksheet.getCell('B16').value,
-              Game5awayScore: worksheet.getCell('C16').value,
-              Game6homeScore: worksheet.getCell('D16').value,
-              Game6awayScore: worksheet.getCell('E16').value,
-              Game7homeScore: worksheet.getCell('B17').value,
-              Game7awayScore: worksheet.getCell('C17').value,
-              Game8homeScore: worksheet.getCell('D17').value,
-              Game8awayScore: worksheet.getCell('E17').value,
-              Game9homeScore: worksheet.getCell('B18').value,
-              Game9awayScore: worksheet.getCell('C18').value,
-              Game10homeScore: worksheet.getCell('D18').value,
-              Game10awayScore: worksheet.getCell('E18').value,
-              Game11homeScore: worksheet.getCell('B19').value,
-              Game11awayScore: worksheet.getCell('C19').value,
-              Game12homeScore: worksheet.getCell('D19').value,
-              Game12awayScore: worksheet.getCell('E19').value,
-              Game13homeScore: worksheet.getCell('B20').value,
-              Game13awayScore: worksheet.getCell('C20').value,
-              Game14homeScore: worksheet.getCell('D20').value,
-              Game14awayScore: worksheet.getCell('E20').value,
-              Game15homeScore: worksheet.getCell('B21').value,
-              Game15awayScore: worksheet.getCell('C21').value,
-              Game16homeScore: worksheet.getCell('D21').value,
-              Game16awayScore: worksheet.getCell('E21').value,
-              Game17homeScore: worksheet.getCell('B22').value,
-              Game17awayScore: worksheet.getCell('C22').value,
-              Game18homeScore: worksheet.getCell('D22').value,
-              Game18awayScore: worksheet.getCell('E22').value,
-              homeMan1XdPos:worksheet.getCell('C5').value,
-              homeMan2XdPos:worksheet.getCell('C6').value,
-              homeMan3XdPos:worksheet.getCell('C7').value,
-              homeLady1XdPos:worksheet.getCell('C8').value,
-              homeLady2XdPos:worksheet.getCell('C9').value,
-              homeLady3XdPos:worksheet.getCell('C10').value,
-              awayMan1XdPos:worksheet.getCell('F5').value,
-              awayMan2XdPos:worksheet.getCell('F6').value,
-              awayMan3XdPos:worksheet.getCell('F7').value,
-              awayLady1XdPos:worksheet.getCell('F8').value,
-              awayLady2XdPos:worksheet.getCell('F9').value,
-              awayLady3XdPos:worksheet.getCell('F10').value
-            }) */
-            //console.log(data);
-            fixture_controller.fixture_populate_scorecard(data,req,res,next)
-          }
-    )
+      var data = [];
+      data = req.body;
+      logger.log(req.body)
+      fixture_controller.fixture_populate_scorecard(data,req,res,next)
+    })
+    
 
     app.get('/scorecard-received',function(req,res,next){
       res.render('index-scorecard',{

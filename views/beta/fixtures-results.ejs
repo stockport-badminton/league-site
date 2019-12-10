@@ -152,7 +152,7 @@
 <% if (typeof admin !== 'undefined') { %>
   <script type="text/javascript">
 
-    $(document).ready(function(){
+    
       $('a[data-toggle=modal]').click(function(){
         $('#fixtureId')[0].value = $(this)[0]['attributes']['data-fixtureId'].value;
         $('#homeTeam')[0].value = $(this).parent().siblings()[1].textContent;
@@ -161,12 +161,13 @@
 
       $('#fixtureRearange').click(function(){
         $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
+               console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
                console.log(data);
                $('#rearrangementModal').html('<p>Fixture Updated!</p>');
                $('#fixtureRearange').remove();
             });
       })
-    })
+
     
   </script>
 <% } %>
