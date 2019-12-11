@@ -6,6 +6,9 @@ var Game = require('../models/game');
 var request = require('request');
 var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
  var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
   host: 'listener.logz.io'
@@ -16,13 +19,23 @@ var Auth = require('../models/auth.js');
 // Display fixtures played 6 days ago that haven't had results entered
 exports.getLateScorecards = function(req, res) {
     Fixture.getCardsDueToday(function(err,row){
-      var params = {
-        Destination: { /* required */
+      const msg = {
+        to: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        replyto: 'stockport.badders.results@gmail.com',
+        templateId:'d-3a224c8f7b214f3ba4062f6a2dbd1bd4',
+        dynamic_template_data:{
+          "missingFixtures":[]
+        }
+      };
+
+      /* var params = {
+        Destination: { // required 
           ToAddresses: [
             'stockport.badders.results@gmail.com'
           ]
         },
-        Message: { /* required */
+        Message: { // required 
           Body: {
             Html: {
              Charset: 'UTF-8',
@@ -34,28 +47,40 @@ exports.getLateScorecards = function(req, res) {
             Data: 'Todays outstanding fixtures'
            }
           },
-        Source: 'stockport.badders.results@gmail.com', /* required */
+        Source: 'stockport.badders.results@stockport-badminton.co.uk', // required 
         ReplyToAddresses: [
             'stockport.badders.results@gmail.com'
         ],
-      };
+      }; */
       if (err){
-        params.Message.Body.Html.Data = JSON.stringify(err);
+        // params.Message.Body.Html.Data = JSON.stringify(err);
+        msg.dynamic_template_data.errors = JSON.stringify(err);
         // console.log(err);
       }
       else{
         if (row.length > 0){
+          console.log(JSON.stringify(row));
           for (var x = 0; x < row.length; x++){
-              params.Message.Body.Html.Data += row[x]['date'] + " - "+ row[x]['homeTeam'] + " - " + row[x]['awayTeam']
+              // params.Message.Body.Html.Data += row[x]['date'] + " - "+ row[x]['homeTeam'] + " - " + row[x]['awayTeam'] + "<br />";
+              var fixture = {};
+              fixture.date = row[x].date;
+              fixture.homeTeam = row[x].homeTeam;
+              fixture.awayTeam = row[x].awayTeam;
+              msg.dynamic_template_data.missingFixtures.push(fixture);
           }
         }
         else {
-          params.Message.Body.Html.Data += 'No outstanding fixtures today'
+          // params.Message.Body.Html.Data += 'No outstanding fixtures today';
+          msg.dynamic_template_data.missingFixtures += 'No outstanding fixtures today';
         }
 
       }
-      var ses = new AWS.SES({apiVersion: '2010-12-01'});
-      ses.sendEmail(params, function(err, data) {
+      // var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      // console.log(JSON.stringify(msg));
+      sgMail.send(msg)
+      .then(()=>res.send("Message Sent"))
+      .catch(error => logger.log(error.toString()));
+      /* ses.sendEmail(params, function(err, data) {
         if (err) {
           // console.log(err, err.stack); // an error occurred
           res.send(err);
@@ -64,7 +89,7 @@ exports.getLateScorecards = function(req, res) {
           // console.log(data);           // successful response
           res.send(data);
         }
-      })
+      }) */
     })
 };
 

@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@sendgrid/mail": "^6.4.0",
     "async": "^2.5.0",
     "auth0-js": "^9.7.3",
     "auth0-lock": "^11.12.1",

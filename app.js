@@ -13,6 +13,7 @@
     const formidable = require('formidable')
     const exceljs = require('exceljs')
     const fs = require('fs');
+    const sgMail = require('@sendgrid/mail');
      var logger = require('logzio-nodejs').createLogger({
       token: process.env.LOGZ_SECRET,
       host: 'listener.logz.io'
@@ -202,6 +203,10 @@
         pageDescription : "User Profile",
       });
     });
+
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    
+
 
     app.get('/upload-scoresheet',function(req,res){
       res.render('beta/file-upload',{
@@ -627,15 +632,16 @@ let validateContactUs = [
       }
       else {
         // console.log(req.body);
-        var params = {
-          Destination: { /* required */
+        
+        /* var params = {
+          Destination: { // required 
             ToAddresses: [
             ],
             BccAddresses: [
               'stockport.badders.results@gmail.com'
             ]
           },
-          Message: { /* required */
+          Message: { // required 
             Body: {
               Html: {
                Charset: 'UTF-8',
@@ -647,148 +653,177 @@ let validateContactUs = [
               Data: 'Somebody is trying to get in touch'
              }
             },
-          Source: 'stockport.badders.results@gmail.com', /* required */
+          Source: 'stockport.badders.results@gmail.com', // required 
           ReplyToAddresses: [
               req.body.contactEmail
           ],
-        };
+        }; */
+
+      const msg = {
+        to: '',
+        cc: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        replyto: req.body.contactEmail,
+        templateId:'d-53fc74c4a6cc4b85bb3126418087cf0b',
+        dynamic_template_data:{
+          "message":req.body.contactQuery,
+          "email":req.body.contactEmail
+        }
+      };
         var clubEmail = '';
         if(req.body.contactType == 'Clubs'){
           switch (req.body.clubSelect) {
             case 'Aerospace':
-              params.Destination.ToAddresses = ['santanareedy@btinternet.com'];
+              msg.to = ['santanareedy@btinternet.com'];
             break;
             case 'Alderley Park':
-              params.Destination.ToAddresses = ['mel.curwen@ntlworld.com'];
+              msg.to = ['mel.curwen@ntlworld.com'];
 
             break;
             case 'Altrincham Central':
-              params.Destination.ToAddresses = ['janecave53@gmail.com'];
+              msg.to = ['janecave53@gmail.com'];
 
             break;
             case 'Bramhall Village':
-              params.Destination.ToAddresses = ['jjackson1969@btinternet.com'];
+              msg.to = ['jjackson1969@btinternet.com'];
 
             break;
             case 'CAP':
-              params.Destination.ToAddresses = ['dave_haigh@hotmail.co.uk'];
+              msg.to = ['dave_haigh@hotmail.co.uk'];
 
             break;
             case 'Canute':
-              params.Destination.ToAddresses = ['canutesecretary@gmail.com'];
+              msg.to = ['canutesecretary@gmail.com'];
 
             break;
             case 'Carrington':
-              params.Destination.ToAddresses = ['darrel@thegoughfamily.co.uk'];
+              msg.to = ['darrel@thegoughfamily.co.uk'];
 
             break;
             case 'Cheadle Hulme':
-              params.Destination.ToAddresses = ['doug.grant@ntlworld.com'];
+              msg.to = ['doug.grant@ntlworld.com'];
 
             break;
             case 'College Green':
-              params.Destination.ToAddresses = ['paulakite@yahoo.co.uk'];
+              msg.to = ['paulakite@yahoo.co.uk'];
 
             break;
             case 'David Lloyd':
-              params.Destination.ToAddresses = ['dr_barks@yahoo.co.uk'];
+              msg.to = ['dr_barks@yahoo.co.uk'];
 
             break;
             case 'Disley':
-              params.Destination.ToAddresses = ['julian.cherryman@gmail.com','karlcramp@aol.com'];
+              msg.to = ['julian.cherryman@gmail.com','karlcramp@aol.com'];
 
             break;
             case 'Dome':
-              params.Destination.ToAddresses = ['janet_knowles@ymail.com'];
+              msg.to = ['janet_knowles@ymail.com'];
 
             break;
             case 'G.H.A.P':
-              params.Destination.ToAddresses = ['rossowen40@hotmail.com'];
+              msg.to = ['rossowen40@hotmail.com'];
 
             break;
             case 'Macclesfield':
-              params.Destination.ToAddresses = ['sueorwin@btinternet.com'];
+              msg.to = ['sueorwin@btinternet.com'];
 
             break;
             case 'Manor':
-              params.Destination.ToAddresses = ['jo.woolley@tiscali.co.uk'];
+              msg.to = ['jo.woolley@tiscali.co.uk'];
 
             break;
             case 'Mellor':
-              params.Destination.ToAddresses = ['enquiries@mellorbadminton.org.uk'];
+              msg.to = ['enquiries@mellorbadminton.org.uk'];
 
             break;
             case 'New Mills':
-              params.Destination.ToAddresses = ['bandibates@tiscali.co.uk'];
+              msg.to = ['bandibates@tiscali.co.uk'];
 
             break;
             case 'Parrswood':
-              params.Destination.ToAddresses = ['mikegreatorex@btinternet.com'];
+              msg.to = ['mikegreatorex@btinternet.com'];
 
             break;
             case 'Poynton':
-              params.Destination.ToAddresses = ['poyntonbadminton@btinternet.com'];
+              msg.to = ['poyntonbadminton@btinternet.com'];
 
             break;
             case 'Racketeer':
-              params.Destination.ToAddresses = ['theracketeer@hotmail.com'];
+              msg.to = ['theracketeer@hotmail.com'];
 
             break;
             case 'Shell':
-              params.Destination.ToAddresses = ['annawiza@aol.co.uk'];
+              msg.to = ['annawiza@aol.co.uk'];
 
             break;
             case 'Syddal Park':
-              params.Destination.ToAddresses = ['derek.hillesdon@gmail.com'];
+              msg.to = ['derek.hillesdon@gmail.com'];
 
             break;
             case 'Tatton':
-              params.Destination.ToAddresses = ['plumley123@btinternet.com'];
+              msg.to = ['plumley123@btinternet.com'];
 
             break;
             case 'Blue Triangle':
-              params.Destination.ToAddresses = ['francesedavies@sky.com'];
+              msg.to = ['francesedavies@sky.com'];
 
             break;
             default:
-              params.Destination.ToAddresses = ['stockport.badders.results@gmail.com'];
+              msg.to = ['stockport.badders.results@gmail.com'];
 
           }
         }
         if (req.body.contactType == 'League'){
           switch (req.body.leagueSelect) {
             case 'results':
-              params.Destination.ToAddresses = ['stockport.badders.results@gmail.com','neil.cooper.241180@gmail.com']
+              msg.to = ['stockport.badders.results@gmail.com','neil.cooper.241180@gmail.com']
+              msg.cc = null;
               break;
             case 'tournament':
-              params.Destination.ToAddresses = ['sueorwin@btinternet.com']
+              msg.to = ['sueorwin@btinternet.com']
               break;
             case 'league':
-              params.Destination.ToAddresses = ['leaguesec.sdbl@gmail.com']
+              msg.to = ['leaguesec.sdbl@gmail.com']
               break;
             case 'chair':
-              params.Destination.ToAddresses = ['walkerd.sdbl@gmail.com']
+              msg.to = ['walkerd.sdbl@gmail.com']
               break;
             case 'messer':
-              params.Destination.ToAddresses = ['sueorwin@btinternet.com']
+              msg.to = ['sueorwin@btinternet.com']
               break;
             case 'junior':
-              params.Destination.ToAddresses = ['stuartscoffins@btinternet.com']
+              msg.to = ['stuartscoffins@btinternet.com']
               break;
             case 'juniortournament':
-              params.Destination.ToAddresses = ['aim@talktalk.net']
+              msg.to = ['aim@talktalk.net']
               break;
             case 'treasurer':
-              params.Destination.ToAddresses = ['rossowen40@hotmail.com']
+              msg.to = ['rossowen40@hotmail.com']
               break;
             default:
           }
         }
         // Create sendEmail params
-        var ses = new AWS.SES({apiVersion: '2010-12-01'});
+        // var ses = new AWS.SES({apiVersion: '2010-12-01'});
         // console.log(JSON.stringify(params));
-        const sendPromise = ses.sendEmail(params).promise();
-        sendPromise
+        // const sendPromise = ses.sendEmail(params).promise();
+        sgMail.send(msg)
+          .then(()=>{
+            logger.log(msg);
+            res.render('beta/contact-us-form-delivered', {
+                static_path: '/static',
+                theme: process.env.THEME || 'flatly',
+                flask_debug: process.env.FLASK_DEBUG || 'false',
+                pageTitle: 'Contact Us - Success',
+                pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
+                message: 'Success - we\'ve sent your email to your chosen contact'
+            });
+          })
+          .catch(error => {
+            logger.log(error.toString());
+            return next("Sorry something went wrong sending your email.");
+          })
+        /* sendPromise
         .then(data => {
           logger.log(params);
           res.render('beta/contact-us-form-delivered', {
@@ -803,7 +838,7 @@ let validateContactUs = [
         .catch(error => {
           logger.log(error);
           return next("Sorry something went wrong sending your email.");
-        })
+        })*/
       }
     })
 
