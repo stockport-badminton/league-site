@@ -28,40 +28,13 @@ exports.getLateScorecards = function(req, res) {
           "missingFixtures":[]
         }
       };
-
-      /* var params = {
-        Destination: { // required 
-          ToAddresses: [
-            'stockport.badders.results@gmail.com'
-          ]
-        },
-        Message: { // required 
-          Body: {
-            Html: {
-             Charset: 'UTF-8',
-             Data: ''
-            }
-           },
-           Subject: {
-            Charset: 'UTF-8',
-            Data: 'Todays outstanding fixtures'
-           }
-          },
-        Source: 'stockport.badders.results@stockport-badminton.co.uk', // required 
-        ReplyToAddresses: [
-            'stockport.badders.results@gmail.com'
-        ],
-      }; */
-      if (err){
-        // params.Message.Body.Html.Data = JSON.stringify(err);
+      if (err){        
         msg.dynamic_template_data.errors = JSON.stringify(err);
-        // console.log(err);
       }
       else{
         if (row.length > 0){
           console.log(JSON.stringify(row));
           for (var x = 0; x < row.length; x++){
-              // params.Message.Body.Html.Data += row[x]['date'] + " - "+ row[x]['homeTeam'] + " - " + row[x]['awayTeam'] + "<br />";
               var fixture = {};
               fixture.date = row[x].date;
               fixture.homeTeam = row[x].homeTeam;
@@ -70,26 +43,16 @@ exports.getLateScorecards = function(req, res) {
           }
         }
         else {
-          // params.Message.Body.Html.Data += 'No outstanding fixtures today';
-          msg.dynamic_template_data.missingFixtures += 'No outstanding fixtures today';
+          
+          msg.dynamic_template_data.noFixtures = 'No outstanding fixtures today';
         }
 
       }
-      // var ses = new AWS.SES({apiVersion: '2010-12-01'});
-      // console.log(JSON.stringify(msg));
+      
       sgMail.send(msg)
       .then(()=>res.send("Message Sent"))
       .catch(error => logger.log(error.toString()));
-      /* ses.sendEmail(params, function(err, data) {
-        if (err) {
-          // console.log(err, err.stack); // an error occurred
-          res.send(err);
-        }
-        else {
-          // console.log(data);           // successful response
-          res.send(data);
-        }
-      }) */
+      
     })
 };
 

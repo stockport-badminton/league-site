@@ -206,7 +206,23 @@
 
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
+    app.post('/fixture/reminder', function(req,res,next){
+      const msg = {
+        to: req.body.email,
+        cc: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        templateId:'d-bc4e9fe2b6a4410e838d1ac29e283d30',
+        dynamic_template_data:{
+          "homeTeam":req.body.homeTeam,
+          "awayTeam":req.body.awayTeam
+        }
+      };
 
+      sgMail.send(msg)
+      .then(()=>res.send("Message Sent"))
+      .catch(error => logger.log(error.toString()));
+
+    })
 
     app.get('/upload-scoresheet',function(req,res){
       res.render('beta/file-upload',{
@@ -631,33 +647,6 @@ let validateContactUs = [
           return;
       }
       else {
-        // console.log(req.body);
-        
-        /* var params = {
-          Destination: { // required 
-            ToAddresses: [
-            ],
-            BccAddresses: [
-              'stockport.badders.results@gmail.com'
-            ]
-          },
-          Message: { // required 
-            Body: {
-              Html: {
-               Charset: 'UTF-8',
-               Data: 'contact from the website:<br />'+ req.body.contactQuery +'<br /> from email address:'+req.body.contactEmail
-              }
-             },
-             Subject: {
-              Charset: 'UTF-8',
-              Data: 'Somebody is trying to get in touch'
-             }
-            },
-          Source: 'stockport.badders.results@gmail.com', // required 
-          ReplyToAddresses: [
-              req.body.contactEmail
-          ],
-        }; */
 
       const msg = {
         to: '',
@@ -803,10 +792,6 @@ let validateContactUs = [
             default:
           }
         }
-        // Create sendEmail params
-        // var ses = new AWS.SES({apiVersion: '2010-12-01'});
-        // console.log(JSON.stringify(params));
-        // const sendPromise = ses.sendEmail(params).promise();
         sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
@@ -823,22 +808,6 @@ let validateContactUs = [
             logger.log(error.toString());
             return next("Sorry something went wrong sending your email.");
           })
-        /* sendPromise
-        .then(data => {
-          logger.log(params);
-          res.render('beta/contact-us-form-delivered', {
-              static_path: '/static',
-              theme: process.env.THEME || 'flatly',
-              flask_debug: process.env.FLASK_DEBUG || 'false',
-              pageTitle: 'Contact Us - Success',
-              pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
-              message: 'Success - we\'ve sent your email to your chosen contact'
-          });
-        })
-        .catch(error => {
-          logger.log(error);
-          return next("Sorry something went wrong sending your email.");
-        })*/
       }
     })
 

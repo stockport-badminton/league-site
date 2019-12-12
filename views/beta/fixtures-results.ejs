@@ -87,7 +87,12 @@
            <td><%= resultValue %></td>
           <% } %>
           <% if (typeof admin !== 'undefined') { %>
-            <td><a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a></td>
+
+            <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranging') { %>
+                  <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a> 
+                  <% if(resultValue === 'Awaiting Result'){ %><br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
+                <%} } %>
+            </td>
             <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
             <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
               <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Enter</a></td> 
@@ -99,7 +104,7 @@
       </tr>
     <% }) %>
       </tbody>
-      <<tfoot>
+      <tfoot>
         <tr>
           <td></td>
           <td></td>
@@ -143,6 +148,34 @@
     </div>
   </div>
 
+  <div class="modal fade" id="reminderModal" tabindex="-1" role="dialog" aria-labelledby="reminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reminderModalLabel">Rearrangement</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form role="form" id="reminderForm" action="/fixture/reminder" method="post">
+        <div class="modal-body" id="reminderModalBody">
+
+            <div class="form-group">
+              <label for="contactEmail">Email contact</label>
+              <input type="email" class="form-control" id="email" name="email" placeholder="enter team captains email">
+              <input type="hidden" name="reminderHomeTeam" id="reminderHomeTeam" value="" />
+              <input type="hidden" name="reminderAwayTeam" id="reminderAwayTeam" value="" />
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" id="remindFixture" class="btn btn-primary">Submit</button>
+        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <% } %>
 
 
@@ -153,10 +186,15 @@
   <script type="text/javascript">
 
     
-      $('a[data-toggle=modal]').click(function(){
+      $('a[data-target="#exampleModal"]').click(function(){
         $('#fixtureId')[0].value = $(this)[0]['attributes']['data-fixtureId'].value;
         $('#homeTeam')[0].value = $(this).parent().siblings()[1].textContent;
         $('#awayTeam')[0].value = $(this).parent().siblings()[2].textContent;
+      })
+
+      $('a[data-target="#reminderModal"]').click(function(){
+        $('#reminderHomeTeam')[0].value = $(this).parent().siblings()[1].textContent;
+        $('#reminderAwayTeam')[0].value = $(this).parent().siblings()[2].textContent;
       })
 
       $('#fixtureRearange').click(function(){
@@ -165,6 +203,15 @@
                console.log(data);
                $('#rearrangementModal').html('<p>Fixture Updated!</p>');
                $('#fixtureRearange').remove();
+            });
+      })
+
+      $('#remindFixture').click(function(){
+        $.post('/fixture/reminder', {'email':$('#email')[0].value,'homeTeam':$('#reminderHomeTeam')[0].value,'awayTeam':$('#reminderAwayTeam')[0].value }, function (data) {
+               // console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
+               console.log(data);
+               $('#reminderModalBody').html('<p>Reminder sent!</p>');
+               $('#remindFixture').remove();
             });
       })
 
