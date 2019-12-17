@@ -234,6 +234,10 @@
       })
     })
 
+    app.post('/mail',function(req,res){
+      console.log(req.body);
+    })
+
 
 
     app.get('/scorecard-beta-nonmodal', secured(), function(req,res){
