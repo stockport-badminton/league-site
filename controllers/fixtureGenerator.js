@@ -33,12 +33,12 @@ request(options, function (error, response, body) {
 const xmasDate = new Date(2019,11,25)
 const easterDate = new Date(2020,03,12)
 const seasonStartDate = new Date(2019,08,15)
-const seasonEndDate = new Date(2020,04,30)
+const seasonEndDate = new Date(2020,03,30)
 
-console.log("season start date" + seasonStartDate)
+/* console.log("season start date" + seasonStartDate)
 console.log("season xmas date" + xmasDate)
 console.log("season easter date" + easterDate)
-console.log("season end date" + seasonEndDate)
+console.log("season end date" + seasonEndDate) */
 
 function shuffle(array) {
     var currentIndex = array.length, temporaryValue, randomIndex;
@@ -145,10 +145,6 @@ var islewisShieldWeek =function(currentDate) {
     else {
         return false
     }
-}
-
-var findTeamName = function(fixture){
-    return 
 }
 
 
@@ -337,7 +333,7 @@ exports.genFixtures = function(req,res){
                 teams:[
                     
                     {
-                      club: "Syddal Park C",
+                      club: "Syddal Park",
                       name: "Syddal Park C",
                       homeNight: "Sunday"
                     },
@@ -362,7 +358,7 @@ exports.genFixtures = function(req,res){
                       homeNight: "Wednesday"
                     },
                     {
-                      club: "Shell C",
+                      club: "Shell",
                       name: "Shell C",
                       homeNight: "Wednesday"
                     },
@@ -417,7 +413,7 @@ exports.genFixtures = function(req,res){
                       homeNight: "Tuesday"
                     },
                     {
-                      club: "Parrs Wood C",
+                      club: "Parrs Wood",
                       name: "Parrswood C",
                       homeNight: "Tuesday"
                     },
@@ -473,7 +469,7 @@ exports.genFixtures = function(req,res){
                       homeNight: "Thursday"
                     },
                     {
-                      club: "Manor C",
+                      club: "Manor",
                       name: "Manor C",
                       homeNight: "Tuesday"
                     },
@@ -492,7 +488,7 @@ exports.genFixtures = function(req,res){
         ]
     }
     var fixturesCollection = []
-    stockport.divisions.forEach(function(e){
+    tameside.divisions.forEach(function(e){
         e.teams.forEach(function(i){
             e.teams.forEach(function(j){
                 if (i.name != j.name){
@@ -548,7 +544,7 @@ exports.genFixtures = function(req,res){
         currentSeasonEntry.date = new Date(+currentDate)
         currentSeasonEntry.shortDate = currentDate.getDate() + "/" + (currentDate.getMonth()+1) + "/" + currentDate.getFullYear()
         currentSeasonEntry.day = currentDate.getDay()
-        if (nearEaster(currentDate)||nearXmas(currentDate)){
+        if (nearEaster(currentDate)||nearXmas(currentDate)||islewisShieldWeek(currentDate)){
             if ((currentDate.getDay()==0)||(currentDate.getDay()==6)){
                 currentSeasonEntry.weekend = true
                 //console.log(currentDate + ": this date is a weekend\n")
@@ -607,27 +603,27 @@ exports.genFixtures = function(req,res){
                                                     //if (seasonCalendar[currSeasonCalPos - 1].fixtures.findIndex(k => (k.homeClub == fixturesCollection[index].homeClub)||(k.homeClub == fixturesCollection[index].awayClub)) == -1){
                                                         //console.log("yesterdays home club matches fixture home club or away club")
                                                         //if (seasonCalendar[currSeasonCalPos - 1].fixtures.findIndex(k => (k.awayClub == fixturesCollection[index].awayClub)||(k.awayClub == fixturesCollection[index].homeClub)) == -1){
-                                                            if (currSeasonCalPos > 1){
-                                                                if (seasonCalendar[currSeasonCalPos - 2].fixtures.findIndex(k => (k.homeTeam == fixturesCollection[index].homeTeam)||(k.homeTeam == fixturesCollection[index].awayTeam)) == -1){
+                                                            //if (currSeasonCalPos > 1){
+                                                                //if (seasonCalendar[currSeasonCalPos - 2].fixtures.findIndex(k => (k.homeTeam == fixturesCollection[index].homeTeam)||(k.homeTeam == fixturesCollection[index].awayTeam)) == -1){
                                                                     //console.log("yesterdays home team matches fixture home team or away team")
-                                                                    if (seasonCalendar[currSeasonCalPos - 2].fixtures.findIndex(k => (k.awayTeam == fixturesCollection[index].awayTeam)||(k.awayTeam == fixturesCollection[index].homeTeam)) == -1){
-                                                                        if (currSeasonCalPos > 2){
-                                                                            if (seasonCalendar[currSeasonCalPos - 3].fixtures.findIndex(k => (k.homeTeam == fixturesCollection[index].homeTeam)||(k.homeTeam == fixturesCollection[index].awayTeam)) == -1){
+                                                                    //if (seasonCalendar[currSeasonCalPos - 2].fixtures.findIndex(k => (k.awayTeam == fixturesCollection[index].awayTeam)||(k.awayTeam == fixturesCollection[index].homeTeam)) == -1){
+                                                                        //if (currSeasonCalPos > 2){
+                                                                            //if (seasonCalendar[currSeasonCalPos - 3].fixtures.findIndex(k => (k.homeTeam == fixturesCollection[index].homeTeam)||(k.homeTeam == fixturesCollection[index].awayTeam)) == -1){
                                                                                 //console.log("yesterdays home team matches fixture home team or away team")
-                                                                                if (seasonCalendar[currSeasonCalPos - 3].fixtures.findIndex(k => (k.awayTeam == fixturesCollection[index].awayTeam)||(k.awayTeam == fixturesCollection[index].homeTeam)) == -1){
-                                                                                    if (currentSeasonEntry.fixtures.length < 5){
+                                                                                //if (seasonCalendar[currSeasonCalPos - 3].fixtures.findIndex(k => (k.awayTeam == fixturesCollection[index].awayTeam)||(k.awayTeam == fixturesCollection[index].homeTeam)) == -1){
+                                                                                    if (currentSeasonEntry.fixtures.length < 10){
                                                                                         //console.log("yesterdays away club matches fixture home club or away club")
                                                                                         //console.log(dotw(currentDate.getDay()) + " " + currentDate)
                                                                                         //console.log ("Fixture: " + fixturesCollection[index].homeTeam + " vs " + fixturesCollection[index].awayTeam + "\n")
                                                                                         currentSeasonEntry.fixtures.push({"homeTeam":fixturesCollection[index].homeTeam,"homeClub":fixturesCollection[index].homeClub,"awayTeam":fixturesCollection[index].awayTeam,"awayClub":fixturesCollection[index].awayClub,"division":fixturesCollection[index].division})
                                                                                         fixturesCollection.splice(index,1) // remove the fixture from the collection so that we don't add it to subsequent days
                                                                                     }
-                                                                                }
-                                                                            }
-                                                                        }    
-                                                                    }
-                                                                }
-                                                            }
+                                                                                //}
+                                                                            //}
+                                                                        //}    
+                                                                    //}
+                                                                //}
+                                                            //}
                                                         //}
                                                     //}
                                                 }

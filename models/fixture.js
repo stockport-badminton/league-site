@@ -443,7 +443,7 @@ exports.sendResultZap = function(zapObject,done){
         'content-type':'application/json'
       },
       body:{
-        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" ##stockport #sdbl #result https://stockport-co.uk"
+        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" ##stockport #sdbl #result https://stockport-badminton.co.uk"
       },
       json:true
     };
