@@ -643,6 +643,26 @@ let validateContactUs = [
   body('contactQuery').not().isEmpty().withMessage('Please enter something in message field.').custom(containsProfanity).withMessage("Please don't use profanity in the message body"),
   body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
 ]
+
+    app.post('/new-users',(req,res,next) => {
+      console.log(req.params);
+      const msg = {
+        to: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        subject: 'new user signup',
+        text: 'a new user has signed up',
+        html: '<p>a new user has signed up</p>'
+      };
+      sgMail.send(msg)
+          .then(()=>{
+            logger.log(msg);
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            logger.log(error.toString());
+            return next("Sorry something went wrong sending your email.");
+          })
+    })
     app.post('/contact-us',validateContactUs, (req, res,next) => {
       var errors = validationResult(req);
       if (!errors.isEmpty()) {
