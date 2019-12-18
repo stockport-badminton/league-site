@@ -14,10 +14,10 @@
     const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
-     var logger = require('logzio-nodejs').createLogger({
+    var logger = require('logzio-nodejs').createLogger({
       token: process.env.LOGZ_SECRET,
       host: 'listener.logz.io'
-   });
+    });
 
 
 
@@ -234,10 +234,14 @@
       })
     })
 
-    app.post('/mail',function(req,res){
-      console.log(req.body);
-      res.send(req.body);
-    })
+    const multer  = require('multer');
+    const upload = multer();
+
+    module.exports = function(app) {
+      app.post('/mail', upload.none(), function(req,res){
+        console.log(req.body);
+      });	
+    }
 
 
 
