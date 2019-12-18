@@ -656,7 +656,7 @@ let validateContactUs = [
       sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
-            //res.sendStatus(200);
+            res.sendStatus(200);
           })
           .catch(error => {
             logger.log(error.toString());
