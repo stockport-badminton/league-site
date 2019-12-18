@@ -646,19 +646,20 @@ let validateContactUs = [
 
     app.post('/new-users',(req,res,next) => {
       console.log("req.query");
-      console.log(req.query);
-      console.log("req.params");
-      console.log(req.params);
+      console.log(req.query.user);
+      // console.log("req.params");
+      // console.log(req.params);
       const msg = {
         to: 'stockport.badders.results@gmail.com',
         from: 'stockport.badders.results@stockport-badminton.co.uk',
         subject: 'new user signup',
         text: 'a new user has signed up: ' + req.query.user,
-        html: '<p>a new user has signed up'+  + req.query.user +'</p>'
+        html: '<p>a new user has signed up: '+ req.query.user +'</p>'
       };
       sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
+            console.log(msg)
             res.sendStatus(200);
           })
           .catch(error => {
