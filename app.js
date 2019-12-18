@@ -237,7 +237,10 @@
     const multer  = require('multer');
     const upload = multer();
       app.post('/mail', upload.none(), function(req,res){
-        console.log(req.body);
+        console.log(req.body.from);
+        console.log(req.body.to);
+        console.log(req.body.subject);
+        logger.log(req.body.html);
     });
 
 
