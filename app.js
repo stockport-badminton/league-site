@@ -236,12 +236,9 @@
 
     const multer  = require('multer');
     const upload = multer();
-
-    module.exports = function(app) {
       app.post('/mail', upload.none(), function(req,res){
         console.log(req.body);
-      });	
-    }
+    });
 
 
 
