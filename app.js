@@ -645,7 +645,10 @@ let validateContactUs = [
 ]
 
     app.post('/new-users',(req,res,next) => {
+      console.log("req.query");
       console.log(req.query);
+      console.log("req.params");
+      console.log(req.params);
       const msg = {
         to: 'stockport.badders.results@gmail.com',
         from: 'stockport.badders.results@stockport-badminton.co.uk',
