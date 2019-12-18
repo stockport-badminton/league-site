@@ -2,8 +2,8 @@
 <%- include('nav.ejs') %>
 
 <div class="col-12">
-  <h1>Sorry</h1>
-  <p>Sorry, you've not got access to this page. Please contact the website administrator</p>
+  <h1><%= query.error %></h1>
+  <p><%= query.error_description %></p>
 </div>
 
 

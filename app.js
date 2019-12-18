@@ -171,20 +171,23 @@
         console.log(info)
         if (err) { return next(err); }
         if (!user) {
+          //console.log(req);
           res.render('beta/failed-login', {
             static_path:'/static',
             theme:process.env.THEME || 'flatly',
             pageTitle : "Access Denied",
             pageDescription : "Access Denied",
+            query:req.query
           });
-          // retur res.redirect('/login');
         }
-        req.logIn(user, function (err) {
-          if (err) { return next(err); }
-          const returnTo = req.session.returnTo;
-          delete req.session.returnTo;
-          res.redirect(returnTo || '/user');
-        });
+        else {
+          req.logIn(user, function (err) {
+            if (err) { return next(err); }
+            const returnTo = req.session.returnTo;
+            delete req.session.returnTo;
+            res.redirect(returnTo || '/user');
+          });
+        }
       })(req, res, next);
     });
 
