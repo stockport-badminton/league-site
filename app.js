@@ -241,6 +241,7 @@
         console.log(req.body.to);
         console.log(req.body.subject);
         logger.log(req.body.html);
+        res.sendStatus(200);
     });
 
 
