@@ -615,6 +615,16 @@
         });
     });
 
+    app.get('/privacy-policy', function(req, res) {
+        res.render('beta/privacy', {
+            static_path: '/static',
+            theme: process.env.THEME || 'flatly',
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Stockport & District Badminton League Privacy Policy",
+            pageDescription : "Privacy Policy for the Stockport and District Badminton League"
+        });
+    });
+
     function validCaptcha(value,{req}){
       var options = {
         method:'POST',
