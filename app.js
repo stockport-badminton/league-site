@@ -615,6 +615,46 @@
         });
     });
 
+    app.get('/scorecard-upload', function(req, res) {
+      res.render('beta/scorecard-upload', {
+          static_path: '/static',
+          theme: process.env.THEME || 'flatly',
+          flask_debug: process.env.FLASK_DEBUG || 'false',
+          pageTitle : "Stockport & District Badminton League Scorecard Upload",
+          pageDescription : "Upload your scorecard and send to the website"
+      });
+    });
+
+    app.get('/sign-s3', (req, res) => {
+      const s3 = new aws.S3();
+      const fileName = req.query['file-name'];
+      const fileType = req.query['file-type'];
+      const s3Params = {
+        Bucket: S3_BUCKET_NAME,
+        Key: fileName,
+        Expires: 60,
+        ContentType: fileType,
+        ACL: 'public-read'
+      };
+    
+      s3.getSignedUrl('putObject', s3Params, (err, data) => {
+        if(err){
+          console.log(err);
+          return res.end();
+        }
+        const returnData = {
+          signedRequest: data,
+          url: `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${fileName}`
+        };
+        res.write(JSON.stringify(returnData));
+        res.end();
+      });
+    });
+
+    app.get('/scorecard-send', function(req, res) {
+
+    });
+
     app.get('/privacy-policy', function(req, res) {
         res.render('beta/privacy', {
             static_path: '/static',
