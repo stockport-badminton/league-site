@@ -625,8 +625,10 @@
       });
     });
 
+    const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+
     app.get('/sign-s3', (req, res) => {
-      const s3 = new aws.S3();
+      const s3 = new AWS.S3();
       const fileName = req.query['file-name'];
       const fileType = req.query['file-type'];
       const s3Params = {
