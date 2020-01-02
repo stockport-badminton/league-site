@@ -663,22 +663,21 @@
       };
       sgMail.send(msg)
         .then(()=>{
-          logger.log(msg);
           console.log(msg)
-          res.sendStatus(200);
+          res.render('beta/scorecard-received', {
+            static_path: '/static',
+            theme: process.env.THEME || 'flatly',
+            flask_debug: process.env.FLASK_DEBUG || 'false',
+            pageTitle : "Stockport & District Badminton League Scorecard Upload",
+            pageDescription : "Upload your scorecard and send to the website",
+            scorecard:req.body
+          });
         })
         .catch(error => {
           logger.log(error.toString());
           next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
         })
-      res.render('beta/scorecard-received', {
-          static_path: '/static',
-          theme: process.env.THEME || 'flatly',
-          flask_debug: process.env.FLASK_DEBUG || 'false',
-          pageTitle : "Stockport & District Badminton League Scorecard Upload",
-          pageDescription : "Upload your scorecard and send to the website",
-          scorecard:req.body
-      });
+      
       
     });
 
