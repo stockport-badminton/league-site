@@ -646,15 +646,40 @@
         }
         const returnData = {
           signedRequest: data,
-          url: `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${fileName}`
+          url: 'https://'+ S3_BUCKET_NAME + '.s3-eu-west-1.amazonaws.com/'+encodeURIComponent(fileName)
         };
         res.write(JSON.stringify(returnData));
         res.end();
       });
     });
 
-    app.get('/scorecard-send', function(req, res) {
-
+    app.post('/send-scorecards', function(req, res,next) {
+      const msg = {
+        to: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        subject: 'scorecard received',
+        text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"],
+        html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a></p>'
+      };
+      sgMail.send(msg)
+        .then(()=>{
+          logger.log(msg);
+          console.log(msg)
+          res.sendStatus(200);
+        })
+        .catch(error => {
+          logger.log(error.toString());
+          next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
+        })
+      res.render('beta/scorecard-received', {
+          static_path: '/static',
+          theme: process.env.THEME || 'flatly',
+          flask_debug: process.env.FLASK_DEBUG || 'false',
+          pageTitle : "Stockport & District Badminton League Scorecard Upload",
+          pageDescription : "Upload your scorecard and send to the website",
+          scorecard:req.body
+      });
+      
     });
 
     app.get('/privacy-policy', function(req, res) {
@@ -890,7 +915,7 @@ let validateContactUs = [
                 theme: process.env.THEME || 'flatly',
                 flask_debug: process.env.FLASK_DEBUG || 'false',
                 pageTitle: 'Contact Us - Success',
-                pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
+                pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
                 message: 'Success - we\'ve sent your email to your chosen contact'
             });
           })

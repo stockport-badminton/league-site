@@ -4,7 +4,7 @@
 <div class="col-12">
   <form method="POST" action="/send-scorecards">
   <input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" />
-  <input type="file" name="scoresheet-picture" id="scoresheet-picture" />
+  <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
   <input type="submit" />
 </form>
 </div>
@@ -27,7 +27,10 @@
 
 function getSignedRequest(file){
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', `/sign-s3?file-name=${file.name}&file-type=${file.type}`);
+  console.log(file.name);
+  let filename = Date.now() + file.name
+  console.log(file.name);
+  xhr.open('GET', '/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type));
   xhr.onreadystatechange = () => {
     if(xhr.readyState === 4){
       if(xhr.status === 200){
@@ -48,10 +51,10 @@ function uploadFile(file, signedRequest, url){
   xhr.onreadystatechange = () => {
     if(xhr.readyState === 4){
       if(xhr.status === 200){
-        document.getElementById('preview').src = url;
-        document.getElementById('avatar-url').value = url;
+        document.getElementById('scoresheet-url').value = url;
       }
       else{
+        console.log(xhr);
         alert('Could not upload file.');
       }
     }

@@ -1,12 +1,36 @@
-<% include header.ejs %>
-<% include nav.ejs %>
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
 
 <h1>Scorecard Received</h1>
 <p>This is just a dummy page to show the values entered</p>
+<% if (typeof result !== 'undefined') { %>
 <pre><%=  result %></pre>
+<%
+  }
+%>
+<% if (typeof fixturesCollection !== 'undefined') {
+    %>
+    <pre><%=  fixturesCollection %></pre>
+    <%
+  }
+%>
+
+<% if (typeof seasonCalendar !== 'undefined') {
+    %>
+    <pre><%=  seasonCalendar %></pre>
+    <%
+  }
+%>
 
 
-<% include footer.ejs %>
+<% if (typeof scorecard !== 'undefined') {
+  %>
+  <pre><%-  JSON.stringify(scorecard) %></pre>
+  <%
+}
+%>
+
+<%- include('footer.ejs') %>
 
 
 </body>
