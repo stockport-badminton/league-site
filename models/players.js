@@ -274,6 +274,7 @@ exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, firs
 
 exports.getEligiblePlayersAndSelectedById = function(first, second, third, teamId,gender,done){
   db.get().query('SELECT player.id ,player.first_name ,player.family_name, case when player.id = ? then 1 else 0 end as first, case when player.id = ? then 1 else 0 end as second, case when player.id = ? then 1 else 0 end as third FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.id like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamId,gender],function(err,rows){
+    logger.log(this.sql);
     if (err) return done(err);
     done(null,rows);
   })
