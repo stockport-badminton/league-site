@@ -120,6 +120,13 @@ exports.getAllAndSelectedByName = function(teamName,divisionId,done){
   })
 }
 
+exports.getAllAndSelectedById = function(teamId,divisionId,done){
+  db.get().query('select *, CASE WHEN team.id = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamId,divisionId],function(err,rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
 // DELETE
 exports.deleteById = function(teamId,done){
   db.get().query('DELETE FROM `team` WHERE `id` = ?',teamId, function (err, rows){

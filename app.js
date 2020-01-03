@@ -311,6 +311,37 @@
       })
     })
 
+    app.get('/email-scorecard', secured(), function(req,res){
+      res.render('email-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:[
+          {
+            id:7,
+            name:"Premier"
+          },
+          {
+            id:8,
+            name:"Division 1"
+          },
+          {
+            id:9,
+            name:"Division 2"
+          },
+          {
+            id:10,
+            name:"Division 3"
+          },
+          {
+            id:11,
+            name:"Division 4"
+          }
+        ]
+      })
+    })
+
     const { body,validationResult } = require("express-validator/check");
     const { sanitizeBody } = require("express-validator/filter");
 
@@ -360,41 +391,41 @@
 
     let validateScorecard = [
       body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
       body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 2:one of the teams needs to score at least 21"),
       body('Game3homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 1:one of the teams needs to score at least 21"),
       body('Game4homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 2:one of the teams needs to score at least 21"),
       body('Game5homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 1:one of the teams needs to score at least 21"),
       body('Game6homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 2:one of the teams needs to score at least 21"),
       body('Game7homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 1:one of the teams needs to score at least 21"),
       body('Game8homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 2:one of the teams needs to score at least 21"),
       body('Game9homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 1:one of the teams needs to score at least 21"),
       body('Game10homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 2:one of the teams needs to score at least 21"),
       body('Game11homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 1:one of the teams needs to score at least 21"),
       body('Game12homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 2:one of the teams needs to score at least 21"),
       body('Game13homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 1:one of the teams needs to score at least 21"),
       body('Game14homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 2:one of the teams needs to score at least 21"),
       body('Game15homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 1:one of the teams needs to score at least 21"),
       body('Game16homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 2:one of the teams needs to score at least 21"),
       body('Game17homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 1:one of the teams needs to score at least 21"),
       body('Game18homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("one of the teams needs to score at least 21"),
+      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 2:one of the teams needs to score at least 21"),
       body('homeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
         if (value != 0){
           if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
@@ -572,6 +603,13 @@
       logger.log(req.body)
       fixture_controller.fixture_populate_scorecard(data,req,res,next)
     })
+
+    
+
+    app.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
+      logger.log(req.params)
+      fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
+    })
     
 
     app.get('/scorecard-received',function(req,res,next){
@@ -653,13 +691,14 @@
       });
     });
 
-    app.post('/send-scorecards', function(req, res,next) {
+    app.post('/send-scorecard', validateScorecard, function(req, res,next) {
+      let scorecardUrl = '/populated-scorecard/'+ req.body.division+'/'+ req.body.homeTeam+'/'+ req.body.awayTeam+'/'+ req.body.homeMan1+'/'+ req.body.homeMan2+'/'+ req.body.homeMan3+'/'+ req.body.homeLady1+'/'+ req.body.homeLady2+'/'+ req.body.homeLady3+'/'+ req.body.awayMan1+'/'+ req.body.awayMan2+'/'+ req.body.awayMan3+'/'+ req.body.awayLady1+'/'+ req.body.awayLady2+'/'+ req.body.awayLady3+'/'+ req.body.Game1homeScore+'/'+ req.body.Game1awayScore+'/'+ req.body.Game2homeScore+'/'+ req.body.Game2awayScore+'/'+ req.body.Game3homeScore+'/'+ req.body.Game3awayScore+'/'+ req.body.Game4homeScore+'/'+ req.body.Game4awayScore+'/'+ req.body.Game5homeScore+'/'+ req.body.Game5awayScore+'/'+ req.body.Game6homeScore+'/'+ req.body.Game6awayScore+'/'+ req.body.Game7homeScore+'/'+ req.body.Game7awayScore+'/'+ req.body.Game8homeScore+'/'+ req.body.Game8awayScore+'/'+ req.body.Game9homeScore+'/'+ req.body.Game9awayScore+'/'+ req.body.Game10homeScore+'/'+ req.body.Game10awayScore+'/'+ req.body.Game11homeScore+'/'+ req.body.Game11awayScore+'/'+ req.body.Game12homeScore+'/'+ req.body.Game12awayScore+'/'+ req.body.Game13homeScore+'/'+ req.body.Game13awayScore+'/'+ req.body.Game14homeScore+'/'+ req.body.Game14awayScore+'/'+ req.body.Game15homeScore+'/'+ req.body.Game15awayScore+'/'+ req.body.Game16homeScore+'/'+ req.body.Game16awayScore+'/'+ req.body.Game17homeScore+'/'+ req.body.Game17awayScore+'/'+ req.body.Game18homeScore+'/'+ req.body.Game18awayScore
       const msg = {
         to: 'stockport.badders.results@gmail.com',
         from: 'stockport.badders.results@stockport-badminton.co.uk',
         subject: 'scorecard received',
-        text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"],
-        html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a></p>'
+        text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"] + '\n check the result here:' + scorecardUrl,
+        html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a><br />Check the result here: <a href="'+ scorecardUrl +'">Confirm</a></p>'
       };
       sgMail.send(msg)
         .then(()=>{
