@@ -14,17 +14,17 @@
     const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     var logger = require('logzio-nodejs').createLogger({
       token: process.env.LOGZ_SECRET,
       host: 'listener.logz.io'
     });
 
-
-
-
     if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
       throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
     }
+
+    const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
     // Authentication middleware. When used, the
     // Access Token must exist and be verified against
@@ -136,18 +136,10 @@
     var fixture_controller = require(__dirname + '/controllers/fixtureController');
     var league_controller = require(__dirname + '/controllers/leagueController');
     var fixtureGen_controller = require(__dirname + '/controllers/fixtureGenerator');
+    var contact_controller = require(__dirname + '/controllers/contactusController');
+    var static_controller = require(__dirname + '/controllers/staticPagesController');
     var userInViews = require(__dirname + '/models/userInViews');
     var secured = require(__dirname + '/models/secured');
-
-
-  /*  app.get('/', function(req, res) {
-
-        res.render('beta/homepage', {
-            static_path: '/static',
-            pageTitle : "Homepage",
-            pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport."
-        });
-    }); */
 
     app.use(userInViews())
 
@@ -194,7 +186,7 @@
     // Perform session logout and redirect to homepage
     app.get('/logout', (req, res) => {
       req.logout();
-      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'returnTo=https://stockport-badminton.co.uk');
+      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'returnTo=https://'+ req.headers.host);
     });
 
     app.get('/user', secured(), function (req, res, next) {
@@ -208,464 +200,7 @@
       });
     });
 
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    
-    app.post('/fixture/reminder', function(req,res,next){
-      const msg = {
-        to: req.body.email,
-        cc: 'stockport.badders.results@gmail.com',
-        from: 'stockport.badders.results@stockport-badminton.co.uk',
-        templateId:'d-bc4e9fe2b6a4410e838d1ac29e283d30',
-        dynamic_template_data:{
-          "homeTeam":req.body.homeTeam,
-          "awayTeam":req.body.awayTeam
-        }
-      };
-
-      sgMail.send(msg)
-      .then(()=>res.send("Message Sent"))
-      .catch(error => logger.log(error.toString()));
-
-    })
-
-    app.get('/upload-scoresheet',function(req,res){
-      res.render('beta/file-upload',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Upload Scorecard",
-        pageDescription : "Enter some results!",
-      })
-    })
-
-    const multer  = require('multer');
-    const upload = multer();
-      app.post('/mail', upload.none(), function(req,res){
-        console.log(req.body.from);
-        console.log(req.body.to);
-        console.log(req.body.subject);
-        logger.log(req.body.html);
-        res.sendStatus(200);
-    });
-
-
-
-    app.get('/scorecard-beta-nonmodal', secured(), function(req,res){
-      res.render('index-scorecard-nonmodal',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard",
-        pageDescription : "Enter some results!",
-        result:[
-          {
-            id:7,
-            name:"Premier"
-          },
-          {
-            id:8,
-            name:"Division 1"
-          },
-          {
-            id:9,
-            name:"Division 2"
-          },
-          {
-            id:10,
-            name:"Division 3"
-          },
-          {
-            id:11,
-            name:"Division 4"
-          }
-        ]
-      })
-    })
-
-    app.get('/scorecard-beta', secured(), function(req,res){
-      res.render('index-scorecard',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard",
-        pageDescription : "Enter some results!",
-        result:[
-          {
-            id:7,
-            name:"Premier"
-          },
-          {
-            id:8,
-            name:"Division 1"
-          },
-          {
-            id:9,
-            name:"Division 2"
-          },
-          {
-            id:10,
-            name:"Division 3"
-          },
-          {
-            id:11,
-            name:"Division 4"
-          }
-        ]
-      })
-    })
-
-    app.get('/email-scorecard', secured(), function(req,res){
-      res.render('email-scorecard',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard",
-        pageDescription : "Enter some results!",
-        result:[
-          {
-            id:7,
-            name:"Premier"
-          },
-          {
-            id:8,
-            name:"Division 1"
-          },
-          {
-            id:9,
-            name:"Division 2"
-          },
-          {
-            id:10,
-            name:"Division 3"
-          },
-          {
-            id:11,
-            name:"Division 4"
-          }
-        ]
-      })
-    })
-
-    const { body,validationResult } = require("express-validator/check");
-    const { sanitizeBody } = require("express-validator/filter");
-
-    function greaterThan21(value,{req,path}){
-      var otherValue = path.replace('away','home')
-      if (value < 21 && req.body[otherValue] < 21){
-          return false
-      }
-      else{
-        return value
-      }
-    }
-
-    function containsProfanity(value,{req}){
-      var substringsArray = ["Christ","God","http://","http","https","wininphone","corta.co","Cryptocurrency","adultdating","forex","ahole","anus","ash0le","ash0les","asholes","ass","Ass Monkey","Assface","assh0le","assh0lez","asshole","assholes","assholz","asswipe","azzhole","bassterds","bastard","bastards","bastardz","basterds","basterdz","Biatch","bitch","bitches","Blow Job","boffing","butthole","buttwipe","c0ck","c0cks","c0k","Carpet Muncher","cawk","cawks","Clit","cnts","cntz"," cock","cockhead","cock-head","cocks","CockSucker","cock-sucker","crap","cum","cunt","cunts","cuntz","dick","dild0","dild0s","dildo","dildos","dilld0","dilld0s","dominatricks","dominatrics","dominatrix","dyke","enema","f u c k","f u c k e r","fag","fag1t","faget","fagg1t","faggit","faggot","fagit","fags","fagz","faig","faigs","fart","flipping the bird","fuck","fucker","fuckin","fucking","fucks","Fudge Packer","fuk","Fukah","Fuken","fuker","Fukin","Fukk","Fukkah","Fukken","Fukker","Fukkin","g00k","gay","gayboy","gaygirl","gays","gayz","God-damned","h00r","h0ar","h0re","hells","hoar","hoor","hoore","jackoff","jap","japs","jerk-off","jisim","jiss","jizm","jizz","knob","knobs","knobz","kunt","kunts","kuntz","Lesbian","Lezzian","Lipshits","Lipshitz","masochist","masokist","massterbait","masstrbait","masstrbate","masterbaiter","masterbate","masterbates","Motha Fucker","Motha Fuker","Motha Fukkah","Motha Fukker","Mother Fucker","Mother Fukah","Mother Fuker","Mother Fukkah","Mother Fukker","mother-fucker","Mutha Fucker","Mutha Fukah","Mutha Fuker","Mutha Fukkah","Mutha Fukker","n1gr","nastt","nigger;","nigur;","niiger;","niigr;","orafis","orgasim;","orgasm","orgasum","oriface","orifice","orifiss","packi","packie","packy","paki","pakie","paky","pecker","peeenus","peeenusss","peenus","peinus","pen1s","penas","penis","penis-breath","penus","penuus","Phuc","Phuck","Phuk","Phuker","Phukker","polac","polack","polak","Poonani","pr1c","pr1ck","pr1k","pusse","pussee","pussy","puuke","puuker","queer","queers","queerz","qweers","qweerz","qweir","recktum","rectum","retard","sadist","scank","schlong","screwing","semen","sex","sexy","Sh!t","sh1t","sh1ter","sh1ts","sh1tter","sh1tz","shit","shits","shitter","Shitty","Shity","shitz","Shyt","Shyte","Shytty","Shyty","skanck","skank","skankee","skankey","skanks","Skanky","slut","sluts","Slutty","slutz","son-of-a-bitch","tit","turd","va1jina","vag1na","vagiina","vagina","vaj1na","vajina","vullva","vulva","w0p","wh00r","wh0re","whore","xrated","xxx","b!+ch","bitch","blowjob","clit","arschloch","fuck","shit","ass","asshole","b!tch","b17ch","b1tch","bastard","bi+ch","boiolas","buceta","c0ck","cawk","chink","cipa","clits","cock","cum","cunt","dildo","dirsa","ejakulate","fatass","fcuk","fuk","fux0r","hoer","hore","jism","kawk","l3itch","l3i+ch","lesbian","masturbate","masterbat*","masterbat3","motherfucker","s.o.b.","mofo","nazi","nigga","nigger","nutsack","phuck","pimpis","pusse","pussy","scrotum","sh!t","shemale","shi+","sh!+","slut","smut","teets","tits","boobs","b00bs","teez","testical","testicle","titt","w00se","jackoff","wank","whoar","whore","*damn","*dyke","*fuck*","*shit*","@$$","amcik","andskota","arse*","assrammer","ayir","bi7ch","bitch*","bollock*","breasts","butt-pirate","cabron","cazzo","chraa","chuj","Cock*","cunt*","d4mn","daygo","dego","dick*","dike*","dupa","dziwka","ejackulate","Ekrem*","Ekto","enculer","faen","fag*","fanculo","fanny","feces","feg","Felcher","ficken","fitt*","Flikker","foreskin","Fotze","Fu(*","fuk*","futkretzn","gay","gook","guiena","h0r","h4x0r"," hell ","helvete","hoer*","honkey","Huevon","hui","injun","jizz","kanker*","kike","klootzak","kraut","knulle","kuk","kuksuger","Kurac","kurwa","kusi*","kyrpa*","lesbo","mamhoon","masturbat*","merd*","mibun","monkleigh","mouliewop","muie","mulkku","muschi","nazis","nepesaurio","nigger*","orospu","paska*","perse","picka","pierdol*","pillu*","pimmel","piss*","pizda","poontsee","poop","porn","p0rn","pr0n","preteen","pula","pule","puta","puto","qahbeh","queef*","rautenberg","schaffer","scheiss*","schlampe","schmuck","screw","sh!t*","sharmuta","sharmute","shipal","shiz","skribz","skurwysyn","sphencter","spic","spierdalaj","splooge","suka","b00b*","testicle*","titt*","twat","vittu","wank*","wetback*","wichser","wop*","yed","zabourah"];
-
-      if (substringsArray.some(function(v) { return value.indexOf(v) >= 0; })) {
-         logger.log(value)
-         logger.log('containsProfanity fail')
-        console.log('containsProfanity fail')
-        return false
-      }
-      // if (substringsArray.some(substring=>yourBigString.includes(substring))) {
-
-      // }
-      else{
-        // console.log('containsProfanity sucess')
-         logger.log(value)
-        return value
-      }
-    }
-
-    function differenceOfTwo(value,{req,path}){
-        var otherValue = path.replace('away','home')
-        if (Math.abs(value - req.body[otherValue]) < 2){
-          if (value < 30 && req.body[otherValue] < 30){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-    }
-
-    let validateScorecard = [
-      body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
-      body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 2:one of the teams needs to score at least 21"),
-      body('Game3homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 1:one of the teams needs to score at least 21"),
-      body('Game4homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 2:one of the teams needs to score at least 21"),
-      body('Game5homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 1:one of the teams needs to score at least 21"),
-      body('Game6homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 2:one of the teams needs to score at least 21"),
-      body('Game7homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 1:one of the teams needs to score at least 21"),
-      body('Game8homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 2:one of the teams needs to score at least 21"),
-      body('Game9homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 1:one of the teams needs to score at least 21"),
-      body('Game10homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 2:one of the teams needs to score at least 21"),
-      body('Game11homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 1:one of the teams needs to score at least 21"),
-      body('Game12homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 2:one of the teams needs to score at least 21"),
-      body('Game13homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 1:one of the teams needs to score at least 21"),
-      body('Game14homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 2:one of the teams needs to score at least 21"),
-      body('Game15homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 1:one of the teams needs to score at least 21"),
-      body('Game16homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 2:one of the teams needs to score at least 21"),
-      body('Game17homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 1:one of the teams needs to score at least 21"),
-      body('Game18homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
-      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 2:one of the teams needs to score at least 21"),
-      body('homeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-      }).withMessage("can't use the same player more than once"),
-      body('homeMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan1 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('homeMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('homeLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('homeLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady1 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('homeLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady2 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan3 || value == req.body.awayMan1){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan1){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady3){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else {
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once"),
-      body('awayLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        if (value != 0){
-          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady1){
-            return false
-          }
-          else {
-            return value
-          }
-        }
-        else { 
-          return value
-        }
-
-      }).withMessage("can't use the same player more than once")
-    ]
-
-    app.post('/scorecard-beta',validateScorecard, fixture_controller.full_fixture_post);
-
-    app.post('/submit-form', (req,res,next) => {
-      var data = [];
-      data = req.body;
-      logger.log(req.body)
-      fixture_controller.fixture_populate_scorecard(data,req,res,next)
-    })
-
-    
-
-    app.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
-      logger.log(req.params)
-      fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
-    })
-    
-
-    app.get('/scorecard-received',function(req,res,next){
-      res.render('index-scorecard',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard Received - No Errors",
-        pageDescription : "Enter some results!",
-        scorecardData: req.body
-      })
-    })
-    
-
-    app.get('/contact-us', function(req, res) {
-        res.render('beta/contact-us-form', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Contact Us",
-            pageDescription : "Get in touch with your league representatives, or club secretaries",
-            recaptcha : process.env.RECAPTCHA
-        });
-    });
-
-    app.get('/messer-rules', function(req, res) {
-        res.render('beta/messer-rules', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Messer Tropy Rules",
-            pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
-        });
-    });
-
-    app.get('/rules', function(req, res) {
-        res.render('beta/rules', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Stockport & District Badminton League Rules",
-            pageDescription : "Rules and regulations for the Stockport and District Badminton League"
-        });
-    });
-
-    app.get('/scorecard-upload', function(req, res) {
-      res.render('beta/scorecard-upload', {
-          static_path: '/static',
-          theme: process.env.THEME || 'flatly',
-          flask_debug: process.env.FLASK_DEBUG || 'false',
-          pageTitle : "Stockport & District Badminton League Scorecard Upload",
-          pageDescription : "Upload your scorecard and send to the website"
-      });
-    });
-
-    const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
-
+    //GET to return signed S3 url for uploading scorecards
     app.get('/sign-s3', (req, res) => {
       const s3 = new AWS.S3();
       const fileName = req.query['file-name'];
@@ -692,50 +227,68 @@
       });
     });
 
-    app.post('/email-scorecard', validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
+    
+/*  The below section could be redundant
 
-    app.get('/privacy-policy', function(req, res) {
-        res.render('beta/privacy', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Stockport & District Badminton League Privacy Policy",
-            pageDescription : "Privacy Policy for the Stockport and District Badminton League"
-        });
+    app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
+
+    const multer  = require('multer');
+    const upload = multer();
+      app.post('/mail', upload.none(), function(req,res){
+        console.log(req.body.from);
+        console.log(req.body.to);
+        console.log(req.body.subject);
+        logger.log(req.body.html);
+        res.sendStatus(200);
+    }); */
+
+
+    // Scorecard - Results Entry related routes
+
+    //GET to display a scorecard without the modal - not currently in use, but could be developed if there was a need for it
+    app.get('/scorecard-beta-nonmodal', secured(), fixture_controller.scorecard_nonmodal);
+
+    //GET for displaying a results entry form - may be redundant - although this one doesn't have the option to upload a photo of your scorecard
+    app.get('/scorecard-beta', secured(), fixture_controller.scorecard_beta);
+
+    //GET for displaying results entry for for users
+    app.get('/email-scorecard', secured(), fixture_controller.email_scorecard);
+
+    //POST for processing results entry form - possibly redundant.
+    app.post('/scorecard-beta',fixture_controller.validateScorecard, fixture_controller.full_fixture_post);
+
+    // static page to display scorecard received messages - likely not being used
+    app.get('/scorecard-received',fixture_controller.scorecard_received);
+    
+    // url for testing upload of scorecards
+    /* app.get('/scorecard-upload', fixture_controller.scorecard_upload); */
+
+    // post for processing results from entry form and emailing admin with confirmation link and link to scorecard photo
+    app.post('/email-scorecard', fixture_controller.validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
+
+    // post for processing results from excel spreadsheet
+    app.post('/submit-form', (req,res,next) => {
+      var data = [];
+      data = req.body;
+      logger.log(req.body)
+      fixture_controller.fixture_populate_scorecard(data,req,res,next)
     });
 
-    function validCaptcha(value,{req}){
-      var options = {
-        method:'POST',
-        url:'https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value,
-        json:true
-      }
-      request(options,function(err,response,body){
-        if (err){
-          // console.log(err)
-          return false
-        }
-        else {
-          if (body.success){
-            // console.log('recaptcha sucess')
-            return value
-          }
-          else {
-            // console.log('recaptcha fail')
-            return false
-          }
-        }
-
-      })
-    }
+    //GET for displaying a populated form for the admin to review and confirm
+    //TODO review architecture - could the input be stored somewhere rather than in a constructed URL?
+    app.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
+      logger.log(req.params)
+      fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
+    })
 
 
-let validateContactUs = [
-  body('contactEmail').not().isEmpty().withMessage('please enter an Email address').isEmail().withMessage('Please enter a valid email address'),
-  body('contactQuery').not().isEmpty().withMessage('Please enter something in message field.').custom(containsProfanity).withMessage("Please don't use profanity in the message body"),
-  body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
-]
+    // Static page routes
+    app.get('/privacy-policy', static_controller.privacy_policy);
+    app.get('/messer-rules', static_controller.messer_rules);
+    app.get('/rules', static_controller.rules);
 
+    // POST to process input from Auth0 when non-authorised user attempt to use secure pages on the site and email the admin
+    // TODO - prevent duplicate emails being sent when an existing user in Auth0 gets bounced out again because they're not authorised still.
     app.post('/new-users',(req,res,next) => {
       console.log("req.query");
       console.log(req.query.user);
@@ -759,188 +312,14 @@ let validateContactUs = [
             next("Sorry something went wrong sending your email.");
           })
     })
-    app.post('/contact-us',validateContactUs, (req, res,next) => {
-      var errors = validationResult(req);
-      if (!errors.isEmpty()) {
-           logger.log(errors.array());
-          res.render('beta/contact-us-form-delivered', {
-            pageTitle: 'Contact Us - Error',
-            pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
-            message: 'Sorry something went wrong',
-            static_path:'/static',
-            theme:'flatly',
-            content: errors.array()
-          });
-          return;
-      }
-      else {
 
-      const msg = {
-        to: '',
-        cc: 'stockport.badders.results@gmail.com',
-        from: 'stockport.badders.results@stockport-badminton.co.uk',
-        replyto: req.body.contactEmail,
-        templateId:'d-53fc74c4a6cc4b85bb3126418087cf0b',
-        dynamic_template_data:{
-          "message":req.body.contactQuery,
-          "email":req.body.contactEmail
-        }
-      };
-        var clubEmail = '';
-        if(req.body.contactType == 'Clubs'){
-          switch (req.body.clubSelect) {
-            case 'Aerospace':
-              msg.to = ['santanareedy@btinternet.com'];
-            break;
-            case 'Alderley Park':
-              msg.to = ['mel.curwen@ntlworld.com'];
-
-            break;
-            case 'Altrincham Central':
-              msg.to = ['janecave53@gmail.com'];
-
-            break;
-            case 'Bramhall Village':
-              msg.to = ['jjackson1969@btinternet.com'];
-
-            break;
-            case 'CAP':
-              msg.to = ['dave_haigh@hotmail.co.uk'];
-
-            break;
-            case 'Canute':
-              msg.to = ['canutesecretary@gmail.com'];
-
-            break;
-            case 'Carrington':
-              msg.to = ['darrel@thegoughfamily.co.uk'];
-
-            break;
-            case 'Cheadle Hulme':
-              msg.to = ['doug.grant@ntlworld.com'];
-
-            break;
-            case 'College Green':
-              msg.to = ['paulakite@yahoo.co.uk'];
-
-            break;
-            case 'David Lloyd':
-              msg.to = ['dr_barks@yahoo.co.uk'];
-
-            break;
-            case 'Disley':
-              msg.to = ['julian.cherryman@gmail.com','karlcramp@aol.com'];
-
-            break;
-            case 'Dome':
-              msg.to = ['janet_knowles@ymail.com'];
-
-            break;
-            case 'G.H.A.P':
-              msg.to = ['rossowen40@hotmail.com'];
-
-            break;
-            case 'Macclesfield':
-              msg.to = ['sueorwin@btinternet.com'];
-
-            break;
-            case 'Manor':
-              msg.to = ['jo.woolley@tiscali.co.uk'];
-
-            break;
-            case 'Mellor':
-              msg.to = ['enquiries@mellorbadminton.org.uk'];
-
-            break;
-            case 'New Mills':
-              msg.to = ['bandibates@tiscali.co.uk'];
-
-            break;
-            case 'Parrswood':
-              msg.to = ['mikegreatorex@btinternet.com'];
-
-            break;
-            case 'Poynton':
-              msg.to = ['poyntonbadminton@btinternet.com'];
-
-            break;
-            case 'Racketeer':
-              msg.to = ['theracketeer@hotmail.com'];
-
-            break;
-            case 'Shell':
-              msg.to = ['annawiza@aol.co.uk'];
-
-            break;
-            case 'Syddal Park':
-              msg.to = ['derek.hillesdon@gmail.com'];
-
-            break;
-            case 'Tatton':
-              msg.to = ['plumley123@btinternet.com'];
-
-            break;
-            case 'Blue Triangle':
-              msg.to = ['francesedavies@sky.com'];
-
-            break;
-            default:
-              msg.to = ['stockport.badders.results@gmail.com'];
-
-          }
-        }
-        if (req.body.contactType == 'League'){
-          switch (req.body.leagueSelect) {
-            case 'results':
-              msg.to = ['stockport.badders.results@gmail.com','neil.cooper.241180@gmail.com']
-              msg.cc = null;
-              break;
-            case 'tournament':
-              msg.to = ['sueorwin@btinternet.com']
-              break;
-            case 'league':
-              msg.to = ['leaguesec.sdbl@gmail.com']
-              break;
-            case 'chair':
-              msg.to = ['walkerd.sdbl@gmail.com']
-              break;
-            case 'messer':
-              msg.to = ['sueorwin@btinternet.com']
-              break;
-            case 'junior':
-              msg.to = ['stuartscoffins@btinternet.com']
-              break;
-            case 'juniortournament':
-              msg.to = ['aim@talktalk.net']
-              break;
-            case 'treasurer':
-              msg.to = ['rossowen40@hotmail.com']
-              break;
-            default:
-          }
-        }
-        sgMail.send(msg)
-          .then(()=>{
-            logger.log(msg);
-            res.render('beta/contact-us-form-delivered', {
-                static_path: '/static',
-                theme: process.env.THEME || 'flatly',
-                flask_debug: process.env.FLASK_DEBUG || 'false',
-                pageTitle: 'Contact Us - Success',
-                pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
-                message: 'Success - we\'ve sent your email to your chosen contact'
-            });
-          })
-          .catch(error => {
-            logger.log(error.toString());
-            return next("Sorry something went wrong sending your email.");
-          })
-      }
-    })
+    /* contact us routes */
+    app.get('/contact-us', contact_controller.contactus_get);
+    app.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
 
     /// PLAYER ROUTES ///
 
-    /* GET catalog home page. */
+    /* player listing / filtering routes */
     router.get('/players/club-:club?/team-:team?/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
     router.get('/players/club-:club?', secured(),player_controller.player_list_clubs_teams);
     router.get('/players/team-:team?', secured(),player_controller.player_list_clubs_teams);
@@ -953,12 +332,8 @@ let validateContactUs = [
     /* POST request for creating Player. */
     router.post('/player/create', player_controller.player_create);
 
-    /* POST request for creating Player. */
-    router.post('/player/createByName',checkJwt, player_controller.player_create_by_name);
-
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
-
 
     /* GET request to delete Player. */
     router.get('/player/:id/delete', player_controller.player_delete_get);
@@ -974,10 +349,11 @@ let validateContactUs = [
 
     /* GET request for one Player. */
     router.get('/player/:id', player_controller.player_detail);
+
     /* GET request for one Player. */
     router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 
-    /* GET request for one Player. */
+    /* player stats routes and filters. */
     router.get('/player-stats/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
     router.get('/player-stats/game-:gameType?/division-:divisionId?', player_controller.all_player_stats);
     router.get('/player-stats/division-:divisionId?', player_controller.all_player_stats);
@@ -995,13 +371,11 @@ let validateContactUs = [
     router.get('/player-stats/:season?/game-:gameType?', player_controller.all_player_stats);
     router.get('/player-stats/:season?', player_controller.all_player_stats);
 
-
     /* GET request for one Player. */
     router.get('/player-stats', player_controller.all_player_stats);
 
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
-
 
     /* GET request for list of all Player items. */
     router.get('/players/club-:clubid?/team-:teamid?/gender-:gender?', player_controller.player_list);
@@ -1146,6 +520,9 @@ let validateContactUs = [
     /* GET request for creating a Fixture. NOTE This must come before routes that display Fixture (uses id) */
     router.get('/fixture/create', fixture_controller.fixture_create_get);
 
+    //POST for Zapier to call to daily to email reminders for scorecards
+    app.post('/fixture/reminder', fixture_controller.fixture_reminder_post);
+
     /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
     router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
 
@@ -1203,7 +580,7 @@ let validateContactUs = [
     /* GET request for one Fixture. */
     router.get('/scorecard/fixture/:id', fixture_controller.getScorecard);
 
-    /* GET request for list of all Fixture items. */
+    /* GET request for list of players of fixtures. */
     router.get('/fixture-players', fixture_controller.get_fixture_players_details);
     router.get('/fixture-players/team-:team?', fixture_controller.get_fixture_players_details);
     router.get('/fixture-players/club-:club?', fixture_controller.get_fixture_players_details);

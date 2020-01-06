@@ -15,6 +15,240 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  });
 
 
+ const { body,validationResult } = require("express-validator/check");
+    const { sanitizeBody } = require("express-validator/filter");
+
+    function greaterThan21(value,{req,path}){
+      var otherValue = path.replace('away','home')
+      if (value < 21 && req.body[otherValue] < 21){
+          return false
+      }
+      else{
+        return value
+      }
+    }
+
+    function differenceOfTwo(value,{req,path}){
+        var otherValue = path.replace('away','home')
+        if (Math.abs(value - req.body[otherValue]) < 2){
+          if (value < 30 && req.body[otherValue] < 30){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+    }
+
+    exports.validateScorecard = [
+      body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
+      body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game2awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 2:one of the teams needs to score at least 21"),
+      body('Game3homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game3awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 1:one of the teams needs to score at least 21"),
+      body('Game4homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game4awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Ladies 2:one of the teams needs to score at least 21"),
+      body('Game5homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game5awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 1:one of the teams needs to score at least 21"),
+      body('Game6homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game6awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mens 2:one of the teams needs to score at least 21"),
+      body('Game7homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game7awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 1:one of the teams needs to score at least 21"),
+      body('Game8homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game8awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Ladies 2:one of the teams needs to score at least 21"),
+      body('Game9homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game9awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 1:one of the teams needs to score at least 21"),
+      body('Game10homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game10awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mens 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mens 2:one of the teams needs to score at least 21"),
+      body('Game11homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game11awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 1:one of the teams needs to score at least 21"),
+      body('Game12homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game12awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Ladies 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Ladies 2:one of the teams needs to score at least 21"),
+      body('Game13homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game13awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 1:one of the teams needs to score at least 21"),
+      body('Game14homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game14awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mixed 2:one of the teams needs to score at least 21"),
+      body('Game15homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game15awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 1:one of the teams needs to score at least 21"),
+      body('Game16homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game16awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Second Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Second Mixed 2:one of the teams needs to score at least 21"),
+      body('Game17homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game17awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 1:one of the teams needs to score at least 21"),
+      body('Game18homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
+      body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 2:one of the teams needs to score at least 21"),
+      body('homeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+      }).withMessage("can't use the same player more than once"),
+      body('homeMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan1 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('homeMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan2 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('homeLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('homeLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady1 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('homeLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady2 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan3 || value == req.body.awayMan1){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan1){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady3){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else {
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once"),
+      body('awayLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
+        if (value != 0){
+          if (value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady1){
+            return false
+          }
+          else {
+            return value
+          }
+        }
+        else { 
+          return value
+        }
+
+      }).withMessage("can't use the same player more than once")
+    ]
+
 
 // Display fixtures played 6 days ago that haven't had results entered
 exports.getLateScorecards = function(req, res) {
@@ -233,29 +467,13 @@ exports.getScorecard = function(req, res) {
 // Display detail page for a specific Fixture
 exports.fixture_detail_byDivision = function(req, res,next) {
     var divisionId = 0;
-    switch (req.params.division) {
-      case 'All':
+    Division.getIdByURLParam(req.params.division, function(err,row){
+      if (row.length < 1){
         divisionId = 0
-        break;
-      case 'Division-1':
-        divisionId = 8
-        break;
-      case 'Premier':
-        divisionId = 7
-        break;
-      case 'Division-2':
-        divisionId = 9
-        break;
-      case 'Division-3':
-        divisionId = 10
-        break;
-      case 'Division-4':
-        divisionId = 11
-        break;
-      default:
-        next(err);
-    }
-
+      }
+      else {
+        divisionId = row[0].id
+      }
     Fixture.getFixtureDetails(divisionId, req.params.season, function(err,result){
       if (err){
         next(err);
@@ -273,33 +491,19 @@ exports.fixture_detail_byDivision = function(req, res,next) {
 
       }
     })
+  })
 };
 
 // Display detail page for a specific Fixture
 exports.fixture_detail_byDivision_admin = function(req, res,next) {
   var divisionId = 0;
-  switch (req.params.division) {
-    case 'All':
+  Division.getIdByURLParam(req.params.division, function(err,row){
+    if (row.length < 1){
       divisionId = 0
-      break;
-    case 'Division-1':
-      divisionId = 8
-      break;
-    case 'Premier':
-      divisionId = 7
-      break;
-    case 'Division-2':
-      divisionId = 9
-      break;
-    case 'Division-3':
-      divisionId = 10
-      break;
-    case 'Division-4':
-      divisionId = 11
-      break;
-    default:
-      next(err);
-  }
+    }
+    else {
+      divisionId = row[0].id
+    }
 
   
   Auth.getManagementAPIKey(function (err,apiKey){
@@ -363,6 +567,7 @@ exports.fixture_detail_byDivision_admin = function(req, res,next) {
       })
     }
   })
+})
 };
 
 
@@ -483,43 +688,21 @@ exports.fixture_update_get = function(req, res, next) {
 };
 
 
-
-
-const { validationResult } = require("express-validator/check");
-
 exports.full_fixture_post = function(req,res){
   var errors = validationResult(req);
   // console.log(errors.array());
   if (!errors.isEmpty()) {
-    res.render('index-scorecard',{
-      static_path:'/static',
-      theme:process.env.THEME || 'flatly',
-      pageTitle : "Scorecard Received - Errors",
-      pageDescription : "Something went wrong",
-      result:[
-        {
-          id:7,
-          name:"Premier"
-        },
-        {
-          id:8,
-          name:"Division 1"
-        },
-        {
-          id:9,
-          name:"Division 2"
-        },
-        {
-          id:10,
-          name:"Division 3"
-        },
-        {
-          id:11,
-          name:"Division 4"
-        }
-      ],
-      errors: errors.array()
+    Division.getAllByLeague(1,function(err,rows){
+      res.render('index-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard Received - Errors",
+        pageDescription : "Something went wrong",
+        result:rows,
+        errors: errors.array()
+      })
     })
+    
   }
   else {
     logger.log(req.body);
@@ -1092,6 +1275,91 @@ exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
     })
   }
 
+  exports.scorecard_nonmodal = function(req,res){
+    Division.getAllByLeague(1,function(err,rows){
+      res.render('index-scorecard-nonmodal',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:rows
+      })
+    })
+    
+  }
+
+  exports.scorecard_beta = function(req,res){
+    Division.getAllByLeague(1,function(err,rows){
+      res.render('index-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:rows
+      })
+    })
+    
+  }
+
+  exports.email_scorecard = function(req,res){
+    Division.getAllByLeague(1,function(err,rows){
+      res.render('email-scorecard',{
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "Scorecard",
+        pageDescription : "Enter some results!",
+        result:rows
+      })
+    })
+    
+  }
+
+  exports.scorecard_upload = function(req, res) {
+    res.render('beta/scorecard-upload', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle : "Stockport & District Badminton League Scorecard Upload",
+        pageDescription : "Upload your scorecard and send to the website"
+    });
+  };
+
+  exports.upload_scoresheet = function(req,res){
+    res.render('beta/file-upload',{
+      static_path:'/static',
+      theme:process.env.THEME || 'flatly',
+      pageTitle : "Upload Scorecard",
+      pageDescription : "Enter some results!",
+    })
+  }
+
+  exports.fixture_reminder_post = function(req,res,next){
+    const msg = {
+      to: req.body.email,
+      cc: 'stockport.badders.results@gmail.com',
+      from: 'stockport.badders.results@stockport-badminton.co.uk',
+      templateId:'d-bc4e9fe2b6a4410e838d1ac29e283d30',
+      dynamic_template_data:{
+        "homeTeam":req.body.homeTeam,
+        "awayTeam":req.body.awayTeam
+      }
+    };
+
+    sgMail.send(msg)
+    .then(()=>res.send("Message Sent"))
+    .catch(error => logger.log(error.toString()));
+
+  }
+
+  exports.scorecard_received = function(req,res,next){
+    res.render('index-scorecard',{
+      static_path:'/static',
+      theme:process.env.THEME || 'flatly',
+      pageTitle : "Scorecard Received - No Errors",
+      pageDescription : "Enter some results!",
+      scorecardData: req.body
+    })
+  }
 
 // Handle Fixture update on POST
 exports.fixture_update_post = function(req, res) {

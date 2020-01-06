@@ -159,16 +159,6 @@ exports.player_create = function(req,res){
 
 }
 
-// Handle Player create on POST
-exports.player_create_by_name = function(req,res){
-  Player.createByName(req.body, function(err,row){
-    if (err){
-      res.send(err);
-    }
-    res.send(row);
-  })
-}
-
 exports.player_create_post = function(req, res, next) {
 
     req.checkBody('first_name', 'First name must be specified.').notEmpty(); //We won't force Alphanumeric, because people might have spaces.

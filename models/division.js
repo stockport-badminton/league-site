@@ -47,6 +47,14 @@ exports.getAll = function(done){
 }
 
 // GET
+exports.getAllByLeague = function(leagueId,done){
+  db.get().query('SELECT * FROM `division` where league = ?',leagueId, function (err, rows){
+    if (err) return done(err);
+    done(null, rows);
+  })
+}
+
+// GET
 exports.getById = function(divisionId,done){
   db.get().query('SELECT * FROM `division` WHERE `id` = ?',divisionId, function (err, rows){
     if (err) return done(err);
@@ -56,6 +64,15 @@ exports.getById = function(divisionId,done){
 
 exports.getByName = function(divisionName,done){
   db.get().query('SELECT * FROM `division` WHERE name = ?',divisionName, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+
+exports.getIdByURLParam = function(divisionName,done){
+  divisionName = divisionName.replace('-',' ');
+  db.get().query('SELECT id FROM `division` WHERE name = ?',divisionName, function (err, rows){
     if (err) return done(err);
     done(null,rows);
   })
