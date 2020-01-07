@@ -716,7 +716,7 @@ exports.full_fixture_post = function(req,res){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        // console.log(FixtureIdResult);
+        console.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
