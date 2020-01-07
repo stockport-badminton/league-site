@@ -228,10 +228,11 @@
     });
 
     
-/*  The below section could be redundant
+
 
     app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
-
+    
+/*  The below section could be redundant
     const multer  = require('multer');
     const upload = multer();
       app.post('/mail', upload.none(), function(req,res){
