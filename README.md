@@ -1,5 +1,5 @@
 # Stockport & District Badminton League Website
-This application uses AWS, Express, Bootstrap, MySQL, EJS, Auth0 to literally throw together a website for my local badminton League
+This application uses Heroku, JawsDB, Sendgrid, Express, Bootstrap, MySQL, EJS, Auth0 to literally throw together a free hosted website (using heroku) for my local badminton League (only costs are some minimal cloudfront and domain name costs)
 
 ## Current Features
 * A quasi static website showing fixtures, results, league tables using ejs as a template/layout engine.
@@ -7,16 +7,14 @@ This application uses AWS, Express, Bootstrap, MySQL, EJS, Auth0 to literally th
 * REST API for league, division, club, team, venue & player endpoints - all secured using the auth0 service.
 * Fixtures, results and tables drvien out of DB
 * POST requests locked down with access tokens using Auth0
-* prototype results entry (my use only!)
 * rudimentary stats for players based on results entry
+* user registration for results entry
+* excel spreadsheet processing and upload (for admin only)
+* fuzzy matching clientside
+* FREE heroku friendly build (no local file storage)
 
 
 ## Future Stuff
 * UI for CRUD for fixtures & results
-** fuzzy matching of players names to allow input directly from excel (interim / alernative method if fully online isn't suitable for all users)
-** accept input from excel
-*** upload excel via form
-*** OR send HTTP from excel scoresheet
 * UI for CRUD for club, team and venue details
 * UI for CRUD for players
-* user registration (or rather player -> administrator conversion)
