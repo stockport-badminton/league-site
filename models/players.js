@@ -4,6 +4,13 @@ var logger = require('logzio-nodejs').createLogger({
   host: 'listener.logz.io'
  });
 const levenshtein = require('js-levenshtein');
+var SEASON = '';
+if (new Date().getMonth() < 7){
+  SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+}
+else {
+  SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+}
 
 
 // POST
@@ -150,7 +157,7 @@ exports.getPlayerStats = function(searchTerms,done){
   var whereValue = []
   var conditions = "";
   var season = ""
-  var seasonVal = "20192020"
+  var seasonVal = SEASON
 
   if (!searchTerms.season){
     console.log("no season");

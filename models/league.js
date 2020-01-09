@@ -1,5 +1,14 @@
 var db = require('../db_connect.js');
 
+
+var SEASON = '';
+if (new Date().getMonth() < 7){
+  SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+}
+else {
+  SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+}
+
 // POST
 exports.create = function(name,admin,url,done){
   db.get().query('INSERT INTO `league` (`name`,`admin`,`url`) VALUES (?,?,?)',[name,admin,url],function(err,result){
@@ -45,7 +54,7 @@ exports.updateById = function(name, admin, url, leagueId,done){
 exports.getLeagueTable = function(division,season,done){
   if (season === undefined){
     seasonName = ''
-    season = '20192020';
+    season = SEASON;
   }
   else {
     seasonName = season + ' as team'
@@ -68,7 +77,7 @@ exports.getLeagueTable = function(division,season,done){
 exports.getAllLeagueTables = function(season,done){
   if (season === undefined){
     seasonName = ''
-    season = '20192020'
+    season = SEASON
   }
   else {
     seasonName = season + ' as team'

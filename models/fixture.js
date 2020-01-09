@@ -6,6 +6,14 @@ var request = require('request');
   host: 'listener.logz.io'
  });
 
+ var SEASON = '';
+    if (new Date().getMonth() < 7){
+      SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+    }
+    else {
+      SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+    }
+
 // POST
 exports.create = function(fixtureObj,done){
   if (db.isObject(fixtureObj)){
@@ -81,10 +89,10 @@ exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
     searchTerms.push('c.teamName = ?');
     sqlArray.push(fixtureObj.team);
   }
-  if (!fixtureObj.season || fixtureObj.season == '20192020'){
+  if (!fixtureObj.season || fixtureObj.season == SEASON){
     console.log("no season");
     searchTerms.push('season.name = ? AND c.date > season.startDate AND c.date < season.endDate');
-    sqlArray.push('20192020');
+    sqlArray.push(SEASON);
   }
   else {
     searchTerms.push('season.name = ? AND c.date > season.startDate AND c.date < season.endDate');
@@ -210,7 +218,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   if (!fixtureObj.season){
     console.log("no season");
     searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
-    sqlArray.push('20192020');
+    sqlArray.push(SEASON);
   }
   else {
     searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
@@ -227,7 +235,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   }
   /* if (fixtureObj.season === undefined){
     var seasonName = ''
-    fixtureObj.season = '20192020'
+    fixtureObj.season = SEASON
   }
   else {
     var seasonName = season + ' as team'
@@ -247,7 +255,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
 exports.getFixtureDetails = function(division,season, done){
   if (season === undefined){
     seasonName = ''
-    season = '20192020'
+    season = SEASON
   }
   else {
     seasonName = season + ' as team'
@@ -328,9 +336,10 @@ exports.getFixtureIdFromTeamNames = function(obj,done){
 
 exports.getFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name="20192020" AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
+    var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
     // console.log(obj);
-    db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
+    db.get().query(sql,[SEASON,obj.awayTeam, obj.homeTeam],function(err,result){
+      console.log(this.sql);
       if (err){
         return done(err)
       }
@@ -347,9 +356,9 @@ exports.getFixtureId = function(obj,done){
 
 exports.getOutstandingFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from (select fixture.id, homeTeam, awayTeam, status from fixture join season where season.name="20192020" AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
+    var sql = 'select id from (select fixture.id, homeTeam, awayTeam, status from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
     // console.log(obj);
-    db.get().query(sql,[obj.awayTeam, obj.homeTeam],function(err,result){
+    db.get().query(sql,[SEASON,obj.awayTeam, obj.homeTeam],function(err,result){
       console.log(this.sql);
       if (err){
         return done(err)

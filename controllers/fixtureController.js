@@ -508,12 +508,9 @@ exports.fixture_detail_byDivision_admin = function(req, res,next) {
   
   Auth.getManagementAPIKey(function (err,apiKey){
     if (err){
-      //console.log("error")
-      //console.log(err);
       next(err);
     }
     else{
-      //console.log(" apikey:" + apiKey)
       var options = {
         method:'GET',
         headers:{
@@ -1199,6 +1196,7 @@ exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
   //console.log(data.date);
   console.log(req.params);
   let data = req.params;
+  //TODO tidy the chain below up
   Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
     if(err){
       next(err)
