@@ -25,6 +25,7 @@
     }
 
     const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+    
 
     // Authentication middleware. When used, the
     // Access Token must exist and be verified against
@@ -231,7 +232,7 @@
 
 
     app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
-    
+
 /*  The below section could be redundant
     const multer  = require('multer');
     const upload = multer();
@@ -315,6 +316,8 @@
     })
 
     /* contact us routes */
+    // TODO update contact us for to query DB for which clubs to show
+    // TODO update processing script to pull email addresses from DB rather than showing statically in code
     app.get('/contact-us', contact_controller.contactus_get);
     app.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
 
@@ -406,6 +409,7 @@
     router.patch('/team/:id',checkJwt, team_controller.team_update_post);
 
     /* GET request for one Team. */
+    // TODO: create page showing: players registered, results, fixtures, league table with highlighted name
     router.get('/team/:id', team_controller.team_detail);
 
     /* GET request for list of all Team items.
@@ -478,6 +482,7 @@
     router.patch('/club/:id',checkJwt, club_controller.club_update_post);
 
     /* GET request for one Club. */
+    // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
     router.get('/club/:id',checkJwt, club_controller.club_detail);
 
     /* GET request for list of all Club items. */

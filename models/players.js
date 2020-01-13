@@ -261,7 +261,7 @@ exports.search = function(searchTerms,done){
 }
 
 exports.findElgiblePlayersFromTeamId = function(id,gender,done){
-  db.get().query('select player.id, player.first_name, player.family_name from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ?',[id,gender],function(err,result){
+  db.get().query('select player.id, player.first_name, player.family_name, b.rank as teamRank, player.rank as playerRank from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ? order by b.rank asc,player.rank desc, player.family_name',[id,gender],function(err,result){
     if (err){
       return done(err)
     }
