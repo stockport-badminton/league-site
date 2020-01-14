@@ -1,3 +1,4 @@
+var Club = require('../models/club.js');
 const sgMail = require('@sendgrid/mail');
 var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
@@ -61,7 +62,7 @@ exports.validateContactUs = [
 exports.contactus = function(req, res,next){
   var errors = validationResult(req);
   if (!errors.isEmpty()) {
-       logger.log(errors.array());
+      console.log(errors.array());
       res.render('beta/contact-us-form-delivered', {
         pageTitle: 'Contact Us - Error',
         pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
@@ -86,107 +87,34 @@ exports.contactus = function(req, res,next){
     }
   };
     var clubEmail = '';
+    
     if(req.body.contactType == 'Clubs'){
-      switch (req.body.clubSelect) {
-        case 'Aerospace':
-          msg.to = ['santanareedy@btinternet.com'];
-        break;
-        case 'Alderley Park':
-          msg.to = ['mel.curwen@ntlworld.com'];
-
-        break;
-        case 'Altrincham Central':
-          msg.to = ['janecave53@gmail.com'];
-
-        break;
-        case 'Bramhall Village':
-          msg.to = ['jjackson1969@btinternet.com'];
-
-        break;
-        case 'CAP':
-          msg.to = ['dave_haigh@hotmail.co.uk'];
-
-        break;
-        case 'Canute':
-          msg.to = ['canutesecretary@gmail.com'];
-
-        break;
-        case 'Carrington':
-          msg.to = ['darrel@thegoughfamily.co.uk'];
-
-        break;
-        case 'Cheadle Hulme':
-          msg.to = ['doug.grant@ntlworld.com'];
-
-        break;
-        case 'College Green':
-          msg.to = ['paulakite@yahoo.co.uk'];
-
-        break;
-        case 'David Lloyd':
-          msg.to = ['dr_barks@yahoo.co.uk'];
-
-        break;
-        case 'Disley':
-          msg.to = ['julian.cherryman@gmail.com','karlcramp@aol.com'];
-
-        break;
-        case 'Dome':
-          msg.to = ['janet_knowles@ymail.com'];
-
-        break;
-        case 'G.H.A.P':
-          msg.to = ['rossowen40@hotmail.com'];
-
-        break;
-        case 'Macclesfield':
-          msg.to = ['sueorwin@btinternet.com'];
-
-        break;
-        case 'Manor':
-          msg.to = ['jo.woolley@tiscali.co.uk'];
-
-        break;
-        case 'Mellor':
-          msg.to = ['enquiries@mellorbadminton.org.uk'];
-
-        break;
-        case 'New Mills':
-          msg.to = ['bandibates@tiscali.co.uk'];
-
-        break;
-        case 'Parrswood':
-          msg.to = ['mikegreatorex@btinternet.com'];
-
-        break;
-        case 'Poynton':
-          msg.to = ['poyntonbadminton@btinternet.com'];
-
-        break;
-        case 'Racketeer':
-          msg.to = ['theracketeer@hotmail.com'];
-
-        break;
-        case 'Shell':
-          msg.to = ['annawiza@aol.co.uk'];
-
-        break;
-        case 'Syddal Park':
-          msg.to = ['derek.hillesdon@gmail.com'];
-
-        break;
-        case 'Tatton':
-          msg.to = ['plumley123@btinternet.com'];
-
-        break;
-        case 'Blue Triangle':
-          msg.to = ['francesedavies@sky.com'];
-
-        break;
-        default:
-          msg.to = ['stockport.badders.results@gmail.com'];
-
-      }
+      Club.getById(req.body.clubSelect, function(err,rows){
+        if (err){
+          console.log(err);
+          next(err);
+        }
+        else {
+          msg.to = rows[0].contactUs;
+          sgMail.send(msg)
+            .then(()=>{
+              logger.log(msg);
+              res.render('beta/contact-us-form-delivered', {
+                  static_path: '/static',
+                  theme: process.env.THEME || 'flatly',
+                  flask_debug: process.env.FLASK_DEBUG || 'false',
+                  pageTitle: 'Contact Us - Success',
+                  pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
+                  message: 'Success - we\'ve sent your email to your chosen contact'
+              });
+            })
+            .catch(error => {
+              logger.log(error.toString());
+              return next("Sorry something went wrong sending your email.");
+            })
+        }
+      })
+      
     }
     if (req.body.contactType == 'League'){
       switch (req.body.leagueSelect) {
@@ -217,8 +145,7 @@ exports.contactus = function(req, res,next){
           break;
         default:
       }
-    }
-    sgMail.send(msg)
+      sgMail.send(msg)
       .then(()=>{
         logger.log(msg);
         res.render('beta/contact-us-form-delivered', {
@@ -234,16 +161,28 @@ exports.contactus = function(req, res,next){
         logger.log(error.toString());
         return next("Sorry something went wrong sending your email.");
       })
+    }
   }
 }
 
-exports.contactus_get = function(req, res) {
-  res.render('beta/contact-us-form', {
-      static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
-      pageTitle : "Contact Us",
-      pageDescription : "Get in touch with your league representatives, or club secretaries",
-      recaptcha : process.env.RECAPTCHA
-  });
+exports.contactus_get = function(req, res,next) {
+  Club.getAll(function(err,rows){
+    if(err){
+      console.log(err);
+      next(err);
+    }
+    else {
+      res.render('beta/contact-us-form', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle : "Contact Us",
+        pageDescription : "Get in touch with your league representatives, or club secretaries",
+        recaptcha : process.env.RECAPTCHA,
+        clubs:rows
+      });
+    }
+      
+  })
+  
 }

@@ -316,8 +316,6 @@
     })
 
     /* contact us routes */
-    // TODO update contact us for to query DB for which clubs to show
-    // TODO update processing script to pull email addresses from DB rather than showing statically in code
     app.get('/contact-us', contact_controller.contactus_get);
     app.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
 

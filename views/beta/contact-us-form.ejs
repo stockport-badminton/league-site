@@ -15,30 +15,9 @@
     <label for="clubSelect">Which club are you contacting?</label>
     <select class="form-control" id="clubSelect" name="clubSelect">
       <option disabled selected>Choose a Club</option>
-      <option value="Aerospace">Aerospace</option>
-      <option value="Alderley Park">Alderley Park</option>
-      <option value="Altrincham Central">Altrincham Central</option>
-      <option value="Bramhall Queensgate">Bramhall Village</option>
-      <option value="Blue Triangle">Blue Triangle</option>
-      <option value="CAP">C.A.P</option>
-      <option value="Canute">Canute</option>
-      <option value="Carrington">Carrington</option>
-      <option value="Cheadle Hulme">Cheadle Hulme</option>
-      <option value="College Green">College Green</option>
-      <option value="David Lloyd">David Lloyd</option>
-      <option value="Disley">Disley</option>
-      <option value="Dome">Dome</option>
-      <option value="G.H.A.P">G.H.A.P</option>
-      <option value="Macclesfield">Macclesfield</option>
-      <option value="Manor">Manor</option>
-      <option value="Mellor">Mellor</option>
-      <option value="New Mills">New Mills</option>
-      <option value="Parrswood">Parrswood</option>
-      <option value="Poynton">Poynton</option>
-      <option value="Racketeer">Racketeer</option>
-      <option value="Shell">Shell</option>
-      <option value="Syddal Park">Syddal Park</option>
-      <option value="Tatton">Tatton</option>
+      <% clubs.forEach(function(row){ %>
+        <option value="<%= row['id'] %>"><%= row['name'] %></option>
+      <% }) %>
     </select>
   </div>
   <div class="form-group d-none" id="leagueDropDown">

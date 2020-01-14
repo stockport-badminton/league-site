@@ -41,14 +41,14 @@ exports.createBatch = function(BatchObj,done){
 
 // GET
 exports.getAll = function(done){
-  db.get().query('SELECT * FROM `club`', function (err, rows){
+  db.get().query('SELECT * FROM `club` order by name asc', function (err, rows){
     if (err) return done(err);
     done(null, rows);
   })
 }
 
 exports.clubDetail = function(done){
-  db.get().query('SELECT a.name, a.venue, a.address, a.gMapURL AS clubVenueURL, a.matchNightText,a.clubNightText, a.clubWebsite, venue.name AS matchVenueName, venue.gMapUrl AS matchVenueURL, venue.Lat, venue.Lng FROM (SELECT club.name, venue.name AS venue, venue.gMapUrl,venue.address, club.matchNightText, club.clubNightText, club.clubWebsite,club.matchVenue FROM club JOIN venue WHERE venue.id =club.venue) AS a JOIN venue WHERE (a.matchVenue = venue.id OR a.matchVenue = NULL) ORDER BY a.name', function (err, rows){
+  db.get().query('SELECT a.clubId, a.name, a.venue, a.address, a.gMapURL AS clubVenueURL, a.matchNightText,a.clubNightText, a.clubWebsite, venue.name AS matchVenueName, venue.gMapUrl AS matchVenueURL, venue.Lat, venue.Lng FROM (SELECT club.id as clubId, club.name, venue.name AS venue, venue.gMapUrl,venue.address, club.matchNightText, club.clubNightText, club.clubWebsite,club.matchVenue FROM club JOIN venue WHERE venue.id =club.venue) AS a JOIN venue WHERE (a.matchVenue = venue.id OR a.matchVenue = NULL) ORDER BY a.name', function (err, rows){
     if (err) {
       return done(err);
     }
@@ -65,6 +65,7 @@ exports.clubDetail = function(done){
 // GET
 exports.getById = function(clubId,done){
   db.get().query('SELECT * FROM `club` WHERE `id` = ?',clubId, function (err, rows){
+    console.log(this.sql)
     if (err) return done(err);
     done(null,rows);
   })
