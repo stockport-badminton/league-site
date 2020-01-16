@@ -33,6 +33,50 @@ exports.create = function(fixtureObj,done){
     sql = sql + updateVars + ') VALUES (' + updateValues + ')';
     // console.log(sql);
     db.get().query(sql,updateArrayVars,function(err,result){
+      console.log(this.sql)
+      if (err) return done(err);
+      done(null,result);
+    });
+  }
+  else {
+    return done(err);
+  }
+}
+
+exports.getScorecardById = function(fixtureId,done){
+  db.get().query('SELECT * FROM `scorecardstore` WHERE `id` = ?',fixtureId, function (err, rows){
+    console.log(this.sql);
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+exports.deleteScorecardById = function(fixtureId,done){
+  db.get().query('DELETE FROM `scorecard` WHERE `id` = ?',fixtureId, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+exports.createScorecard = function(fixtureObj,done){
+  if (db.isObject(fixtureObj)){
+    var sql = 'INSERT INTO `scorecardstore` (';
+    var updateArray = [];
+    var updateArrayVars = [];
+    var updateArrayValues = []
+    for (x in fixtureObj){
+      // console.log(fixtureObj[x]);
+      updateArray.push('`'+ x +'`');
+      updateArrayVars.push(fixtureObj[x]);
+      updateArrayValues.push('?');
+    }
+    var updateVars = updateArray.join(',');
+    var updateValues = updateArrayValues.join(',');
+    // console.log(updateVars);
+    sql = sql + updateVars + ') VALUES (' + updateValues + ')';
+    // console.log(sql);
+    db.get().query(sql,updateArrayVars,function(err,result){
+      console.log(this.sql)
       if (err) return done(err);
       done(null,result);
     });

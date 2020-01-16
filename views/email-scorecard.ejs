@@ -579,6 +579,7 @@
                    <div id="finalScore"></div>
                    <input type="hidden" id="homeScore" name="homeScore" value="">
                    <input type="hidden" id="awayScore" name="awayScore" value="">
+                   <input type="hidden" id="email" name="email" value="<%= user[0].email %>">
                  </div>
 
              </div>
@@ -1431,7 +1432,7 @@
         }
     $(document).ready(function() {
       <% if (hasResult || hasErrors || hasScorecard){ %>
-            
+        console.log(<%- JSON.stringify(user) %>);
       $(".form-group.step-2 input, .form-group.step-3 input").change(function() {
         // console.log($(this).val() + '-' + $(this).attr("id"));
 

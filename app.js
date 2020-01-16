@@ -278,9 +278,16 @@
 
     //GET for displaying a populated form for the admin to review and confirm
     //TODO review architecture - could the input be stored somewhere rather than in a constructed URL?
+    //TODO pass date and mixed order info
+    //TODO check larger file uploads & pdfs
     app.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
       logger.log(req.params)
       fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
+    })
+
+    app.get('/populated-scorecard-beta/:id',(req,res,next) => {
+      console.log(req.body);
+      fixture_controller.fixture_populate_scorecard_fromId(req,res,next)
     })
 
 

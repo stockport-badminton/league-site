@@ -964,17 +964,33 @@ exports.full_fixture_post = function(req,res){
                           searchObj.limit = 4
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
                             if (err) res.send(err)
-                            res.render('index-scorecard',{
-                              static_path:'/static',
-                              theme:process.env.THEME || 'flatly',
-                              pageTitle : "Scorecard Received - No Errors",
-                              pageDescription : "Enter some results!",
-                              scorecardData: gameObject,
-                              homeTeamNomPlayers:homeTeamNomPlayers,
-                              awayTeamNomPlayers:awayTeamNomPlayers,
-                              homeTeamFixturePlayers:homeTeamFixturePlayers,
-                              awayTeamFixturePlayers:awayTeamFixturePlayers
-                            })
+                            const msg = {
+                              to: req.body.email,
+                              from: 'stockport.badders.results@stockport-badminton.co.uk',
+                              subject: 'Website Updated',
+                              text: 'Thanks for sending your scorecard - website updated',
+                              html: '<p>Thanks for sending your scorecard - website updated</p>'
+                            };
+                            sgMail.send(msg)
+                              .then(()=>{
+                                console.log(msg)
+                                res.render('index-scorecard',{
+                                  static_path:'/static',
+                                  theme:process.env.THEME || 'flatly',
+                                  pageTitle : "Scorecard Received - No Errors",
+                                  pageDescription : "Enter some results!",
+                                  scorecardData: gameObject,
+                                  homeTeamNomPlayers:homeTeamNomPlayers,
+                                  awayTeamNomPlayers:awayTeamNomPlayers,
+                                  homeTeamFixturePlayers:homeTeamFixturePlayers,
+                                  awayTeamFixturePlayers:awayTeamFixturePlayers
+                                })
+                              })
+                              .catch(error => {
+                                logger.log(error.toString());
+                                res.send("Sorry something went wrong sending your email - try sending it manually" + error);
+                              })
+                            
                           })
                         })
                       })
@@ -1076,29 +1092,108 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
   }
   else {
       let scorecardUrl = 'https://' + req.headers.host + '/populated-scorecard/'+ req.body.division+'/'+ req.body.homeTeam+'/'+ req.body.awayTeam+'/'+ req.body.homeMan1+'/'+ req.body.homeMan2+'/'+ req.body.homeMan3+'/'+ req.body.homeLady1+'/'+ req.body.homeLady2+'/'+ req.body.homeLady3+'/'+ req.body.awayMan1+'/'+ req.body.awayMan2+'/'+ req.body.awayMan3+'/'+ req.body.awayLady1+'/'+ req.body.awayLady2+'/'+ req.body.awayLady3+'/'+ req.body.Game1homeScore+'/'+ req.body.Game1awayScore+'/'+ req.body.Game2homeScore+'/'+ req.body.Game2awayScore+'/'+ req.body.Game3homeScore+'/'+ req.body.Game3awayScore+'/'+ req.body.Game4homeScore+'/'+ req.body.Game4awayScore+'/'+ req.body.Game5homeScore+'/'+ req.body.Game5awayScore+'/'+ req.body.Game6homeScore+'/'+ req.body.Game6awayScore+'/'+ req.body.Game7homeScore+'/'+ req.body.Game7awayScore+'/'+ req.body.Game8homeScore+'/'+ req.body.Game8awayScore+'/'+ req.body.Game9homeScore+'/'+ req.body.Game9awayScore+'/'+ req.body.Game10homeScore+'/'+ req.body.Game10awayScore+'/'+ req.body.Game11homeScore+'/'+ req.body.Game11awayScore+'/'+ req.body.Game12homeScore+'/'+ req.body.Game12awayScore+'/'+ req.body.Game13homeScore+'/'+ req.body.Game13awayScore+'/'+ req.body.Game14homeScore+'/'+ req.body.Game14awayScore+'/'+ req.body.Game15homeScore+'/'+ req.body.Game15awayScore+'/'+ req.body.Game16homeScore+'/'+ req.body.Game16awayScore+'/'+ req.body.Game17homeScore+'/'+ req.body.Game17awayScore+'/'+ req.body.Game18homeScore+'/'+ req.body.Game18awayScore
-      const msg = {
-        to: 'stockport.badders.results@gmail.com',
-        from: 'stockport.badders.results@stockport-badminton.co.uk',
-        subject: 'scorecard received',
-        text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"] + '\n check the result here:' + scorecardUrl,
-        html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a><br />Check the result here: <a href="'+ scorecardUrl +'">Confirm</a></p>'
-      };
-      sgMail.send(msg)
-        .then(()=>{
-          console.log(msg)
-          res.render('email-scorecard', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle : "Stockport & District Badminton League Scorecard Upload",
-            pageDescription : "Upload your scorecard and send to the website",
-            scorecard:req.body
-          });
-        })
-        .catch(error => {
-          logger.log(error.toString());
-          next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
-        })
+      let scorecardObj = {};
+      scorecardObj.date = req.body.date
+  scorecardObj.division = req.body.division 
+  scorecardObj.homeTeam = req.body.homeTeam 
+  scorecardObj.awayTeam = req.body.awayTeam 
+  scorecardObj.homeMan1 = req.body.homeMan1 
+  scorecardObj.homeMan2 = req.body.homeMan2 
+  scorecardObj.homeMan3 = req.body.homeMan3 
+  scorecardObj.homeLady1 = req.body.homeLady1 
+  scorecardObj.homeLady2 = req.body.homeLady2 
+  scorecardObj.homeLady3 = req.body.homeLady3 
+  scorecardObj.awayMan1 = req.body.awayMan1 
+  scorecardObj.awayMan2 = req.body.awayMan2 
+  scorecardObj.awayMan3 = req.body.awayMan3 
+  scorecardObj.awayLady1 = req.body.awayLady1 
+  scorecardObj.awayLady2 = req.body.awayLady2 
+  scorecardObj.awayLady3 = req.body.awayLady3 
+  scorecardObj.FirstMixedhomeMan1 = req.body.FirstMixedhomeMan1 
+  scorecardObj.SecondMixedhomeMan2 = req.body.SecondMixedhomeMan2 
+  scorecardObj.ThirdMixedhomeMan3 = req.body.ThirdMixedhomeMan3 
+  scorecardObj.FirstMixedhomeLady1 = req.body.FirstMixedhomeLady1 
+  scorecardObj.SecondMixedhomeLady2 = req.body.SecondMixedhomeLady2 
+  scorecardObj.ThirdMixedhomeLady3 = req.body.ThirdMixedhomeLady3 
+  scorecardObj.FirstMixedawayMan1 = req.body.FirstMixedawayMan1 
+  scorecardObj.SecondMixedawayMan2 = req.body.SecondMixedawayMan2 
+  scorecardObj.ThirdMixedawayMan3 = req.body.ThirdMixedawayMan3 
+  scorecardObj.FirstMixedawayLady1 = req.body.FirstMixedawayLady1 
+  scorecardObj.SecondMixedawayLady2 = req.body.SecondMixedawayLady2 
+  scorecardObj.ThirdMixedawayLady3 = req.body.ThirdMixedawayLady3 
+  scorecardObj.Game1homeScore = req.body.Game1homeScore 
+  scorecardObj.Game1awayScore = req.body.Game1awayScore 
+  scorecardObj.Game2homeScore = req.body.Game2homeScore 
+  scorecardObj.Game2awayScore = req.body.Game2awayScore 
+  scorecardObj.Game3homeScore = req.body.Game3homeScore 
+  scorecardObj.Game3awayScore = req.body.Game3awayScore 
+  scorecardObj.Game4homeScore = req.body.Game4homeScore 
+  scorecardObj.Game4awayScore = req.body.Game4awayScore 
+  scorecardObj.Game5homeScore = req.body.Game5homeScore 
+  scorecardObj.Game5awayScore = req.body.Game5awayScore 
+  scorecardObj.Game6homeScore = req.body.Game6homeScore 
+  scorecardObj.Game6awayScore = req.body.Game6awayScore 
+  scorecardObj.Game7homeScore = req.body.Game7homeScore 
+  scorecardObj.Game7awayScore = req.body.Game7awayScore 
+  scorecardObj.Game8homeScore = req.body.Game8homeScore 
+  scorecardObj.Game8awayScore = req.body.Game8awayScore 
+  scorecardObj.Game9homeScore = req.body.Game9homeScore 
+  scorecardObj.Game9awayScore = req.body.Game9awayScore 
+  scorecardObj.Game10homeScore = req.body.Game10homeScore 
+  scorecardObj.Game10awayScore = req.body.Game10awayScore 
+  scorecardObj.Game11homeScore = req.body.Game11homeScore 
+  scorecardObj.Game11awayScore = req.body.Game11awayScore 
+  scorecardObj.Game12homeScore = req.body.Game12homeScore 
+  scorecardObj.Game12awayScore = req.body.Game12awayScore 
+  scorecardObj.Game13homeScore = req.body.Game13homeScore 
+  scorecardObj.Game13awayScore = req.body.Game13awayScore 
+  scorecardObj.Game14homeScore = req.body.Game14homeScore 
+  scorecardObj.Game14awayScore = req.body.Game14awayScore 
+  scorecardObj.Game15homeScore = req.body.Game15homeScore 
+  scorecardObj.Game15awayScore = req.body.Game15awayScore 
+  scorecardObj.Game16homeScore = req.body.Game16homeScore 
+  scorecardObj.Game16awayScore = req.body.Game16awayScore 
+  scorecardObj.Game17homeScore = req.body.Game17homeScore 
+  scorecardObj.Game17awayScore = req.body.Game17awayScore 
+  scorecardObj.Game18homeScore = req.body.Game18homeScore 
+  scorecardObj.Game18awayScore = req.body.Game18awayScore 
+  scorecardObj['scoresheet-url'] = req.body['scoresheet-url']
+  scorecardObj['email'] = req.body['email']
+      Fixture.createScorecard(scorecardObj,function(err,rows){
+        if (err){
+          console.log(err)
+          next(err)
+        }
+        else {
+          console.log(rows);
+          let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            from: 'stockport.badders.results@stockport-badminton.co.uk',
+            subject: 'scorecard received',
+            text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"] + '\n check the result here:' + scorecardUrl,
+            html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a><br />Check the result here: <a href="'+ scorecardUrl +'">Confirm</a> or <a href="'+ scorecardUrlBeta + '">'+ scorecardUrlBeta + '</a></p>'
+          };
+          sgMail.send(msg)
+            .then(()=>{
+              console.log(msg)
+              res.render('email-scorecard', {
+                static_path: '/static',
+                theme: process.env.THEME || 'flatly',
+                flask_debug: process.env.FLASK_DEBUG || 'false',
+                pageTitle : "Stockport & District Badminton League Scorecard Upload",
+                pageDescription : "Upload your scorecard and send to the website",
+                scorecard:req.body
+              });
+            })
+            .catch(error => {
+              logger.log(error.toString());
+              next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
+            })
+
+        }
+      })
+      
     }
     
   }
@@ -1191,72 +1286,78 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
 })
 }
 
-exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
-  //console.log(data);
-  //console.log(data.date);
-  console.log(req.params);
-  let data = req.params;
-  //TODO tidy the chain below up
-  Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
+exports.fixture_populate_scorecard_fromId = function(req,res,next){
+  
+  Fixture.getScorecardById(req.params.id,(err,rows) => {
     if(err){
+      console.log(err);
       next(err)
     }
-        else{
-          // console.log(divisionIdRows)
-          Team.getAllAndSelectedById(data.home_team,data.division,function(err,homeTeamRows){
-            if (err) {
-              next(err)
-            }
+    else{
+      Division.getAllAndSelectedById(1,rows[0].division,function(err,divisionRows){
+        if(err){
+          next(err)
+        }
             else{
-              // console.log(homeTeamRows)
-              Team.getAllAndSelectedById(data.away_team,data.division,function(err,awayTeamRows){
+              // console.log(divisionIdRows)
+              Team.getAllAndSelectedById(rows[0].homeTeam,rows[0].division,function(err,homeTeamRows){
                 if (err) {
                   next(err)
                 }
                 else{
-                  // console.log(awayTeamRows)
-                  Player.getEligiblePlayersAndSelectedById(data.home_man_1,data.home_man_2,data.home_man_3,data.home_team,'Male',function(err,homeMenRows){
-                    if(err){
+                  // console.log(homeTeamRows)
+                  Team.getAllAndSelectedById(rows[0].awayTeam,rows[0].division,function(err,awayTeamRows){
+                    if (err) {
                       next(err)
                     }
                     else{
-                      // console.log(homeMenRows)
-                      Player.getEligiblePlayersAndSelectedById(data.home_lady_1,data.home_lady_2,data.home_lady_3,data.home_team,'Female',function(err,homeLadiesRows){
+                      // console.log(awayTeamRows)
+                      Player.getEligiblePlayersAndSelectedById(rows[0].homeMan1,rows[0].homeMan2,rows[0].homeMan3,rows[0].homeTeam,'Male',function(err,homeMenRows){
                         if(err){
                           next(err)
                         }
                         else{
-                          // console.log(homeLadiesRows)
-                          Player.getEligiblePlayersAndSelectedById(data.away_man_1,data.away_man_2,data.away_man_3,data.away_team,'Male',function(err,awayMenRows){
+                          // console.log(homeMenRows)
+                          Player.getEligiblePlayersAndSelectedById(rows[0].homeLady1,rows[0].homeLady2,rows[0].homeLady3,rows[0].homeTeam,'Female',function(err,homeLadiesRows){
                             if(err){
                               next(err)
                             }
                             else{
-                              // console.log(awayMenRows)
-                              Player.getEligiblePlayersAndSelectedById(data.away_lady_1,data.away_lady_2,data.away_lady_3,data.away_team,'Female',function(err,awayLadiesRows){
+                              // console.log(homeLadiesRows)
+                              Player.getEligiblePlayersAndSelectedById(rows[0].awayMan1,rows[0].awayMan2,rows[0].awayMan3,rows[0].awayTeam,'Male',function(err,awayMenRows){
                                 if(err){
                                   next(err)
                                 }
                                 else{
-                                  // console.log(awayLadiesRows)
-                                  var renderData = {
-                                    "divisionRows":divisionRows,
-                                    "homeTeamRows":homeTeamRows,
-                                    "awayTeamRows":awayTeamRows,
-                                    "homeMenRows":homeMenRows,
-                                    "homeLadiesRows":homeLadiesRows,
-                                    "awayMenRows":awayMenRows,
-                                    "awayLadiesRows":awayLadiesRows
-                                  };
-                                  logger.log(renderData);
-                                  res.render('populated-scorecard', {
-                                      static_path: '/static',
-                                      pageTitle : "Spreadsheet Upload Scorecard",
-                                      pageDescription : "Show result of uploading scorecard",
-                                      result : renderData,
-                                      data : data
-                                  });
-                                }
+                                  // console.log(awayMenRows)
+                                  Player.getEligiblePlayersAndSelectedById(rows[0].awayLady1,rows[0].awayLady2,rows[0].awayLady3,rows[0].awayTeam,'Female',function(err,awayLadiesRows){
+                                    if(err){
+                                      next(err)
+                                    }
+                                    else{
+                                      // console.log(awayLadiesRows)
+                                      var renderData = {
+                                        "divisionRows":divisionRows,
+                                        "homeTeamRows":homeTeamRows,
+                                        "awayTeamRows":awayTeamRows,
+                                        "homeMenRows":homeMenRows,
+                                        "homeLadiesRows":homeLadiesRows,
+                                        "awayMenRows":awayMenRows,
+                                        "awayLadiesRows":awayLadiesRows,
+                                      };
+                                      console.log(renderData);
+                                      logger.log(renderData);
+
+                                      res.render('populated-scorecard', {
+                                          static_path: '/static',
+                                          pageTitle : "Spreadsheet Upload Scorecard",
+                                          pageDescription : "Show result of uploading scorecard",
+                                          result : renderData,
+                                          data : rows[0]
+                                      });
+                                    }
+                                })
+                              }
                             })
                           }
                         })
@@ -1266,12 +1367,98 @@ exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
                 })
               }
             })
+            // console.log(data);
           }
         })
-        // console.log(data);
-      }
-    })
+    }
+  })
+  
+  //TODO tidy the chain below up
+  
   }
+
+  exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
+    //console.log(data);
+    //console.log(data.date);
+    console.log(req.params);
+    
+    let data = req.params;
+    //TODO tidy the chain below up
+    Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
+      if(err){
+        next(err)
+      }
+          else{
+            // console.log(divisionIdRows)
+            Team.getAllAndSelectedById(data.home_team,data.division,function(err,homeTeamRows){
+              if (err) {
+                next(err)
+              }
+              else{
+                // console.log(homeTeamRows)
+                Team.getAllAndSelectedById(data.away_team,data.division,function(err,awayTeamRows){
+                  if (err) {
+                    next(err)
+                  }
+                  else{
+                    // console.log(awayTeamRows)
+                    Player.getEligiblePlayersAndSelectedById(data.home_man_1,data.home_man_2,data.home_man_3,data.home_team,'Male',function(err,homeMenRows){
+                      if(err){
+                        next(err)
+                      }
+                      else{
+                        // console.log(homeMenRows)
+                        Player.getEligiblePlayersAndSelectedById(data.home_lady_1,data.home_lady_2,data.home_lady_3,data.home_team,'Female',function(err,homeLadiesRows){
+                          if(err){
+                            next(err)
+                          }
+                          else{
+                            // console.log(homeLadiesRows)
+                            Player.getEligiblePlayersAndSelectedById(data.away_man_1,data.away_man_2,data.away_man_3,data.away_team,'Male',function(err,awayMenRows){
+                              if(err){
+                                next(err)
+                              }
+                              else{
+                                // console.log(awayMenRows)
+                                Player.getEligiblePlayersAndSelectedById(data.away_lady_1,data.away_lady_2,data.away_lady_3,data.away_team,'Female',function(err,awayLadiesRows){
+                                  if(err){
+                                    next(err)
+                                  }
+                                  else{
+                                    // console.log(awayLadiesRows)
+                                    var renderData = {
+                                      "divisionRows":divisionRows,
+                                      "homeTeamRows":homeTeamRows,
+                                      "awayTeamRows":awayTeamRows,
+                                      "homeMenRows":homeMenRows,
+                                      "homeLadiesRows":homeLadiesRows,
+                                      "awayMenRows":awayMenRows,
+                                      "awayLadiesRows":awayLadiesRows
+                                    };
+                                    logger.log(renderData);
+                                    res.render('populated-scorecard', {
+                                        static_path: '/static',
+                                        pageTitle : "Spreadsheet Upload Scorecard",
+                                        pageDescription : "Show result of uploading scorecard",
+                                        result : renderData,
+                                        data : data
+                                    });
+                                  }
+                              })
+                            }
+                          })
+                        }
+                      })
+                    }
+                  })
+                }
+              })
+            }
+          })
+          // console.log(data);
+        }
+      })
+    }
 
   exports.scorecard_nonmodal = function(req,res){
     Division.getAllByLeague(1,function(err,rows){
@@ -1299,18 +1486,48 @@ exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
     
   }
 
-  exports.email_scorecard = function(req,res){
+  exports.email_scorecard = function(req,res,next){
     Division.getAllByLeague(1,function(err,rows){
-      res.render('email-scorecard',{
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "Scorecard",
-        pageDescription : "Enter some results!",
-        result:rows
-      })
-    })
-    
-  }
+      if(err){
+        next(err)
+      }
+      else{
+        Auth.getManagementAPIKey(function (err,apiKey){
+          if (err){
+            next(err);
+          }
+          else{
+            var options = {
+              method:'GET',
+              headers:{
+                "Authorization":"Bearer "+apiKey
+              },
+              url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+            }
+            //console.log(options);
+            request(options,function(err,response,userBody){
+              //console.log(options);
+              if (err){
+                //console.log(err)
+                return false
+              }
+              else{
+                var user = JSON.parse(userBody);
+                res.render('email-scorecard',{
+                  static_path:'/static',
+                  theme:process.env.THEME || 'flatly',
+                  pageTitle : "Scorecard",
+                  pageDescription : "Enter some results!",
+                  result:rows,
+                  user:user
+                })
+              }
+            })
+          }
+        })
+      }
+  })
+}
 
   exports.scorecard_upload = function(req, res) {
     res.render('beta/scorecard-upload', {
