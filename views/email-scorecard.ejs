@@ -41,6 +41,8 @@
         <% } %>
         <% if (hasScorecard && !hasErrors) { %>
             <p>Thanks for entering your result - the Results Secretary has been emailed and will verify your result soon! Thanks!</p>
+            <img src="<%= scorecard['scoresheet-url'] %>" class="img-fluid" />
+            <a href="<%= scorecard['scoresheet-url'] %>" class="img-fluid"><%= scorecard['scoresheet-url'] %></a>
             <% } %>
         <% if (hasResult && !hasErrors) { %>
         <p>Welcome to results entry. If you have any problems email the results secretary, it's more likely to be something broken than something you did wrong.<br />
@@ -1369,6 +1371,7 @@
     <script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
 
     <script type="text/javascript">
+      
         (() => {
             document.getElementById("scoresheet-spreadsheet").onchange = () => {
                 const files = document.getElementById('scoresheet-spreadsheet').files;
@@ -1380,17 +1383,27 @@
             };
         })();
 
+        window.onerror = function(message, source, lineno, colno, error) {
+          if (error) message = error.stack;
+          gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
+        }
+
         function getSignedRequest(file){
             const xhr = new XMLHttpRequest();
-            console.log(file.name);
-            let filename = Date.now() + file.name
-            console.log(file.name);
+            const name = file.name;
+            const lastDot = name.lastIndexOf('.');
+            const fileName = name.substring(0, lastDot);
+            const ext = name.substring(lastDot + 1);
+            const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text
+            const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text
+            let filename = homeTeam + '-' + awayTeam + '.' + ext
             xhr.open('GET', '/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type));
             xhr.onreadystatechange = () => {
                 if(xhr.readyState === 4){
                 if(xhr.status === 200){
                     const response = JSON.parse(xhr.responseText);
                     uploadFile(file, response.signedRequest, response.url);
+                    console.log(response.url);
                 }
                 else{
                     alert('Could not get signed URL.');
@@ -1420,7 +1433,7 @@
       <% if (hasResult || hasErrors || hasScorecard){ %>
             
       $(".form-group.step-2 input, .form-group.step-3 input").change(function() {
-        console.log($(this).val() + '-' + $(this).attr("id"));
+        // console.log($(this).val() + '-' + $(this).attr("id"));
 
         $("[data-player-type=" + $(this).attr("id") + "]").val($(this).val());
       })
@@ -1477,18 +1490,18 @@
         var selectedPlayerName = $(this)[0].selectedOptions[0].text;
         var selectedPlayerId = $(this)[0].selectedOptions[0].value;
         var selectedPlayer = $(this)[0].id
-        console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
+        // console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
       })
       $(".scoreInput").change(function(){
         var inputScore = $(this)[0]
         var inputScore = $(this)[0]
-        console.log(inputScore.id + '-' + inputScore.value)
+        // console.log(inputScore.id + '-' + inputScore.value)
       })
       $(".playerInput").change(function(){
         var inputPlayerName = $(this)[0].selectedOptions[0].text;
         var inputPlayerId = $(this)[0].selectedOptions[0].value;
         var inputPlayer = $(this)[0].id
-        console.log(inputPlayerName+'-'+inputPlayerId+'-'+inputPlayer);
+        // console.log(inputPlayerName+'-'+inputPlayerId+'-'+inputPlayer);
       })
 
       <% } %>
@@ -1602,15 +1615,15 @@
                 for(var i=0; i< homeScoresArray.length; i++) {
                   matchSummary.homeTeamTotalPoints += (homeScoresArray[i].value)*1;
                   matchSummary.awayTeamTotalPoints += (awayScoresArray[i].value)*1;
-                  console.log(homeScoresArray[i].value)
-                  console.log(awayScoresArray[i].value)
+                  // console.log(homeScoresArray[i].value)
+                  // console.log(awayScoresArray[i].value)
                   if ((homeScoresArray[i].value)*1 > (awayScoresArray[i].value)*1){
                     matchSummary.homeTeamTotalGames++;
                   }
                   else {
                     matchSummary.awayTeamTotalGames++;
                   }
-                  console.log("points: "+matchSummary.homeTeamTotalPoints+"-"+matchSummary.awayTeamTotalPoints+"<br />"+matchSummary.homeTeamTotalGames+"-"+matchSummary.awayTeamTotalGames);
+                  // console.log("points: "+matchSummary.homeTeamTotalPoints+"-"+matchSummary.awayTeamTotalPoints+"<br />"+matchSummary.homeTeamTotalGames+"-"+matchSummary.awayTeamTotalGames);
                 }
                 $('#finalScore')[0].innerHTML = "Points: "+matchSummary.homeTeamTotalPoints+"-"+matchSummary.awayTeamTotalPoints+"<br />Games:"+matchSummary.homeTeamTotalGames+"-"+matchSummary.awayTeamTotalGames
                 $('#homeScore')[0].value = matchSummary.homeTeamTotalGames;
