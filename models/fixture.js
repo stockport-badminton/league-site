@@ -489,7 +489,7 @@ exports.updateByTeamNames = function(updateObj,done){
 }
 
 exports.sendResultZap = function(zapObject,done){
-  if (db.isObject(zapObject) && (zapObject.host !== '127.0.0.1' || typeof zapObject.host === 'undefined')){
+  if (db.isObject(zapObject) && (zapObject.host !== '127.0.0.1:3000' || typeof zapObject.host === 'undefined')){
     var options = {
       method:'POST',
       url:'https://hooks.zapier.com/hooks/catch/3751975/qz5xbm/',
@@ -513,7 +513,7 @@ exports.sendResultZap = function(zapObject,done){
 
     })
   }
-  else if (zapObject.host == '127.0.0.1'){
+  else if (zapObject.host == '127.0.0.1:3000'){
     console.log("zap not sent!");
     return done(null,'test env');
   }
