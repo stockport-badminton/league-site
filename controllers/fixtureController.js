@@ -702,8 +702,8 @@ exports.full_fixture_post = function(req,res){
     
   }
   else {
-    logger.log(req.body);
-    console.log(req.body);
+    // logger.log(req.body);
+    // console.log(req.body);
     Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
         // console.log("getFixtureId sucess")
@@ -713,7 +713,7 @@ exports.full_fixture_post = function(req,res){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        console.log(FixtureIdResult);
+        // console.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -942,6 +942,7 @@ exports.full_fixture_post = function(req,res){
                 Fixture.getFixtureDetailsById(FixtureIdResult[0].id,function(err,getFixtureDetailsResult){
                   if(err) res.send(err)
                   zapObject = {
+                    "host":req.headers.host,
                     "homeTeam":getFixtureDetailsResult[0].homeTeam,
                     "awayTeam":getFixtureDetailsResult[0].awayTeam,
                     "homeScore":getFixtureDetailsResult[0].homeScore,
@@ -964,16 +965,16 @@ exports.full_fixture_post = function(req,res){
                           searchObj.limit = 4
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
                             if (err) res.send(err)
-                            const msg = {
+                            let msg = {
+                              to: (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com'),
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
                               subject: 'Website Updated',
                               text: 'Thanks for sending your scorecard - website updated',
                               html: '<p>Thanks for sending your scorecard - website updated</p>'
                             };
-                            msg.to = (typeof req.body.email !== 'undefined' ? req.body.email : 'stockport.badders.results@gmail.com');
+                            console.log(msg)
                             sgMail.send(msg)
-                              .then(()=>{
-                                console.log(msg)
+                              .then(()=>{                                
                                 res.render('index-scorecard',{
                                   static_path:'/static',
                                   theme:process.env.THEME || 'flatly',
