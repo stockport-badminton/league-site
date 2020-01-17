@@ -965,12 +965,12 @@ exports.full_fixture_post = function(req,res){
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
                             if (err) res.send(err)
                             const msg = {
-                              to: req.body.email,
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
                               subject: 'Website Updated',
                               text: 'Thanks for sending your scorecard - website updated',
                               html: '<p>Thanks for sending your scorecard - website updated</p>'
                             };
+                            msg.to = (typeof req.body.email !== 'undefined' ? req.body.email : 'stockport.badders.results@gmail.com');
                             sgMail.send(msg)
                               .then(()=>{
                                 console.log(msg)
@@ -1248,7 +1248,6 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
                                   next(err)
                                 }
                                 else{
-                                  // console.log(awayLadiesRows)
                                   var renderData = {
                                     "divisionRows":divisionRows,
                                     "divisionIdRows":divisionIdRows,
