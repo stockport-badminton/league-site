@@ -1550,8 +1550,8 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
   }
 
   exports.fixture_reminder_post = function(req,res,next){
+    
     const msg = {
-      to: req.body.email,
       cc: 'stockport.badders.results@gmail.com',
       from: 'stockport.badders.results@stockport-badminton.co.uk',
       templateId:'d-bc4e9fe2b6a4410e838d1ac29e283d30',
@@ -1560,11 +1560,11 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
         "awayTeam":req.body.awayTeam
       }
     };
-
+    msg.to = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : req.body.email);
+    console.log(msg);
     sgMail.send(msg)
     .then(()=>res.send("Message Sent"))
     .catch(error => logger.log(error.toString()));
-
   }
 
   exports.scorecard_received = function(req,res,next){

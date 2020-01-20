@@ -55,8 +55,8 @@ function containsProfanity(value,{req}){
 
 exports.validateContactUs = [
   body('contactEmail').not().isEmpty().withMessage('please enter an Email address').isEmail().withMessage('Please enter a valid email address'),
-  body('contactQuery').not().isEmpty().withMessage('Please enter something in message field.').custom(containsProfanity).withMessage("Please don't use profanity in the message body"),
-  body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
+  body('contactQuery').not().isEmpty().withMessage('Please enter something in message field.').custom(containsProfanity).withMessage("Please don't use profanity in the message body")
+  // body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
 ]
 
 exports.contactus = function(req, res,next){
@@ -95,7 +95,8 @@ exports.contactus = function(req, res,next){
           next(err);
         }
         else {
-          msg.to = rows[0].contactUs;
+          // msg.to = rows[0].contactUs;
+          msg.to = (rows[0].contactUs.indexOf(',') > 0 ? rows[0].contactUs.split(',') : rows[0].contactUs);
           sgMail.send(msg)
             .then(()=>{
               logger.log(msg);
