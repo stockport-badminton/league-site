@@ -969,7 +969,7 @@ exports.full_fixture_post = function(req,res){
                             let msg = {
                               to: (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com'),
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
-                              subject: 'Website Updated',
+                              subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
                               text: 'Thanks for sending your scorecard - website updated',
                               html: '<p>Thanks for sending your scorecard - website updated</p>'
                             };

@@ -497,7 +497,7 @@ exports.sendResultZap = function(zapObject,done){
         'content-type':'application/json'
       },
       body:{
-        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" ##stockport #sdbl #result https://stockport-badminton.co.uk"
+        "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
       },
       json:true
     };
@@ -507,8 +507,28 @@ exports.sendResultZap = function(zapObject,done){
         return done(err);
       }
       else {
-        // console.log(body);
-        return done(null,body)
+        var options = {
+          method:'POST',
+          url:'https://hooks.zapier.com/hooks/catch/3751975/ohrlzmc/',
+          headers:{
+            'content-type':'application/json'
+          },
+          body:{
+            "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
+          },
+          json:true
+        };
+        request(options,function(err,res,body){
+          if(err){
+            // console.log(err)
+            return done(err);
+          }
+          else {
+            // console.log(body);
+            return done(null,body)
+          }
+    
+        })
       }
 
     })
