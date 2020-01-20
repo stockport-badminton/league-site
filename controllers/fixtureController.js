@@ -965,6 +965,7 @@ exports.full_fixture_post = function(req,res){
                           searchObj.limit = 4
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
                             if (err) res.send(err)
+                            console.log("logged in user email:" + req.body.email);
                             let msg = {
                               to: (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com'),
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
