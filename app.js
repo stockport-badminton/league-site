@@ -233,7 +233,7 @@
 
     app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
 
-/*  The below section could be redundant
+// for handling sendgrid parse 
     const multer  = require('multer');
     const upload = multer();
       app.post('/mail', upload.none(), function(req,res){
@@ -242,7 +242,7 @@
         console.log(req.body.subject);
         logger.log(req.body.html);
         res.sendStatus(200);
-    }); */
+    }); 
 
 
     // Scorecard - Results Entry related routes
