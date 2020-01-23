@@ -514,6 +514,7 @@
                         <div class="form-row">
                             <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" /></div>
                             <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
+                            <img src="" id="scoresheet-img" width="200%" />
                         </div>
                     </div>
                 </div>
@@ -1421,6 +1422,8 @@
                 if(xhr.readyState === 4){
                 if(xhr.status === 200){
                     document.getElementById('scoresheet-url').value = url;
+                    document.getElementById('scoresheet-img').src = url;
+
                 }
                 else{
                     console.log(xhr);
