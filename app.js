@@ -603,6 +603,9 @@
     router.get('/', fixture_controller.fixture_get_summary);
 
     /* GET request for list of all Fixture items. */
+    //TODO: filter by club & team
+    //TODO: add calendar exports so that teams can import to calendars
+    //TODO: some sort of notification for rearrangements?
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
 
