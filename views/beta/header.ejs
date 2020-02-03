@@ -18,6 +18,13 @@
     <meta name="theme-color" content="#673ab6"/>
     <meta name="description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
     <meta name="author" content="">
+    <meta property="og:title" content="Stockport &amp; District Badminton League - <%= pageTitle %>">
+    <meta property="og:description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
+    <meta property="og:image" content="<%= static_path %>/beta/images/SDBLLogo.png">
+    <meta property="og:url" content="http://euro-travel-example.com/index.htm">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:site_name" content="Stockport &amp; District Badminton League">
+    <meta name="twitter:image:alt" content="Stockport &amp; District Badminton League">
 
     <title>Stockport &amp; District Badminton League - <%= pageTitle %></title>
 
@@ -25,7 +32,10 @@
 
     <!-- Bootstrap core CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+    <!-- font awesome CSS-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <%- include datatables-css.ejs -%>
+    
     <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/custom.css"/>
 
 
