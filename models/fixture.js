@@ -525,6 +525,40 @@ exports.sendResultZap = function(zapObject,done){
           }
           else {
             // console.log(body);
+            const { createCanvas, loadImage } = require('canvas')
+            const canvas = createCanvas(1080, 1350)
+            const ctx = canvas.getContext('2d')
+            loadImage('static/beta/images/bg/social.png').then((image) => {
+              ctx.drawImage(image, 0,0,1080, 1350)
+              ctx.font = '60px Impact'
+              var text = "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
+              var words = text.split(' ');
+              var line = '';
+              var y = canvas.height/2 + canvas.width/4;
+              var x = (canvas.width - 800)/2;
+              for(var n = 0; n < words.length; n++) {
+                var testLine = line + words[n] + ' ';
+                var metrics = ctx.measureText(testLine);
+                var testWidth = metrics.width;
+                if (testWidth > 800 && n > 0) {
+                  ctx.fillText(line, x, y);
+                  line = words[n] + ' ';
+                  y += 70;
+                }
+                else {
+                  line = testLine;
+                }
+                ctx.fillText(line, x, y);
+              }
+              // ctx.fillText(line, canvas.width/2, canvas.height/2 + canvas.height/4);
+              const fs = require('fs')
+              const out = fs.createWriteStream('static/beta/images/generated/'+ zapObject.homeTeam.replace(' ','-') + zapObject.awayTeam.replace(' ','-') +'.jpg')
+              const stream = canvas.createJPEGStream()
+              stream.pipe(out)
+              out.on('finish', () =>  console.log('The Jpg file was created.'))
+              
+              // console.log('<img src="' + canvas.toDataURL() + '" />')
+            })
             return done(null,body)
           }
     

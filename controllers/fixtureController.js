@@ -967,11 +967,12 @@ exports.full_fixture_post = function(req,res){
                             if (err) res.send(err)
                             console.log("logged in user email:" + req.body.email);
                             let msg = {
-                              to: (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com'),
+                              to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
+                              bcc: 'bigcoops@gmail.com',
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
                               subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
                               text: 'Thanks for sending your scorecard - website updated',
-                              html: '<p>Thanks for sending your scorecard - website updated</p>'
+                              html: '<p>Thanks for sending your scorecard - website updated</p><img src\="http://'+ req.headers.host + '/static/beta/images/generated/'+ zapObject.homeTeam.replace(" ","-") + zapObject.awayTeam.replace(" ","-")+'.jpg" border="0" width="100% />'
                             };
                             console.log(msg)
                             sgMail.send(msg)
