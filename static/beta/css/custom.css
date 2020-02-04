@@ -126,3 +126,9 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
   background: #55ACEE;
   color: white;
 }
+
+/* Instagram */
+.fa-instagram {
+  background: #125688;
+  color: white;
+}
