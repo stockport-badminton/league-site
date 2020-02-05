@@ -971,8 +971,14 @@ exports.full_fixture_post = function(req,res){
                               bcc: 'bigcoops@gmail.com',
                               from: 'stockport.badders.results@stockport-badminton.co.uk',
                               subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
+                              templateId:'d-3089f7556bfe4823a99bcf027ded3014',
+                              dynamic_template_data:{
+                                "homeTeam":zapObject.homeTeam,
+                                "awayTeam":zapObject.awayTeam,
+                                "generatedImage":zapObject.homeTeam.replace(' ','-') + zapObject.awayTeam.replace(' ','-')
+                              },
                               text: 'Thanks for sending your scorecard - website updated',
-                              html: '<p>Thanks for sending your scorecard - website updated</p><img src\="http://'+ req.headers.host + '/static/beta/images/generated/'+ zapObject.homeTeam.replace(" ","-") + zapObject.awayTeam.replace(" ","-")+'.jpg" border="0" width="100% />'
+                              html:'Thanks for sending your scorecard'
                             };
                             console.log(msg)
                             sgMail.send(msg)
