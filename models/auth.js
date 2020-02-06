@@ -1,4 +1,10 @@
 var request = require('request');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+var logger = require('logzio-nodejs').createLogger({
+  token: process.env.LOGZ_SECRET,
+  host: 'listener.logz.io'
+});
 
 exports.getManagementAPIKey = function(done){
   var options = {
@@ -78,7 +84,7 @@ exports.getAPIKey = function(done){
         headers:{
           "Authorization":"Bearer "+apiKey
         },
-        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/'+req.params.userId,
+        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.params.userId,
         body:{
           app_metadata:{
             "betaAccess":true
@@ -86,14 +92,37 @@ exports.getAPIKey = function(done){
         },
         json:true
       }
-      //console.log(options);
+      console.log(options);
       request(options,function(err,response,userBody){
         //console.log(options);
         if (err){
           res.error(err);
         }
-        else{
-          res.send(userBody);
+        else{       
+          const msg = {
+            to: userBody.email,
+            cc:'stockport.badders.results@gmail.com',
+            from: 'stockport.badders.results@stockport-badminton.co.uk',
+            subject: 'Result Entry Access',
+            text: 'Thanks for registering - i\'ve approved your access',
+            html: '<p>Thanks for registering - i\'ve approved your access</p>'
+          };
+          sgMail.send(msg)
+              .then(()=>{
+                console.log(msg)
+                res.render('beta/userapproved',{
+                  static_path:'/static',
+                  theme:process.env.THEME || 'flatly',
+                  pageTitle : "Results Access Approved",
+                  pageDescription : "Results Access Approved",
+                  result:JSON.stringify(userBody)
+                });
+              })
+              .catch(error => {
+                logger.log(error.toString());
+                next("Sorry something went wrong sending your email.");
+              })   
+          
         }
       })
     }
