@@ -66,3 +66,36 @@ exports.getAPIKey = function(done){
   
         })
   }
+
+  exports.grantResultsAccess = function(req,res,next){
+    module.exports.getManagementAPIKey(function(err,apiKey){
+    if (err){
+      next(err);
+    }
+    else{
+      var options = {
+        method:'PATCH',
+        headers:{
+          "Authorization":"Bearer "+apiKey
+        },
+        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/'+req.params.userId,
+        body:{
+          app_metadata:{
+            "betaAccess":true
+          }
+        },
+        json:true
+      }
+      //console.log(options);
+      request(options,function(err,response,userBody){
+        //console.log(options);
+        if (err){
+          res.error(err);
+        }
+        else{
+          res.send(userBody);
+        }
+      })
+    }
+  })
+  }

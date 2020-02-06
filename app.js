@@ -141,6 +141,7 @@
     var static_controller = require(__dirname + '/controllers/staticPagesController');
     var userInViews = require(__dirname + '/models/userInViews');
     var secured = require(__dirname + '/models/secured');
+    var auth_controller = require(__dirname + '/models/auth.js');
 
     app.use(userInViews())
 
@@ -296,6 +297,9 @@
 
     // POST to process input from Auth0 when non-authorised user attempt to use secure pages on the site and email the admin
     // TODO - prevent duplicate emails being sent when an existing user in Auth0 gets bounced out again because they're not authorised still.
+
+    app.post('/approve-user/:userId',auth_controller.grantResultsAccess);
+
     app.post('/new-users',(req,res,next) => {
       console.log("req.query");
       console.log(req.query.user);
