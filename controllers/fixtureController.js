@@ -975,7 +975,7 @@ exports.full_fixture_post = function(req,res){
                               dynamic_template_data:{
                                 "homeTeam":zapObject.homeTeam,
                                 "awayTeam":zapObject.awayTeam,
-                                "generatedImage":zapObject.homeTeam.replace(' ','-') + zapObject.awayTeam.replace(' ','-')
+                                "generatedImage":zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-')
                               },
                               text: 'Thanks for sending your scorecard - website updated',
                               html:'Thanks for sending your scorecard'

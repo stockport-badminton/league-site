@@ -528,7 +528,9 @@ exports.sendResultZap = function(zapObject,done){
             const { createCanvas, loadImage } = require('canvas')
             const canvas = createCanvas(1080, 1350)
             const ctx = canvas.getContext('2d')
-            loadImage('static/beta/images/bg/social.png').then((image) => {
+            baseImages = ['social.png','social2.jpg','social3.jpg','social3.jpg',]
+
+            loadImage('static/beta/images/bg/' + baseImages[Math.floor(Math.random() * 4)]).then((image) => {
               ctx.drawImage(image, 0,0,1080, 1350)
               ctx.font = '60px Impact'
               var text = "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
@@ -552,7 +554,7 @@ exports.sendResultZap = function(zapObject,done){
               }
               // ctx.fillText(line, canvas.width/2, canvas.height/2 + canvas.height/4);
               const fs = require('fs')
-              const out = fs.createWriteStream('static/beta/images/generated/'+ zapObject.homeTeam.replace(' ','-') + zapObject.awayTeam.replace(' ','-') +'.jpg')
+              const out = fs.createWriteStream('static/beta/images/generated/'+ zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-') +'.jpg')
               const stream = canvas.createJPEGStream()
               stream.pipe(out)
               out.on('finish', () =>  console.log('The Jpg file was created.'))
