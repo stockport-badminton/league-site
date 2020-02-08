@@ -964,46 +964,52 @@ exports.full_fixture_post = function(req,res){
                           searchObj.team = getFixtureDetailsResult[0].awayTeam
                           searchObj.limit = 4
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
-                            if (err) res.send(err)
-                            console.log("logged in user email:" + req.body.email);
-                            let msg = {
-                              to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
-                              bcc: 'bigcoops@gmail.com',
-                              from: 'stockport.badders.results@stockport-badminton.co.uk',
-                              subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
-                              templateId:'d-3089f7556bfe4823a99bcf027ded3014',
-                              dynamic_template_data:{
+                            if (err) res.send(err);
+                            Player.getMatchStats(FixtureIdResult[0].id,function(err,matchStats){
+                              if (err) res.send(err);                              
+                              const ejs = require('ejs');
+                              var emailData = {                                
                                 "homeTeam":zapObject.homeTeam,
                                 "awayTeam":zapObject.awayTeam,
-                                "generatedImage":zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-')
-                              },
-                              text: 'Thanks for sending your scorecard - website updated',
-                              html:'Thanks for sending your scorecard'
-                            };
-                            console.log(msg)
-                            sgMail.send(msg)
-                              .then(()=>{                                
-                                res.render('index-scorecard',{
-                                  static_path:'/static',
-                                  theme:process.env.THEME || 'flatly',
-                                  pageTitle : "Scorecard Received - No Errors",
-                                  pageDescription : "Enter some results!",
-                                  scorecardData: gameObject,
-                                  homeTeamNomPlayers:homeTeamNomPlayers,
-                                  awayTeamNomPlayers:awayTeamNomPlayers,
-                                  homeTeamFixturePlayers:homeTeamFixturePlayers,
-                                  awayTeamFixturePlayers:awayTeamFixturePlayers
+                                "generatedImage":zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-'),
+                                "matchStats":matchStats[1]
+                              }
+                              // console.log(emailData);
+                              ejs.renderFile('views/emails/websiteUpdated.ejs', {data:emailData}, {debug:true}, function(err, str){
+                                if (err) console.log(err);
+                                console.log("logged in user email:" + req.body.email);
+                                const msg = {
+                                  to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
+                                  bcc: 'bigcoops@gmail.com',
+                                  from: 'stockport.badders.results@stockport-badminton.co.uk',
+                                  subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
+                                  text: 'Thanks for sending your scorecard - website updated',
+                                  html:str
+                                };
+                                // console.log(msg)
+                                sgMail.send(msg)
+                                .then(()=>{                                
+                                  res.render('index-scorecard',{
+                                    static_path:'/static',
+                                    theme:process.env.THEME || 'flatly',
+                                    pageTitle : "Scorecard Received - No Errors",
+                                    pageDescription : "Enter some results!",
+                                    scorecardData: gameObject,
+                                    homeTeamNomPlayers:homeTeamNomPlayers,
+                                    awayTeamNomPlayers:awayTeamNomPlayers,
+                                    homeTeamFixturePlayers:homeTeamFixturePlayers,
+                                    awayTeamFixturePlayers:awayTeamFixturePlayers
+                                  })
                                 })
-                              })
-                              .catch(error => {
-                                logger.log(error.toString());
-                                res.send("Sorry something went wrong sending your email - try sending it manually" + error);
-                              })
-                            
+                                .catch(error => {
+                                  logger.log(error.toString());
+                                  res.send("Sorry something went wrong sending your email - try sending it manually" + error);
+                                })
+                              });   
+                            })
                           })
                         })
                       })
-
                     })
                   })
                 })

@@ -96,6 +96,14 @@ exports.getNominatedPlayers = function(teamName,done){
   })
 }
 
+exports.getMatchStats = function(fixtureId,done){
+  db.get().query("set @fixtureId = ?; select concat(player.first_name,' ',player.family_name) as name, team.name as teamName ,b.avgPtsFor,b.avgPtsAgainst,gamesWon from (select playerId, avg(ptsFor) as avgPtsFor, avg(ptsAgainst) as avgPtsAgainst, sum(won) as gamesWon from (SELECT homePlayer1 as playerId, homeScore as ptsFor, awayScore as ptsAgainst, CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId union all SELECT homePlayer2 as playerId, homeScore as ptsFor, awayScore as ptsAgainst, CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId union all SELECT awayPlayer1 as playerId, awayScore as ptsFor, homeScore as ptsAgainst, CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId union all SELECT awayPlayer2 as playerId, awayScore as ptsFor, homeScore as ptsAgainst, CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId) as a group by playerId) as b join player on b.playerId = player.id join team on player.team = team.id order by teamName, gamesWon desc, avgPtsAgainst asc",fixtureId,function(err,rows){
+    console.log(this.sql)
+    if (err) return done(err);
+    done (null,rows)
+  })
+}
+
 
 
 
