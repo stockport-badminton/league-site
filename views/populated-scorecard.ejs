@@ -599,6 +599,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="FirstMixedhomeLady1" data-player-type="homeLady1" name="FirstMixedhomeLady1" placeholder="Home Lady 1">
                      <% result.homeLadiesRows.forEach(function(row){ 
@@ -615,6 +617,8 @@
                      <% } %>
                       
                     <% }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-group step-10 FirstMixed">
@@ -626,6 +630,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="FirstMixedawayLady1" data-player-type="awayLady1" name="FirstMixedawayLady1" placeholder="Away Lady 1">
                     <% result.awayLadiesRows.forEach(function(row){                       
@@ -634,6 +640,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-row">
@@ -670,6 +678,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="SecondMixedhomeLady2" data-player-type="homeLady2" name="SecondMixedhomeLady2" placeholder="Home Lady 2">
                     <% result.homeLadiesRows.forEach(function(row){                       
@@ -678,6 +688,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-group step-11 SecondMixed">
@@ -689,6 +701,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="SecondMixedawayLady2" data-player-type="awayLady2" name="SecondMixedawayLady2" placeholder="Away Lady 2">
                     <% result.awayLadiesRows.forEach(function(row){                       
@@ -697,6 +711,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-row">
@@ -728,6 +744,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="ThirdMixedhomeLady3" data-player-type="homeLady3" name="ThirdMixedhomeLady3" placeholder="Home Lady 3">
                     <% result.homeLadiesRows.forEach(function(row){                       
@@ -736,6 +754,8 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-group step-12 ThirdMixed">
@@ -744,9 +764,11 @@
                     <% result.awayMenRows.forEach(function(row){                       
                        if (row.id == data.awayMan1 || row.id == data.awayMan2 || row.id == data.awayMan3){
                         var selected = (row.id == data.ThirdMixedawayMan3 ? " selected" : ""); %>
-                        <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
+                        <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                      <% }                       
                      }) %>
+                      <option value="0">No Player Home Team</option>
+                      <option value="0">No Player Away Team</option>                                              
                    </select>
                    <select class="form-control playerInput" id="ThirdMixedawayLady3" data-player-type="awayLady3" name="ThirdMixedawayLady3" placeholder="Away Lady 3">
                     <% result.awayLadiesRows.forEach(function(row){                       
@@ -755,6 +777,9 @@
                         <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>                                              
                      <% }                       
                      }) %>
+
+                        <option value="0">No Player Home Team</option>
+                        <option value="0">No Player Away Team</option>                                              
                    </select>
                  </div>
                  <div class="form-row">
