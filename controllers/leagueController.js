@@ -86,7 +86,8 @@ exports.league_table = function(req,res,next) {
              pageDescription : "Find out how your teams are peforming this season",
              division : req.params.division.replace('-',' '),
              result : result,
-             error : err
+             error : err,
+             season:req.params.season
          });
       }
     })
@@ -108,7 +109,8 @@ exports.all_league_tables = function(req,res,next) {
              flask_debug: process.env.FLASK_DEBUG || 'false',
              pageTitle : "League Tables",
              pageDescription : "Find out how your teams are peforming this season",
-             result : result
+             result : result,
+             season:req.params.season
          });
       }
     })
