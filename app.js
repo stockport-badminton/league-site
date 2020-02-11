@@ -303,6 +303,7 @@
     app.post('/new-users',(req,res,next) => {
       console.log("req.query");
       console.log(req.query.user);
+      console.log(req.query.id);
       // console.log("req.params");
       // console.log(req.params);
       const msg = {
