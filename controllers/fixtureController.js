@@ -220,9 +220,10 @@ exports.fixture_outstanding_post = function(req, res,next) {
   var reqBody = {
     "homeScore":1*(req.body.homeTeamScore),
     "awayScore":18-req.body.homeTeamScore,
-    "status":"completed"
+    "status":"complete"
   }
-  // res.send(req.body)
+  console.log("short result body");
+  console.log(req.body);
   Fixture.updateById(reqBody,req.body.outstandingResults,function(err,row){
     if (err){
       next(err);
@@ -232,7 +233,8 @@ exports.fixture_outstanding_post = function(req, res,next) {
         "homeTeam":req.body.homeTeamName,
         "awayTeam":req.body.awayTeamName,
         "homeScore":1*(req.body.homeTeamScore),
-        "awayScore":1*(req.body.awayTeamScore)
+        "awayScore":1*(req.body.awayTeamScore),
+        "division":"Premier"
       }
       Fixture.sendResultZap(zapObject,function(err,zapRes){
         if(err) {next(err)}
@@ -618,7 +620,7 @@ exports.full_fixture_post = function(req,res){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        // console.log(FixtureIdResult);
+        console.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -851,7 +853,8 @@ exports.full_fixture_post = function(req,res){
                     "homeTeam":getFixtureDetailsResult[0].homeTeam,
                     "awayTeam":getFixtureDetailsResult[0].awayTeam,
                     "homeScore":getFixtureDetailsResult[0].homeScore,
-                    "awayScore":getFixtureDetailsResult[0].awayScore
+                    "awayScore":getFixtureDetailsResult[0].awayScore,
+                    "division":FixtureIdResult[0].name
                    }
                   // console.log(zapObject)
                   Fixture.sendResultZap(zapObject,function(err,zapRes){

@@ -1,0 +1,145 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+
+
+    <h1>Player Stats</h1>
+    <div class="row col-12">
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Season
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="/player-stats">Current</a>
+            <a class="dropdown-item" href="/pair-stats/20182019">2018-2019</a>
+          </div>
+      </div>
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Division
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+              <a class="dropdown-item" href="/player-stats">All</a>
+              <a class="dropdown-item" href="/pair-stats/division-7">Prem</a>
+              <a class="dropdown-item" href="/pair-stats/division-8">Division 1</a>
+              <a class="dropdown-item" href="/pair-stats/division-9">Division 2</a>
+              <a class="dropdown-item" href="/pair-stats/division-10">Division 2</a>
+              <a class="dropdown-item" href="/pair-stats/division-11">Division 3</a>
+            </div>
+      </div>
+      <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Type
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="/player-stats">All</a>
+            <a class="dropdown-item" href="/pair-stats/game-Mens">Mens</a>
+            <a class="dropdown-item" href="/pair-stats/game-Ladies">Ladies</a>
+            <a class="dropdown-item" href="/pair-stats/game-Mixed">Mixed</a>
+          </div>
+      </div>     
+    </div>
+    <div class="table-responsive">
+    <table class="table" id="results-table">
+      <thead>
+        <tr>
+          <th>Pairing</th>
+          <th>Team</th>
+          <th>Club</th>
+          <th>Aces For</th>
+          <th>Aces Against</th>
+          <th>Games Played</th>
+          <th>Games Won</th>
+          <th>Games Won / Match</th>
+          <th>Pts For / Game</th>
+          <th>Pts Against / Game</th>
+        </tr>
+      </thead>
+      <tbody>
+    <% result.forEach(function(row){ %>
+
+
+      <tr>
+
+          <td><%= row['Pairing'] %></td>
+          <td><%= row['teamName'] %></td>
+          <td><%= row['clubName'] %></td>
+          <td><%= row['forPoints'] %></td>
+          <td><%= row['againstPoints'] %></td>
+          <td><%= row['gamesPlayed'] %></td>
+          <td><%= row['gamesWon'] %></td>
+          <%
+          var n = row['gamesWon']/(row['gamesPlayed'] / 6);
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%= n %></td>
+          <%
+          n = row['forPoints'] / row['gamesPlayed'];
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%=  n %></td>
+          <%
+          n = row['againstPoints'] / row['gamesPlayed'];
+          if(Number.isNaN(n)){
+            var n = 0;
+          }
+          else{
+            if (!(Number.isInteger(n))){
+              n = n.toFixed(1);
+            }
+          }
+          %>
+          <td><%= n %></td>
+      </tr>
+    <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+
+
+
+<%- include('footer.ejs') %>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jq-3.3.1/dt-1.10.20/b-1.6.1/b-colvis-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/date-euro.js"></script>
+
+<script type="text/javascript">
+  $(document).ready( function () {
+    $('#results-table thead tr').clone(true).appendTo( '#results-table thead' );
+    $('#results-table thead tr:eq(1) th').each( function (i) {
+        var title = $(this).text();
+        $(this).html( '<input type="text" placeholder="Search '+title+'" />' );
+ 
+        $( 'input', this ).on( 'keyup change', function () {
+            if ( table.column(i).search() !== this.value ) {
+                table
+                    .column(i)
+                    .search( this.value )
+                    .draw();
+            }
+        } );
+    } );
+ 
+    var table = $('#results-table').DataTable( {
+        orderCellsTop: true,
+        fixedHeader: true
+    } );
+  } );
+</script>
+
+</body>
+</html>

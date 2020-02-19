@@ -398,9 +398,12 @@ exports.getFixtureId = function(obj,done){
   }
 }
 
+
+
 exports.getOutstandingFixtureId = function(obj,done){
   if(db.isObject(obj)){
-    var sql = 'select id from (select fixture.id, homeTeam, awayTeam, status from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
+    // var sql = 'select id from (select fixture.id, homeTeam, awayTeam, status from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
+    var sql = 'select a.id, division.name from (SELECT id, homeTeam FROM (SELECT fixture.id, homeTeam, awayTeam, status FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate) AS a WHERE awayTeam = ? AND homeTeam = ? AND status = "outstanding") as a join team on a.homeTeam = team.id join division on team.division = division.id';
     // console.log(obj);
     db.get().query(sql,[SEASON,obj.awayTeam, obj.homeTeam],function(err,result){
       console.log(this.sql);
@@ -506,47 +509,62 @@ exports.sendResultZap = function(zapObject,done){
         // console.log(err)
         return done(err);
       }
-      else {
-          // console.log(body);
+      else { 
+          // console.log(body); 
           const { createCanvas, loadImage } = require('canvas')
           const canvas = createCanvas(1080, 1350)
           const ctx = canvas.getContext('2d')
-          baseImages = ['social.png','social2.jpg','social3.jpg','social3.jpg',]
-
-          loadImage('static/beta/images/bg/' + baseImages[Math.floor(Math.random() * 4)]).then((image) => {
+          console.log(zapObject);
+          baseImages = ['social.png','social2.jpg','social3.jpg','social3.jpg']
+          loadImage('static/beta/images/bg/social-'+zapObject.division.replace(/([\s]{1,})/g,'-')+'.png').then((image) => {
             ctx.drawImage(image, 0,0,1080, 1350)
-            ctx.font = '60px Impact'
-            var text = "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
+            ctx.font = 'bold 60px Arial'
+            ctx.fillStyle = 'White'
+            ctx.textAlign = 'right'
+            var text = "Result: "+zapObject.homeTeam+" vs <br> "+zapObject.awayTeam+" <br> "+zapObject.homeScore+"-"+zapObject.awayScore+" <br> #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
             var words = text.split(' ');
             var line = '';
             var y = canvas.height/2 + canvas.width/4;
-            var x = (canvas.width - 800)/2;
+            var x = (canvas.width - 100);
+            var lineHeight = 80;
             for(var n = 0; n < words.length; n++) {
-              var testLine = line + words[n] + ' ';
-              var metrics = ctx.measureText(testLine);
-              var testWidth = metrics.width;
-              if (testWidth > 800 && n > 0) {
+              if (line.indexOf('#') > -1 || line.indexOf('http') > -1){
+                ctx.font = 'normal 30px Arial';
+                lineHeight = 40;
+              }
+              if (words[n] == '<br>'){
                 ctx.fillText(line, x, y);
-                line = words[n] + ' ';
-                y += 70;
+                line = '';
+                y += lineHeight;
               }
               else {
-                line = testLine;
+                var testLine = line + words[n] + ' ';
+                var metrics = ctx.measureText(testLine);
+                var testWidth = metrics.width;
+                if (testWidth > 900 && n > 0) {
+                  ctx.fillText(line, x, y);
+                  line = words[n] + ' ';
+                  y += lineHeight;
+                }
+                else {
+                  line = testLine;
+                }
               }
-              ctx.fillText(line, x, y);
             }
-            // ctx.fillText(line, canvas.width/2, canvas.height/2 + canvas.height/4);
+            ctx.fillText(line, x, y);
             const fs = require('fs')
             const out = fs.createWriteStream('static/beta/images/generated/'+ zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-') +'.jpg')
             const stream = canvas.createJPEGStream()
             stream.pipe(out)
             out.on('finish', () =>  console.log('The Jpg file was created.'))
+          })
             
             // console.log('<img src="' + canvas.toDataURL() + '" />')
-          })
+          
           return done(null,body)
+          //return done(null)
         }
-    })
+     })
   }
   else if (zapObject.host == '127.0.0.1:3000'){
     console.log("zap not sent!");
@@ -573,6 +591,7 @@ exports.updateById = function(fixtureObj,fixtureId,done){
     // console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
     db.get().query(sql,updateArrayVars, function (err, rows){
+      console.log(this.sql);
       if (err) return done(err);
       // console.log(rows);
       return done(null,rows);

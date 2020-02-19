@@ -116,6 +116,24 @@ exports.all_player_stats = function (req, res,next){
   })
 }
 
+exports.all_pair_stats = function (req, res,next){
+  Player.getPairStats(req.params,function(err,result){
+    if (err){
+      return next(err)
+    }
+    else {
+      res.render('beta/pair-stats', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Pair Stats",
+           pageDescription : "Geek out on Stockport League Player stats!",
+           result : result
+       });
+    }
+  })
+}
+
 // Display Player create form on GET
 exports.player_create_get = function(req, res, next) {
   async.parallel({

@@ -126,6 +126,8 @@
       done(null, user);
     });
 
+    
+
 
     // Require controller modules
     var venue_controller = require(__dirname + '/controllers/venueController');
@@ -366,6 +368,7 @@
     router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 
     /* player stats routes and filters. */
+
     router.get('/player-stats/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
     router.get('/player-stats/game-:gameType?/division-:divisionId?', player_controller.all_player_stats);
     router.get('/player-stats/division-:divisionId?', player_controller.all_player_stats);
@@ -382,6 +385,25 @@
     router.get('/player-stats/:season?/division-:divisionId?', player_controller.all_player_stats);
     router.get('/player-stats/:season?/game-:gameType?', player_controller.all_player_stats);
     router.get('/player-stats/:season?', player_controller.all_player_stats);
+
+    router.get('/pair-stats/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/game-:gameType?/division-:divisionId?', player_controller.all_pair_stats);
+    router.get('/pair-stats/division-:divisionId?', player_controller.all_pair_stats);
+    router.get('/pair-stats/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/club-:club?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/club-:club?/division-:divisionId?', player_controller.all_pair_stats);
+    router.get('/pair-stats/club-:club?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/club-:club?', player_controller.all_pair_stats);
+    router.get('/pair-stats/team-:team?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/team-:team?/division-:divisionId?', player_controller.all_pair_stats);
+    router.get('/pair-stats/team-:team?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/team-:team?', player_controller.all_pair_stats);
+    router.get('/pair-stats/:season?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/:season?/division-:divisionId?', player_controller.all_pair_stats);
+    router.get('/pair-stats/:season?/game-:gameType?', player_controller.all_pair_stats);
+    router.get('/pair-stats/:season?', player_controller.all_pair_stats);
+
+    router.get('/pair-stats', player_controller.all_pair_stats);
 
     /* GET request for one Player. */
     router.get('/player-stats', player_controller.all_player_stats);
