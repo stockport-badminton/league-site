@@ -313,7 +313,7 @@
         from: 'stockport.badders.results@stockport-badminton.co.uk',
         subject: 'new user signup',
         text: 'a new user has signed up: ' + req.query.user,
-        html: '<p>a new user has signed up: '+ req.query.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/'+req.query.id+'">Approve?</a></p>'
+        html: '<p>a new user has signed up: '+ req.query.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/auth0|'+req.query.id+'">Approve?</a></p>'
       };
       sgMail.send(msg)
           .then(()=>{
