@@ -501,7 +501,7 @@ exports.sendResultZap = function(zapObject,done){
       },
       body:{
         "message" : "Result: "+zapObject.homeTeam+" vs "+zapObject.awayTeam+" : "+zapObject.homeScore+"-"+zapObject.awayScore+" #stockport #badminton #sdbl #result https://stockport-badminton.co.uk",
-        "imgUrl":"https://stockport-badminton.co.uk/static/bets/images/generated/"+ zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-') +".jpg"
+        "imgUrl":"https://stockport-badminton.co.uk/static/beta/images/generated/"+ zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-') +".jpg"
       },
       json:true
     };
