@@ -19,6 +19,7 @@
       token: process.env.LOGZ_SECRET,
       host: 'listener.logz.io'
     });
+    const compression = require ('compression');
 
     if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
       throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
@@ -50,6 +51,7 @@
     });
 
     var app = express();
+    app.use(compression());
     app.use('/static', express.static(path.join(__dirname,'/static')));
     app.use('/scripts', express.static(__dirname + '/node_modules/'));
 
