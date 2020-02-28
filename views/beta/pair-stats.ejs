@@ -50,7 +50,7 @@
           <th>Aces Against</th>
           <th>Games Played</th>
           <th>Games Won</th>
-          <th>Games Won / Match</th>
+          <th>Games Won / Match (%)</th>
           <th>Pts For / Game</th>
           <th>Pts Against / Game</th>
         </tr>
@@ -69,7 +69,7 @@
           <td><%= row['gamesPlayed'] %></td>
           <td><%= row['gamesWon'] %></td>
           <%
-          var n = row['gamesWon']/(row['gamesPlayed'] / 6);
+          var n = (row['gamesWon']/row['gamesPlayed']) * 100;
           if(Number.isNaN(n)){
             var n = 0;
           }
