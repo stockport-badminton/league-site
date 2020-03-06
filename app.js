@@ -26,6 +26,8 @@
     }
 
     const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+    
+    
    
     // Authentication middleware. When used, the
     // Access Token must exist and be verified against
@@ -159,6 +161,10 @@
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
     })
 
+    const { createCanvas, loadImage } = require('canvas')
+    const canvas = createCanvas(1080, 1350)
+    const ctx = canvas.getContext('2d')
+    
     app.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
       loadImage('static/beta/images/bg/social-'+ req.params.division +'.png').then((image) => {
         ctx.drawImage(image, 0,0,1080, 1350)
