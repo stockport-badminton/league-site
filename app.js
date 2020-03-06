@@ -26,8 +26,7 @@
     }
 
     const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
-    
-
+   
     // Authentication middleware. When used, the
     // Access Token must exist and be verified against
     // the Auth0 JSON Web Key Set
@@ -158,6 +157,63 @@
     app.get('/chooseUser',function(req,res,next){
       console.log(req.query.state)
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
+    })
+
+    app.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
+      loadImage('static/beta/images/bg/social-'+ req.params.division +'.png').then((image) => {
+        ctx.drawImage(image, 0,0,1080, 1350)
+        ctx.font = 'bold 60px Arial'
+        ctx.fillStyle = 'White'
+        ctx.textAlign = 'right'
+        var text = "Result: "+ req.params.homeTeam +" vs <br> "+ req.params.awayTeam +" <br> "+ req.params.homeScore +"-"+ req.params.awayScore +" <br> #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
+        var words = text.split(' ');
+        var line = '';
+        var y = canvas.height/2 + canvas.width/4;
+        var x = (canvas.width - 100);
+        var lineHeight = 80;
+        for(var n = 0; n < words.length; n++) {
+          if (line.indexOf('#') > -1 || line.indexOf('http') > -1){
+            ctx.font = 'normal 30px Arial';
+            lineHeight = 40;
+          }
+          if (words[n] == '<br>'){
+            ctx.fillText(line, x, y);
+            line = '';
+            y += lineHeight;
+          }
+          else {
+            var testLine = line + words[n] + ' ';
+            var metrics = ctx.measureText(testLine);
+            var testWidth = metrics.width;
+            if (testWidth > 900 && n > 0) {
+              ctx.fillText(line, x, y);
+              line = words[n] + ' ';
+              y += lineHeight;
+            }
+            else {
+              line = testLine;
+            }
+          }
+        }
+        ctx.fillText(line, x, y);
+        /*const fs = require('fs')
+        const out = fs.createWriteStream('static/beta/images/generated/'+req.params.homeTeam.replace(/([\s]{1,})/g,'-')+req.params.awayTeam.replace(/([\s]{1,})/g,'-')+'.jpg')
+        const stream = canvas.createJPEGStream()
+        stream.pipe(out)
+        out.on('finish', () =>  {
+          console.log('The Jpg file was created.')
+          res.render('beta/resultImage', {
+            static_path:'/static',
+            theme:process.env.THEME || 'flatly',
+            pageTitle : "Result Image",
+            pageDescription : "Result Image",
+            result:canvas.toDataURL()
+          });*/
+          const buffer = canvas.toBuffer("image/jpeg");
+          res.write(buffer);
+        /* }
+          ) */
+      })
     })
 
     // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
