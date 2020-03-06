@@ -164,9 +164,9 @@
     const { createCanvas, loadImage } = require('canvas')
     const canvas = createCanvas(1080, 1350)
     const ctx = canvas.getContext('2d')
-    
+
     app.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
-      loadImage('static/beta/images/bg/social-'+ req.params.division +'.png').then((image) => {
+      loadImage('static/beta/images/bg/social-'+ req.params.division.replace(/([\s]{1,})/g,'-') +'.png').then((image) => {
         ctx.drawImage(image, 0,0,1080, 1350)
         ctx.font = 'bold 60px Arial'
         ctx.fillStyle = 'White'

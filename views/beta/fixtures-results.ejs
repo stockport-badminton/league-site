@@ -81,7 +81,8 @@
           <td><%= row['homeTeam'] %></td>
           <td><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){ %>
-          <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %></td>
+          <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
+          <br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a></td>
           <% }
           else { %>
            <td><%= resultValue %></td>

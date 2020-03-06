@@ -240,7 +240,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     console.log("no club name");
   }
   else {
-    searchTerms.push('(d.homeClubName = ? OR d.awayClubName = ?)');
+    searchTerms.push('(e.homeClubName = ? OR e.awayClubName = ?)');
     sqlArray.push(fixtureObj.club);
     sqlArray.push(fixtureObj.club);
   }
@@ -248,7 +248,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     console.log("no team name");
   }
   else {
-    searchTerms.push('(d.homeTeam = ? OR d.awayTeam = ?)');
+    searchTerms.push('(e.homeTeam = ? OR e.awayTeam = ?)');
     sqlArray.push(fixtureObj.team);
     sqlArray.push(fixtureObj.team);
   }
@@ -261,11 +261,11 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   }
   if (!fixtureObj.season){
     console.log("no season");
-    searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
+    searchTerms.push('season.name = ? AND e.date > season.startDate AND e.date < season.endDate');
     sqlArray.push(SEASON);
   }
   else {
-    searchTerms.push('season.name = ? AND d.date > season.startDate AND d.date < season.endDate');
+    searchTerms.push('season.name = ? AND e.date > season.startDate AND e.date < season.endDate');
     sqlArray.push(fixtureObj.season);
     seasonName = fixtureObj.season + ' as team'
     clubSeasonName = fixtureObj.season + ' as club'
@@ -285,8 +285,8 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     var seasonName = season + ' as team'
   } */
 
-  db.get().query('SELECT d.* FROM (SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS awayTeam, team.club AS awayClub, team.division FROM (SELECT team.name AS homeTeam, team.club AS homeClub, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam AS awayTeamId, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeamId) AS b JOIN club'+clubSeasonName+' WHERE club.id = b.homeClub) AS c JOIN club'+clubSeasonName+' WHERE club.id = c.awayClub) AS d JOIN season'+ conditions +' ORDER BY d.date',sqlArray, function (err, result){
-      // console.log(this.sql)
+  db.get().query('select e.* from ( SELECT d.*, division.name as divisionName FROM ( SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS awayTeam, team.club AS awayClub, team.division FROM (SELECT team.name AS homeTeam, team.club AS homeClub, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam AS awayTeamId, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeamId) AS b JOIN club'+clubSeasonName+' WHERE club.id = b.homeClub) AS c JOIN club'+clubSeasonName+' WHERE club.id = c.awayClub) AS d join division on division.id = d.division) as e JOIN season'+ conditions +' ORDER BY e.date',sqlArray, function (err, result){
+      console.log(this.sql)
       if (err) {
         //console.log(this.sql)
         return done(err);
