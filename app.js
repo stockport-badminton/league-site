@@ -202,23 +202,8 @@
           }
         }
         ctx.fillText(line, x, y);
-        /*const fs = require('fs')
-        const out = fs.createWriteStream('static/beta/images/generated/'+req.params.homeTeam.replace(/([\s]{1,})/g,'-')+req.params.awayTeam.replace(/([\s]{1,})/g,'-')+'.jpg')
-        const stream = canvas.createJPEGStream()
-        stream.pipe(out)
-        out.on('finish', () =>  {
-          console.log('The Jpg file was created.')
-          res.render('beta/resultImage', {
-            static_path:'/static',
-            theme:process.env.THEME || 'flatly',
-            pageTitle : "Result Image",
-            pageDescription : "Result Image",
-            result:canvas.toDataURL()
-          });*/
           const buffer = canvas.toBuffer("image/jpeg");
           res.write(buffer);
-        /* }
-          ) */
       })
     })
 
@@ -367,9 +352,9 @@
     app.get('/approve-user/:userId',auth_controller.grantResultsAccess);
 
     app.post('/new-users',(req,res,next) => {
-      console.log("req.query");
-      console.log(req.query.user);
-      console.log(req.query.id);
+      console.log("req.query.user:"+req.query.user);
+      console.log("req.query.id:"+req.query.id);
+      console.log("req.query.id.length:"+req.query.id.length);
       // console.log("req.params");
       // console.log(req.params);
       const msg = {
@@ -379,7 +364,8 @@
         text: 'a new user has signed up: ' + req.query.user,
         html: '<p>a new user has signed up: '+ req.query.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/auth0|'+req.query.id+'">Approve?</a></p>'
       };
-      sgMail.send(msg)
+      if (typeof req.query.id != 'undefined' && req.query.id.length > 3 && req.query.id != 'undefined'){
+        sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
             console.log(msg)
@@ -389,6 +375,12 @@
             logger.log(error.toString());
             next("Sorry something went wrong sending your email.");
           })
+      }
+      else{
+        res.sendStatus(200);
+        console.log('userid undefined');
+      }
+      
     })
 
     /* contact us routes */
