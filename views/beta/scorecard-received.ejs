@@ -1,8 +1,7 @@
 <%- include('header.ejs') %>
 <%- include('nav.ejs') %>
 
-<h1>Scorecard Received</h1>
-<p>This is just a dummy page to show the values entered</p>
+
 <% if (typeof result !== 'undefined') { %>
 <pre><%=  result %></pre>
 <%
@@ -23,12 +22,23 @@
 %>
 
 
-<% if (typeof scorecard !== 'undefined') {
+<% if (typeof scorecard !== 'undefined' && typeof admin !== undefined) {
   %>
+  <h1>Scorecard Received</h1>
   <pre><%-  JSON.stringify(scorecard) %></pre>
   <%
 }
 %>
+
+<% if (typeof scorecard !== 'undefined') {
+  %>
+  <h1>Scorecard Received</h1>
+  <p>Thanks for entering your result - the Results secretary has been notified and the result should be entered on the website shortly!</p>
+  <%
+}
+%>
+
+
 
 <%- include('footer.ejs') %>
 
