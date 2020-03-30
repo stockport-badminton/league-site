@@ -27,7 +27,19 @@
 
     const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
     
-    
+    const BLACKLIST =['136.243.212.110'];
+    //better to store as an String in process.env.BLACKLIST
+    var getClientIp = function(req) {
+      var ipAddress = req.connection.remoteAddress;
+    if (!ipAddress) {
+        return '';
+      }
+    // convert from "::ffff:192.0.0.1"  to "192.0.0.1"
+      if (ipAddress.substr(0, 7) == "::ffff:") {
+        ipAddress = ipAddress.substr(7)
+      }
+    return ipAddress;
+    };
    
     // Authentication middleware. When used, the
     // Access Token must exist and be verified against
@@ -52,6 +64,14 @@
     });
 
     var app = express();
+    app.use(function(req, res, next) {
+      var ipAddress = getClientIp(req);
+    if(BLACKLIST.indexOf(ipAddress) === -1){
+        next();
+      } else {
+        res.send(ipAddress + ' IP is not in whiteList')
+      }
+    });
     app.use(compression());
     app.use('/static', express.static(path.join(__dirname,'/static')));
     app.use('/scripts', express.static(__dirname + '/node_modules/'));
