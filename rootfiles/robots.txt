@@ -3544,3 +3544,5 @@ User-agent: ZyBorg
 Disallow:/
 User-agent: Zyte
 Disallow:/
+User-agent: serpstatbot
+Disallow:/
