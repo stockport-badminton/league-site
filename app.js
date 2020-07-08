@@ -70,7 +70,6 @@
         next();
       } else {
         res.send(ipAddress + ' IP is not in whiteList')
-        console.log(ipAddress + ' blocked');
       }
     });
     app.use(compression());
