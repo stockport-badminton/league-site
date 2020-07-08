@@ -1,5 +1,5 @@
 
-    var AWS = require('aws-sdk');
+    // var AWS = require('aws-sdk');
     var express = require('express');
     var router = express.Router();
     var cookieParser = require('cookie-parser');
@@ -59,9 +59,9 @@
       algorithms: ['RS256']
     });
 
-    AWS.config.update({
-      region: 'eu-west-1'
-    });
+    //AWS.config.update({
+    //  region: 'eu-west-1'
+    // });
 
     var app = express();
     app.use(function(req, res, next) {
@@ -274,6 +274,7 @@
     });
 
     //GET to return signed S3 url for uploading scorecards
+    /*
     app.get('/sign-s3', (req, res) => {
       const s3 = new AWS.S3();
       const fileName = req.query['file-name'];
@@ -299,7 +300,7 @@
         res.end();
       });
     });
-
+*/
     
 
 

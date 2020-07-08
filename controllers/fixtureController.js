@@ -4,7 +4,7 @@ var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var request = require('request');
-var AWS = require('aws-sdk');
+// var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
