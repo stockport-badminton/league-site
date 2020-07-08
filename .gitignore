@@ -4537,3 +4537,4 @@ player-registration-pseudo.txt
 package-lock.json
 rootfiles/sw3.js
 rootfiles/swv2.js
+node_modules
