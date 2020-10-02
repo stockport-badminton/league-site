@@ -1,0 +1,43 @@
+<mjml>
+    <mj-head>
+        <mj-title>Website Updated</mj-title>
+        <mj-attributes>
+            <mj-section margin="0" padding="0" />
+        </mj-attributes>
+    </mj-head>    
+    <mj-body background-color="#ffff">
+        <mj-section background-color="#000">
+            <mj-column width="100%">
+                <mj-text font-style="bold"
+                        font-size="20px"
+                        color="#ffffff"
+                        align="center">
+                    Stockport &amp; District Badminton League
+                </mj-text>
+            </mj-column>
+        </mj-section>
+        <mj-section>
+            <mj-column>
+                <mj-text>
+                    Thanks for sending your scorecard - website updated
+                </mj-text>
+            </mj-column>
+        </mj-section>
+        <mj-section>
+            <mj-column>
+                <mj-text>
+                    Please don't reply to this email - use <mj-link href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</mj-link> instead
+                </mj-text>
+            </mj-column>
+        </mj-section>
+        <mj-section>
+            <mj-column>
+                <mj-social>
+                    <mj-social-element name="facebook" href="https://www.facebook.com/stockportbadminton"></mj-social-element>
+                    <mj-social-element name="twitter" href="https://www.twitter.com/BaddersResults"></mj-social-element>
+                    <mj-social-element name="instagram" href="https://www.instagram.com/stockport.badders.results"></mj-social-element>
+                </mj-social>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
