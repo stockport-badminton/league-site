@@ -2,7 +2,7 @@ var Club = require('../models/club.js');
 const sgMail = require('@sendgrid/mail');
 var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
-  host: 'listener.logz.io'
+  host: 'listener-uk.logz.io'
 });
 const { body,validationResult } = require("express-validator/check");
 const { sanitizeBody } = require("express-validator/filter");

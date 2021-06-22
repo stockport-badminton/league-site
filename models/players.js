@@ -1,7 +1,7 @@
 var db = require('../db_connect.js');
 var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
-  host: 'listener.logz.io'
+  host: 'listener-uk.logz.io'
  });
 const levenshtein = require('js-levenshtein');
 var SEASON = '';

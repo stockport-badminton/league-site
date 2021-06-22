@@ -11,7 +11,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
  var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
-  host: 'listener.logz.io'
+  host: 'listener-uk.logz.io'
  });
 
 

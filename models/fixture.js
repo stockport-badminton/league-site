@@ -3,7 +3,7 @@ var request = require('request');
 
  var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
-  host: 'listener.logz.io'
+  host: 'listener-uk.logz.io'
  });
 
  var SEASON = '';
