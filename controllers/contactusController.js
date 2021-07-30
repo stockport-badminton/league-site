@@ -13,9 +13,9 @@ function validCaptcha(value,{req}){
   // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
   axios.post("https://www.google.com/recaptcha/api/siteverify?secret="+ process.env.RECAPTCHA_SECRET +"&response="+value)
     .then(response => {
-      console.log(response.request)
-      console.log(response.config)
-      console.log(response.data)
+      //console.log(response.request)
+      //console.log(response.config)
+      //console.log(response.data)
       if (response.data.success){
         console.log('recaptcha sucess')
         return value
