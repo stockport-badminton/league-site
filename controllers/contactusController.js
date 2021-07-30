@@ -1,35 +1,35 @@
 var Club = require('../models/club.js');
 const sgMail = require('@sendgrid/mail');
+require('dotenv').config()
 var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
   host: 'listener-uk.logz.io'
 });
 const { body,validationResult } = require("express-validator/check");
 const { sanitizeBody } = require("express-validator/filter");
+var axios = require('axios')
 
 function validCaptcha(value,{req}){
-  var options = {
-    method:'POST',
-    url:'https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value,
-    json:true
-  }
-  request(options,function(err,response,body){
-    if (err){
-      // console.log(err)
-      return false
-    }
-    else {
-      if (body.success){
-        // console.log('recaptcha sucess')
+  // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
+  axios.post("https://www.google.com/recaptcha/api/siteverify?secret="+ process.env.RECAPTCHA_SECRET +"&response="+value)
+    .then(response => {
+      console.log(response.request)
+      console.log(response.config)
+      console.log(response.data)
+      if (response.data.success){
+        console.log('recaptcha sucess')
         return value
       }
       else {
-        // console.log('recaptcha fail')
+        console.log('recaptcha fail')
         return false
       }
-    }
-
-  })
+    })
+    .catch(err => {
+      console.log("error")
+      console.log(err)
+      return false
+    })
 }
 
 
@@ -62,6 +62,7 @@ exports.validateContactUs = [
 exports.contactus = function(req, res,next){
   var errors = validationResult(req);
   if (!errors.isEmpty()) {
+      console.log("errors array");
       console.log(errors.array());
       res.render('beta/contact-us-form-delivered', {
         pageTitle: 'Contact Us - Error',
