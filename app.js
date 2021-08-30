@@ -581,18 +581,18 @@
     /* GET request to delete Club. */
     router.get('/club/:id/delete', club_controller.club_delete_get);
 
-    // POST request to delete Club
+    // DELETE request to delete Club
     router.delete('/club/:id',checkJwt, club_controller.club_delete_post);
 
     /* GET request to update Club. */
     router.get('/club/:id/update', club_controller.club_update_get);
 
-    // POST request to update Club
+    // PATCH request to update Club
     router.patch('/club/:id',checkJwt, club_controller.club_update_post);
 
     /* GET request for one Club. */
     // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
-    router.get('/club/:id',checkJwt, club_controller.club_detail);
+    router.get('/club/:id',secured(), club_controller.club_detail);
 
     /* GET request for list of all Club items. */
     router.get('/clubs', club_controller.club_list);
