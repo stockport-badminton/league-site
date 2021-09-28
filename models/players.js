@@ -79,6 +79,53 @@ exports.updateById = function(first_name,family_name,team,club,gender,playerId,d
   })
 }
 
+exports.updateBulk = function(BatchObj,done){
+  if(db.isObject(BatchObj)){
+    
+    // console.log(sql);
+    var containerArray = [];
+    var updateArray = [];
+    var updateValuesString = '';
+    for (x in BatchObj.data){
+      var sql = 'UPDATE `'+BatchObj.tablename+'` SET ';
+      updateArray = [];
+      for (y in BatchObj.data[x]){
+        if (BatchObj.fields[y] == 'id'){
+          var whereCondition = ' where `id` = ' + BatchObj.data[x][y]
+          continue;
+        }
+        else if (BatchObj.fields[y] == 'playerTel' || BatchObj.fields[y] == 'playerEmail'){
+          updateArray.push('`'+BatchObj.fields[y]+'` = aes_encrypt("'+ BatchObj.data[x][y] +'","'+ process.env.DB_PI_KEY +'")');    
+        }
+        else {
+          updateArray.push('`'+BatchObj.fields[y]+'` = "'+ BatchObj.data[x][y] +'"');
+        }
+      }
+      updateValuesString = updateArray.join(',')
+      containerArray.push(sql + updateValuesString + whereCondition) 
+    }
+    // console.log(containerArray);
+    sql = containerArray.join(';')
+    console.log(sql);
+    // done(null,sql)
+    db.get().query(sql,function(err,result){
+      if (err) return done(err);
+      done(null,result)
+    }) 
+  }
+  else{
+    return done('not object');
+  }
+
+
+
+  db.get().query('UPDATE `player` SET `first_name` = ?, `family_name` = ?, `team` = ?, `club` = ?, `gender` = ? WHERE `id` = ?',[first_name,family_name,team,club,gender,playerId], function (err, rows){
+    if (err) return done(err);
+    // console.log(rows);
+    done(null,rows);
+  })
+}
+
 // GET
 exports.getAll = function(done){
   db.get().query('SELECT * FROM `player`', function (err, rows){
