@@ -116,14 +116,6 @@ exports.updateBulk = function(BatchObj,done){
   else{
     return done('not object');
   }
-
-
-
-  db.get().query('UPDATE `player` SET `first_name` = ?, `family_name` = ?, `team` = ?, `club` = ?, `gender` = ? WHERE `id` = ?',[first_name,family_name,team,club,gender,playerId], function (err, rows){
-    if (err) return done(err);
-    // console.log(rows);
-    done(null,rows);
-  })
 }
 
 // GET
