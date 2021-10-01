@@ -1,5 +1,6 @@
 var Club = require('../models/club');
 var Venue = require('../models/venue');
+var Team = require('../models/teams');
 
 // Display list of all Clubs
 exports.club_list = function(req, res) {
@@ -43,9 +44,9 @@ exports.club_list_detail = function(req, res, next) {
 
 // Display detail page for a specific Club
 exports.club_detail = function(req, res) {
-    Club.getById(req.params.id,function(err,row){
+    Club.getContactDetailsById(req.params.id,function(err,clubrow){
       //console.log(row);
-      res.send(row);
+      res.send(clubrow);
     })
 };
 

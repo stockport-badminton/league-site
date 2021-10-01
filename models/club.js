@@ -60,6 +60,30 @@ exports.clubDetail = function(done){
   })
 }
 
+exports.clubDetailbyId = function(clubId,done){
+  db.get().query('SELECT a.clubId, a.name, a.venue, a.address, a.gMapURL AS clubVenueURL, a.matchNightText,a.clubNightText, a.clubWebsite, venue.name AS matchVenueName, venue.gMapUrl AS matchVenueURL, venue.Lat, venue.Lng FROM (SELECT club.id as clubId, club.name, venue.name AS venue, venue.gMapUrl,venue.address, club.matchNightText, club.clubNightText, club.clubWebsite,club.matchVenue FROM club JOIN venue WHERE venue.id =club.venue) AS a JOIN venue WHERE (a.matchVenue = venue.id OR a.matchVenue = NULL) ORDER BY a.name', function (err, rows){
+    if (err) {
+      return done(err);
+    }
+    else{
+      // console.log(rows);
+      done(null, rows);
+    }
+
+  })
+}
+
+
+exports.getContactDetailsById = function(clubId,done){
+  db.get().query('SELECT team.name AS teamName, venue.name AS venueName, venue.address AS address, matchNightText AS matchNight, CONCAT(matchSec.first_name, " ", matchSec.family_name) AS matchSecretary, CAST(AES_DECRYPT(matchSec.playerTel,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS matchSecTel, CAST(AES_DECRYPT(matchSec.playerEmail,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS matchSecEmail, CONCAT(clubSec.first_name, " ", clubSec.family_name) AS clubSecretary, CAST(AES_DECRYPT(clubSec.playerTel,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS clubSecTel, CAST(AES_DECRYPT(clubSec.playerEmail,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS clubSecEmail, CONCAT(teamCaptain.first_name, " ", teamCaptain.family_name) AS teamCaptain, CAST(AES_DECRYPT(teamCaptain.playerTel,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS teamCaptainTel, CAST(AES_DECRYPT(teamCaptain.playerEmail,  "'+process.env.DB_PI_KEY+'") AS CHAR) AS teamCaptainEmail FROM club JOIN team ON team.club = club.id JOIN venue ON club.venue = venue.id JOIN player matchSec ON club.matchSec = matchSec.id JOIN player clubSec ON club.clubSec = clubSec.id JOIN player teamCaptain ON team.captain = teamCaptain.id WHERE club.id = ?',clubId, function (err, rows){
+    console.log(this.sql)
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+
+
 
 
 // GET
