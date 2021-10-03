@@ -43,10 +43,26 @@ exports.club_list_detail = function(req, res, next) {
 };
 
 // Display detail page for a specific Club
-exports.club_detail = function(req, res) {
+exports.club_detail = function(req, res,next) {
     Club.getContactDetailsById(req.params.id,function(err,clubrow){
-      //console.log(row);
-      res.send(clubrow);
+      if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
+        console.log(err)
+        res.status(500);
+        next(err);
+      }
+      else{
+        console.log("clubrow");
+        console.log(clubrow);
+        res.status(200);
+        res.render('beta/club-contact', {
+            static_path: '/static',
+            pageTitle : clubrow[0].clubName + " Contact information",
+            pageDescription : clubrow[0].clubName + "'s Club / Team Contact information",
+            clubrow: clubrow,
+            error: false,
+            mapsApiKey: process.env.GMAPSAPIKEY,
+        });
+      }
     })
 };
 

@@ -1,0 +1,52 @@
+<%- include('./header.ejs') %>
+<%- include('./nav.ejs') %>
+
+<% if (error || typeof clubrow == 'undefined') { %>
+  <p>Something seems to have gone wrong</p>
+  <p><%= error %></p>
+<% }
+else { %>
+
+<div class="col-md-6">
+<h1>Club Info</h1>
+  <h2><%= clubrow[0].clubName  %></h2>
+  <h3>Address</h3>
+  <p>
+    <%= clubrow[0].venueName %><br />
+    <%= clubrow[0].address %><br /><br />
+  </p>
+  <h3>Secretary:</h3> <%= clubrow[0].clubSecretary %>, <%= clubrow[0].clubSecTel %>, <%= clubrow[0].clubSecEmail %> </h3>
+  <h3>Match Secretary:</h3> <%= clubrow[0].matchSecretary %>, <%= clubrow[0].matchSecTel %>, <%= clubrow[0].matchSecEmail %> </h3>
+  
+</div>
+<div class="col-md-6">
+  <h3>Teams</h3>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Captain</th>
+          <th>Email</th>
+          <th>Telephone</th>
+        </tr>
+      </thead>
+      <tbody>
+  <% clubrow.forEach(function(teamRow){ %>
+    <tr>
+      <td><%= teamRow.teamName %></td>
+      <td><%= teamRow.teamCaptain %></td>
+      <td><%= teamRow.teamCaptainEmail %></td>
+      <td><%= teamRow.teamCaptainTel %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+  </table>
+  </div>
+</div>
+
+<% } %>
+<%- include('footer.ejs') %>
+
+</body>
+</html>
