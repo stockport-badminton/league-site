@@ -406,6 +406,38 @@
       
     })
 
+    app.post('/new-users-v2',(req,res,next) => {
+      console.log("req.params.user:"+req.params.user);
+      console.log("req.params.id:"+req.params.id);
+      console.log("req.params.id.length:"+req.params.id.length);
+      // console.log("req.params");
+      // console.log(req.params);
+      const msg = {
+        to: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        subject: 'new user signup',
+        text: 'a new user has signed up: ' + req.params.user,
+        html: '<p>a new user has signed up: '+ req.params.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/auth0|'+req.params.id+'">Approve?</a></p>'
+      };
+      if (typeof req.params.id != 'undefined' && req.params.id.length > 3 && req.params.id != 'undefined'){
+        sgMail.send(msg)
+          .then(()=>{
+            logger.log(msg);
+            console.log(msg)
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            logger.log(error.toString());
+            next("Sorry something went wrong sending your email.");
+          })
+      }
+      else{
+        res.sendStatus(200);
+        console.log('userid undefined');
+      }
+      
+    })
+
     /* contact us routes */
     app.get('/contact-us', contact_controller.contactus_get);
     app.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
