@@ -407,19 +407,19 @@
     })
 
     app.post('/new-users-v2',(req,res,next) => {
-      console.log("req.params.user:"+req.params.user);
-      console.log("req.params.id:"+req.params.id);
-      console.log("req.params.id.length:"+req.params.id.length);
-      // console.log("req.params");
-      // console.log(req.params);
+      console.log("req.body.user:"+req.body.user);
+      console.log("req.body.id:"+req.body.id);
+      console.log("req.body.id.length:"+req.body.id.length);
+      // console.log("req.body");
+      // console.log(req);
       const msg = {
         to: 'stockport.badders.results@gmail.com',
         from: 'stockport.badders.results@stockport-badminton.co.uk',
         subject: 'new user signup',
-        text: 'a new user has signed up: ' + req.params.user,
-        html: '<p>a new user has signed up: '+ req.params.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/auth0|'+req.params.id+'">Approve?</a></p>'
+        text: 'a new user has signed up: ' + req.body.user,
+        html: '<p>a new user has signed up: '+ req.body.user +'<br /><a href="https://stockport-badminton.co.uk/approve-user/auth0|'+req.body.id+'">Approve?</a></p>'
       };
-      if (typeof req.params.id != 'undefined' && req.params.id.length > 3 && req.params.id != 'undefined'){
+      if (typeof req.body.id != 'undefined' && req.body.id.length > 3 && req.body.id != 'undefined'){
         sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
