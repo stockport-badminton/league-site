@@ -411,7 +411,7 @@
       console.log("req.body.id:"+req.body.id);
       console.log("req.body.id.length:"+req.body.id.length);
       // console.log("req.body");
-      // console.log(req);
+      console.log(req);
       const msg = {
         to: 'stockport.badders.results@gmail.com',
         from: 'stockport.badders.results@stockport-badminton.co.uk',
