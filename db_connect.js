@@ -12,6 +12,7 @@ var database = process.env.RDS_DATABASE || 'badminton';
 
 exports.connect = function(done) {
   state.pool = mysql.createPool({
+    'connectionLimit':8,
     'host'     : hostname,
     'user'     : username,
     'password' : password,
