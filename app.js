@@ -266,8 +266,10 @@
 
     app.get('/user', secured(), function (req, res, next) {
       const { _raw, _json, userProfile } = req.user;
+      const userAppMetaData = getAppMetadata(req,res);
       res.render('beta/user', {
         userProfile: JSON.stringify(userProfile, null, 2),
+        userAppMetaData: JSON.stringify(userAppMetaData, null, 2),
         static_path:'/static',
         theme:process.env.THEME || 'flatly',
         pageTitle : "User Profile",
