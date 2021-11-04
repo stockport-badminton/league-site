@@ -102,6 +102,7 @@ exports.getAPIKey = function(done){
 
   exports.grantResultsAccess = function(req,res,next){
     module.exports.getManagementAPIKey(function(err,apiKey){
+    console.log(req.user)
     if (err){
       next(err);
     }
