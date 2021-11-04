@@ -75,6 +75,8 @@ exports.getAPIKey = function(done){
 
   exports.getAppMetadata = function(req,res,next){
     module.exports.getManagementAPIKey(function(err,apiKey){
+      console.log("getAppMetadataUser")
+      console.log(req.user)
       if (err){
         next(err);
       }
@@ -84,7 +86,7 @@ exports.getAPIKey = function(done){
           headers:{
             "Authorization":"Bearer "+apiKey
           },
-          url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.params.userId,
+          url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.user.userId,
         }
         console.log(options);
         request(options,function(err,response,userBody){
@@ -102,7 +104,6 @@ exports.getAPIKey = function(done){
 
   exports.grantResultsAccess = function(req,res,next){
     module.exports.getManagementAPIKey(function(err,apiKey){
-    console.log(req.user)
     if (err){
       next(err);
     }
