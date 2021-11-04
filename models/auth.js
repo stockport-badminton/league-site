@@ -86,7 +86,7 @@ exports.getAPIKey = function(done){
           headers:{
             "Authorization":"Bearer "+apiKey
           },
-          url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.user.userId,
+          url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.user.user_id,
         }
         console.log(options);
         request(options,function(err,response,userBody){
