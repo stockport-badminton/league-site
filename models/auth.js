@@ -75,8 +75,8 @@ exports.getAPIKey = function(done){
 
   exports.getAppMetadata = function(req,res,next){
     module.exports.getManagementAPIKey(function(err,apiKey){
-      console.log("getAppMetadataUser")
-      console.log(req.user)
+      //console.log("getAppMetadataUser")
+      //console.log(req.user)
       if (err){
         next(err);
       }
