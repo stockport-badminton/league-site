@@ -266,7 +266,8 @@
 
     app.get('/user', secured(), function (req, res, next) {
       const { _raw, _json, userProfile } = req.user;
-      const userAppMetaData = auth_controller.getAppMetadata(req,res);
+      const userAppMetaData = auth_controller.getAppMetadata;
+      console.log("User App Metadata" + userAppMetaData);
       res.render('beta/user', {
         userProfile: JSON.stringify(userProfile, null, 2),
         userAppMetaData: JSON.stringify(userAppMetaData, null, 2),
