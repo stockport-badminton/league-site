@@ -73,16 +73,16 @@ exports.getAPIKey = function(done){
         })
   }
 
-  exports.getAppMetadata = function(req,res,next){
+  exports.getAppMetadata = function(done){
     module.exports.getManagementAPIKey(function(err,apiKey){
       //console.log("getAppMetadataUser")
       //console.log(req.user)
       if (err){
-        next(err);
+        return done(err);
       }
       else{
         var options = {
-          metho:'GET',
+          method:'GET',
           headers:{
             "Authorization":"Bearer "+apiKey
           },
@@ -91,11 +91,11 @@ exports.getAPIKey = function(done){
         console.log(options);
         request(options,function(err,response,userBody){
           if (err){
-            res.error(err);
+            return done(err)
           }
           else{  
             console.log(userBody);
-            return userBody;
+            done(userBody)
           }
         })
       }
