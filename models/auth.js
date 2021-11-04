@@ -73,12 +73,12 @@ exports.getAPIKey = function(done){
         })
   }
 
-  exports.getAppMetadata = function(req,done){
+  exports.getAppMetadata = function(req){
     module.exports.getManagementAPIKey(function(err,apiKey){
       //console.log("getAppMetadataUser")
       console.log(req.user)
       if (err){
-        return done(err);
+        return err;
       }
       else{
         var options = {
@@ -91,11 +91,11 @@ exports.getAPIKey = function(done){
         console.log(options);
         request(options,function(err,response,userBody){
           if (err){
-            return done(err)
+            return err
           }
           else{  
             console.log(userBody);
-            return done(userBody)
+            return userBody
           }
         })
       }
