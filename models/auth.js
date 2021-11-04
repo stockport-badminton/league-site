@@ -95,7 +95,7 @@ exports.getAPIKey = function(done){
           }
           else{  
             console.log(userBody);
-            done(userBody)
+            return done(userBody)
           }
         })
       }
