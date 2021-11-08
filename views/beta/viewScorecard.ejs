@@ -10,7 +10,11 @@ MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
 
 <h1 class="w-100">Scorecard</h1>
 <div class="col-md-12 col-lg-9 col-xl-6">
+
 <div id="FixtureSummary" class="row col-12">
+  <div class="col-12">
+    Date : <%= MyDateString %><br />
+  </div>
   <div class="col-4"><%= result[0].homeTeam %></div>
   <div class="col-1">vs</div>
   <div class="col-4"><%= result[0].awayTeam %></div>
