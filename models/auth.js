@@ -73,35 +73,6 @@ exports.getAPIKey = function(done){
         })
   }
 
-  exports.getAppMetadata = function(req){
-    module.exports.getManagementAPIKey(function(err,apiKey){
-      //console.log("getAppMetadataUser")
-      console.log(req.user)
-      if (err){
-        return err;
-      }
-      else{
-        var options = {
-          method:'GET',
-          headers:{
-            "Authorization":"Bearer "+apiKey
-          },
-          url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users/'+req.user.user_id,
-        }
-        console.log(options);
-        request(options,function(err,response,userBody){
-          if (err){
-            return err
-          }
-          else{  
-            console.log(userBody);
-            return userBody
-          }
-        })
-      }
-    })
-  }
-
   exports.grantResultsAccess = function(req,res,next){
     module.exports.getManagementAPIKey(function(err,apiKey){
     if (err){

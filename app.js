@@ -14,7 +14,7 @@
     const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
-    require('dotenv').config()
+    // require('dotenv').config()
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     var logger = require('logzio-nodejs').createLogger({
       token: process.env.LOGZ_SECRET,
@@ -127,8 +127,7 @@
         domain: process.env.AUTH0_DOMAIN,
         clientID: process.env.AUTH0_CLIENTID,
         clientSecret: process.env.AUTH0_CLIENT_SECRET,
-        callbackURL:
-          process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:3000/callback'
+        callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:3000/callback'
       },
       function (accessToken, refreshToken, extraParams, profile, done) {
         // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -264,18 +263,15 @@
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'returnTo=https://'+ req.headers.host);
     });
 
-    app.get('/user', secured(), function (req, res, next) {
-      const { _raw, _json, userProfile } = req.user;
-      const userAppMetaData = auth_controller.getAppMetadata(req,res);
-      console.log("User App Metadata" + userAppMetaData);
-      res.render('beta/user', {
-        userProfile: JSON.stringify(userProfile, null, 2),
-        userAppMetaData: JSON.stringify(userAppMetaData, null, 2),
-        static_path:'/static',
-        theme:process.env.THEME || 'flatly',
-        pageTitle : "User Profile",
-        pageDescription : "User Profile",
-      });
+    app.get('/user', secured(), async function (req, res, next) {
+        const { _raw, _json, userProfile } = req.user;
+        res.render('beta/user', {
+          userProfile: JSON.stringify(userProfile, null, 2),
+          static_path:'/static',
+          theme:process.env.THEME || 'flatly',
+          pageTitle : "User Profile",
+          pageDescription : "User Profile",
+        });
     });
 
     //GET to return signed S3 url for uploading scorecards
