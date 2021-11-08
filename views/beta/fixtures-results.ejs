@@ -29,8 +29,10 @@
           <th>Away Team</th>
           <th>Result</th>
           <% if (typeof admin !== 'undefined') { %>
-            <th>Rearrange?</th>
             <th>Details</th>
+          <% } %>
+          <% if (typeof superadmin !== 'undefined' && superadmin) { %>
+            <th>Rearrange?</th>
             <th>Confirm/Enter</th>
           <% } %>
         </tr>
@@ -82,19 +84,23 @@
           <td><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){ %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
-          <br /><% if (typeof admin !== 'undefined') { %><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
+            <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
+            <% if (typeof admin !== 'undefined' && admin) { %>
+            <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
+            <% } %>
           <% }
           else { %>
            <td><%= resultValue %></td>
+           <td></td>
           <% } %>
-          <% if (typeof admin !== 'undefined') { %>
+          <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
             <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranging') { %>
                   <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a> 
                   <% if(resultValue === 'Awaiting Result'){ %><br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
                 <%} } %>
             </td>
-            <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
+            
             <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
               <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Enter</a></td> 
             <% } 
@@ -117,7 +123,7 @@
   </div>
    <% } %>
 
-   <% if (typeof admin !== 'undefined') { %>
+   <% if (typeof superadmin !== 'undefined' && superadmin) { %>
    
    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -183,7 +189,7 @@
 <%- include('footer.ejs') %>
 <%- include('datatables.ejs') %>
 
-<% if (typeof admin !== 'undefined') { %>
+<% if (typeof superadmin !== 'undefined' && superadmin) { %>
   <script type="text/javascript">
 
     

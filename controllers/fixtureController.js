@@ -447,6 +447,14 @@ exports.fixture_detail_byDivision_admin = function(req, res,next) {
           if (user[0].app_metadata.team) {
             fixtureSearchObj.team = user[0].app_metadata.team
           }
+          if (user[0].app_metadata.role) {
+            if (user[0].app_metadata.role == "superadmin"){
+              var superadmin = true;
+            }
+            else {
+              var superadmin = false;
+            }
+          }
           
           Fixture.getClubFixtureDetails(fixtureSearchObj, function(err,result){
             if (err){
@@ -463,6 +471,7 @@ exports.fixture_detail_byDivision_admin = function(req, res,next) {
                   error: false,
                   division : req.params.division,
                   admin:true,
+                  superadmin:superadmin,
                   recaptcha:process.env.recaptcha
               });
             }
