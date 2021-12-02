@@ -51,6 +51,7 @@
           <th>Games Played</th>
           <th>Games Won</th>
           <th>Games Won / Match (%)</th>
+          <th>P + W - L</th>
           <th>Pts For / Game</th>
           <th>Pts Against / Game</th>
         </tr>
@@ -80,6 +81,7 @@
           }
           %>
           <td><%= n %></td>
+          <td><%= row['Points'] %></td>
           <%
           n = row['forPoints'] / row['gamesPlayed'];
           if(Number.isNaN(n)){
