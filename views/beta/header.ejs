@@ -8,8 +8,10 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      <% if (locals.user) { %>
-      gtag('config', 'G-PSC0315491',{ 'user_id', '<%= locals.user.user_id %>' });
+      <% if (user) { 
+        console.log(user);
+        %>
+      gtag('config', 'G-PSC0315491',{ 'user_id', '<%= user.user_id %>' });
       <% }
       else { %>
         gtag('config', 'G-PSC0315491');
