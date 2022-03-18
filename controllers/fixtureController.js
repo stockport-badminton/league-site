@@ -1449,8 +1449,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                   theme:process.env.THEME || 'flatly',
                   pageTitle : "Scorecard",
                   pageDescription : "Enter some results!",
-                  result:rows,
-                  user:user
+                  result:rows
                 })
               }
             })
