@@ -51,8 +51,8 @@ exports.club_detail = function(req, res,next) {
         next(err);
       }
       else{
-        console.log("clubrow");
-        console.log(clubrow);
+        logger.log("clubrow");
+        logger.log(clubrow);
         res.status(200);
         res.render('beta/club-contact', {
             static_path: '/static',

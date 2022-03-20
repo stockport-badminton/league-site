@@ -404,7 +404,7 @@
     })
 
     app.get('/populated-scorecard-beta/:id',(req,res,next) => {
-      console.log(req.body);
+      logger.log(req.body);
       fixture_controller.fixture_populate_scorecard_fromId(req,res,next)
     })
 
@@ -436,7 +436,7 @@
         sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
-            console.log(msg)
+            // console.log(msg)
             res.sendStatus(200);
           })
           .catch(error => {
@@ -463,6 +463,7 @@
     router.get('/players/team-:team?', secured(),player_controller.player_list_clubs_teams);
     router.get('/players/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
     router.get('/players', secured(),player_controller.player_list_clubs_teams);
+    router.get('/manage/players/club-:club?', secured(),player_controller.manage_player_list_clubs_teams);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create',secured(), player_controller.player_create_get);

@@ -629,7 +629,7 @@ exports.full_fixture_post = function(req,res){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        console.log(FixtureIdResult);
+        logger.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -945,7 +945,7 @@ exports.fixture_populate_scorecard_errors = function(req, res,next) {
   // console.log(errors.array());
   if (!errors.isEmpty()) {
     let data = req.body;
-    console.log(data);
+    logger.log(data);
 Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
   if(err){
     next(err)
@@ -1097,7 +1097,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
           next(err)
         }
         else {
-          console.log(rows);
+          logger.log(rows);
           let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
           const msg = {
             to: 'stockport.badders.results@gmail.com',
@@ -1276,7 +1276,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                                         "awayMenRows":awayMenRows,
                                         "awayLadiesRows":awayLadiesRows,
                                       };
-                                      console.log(renderData);
+                                      // console.log(renderData);
                                       logger.log(renderData);
 
                                       res.render('populated-scorecard', {
