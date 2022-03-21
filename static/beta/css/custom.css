@@ -88,9 +88,7 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
   width: 100%;  /* The width is the width of the web page */
  }
 
-.modal-dialog {
-  max-width:95%;
-}
+
 
 /* Style all font awesome icons */
 .fa {
