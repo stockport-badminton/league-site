@@ -1,6 +1,11 @@
 var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
+require('dotenv').config()
+var logger = require('logzio-nodejs').createLogger({
+  token: process.env.LOGZ_SECRET,
+  host: 'listener-uk.logz.io'
+});
 
 // Display list of all Clubs
 exports.club_list = function(req, res) {
