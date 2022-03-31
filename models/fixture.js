@@ -410,6 +410,12 @@ exports.getOutstandingFixtureId = function(obj,done){
       if (err){
         return done(err)
       }
+      else if (!result.length){
+        return done("no matching fixtures")
+      }
+      else if (!result[0].id){
+        return done("no matching fixtures")
+      }
       else {
         // console.log(result);
         done(null,result);
