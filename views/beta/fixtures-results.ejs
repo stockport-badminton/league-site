@@ -69,8 +69,14 @@
        %>
 
        <% if (row['status'] == 'conceded'){
+        var rowClass = 'table-danger';
+        var resultValue = 'Conceded';
+       }
+       %>
+
+       <% if (row['status'] == 'void'){
          var rowClass = 'table-danger';
-         var status = "conceded"
+         var status = "Void"
         }
         else {
           var status = ""
