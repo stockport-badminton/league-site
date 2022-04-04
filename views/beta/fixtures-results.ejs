@@ -44,7 +44,7 @@
         var resultValue = '';
         var MyDate = new Date(row['date']);
         var NowDate = Date.now();
-        if ((MyDate < NowDate) && (row['homeScore'] == null)) {
+        if ((MyDate < NowDate) && (row['homeScore'] == null) && (row['status'] != 'void')) {
           rowClass = 'table-danger'
           var resultValue = 'Awaiting Result';
         }
