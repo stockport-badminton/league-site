@@ -176,14 +176,15 @@ exports.getNamesClubsTeams = function(searchTerms,done){
     var conditions = whereTerms.join(' AND ');
     // console.log(conditions);
     conditions = ' WHERE '+ conditions
-    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id ) as b"+conditions,whereValue,function(err,rows){
-      // console.log(this.sql);
+    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender, rank",whereValue,function(err,rows){
+      console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
     })
   }
   else {
-    db.get().query("select playerId, a.name, gender, date_of_registration, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id",function(err,rows){
+    db.get().query("select playerId, a.name, gender, date_of_registration, a.rank, club.name as clubName, teamName from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id order by teamName, gender, rank",function(err,rows){
+      console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
     })
@@ -383,7 +384,7 @@ exports.search = function(searchTerms,done){
 
   if (whereTerms.length > 0) {
     var conditions = whereTerms.join(' AND ');
-    conditions = ' WHERE ' + conditions;
+    conditions = ' WHERE ' + conditions + ' order by teamName,gender,rank';
     // console.log(conditions);
     sql = sql + conditions
   }

@@ -1,0 +1,65 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+
+  <% if (typeof errors !== 'undefined') { %>
+    <p>Something seems to have gone wrong</p>
+    <p><%= error %></p>
+  <% }
+  else { %>
+    <h1>Registered Players</h1>
+    <div class="container row">
+    <% result.teams.forEach(function(team){ %>
+        <div class="team-container border border-secondary rounded col p-3">
+            <p class="row"><%= team['name'] %></p>
+            <div class="nominated-container border border-secondary rounded p-3 col-12">
+                <div class="col-12">Nominated</div>
+                <div class="row">
+                    <div class="col-6">
+                        <p>Men</p>
+                        <% team.nominated.men.forEach(function(player){ %>
+                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                        <% }) %>
+                    </div>
+                    <div class="col-6">
+                        <p>Ladies</p>
+                        <% team.nominated.ladies.forEach(function(player){ %>
+                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+            <% if (team.reserves.men.length > 0 || team.reserves.ladies.length > 0 ) { %>
+            <div class="reserves-container border border-secondary rounded p-3 col-12">
+                <div class="col-12">Reserves</div>
+                <div class="row">
+                    <div class="col-6">
+                        <p>Men</p>
+                        <% team.reserves.men.forEach(function(player){ %>
+                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                        <% }) %>
+                    </div>
+                    <div class="col-6">
+                        <p>Ladies</p>
+                        <% team.reserves.ladies.forEach(function(player){ %>
+                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div> <%   
+    }) %>
+    
+    </div>
+    
+   <% } %>
+
+
+
+
+<%- include('footer.ejs') %>
+
+
+</body>
+</html>

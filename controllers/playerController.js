@@ -2,8 +2,8 @@ var Club = require('../models/club');
 var Player = require('../models/players');
 var Team = require('../models/teams');
 var Venue = require('../models/venue');
-
 var async = require('async');
+var jp = require('jsonpath');
 
 
 function logger(data) {
@@ -81,6 +81,55 @@ exports.player_list_clubs_teams = function(req, res) {
          });
       }
     })
+};
+
+
+exports.manage_player_list_clubs_teams = function(req, res) {
+  Player.getNamesClubsTeams(req.params, function(err,rows){
+    // console.log(rows);
+    if (err){
+      // console.log("all_player_stats controller error")
+      return next(err)
+    }
+    else {
+      var manageTeamObject = {}
+      manageTeamObject.teams = [];
+      var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
+      console.log(teamNames);
+      for(let i=0; i < teamNames.length; i++) {
+        console.log("$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')].name");
+        var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')].name")
+        var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')].name")
+        var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')].name")
+        var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')].name")
+        var teamObject = {
+          name:teamNames[i],
+          nominated:{
+            men:nomMen,
+            ladies:nomLadies
+          },
+          reserves:{
+            men:resMen,
+            ladies:resLadies
+          }
+        }
+        manageTeamObject.teams.push(teamObject);
+
+      }
+      console.log(manageTeamObject);
+      // "$..[?(@.teamName=='Mellor C' && @.rank != 99 && @.gender == 'Male')]"
+      // console.log("all_player_stats controller success")
+      // console.log(result);
+      res.render('beta/team-admin', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Player Registrations",
+           pageDescription : "List of players registered to teams in the Stockport League",
+           result : manageTeamObject
+       });
+    }
+  })
 };
 
 // Return list of players eligible based on team
