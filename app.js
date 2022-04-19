@@ -315,8 +315,24 @@
         console.log(req.body.to);
         console.log(req.body.subject);
         logger.log(req.body.html);
-        res.sendStatus(200);
-    }); 
+        const msg = {
+          to: 'stockport.badders.results@gmail.com',
+          from: req.body.from,
+          subject: req.body.subject,
+          text: 'Email from sengrid parse send to'+req.body.to,
+          html: req.body.html
+        };
+        sgMail.send(msg)
+          .then(()=>{
+            logger.log(msg);
+            // console.log(msg)
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            logger.log(error.toString());
+            next("Sorry something went wrong sending your email.");
+          })
+      }); 
 
     app.post('/SESemail', (req,res,next) => {
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
@@ -324,7 +340,7 @@
       var params = {
         Destination: { /* required */
           ToAddresses: [ 
-            'bigcoops@gmail.com','stockport.badders.results@hotmail.com'
+            'bigcoops@gmail.com','stockport.badders.results@gmail.com'
           ]
         },
         Message: { /* required */
