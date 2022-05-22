@@ -12,8 +12,11 @@
       });
       var data = table.data().toArray();
       var today = new Date()
-      console.log(today.getDate()+"/"+(today.getMonth()+1)+"/"+today.getFullYear())
-      table.page.jumpToData(today.getDate()+"/"+(today.getMonth()+1)+"/"+today.getFullYear(), 0 );
+      currentDateString = ('0' + today.getDate()).slice(-2) + '/'
+             + ('0' + (today.getMonth()+1)).slice(-2) + '/'
+             + today.getFullYear();
+      console.log(currentDateString)
+      table.page.jumpToData(currentDateString, 0 );
       
   } );
 </script>
