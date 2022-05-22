@@ -13,8 +13,8 @@
       });
       var data = table.data().toArray();
       var today = new Date()
-
-      table.page.jumpToData( today.getDate()+"/"+(today.getMonth()+1)+"/"+today.getFullYear(), 0 );
+      console.log(today.getDate()+"/"+(today.getMonth()+1)+"/"+today.getFullYear())
+      table.page.jumpToData(today.getDate()+"/"+(today.getMonth()+1)+"/"+today.getFullYear(), 0 );
       
   } );
 </script>
