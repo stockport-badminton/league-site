@@ -97,11 +97,10 @@ exports.manage_player_list_clubs_teams = function(req, res) {
       var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
       console.log(teamNames);
       for(let i=0; i < teamNames.length; i++) {
-        console.log("$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')].name");
-        var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')].name")
-        var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')].name")
-        var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')].name")
-        var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')].name")
+        var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
+        var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')]")
+        var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')]")
+        var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')]")
         var teamObject = {
           name:teamNames[i],
           nominated:{
@@ -117,9 +116,6 @@ exports.manage_player_list_clubs_teams = function(req, res) {
 
       }
       console.log(manageTeamObject);
-      // "$..[?(@.teamName=='Mellor C' && @.rank != 99 && @.gender == 'Male')]"
-      // console.log("all_player_stats controller success")
-      // console.log(result);
       res.render('beta/team-admin', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',

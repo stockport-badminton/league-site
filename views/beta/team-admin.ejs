@@ -6,7 +6,8 @@
     <p>Something seems to have gone wrong</p>
     <p><%= error %></p>
   <% }
-  else { %>
+  else { 
+    %> 
     <h1>Registered Players</h1>
     <div class="container row">
     <% result.teams.forEach(function(team){ %>
@@ -18,13 +19,13 @@
                     <div class="col-6">
                         <p>Men</p>
                         <% team.nominated.men.forEach(function(player){ %>
-                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
                         <% }) %>
                     </div>
                     <div class="col-6">
                         <p>Ladies</p>
                         <% team.nominated.ladies.forEach(function(player){ %>
-                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
                         <% }) %>
                     </div>
                 </div>
@@ -36,13 +37,13 @@
                     <div class="col-6">
                         <p>Men</p>
                         <% team.reserves.men.forEach(function(player){ %>
-                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
                         <% }) %>
                     </div>
                     <div class="col-6">
                         <p>Ladies</p>
                         <% team.reserves.ladies.forEach(function(player){ %>
-                            <div class="player-box  row border rounded p-3" draggable="true"><%= player %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
                         <% }) %>
                     </div>
                 </div>
@@ -60,6 +61,75 @@
 
 <%- include('footer.ejs') %>
 
+<script type="text/javascript">
+
+document.addEventListener('DOMContentLoaded', (event) => {
+
+var counter=0;
+function handleDragStart(e) {
+  this.style.opacity = '0.4';
+  this.classList.remove('border');
+  this.style.border = "1px solid #000000";
+  
+  dragSrcEl = this;
+
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragEnd(e) {
+  this.style.opacity = '1';
+  this.classList.add('border');
+
+  items.forEach(function (item) {
+    item.classList.remove('over');
+  });
+  counter=0;
+  this.classList.remove('shadow');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  return false;
+}
+function handleDragEnter(e) {
+  counter++;
+  this.classList.add('shadow');
+}
+
+function handleDragLeave(e) {
+  counter--;
+  if (counter==0) {
+    this.classList.remove('shadow');
+  }
+}
+
+function handleDrop(e) {
+  e.stopPropagation(); // stops the browser from redirecting.
+
+  if (dragSrcEl !== this) {
+    dragSrcEl.innerHTML = this.innerHTML;
+    this.innerHTML = e.dataTransfer.getData('text/html');
+  }
+
+  return false;
+}
+
+let items = document.querySelectorAll('.player-box');
+items.forEach(function(item) {
+  item.addEventListener('dragstart', handleDragStart);
+  item.addEventListener('dragover', handleDragOver);
+  item.addEventListener('dragend', handleDragEnd);
+  item.addEventListener('drop', handleDrop);
+});
+let teamTargets = document.querySelectorAll('.reserves-container, .nominated-container');
+teamTargets.forEach(function(team) {
+    team.addEventListener('dragenter', handleDragEnter);
+    team.addEventListener('dragleave', handleDragLeave);
+});
+});
+
+</script>
 
 </body>
 </html>
