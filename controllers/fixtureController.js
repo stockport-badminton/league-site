@@ -648,7 +648,7 @@ exports.full_fixture_post = function(req,res){
           awayScore:req.body.awayScore
         }
         // console.log(fixtureObject);
-        
+        // TODO - fix this so that it doesn't break the website when no fixture matches the query
         Fixture.updateById(fixtureObject,FixtureIdResult[0].id,function(err,fixResult){
           if (err) {
             // console.log("updateById err")
