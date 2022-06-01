@@ -42,6 +42,7 @@
       <%
         var rowClass = '';
         var resultValue = '';
+        var status = ""
         var MyDate = new Date(row['date']);
         var NowDate = Date.now();
         if ((MyDate < NowDate) && (row['homeScore'] == null) && (row['status'] != 'void')) {
@@ -60,26 +61,27 @@
       <% if (row['status'] == 'rearranging'){
         var rowClass = 'table-warning';
         var resultValue = 'Rearranging';
+        var status = ""
        }
        %>
        <% if (row['status'] == 'rearranged'){
         var rowClass = 'table-warning';
         var resultValue = 'Rearranged';
+        var status = ""
        }
        %>
 
        <% if (row['status'] == 'conceded'){
         var rowClass = 'table-danger';
         var resultValue = 'Conceded';
+        var status = "Conceded"
        }
        %>
 
        <% if (row['status'] == 'void'){
          var rowClass = 'table-danger';
          var resultValue = "Void"
-        }
-        else {
-          var status = ""
+         var status = "Void"
         }
         %>
 
