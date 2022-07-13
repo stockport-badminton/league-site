@@ -30,10 +30,10 @@ request(options, function (error, response, body) {
 
 }); */
  
-const xmasDate = new Date(2019,11,25)
-const easterDate = new Date(2020,03,12)
-const seasonStartDate = new Date(2019,08,15)
-const seasonEndDate = new Date(2020,03,30)
+const xmasDate = new Date(2022,11,25)
+const easterDate = new Date(2023,03,09)
+const seasonStartDate = new Date(2022,08,17)
+const seasonEndDate = new Date(2023,05,01)
 
 /* console.log("season start date" + seasonStartDate)
 console.log("season xmas date" + xmasDate)
@@ -64,9 +64,9 @@ var nearEaster = function(currentDate){
     //console.log("Easter: " + easterDate)
     var easterBreakStart = new Date(+easterDate)
     var easterBreakEnd = new Date(+easterDate)
-    easterBreakStart.setDate(easterDate.getDate() -7)
+    easterBreakStart.setDate(easterDate.getDate() -4)
     //console.log("Easter Start:" + easterBreakStart)
-    easterBreakEnd.setDate(easterDate.getDate() +7)
+    easterBreakEnd.setDate(easterDate.getDate() +2)
     //console.log("Easter End:" + easterBreakEnd)
     //console.log("\nNear Easter function")
     //console.log("season start date" + seasonStartDate)
@@ -140,7 +140,7 @@ var islewisShieldWeek =function(currentDate) {
     lewisShieldBreak3End.setDate(lewisShieldBreak3Start.getDate() +14)
 
     if ((currentDate > lewisShieldBreak1Start && currentDate < lewisShieldBreak1End) || (currentDate > lewisShieldBreak2Start && currentDate < lewisShieldBreak2End) || (currentDate > lewisShieldBreak3Start && currentDate < lewisShieldBreak3End)){
-        return true
+        return false
     }
     else {
         return false
@@ -153,72 +153,114 @@ exports.genFixtures = function(req,res){
         divisions:[{
             name:"Division 1",
             teams:[
-                {
-                    club: "Hyde High",
-                    name: "Hyde High A",
-                    homeNight: "Wednesday"
-                  },
-                  {
-                    club: "Shell",
-                    name: "Shell",
-                    homeNight: "Wednesday"
-                  },
-                  {
-                    club: "GHAP",
-                    name: "GHAP",
-                    homeNight: "Tuesday"
-                  },
-                  {
-                    club: "Hyde High",
-                    name: "Hyde High B",
-                    homeNight: "Wednesday"
-                  },
-                  {
-                    club: "Lambs",
-                    name: "Lambs",
-                    homeNight: "Tuesday"
-                  },
-                  {
-                    club: "Aerospace",
-                    name: "Aerospace A",
-                    homeNight: "Tuesday"
-                  }
-            ]
+              {
+                "club": "Aerospace",
+                "name": "Aerospace B",
+                "homeNight": "Tuesday",
+                "teamindex":2
+            },
+            {
+                "club": "Aerospace",
+                "name": "Aerospace A",
+                "homeNight": "Tuesday",
+                "teamindex":1
+            },
+            {
+                "club": "College Green",
+                "name": "College Green A",
+                "homeNight": "Thursday",
+                "teamindex":1
+            },
+            {
+                "club": "GHAP",
+                "name": "GHAP",
+                "homeNight": "Tuesday",
+                "teamindex":1
+            },
+            {
+                "club": "Hyde High",
+                "name": "Hyde High A",
+                "homeNight": "Wednesday",
+                "teamindex":1
+            },
+            {
+                "club": "Hyde High",
+                "name": "Hyde High B",
+                "homeNight": "Wednesday",
+                "teamindex":2
+            },
+            {
+                "club": "Medlock",
+                "name": "Medlock A",
+                "homeNight": "Thursday",
+                "teamindex":1
+            },
+            {
+                "club": "Shell",
+                "name": "Shell",
+                "homeNight": "Wednesday",
+                "teamindex":1
+            }
+             ]
         },
         {
             name:"Division 2",
             teams:[
-                {
-                    club: "Mellor",
-                    name: "Mellor B",
-                    homeNight: "Tuesday"
-                  },
-                  {
-                    club: "Manor",
-                    name: "Manor A",
-                    homeNight: "Tuesday"
-                  },
-                  {
-                    club: "Medlock",
-                    name: "Medlock A",
-                    homeNight: "Thursday"
-                  },
-                  {
-                    club: "Hyde High",
-                    name: "Hyde High C",
-                    homeNight: "Wednesday"
-                  },
-                  {
-                    club: "College Green",
-                    name: "College Green",
-                    homeNight: "Thursday"
-                  },
-                  {
-                    club: "Mellor",
-                    name: "Mellor A",
-                    homeNight: "Tuesday"
-                  }
-            ]
+              {
+                "club": "Mellor",
+                "name": "Mellor B",
+                "homeNight": "Tuesday",
+                "teamindex":2
+            },
+            {
+                "club": "Manor",
+                "name": "Manor A",
+                "homeNight": "Tuesday",
+                "teamindex":1
+            },
+            {
+                "club": "Hyde High",
+                "name": "Hyde High C",
+                "homeNight": "Wednesday",
+                "teamindex":3
+            },
+            {
+                "club": "Disley",
+                "name": "Disley",
+                "homeNight": "Wednesday",
+                "teamindex":1
+            },
+            {
+                "club": "Aerospace",
+                "name": "Aerospace C",
+                "homeNight": "Tuesday",
+                "teamindex":3
+            },
+            {
+                "club": "Mellor",
+                "name": "Mellor A",
+                "homeNight": "Tuesday",
+                "teamindex":1
+            },
+            {
+                "club": "College Green",
+                "name": "College Green B",
+                "homeNight": "Thursday",
+                "teamindex":2
+            },
+            {
+                "club": "Manor",
+                "name": "Manor B",
+                "homeNight": "Tuesday",
+                "teamindex":2
+            },
+            {
+                "club": "Medlock",
+                "name": "Medlock B",
+                "homeNight": "Thursday",
+                "teamindex":2
+            }
+             ]
         }]
     };
     var stockport = {
@@ -227,268 +269,244 @@ exports.genFixtures = function(req,res){
                 name:"Premier",
                 teams:[
                     {
-                      club: "Racketeer",
-                      name: "Racketeers A",
-                      homeNight: "Monday"
+                        "club": "Racketeer",
+                        "name": "Racketeers A",
+                        "homeNight": "Monday",
+                        "teamindex":1
                     },
                     {
-                      club: "Macclesfield",
-                      name: "Macclesfield A",
-                      homeNight: "Monday"
+                        "club": "Shell",
+                        "name": "Shell A",
+                        "homeNight": "Wednesday",
+                        "teamindex":1
                     },
                     {
-                      club: "Racketeer",
-                      name: "Racketeers B",
-                      homeNight: "Monday"
+                        "club": "Syddal Park",
+                        "name": "Syddal Park A",
+                        "homeNight": "Sunday",
+                        "teamindex":1
                     },
                     {
-                      club: "Carrington",
-                      name: "Carrington A",
-                      homeNight: "Monday"
+                        "club": "Racketeer",
+                        "name": "Racketeers B",
+                        "homeNight": "Monday",
+                        "teamindex":2
                     },
                     {
-                      club: "Syddal Park",
-                      name: "Syddal Park A",
-                      homeNight: "Sunday"
+                        "club": "Macclesfield",
+                        "name": "Macclesfield A",
+                        "homeNight": "Monday",
+                        "teamindex":1
                     },
                     {
-                      club: "Syddal Park",
-                      name: "Syddal Park B",
-                      homeNight: "Sunday"
+                        "club": "Parrs Wood",
+                        "name": "Parrswood A",
+                        "homeNight": "Tuesday",
+                        "teamindex":1
                     },
                     {
-                      club: "Alderley Park",
-                      name: "Alderley Park A",
-                      homeNight: "Tuesday"
+                        "club": "Alderley Park",
+                        "name": "Alderley Park A",
+                        "homeNight": "Tuesday",
+                        "teamindex":1
                     },
                     {
-                      club: "Shell",
-                      name: "Shell A",
-                      homeNight: "Wednesday"
+                        "club": "Syddal Park",
+                        "name": "Syddal Park B",
+                        "homeNight": "Sunday",
+                        "teamindex":2
                     },
                     {
-                      club: "Canute",
-                      name: "Canute A",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "Disley",
-                      name: "Disley A",
-                      homeNight: "Wednesday"
+                        "club": "Shell",
+                        "name": "Shell B",
+                        "homeNight": "Wednesday",
+                        "teamindex":2
                     }
                   ]
             },
             {
                 name:"Division 1",
                 teams:[
-                    {
-                        club: "David Lloyd",
-                        name: "David Lloyd A",
-                        homeNight: "Friday"
-                      },
-                      {
-                        club: "College Green",
-                        name: "College Green A",
-                        homeNight: "Wednesday"
-                      },
-                      {
-                        club: "Shell",
-                        name: "Shell B",
-                        homeNight: "Wednesday"
-                      },
-                      {
-                        club: "Parrs Wood",
-                        name: "Parrswood B",
-                        homeNight: "Tuesday"
-                      },
-                      {
-                          club: "Altrincham Central",
-                          name: "Altrincham Central",
-                          homeNight: "Friday"
-                        },
-                        {
-                          club: "Carrington",
-                          name: "Carrington B",
-                          homeNight: "Monday"
-                        },
-                        {
-                          club: "Alderley Park",
-                          name: "Alderley Park B",
-                          homeNight: "Tuesday"
-                        },
-                        {
-                          club: "G.H.A.P",
-                          name: "GHAP A",
-                          homeNight: "Tuesday"
-                        },
-                        {
-                          club: "Parrs Wood",
-                          name: "Parrswood A",
-                          homeNight: "Tuesday"
-                        }
+                  {
+                    "club": "Canute",
+                    "name": "Canute A",
+                    "homeNight": "Thursday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Disley",
+                    "name": "Disley A",
+                    "homeNight": "Wednesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "G.H.A.P",
+                    "name": "GHAP A",
+                    "homeNight": "Tuesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "College Green",
+                    "name": "College Green B",
+                    "homeNight": "Wednesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "College Green",
+                    "name": "College Green A",
+                    "homeNight": "Wednesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Parrs Wood",
+                    "name": "Parrswood B",
+                    "homeNight": "Tuesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Syddal Park",
+                    "name": "Syddal Park C",
+                    "homeNight": "Sunday",
+                    "teamindex":3
+                },
+                {
+                    "club": "David Lloyd",
+                    "name": "David Lloyd A",
+                    "homeNight": "Friday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Dome",
+                    "name": "Dome A",
+                    "homeNight": "Wednesday",
+                    "teamindex":1
+                }
                 ]
             },
             {
                 name:"Division 2",
                 teams:[
                     
-                    {
-                      club: "Syddal Park",
-                      name: "Syddal Park C",
-                      homeNight: "Sunday"
-                    },
-                    {
-                      club: "Bramhall Village",
-                      name: "Bramhall Village A",
-                      homeNight: "Monday"
-                    },
-                    {
-                      club: "Mellor",
-                      name: "Mellor A",
-                      homeNight: "Thursday"
-                    },
-                    {
-                      club: "Manor",
-                      name: "Manor A",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "College Green",
-                      name: "College Green B",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "Shell",
-                      name: "Shell C",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "G.H.A.P",
-                      name: "GHAP B",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "College Green C",
-                      name: "College Green C",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "C.A.P.",
-                      name: "CAP A",
-                      homeNight: "Wednesday"
-                    }
+                    
+                  {
+                    "club": "Shell",
+                    "name": "Shell C",
+                    "homeNight": "Wednesday",
+                    "teamindex":3
+                },
+                {
+                    "club": "Mellor",
+                    "name": "Mellor A",
+                    "homeNight": "Thursday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Alderley Park",
+                    "name": "Alderley Park B",
+                    "homeNight": "Tuesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Aerospace",
+                    "name": "Aerospace A",
+                    "homeNight": "Tuesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Cheadle Hulme",
+                    "name": "Cheadle Hulme A",
+                    "homeNight": "Wednesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "Disley",
+                    "name": "Disley B",
+                    "homeNight": "Tuesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Manor",
+                    "name": "Manor A",
+                    "homeNight": "Tuesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "College Green",
+                    "name": "College Green C",
+                    "homeNight": "Wednesday",
+                    "teamindex":3
+                },
+                {
+                    "club": "Dome",
+                    "name": "Dome B",
+                    "homeNight": "Wednesday",
+                    "teamindex":2
+                }
                   ]
             },
             {
                 name:"Division 3",
                 teams:[
-                    {
-                      club: "Disley",
-                      name: "Disley B",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "Aerospace",
-                      name: "Aerospace A",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "Dome",
-                      name: "Dome A",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "Macclesfield",
-                      name: "Macclesfield B",
-                      homeNight: "Monday"
-                    },
-                    {
-                      club: "New Mills",
-                      name: "New Mills A",
-                      homeNight: "Thursday"
-                    },
-                    {
-                      club: "Manor",
-                      name: "Manor B",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "Parrs Wood",
-                      name: "Parrswood C",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                        club: "Disley",
-                        name: "Disley C",
-                        homeNight: "Thursday"
-                    },
-                    {
-                      club: "Mellor",
-                      name: "Mellor B",
-                      homeNight: "Thursday"
-                    },
-                    {
-                        club: "Cheadle Hulme",
-                        name: "Cheadle Hulme A",
-                        homeNight: "Wednesday"
-                    }
-                  ]
-            },
-            {
-                name:"Division 4",
-                teams:[
-                    
-                    {
-                      club: "Disley",
-                      name: "Disley D",
-                      homeNight: "Thursday"
-                    },
-                    {
-                      club: "Tatton",
-                      name: "Tatton A",
-                      homeNight: "Sunday"
-                    },
-                    {
-                      club: "Dome",
-                      name: "Dome B",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "Poynton",
-                      name: "Poynton A",
-                      homeNight: "Monday"
-                    },
-                    {
-                      club: "Bramhall Village",
-                      name: "Bramhall Village B",
-                      homeNight: "Monday"
-                    },
-                    {
-                      club: "Mellor",
-                      name: "Mellor C",
-                      homeNight: "Thursday"
-                    },
-                    {
-                      club: "Manor",
-                      name: "Manor C",
-                      homeNight: "Tuesday"
-                    },
-                    {
-                      club: "Blue Triangle",
-                      name: "Blue Triangle",
-                      homeNight: "Wednesday"
-                    },
-                    {
-                      club: "Cheadle Hulme",
-                      name: "Cheadle Hulme B",
-                      homeNight: "Wednesday"
-                    }
+                  {
+                    "club": "Macclesfield",
+                    "name": "Macclesfield B",
+                    "homeNight": "Monday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Alderley Park",
+                    "name": "Alderley Park C",
+                    "homeNight": "Tuesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Mellor",
+                    "name": "Mellor B",
+                    "homeNight": "Thursday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Parrs Wood",
+                    "name": "Parrswood C",
+                    "homeNight": "Tuesday",
+                    "teamindex":3
+                },
+                {
+                    "club": "Tatton",
+                    "name": "Tatton A",
+                    "homeNight": "Tuesday",
+                    "teamindex":1
+                },
+                {
+                    "club": "College Green",
+                    "name": "College Green D",
+                    "homeNight": "Wednesday",
+                    "teamindex":4
+                },
+                {
+                    "club": "Cheadle Hulme",
+                    "name": "Cheadle Hulme B",
+                    "homeNight": "Wednesday",
+                    "teamindex":2
+                },
+                {
+                    "club": "Mellor",
+                    "name": "Mellor C",
+                    "homeNight": "Thursday",
+                    "teamindex":3
+                },
+                {
+                    "club": "Manor",
+                    "name": "Manor B",
+                    "homeNight": "Tuesday",
+                    "teamindex":2
+                }
                   ]
             }
         ]
     }
     var fixturesCollection = []
-    tameside.divisions.forEach(function(e){
+    stockport.divisions.forEach(function(e){
         e.teams.forEach(function(i){
             e.teams.forEach(function(j){
                 if (i.name != j.name){
@@ -496,7 +514,9 @@ exports.genFixtures = function(req,res){
                     var currentFixture = {}
                     currentFixture.division = e.name
                     currentFixture.homeTeam = i.name
+                    currentFixture.hometeamindex = i.teamindex
                     currentFixture.awayTeam = j.name
+                    currentFixture.awayteamindex = j.teamindex
                     currentFixture.homeClub = i.club
                     currentFixture.awayClub = j.club
                     currentFixture.division = e.name
@@ -518,7 +538,7 @@ exports.genFixtures = function(req,res){
         fixturesCollection.push(sameClub[i])
     }
 
-    
+    console.log(fixturesCollection.length)
     console.log(fixturesCollection)
 
 
@@ -590,10 +610,11 @@ exports.genFixtures = function(req,res){
                             //console.log("check if the current Date home team matches the fixture home team or away team")
                             if (currentSeasonEntry.fixtures.findIndex(k => (k.awayTeam == fixturesCollection[index].awayTeam)||(k.awayTeam == fixturesCollection[index].homeTeam)) == -1){
                                 //console.log("check if the current Date away team matches the fixture home team or away team")
-                                if (currentSeasonEntry.fixtures.findIndex(k => (k.homeClub == fixturesCollection[index].homeClub)||(k.homeClub == fixturesCollection[index].awayClub)) == -1){
+                                if (currentSeasonEntry.fixtures.findIndex(k => 
+                                  ((k.homeClub == fixturesCollection[index].homeClub)&&(Math.abs(k.hometeamindex - fixturesCollection[index].hometeamindex) < 2 ))||((k.homeClub == fixturesCollection[index].awayClub)&&(Math.abs(k.hometeamindex - fixturesCollection[index].awayteamindex) < 2 ))) == -1) {
                                     //console.log("check if the current Date home club matches the fixture home club or away club")
-                                    if (currentSeasonEntry.fixtures.findIndex(k => (k.awayClub == fixturesCollection[index].awayClub)||(k.awayClub == fixturesCollection[index].homeClub)) == -1){
-                                        //console.log("check if the current Date away club matches the fixture home club or away club")
+                                    if (currentSeasonEntry.fixtures.findIndex(k => ((k.awayClub == fixturesCollection[index].awayClub)&&(Math.abs(k.awayteamindex - fixturesCollection[index].awayteamindex) < 2 ))||(((k.awayClub == fixturesCollection[index].homeClub))&&(Math.abs(k.awayteamindex - fixturesCollection[index].hometeamindex) < 2))) == -1 ) {
+                                        // console.log("check if the current Date away club matches the fixture home club or away club")
                                         var currSeasonCalPos = seasonCalendar.length
                                         if (currSeasonCalPos > 0){
                                             if (seasonCalendar[currSeasonCalPos - 1].fixtures.findIndex(k => (k.homeTeam == fixturesCollection[index].homeTeam)||(k.homeTeam == fixturesCollection[index].awayTeam)) == -1){
@@ -615,7 +636,7 @@ exports.genFixtures = function(req,res){
                                                                                         //console.log("yesterdays away club matches fixture home club or away club")
                                                                                         //console.log(dotw(currentDate.getDay()) + " " + currentDate)
                                                                                         //console.log ("Fixture: " + fixturesCollection[index].homeTeam + " vs " + fixturesCollection[index].awayTeam + "\n")
-                                                                                        currentSeasonEntry.fixtures.push({"homeTeam":fixturesCollection[index].homeTeam,"homeClub":fixturesCollection[index].homeClub,"awayTeam":fixturesCollection[index].awayTeam,"awayClub":fixturesCollection[index].awayClub,"division":fixturesCollection[index].division})
+                                                                                        currentSeasonEntry.fixtures.push({"homeTeam":fixturesCollection[index].homeTeam,"hometeamindex":fixturesCollection[index].hometeamindex,"homeClub":fixturesCollection[index].homeClub,"awayTeam":fixturesCollection[index].awayTeam,"awayteamindex":fixturesCollection[index].awayteamindex,"awayClub":fixturesCollection[index].awayClub,"division":fixturesCollection[index].division})
                                                                                         fixturesCollection.splice(index,1) // remove the fixture from the collection so that we don't add it to subsequent days
                                                                                     }
                                                                                 //}

@@ -7,7 +7,7 @@ var request = require('request');
  });
 
  var SEASON = '';
-    if (new Date().getMonth() < 7){
+    if (new Date().getMonth() < 6){
       SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
     }
     else {
