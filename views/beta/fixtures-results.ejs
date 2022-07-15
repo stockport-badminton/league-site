@@ -93,13 +93,15 @@
           <% if(row['homeScore'] != null){ %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
             <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
-            <% if (typeof admin !== 'undefined' && admin) { %>
+            <% if (typeof admin !== 'undefined') { %>
             <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
             <% } %>
           <% }
           else { %>
            <td><%= resultValue %></td>
-           <td></td>
+           <% if (typeof admin !== 'undefined') { %>
+            <td></td>
+            <% } %>
           <% } %>
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
