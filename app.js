@@ -315,13 +315,25 @@
         console.log(req.body.to);
         console.log(req.body.subject);
         logger.log(req.body.html);
-        const msg = {
-          to: 'stockport.badders.results@gmail.com',
-          from: req.body.from,
-          subject: req.body.subject,
-          text: 'Email from sengrid parse send to'+req.body.to,
-          html: req.body.html
-        };
+        if (req.body.to == 'clubSecretaries@stockport-badminton.co.uk'){
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            bcc: 'bigcoops@gmail.com, ncooper@amplience.com, neil.cooper.241180@gmail.com',
+            from: req.body.from,
+            subject: req.body.subject,
+            text: 'Email from sengrid parse send to'+req.body.to,
+            html: req.body.html
+          };
+        }
+        else {
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            from: req.body.from,
+            subject: req.body.subject,
+            text: 'Email from sengrid parse send to'+req.body.to,
+            html: req.body.html
+          };
+        }
         sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
