@@ -383,8 +383,8 @@
         }
         sgMail.send(msg)
           .then(()=>{
-            logger.log(msg);
             console.log(msg)
+            logger.log(msg);
             res.sendStatus(200);
           })
           .catch(error => {
