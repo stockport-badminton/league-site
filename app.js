@@ -315,7 +315,7 @@
         console.log(req.body.to);
         console.log(req.body.subject);
         logger.log(req.body.html);
-        if (req.body.to == 'clubSecretaries@stockport-badminton.co.uk'){
+        if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
           const msg = {
             to: 'stockport.badders.results@gmail.com',
             bcc: 'bigcoops@gmail.com, ncooper@amplience.com, neil.cooper.241180@gmail.com',
