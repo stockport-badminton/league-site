@@ -384,10 +384,11 @@
         sgMail.send(msg)
           .then(()=>{
             logger.log(msg);
-            // console.log(msg)
+            console.log(msg)
             res.sendStatus(200);
           })
           .catch(error => {
+            console.log(error.toString());
             logger.log(error.toString());
             next("Sorry something went wrong sending your email.");
           })
