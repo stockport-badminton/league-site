@@ -307,45 +307,6 @@
 
     app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
 
-// for handling sendgrid parse 
-    const multer  = require('multer');
-    const upload = multer();
-      app.post('/mail', upload.none(), function(req,res){
-        console.log(req.body.from);
-        console.log(req.body.to);
-        console.log(req.body.subject);
-        logger.log(req.body.html);
-        if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
-          const msg = {
-            to: 'stockport.badders.results@gmail.com',
-            bcc: 'bigcoops@gmail.com, ncooper@amplience.com, neil.cooper.241180@gmail.com',
-            from: req.body.from,
-            subject: req.body.subject,
-            text: 'Email from sengrid parse send to'+req.body.to,
-            html: req.body.html
-          };
-        }
-        else {
-          const msg = {
-            to: 'stockport.badders.results@gmail.com',
-            from: req.body.from,
-            subject: req.body.subject,
-            text: 'Email from sengrid parse send to'+req.body.to,
-            html: req.body.html
-          };
-        }
-        sgMail.send(msg)
-          .then(()=>{
-            logger.log(msg);
-            // console.log(msg)
-            res.sendStatus(200);
-          })
-          .catch(error => {
-            logger.log(error.toString());
-            next("Sorry something went wrong sending your email.");
-          })
-      }); 
-
     app.post('/SESemail', (req,res,next) => {
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       
@@ -392,6 +353,47 @@
       })
 
     })
+
+// for handling sendgrid parse 
+    const multer  = require('multer');
+    const upload = multer();
+      app.post('/mail', upload.none(), function(req,res){
+        console.log(req.body.from);
+        console.log(req.body.to);
+        console.log(req.body.subject);
+        logger.log(req.body.html);
+        if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            bcc: 'bigcoops@gmail.com, ncooper@amplience.com, neil.cooper.241180@gmail.com',
+            from: req.body.from,
+            subject: req.body.subject,
+            text: 'Email from sengrid parse send to'+req.body.to,
+            html: req.body.html
+          };
+        }
+        else {
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            from: req.body.from,
+            subject: req.body.subject,
+            text: 'Email from sengrid parse send to'+req.body.to,
+            html: req.body.html
+          };
+        }
+        sgMail.send(msg)
+          .then(()=>{
+            logger.log(msg);
+            // console.log(msg)
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            logger.log(error.toString());
+            next("Sorry something went wrong sending your email.");
+          })
+      }); 
+
+    
 
     // Scorecard - Results Entry related routes
 
