@@ -388,8 +388,8 @@
             res.sendStatus(200);
           })
           .catch(error => {
-            console.log(error.toString());
-            logger.log(error.toString());
+            console.log(error);
+            logger.log(error);
             next("Sorry something went wrong sending your email.");
           })
       }); 
