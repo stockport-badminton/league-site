@@ -358,11 +358,12 @@
     const multer  = require('multer');
     const upload = multer();
       app.post('/mail', upload.none(), function(req,res,next){
-        console.log(req.body.from);
-        console.log(req.body.to);
-        console.log(req.body.subject);
-        logger.log(req.body.html);
+        console.log("from: " + req.body.from);
+        console.log("to: " + req.body.to);
+        console.log("subject: " + req.body.subject);
+        logger.log("html: " + req.body.html);
         if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
+          console.log("email addressed matched distribution")
           const msg = {
             to: 'stockport.badders.results@gmail.com',
             bcc: ['bigcoops@gmail.com','ncooper@amplience.com','neil.cooper.241180@gmail.com'],
@@ -373,6 +374,7 @@
           };
         }
         else {
+          console.log("email address didn't match")
           const msg = {
             to: 'stockport.badders.results@gmail.com',
             from: req.body.from,
