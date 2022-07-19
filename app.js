@@ -365,7 +365,7 @@
         if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
           const msg = {
             to: 'stockport.badders.results@gmail.com',
-            bcc: 'bigcoops@gmail.com, ncooper@amplience.com, neil.cooper.241180@gmail.com',
+            bcc: ['bigcoops@gmail.com','ncooper@amplience.com','neil.cooper.241180@gmail.com'],
             from: req.body.from,
             subject: req.body.subject,
             text: 'Email from sengrid parse send to'+req.body.to,
