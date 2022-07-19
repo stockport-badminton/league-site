@@ -357,7 +357,7 @@
 // for handling sendgrid parse 
     const multer  = require('multer');
     const upload = multer();
-      app.post('/mail', upload.none(), function(req,res){
+      app.post('/mail', upload.none(), function(req,res,next){
         console.log(req.body.from);
         console.log(req.body.to);
         console.log(req.body.subject);
@@ -383,11 +383,13 @@
         }
         sgMail.send(msg)
           .then(()=>{
+            console.log("email success")
             console.log(msg)
             logger.log(msg);
             res.sendStatus(200);
           })
           .catch(error => {
+            console.log("email fail")
             console.log(error);
             logger.log(error);
             next("Sorry something went wrong sending your email.");
