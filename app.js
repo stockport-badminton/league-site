@@ -363,7 +363,7 @@
         console.log("subject: " + req.body.subject);
         logger.log("html: " + req.body.html);
         if (req.body.to.indexOf('clubSecretaries@stockport-badminton.co.uk') != -1 ){
-          console.log("email addressed matched distribution")
+          console.log("email addressed matched distribution");
           const msg = {
             to: 'stockport.badders.results@gmail.com',
             bcc: ['bigcoops@gmail.com','ncooper@amplience.com','neil.cooper.241180@gmail.com'],
@@ -372,18 +372,7 @@
             text: 'Email from sengrid parse send to'+req.body.to,
             html: req.body.html
           };
-        }
-        else {
-          console.log("email address didn't match")
-          const msg = {
-            to: 'stockport.badders.results@gmail.com',
-            from: req.body.from,
-            subject: req.body.subject,
-            text: 'Email from sengrid parse send to'+req.body.to,
-            html: req.body.html
-          };
-        }
-        sgMail.send(msg)
+          sgMail.send(msg)
           .then(()=>{
             console.log("email success")
             console.log(msg)
@@ -396,6 +385,31 @@
             logger.log(error);
             next("Sorry something went wrong sending your email.");
           })
+        }
+        else {
+          console.log("email address didn't match")
+          const msg = {
+            to: 'stockport.badders.results@gmail.com',
+            from: req.body.from,
+            subject: req.body.subject,
+            text: 'Email from sengrid parse send to'+req.body.to,
+            html: req.body.html
+          };
+          sgMail.send(msg)
+          .then(()=>{
+            console.log("email success")
+            console.log(msg)
+            logger.log(msg);
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            console.log("email fail")
+            console.log(error);
+            logger.log(error);
+            next("Sorry something went wrong sending your email.");
+          })
+        }
+        
       }); 
 
     
