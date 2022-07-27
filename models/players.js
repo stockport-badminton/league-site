@@ -336,7 +336,6 @@ exports.getPairStats = function(searchTerms,done){
   var seasonArray = [seasonVal,seasonVal]
   whereValue = seasonArray.concat(whereValue)
   
-  
   var sql = "DROP TABLE IF EXISTS PairsgameSummary; CREATE TEMPORARY TABLE PairsgameSummary AS SELECT b.id, least(b.homePlayer1,b.homePlayer2) AS player1Id, greatest(b.homePlayer1,b.homePlayer2) AS player2Id, b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id UNION ALL SELECT b.id, least(b.awayPlayer1,b.awayPlayer2) AS player1Id, greatest(b.awayPlayer2,b.awayPlayer1) AS player2Id, b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id; SELECT concat(Player1.first_name,' ', Player1.family_name, ' & ', Player2.first_name, ' ', Player2.family_name) as Pairing ,player1Id ,player2Id ,SUM(forPoints) AS forPoints ,SUM(againstPoints) AS againstPoints ,SUM(gamesWon) AS gamesWon ,SUM(gamesPlayed) AS gamesPlayed ,SUM(gamesWon) / SUM(gamesPlayed) As winRate, (sum(gamesWon) + sum(gamesPlayed)) - (sum(gamesPlayed) - sum(gamesWon)) as Points, club.name AS clubName ,team.name AS teamName ,gameType FROM ( SELECT * FROM PairsgameSummary ) AS a JOIN player" + season +" Player1 ON Player1.id = a.player1Id JOIN player" + season +" Player2 ON Player2.id = a.player2Id JOIN team" + season +" team ON team.id = Player1.team AND team.name LIKE ? JOIN club" + season +" club ON club.id = Player1.club AND club.name LIKE ? AND gameType like ? GROUP BY Pairing ORDER BY winRate DESC, Points DESC;"
     console.log(sql);
     db.get().query(sql,whereValue,function (err,rows){
@@ -356,6 +355,48 @@ exports.getPairStats = function(searchTerms,done){
     })
 
 
+}
+
+exports.getEmails = async function(searchTerms,done){
+  console.log(searchTerms);
+  var sql = "SELECT DISTINCT b.playerEmail FROM (SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'match Sec' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.matchSec = player.id UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'club Sec' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.clubSec = player.id UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'team Captain' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.captain = player.id) AS b JOIN team ON teamId = team.id"
+  var whereTerms = [];
+  if (!searchTerms.role){
+    console.log("no role selected");
+  }
+  else {
+    whereTerms.push('b.role = "'+searchTerms.role+'"');
+  }
+  if (!searchTerms.division){
+    console.log("no division");
+  }
+  else {
+    whereTerms.push('team.division = '+searchTerms.division );
+  }
+  if (!searchTerms.clubName){
+    console.log("no club id");
+  }
+  else {
+    whereTerms.push('b.clubName = "'+searchTerms.clubName + '"');
+  }
+  if (!searchTerms.teamName){
+    console.log("no teamName");
+  }
+  else {
+    whereTerms.push('b.teamName = "'+searchTerms.teamName + '"');
+  }
+  console.log(whereTerms)
+
+  if (whereTerms.length > 0) {
+    var conditions = whereTerms.join(' AND ');
+    conditions = ' WHERE ' + conditions;
+    // console.log(conditions);
+    sql = sql + conditions
+  }
+  db.get().query(sql, function (err, rows){
+    if (err) return done(err);
+    done(null, rows);
+  })
 }
 
 exports.search = function(searchTerms,done){

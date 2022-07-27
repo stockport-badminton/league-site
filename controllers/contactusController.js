@@ -1,4 +1,5 @@
 var Club = require('../models/club.js');
+var Player = require('../models/players.js');
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var logger = require('logzio-nodejs').createLogger({
@@ -7,7 +8,8 @@ var logger = require('logzio-nodejs').createLogger({
 });
 const { body,validationResult } = require("express-validator/check");
 const { sanitizeBody } = require("express-validator/filter");
-var axios = require('axios')
+var axios = require('axios');
+const { read } = require('fs');
 
 function validCaptcha(value,{req}){
   // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
@@ -183,6 +185,86 @@ exports.contactus = function(req, res,next){
     }
   }
 }
+
+// Display list of all Players
+exports.distribution_list = function(req,res,next) {
+  console.log("from: " + req.body.from);
+  console.log("to: " + req.body.to);
+  console.log("subject: " + req.body.subject);
+  logger.log("html: " + req.body.html);
+
+  var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
+  var msg = {
+    'to': 'stockport.badders.results@gmail.com',
+    'from': req.body.from,
+    'subject': req.body.subject,
+    'text': 'Email from sengrid parse send to'+req.body.to,
+    'html': req.body.html
+  };
+  const getBcc = async function (recipient, msg) {
+    switch (recipient) {
+      case "clubSecretaries":
+        var searchObject = { "role": "club Sec" };
+        break;
+      case "matchSecretaries":
+        var searchObject = { "role": "match Sec" };
+        break;
+      case "teamCaptains":
+        var searchObject = { "role": "team Captain" };
+        break;
+      case "Premier":
+        var searchObject = { "division": 7 };
+        break;
+      case "division1":
+        var searchObject = { "division": 8 };
+        break;
+      case "division2":
+        var searchObject = { "division": 9 };
+        break;
+      case "division3":
+        var searchObject = { "division": 10 };
+        break;
+      default:
+      
+    }
+    if (searchObject) {
+      await Player.getEmails(searchObject, function (err, rows) {
+        if (err) {
+          console.log(err);
+          next(err);
+        }
+        else {
+          //console.log(rows);
+          msg.bcc = [];
+          rows.forEach(element => {
+            msg.bcc.push(element.playerEmail)
+          });
+          //console.log(msg.bcc)
+          return msg;
+        }
+      })
+    }
+    else {
+      return msg
+    }
+    
+  }
+  
+
+  getBcc(recipient,msg)
+  sgMail.send(msg)
+    .then(()=>{
+      logger.log(msg);
+      console.log(msg);
+      res.sendStatus(200);
+    })
+    .catch(error => {
+      logger.log(error);
+      console.log(msg);
+      next("Sorry something went wrong sending your email.");
+    })
+
+};
 
 exports.contactus_get = function(req, res,next) {
   Club.getAll(function(err,rows){

@@ -43,6 +43,7 @@ exports.player_list = function(req, res) {
     })
 };
 
+
 // Display list of all Players
 exports.player_game_data = function(req, res,next) {
     Player.getPlayerGameData(req.params.id,function(err,rows){
