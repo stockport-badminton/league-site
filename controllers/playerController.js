@@ -96,6 +96,7 @@ exports.manage_player_list_clubs_teams = function(req, res) {
       var manageTeamObject = {}
       manageTeamObject.teams = [];
       var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
+      var teamIds = jp.query(rows,"$..teamId").filter((v,i,a)=>a.indexOf(v)==i)
       console.log(teamNames);
       for(let i=0; i < teamNames.length; i++) {
         var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
@@ -104,6 +105,7 @@ exports.manage_player_list_clubs_teams = function(req, res) {
         var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')]")
         var teamObject = {
           name:teamNames[i],
+          id:teamIds[i],
           nominated:{
             men:nomMen,
             ladies:nomLadies
@@ -116,7 +118,7 @@ exports.manage_player_list_clubs_teams = function(req, res) {
         manageTeamObject.teams.push(teamObject);
 
       }
-      console.log(manageTeamObject);
+      console.log(JSON.stringify(manageTeamObject));
       res.render('beta/team-admin', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',

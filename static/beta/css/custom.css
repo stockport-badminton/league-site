@@ -125,6 +125,13 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
   color: white;
 }
 
+.add-player-box .fa, .player-box .fa {
+  font-size:16px;
+  padding:0px;
+  position:absolute;
+  right:16px;
+}
+
 .nominated-container, .reserves-container {
   border-style: dashed !important;
 }

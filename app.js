@@ -468,7 +468,7 @@
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
 
-    router.post('/player/batch-update',checkJwt, player_controller.player_batch_update);
+    router.post('/player/batch-update', player_controller.player_batch_update);
 
     /* GET request to delete Player. */
     router.get('/player/:id/delete', player_controller.player_delete_get);

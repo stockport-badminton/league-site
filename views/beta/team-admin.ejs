@@ -12,21 +12,23 @@
     <div class="container row">
     <% result.teams.forEach(function(team){ %>
         <div class="team-container border border-secondary rounded col p-3">
-            <p class="row"><%= team['name'] %></p>
+            <p class="row" data-teamid="<%= team['id'] %>"><%= team['name'] %></p>
             <div class="nominated-container border border-secondary rounded p-3 col-12">
                 <div class="col-12">Nominated</div>
                 <div class="row">
-                    <div class="col-6">
+                    <div class="col-6 men">
                         <p>Men</p>
                         <% team.nominated.men.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.nominated.ladies.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
                     </div>
                 </div>
             </div>
@@ -34,21 +36,38 @@
             <div class="reserves-container border border-secondary rounded p-3 col-12">
                 <div class="col-12">Reserves</div>
                 <div class="row">
-                    <div class="col-6">
+                    <div class="col-6 men">
                         <p>Men</p>
                         <% team.reserves.men.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.reserves.ladies.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
                     </div>
                 </div>
             </div>
-            <% } %>
+            <% } 
+            else { %>
+            <div class="reserves-container border border-secondary rounded p-3 col-12">
+              <div class="col-12">Reserves</div>
+              <div class="row">
+                  <div class="col-6 men">
+                      <p>Men</p>  
+                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>                    
+                  </div>
+                  <div class="col-6 ladies">
+                      <p>Ladies</p>
+                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                  </div>
+              </div>
+          </div>
+          <% } %>
         </div> <%   
     }) %>
     
@@ -61,25 +80,29 @@
 
 <%- include('footer.ejs') %>
 
+
 <script type="text/javascript">
 
 document.addEventListener('DOMContentLoaded', (event) => {
-
 var counter=0;
 function handleDragStart(e) {
   this.style.opacity = '0.4';
   this.classList.remove('border');
   this.style.border = "1px solid #000000";
   
-  dragSrcEl = this;
+  dragSrcEl = e.target;
 
   e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/html', this.innerHTML);
+  e.dataTransfer.setData('text/html', this.outerHTML);
 }
 
 function handleDragEnd(e) {
   this.style.opacity = '1';
-  this.classList.add('border');
+  if (!this.classList.contains('col-6') && !this.classList.contains('men')){
+    this.classList.add('border');
+  }
+  
+  //console.log(this.style);
 
   items.forEach(function (item) {
     item.classList.remove('over');
@@ -106,12 +129,85 @@ function handleDragLeave(e) {
 
 function handleDrop(e) {
   e.stopPropagation(); // stops the browser from redirecting.
-
-  if (dragSrcEl !== this) {
-    dragSrcEl.innerHTML = this.innerHTML;
-    this.innerHTML = e.dataTransfer.getData('text/html');
+  var movedPlayer = dragSrcEl.textContent
+  var movedPlayedId = dragSrcEl.attributes["data-id"].nodeValue
+  if (e.target.classList.contains('player-box')) { // player dropped on another player element
+    // console.log("dropped on player")
+    var teamName = e.target.parentElement.parentElement.parentElement.parentElement.children[0].childNodes[0].data
+    var teamId =   e.target.parentElement.parentElement.parentElement.parentElement.children[0].attributes[1].nodeValue
+    var nominatedOrReserves = e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].nodeValue
+    var abovePlayer = e.target.textContent
+    dragSrcEl.parentNode.removeChild(dragSrcEl);
+    e.target.parentNode.insertBefore(dragSrcEl,e.target.nextSibling);
+    console.log("moved "+movedPlayer+" after player "+abovePlayer+" in team "+ teamName+" "+nominatedOrReserves)
+    var targetPlayers = [...e.target.parentElement.children].filter(n => n.classList.contains('player-box'))
   }
-
+  if (!e.target.classList.contains('player-box')){ // player dropped on a team element
+    // console.log("dropped on team")
+    console.log(e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].data)
+    
+    if (e.target.nodeName == "P"){ // player dropped on gender P element (above the top of player list)
+      var teamName = e.target.parentElement.parentElement.parentElement.parentElement.children[0].childNodes[0].data
+      var teamId =   e.target.parentElement.parentElement.parentElement.parentElement.children[0].attributes[1].nodeValue
+      var nominatedOrReserves = e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].nodeValue
+      e.target.parentNode.insertBefore(dragSrcEl,e.target.nextSibling);
+      console.log("added "+movedPlayer+" to top of "+teamName+" "+nominatedOrReserves)
+      var targetPlayers = [...e.target.parentElement.children].filter(n => n.classList.contains('player-box'))
+    }
+    else { // player dropped underneath the player list
+      var teamName = e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].data
+      var teamId =   e.target.parentElement.parentElement.parentElement.children[0].attributes[1].nodeValue
+      var nominatedOrReserves = e.target.parentElement.parentElement.children[0].childNodes[0].nodeValue
+      e.target.appendChild(dragSrcEl);
+      console.log("added "+movedPlayer+" to bottom of "+teamName+" "+nominatedOrReserves)
+      var targetPlayers = [...e.target.children].filter(n => n.classList.contains('player-box'))  
+    }
+    
+    
+    //console.log("update player set team = "+teamId+", rank = "+movedPlayer+" where id = "+ movedPlayedId)
+  }
+  console.log(targetPlayers)
+  var rank = 1;
+  var batchObj = {
+    "tablename":"player",
+    "fields":[
+        "id","team","rank"
+    ],
+    "data":[]
+}
+  targetPlayers.forEach(function(player){
+    if (nominatedOrReserves == 'Reserves'){
+      console.log("update player set team = "+teamId+", rank = 99 where id = "+ player.attributes['data-id'].nodeValue)
+      batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),99])  
+    }
+    else {
+      console.log("update player set team = "+teamId+", rank = "+rank+" where id = "+ player.attributes['data-id'].nodeValue)
+      batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),rank])
+      rank++;
+    }
+  })
+  console.log(batchObj);
+  /* $.post("/player/batch-update", batchObj, function(result,status){
+    console.log(status);
+  }); */
+  fetch('/player/batch-update', {
+    method: 'POST', // or 'PUT'
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(batchObj),
+  })
+  .then((response) => response.json())
+  .then((data) => {
+    console.log('Success:', data);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  }); 
+  dragSrcEl.style.opacity = '1'; 
+  dragSrcEl.classList.add('border');
+  dragSrcEl.classList.remove('shadow');
+  dragSrcEl.classList.remove('over')
   return false;
 }
 
@@ -120,12 +216,38 @@ items.forEach(function(item) {
   item.addEventListener('dragstart', handleDragStart);
   item.addEventListener('dragover', handleDragOver);
   item.addEventListener('dragend', handleDragEnd);
-  item.addEventListener('drop', handleDrop);
 });
-let teamTargets = document.querySelectorAll('.reserves-container, .nominated-container');
-teamTargets.forEach(function(team) {
+let mensTeamTargets = document.querySelectorAll('.nominated-container > div > div.men');
+let ladiesTeamTargets = document.querySelectorAll('.nominated-container > div > div.ladies');
+let mensReserveTargets = document.querySelectorAll('.reserves-container > div > div.men');
+let ladiesReserveTargets = document.querySelectorAll('.reserves-container > div > div.ladies');
+mensTeamTargets.forEach(function(team) {
     team.addEventListener('dragenter', handleDragEnter);
     team.addEventListener('dragleave', handleDragLeave);
+    team.addEventListener('drop', handleDrop);
+    team.addEventListener('dragover', handleDragOver);
+    team.addEventListener('dragend', handleDragEnd);
+});
+ladiesTeamTargets.forEach(function(team) {
+    team.addEventListener('dragenter', handleDragEnter);
+    team.addEventListener('dragleave', handleDragLeave);
+    team.addEventListener('drop', handleDrop);
+    team.addEventListener('dragover', handleDragOver);
+    team.addEventListener('dragend', handleDragEnd);
+});
+mensReserveTargets.forEach(function(team) {
+    team.addEventListener('dragenter', handleDragEnter);
+    team.addEventListener('dragleave', handleDragLeave);
+    team.addEventListener('drop', handleDrop);
+    team.addEventListener('dragover', handleDragOver);
+    team.addEventListener('dragend', handleDragEnd);
+});
+ladiesReserveTargets.forEach(function(team) {
+    team.addEventListener('dragenter', handleDragEnter);
+    team.addEventListener('dragleave', handleDragLeave);
+    team.addEventListener('drop', handleDrop);
+    team.addEventListener('dragover', handleDragOver);
+    team.addEventListener('dragend', handleDragEnd);
 });
 });
 
