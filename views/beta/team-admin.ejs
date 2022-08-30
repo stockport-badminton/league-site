@@ -134,8 +134,9 @@ function handlePlayerRemove(e) {
     "fields":[
         "id","club","team","rank"
     ],
-    "data":[parseInt(e.target.parentNode.attributes['data-id'].nodeValue),63,52,99]
+    "data":[[parseInt(e.target.parentNode.attributes['data-id'].nodeValue),63,52,99]]
   }
+  console.log(batchObj);
   fetch('/player/batch-update', {
     method: 'POST', // or 'PUT'
     headers: {
