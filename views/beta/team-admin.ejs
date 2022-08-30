@@ -21,14 +21,14 @@
                         <% team.nominated.men.forEach(function(player){ %>
                             <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
-                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                     <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.nominated.ladies.forEach(function(player){ %>
                             <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
-                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                 </div>
             </div>
@@ -41,14 +41,14 @@
                         <% team.reserves.men.forEach(function(player){ %>
                             <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
-                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                     <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.reserves.ladies.forEach(function(player){ %>
                             <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
                         <% }) %>
-                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                        <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                 </div>
             </div>
@@ -59,11 +59,11 @@
               <div class="row">
                   <div class="col-6 men">
                       <p>Men</p>  
-                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>                    
+                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>                    
                   </div>
                   <div class="col-6 ladies">
                       <p>Ladies</p>
-                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success"></i> Add Player</div>
+                      <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                   </div>
               </div>
           </div>
@@ -76,10 +76,9 @@
    <% } %>
 
 
-
-
 <%- include('footer.ejs') %>
 
+<%- include('AddCreatePlayerModal.ejs') %>
 
 <script type="text/javascript">
 
@@ -127,6 +126,32 @@ function handleDragLeave(e) {
   }
 }
 
+function handlePlayerRemove(e) {
+  e.target.parentNode.parentNode.removeChild(e.target.parentNode);
+  alert(e.target.parentNode.textContent+" ("+ e.target.parentNode.attributes['data-id'].nodeValue +") removed");
+  var batchObj = {
+    "tablename":"player",
+    "fields":[
+        "id","club","team","rank"
+    ],
+    "data":[parseInt(e.target.parentNode.attributes['data-id'].nodeValue),63,52,99]
+  }
+  /* fetch('/player/batch-update', {
+    method: 'POST', // or 'PUT'
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(batchObj),
+  })
+  .then((response) => response.json())
+  .then((data) => {
+    console.log('Success:', data);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  });  */
+}
+
 function handleDrop(e) {
   e.stopPropagation(); // stops the browser from redirecting.
   var movedPlayer = dragSrcEl.textContent
@@ -144,7 +169,7 @@ function handleDrop(e) {
   }
   if (!e.target.classList.contains('player-box')){ // player dropped on a team element
     // console.log("dropped on team")
-    console.log(e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].data)
+    // console.log(e.target.parentElement.parentElement.parentElement.children[0].childNodes[0].data)
     
     if (e.target.nodeName == "P"){ // player dropped on gender P element (above the top of player list)
       var teamName = e.target.parentElement.parentElement.parentElement.parentElement.children[0].childNodes[0].data
@@ -166,7 +191,7 @@ function handleDrop(e) {
     
     //console.log("update player set team = "+teamId+", rank = "+movedPlayer+" where id = "+ movedPlayedId)
   }
-  console.log(targetPlayers)
+  // console.log(targetPlayers)
   var rank = 1;
   var batchObj = {
     "tablename":"player",
@@ -174,19 +199,19 @@ function handleDrop(e) {
         "id","team","rank"
     ],
     "data":[]
-}
+  }
   targetPlayers.forEach(function(player){
     if (nominatedOrReserves == 'Reserves'){
-      console.log("update player set team = "+teamId+", rank = 99 where id = "+ player.attributes['data-id'].nodeValue)
+      // console.log("update player set team = "+teamId+", rank = 99 where id = "+ player.attributes['data-id'].nodeValue)
       batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),99])  
     }
     else {
-      console.log("update player set team = "+teamId+", rank = "+rank+" where id = "+ player.attributes['data-id'].nodeValue)
+      // console.log("update player set team = "+teamId+", rank = "+rank+" where id = "+ player.attributes['data-id'].nodeValue)
       batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),rank])
       rank++;
     }
   })
-  console.log(batchObj);
+  // console.log(batchObj);
   /* $.post("/player/batch-update", batchObj, function(result,status){
     console.log(status);
   }); */
@@ -197,7 +222,9 @@ function handleDrop(e) {
     },
     body: JSON.stringify(batchObj),
   })
-  .then((response) => response.json())
+  .then((response) => {
+    response.json()
+  })
   .then((data) => {
     console.log('Success:', data);
   })
@@ -216,6 +243,7 @@ items.forEach(function(item) {
   item.addEventListener('dragstart', handleDragStart);
   item.addEventListener('dragover', handleDragOver);
   item.addEventListener('dragend', handleDragEnd);
+  item.children[0].addEventListener('click',handlePlayerRemove);
 });
 let mensTeamTargets = document.querySelectorAll('.nominated-container > div > div.men');
 let ladiesTeamTargets = document.querySelectorAll('.nominated-container > div > div.ladies');

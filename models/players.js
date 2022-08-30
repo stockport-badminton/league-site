@@ -18,6 +18,8 @@ exports.create = function(first_name,family_name,team,club,gender,done){
   var date_of_registration = new Date();
   db.get().query('INSERT INTO `player` (`first_name`,`family_name`,`date_of_registration`,`team`,`club`,`gender`) VALUES (?,?,?,?,?,?)',[first_name,family_name,date_of_registration,team,club,gender],function(err,result){
     if (err) return done(err);
+    console.log(this.sql);
+    console.log(result)
     done(null,result);
   });
 
@@ -144,11 +146,17 @@ exports.getMatchStats = function(fixtureId,done){
 }
 
 
-
-
 exports.getNamesClubsTeams = function(searchTerms,done){
   var whereTerms = [];
-  var whereValue = []
+  var whereValue = [];
+  var nameMatch = ""
+  if (!searchTerms.name){
+    console.log("no name search");
+  }
+  else {
+    var letter = searchTerms.name.substr(0,1);
+    nameMatch = "AND (player.first_name like '"+letter+"%' OR player.family_name like '"+letter+"%')" 
+  }
   if (!searchTerms.club){
     // console.log("no club name");
   }
@@ -176,14 +184,14 @@ exports.getNamesClubsTeams = function(searchTerms,done){
     var conditions = whereTerms.join(' AND ');
     // console.log(conditions);
     conditions = ' WHERE '+ conditions
-    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender, rank",whereValue,function(err,rows){
+    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender, rank",whereValue,function(err,rows){
       console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
     })
   }
   else {
-    db.get().query("select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team) as a join club where a.clubId = club.id order by teamName, gender, rank",function(err,rows){
+    db.get().query("select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id order by teamName, gender, rank",function(err,rows){
       console.log(this.sql);
       if (err) return done(err);
       done(null,rows);

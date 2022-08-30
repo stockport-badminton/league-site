@@ -464,11 +464,12 @@
 
     /* POST request for creating Player. */
     router.post('/player/create', player_controller.player_create);
+    router.post('/manage/players/create', player_controller.player_create_from_team);
 
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
 
-    router.post('/player/batch-update', player_controller.player_batch_update);
+    router.post('/player/batch-update', secured(), player_controller.player_batch_update);
 
     /* GET request to delete Player. */
     router.get('/player/:id/delete', player_controller.player_delete_get);
@@ -534,6 +535,7 @@
 
     /* GET request for list of all Player items. */
     router.get('/players/club-:clubid?/team-:teamid?/gender-:gender?', player_controller.player_list);
+    router.get('/players/matching/:name/:gender',player_controller.find_closest_matched_player);
 
     /// TEAM ROUTES ///
 

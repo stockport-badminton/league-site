@@ -4,6 +4,7 @@ var Team = require('../models/teams');
 var Venue = require('../models/venue');
 var async = require('async');
 var jp = require('jsonpath');
+const {distance, closest} = require('fastest-levenshtein');
 
 
 function logger(data) {
@@ -84,6 +85,47 @@ exports.player_list_clubs_teams = function(req, res) {
     })
 };
 
+exports.find_closest_matched_player = function(req, res) {
+  console.log("received request")
+  var searchTerms = {
+    "name":req.params.name,
+    "gender":req.params.gender
+  }
+  Player.getNamesClubsTeams(searchTerms, function(err,rows){
+    if (err){
+      // console.log("all_player_stats controller error")
+      return next(err)
+    }
+    else {
+      //console.log(rows);
+      var names = jp.query(rows,"$..name")
+      var playerID = jp.query(rows,"$..playerID")
+      var clubId = jp.query(rows,"$..clubId")
+      var clubName = jp.query(rows,"$..clubName")
+      //console.log(names);
+      var distanceArray = [];
+      var nameDistance = []
+      for (const [i,name] of names.entries()) {
+        distanceArray.push(distance(req.params.name,name))
+        //console.log(name + ": " +distance(req.params.name,name))
+        var nameDistanceElement = {
+          "name":name,
+          "distance":distance(req.params.name,name),
+          "playerID":playerID[i],
+          "clubId":clubId[i],
+          "clubName":clubName[i]
+        }
+        if (nameDistanceElement.distance <= 10){
+          nameDistance.push(nameDistanceElement);
+        }
+      }
+      nameDistance.sort((a, b) => a.distance - b.distance);
+      // console.log(nameDistance)
+      res.send(nameDistance.slice(0,8))
+    }
+  })
+}
+
 
 exports.manage_player_list_clubs_teams = function(req, res) {
   Player.getNamesClubsTeams(req.params, function(err,rows){
@@ -97,7 +139,7 @@ exports.manage_player_list_clubs_teams = function(req, res) {
       manageTeamObject.teams = [];
       var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
       var teamIds = jp.query(rows,"$..teamId").filter((v,i,a)=>a.indexOf(v)==i)
-      console.log(teamNames);
+      // console.log(teamNames);
       for(let i=0; i < teamNames.length; i++) {
         var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
         var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')]")
@@ -118,14 +160,15 @@ exports.manage_player_list_clubs_teams = function(req, res) {
         manageTeamObject.teams.push(teamObject);
 
       }
-      console.log(JSON.stringify(manageTeamObject));
+      // console.log(JSON.stringify(manageTeamObject));
       res.render('beta/team-admin', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Player Registrations",
            pageDescription : "List of players registered to teams in the Stockport League",
-           result : manageTeamObject
+           result : manageTeamObject,
+           clubId: rows[0].clubId
        });
     }
   })
@@ -195,6 +238,18 @@ exports.player_create_get = function(req, res, next) {
   })
 
 };
+
+exports.player_create_from_team = function(req,res){
+  Player.create(req.body.first_name, req.body.family_name, req.body.team, req.body.club, req.body.gender, function(err,row){
+    if (err){
+      res.send(err);
+    }
+    else {
+      console.log(row.insertId)
+      res.send(row)
+    }
+  })
+}
 
 // Handle Player create on POST
 exports.player_create = function(req,res){
