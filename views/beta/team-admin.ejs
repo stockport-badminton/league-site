@@ -136,7 +136,7 @@ function handlePlayerRemove(e) {
     ],
     "data":[parseInt(e.target.parentNode.attributes['data-id'].nodeValue),63,52,99]
   }
-  /* fetch('/player/batch-update', {
+  fetch('/player/batch-update', {
     method: 'POST', // or 'PUT'
     headers: {
       'Content-Type': 'application/json',
@@ -149,7 +149,7 @@ function handlePlayerRemove(e) {
   })
   .catch((error) => {
     console.error('Error:', error);
-  });  */
+  });
 }
 
 function handleDrop(e) {

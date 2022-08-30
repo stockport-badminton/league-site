@@ -81,7 +81,7 @@
             var batchObj = {
               "tablename":"player",
               "fields":[
-                  "id","team","rank"
+                  "id","team","rank","club"
               ],
               "data":[]
             }
@@ -90,79 +90,89 @@
             var maleOrFemale = this.parentElement.parentElement.parentElement.children[0].children[1].children[0][2].value
             var selectedPlayer = this.parentElement.parentElement.children[1].children.addPlayerForm[1].selectedOptions[0]
             var targetTeamContainer = document.querySelectorAll("[data-teamid='"+teamId+"']")[0].parentElement.querySelectorAll("div."+nominatedOrReserves.toLowerCase()+"-container div."+maleOrFemale.toLowerCase())
+            var targetPlayers = [...targetTeamContainer[0].children].filter(n => n.classList.contains('player-box'))
             if (selectedPlayer.class == "playerExisting"){
               alert("Only the results secretary can transfer players between clubs, an email has been sent to request a transfer.")
               console.log("adding player: "+ selectedPlayer.text +" id: "+parseInt(selectedPlayer.value));
-              
+              if (<%= superadmin %>){
+                var newPlayerElem = document.createElement("div")
+                newPlayerElem.className = "player-box row border rounded p-3"
+                newPlayerElem.draggable = true
+                var playerName = document.createTextNode(selectedPlayer.text);
+                newPlayerElem.appendChild(playerName);
+                newPlayerElem.dataset.id = selectedPlayer.value
+                newPlayerElem.dataset.team = teamId
+                var removeButton = document.createElement("i")
+                removeButton.className = "fa fa-times text-danger";
+                newPlayerElem.appendChild(removeButton);
+                var targetTeamContainer = document.querySelectorAll("[data-teamid='"+teamId+"']")[0].parentElement.querySelectorAll("div."+nominatedOrReserves.toLowerCase()+"-container div."+maleOrFemale.toLowerCase())[0]
+                targetTeamContainer.insertBefore(newPlayerElem,targetTeamContainer.querySelectorAll("div.add-player-box")[0]);
+                console.log(targetTeamContainer);
+                targetPlayers = [...targetTeamContainer.children].filter(n => n.classList.contains('player-box'))
+              }
+              else {
+                alert("Only the results secretary can transfer players between clubs, an email has been sent to request a transfer.")
+              }
             }
             else if (selectedPlayer.class == "playerNoClub"){
               alert("adding player: "+ selectedPlayer.text +" id: "+parseInt(selectedPlayer.value));
               var newPlayerElem = document.createElement("div")
-              newPlayerElem.class = "player-box row border rounded p-3"
+              newPlayerElem.className = "player-box row border rounded p-3"
               newPlayerElem.draggable = true
-              newPlayerElem.text = selectedPlayer.text;
+              var playerName = document.createTextNode(selectedPlayer.text);
+              newPlayerElem.appendChild(playerName);
               newPlayerElem.dataset.id = selectedPlayer.value
               newPlayerElem.dataset.team = teamId
               var removeButton = document.createElement("i")
-              removeButton.class = "fa fa-times text-danger";
+              removeButton.className = "fa fa-times text-danger";
               newPlayerElem.appendChild(removeButton);
+              var targetTeamContainer = document.querySelectorAll("[data-teamid='"+teamId+"']")[0].parentElement.querySelectorAll("div."+nominatedOrReserves.toLowerCase()+"-container div."+maleOrFemale.toLowerCase())[0]
+              targetTeamContainer.insertBefore(newPlayerElem,targetTeamContainer.querySelectorAll("div.add-player-box")[0]);
+              targetPlayers = [...targetTeamContainer.children].filter(n => n.classList.contains('player-box'))
             }
-            else {
+            else { //this section deals with creating a player from scratch, inserting into the DB, and adding the new playerelement to the UI
               alert("creating player: "+ selectedPlayer.text +" id: "+parseInt(selectedPlayer.value));
               var playerObject = {
                 "first_name":selectedPlayer.text.slice(0,selectedPlayer.text.indexOf(" ")),
                 "family_name":selectedPlayer.text.slice(selectedPlayer.text.indexOf(" "),selectedPlayer.text.indexOf("(New")),
                 "team":teamId,
                 "club": <%= clubId %>,
-                "gender": (maleOrFemale == 'Men'?"Male":"Female"),
-
+                "gender": (maleOrFemale == 'Men'?"Male":"Female")
               }
               console.log(playerObject);
-              var newPlayerElem = document.createElement("div")
-              newPlayerElem.class = "player-box row border rounded p-3"
-              newPlayerElem.draggable = true
-              newPlayerElem.text = selectedPlayer.text.slice(selectedPlayer.text.indexOf("(New"));
-              newPlayerElem.dataset.team = teamId
-              var removeButton = document.createElement("i")
-              removeButton.class = "fa fa-times text-danger";
-              newPlayerElem.appendChild(removeButton);
-              var newPlayer = fetch('/manage/players/create', {
-                method: 'POST', // or 'PUT'
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(playerObject),
-              })
-              .then((response) => {
-                response.json()
-                
-                return response;
-              })
-              .then((data) => {
-                console.log('Success:', data);
-              })
-              .catch((error) => {
-                console.error('Error:', error);
-              }); 
-              console.log(newPlayer);
-              newPlayerElem.dataset.id = newPlayer.insertId
-              targetTeamContainer[0].appendChild(newPlayerElem)
+              
+              $.post('/manage/players/create',playerObject, function (data) {
+                //console.log(data);
+                var newPlayerElem = document.createElement("div")
+                newPlayerElem.className = "player-box row border rounded p-3"
+                newPlayerElem.draggable = true
+                newPlayerElem.dataset.team = teamId
+                var playerName = document.createTextNode(playerObject.first_name + " " + playerObject.family_name);
+                newPlayerElem.appendChild(playerName);
+                var removeButton = document.createElement("i")
+                removeButton.className = "fa fa-times text-danger";
+                newPlayerElem.appendChild(removeButton);
+                newPlayerElem.dataset.id = data.insertId
+                console.log(newPlayerElem);
+                var targetTeamContainer = document.querySelectorAll("[data-teamid='"+teamId+"']")[0].parentElement.querySelectorAll("div."+nominatedOrReserves.toLowerCase()+"-container div."+maleOrFemale.toLowerCase())[0]
+                targetTeamContainer.insertBefore(newPlayerElem,targetTeamContainer.querySelectorAll("div.add-player-box")[0]);
+                targetPlayers = [...targetTeamContainer.children].filter(n => n.classList.contains('player-box'))
+              },"json")
             }
             
-            console.log("teamId:"+ teamId + " " + nominatedOrReserves + " " + maleOrFemale);
-            var targetPlayers = [...targetTeamContainer[0].children].filter(n => n.classList.contains('player-box'))  
             var rank = 1;
             targetPlayers.forEach(function(player){
               if (nominatedOrReserves == 'Reserves'){
                 // console.log("update player set team = "+teamId+", rank = 99 where id = "+ player.attributes['data-id'].nodeValue)
-                batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),99])  
+                batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),99,<%= clubId %>])  
               }
               else {
                 // console.log("update player set team = "+teamId+", rank = "+rank+" where id = "+ player.attributes['data-id'].nodeValue)
-                batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),rank])
+                batchObj.data.push([parseInt(player.attributes['data-id'].nodeValue,10),parseInt(teamId,10),rank,<%= clubId %>])
                 rank++;
               }
             })
+            console.log(batchObj);
             fetch('/player/batch-update', {
               method: 'POST', // or 'PUT'
               headers: {

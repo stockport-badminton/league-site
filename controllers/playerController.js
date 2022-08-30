@@ -5,6 +5,8 @@ var Venue = require('../models/venue');
 var async = require('async');
 var jp = require('jsonpath');
 const {distance, closest} = require('fastest-levenshtein');
+var request = require('request');
+var Auth = require('../models/auth.js');
 
 
 function logger(data) {
@@ -128,48 +130,82 @@ exports.find_closest_matched_player = function(req, res) {
 
 
 exports.manage_player_list_clubs_teams = function(req, res) {
-  Player.getNamesClubsTeams(req.params, function(err,rows){
-    // console.log(rows);
+  Auth.getManagementAPIKey(function (err,apiKey){
     if (err){
-      // console.log("all_player_stats controller error")
-      return next(err)
+      next(err);
     }
-    else {
-      var manageTeamObject = {}
-      manageTeamObject.teams = [];
-      var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
-      var teamIds = jp.query(rows,"$..teamId").filter((v,i,a)=>a.indexOf(v)==i)
-      // console.log(teamNames);
-      for(let i=0; i < teamNames.length; i++) {
-        var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
-        var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')]")
-        var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')]")
-        var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')]")
-        var teamObject = {
-          name:teamNames[i],
-          id:teamIds[i],
-          nominated:{
-            men:nomMen,
-            ladies:nomLadies
-          },
-          reserves:{
-            men:resMen,
-            ladies:resLadies
-          }
-        }
-        manageTeamObject.teams.push(teamObject);
-
+    else{
+      var options = {
+        method:'GET',
+        headers:{
+          "Authorization":"Bearer "+apiKey
+        },
+        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
       }
-      // console.log(JSON.stringify(manageTeamObject));
-      res.render('beta/team-admin', {
-           static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
-           pageTitle : "Player Registrations",
-           pageDescription : "List of players registered to teams in the Stockport League",
-           result : manageTeamObject,
-           clubId: rows[0].clubId
-       });
+      //console.log(options);
+      request(options,function(err,response,userBody){
+        //console.log(options);
+        if (err){
+          //console.log(err)
+          return false
+        }
+        else{
+          var user = JSON.parse(userBody);
+          if (user[0].app_metadata.role) {
+            if (user[0].app_metadata.role == "superadmin"){
+              var superadmin = true;
+            }
+            else {
+              var superadmin = false;
+            }
+          }
+          Player.getNamesClubsTeams(req.params, function(err,rows){
+            // console.log(rows);
+            if (err){
+              // console.log("all_player_stats controller error")
+              return next(err)
+            }
+            else {
+              var manageTeamObject = {}
+              manageTeamObject.teams = [];
+              var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
+              var teamIds = jp.query(rows,"$..teamId").filter((v,i,a)=>a.indexOf(v)==i)
+              // console.log(teamNames);
+              for(let i=0; i < teamNames.length; i++) {
+                var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
+                var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')]")
+                var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')]")
+                var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')]")
+                var teamObject = {
+                  name:teamNames[i],
+                  id:teamIds[i],
+                  nominated:{
+                    men:nomMen,
+                    ladies:nomLadies
+                  },
+                  reserves:{
+                    men:resMen,
+                    ladies:resLadies
+                  }
+                }
+                manageTeamObject.teams.push(teamObject);
+
+              }
+              // console.log(JSON.stringify(manageTeamObject));
+              res.render('beta/team-admin', {
+                  static_path: '/static',
+                  theme: process.env.THEME || 'flatly',
+                  flask_debug: process.env.FLASK_DEBUG || 'false',
+                  pageTitle : "Player Registrations",
+                  pageDescription : "List of players registered to teams in the Stockport League",
+                  result : manageTeamObject,
+                  clubId: rows[0].clubId,
+                  superadmin:superadmin
+              });
+            }
+          })
+        }
+      })
     }
   })
 };

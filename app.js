@@ -231,10 +231,10 @@
     // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
-        console.log('USER:')
-        console.log(user)
-        console.log('INFO:')
-        console.log(info)
+        // console.log('USER:')
+        // console.log(user)
+        // console.log('INFO:')
+        // console.log(info)
         if (err) { return next(err); }
         if (!user) {
           //console.log(req);
