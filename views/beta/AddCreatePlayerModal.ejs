@@ -94,7 +94,7 @@
             if (selectedPlayer.class == "playerExisting"){
               alert("Only the results secretary can transfer players between clubs, an email has been sent to request a transfer.")
               console.log("adding player: "+ selectedPlayer.text +" id: "+parseInt(selectedPlayer.value));
-              if (<%= superadmin %>){
+              <% if (typeof superadmin !== 'undefined' && superadmin) { %>
                 var newPlayerElem = document.createElement("div")
                 newPlayerElem.className = "player-box row border rounded p-3"
                 newPlayerElem.draggable = true
@@ -109,10 +109,8 @@
                 targetTeamContainer.insertBefore(newPlayerElem,targetTeamContainer.querySelectorAll("div.add-player-box")[0]);
                 console.log(targetTeamContainer);
                 targetPlayers = [...targetTeamContainer.children].filter(n => n.classList.contains('player-box'))
-              }
-              else {
-                alert("Only the results secretary can transfer players between clubs, an email has been sent to request a transfer.")
-              }
+              <% } %>
+              
             }
             else if (selectedPlayer.class == "playerNoClub"){
               alert("adding player: "+ selectedPlayer.text +" id: "+parseInt(selectedPlayer.value));
