@@ -173,6 +173,9 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                 // console.log("all_player_stats controller error")
                 return next(err)
               }
+              else if (rows.length < 1){
+                return next("no club by that name");
+              }
               else {
                 var manageTeamObject = {}
                 manageTeamObject.teams = [];
