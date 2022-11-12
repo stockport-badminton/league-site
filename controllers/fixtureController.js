@@ -15,8 +15,8 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  });
 
 
- const { body,validationResult } = require("express-validator/check");
-    const { sanitizeBody } = require("express-validator/filter");
+ const { body,validationResult } = require("express-validator");
+    const { sanitizeBody } = require("express-validator");
 
     function greaterThan21(value,{req,path}){
       var otherValue = path.replace('away','home')

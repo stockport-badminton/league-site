@@ -1,5 +1,5 @@
-<% include beta/header.ejs %>
-<% include beta/nav.ejs %>
+<%- include('beta/header.ejs') %>
+<%- include('beta/nav.ejs') %>
 
 <% if (typeof success !== 'undefined'){ %>
   <div class="alert alert-success col-12" role="alert" style="max-height:3rem">
@@ -66,7 +66,7 @@
     </div>
   </form>
 <% } %>
-<% include beta/footer.ejs %>
+<%- include('beta/footer.ejs') %>
 <% if (typeof result !== 'undefined'){ %>
 <script type="text/javascript">
 $(document).ready(function(){

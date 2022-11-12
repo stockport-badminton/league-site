@@ -19,14 +19,28 @@
                     <div class="col-6 men">
                         <p>Men</p>
                         <% team.nominated.men.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %>
+                              <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
                         <% }) %>
                         <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                     <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.nominated.ladies.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %>
+                              <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
                         <% }) %>
                         <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
@@ -39,14 +53,28 @@
                     <div class="col-6 men">
                         <p>Men</p>
                         <% team.reserves.men.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %>
+                              <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
                         <% }) %>
                         <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
                     <div class="col-6 ladies">
                         <p>Ladies</p>
                         <% team.reserves.ladies.forEach(function(player){ %>
-                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %><i class="fa fa-times text-danger"></i></div>
+                            <div class="player-box row border rounded p-3" draggable="true" data-team="<%= player.teamId %>" data-rank="<%= player.rank %>" data-id="<%= player.playerID %>"><%= player.name %>
+                              <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
                         <% }) %>
                         <div class="add-player-box row border rounded p-3"><i class="fa fa-user-plus text-success" data-toggle="modal" data-target="#AddCreatePlayerModal"></i> Add Player</div>
                     </div>
@@ -117,6 +145,8 @@ function handleDragOver(e) {
 function handleDragEnter(e) {
   counter++;
   this.classList.add('shadow');
+  
+  console.log(e.target);
 }
 
 function handleDragLeave(e) {
@@ -157,7 +187,7 @@ function handleDrop(e) {
   e.stopPropagation(); // stops the browser from redirecting.
   var movedPlayer = dragSrcEl.textContent
   var movedPlayedId = dragSrcEl.attributes["data-id"].nodeValue
-  if (e.target.classList.contains('player-box')) { // player dropped on another player element
+  if (e.target.classList.contains('player-box') && e.target != dragSrcEl) { // player dropped on another player element
     // console.log("dropped on player")
     var teamName = e.target.parentElement.parentElement.parentElement.parentElement.children[0].childNodes[0].data
     var teamId =   e.target.parentElement.parentElement.parentElement.parentElement.children[0].attributes[1].nodeValue
@@ -244,7 +274,7 @@ items.forEach(function(item) {
   item.addEventListener('dragstart', handleDragStart);
   item.addEventListener('dragover', handleDragOver);
   item.addEventListener('dragend', handleDragEnd);
-  item.children[0].addEventListener('click',handlePlayerRemove);
+  // item.children[0].addEventListener('click',handlePlayerRemove);
 });
 let mensTeamTargets = document.querySelectorAll('.nominated-container > div > div.men');
 let ladiesTeamTargets = document.querySelectorAll('.nominated-container > div > div.ladies');

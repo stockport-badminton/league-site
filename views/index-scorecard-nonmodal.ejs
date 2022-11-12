@@ -1,5 +1,5 @@
-<% include beta/header.ejs %>
-<% include beta/nav.ejs %>
+<%- include('beta/header.ejs') %>
+<%- include('beta/nav.ejs') %>
 
       <%
       var hasErrors, hasScorecardData, hasResult = false
@@ -587,7 +587,7 @@
          </div><!-- /.modal-dialog -->
        </div><!-- /.modal -->
     <% } %>
-    <% include beta/footer.ejs %>
+    <%- include('beta/footer.ejs') %>
     <script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
 
     <script type="text/javascript">

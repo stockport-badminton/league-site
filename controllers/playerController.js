@@ -8,6 +8,7 @@ const {distance, closest} = require('fastest-levenshtein');
 var request = require('request');
 var Auth = require('../models/auth.js');
 const { read } = require('fs');
+const { validationResult } = require('express-validator');
 
 
 function logger(data) {
@@ -327,22 +328,19 @@ exports.player_create = function(req,res){
 
 }
 
-exports.player_create_post = function(req, res, next) {
+exports.player_create_post = async function(req, res, next) {
 
-    req.checkBody('first_name', 'First name must be specified.').notEmpty(); //We won't force Alphanumeric, because people might have spaces.
-    req.checkBody('family_name', 'Family name must be specified.').notEmpty();
-    req.checkBody('family_name', 'Family name must be alphanumeric text.').isAlpha();
-    req.checkBody('gender', 'must be Male or Female.').isIn(['Male','Female']);
+    await check('first_name').notEmpty().withMessage('First name must be specified.').run(req); //We won't force Alphanumeric, because people might have spaces.
+    await check('family_name').notEmpty().withMessage('Family name must be specified.').run(req);
+    await check('family_name').isAlpha().withMessage('Family name must be alphanumeric text.').run(req);
+    await check('gender').isIn(['Male','Female']).withMessage('must be Male or Female.').run(req);
 
-    req.sanitize('first_name').escape();
-    req.sanitize('family_name').escape();
-    req.sanitize('first_name').trim();
-    req.sanitize('family_name').trim();
-    req.sanitize('date_of_registration').toDate();
-    req.sanitize('gender').escape();
-    req.sanitize('gender').trim();
+    await check('first_name').escape().trim().run(req);
+    await check('family_name').escape().trim().run(req);
+    await check('date_of_registration').toDate().run(req);
+    await check('gender').escape().trim().run(req);
 
-    var errors = req.validationErrors();
+    var errors = validationResult(req);
 
 
     var player = new Player(

@@ -4,7 +4,7 @@
     var router = express.Router();
     var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
-    var expressValidator = require('express-validator');
+    const {check, validationResult} = require('express-validator')
     var path = require('path');
     var request = require('request');
     const jwt = require('express-jwt');
@@ -83,7 +83,6 @@
     app.set('views', __dirname + '/views');
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended:false}));
-    app.use(expressValidator());
     app.set('node_modules', __dirname + '/node_modules');
     app.set('models', __dirname + '/models');
 
@@ -834,7 +833,7 @@
     });
 
     // Handle 500
-    app.use(function(error, req, res, next) {
+    app.use(function(error, req, res) {
       res.status(500);
       res.render('beta/500-error', {
         static_path: '/static',

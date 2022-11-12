@@ -6,8 +6,8 @@ var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
   host: 'listener-uk.logz.io'
 });
-const { body,validationResult } = require("express-validator/check");
-const { sanitizeBody } = require("express-validator/filter");
+const { body,validationResult } = require("express-validator");
+const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
 
