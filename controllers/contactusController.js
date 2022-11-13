@@ -109,14 +109,14 @@ exports.contactus = function(req, res,next){
     var clubEmail = '';
     
     if(req.body.contactType == 'Clubs'){
-      Club.getById(req.body.clubSelect, function(err,rows){
+      Club.getContactDetailsById(req.body.clubSelect, function(err,rows){
         if (err){
           console.log(err);
           next(err);
         }
         else {
           // msg.to = rows[0].contactUs;
-          msg.to = (rows[0].contactUs.indexOf(',') > 0 ? rows[0].contactUs.split(',') : rows[0].contactUs);
+          msg.to = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : rows[0].clubSecEmail);
           sgMail.send(msg)
             .then(()=>{
               logger.log(msg);
