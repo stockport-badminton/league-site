@@ -83,6 +83,7 @@ exports.updateById = function(first_name,family_name,team,club,gender,playerId,d
 
 exports.updateBulk = function(BatchObj,done){
   if(db.isObject(BatchObj)){
+    console.log(BatchObj);
     
     // console.log(sql);
     var containerArray = [];
@@ -92,6 +93,7 @@ exports.updateBulk = function(BatchObj,done){
       var sql = 'UPDATE `'+BatchObj.tablename+'` SET ';
       updateArray = [];
       for (y in BatchObj.data[x]){
+        console.log(BatchObj.data[x][y])
         if (BatchObj.fields[y] == 'id'){
           var whereCondition = ' where `id` = ' + BatchObj.data[x][y]
           continue;
@@ -104,6 +106,7 @@ exports.updateBulk = function(BatchObj,done){
         }
       }
       updateValuesString = updateArray.join(',')
+
       containerArray.push(sql + updateValuesString + whereCondition) 
     }
     // console.log(containerArray);
@@ -367,7 +370,7 @@ exports.getPairStats = function(searchTerms,done){
 
 exports.getEmails = async function(searchTerms,done){
   console.log(searchTerms);
-  var sql = "SELECT DISTINCT b.playerEmail FROM (SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'match Sec' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.matchSec = player.id UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'club Sec' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.clubSec = player.id UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name as clubName, team.id AS teamId, team.name as teamName, club.matchSec, club.clubSec, team.captain, 'team Captain' as role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.captain = player.id) AS b JOIN team ON teamId = team.id"
+  var sql = "SELECT DISTINCT b.playerEmail FROM (SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.matchSec, club.clubSec, team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.matchSec = player.id OR (player.matchSecrertary = 1 AND a.id = player.club) UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.matchSec, club.clubSec, team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.clubSec = player.id OR (player.clubSecretary = 1 AND a.id = player.club) UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.matchSec, club.clubSec, team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.teamCaptain = 1 AND a.teamId = player.team) or a.captain = player.id UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.matchSec, club.clubSec, team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, CAST(AES_DECRYPT(player.playerEmail, '"+process.env.DB_PI_KEY+"') AS CHAR) AS playerEmail FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.matchSec, club.clubSec, team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.otherComms = 1 AND a.teamId = player.team)) AS b"
   var whereTerms = [];
   if (!searchTerms.role){
     console.log("no role selected");
@@ -379,7 +382,7 @@ exports.getEmails = async function(searchTerms,done){
     console.log("no division");
   }
   else {
-    whereTerms.push('team.division = '+searchTerms.division );
+    whereTerms.push('b.division = '+searchTerms.division );
   }
   if (!searchTerms.clubName){
     console.log("no club id");

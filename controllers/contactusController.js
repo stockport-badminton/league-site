@@ -202,6 +202,8 @@ exports.distribution_list = function(req,res,next) {
     'html': req.body.html
   };
   const getBcc = async function (recipient, msg) {
+
+    
     switch (recipient) {
       case "clubSecretaries":
         var searchObject = { "role": "club Sec" };
@@ -211,6 +213,12 @@ exports.distribution_list = function(req,res,next) {
         break;
       case "teamCaptains":
         var searchObject = { "role": "team Captain" };
+        break;
+      case "treasurers":
+        var searchObject = { "role": "treasurer" };
+        break;
+      case "leagueComms":
+        var searchObject = { "role": "otherComms" };
         break;
       case "Premier":
         var searchObject = { "division": 7 };
@@ -236,10 +244,12 @@ exports.distribution_list = function(req,res,next) {
         else {
           //console.log(rows);
           msg.bcc = [];
-          rows.forEach(element => {
-            msg.bcc.push(element.playerEmail)
-          });
-          //console.log(msg.bcc)
+          if (msg.subject.indexOf('test') == -1){
+            rows.forEach(element => {
+              msg.bcc.push(element.playerEmail)
+            }); 
+            console.log(msg.bcc)
+          }
           return msg;
         }
       })
