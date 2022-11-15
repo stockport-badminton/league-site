@@ -250,6 +250,11 @@ exports.distribution_list = function(req,res,next) {
             }); 
             console.log(msg.bcc)
           }
+          else {
+            rows.forEach(element => {
+              console.log(element.playerEmail + "\n")
+            }); 
+          }
           return msg;
         }
       })
