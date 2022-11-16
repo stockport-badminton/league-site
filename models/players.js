@@ -384,11 +384,11 @@ exports.getEmails = async function(searchTerms,done){
   else {
     whereTerms.push('b.division = '+searchTerms.division );
   }
-  if (!searchTerms.clubName){
+  if (!searchTerms.club){
     console.log("no club id");
   }
   else {
-    whereTerms.push('b.clubName = "'+searchTerms.clubName + '"');
+    whereTerms.push('b.id = "'+searchTerms.club + '"');
   }
   if (!searchTerms.teamName){
     console.log("no teamName");

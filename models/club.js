@@ -40,7 +40,7 @@ exports.createBatch = function(BatchObj,done){
 }
 
 // GET
-exports.getAll = function(done){
+exports.getAll = async function(done){
   db.get().query('SELECT * FROM `club` order by name asc', function (err, rows){
     if (err) return done(err);
     done(null, rows);

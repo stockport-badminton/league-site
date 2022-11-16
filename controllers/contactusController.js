@@ -196,7 +196,7 @@ exports.distribution_list = function(req,res,next) {
 
   var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
   var msg = {
-    'to': 'stockport.badders.results@gmail.com',
+    'to': 'stockport.badders.results+'+recipient+'@gmail.com',
     'from': req.body.from,
     'subject': req.body.subject,
     'text': 'Email from sengrid parse send to'+req.body.to,
@@ -244,39 +244,59 @@ exports.distribution_list = function(req,res,next) {
         "search":10
       }
     ]
+    var clubNames = [
+      { "match": "aerospace", "search": 42 },
+      { "match": "alderleypark", "search": 43 },
+      { "match": "altrinchamcentral", "search": 44 },
+      { "match": "canute", "search": 47 },
+      { "match": "cheadlehulme", "search": 49 },
+      { "match": "collegegreen", "search": 61 },
+      { "match": "davidlloyd", "search": 50 },
+      { "match": "disley", "search": 51 },
+      { "match": "dome", "search": 52 },
+      { "match": "ghap", "search": 53 },
+      { "match": "macclesfield", "search": 54 },
+      { "match": "manor", "search": 55 },
+      { "match": "mellor", "search": 39 },
+      { "match": "noclub", "search": 63 },
+      { "match": "parrswood", "search": 57 },
+      { "match": "racketeer", "search": 59 },
+      { "match": "shell", "search": 40 },
+      { "match": "syddalpark", "search": 41 },
+      { "match": "tatton", "search": 60 }
+    ]
+    /* await Club.getAll(function(err,rows){
+      if (err) {
+        console.log(err);
+        next(err);
+      }
+      else{
+        rows.forEach(club => {
+          var clubName = club.name.replace(' ','').replace('.','')toLowerCase()
+          clubNames.push({"match":clubName,"search":club.id})
+        })
+      }
+    }) */
     
-    switch (recipient) {
-      case "clubSecretaries":
-        var searchObject = { "role": "club Sec" };
-        break;
-      case "matchSecretaries":
-        var searchObject = { "role": "match Sec" };
-        break;
-      case "teamCaptains":
-        var searchObject = { "role": "team Captain" };
-        break;
-      case "treasurers":
-        var searchObject = { "role": "treasurer" };
-        break;
-      case "leagueComms":
-        var searchObject = { "role": "otherComms" };
-        break;
-      case "Premier":
-        var searchObject = { "division": 7 };
-        break;
-      case "division1":
-        var searchObject = { "division": 8 };
-        break;
-      case "division2":
-        var searchObject = { "division": 9 };
-        break;
-      case "division3":
-        var searchObject = { "division": 10 };
-        break;
-      default:
-      
-    }
-    if (searchObject) {
+    roles.forEach(role => {
+      if(recipient.indexOf(role.match) >= 0){
+        searchObject.role = role.search
+      }
+    })
+    divisions.forEach(division => {
+      if(recipient.indexOf(division.match) >= 0){
+        searchObject.division = division.search
+      }
+    })
+    //console.log(clubNames);
+    clubNames.forEach(club => {
+      if(recipient.indexOf(club.match) >= 0){
+        searchObject.club = club.search
+      }
+    })
+    
+    
+    if (searchObject.role || searchObject.division || searchObject.club) {
       await Player.getEmails(searchObject, function (err, rows) {
         if (err) {
           console.log(err);
