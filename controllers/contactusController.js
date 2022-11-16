@@ -10,6 +10,7 @@ const { body,validationResult } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
+const { MigrationHubStrategy } = require('aws-sdk');
 
 function validCaptcha(value,{req}){
   // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
@@ -202,7 +203,50 @@ exports.distribution_list = function(req,res,next) {
     'html': req.body.html
   };
   const getBcc = async function (recipient, msg) {
-
+    var searchObject = {}
+    var roles = [
+      {
+        "match":"clubSecretaries",
+        "search":"club Sec"
+      },
+      {
+        "match":"matchSecretaries",
+        "search":"match Sec"
+      },
+      {
+        "match":"teamCaptains",
+        "search":"team Captain"
+      },
+      {
+        "match":"treasurers",
+        "search":"treasurer"
+      },
+      {
+        "match":"leagueComms",
+        "search":"otherComms"
+      }
+    ]
+    var divisions = [
+      {
+        "match":"Premier",
+        "search":7
+      },
+      {
+        "match":"division1",
+        "search":8
+      },
+      {
+        "match":"division2",
+        "search":9
+      },
+      {
+        "match":"division3",
+        "search":10
+      }
+    ]
+    roles.forEach(role => {
+      searchObject.role = 
+    })
     
     switch (recipient) {
       case "clubSecretaries":
@@ -253,6 +297,7 @@ exports.distribution_list = function(req,res,next) {
           else {
             rows.forEach(element => {
               console.log(element.playerEmail + "\n")
+              msg.text += element.playerEmail + "\n"
             }); 
           }
           return msg;
