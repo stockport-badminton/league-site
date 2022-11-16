@@ -244,9 +244,6 @@ exports.distribution_list = function(req,res,next) {
         "search":10
       }
     ]
-    roles.forEach(role => {
-      searchObject.role = 
-    })
     
     switch (recipient) {
       case "clubSecretaries":
