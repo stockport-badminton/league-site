@@ -11,6 +11,7 @@ const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
 const { MigrationHubStrategy } = require('aws-sdk');
+const fs = require('fs');
 
 function validCaptcha(value,{req}){
   // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
