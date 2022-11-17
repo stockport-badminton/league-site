@@ -211,12 +211,12 @@ exports.distribution_list = function(req,res,next) {
     const attachments = req.files.map((file) => {
       console.log(file);
       const pathToAttachment = file.buffer;
-      const attachment = fs.readFileSync(pathToAttachment).toString('base64');
+      // const attachment = fs.readFileSync(pathToAttachment).toString('base64');
       return {
         filename: file.originalname,
         disposition: 'attachment',
         type: file.mimetype,
-        content: attachment,
+        content: file.buffer,
       };
     });
     msg.attachments = attachments
