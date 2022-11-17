@@ -190,7 +190,7 @@ exports.contactus = function(req, res,next){
 
 // Display list of all Players
 exports.distribution_list = function(req,res,next) {
-  console.log(req)
+  
   console.log("from: " + req.body.from);
   console.log("to: " + req.body.to);
   console.log("subject: " + req.body.subject);
@@ -207,7 +207,9 @@ exports.distribution_list = function(req,res,next) {
     'html': req.body.html
   };
   if(req.files){
+    console.log(req.files)
     const attachments = req.files.map((file) => {
+      console.log(file);
       const pathToAttachment = file.path;
       const attachment = fs.readFileSync(pathToAttachment).toString('base64');
       return {
