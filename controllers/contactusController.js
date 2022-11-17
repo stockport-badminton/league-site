@@ -216,7 +216,7 @@ exports.distribution_list = function(req,res,next) {
         filename: file.originalname,
         disposition: 'attachment',
         type: file.mimetype,
-        content: file.buffer,
+        content: file.buffer
       };
     });
     msg.attachments = attachments
