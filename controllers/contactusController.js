@@ -210,7 +210,7 @@ exports.distribution_list = function(req,res,next) {
     console.log(req.files)
     const attachments = req.files.map((file) => {
       console.log(file);
-      const pathToAttachment = file.path;
+      const pathToAttachment = file.buffer;
       const attachment = fs.readFileSync(pathToAttachment).toString('base64');
       return {
         filename: file.originalname,
