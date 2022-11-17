@@ -189,10 +189,22 @@ exports.contactus = function(req, res,next){
 
 // Display list of all Players
 exports.distribution_list = function(req,res,next) {
+  console.log(req)
   console.log("from: " + req.body.from);
   console.log("to: " + req.body.to);
   console.log("subject: " + req.body.subject);
   logger.log("html: " + req.body.html);
+
+  const attachments = req.files.map((file) => {
+    const pathToAttachment = file.path;
+    const attachment = fs.readFileSync(pathToAttachment).toString('base64');
+    return {
+      filename: file.originalname,
+      disposition: 'attachment',
+      type: file.mimetype,
+      content: attachment,
+    };
+  });
 
   var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
   var msg = {
@@ -200,8 +212,10 @@ exports.distribution_list = function(req,res,next) {
     'from': req.body.from,
     'subject': req.body.subject,
     'text': 'Email from sengrid parse send to'+req.body.to,
-    'html': req.body.html
+    'html': req.body.html,
+    'attachments': attachments
   };
+
   const getBcc = async function (recipient, msg) {
     var searchObject = {}
     var roles = [
@@ -312,9 +326,11 @@ exports.distribution_list = function(req,res,next) {
             console.log(msg.bcc)
           }
           else {
+            msg.html = msg.html.replace("<body>","<body><p id='emaillist'></p>")
             rows.forEach(element => {
               console.log(element.playerEmail + "\n")
-              msg.text += element.playerEmail + "\n"
+              msg.text += element.playerEmail;
+              msg.html = msg.html.replace("<body><p id='emaillist'>","<body><p id='emaillist'>"+element.playerEmail+"<br/>")
             }); 
           }
           return msg;
@@ -332,6 +348,7 @@ exports.distribution_list = function(req,res,next) {
   sgMail.send(msg)
     .then(()=>{
       logger.log(msg);
+      console.log("sending this");
       console.log(msg);
       res.sendStatus(200);
     })
