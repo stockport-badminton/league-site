@@ -356,7 +356,8 @@
     // for handling sendgrid parse 
     const multer  = require('multer');
     const upload = multer();
-    app.post('/mail', upload.none(),contact_controller.distribution_list); 
+    app.post('/mail', upload.any(),contact_controller.distribution_list); 
+    app.post('/mailtest',contact_controller.distribution_list); 
 
     // Scorecard - Results Entry related routes
 
