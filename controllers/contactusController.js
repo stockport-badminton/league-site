@@ -194,17 +194,8 @@ exports.distribution_list = function(req,res,next) {
   console.log("to: " + req.body.to);
   console.log("subject: " + req.body.subject);
   logger.log("html: " + req.body.html);
-
-  const attachments = req.files.map((file) => {
-    const pathToAttachment = file.path;
-    const attachment = fs.readFileSync(pathToAttachment).toString('base64');
-    return {
-      filename: file.originalname,
-      disposition: 'attachment',
-      type: file.mimetype,
-      content: attachment,
-    };
-  });
+  
+  
 
   var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
   var msg = {
@@ -212,9 +203,21 @@ exports.distribution_list = function(req,res,next) {
     'from': req.body.from,
     'subject': req.body.subject,
     'text': 'Email from sengrid parse send to'+req.body.to,
-    'html': req.body.html,
-    'attachments': attachments
+    'html': req.body.html
   };
+  if(req.files){
+    const attachments = req.files.map((file) => {
+      const pathToAttachment = file.path;
+      const attachment = fs.readFileSync(pathToAttachment).toString('base64');
+      return {
+        filename: file.originalname,
+        disposition: 'attachment',
+        type: file.mimetype,
+        content: attachment,
+      };
+    });
+    msg.attachments = attachments
+  }
 
   const getBcc = async function (recipient, msg) {
     var searchObject = {}
