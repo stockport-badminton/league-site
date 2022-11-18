@@ -211,17 +211,17 @@ exports.distribution_list = function(req,res,next) {
     console.log("files" + req.files)
     console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
-      req.body['attachment-info'].forEach((file) => {
+    for (i = 1; i <= req.body.attachments; i++){
         var attachment = {
-          content: file.content.toString("base64"),
-          filename: file.filename,
-          type: file.type,
-          disposition: file.contentDisposition,
-          content_id: file.contentId,
+          content: req.files[i].content.toString("base64"),
+          filename: req.body['attachment-info']['attachment' + i].filename,
+          type: req.body['attachment-info']['attachment' + i].type,
+          disposition: 'attachment',
+          content_id: req.body['attachment-info']['attachment' + i]['content-id']
         };
 
         attachments.push(attachment);
-      });
+      };
     msg.attachments = attachments;
     }
 
