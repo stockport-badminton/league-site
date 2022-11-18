@@ -197,6 +197,7 @@ exports.distribution_list = function(req,res,next) {
   logger.log("html: " + req.body.html);
   
   
+  
 
   var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
   var msg = {
@@ -207,20 +208,22 @@ exports.distribution_list = function(req,res,next) {
     'html': req.body.html
   };
   if(req.files){
-    console.log(req.files)
-    const attachments = req.files.map((file) => {
-      console.log(file);
-      const pathToAttachment = file.buffer;
-      // const attachment = fs.readFileSync(pathToAttachment).toString('base64');
-      return {
-        filename: file.originalname,
-        disposition: 'attachment',
-        type: file.mimetype,
-        content: file.buffer
-      };
-    });
-    msg.attachments = attachments
-  }
+    console.log("files" + req.files)
+    console.log("attachments: " + req.body.attachments);
+    var attachments = [];
+      req.body.attachments.forEach((file) => {
+        var attachment = {
+          content: file.content.toString("base64"),
+          filename: file.filename,
+          type: file.type,
+          disposition: file.contentDisposition,
+          content_id: file.contentId,
+        };
+
+        attachments.push(attachment);
+      });
+    msg.attachments = attachments;
+    }
 
   const getBcc = async function (recipient, msg) {
     var searchObject = {}
