@@ -209,6 +209,9 @@ exports.distribution_list = function(req,res,next) {
   };
   if(req.files){
     console.log("files" + req.files)
+    req.file.forEach(file =>{
+      console.log(file);
+    })
     console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
     for (i = 1; i <= req.body.attachments; i++){
