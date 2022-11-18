@@ -209,9 +209,9 @@ exports.distribution_list = function(req,res,next) {
   };
   if(req.files){
     console.log("files" + req.files)
-    console.log("attachments: " + req.body.attachments);
+    console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
-      req.body.attachments.forEach((file) => {
+      req.body['attachment-info'].forEach((file) => {
         var attachment = {
           content: file.content.toString("base64"),
           filename: file.filename,
