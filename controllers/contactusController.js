@@ -209,7 +209,7 @@ exports.distribution_list = function(req,res,next) {
   };
   if(req.files){
     console.log("files" + req.files)
-    req.file.forEach(file =>{
+    req.files.forEach(file =>{
       console.log(file);
     })
     console.log("attachments: " + req.body['attachment-info']);
