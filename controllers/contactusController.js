@@ -190,7 +190,7 @@ exports.contactus = function(req, res,next){
 
 // Display list of all Players
 exports.distribution_list = function(req,res,next) {
-  
+
   console.log("from: " + req.body.from);
   console.log("to: " + req.body.to);
   console.log("subject: " + req.body.subject);
@@ -216,7 +216,7 @@ exports.distribution_list = function(req,res,next) {
     var attachments = [];
     for (i = 1; i <= req.body.attachments; i++){
         var attachment = {
-          content: req.files[i].content.toString("base64"),
+          content: req.files[i].buffer.toString("base64"),
           filename: req.body['attachment-info']['attachment' + i].filename,
           type: req.body['attachment-info']['attachment' + i].type,
           disposition: 'attachment',
