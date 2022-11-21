@@ -196,9 +196,6 @@ exports.distribution_list = function(req,res,next) {
   console.log("subject: " + req.body.subject);
   logger.log("html: " + req.body.html);
   
-  
-  
-
   var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
   var msg = {
     'to': 'stockport.badders.results+'+recipient+'@gmail.com',
@@ -208,16 +205,17 @@ exports.distribution_list = function(req,res,next) {
     'html': req.body.html
   };
   if(req.files){
-    console.log("files" + req.files)
+    // console.log("files" + req.files)
     req.files.forEach(file =>{
       console.log(file);
     })
-    console.log("attachments: " + req.body['attachment-info']);
+    //console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
     for (i = 1; i <= req.body.attachments; i++){
+        console.log(req.body['attachment-info']['attachment'+i])
         var attachment = {
-          content: req.files[i].buffer.toString("base64"),
-          filename: req.body['attachment-info']['attachment' + i].filename,
+          content: req.files[i-1].buffer,
+          filename: req.files[i-1].filename,
           type: req.body['attachment-info']['attachment' + i].type,
           disposition: 'attachment',
           content_id: req.body['attachment-info']['attachment' + i]['content-id']
@@ -226,7 +224,7 @@ exports.distribution_list = function(req,res,next) {
         attachments.push(attachment);
       };
     msg.attachments = attachments;
-    }
+  }
 
   const getBcc = async function (recipient, msg) {
     var searchObject = {}
