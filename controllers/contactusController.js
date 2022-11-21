@@ -214,7 +214,7 @@ exports.distribution_list = function(req,res,next) {
     for (i = 1; i <= req.body.attachments; i++){
         console.log(req.body['attachment-info']['attachment'+i])
         var attachment = {
-          content: req.files[i-1].buffer,
+          content: req.files[i-1].buffer.toString('base64'),
           filename: req.files[i-1].originalname,
           type: req.files[i-1].mimetype,
           disposition: 'attachment'
