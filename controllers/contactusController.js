@@ -215,10 +215,9 @@ exports.distribution_list = function(req,res,next) {
         console.log(req.body['attachment-info']['attachment'+i])
         var attachment = {
           content: req.files[i-1].buffer,
-          filename: req.files[i-1].filename,
-          type: req.body['attachment-info']['attachment' + i].type,
-          disposition: 'attachment',
-          content_id: req.body['attachment-info']['attachment' + i]['content-id']
+          filename: req.files[i-1].originalname,
+          type: req.files[i-1].mimetype,
+          disposition: 'attachment'
         };
 
         attachments.push(attachment);
