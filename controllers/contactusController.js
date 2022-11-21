@@ -362,7 +362,7 @@ exports.distribution_list = function(req,res,next) {
       res.sendStatus(200);
     })
     .catch(error => {
-      logger.log(error);
+      console.log(error);
       console.log(msg);
       next("Sorry something went wrong sending your email.");
     })
