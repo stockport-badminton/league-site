@@ -173,7 +173,7 @@
     app.get('/login', passport.authenticate('auth0', {
       scope: 'openid email profile'
     }), function (req, res) {
-      res.redirect('/');
+      res.redirect(req.session.returnTo);
     });
 
     app.get('/chooseUser',function(req,res,next){
@@ -257,9 +257,12 @@
     });
 
     // Perform session logout and redirect to homepage
-    app.get('/logout', (req, res) => {
-      req.logout();
-      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'returnTo=https://'+ req.headers.host);
+
+    app.get('/logout', function(req, res, next) {
+      req.logout(function(err) {
+        if (err) { return next(err); }
+        res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'&returnTo=https://'+ req.headers.host);
+      });
     });
 
     app.get('/user', secured(), async function (req, res, next) {
@@ -643,6 +646,7 @@
 
     /* GET request for list of all Club items. */
     router.get('/info/clubs', club_controller.club_list_detail);
+    router.get('/admin/info/clubs',secured(), club_controller.club_list_detail);
 
     /// DIVISION ROUTES ///
 

@@ -9,14 +9,15 @@
   else { %>
     <div id="map"></div>
 
-
-
     <div class="table-responsive">
     <table class="table">
       <thead>
         <tr>
           <th>Name</th>
           <th>Contact</th>
+          <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
+            <th>Manage Players</th>
+          <% } %>
           <th>Match Night</th>
           <th>Club Night</th>
           <th>Venue</th>
@@ -38,6 +39,9 @@
             </button><br/>
             <a href="/club/<%= row['clubId'] %>">Login for Contact info</a>
           </td>
+          <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
+            <td><a href="/manage/players/club-<%= row['name'] %>">Manage Players</a></th>
+          <% } %>
           <td><%= row['matchNightText'] %></td>
           <td><%= row['clubNightText'] %></td>
           <%
