@@ -143,3 +143,48 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
 .nav-link {
   cursor: pointer;
 }
+
+i.fa.fa-ellipsis-v.dropdown-toggle::after {
+  content:unset
+}
+
+.h-13 {
+  height: 13%!important;
+}
+
+.h-6 {
+  height: 6%!important;
+}
+.w-2 {
+  width: 2%!important;
+}
+.odd-fix{
+  border-width:1px 1px 0px 0px;
+  border-color: black;
+  border-style: solid;
+}
+
+.even-fix{
+  border-width:0px 1px 1px 0px;
+  border-color: black;
+  border-style: solid;
+}
+
+.bracket {
+  border-style:solid;
+  border-color:black;
+  display:block;
+  height:50%;
+  text-align: right;
+}
+
+.bracket.even-fix{
+  position:relative;top:-25%;
+}
+.bracket.odd-fix{
+  position:relative;top:25%;
+}
+.bracket-container .row {
+  padding:5px 0px;
+  text-align: left;
+}

@@ -409,6 +409,7 @@
     // Static page routes
     app.get('/privacy-policy', static_controller.privacy_policy);
     app.get('/messer-rules', static_controller.messer_rules);
+    app.get('/messer-draw/:section', static_controller.messer_draw);
     app.get('/rules', static_controller.rules);
 
     // POST to process input from Auth0 when non-authorised user attempt to use secure pages on the site and email the admin

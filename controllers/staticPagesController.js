@@ -18,6 +18,16 @@ exports.messer_rules = function(req, res) {
     });
 }
 
+exports.messer_draw = function(req, res) {
+    res.render('beta/messer-draw-'+req.params.section, {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle : "Messer Tropy Rules",
+        pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
+    });
+}
+
 exports.rules = function(req, res) {
     res.render('beta/rules', {
         static_path: '/static',
