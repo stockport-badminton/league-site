@@ -14,7 +14,7 @@ ol#rules li {
 }
 
 .respBgImg {
-  background-size: contain;
+  background-size: cover;
   background-position: top center;
   background-repeat: repeat-y;
 }
