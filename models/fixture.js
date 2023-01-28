@@ -179,7 +179,7 @@ exports.getAll = function(done){
 }
 
 exports.getRecent = function(done){
-  othersql = "select a.date, a.homeTeam, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.date, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is not null AND date between adddate(now(),-7) and now() order by date";
+  othersql = "SELECT a.date, a.homeTeam, team.name AS awayTeam, a.address, a.homeScore, a.awayScore FROM (SELECT fixture.date, team.name AS homeTeam, venue.address as address, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NOT NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND NOW() ORDER BY date;";
   db.get().query(othersql,function(err,result){
      logger.log(this.sql)
     if (err) {
@@ -219,7 +219,7 @@ exports.getCardsDueToday = function(done){
 }
 
 exports.getupComing = function(done){
-  db.get().query("select a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, team.id as awayTeamId, team.name as awayTeam, a.homeScore, a.awayScore from  (select fixture.id as fixId, fixture.date, fixture.status,team.id as homeTeamId, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id) as a join team where a.awayTeam = team.id AND homeScore is null AND status not in ('rearranged','rearranging') AND date between adddate(now(),-1) and adddate(now(),7) order by date",function(err,result){
+  db.get().query("SELECT a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, a.address, team.id AS awayTeamId, team.name AS awayTeam, a.homeScore, a.awayScore FROM (SELECT fixture.id AS fixId, fixture.date, fixture.status, team.id AS homeTeamId, team.name AS homeTeam, venue.address as address, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id ) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NULL AND status NOT IN ('rearranged' , 'rearranging') AND date BETWEEN ADDDATE(NOW(), - 1) AND ADDDATE(NOW(), 7) ORDER BY date",function(err,result){
     if (err) {
       console.log(err);
       return done(err);
