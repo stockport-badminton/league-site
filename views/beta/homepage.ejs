@@ -36,7 +36,7 @@
                       + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                       + ('0' + MyDate.getDate()).slice(-2)
     %>
-    <data itemprop="location" value="<%= row['address'] %>"></data><div class="col-3" itemprop="startDate" content="<%= otherDateString %>"><%= MyDateString %></div><div class="col" itemprop="name"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+    <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="address" value="<%= row['address'] %>"></data></data><div class="col-3" itemprop="startDate" content="<%= otherDateString %>"><%= MyDateString %></div><div class="col" itemprop="name"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
     </div>
   <% }) %>
 </div>
@@ -54,7 +54,7 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
     %>
-    <data itemprop="location" value="<%= result['address'] %>"></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
+    <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="address" value="<%= result['address'] %>"></data></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
   </div>
   <% }) %>
 </div>
