@@ -179,7 +179,7 @@ exports.getAll = function(done){
 }
 
 exports.getRecent = function(done){
-  othersql = "SELECT a.date, a.homeTeam, team.name AS awayTeam, a.address, a.homeScore, a.awayScore FROM (SELECT fixture.date, team.name AS homeTeam, venue.address as address, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NOT NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND NOW() ORDER BY date;";
+  othersql = "SELECT a.date, a.homeTeam, team.name AS awayTeam, a.address, a.venueName, a.mapLink, a.Lat, a.Lng, a.homeScore, a.awayScore FROM (SELECT fixture.date, team.name AS homeTeam, venue.address as address, venue.name as venueName, venue.gMapUrl as mapLink, venue.Lat, venue.Lng, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NOT NULL AND date BETWEEN ADDDATE(NOW(), - 7) AND NOW() ORDER BY date; ;";
   db.get().query(othersql,function(err,result){
      logger.log(this.sql)
     if (err) {
@@ -219,7 +219,7 @@ exports.getCardsDueToday = function(done){
 }
 
 exports.getupComing = function(done){
-  db.get().query("SELECT a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, a.address, team.id AS awayTeamId, team.name AS awayTeam, a.homeScore, a.awayScore FROM (SELECT fixture.id AS fixId, fixture.date, fixture.status, team.id AS homeTeamId, team.name AS homeTeam, venue.address as address, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id ) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NULL AND status NOT IN ('rearranged' , 'rearranging') AND date BETWEEN ADDDATE(NOW(), - 1) AND ADDDATE(NOW(), 7) ORDER BY date",function(err,result){
+  db.get().query("SELECT a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, a.address, a.venueName, a.mapLink, a.Lat, a.Lng, team.id AS awayTeamId, team.name AS awayTeam, a.homeScore, a.awayScore FROM (SELECT fixture.id AS fixId, fixture.date, fixture.status, team.id AS homeTeamId, team.name AS homeTeam, venue.address as address, venue.name as venueName, venue.gMapUrl as mapLink, venue.Lat, venue.Lng, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id ) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NULL AND status NOT IN ('rearranged' , 'rearranging') AND date BETWEEN ADDDATE(NOW(), - 1) AND ADDDATE(NOW(), 7) ORDER BY date",function(err,result){
     if (err) {
       console.log(err);
       return done(err);

@@ -36,7 +36,15 @@
                       + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                       + ('0' + MyDate.getDate()).slice(-2)
     %>
-    <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress"><data itemprop="streetAddress" value="<%= row['address'] %>"></data></data></data><div class="col-3" itemprop="startDate" content="<%= otherDateString %>"><%= MyDateString %></div><div class="col" itemprop="name"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+    <data itemprop="location" itemscope itemtype="http://schema.org/Place">
+      <data itemprop="name" value="" class="d-none"><%= row['venueName'] %></data>
+      <a itemprop="hasMap" href="<%= row['mapLink'] %>" class="d-none"></a>
+      <data itemprop="latitude" value="" class="d-none"><%= row['Lat'] %></data>
+      <data itemprop="longitude" value="" class="d-none"><%= row['Lng'] %></data>
+      <data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+          <data itemprop="streetAddress" value="<%= row['address'] %>"></data>
+      </data>
+    </data><div class="col-3" itemprop="startDate" content="<%= otherDateString %>"><%= MyDateString %></div><div class="col" itemprop="name"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div><div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
     </div>
   <% }) %>
 </div>
@@ -54,7 +62,9 @@
                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                    + MyDate.getFullYear();
     %>
-    <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress"><data itemprop="streetAddress" value="<%= result['address'] %>"></data></data></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
+    <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="name" value="" class="d-none"><%= result['venueName'] %></data><a itemprop="hasMap" href="<%= result['mapLink'] %>" class="d-none"></a>
+    <data itemprop="latitude" value="" class="d-none"><%= result['Lat'] %></data>
+    <data itemprop="longitude" value="" class="d-none"><%= result['Lng'] %></data><data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress"><data itemprop="streetAddress" value="<%= result['address'] %>"></data></data></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
   </div>
   <% }) %>
 </div>
