@@ -109,10 +109,11 @@
       resave: false,
       saveUninitialized: true
     };
-
-    if (app.get('env') === 'production') {
+    if (app.get('env') === 'prod') {
       app.set('trust proxy', 1); // trust first proxy
       sess.cookie.secure = true; // serve secure cookies, requires https
+      // console.log("session:sess");
+      // console.log(sess);
     }  
 
     app.use(session(sess));
@@ -173,12 +174,19 @@
     app.get('/login', passport.authenticate('auth0', {
       scope: 'openid email profile'
     }), function (req, res) {
+      // console.log("/login returnTo Value:" + req.session.returnTo);
       res.redirect(req.session.returnTo);
     });
 
     app.get('/chooseUser',function(req,res,next){
       console.log(req.query.state)
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
+    })
+
+    app.post('/sendgrid',function(req,res,next){
+      logger.log(req.body)
+      console.log(req.body)
+      res.sendStatus(200)
     })
 
     const { createCanvas, loadImage } = require('canvas')
@@ -247,7 +255,10 @@
         }
         else {
           req.logIn(user, function (err) {
+            // console.log("callback")
+            // console.log(req)
             if (err) { return next(err); }
+            // console.log("callback returnTo Value:" + req.session.returnTo);
             const returnTo = req.session.returnTo;
             delete req.session.returnTo;
             res.redirect(returnTo || '/');
@@ -372,6 +383,7 @@
 
     //GET for displaying results entry for for users
     app.get('/email-scorecard', secured(), fixture_controller.email_scorecard);
+    // app.get('/messer-scorecard', secured(), fixture_controller.messer_scorecard);
 
     //POST for processing results entry form - possibly redundant.
     app.post('/scorecard-beta',fixture_controller.validateScorecard, fixture_controller.full_fixture_post);
@@ -411,6 +423,7 @@
     app.get('/messer-rules', static_controller.messer_rules);
     app.get('/messer-draw/:section', static_controller.messer_draw);
     app.get('/rules', static_controller.rules);
+    
 
     // POST to process input from Auth0 when non-authorised user attempt to use secure pages on the site and email the admin
     // TODO - prevent duplicate emails being sent when an existing user in Auth0 gets bounced out again because they're not authorised still.
