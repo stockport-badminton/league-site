@@ -94,3 +94,25 @@ exports.team_update_post = function(req, res) {
       }
     })
 };
+
+exports.messer_draw = function(req, res) {
+  Team.getTeams({"section":"A"},function(err,rows){
+    if(err){
+      res.send(err);
+      console.log(err)
+    }
+    else{
+      console.log(rows.length);
+      var totalRounds = Math.ceil(Math.log(rows.length)/Math.log(2))
+      console.log(JSON.stringify(rows));
+      res.render('beta/messer-draw', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        teams: rows,
+        pageTitle : "Messer Tropy Rules",
+        pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
+      });
+    }
+  })
+}

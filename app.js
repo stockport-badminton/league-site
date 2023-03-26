@@ -175,7 +175,7 @@
       scope: 'openid email profile'
     }), function (req, res) {
       // console.log("/login returnTo Value:" + req.session.returnTo);
-      res.redirect(req.session.returnTo);
+      res.redirect(req.params.returnTo);
     });
 
     app.get('/chooseUser',function(req,res,next){
@@ -184,7 +184,7 @@
     })
 
     app.post('/sendgrid',function(req,res,next){
-      logger.log(req.body)
+      logger.log(JSON.stringify(req.body))
       console.log(req.body)
       res.sendStatus(200)
     })
@@ -238,10 +238,10 @@
     // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
-        // console.log('USER:')
-        // console.log(user)
-        // console.log('INFO:')
-        // console.log(info)
+        console.log('USER:')
+        console.log(user)
+        console.log('INFO:')
+        console.log(info)
         if (err) { return next(err); }
         if (!user) {
           //console.log(req);
@@ -256,7 +256,8 @@
         else {
           req.logIn(user, function (err) {
             // console.log("callback")
-            // console.log(req)
+            console.log(req.session.returnTo)
+            console.log(req.params.returnTo)
             if (err) { return next(err); }
             // console.log("callback returnTo Value:" + req.session.returnTo);
             const returnTo = req.session.returnTo;
@@ -421,7 +422,7 @@
     // Static page routes
     app.get('/privacy-policy', static_controller.privacy_policy);
     app.get('/messer-rules', static_controller.messer_rules);
-    app.get('/messer-draw/:section', static_controller.messer_draw);
+    app.get('/messer-draw/:section', team_controller.messer_draw);
     app.get('/rules', static_controller.rules);
     
 
@@ -776,6 +777,8 @@
     //TODO: some sort of notification for rearrangements?
     router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
+    router.get('/results-grid/:division', fixture_controller.fixture_detail_byDivision);
+    router.get('/results-grid/:division/:season', fixture_controller.fixture_detail_byDivision);
 
     /* GET request for list of all Fixture items. */
     router.get('/admin/results/:division', secured(), fixture_controller.fixture_detail_byDivision_admin);

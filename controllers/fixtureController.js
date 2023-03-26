@@ -386,12 +386,35 @@ exports.fixture_detail_byDivision = function(req, res,next) {
         next(err);
       }
       else{
+          var type = '';
+          var jsonResult = ''
+          // console.log(req.path);
+          let divisionsArray = result.map(row => row.division).filter((division,index,arr) => arr.indexOf(division) == index)
+          let griddedData = []
+          for (division of divisionsArray){
+            console.log(division);
+            let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged')
+            // console.log(gridFixtures)
+            gridFixtures.sort(function (x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
+            let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
+            let gridDataElem = {}
+            gridDataElem.teams = gridTeams
+            gridDataElem.fixtures = gridFixtures
+            gridDataElem.division = division
+            griddedData.push(gridDataElem)
+          }
+          console.log(griddedData);
+          if (req.path.indexOf('results-grid') > -1){
+            type = '-grid'
+            jsonResult = JSON.stringify(griddedData);
+          }
           res.status(200);
-           res.render('beta/fixtures-results', {
+           res.render('beta/fixtures-results'+type, {
                static_path: '/static',
                pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
                pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
                result: result,
+               jsonResult:griddedData,
                error: false,
                division : req.params.division
            });
@@ -402,7 +425,9 @@ exports.fixture_detail_byDivision = function(req, res,next) {
 };
 
 // Display detail page for a specific Fixture
-exports.fixture_detail_byDivision_admin = function(req, res,next) {
+exports.fixture_detail_byDivision_admin = function(req,res,next) {
+  console.log("request")
+  console.log(req)
   var divisionId = 0;
   Division.getIdByURLParam(req.params.division, function(err,row){
     if (row.length < 1){
@@ -1457,6 +1482,48 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
         })
       }
   })
+}
+
+exports.messer_scorecard = function(req,res,next){
+  Division.getAllByLeague(1,function(err,rows){
+    if(err){
+      next(err)
+    }
+    else{
+      Auth.getManagementAPIKey(function (err,apiKey){
+        if (err){
+          next(err);
+        }
+        else{
+          var options = {
+            method:'GET',
+            headers:{
+              "Authorization":"Bearer "+apiKey
+            },
+            url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+          }
+          //console.log(options);
+          request(options,function(err,response,userBody){
+            //console.log(options);
+            if (err){
+              //console.log(err)
+              return false
+            }
+            else{
+              var user = JSON.parse(userBody);
+              res.render('messer-scorecard',{
+                static_path:'/static',
+                theme:process.env.THEME || 'flatly',
+                pageTitle : "Scorecard",
+                pageDescription : "Enter some results!",
+                result:rows
+              })
+            }
+          })
+        }
+      })
+    }
+})
 }
 
   exports.scorecard_upload = function(req, res) {

@@ -1,0 +1,73 @@
+<%- include('./header.ejs'); -%>
+<%- include('./nav.ejs'); -%>
+
+
+  <% if (error) { %>
+    <p>Something seems to have gone wrong</p>
+    <p><%= error %></p>
+  <% }
+  else { %>
+    <div class="row col-12">
+      <h1><%= division.replace('-',' ') %></h1>
+    </div>
+    
+    <div class="table-responsive">
+    <table class="table" id="results-grid">
+        <tr>
+            <td>&nbsp;</td>
+        <% for (team of jsonResult[0].teams){ %>
+            <td><%= team %></td>
+        <% } %>
+        </tr>
+            
+        <%  var currHomeTeam = ""
+            for (const [i,fix] of jsonResult[0].fixtures.entries()){ 
+                var MyDate = new Date(fix.date);
+                var MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/' + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/' + MyDate.getFullYear();
+                if (fix.homeTeam == currHomeTeam) { 
+                if (i%jsonResult[0].teams.length == 0 ){
+                    %><td>&nbsp;</td> <%
+                } %>
+            <td>
+            
+            <% if(fix.homeScore === null){ %>
+                <%= MyDateString %>
+            <% }
+            else{ %>
+                <%= fix.homeScore %> - <%= fix.awayScore %>
+            <% } %>
+            </td>
+        <% } 
+            else {
+                currHomeTeam = fix.homeTeam
+                %>
+            </tr><tr><td><%= fix.homeTeam %></td> 
+                <% if (i%jsonResult[0].teams.length == 0 ){
+                    %><td>&nbsp;</td> <%
+                } %>
+                <td>
+                    
+                    <% if(fix.homeScore === null){ %>
+                        <%= MyDateString %>
+                    <% }
+                    else{ %>
+                        <%= fix.homeScore %> - <%= fix.awayScore %>
+                    <% } %>
+                    </td>
+           <% }
+                 } %>
+                 </tr>
+    </table>
+
+    
+  </div>
+   <% } %>
+
+   
+
+
+<%- include('footer.ejs') %>
+
+
+</body>
+</html>
