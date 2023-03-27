@@ -392,7 +392,7 @@ exports.fixture_detail_byDivision = function(req, res,next) {
           let divisionsArray = result.map(row => row.division).filter((division,index,arr) => arr.indexOf(division) == index)
           let griddedData = []
           for (division of divisionsArray){
-            console.log(division);
+            // console.log(division);
             let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged')
             // console.log(gridFixtures)
             gridFixtures.sort(function (x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
@@ -400,10 +400,13 @@ exports.fixture_detail_byDivision = function(req, res,next) {
             let gridDataElem = {}
             gridDataElem.teams = gridTeams
             gridDataElem.fixtures = gridFixtures
-            gridDataElem.division = division
+            gridDataElem.division = division == 7 ? "Prem"
+            : division == 8 ? "Division 1"
+            : division == 9 ? "Division 2"
+            : "Division 3";
             griddedData.push(gridDataElem)
           }
-          console.log(griddedData);
+          // console.log(griddedData);
           if (req.path.indexOf('results-grid') > -1){
             type = '-grid'
             jsonResult = JSON.stringify(griddedData);
