@@ -9,6 +9,7 @@
   else { %>
 <div class="row col-12">
     <h1><%= division.replace('-',' ') %></h1>
+    <a href="/results/<%= division %>">List view</a>
 </div>
 
 <div class="table-responsive">
@@ -21,28 +22,54 @@
     
     <table class="table" id="results-grid">
         <tr>
-            <td class="py-3 border">&nbsp;</td>
+            <th class="py-3 border">&nbsp;</th>
             <% for (team of division.teams){ %>
-            <td class="py-3 border"><%= team %></td>
+            <th class="py-3 border"><%= team %></th>
             <% } %>
         </tr>
 
         <%  var currHomeTeam = ""
                 for (const [i,fix] of division.fixtures.entries()){ 
+                    var cellClass = '';
+                    var resultValue = '';
+                    var status = ""
+                    var NowDate = Date.now();
                     var MyDate = new Date(fix.date);
+                    if ((MyDate < NowDate) && (fix.homeScore == null) && (fix.status != 'void')) {
+                        cellClass = 'bg-danger'
+                        resultValue = 'Awaiting Result';
+                    }
                     var MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/' + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/' + MyDate.getFullYear();
+                    if (fix.status == 'rearranging'){
+                        var cellClass = 'bg-warning';
+                        var resultValue = 'Rearranging';
+                        var status = ""
+                    }
+                    if (fix.status == 'conceded'){
+                        var cellClass = 'bg-danger';
+                        var resultValue = 'Conceded';
+                        var status = "Conceded"
+                    }
+                    if (fix.status == 'void'){
+                        var cellClass = 'bg-danger';
+                        var resultValue = "Void"
+                        var status = "Void"
+                    }
                     if (fix.homeTeam == currHomeTeam) { 
                     if (i%division.teams.length == 0 ){
                         %><td class="py-3 border">&nbsp;</td> <%
                     } %>
-        <td class="py-3 border">
+        <td class="py-3 border <%= cellClass %>">
 
-            <% if(fix.homeScore === null){ %>
-            <%= MyDateString %>
-            <% }
-                else{ %>
-            <%= fix.homeScore %> - <%= fix.awayScore %>
-            <% } %>
+            <% if(fix.homeScore === null && fix.status != 'void'){ %>
+                <%= MyDateString %>
+                <% }
+                else if (fix.status == 'void'){ %>
+                <%= resultValue %>
+                <% }
+                        else{ %>
+                <%= fix.homeScore %> - <%= fix.awayScore %>
+                <% } %>
         </td>
         <% } 
                 else {
@@ -50,14 +77,17 @@
                     %>
         </tr>
         <tr>
-            <td class="py-3 border"><%= fix.homeTeam %></td>
+            <th class="py-3 border"><%= fix.homeTeam %></th>
             <% if (i%division.teams.length == 0 ){
                         %><td>&nbsp;</td> <%
                     } %>
-            <td class="py-3 border">
+            <td class="py-3 border <%= cellClass %>">
 
-                <% if(fix.homeScore === null){ %>
+                <% if(fix.homeScore === null && fix.status != 'void'){ %>
                 <%= MyDateString %>
+                <% }
+                else if (fix.status == 'void'){ %>
+                <%= resultValue %>
                 <% }
                         else{ %>
                 <%= fix.homeScore %> - <%= fix.awayScore %>
