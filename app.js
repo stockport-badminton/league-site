@@ -231,6 +231,11 @@
         }
         ctx.fillText(line, x, y);
           const buffer = canvas.toBuffer("image/jpeg");
+          const fs = require('fs')
+          const out = fs.createWriteStream('static/beta/images/generated/'+ req.params.homeTeam.replace(/([\s]{1,})/g,'-') + req.params.awayTeam.replace(/([\s]{1,})/g,'-') +'.jpg')
+          const stream = canvas.createJPEGStream()
+          stream.pipe(out)
+          out.on('finish', () =>  console.log('The Jpg file was created.'))
           res.write(buffer);
       })
     })
