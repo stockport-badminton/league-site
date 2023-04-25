@@ -526,10 +526,12 @@
     router.get('/player-stats/team-:team?/division-:divisionId?', player_controller.all_player_stats);
     router.get('/player-stats/team-:team?/game-:gameType?', player_controller.all_player_stats);
     router.get('/player-stats/team-:team?', player_controller.all_player_stats);
-    router.get('/player-stats/:season?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/:season?/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/:season?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/:season?', player_controller.all_player_stats);
+    router.get('/player-stats/season-:season?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/season-:season?/division-:divisionId?', player_controller.all_player_stats);
+    router.get('/player-stats/season-:season?/game-:gameType?', player_controller.all_player_stats);
+    router.get('/player-stats/season-:season?', player_controller.all_player_stats);
+    router.get('/player-stats/season-:season?/gender-:gender?', player_controller.all_player_stats);
+    router.get('/player-stats/gender-:gender?', player_controller.all_player_stats);
 
     router.get('/pair-stats/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
     router.get('/pair-stats/game-:gameType?/division-:divisionId?', player_controller.all_pair_stats);
