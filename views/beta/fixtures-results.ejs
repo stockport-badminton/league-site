@@ -89,8 +89,8 @@
       <tr class="<%= rowClass %>">
 
           <td><%= MyDateString %></td>
-          <td><%= row['homeTeam'] %></td>
-          <td><%= row['awayTeam'] %></td>
+          <td data-homeTeam="<%= row['homeClub'] %>"><%= row['homeTeam'] %></td>
+          <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){ %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
             <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
@@ -106,10 +106,10 @@
           <% } %>
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
-            <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranging') { %>
+            <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged') { %>
                   <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a> 
-                  <% if(resultValue === 'Awaiting Result'){ %><br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
-                <%} } %>
+                  <br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
+                <% } %>
             </td>
             
             <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
@@ -147,8 +147,8 @@
         </div>
         <form role="form" id="contactUs" action="/fixture/rearrangement" method="post">
         <div class="modal-body" id="rearrangementModal">
-
-            <div class="form-group">
+          <div class="formMessage" style="display:none">Fixture Updated!</div>
+            <div id="rearrangementForm" class="form-group">
               <label for="contactEmail">New Fixture Date</label>
               <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY">
               <small id="emailHelp" class="form-text text-muted">Leave this blank if you haven't fixed a date yet.</small>
@@ -205,6 +205,12 @@
 
     
       $('a[data-target="#exampleModal"]').click(function(){
+        $('#rearrangementModal > .formMessage').hide();
+        $('#rearrangementForm > #date').show()
+        $('#rearrangementForm > label').show()
+        $('#fixtureRearange').show();
+        $('#emailHelp').show()
+        $('#rearrangementForm > #date')[0].value = "";
         $('#fixtureId')[0].value = $(this)[0]['attributes']['data-fixtureId'].value;
         $('#homeTeam')[0].value = $(this).parent().siblings()[1].textContent;
         $('#awayTeam')[0].value = $(this).parent().siblings()[2].textContent;
@@ -213,15 +219,31 @@
       $('a[data-target="#reminderModal"]').click(function(){
         $('#reminderHomeTeam')[0].value = $(this).parent().siblings()[1].textContent;
         $('#reminderAwayTeam')[0].value = $(this).parent().siblings()[2].textContent;
+        var homeTeamId = this.parentElement.parentElement.children[1].getAttribute('data-hometeam').valueOf()
+        var homeTeamName = this.parentElement.parentElement.children[1].textContent
+        $.get('/club-api/'+homeTeamId, function(data){ 
+          var filterTeams = data.filter(row => row.teamName == homeTeamName)
+          $('#reminderModalBody > div.form-group > input#email')[0].value = filterTeams[0].matchSecEmail + "," + filterTeams[0].teamCaptainEmail
+        })
       })
 
-      $('#fixtureRearange').click(function(){
+     /*  $('#fixtureRearange').click(function(){
         $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
                console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
                console.log(data);
                $('#rearrangementModal').html('<p>Fixture Updated!</p>');
                $('#fixtureRearange').remove();
             });
+      }) */
+
+      $('#fixtureRearange').click(function(){
+        
+               console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
+               $('#rearrangementModal > .formMessage').show();
+               $('#rearrangementForm > label').hide()
+               $('#rearrangementForm > #date').hide()
+               $('#emailHelp').hide()
+               $('#fixtureRearange').hide();
       })
 
       $('#remindFixture').click(function(){

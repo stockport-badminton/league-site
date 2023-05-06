@@ -662,6 +662,7 @@
     /* GET request for one Club. */
     // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
     router.get('/club/:id',secured(), club_controller.club_detail);
+    router.get('/club-api/:id',secured(), club_controller.club_detail_api);
 
     /* GET request for list of all Club items. */
     router.get('/clubs', club_controller.club_list);

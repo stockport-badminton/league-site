@@ -47,6 +47,19 @@ exports.club_list_detail = function(req, res, next) {
     })
 };
 
+exports.club_detail_api = function(req, res,next) {
+  Club.getContactDetailsById(req.params.id,function(err,clubrow){
+    if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
+      console.log(err)
+      res.status(500);
+      next(err);
+    }
+    else{
+      res.send(clubrow)
+    }
+  })
+};
+
 // Display detail page for a specific Club
 exports.club_detail = function(req, res,next) {
     Club.getContactDetailsById(req.params.id,function(err,clubrow){
