@@ -204,6 +204,17 @@ exports.distribution_list = function(req,res,next) {
     'text': 'Email from sengrid parse send to'+req.body.to,
     'html': req.body.html
   };
+  console.log(req.body.to.indexOf("test"))
+  if (req.body.to.indexOf("test") >= 0 ){
+    console.log("detected test")
+    msg['mail_settings'] = {
+      'sandbox_mode': {
+          'enable': true
+        }
+    }
+    console.log(msg)
+}
+  
   if(req.files){
     // console.log("files" + req.files)
     req.files.forEach(file =>{
@@ -353,10 +364,10 @@ exports.distribution_list = function(req,res,next) {
   }
   
 
-  getBcc(recipient,msg)
-  sgMail.send(msg)
+  getBcc(recipient,msg).then(() => {
+    sgMail.send(msg)
     .then(()=>{
-      logger.log(msg);
+      // logger.log(msg);
       console.log("sending this");
       console.log(msg);
       res.sendStatus(200);
@@ -366,6 +377,12 @@ exports.distribution_list = function(req,res,next) {
       console.log(msg);
       next("Sorry something went wrong sending your email.");
     })
+  })
+  .catch(error => {
+    console.log(error);
+    console.log(msg);
+    next("Sorry something went wrong sending your email.");
+  })
 
 };
 
