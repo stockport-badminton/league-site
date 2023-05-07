@@ -196,20 +196,20 @@ exports.distribution_list = function(req,res,next) {
   console.log("subject: " + req.body.subject);
   logger.log("html: " + req.body.html);
   
-  var recipient = req.body.to.substring(0,req.body.to.indexOf('@'));
+  var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
   var msg = {
-    'to': 'stockport.badders.results+'+recipient+'@gmail.com',
-    'from': 'stockport.badders.results@stockport-badminton.co.uk',
-    'subject': req.body.subject,
-    'text': 'Email from sengrid parse send to'+req.body.to,
-    'html': req.body.html
+    "to": "stockport.badders.results+"+recipient+"@gmail.com",
+    "from": "stockport.badders.results@stockport-badminton.co.uk",
+    "subject": req.body.subject,
+    "text": "Email from sengrid parse send to"+req.body.to,
+    "html": req.body.html
   };
   console.log(req.body.to.indexOf("test"))
   if (req.body.to.indexOf("test") >= 0 ){
     console.log("detected test")
-    msg['mail_settings'] = {
-      'sandbox_mode': {
-          'enable': true
+    msg["mail_settings"] = {
+      "sandbox_mode": {
+          "enable": true
         }
     }
     console.log(msg)
@@ -223,12 +223,12 @@ exports.distribution_list = function(req,res,next) {
     //console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
     for (i = 1; i <= req.body.attachments; i++){
-        console.log(req.body['attachment-info']['attachment'+i])
+        console.log(req.body["attachment-info"]["attachment"+i])
         var attachment = {
-          content: req.files[i-1].buffer.toString('base64'),
+          content: req.files[i-1].buffer.toString("base64"),
           filename: req.files[i-1].originalname,
           type: req.files[i-1].mimetype,
-          disposition: 'attachment'
+          disposition: "attachment"
         };
 
         attachments.push(attachment);
