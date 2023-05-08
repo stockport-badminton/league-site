@@ -201,9 +201,8 @@ exports.distribution_list = function(req,res,next) {
   console.log("stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
-    "to": "stockport.badders.results\+"+recipient+"@gmail.com",
+    "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
     "from": "stockport.badders.results@stockport-badminton.co.uk",
-    "bcc":[],
     "subject": req.body.subject,
     "text": "Email from sengrid parse send to"+req.body.to,
     "html": req.body.html,
@@ -345,7 +344,7 @@ exports.distribution_list = function(req,res,next) {
           //console.log(rows);
           if (msg.subject.indexOf('test') == -1){
             rows.forEach(element => {
-              msg.bcc.push(element.playerEmail)
+              msg.to.push(element.playerEmail)
             }); 
             console.log(msg.bcc)
           }
