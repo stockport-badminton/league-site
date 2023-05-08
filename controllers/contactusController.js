@@ -197,8 +197,10 @@ exports.distribution_list = function(req,res,next) {
   logger.log("html: " + req.body.html);
   
   var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
+  console.log("stockport.badders.results\+"+recipient+"@gmail.com")
+
   var msg = {
-    "to": "stockport.badders.results+"+recipient+"@gmail.com",
+    "to": "stockport.badders.results\+"+recipient+"@gmail.com",
     "from": "stockport.badders.results@stockport-badminton.co.uk",
     "subject": req.body.subject,
     "text": "Email from sengrid parse send to"+req.body.to,
