@@ -344,7 +344,7 @@ exports.distribution_list = function(req,res,next) {
           msg.bcc = [];
           if (msg.subject.indexOf('test') == -1){
             rows.forEach(element => {
-              msg.bcc.push(element.playerEmail)
+              msg.bcc.push({"email":element.playerEmail})
             }); 
             console.log(msg.bcc)
           }
