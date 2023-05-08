@@ -206,7 +206,8 @@ exports.distribution_list = function(req,res,next) {
     "bcc":[],
     "subject": req.body.subject,
     "text": "Email from sengrid parse send to"+req.body.to,
-    "html": req.body.html
+    "html": req.body.html,
+    "isMultiple":true
   };
   console.log(req.body.to.indexOf("test"))
   if (req.body.to.indexOf("test") >= 0 ){
@@ -344,16 +345,16 @@ exports.distribution_list = function(req,res,next) {
           //console.log(rows);
           if (msg.subject.indexOf('test') == -1){
             rows.forEach(element => {
-              msg.bcc.push({"email":element.playerEmail})
+              msg.bcc.push(element.playerEmail)
             }); 
             console.log(msg.bcc)
           }
           else {
-            msg.html = msg.html.replace("<body>","<body><p id='emaillist'></p>")
+            msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
             rows.forEach(element => {
               console.log(element.playerEmail + "\n")
               msg.text += element.playerEmail;
-              msg.html = msg.html.replace("<body><p id='emaillist'>","<body><p id='emaillist'>"+element.playerEmail+"<br/>")
+              msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+element.playerEmail+"<br/>")
             }); 
           }
           return msg;
