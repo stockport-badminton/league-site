@@ -197,6 +197,7 @@ exports.distribution_list = function(req,res,next) {
   logger.log("html: " + req.body.html);
   
   var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
+  recipient = recipient.replace("\"","")
   console.log("stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
