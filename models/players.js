@@ -409,7 +409,12 @@ exports.getEmails = async function(searchTerms,done){
   }
   db.get().query(sql, function (err, rows){
     if (err) return done(err);
-    done(null, rows);
+    else {
+      // console.log(rows)
+      var emailArray = rows.map(row => {const {playerEmail} = row; return playerEmail})
+      // console.log(emailArray)
+    }
+    done(null, emailArray);
   })
 }
 

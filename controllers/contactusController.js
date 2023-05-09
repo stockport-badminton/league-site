@@ -188,36 +188,37 @@ exports.contactus = function(req, res,next){
   }
 }
 
+
 // Display list of all Players
-exports.distribution_list = function(req,res,next) {
+exports.distribution_list = async function(req,res,next) {
 
   console.log("from: " + req.body.from);
   console.log("to: " + req.body.to);
   console.log("subject: " + req.body.subject);
-  logger.log("html: " + req.body.html);
+  // logger.log("html: " + req.body.html);
   
   var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
   recipient = recipient.replace("\"","")
-  console.log("stockport.badders.results\+"+recipient+"@gmail.com")
+  console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
     "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
     "from": "stockport.badders.results@stockport-badminton.co.uk",
     "subject": req.body.subject,
-    "text": "Email from sengrid parse send to"+req.body.to,
+    "text": "Email from sengrid parse send to "+req.body.to,
     "html": req.body.html,
     "isMultiple":true
   };
-  console.log(req.body.to.indexOf("test"))
+  // console.log(req.body.to.indexOf("test"))
   if (req.body.to.indexOf("test") >= 0 ){
-    console.log("detected test")
+    // console.log("detected test")
     msg["mail_settings"] = {
       "sandbox_mode": {
           "enable": true
         }
     }
-    console.log(msg)
-}
+    // console.log(msg)
+  }
   
   if(req.files){
     // console.log("files" + req.files)
@@ -240,154 +241,169 @@ exports.distribution_list = function(req,res,next) {
     msg.attachments = attachments;
   }
 
-  const getBcc = async function (recipient, msg) {
-    var searchObject = {}
-    var roles = [
-      {
-        "match":"clubSecretaries",
-        "search":"club Sec"
-      },
-      {
-        "match":"matchSecretaries",
-        "search":"match Sec"
-      },
-      {
-        "match":"teamCaptains",
-        "search":"team Captain"
-      },
-      {
-        "match":"treasurers",
-        "search":"treasurer"
-      },
-      {
-        "match":"leagueComms",
-        "search":"otherComms"
-      }
-    ]
-    var divisions = [
-      {
-        "match":"Premier",
-        "search":7
-      },
-      {
-        "match":"division1",
-        "search":8
-      },
-      {
-        "match":"division2",
-        "search":9
-      },
-      {
-        "match":"division3",
-        "search":10
-      }
-    ]
-    var clubNames = [
-      { "match": "aerospace", "search": 42 },
-      { "match": "alderleypark", "search": 43 },
-      { "match": "altrinchamcentral", "search": 44 },
-      { "match": "canute", "search": 47 },
-      { "match": "cheadlehulme", "search": 49 },
-      { "match": "collegegreen", "search": 61 },
-      { "match": "davidlloyd", "search": 50 },
-      { "match": "disley", "search": 51 },
-      { "match": "dome", "search": 52 },
-      { "match": "ghap", "search": 53 },
-      { "match": "macclesfield", "search": 54 },
-      { "match": "manor", "search": 55 },
-      { "match": "mellor", "search": 39 },
-      { "match": "noclub", "search": 63 },
-      { "match": "parrswood", "search": 57 },
-      { "match": "racketeer", "search": 59 },
-      { "match": "shell", "search": 40 },
-      { "match": "syddalpark", "search": 41 },
-      { "match": "tatton", "search": 60 }
-    ]
-    /* await Club.getAll(function(err,rows){
-      if (err) {
-        console.log(err);
-        next(err);
-      }
-      else{
-        rows.forEach(club => {
-          var clubName = club.name.replace(' ','').replace('.','')toLowerCase()
-          clubNames.push({"match":clubName,"search":club.id})
-        })
-      }
-    }) */
-    
-    roles.forEach(role => {
-      if(recipient.indexOf(role.match) >= 0){
-        searchObject.role = role.search
-      }
-    })
-    divisions.forEach(division => {
-      if(recipient.indexOf(division.match) >= 0){
-        searchObject.division = division.search
-      }
-    })
-    //console.log(clubNames);
-    clubNames.forEach(club => {
-      if(recipient.indexOf(club.match) >= 0){
-        searchObject.club = club.search
-      }
-    })
-    
-    
-    if (searchObject.role || searchObject.division || searchObject.club) {
-      await Player.getEmails(searchObject, function (err, rows) {
-        if (err) {
-          console.log(err);
-          next(err);
-        }
-        else {
-          //console.log(rows);
-          if (msg.subject.indexOf('test') == -1){
-            rows.forEach(element => {
-              msg.to.push(element.playerEmail)
-            }); 
-            console.log(msg.bcc)
-          }
-          else {
-            msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
-            rows.forEach(element => {
-              console.log(element.playerEmail + "\n")
-              msg.text += element.playerEmail;
-              msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+element.playerEmail+"<br/>")
-            }); 
-          }
-          return msg;
-        }
+  console.log(msg)
+  var searchObject = {}
+  var roles = [
+    {
+      "match":"clubSecretaries",
+      "search":"club Sec"
+    },
+    {
+      "match":"matchSecretaries",
+      "search":"match Sec"
+    },
+    {
+      "match":"teamCaptains",
+      "search":"team Captain"
+    },
+    {
+      "match":"treasurers",
+      "search":"treasurer"
+    },
+    {
+      "match":"leagueComms",
+      "search":"otherComms"
+    }
+  ]
+  var divisions = [
+    {
+      "match":"Premier",
+      "search":7
+    },
+    {
+      "match":"division1",
+      "search":8
+    },
+    {
+      "match":"division2",
+      "search":9
+    },
+    {
+      "match":"division3",
+      "search":10
+    }
+  ]
+  var clubNames = [
+    { "match": "aerospace", "search": 42 },
+    { "match": "alderleypark", "search": 43 },
+    { "match": "altrinchamcentral", "search": 44 },
+    { "match": "canute", "search": 47 },
+    { "match": "cheadlehulme", "search": 49 },
+    { "match": "collegegreen", "search": 61 },
+    { "match": "davidlloyd", "search": 50 },
+    { "match": "disley", "search": 51 },
+    { "match": "dome", "search": 52 },
+    { "match": "ghap", "search": 53 },
+    { "match": "macclesfield", "search": 54 },
+    { "match": "manor", "search": 55 },
+    { "match": "mellor", "search": 39 },
+    { "match": "noclub", "search": 63 },
+    { "match": "parrswood", "search": 57 },
+    { "match": "racketeer", "search": 59 },
+    { "match": "shell", "search": 40 },
+    { "match": "syddalpark", "search": 41 },
+    { "match": "tatton", "search": 60 }
+  ]
+  /* await Club.getAll(function(err,rows){
+    if (err) {
+      console.log(err);
+      next(err);
+    }
+    else{
+      rows.forEach(club => {
+        var clubName = club.name.replace(' ','').replace('.','')toLowerCase()
+        clubNames.push({"match":clubName,"search":club.id})
       })
     }
-    else {
-      return msg
-    }
-    
-  }
+  }) */
   
-
-  getBcc(recipient,msg).then(() => {
+  roles.forEach(role => {
+    if(recipient.indexOf(role.match) >= 0){
+      searchObject.role = role.search
+    }
+  })
+  divisions.forEach(division => {
+    if(recipient.indexOf(division.match) >= 0){
+      searchObject.division = division.search
+    }
+  })
+  //console.log(clubNames);
+  clubNames.forEach(club => {
+    if(recipient.indexOf(club.match) >= 0){
+      searchObject.club = club.search
+    }
+  })
+  
+  
+  if (searchObject.role || searchObject.division || searchObject.club) {
+    await Player.getEmails(searchObject, function (err, rows) {
+      if (err) {
+        console.error(err);
+        next(err)
+      }
+      else {
+        //console.log(rows);
+        if (msg.subject.indexOf('test') == -1){
+          var tempArray = msg.to
+          msg.to = tempArray.concat(rows)
+          // console.log(msg.to)
+          sgMail.send(msg)
+          .then((msg,response)=>{
+            // logger.log(msg);
+            // console.info("within sgMail send then");
+            console.info(msg);
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            console.error("within error catch");
+            console.error(error);
+            console.info(msg);
+            next("Sorry something went wrong sending your email.");
+          })
+        }
+        else {
+          msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
+          msg.text += rows.join()
+          msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+          console.log(msg)
+          // console.log(msg.to)
+          sgMail.send(msg)
+          .then((response)=>{
+            // logger.log(msg);
+            // console.info("within sgMail send then");
+            // console.info(response);
+            res.sendStatus(200);
+          })
+          .catch(error => {
+            // console.error("within error catch");
+            console.error(error);
+            console.info(msg);
+            next("Sorry something went wrong sending your email.");
+          })
+        }
+      }
+    })
+  }
+  else {
+    // console.log(msg)
+    // console.log(msg.to)
     sgMail.send(msg)
-    .then(()=>{
+    .then((response)=>{
       // logger.log(msg);
-      console.log("sending this");
-      console.log(msg);
+      // console.info("within sgMail send then");
+      // console.info(response);
       res.sendStatus(200);
     })
     .catch(error => {
-      console.log(error);
-      console.log(msg);
+      console.error("within error catch");
+      console.error(error);
+      console.info(msg);
       next("Sorry something went wrong sending your email.");
     })
-  })
-  .catch(error => {
-    console.log(error);
-    console.log(msg);
-    next("Sorry something went wrong sending your email.");
-  })
+  }
+    
+  }
 
-};
 
 exports.contactus_get = function(req, res,next) {
   Club.getAll(function(err,rows){
