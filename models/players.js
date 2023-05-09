@@ -412,7 +412,9 @@ exports.getEmails = async function(searchTerms,done){
     else {
       // console.log(rows)
       var emailArray = rows.map(row => {const {playerEmail} = row; return playerEmail})
-      // console.log(emailArray)
+      tempArray = emailArray
+      emailArray = tempArray.filter(email => email.indexOf("@") != -1)
+      console.log(emailArray)
     }
     done(null, emailArray);
   })
