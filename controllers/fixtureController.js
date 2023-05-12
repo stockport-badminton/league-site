@@ -181,17 +181,20 @@ exports.getLateScorecards = function(req, res) {
               msg.dynamic_template_data.missingFixtures.push(fixture);
           }
         }
-        else {
-          
+        else {   
           msg.dynamic_template_data.noFixtures = 'No outstanding fixtures today';
         }
 
       }
-      
-      sgMail.send(msg)
-      .then(()=>res.send("Message Sent"))
-      .catch(error => logger.log(error.toString()));
-      
+      let today = new Date()
+      if (today.getMonth() <= 4 || today.getMonth() >= 7){
+        sgMail.send(msg)
+        .then(()=>res.send("Message Sent"))
+        .catch(error => logger.log(error.toString()));
+      }
+      else {
+        res.sendStatus(200);
+      }
     })
 };
 
