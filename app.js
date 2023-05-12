@@ -240,6 +240,147 @@
       })
     })
 
+    app.get('/tables-social',function(req,res,next) {
+      const canvasWidth = 1080; // Set canvas width
+      const canvasHeight = 1080; // Set canvas height
+      const bigCanvasWidth = 1080;
+      const bigCanvasHeight = 1080*4;
+      const bigCanvas = createCanvas(bigCanvasWidth, bigCanvasHeight);
+      const bigCtx = bigCanvas.getContext('2d');
+
+      getAllLeagueTables(req.params.season,async function(err,result){
+        if (err){
+          console.log(err);
+          next(err);
+        }
+        else {
+          // console.log(result)
+          var newResultsArray = []
+          var divIds = [7,8,9,10]
+          for (div of divIds){
+            var divObject = {}
+            var divArray = await result.filter(row => row.division == div).map(obj => {
+              return {
+                divisionName:obj.divisionName,
+                name: obj.name,
+                points: obj.pointsFor,
+                played: obj.played,
+                pointsAgainst: obj.pointsAgainst,
+              };
+            })
+            divObject[divArray[0].divisionName] = divArray
+            newResultsArray.push(divObject)
+          }
+          res.sendStatus(200)
+          var i = 0
+         for (division of newResultsArray){
+
+          //console.log(Object.entries(division))
+          for (let [key,value] of Object.entries(division)){
+            //console.log(key);
+            //console.log(value);
+            let mergedPosY = 1080*i
+            // console.log(mergedPosY)
+            i++
+            const canvas = createCanvas(canvasWidth, canvasHeight); // Create canvas instance
+            const ctx = canvas.getContext('2d');
+            loadImage('static/beta/images/bg/social.png').then(async (image) => {
+              
+              
+              bigCtx.drawImage(image, 0, mergedPosY);
+              ctx.drawImage(image, 0,0,canvasWidth, canvasHeight)
+              // Set background color
+
+              //ctx.fillStyle = '#FFF';
+              //ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+              // Set font styles
+              ctx.font = 'bold 40px Arial';
+              ctx.fillStyle = '#000';
+              ctx.textAlign = 'center';
+              bigCtx.font = 'bold 40px Arial';
+              bigCtx.fillStyle = '#000';
+              bigCtx.textAlign = 'center';
+
+              // Add League Table heading
+              // ctx.fillText(key, canvasWidth / 2, 60);
+
+              // widest team 430
+              // total width 970
+              // full width 1080
+
+              // Add table header
+              let posY = 120;
+              let posX = 230
+              let teamSpace = 300
+              let numberSpace = 150
+              ctx.font = 'bold 65px Arial';
+              bigCtx.font = 'bold 65px Arial';
+              ctx.fillText(key, posX, posY);
+              bigCtx.fillText(key, posX, posY+mergedPosY);
+              posX += teamSpace
+              ctx.fillText('P', posX, posY);
+              bigCtx.fillText('P', posX, posY+mergedPosY);
+              posX += numberSpace
+              ctx.fillText('W', posX, posY);
+              bigCtx.fillText('W', posX, posY+mergedPosY);
+              posX += numberSpace
+              ctx.fillText('L', posX, posY);
+              bigCtx.fillText('L', posX, posY+mergedPosY);
+              posX += numberSpace
+              ctx.fillText('Avg.', posX, posY);
+              bigCtx.fillText('Avg.', posX, posY+mergedPosY);
+
+              // Add table data
+              posY += 100;
+              ctx.font = '55px Arial';
+              bigCtx.font = '55px Arial';
+              for (i in value) {
+                posX = 230
+                var avg = (value[i].points / value[i].played).toFixed(1)
+                // console.log(value[i])
+                ctx.fillText(value[i].name, posX, posY);
+                bigCtx.fillText(value[i].name, posX, posY+mergedPosY);
+                posX += teamSpace
+                ctx.fillText(value[i].played, posX, posY);
+                bigCtx.fillText(value[i].played, posX, posY+mergedPosY);
+                posX += numberSpace
+                ctx.fillText(value[i].points, posX, posY);
+                bigCtx.fillText(value[i].points, posX, posY+mergedPosY);
+                posX += numberSpace
+                ctx.fillText(value[i].pointsAgainst, posX, posY);
+                bigCtx.fillText(value[i].pointsAgainst, posX, posY+mergedPosY);
+                posX += numberSpace
+                ctx.fillText(avg, posX, posY);
+                bigCtx.fillText(avg, posX, posY+mergedPosY);
+                posY += 90;
+              };
+
+              // Save image to file
+              const out = fs.createWriteStream('static/beta/images/generated/league-table-'+key+'.png');
+              const stream = canvas.createPNGStream();
+              stream.pipe(out);
+              out.on('finish', () => console.log('League table image created!'));
+            })
+
+            
+         }
+          
+         }
+         const bigOut = fs.createWriteStream('static/beta/images/generated/league-table-merged.png');
+              const stream = bigCanvas.createPNGStream();
+              let bigBuffer = await bigCanvas.toBuffer("image/png");
+              // console.log(bigBuffer)
+              // imageArray.push(canvas.toBuffer("image/png"))
+              stream.pipe(bigOut);
+              bigOut.on('finish', () => console.log('League table image created!'));
+
+          
+        }
+        
+      }) 
+    })
+
     // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
@@ -375,6 +516,7 @@
 
     // for handling sendgrid parse 
     const multer  = require('multer');
+const { getAllLeagueTables } = require('./models/league');
     const upload = multer();
     app.post('/mail', upload.any(),contact_controller.distribution_list); 
     app.post('/mailtest',contact_controller.distribution_list); 
