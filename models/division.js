@@ -73,6 +73,7 @@ exports.getByName = function(divisionName,done){
 exports.getIdByURLParam = function(divisionName,done){
   divisionName = divisionName.replace('-',' ');
   db.get().query('SELECT id FROM `division` WHERE name = ?',divisionName, function (err, rows){
+    // console.log(this.sql)
     if (err) return done(err);
     done(null,rows);
   })

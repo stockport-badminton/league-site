@@ -296,41 +296,88 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   
 }
 
-exports.getFixtureDetails = function(division,season, done){
-  if (season === undefined){
-    seasonName = ''
-    season = SEASON
+exports.getFixtureDetails = function(searchObj, done){
+  const filterArray = ['season','division','club','team']
+  console.log("passed to getFixtureDetails")
+  console.log(searchObj)
+  let fixtureObj = {}
+  let searchTerms = [];
+  let sqlArray = []
+  let titleString = ""
+  if (searchObj !== undefined){
+    for (filter of filterArray){
+      //console.log(filter)
+      //console.log(Object.entries(searchObj))
+      let sqlParams = Object.entries(searchObj).filter(obj => obj[0] === filter)
+      if (sqlParams.length > 0){
+        fixtureObj[filter] = sqlParams[0][1]
+        titleString += sqlParams[0][1]
+        //console.log(sqlParams)
+      }
+    }
+    
+  }
+  
+  let season = ""
+  let seasonString = SEASON
+  let whereTerms = ""
+  searchArray = []
+  const checkSeason = function(season){
+    let firstYear = parseInt(season.slice(0,4))
+    let secondYear = parseInt(season.slice(4))
+    console.log(firstYear+ " "+ secondYear)
+    if (secondYear - firstYear != 1){
+      return false
+    }
+    else {
+      if (firstYear < 2012 || firstYear > 2021){
+        return false
+      }
+      else return true
+    }
+  }
+  if (fixtureObj.season === undefined || !checkSeason(fixtureObj.season)){
+    sqlArray.push(SEASON)
   }
   else {
-    seasonName = season + ' as team'
+    season = fixtureObj.season
+    seasonString = fixtureObj.season
+    sqlArray.push(fixtureObj.season)
   }
-  if (division == 0){
+  if (fixtureObj.division !== undefined){
+    searchTerms.push('homeTeam.division = ?')
+    sqlArray.push(fixtureObj.division)
+  }
+  if (fixtureObj.club !== undefined){
+    searchTerms.push('(homeClub.name = ? OR awayClub.name = ?)')
+    sqlArray.push(fixtureObj.club)
+    sqlArray.push(fixtureObj.club)
+  }
+  if (fixtureObj.team !== undefined){
+    searchTerms.push('(homeTeam.name = ? OR awayTeam.name = ?)')
+    sqlArray.push(fixtureObj.team)
+    sqlArray.push(fixtureObj.team)
+  }
+  if (sqlArray.length > 1){
+    whereTerms = " AND " + searchTerms.join(" AND ")
+  }
+  else {
+    whereTerms = ""
+  }
+  //console.log(fixtureObj)
+  
 
   
-    db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, team.division, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team WHERE team.id = a.awayTeam ) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',season, function (err, result){
+    db.get().query("select fixture.id, fixture.date, homeTeam.name as homeTeam, homeClub.name as homeClub, awayTeam.name as awayTeam, awayClub.name as awayClub, homeTeam.division as division, fixture.status, fixture.homeScore, fixture.awayScore from fixture join team"+season+" homeTeam on fixture.homeTeam = homeTeam.id join club"+season+" homeClub on homeTeam.club = homeClub.id join team"+season+" awayTeam on fixture.awayTeam = awayTeam.id join club"+season+" awayClub on awayTeam.club = awayClub.id join season on (fixture.date > season.startDate and fixture.date < season.endDate ) where season.name = ?"+whereTerms,sqlArray, function (err, result){
       console.log(this.sql)
       if (err) {
         console.log(this.sql)
-         logger.log(this.sql)
+        // logger.log(this.sql)
         return done(err);
       }
       done(null, result);
     })
   }
-  else{
-    var sql = 
-    db.get().query('select b.* from (SELECT a.fixtureId, a.date, a.homeTeam, team.name AS awayTeam, team.division, a.status, a.homeScore, a.awayScore FROM (SELECT team.name AS homeTeam, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeam AND team.division = ?) as b join season where season.name = ? AND b.date > season.startDate AND b.date < season.endDate ORDER BY b.date',[division,season], function (err, result){
-       logger.log(this.sql)
-       console.log(this.sql)
-      if (err) {
-        console.log(this.sql)
-        return done(err);
-      }
-      done(null, result);
-    })
-  }
-  
-}
 
 exports.getFixtureDetailsById = function(fixtureId,done){
   db.get().query('Select a.fixtureId, a.date, a.homeTeam,  team.name as awayTeam, a.status, a.homeScore, a.awayScore from (select team.name as homeTeam, fixture.id as fixtureId, fixture.date as date, fixture.awayTeam, fixture.status, fixture.homeScore,fixture.awayScore from  fixture join team where team.id = fixture.homeTeam) as a join team where team.id = a.awayTeam AND fixtureId = ? ',fixtureId,function(err,rows){

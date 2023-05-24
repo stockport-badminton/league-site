@@ -225,8 +225,8 @@ exports.fixture_outstanding_post = function(req, res,next) {
     "awayScore":18-req.body.homeTeamScore,
     "status":"complete"
   }
-  console.log("short result body");
-  console.log(req.body);
+  // console.log("short result body");
+  // console.log(req.body);
   Fixture.updateById(reqBody,req.body.outstandingResults,function(err,row){
     if (err){
       next(err);
@@ -375,16 +375,129 @@ exports.getScorecard = function(req, res) {
 };
 
 // Display detail page for a specific Fixture
-exports.fixture_detail_byDivision = function(req, res,next) {
-    var divisionId = 0;
-    Division.getIdByURLParam(req.params.division, function(err,row){
+exports.fixture_detail_byDivision = function(req,res,next) {
+    let divisionString = "";
+    let searchObj = {}
+    if (req.params.division !== undefined){
+      console.log(req.params)
+      divisionString = req.params.division.replace('-',' ')
+      Division.getIdByURLParam(req.params.division, function(err,row){
       if (row.length < 1){
-        divisionId = 0
+        delete req.params.division
+        searchObj = req.params
       }
       else {
-        divisionId = row[0].id
+        searchObj = req.params
+        searchObj.division = row[0].id
+      } 
+        Fixture.getFixtureDetails(searchObj, function(err,result){
+          if (err){
+            next(err);
+          }
+          else{
+              var type = '';
+              var jsonResult = ''
+              // console.log(req.path);
+              let divisionsArray = result.map(row => row.division).filter((division,index,arr) => arr.indexOf(division) == index)
+              let griddedData = []
+              for (division of divisionsArray){
+                // console.log(division);
+                let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged')
+                // console.log(gridFixtures)
+                gridFixtures.sort(function (x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
+                let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
+                let gridDataElem = {}
+                gridDataElem.teams = gridTeams
+                gridDataElem.fixtures = gridFixtures
+                gridDataElem.division = division == 7 ? "Prem"
+                : division == 8 ? "Division 1"
+                : division == 9 ? "Division 2"
+                : "Division 3";
+                griddedData.push(gridDataElem)
+              }
+              // console.log(griddedData);
+              if (req.path.indexOf('results-grid') > -1){
+                type = '-grid'
+                jsonResult = JSON.stringify(griddedData);
+              }
+              res.status(200);
+              console.log(division)
+              let renderObject = {
+                static_path: '/static',
+                pageTitle : "Fixtures & Results: " + divisionString,
+                pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+                result: result,
+                jsonResult:griddedData,
+                error: false,
+                division : divisionString
+            }
+            if(req.path.search('admin') != -1){
+              if (req.user._json["https://my-app.example.com/role"] !== undefined){
+                if (req.user._json["https://my-app.example.com/role"] == "admin"){
+                  renderObject.admin = true
+                  renderObject.superadmin = false
+                  renderObject.user = req.user
+                }
+                if (req.user._json["https://my-app.example.com/role"] == "superadmin"){
+                  renderObject.admin = true
+                  renderObject.superadmin = true
+                  renderObject.user = req.user
+                }
+              }
+            }
+            console.log(renderObject)
+            res.render('beta/fixtures-results'+type, renderObject);
+          }
+        })
+      })  
+   }
+   else {
+    // console.log(Object.entries(req.params))
+    var convertedParams = req.params[0].replace('Premier','division-7')
+      .replace('Division 1','division-8')
+      .replace('Division-1','division-8')
+      .replace('Division 2','division-9')
+      .replace('Division-2','division-9')
+      .replace('Division 3','division-10')
+      .replace('Division-3','division-10')
+      .replace(/(\/)(20\d\d20\d\d)/g,'$1season-$2')
+    const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
+    // Finding matches using regex and replacing them
+    const replacedMatches = [];
+    const replacedString = req.params[0].replace(pattern, (match, p1, p2) => {
+      let replacedMatch;
+      if (p1 === "Premier") {
+        replacedMatch = p1;
+      } else {
+        replacedMatch = `${p1.replace('-', ' ')}${p2}`;
       }
-    Fixture.getFixtureDetails(divisionId, req.params.season, function(err,result){
+      replacedMatches.push(replacedMatch);
+      return replacedMatch;
+    });
+    let divisionString = "All"
+    if (replacedMatches.length > 0){
+      divisionString = replacedMatches[0]
+    }
+    
+    
+    
+    // console.log(regexParams)
+    var searchArray = convertedParams.split('/')
+    let searchObj = searchArray.reduce((acc, str) => {
+      const [key, value] = str.split("-");
+      return { ...acc, [key]: value };
+    }, {});
+    if(req.path.search('admin') != -1){
+      if (req.user._json["https://my-app.example.com/role"] !== undefined){
+        if (req.user._json["https://my-app.example.com/role"] == "admin"){
+          if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined){
+          searchObj.club = req.user._json["https://my-app.example.com/club"]
+          }
+        }
+      }
+    }
+    console.log(searchObj)
+    Fixture.getFixtureDetails(searchObj, function(err,result){
       if (err){
         next(err);
       }
@@ -414,115 +527,46 @@ exports.fixture_detail_byDivision = function(req, res,next) {
             type = '-grid'
             jsonResult = JSON.stringify(griddedData);
           }
-          res.status(200);
-           res.render('beta/fixtures-results'+type, {
-               static_path: '/static',
-               pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-               result: result,
-               jsonResult:griddedData,
-               error: false,
-               division : req.params.division
-           });
-
-      }
-    })
-  })
-};
-
-// Display detail page for a specific Fixture
-exports.fixture_detail_byDivision_admin = function(req,res,next) {
-  console.log("request")
-  console.log(req)
-  var divisionId = 0;
-  Division.getIdByURLParam(req.params.division, function(err,row){
-    if (row.length < 1){
-      divisionId = 0
-    }
-    else {
-      divisionId = row[0].id
-    }
-
-  
-  Auth.getManagementAPIKey(function (err,apiKey){
-    if (err){
-      next(err);
-    }
-    else{
-      var options = {
-        method:'GET',
-        headers:{
-          "Authorization":"Bearer "+apiKey
-        },
-        url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
-      }
-      //console.log(options);
-      request(options,function(err,response,userBody){
-        //console.log(options);
-        if (err){
-          //console.log(err)
-          return false
-        }
-        else{
-          var user = JSON.parse(userBody);
-          var fixtureSearchObj = {
-            "season":req.params.season,
-            "division":divisionId
+          let renderObject = {
+              user:req.user,
+              static_path: '/static',
+              pageTitle : "Fixtures & Results: "+ divisionString,
+              pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
+              result: result,
+              jsonResult:griddedData,
+              error: false,
+              division : divisionString
           }
-          if (user[0].app_metadata.club) {
-            fixtureSearchObj.club = user[0].app_metadata.club
-          }
-          if (user[0].app_metadata.club == 'All') {
-            fixtureSearchObj.club = undefined
-          }
-          if (user[0].app_metadata.team) {
-            fixtureSearchObj.team = user[0].app_metadata.team
-          }
-          if (user[0].app_metadata.role) {
-            if (user[0].app_metadata.role == "superadmin"){
-              var superadmin = true;
-            }
-            else {
-              var superadmin = false;
+          if(req.path.search('admin') != -1){
+            if (req.user._json["https://my-app.example.com/role"] !== undefined){
+              if (req.user._json["https://my-app.example.com/role"] == "admin"){
+                renderObject.admin = true
+                renderObject.superadmin = false
+                renderObject.user = req.user
+              }
+              if (req.user._json["https://my-app.example.com/role"] == "superadmin"){
+                renderObject.admin = true
+                renderObject.superadmin = true
+                renderObject.user = req.user
+              }
             }
           }
           
-          Fixture.getClubFixtureDetails(fixtureSearchObj, function(err,result){
-            if (err){
-              next(err);
-            }
-            else{
-              res.status(200);
-              res.render('beta/fixtures-results', {
-                  user:user,
-                  static_path: '/static',
-                  pageTitle : "Fixtures & Results: " + req.params.division.replace('-',' '),
-                  pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
-                  result: result,
-                  error: false,
-                  division : req.params.division,
-                  admin:true,
-                  superadmin:superadmin,
-                  recaptcha:process.env.recaptcha
-              });
-            }
-          })
-        }
-      })
-    }
-  })
-})
+          res.status(200);
+          res.render('beta/fixtures-results'+type, renderObject);
+
+      }
+    })
+   }
 };
 
-
-
 // Display Fixture create form on GET
-exports.fixture_create_get = function(req, res) {
+exports.fixture_create_get = function(req, res,next) {
     res.send('NOT IMPLEMENTED: Fixture create GET');
 };
 
 // Handle Fixture create on POST
-exports.fixture_create_post = function(req, res) {
+exports.fixture_create_post = function(req, res,next) {
     Fixture.create(req.body, function(err,row){
       if (err){
         res.send(err);
@@ -566,10 +610,10 @@ exports.fixture_get_summary = function(req, res,next) {
     })
 };
 
-exports.fixture_batch_create = function(req, res){
+exports.fixture_batch_create = function(req, res,next){
   Fixture.createBatch(req.body,function(err,result){
     if(err){
-      res.send(err);
+      next(err);
       // console.log(err);
     }
     else{
@@ -607,7 +651,7 @@ exports.fixture_rearrange_by_team_name = function(req, res,next){
 }
 
 // Display Fixture delete form on GET
-exports.fixture_delete_get = function(req, res) {
+exports.fixture_delete_get = function(req, res,next) {
     res.send('NOT IMPLEMENTED: Fixture delete GET');
 };
 
@@ -615,7 +659,7 @@ exports.fixture_delete_get = function(req, res) {
 exports.fixture_delete_post = function(req, res) {
     Fixture.deleteById(req.params.id, function(err,row){
       if (err){
-        res.send(err);
+        next(err);
         // console.log(err);
       }
       else{
@@ -632,7 +676,7 @@ exports.fixture_update_get = function(req, res, next) {
 };
 
 
-exports.full_fixture_post = function(req,res){
+exports.full_fixture_post = function(req,res,next){
   var errors = validationResult(req);
   // console.log(errors.array());
   if (!errors.isEmpty()) {

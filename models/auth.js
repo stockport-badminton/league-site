@@ -18,7 +18,7 @@ exports.getManagementAPIKey = function(done){
         },
         json:true
       }
-      console.log(options);
+      // console.log(options);
       request(options,function(err,response,body){
         if (err){
           console.log("getManagementAPIKey error");
@@ -59,13 +59,13 @@ exports.getAPIKey = function(done){
             return done(err)
           }
           else {
-            console.log(body)
+            // console.log(body)
             if (body.access_token){
-              console.log('token granted')
+              // console.log('token granted')
               done(body.access_token)
             }
             else {
-              console.log('recaptcha fail')
+              // console.log('recaptcha fail')
               done("token fail")
             }
           }

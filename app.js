@@ -179,13 +179,13 @@
     });
 
     app.get('/chooseUser',function(req,res,next){
-      console.log(req.query.state)
+      // console.log(req.query.state)
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
     })
 
     app.post('/sendgrid',function(req,res,next){
-      logger.log(JSON.stringify(req.body))
-      console.log(req.body)
+      // logger.log(JSON.stringify(req.body))
+      // console.log(req.body)
       res.sendStatus(200)
     })
 
@@ -384,10 +384,10 @@
     // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
     app.get('/callback', function (req, res, next) {
       passport.authenticate('auth0', function (err, user, info) {
-        console.log('USER:')
-        console.log(user)
-        console.log('INFO:')
-        console.log(info)
+        // console.log('USER:')
+        // console.log(user)
+        // console.log('INFO:')
+        // console.log(info)
         if (err) { return next(err); }
         if (!user) {
           //console.log(req);
@@ -402,8 +402,8 @@
         else {
           req.logIn(user, function (err) {
             // console.log("callback")
-            console.log(req.session.returnTo)
-            console.log(req.params.returnTo)
+            // console.log(req.session.returnTo)
+            // console.log(req.params.returnTo)
             if (err) { return next(err); }
             // console.log("callback returnTo Value:" + req.session.returnTo);
             const returnTo = req.session.returnTo;
@@ -925,14 +925,16 @@ const { getAllLeagueTables } = require('./models/league');
     //TODO: filter by club & team
     //TODO: add calendar exports so that teams can import to calendars
     //TODO: some sort of notification for rearrangements?
-    router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
+    router.get('/results/*', fixture_controller.fixture_detail_byDivision);
+    router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
+    /* router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
     router.get('/results-grid/:division', fixture_controller.fixture_detail_byDivision);
-    router.get('/results-grid/:division/:season', fixture_controller.fixture_detail_byDivision);
+    router.get('/results-grid/:division/:season', fixture_controller.fixture_detail_byDivision); */
 
     /* GET request for list of all Fixture items. */
-    router.get('/admin/results/:division', secured(), fixture_controller.fixture_detail_byDivision_admin);
-    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision_admin);
+    router.get('/admin/results/*', secured(), fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 

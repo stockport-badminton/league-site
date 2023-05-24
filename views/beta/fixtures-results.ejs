@@ -8,15 +8,15 @@
   <% }
   else { %>
     <div class="row col-12">
-      <h1><%= division.replace('-',' ') %></h1>
-      <a href="/results-grid/<%= division %>">Grid view</a>
+      <h1><%= division %></h1>
+      <a href="/results-grid/<%= division.replace(' ','-') %>">Grid view</a>
     </div>
     <% if (typeof admin !== 'undefined') { %>
     <div class="row col-12">
         <p>Welcome!<br />
-          <%= user[0].nickname %><br />
-          Club:<%= user[0].app_metadata.club %><br />
-          Role:<%= user[0].app_metadata.role %>
+          <%= user.nickname %><br />
+          Club:<%= user._json["https://my-app.example.com/club"] %><br />
+          Role:<%= user._json["https://my-app.example.com/role"] %>
         </p>  
     </div>
       
@@ -113,7 +113,7 @@
                 <% } } %>
             </td>
             
-            <% if (user[0].app_metadata.club == 'All' || user[0].app_metadata.club == row['homeClubName']){ %>
+            <% if (user._json["https://my-app.example.com/club"] == 'All' || user._json["https://my-app.example.com/club"] == row['homeClubName']){ %>
               <td><a href="/fixtures/edit/<%= row['fixtureId'] %>">Enter</a></td> 
             <% } 
             else { %>
