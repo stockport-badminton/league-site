@@ -9,7 +9,7 @@
   else { %>
 <div class="row col-12">
     <h1><%= division.replace('-',' ') %></h1>
-    <a href="/results/<%= division %>">List view</a>
+    <a class="text-secondary" href="<%= path.replace('\/results-grid\/','\/results\/') %>"><i class="fa fa-bars"></i></a>
 </div>
 
 <div class="table-responsive">

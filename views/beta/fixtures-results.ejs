@@ -1,5 +1,5 @@
-<%- include('./header.ejs'); -%>
-<%- include('./nav.ejs'); -%>
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
 
 
   <% if (error) { %>
@@ -9,7 +9,8 @@
   else { %>
     <div class="row col-12">
       <h1><%= division %></h1>
-      <a href="/results-grid/<%= division.replace(' ','-') %>">Grid view</a>
+      <a class="text-secondary" href="<%= path.replace('\/results\/','\/results-grid\/') %>"><i class="fa fa-th"></i></a><br />
+      <a class="text-secondary" href="<%= path.replace('\/results\/','\/calendars\/') %>"><i class="fa fa-calendar"></i></a>
     </div>
     <% if (typeof admin !== 'undefined') { %>
     <div class="row col-12">

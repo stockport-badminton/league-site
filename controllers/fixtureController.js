@@ -6,6 +6,7 @@ var Game = require('../models/game');
 var request = require('request');
 var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
+const ICAL = require('ical.js');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -13,6 +14,13 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   token: process.env.LOGZ_SECRET,
   host: 'listener-uk.logz.io'
  });
+ let  SEASON = '';
+ if (new Date().getMonth() < 6){
+   SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+ }
+ else {
+   SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+ }
 
 
  const { body,validationResult } = require("express-validator");
@@ -374,6 +382,105 @@ exports.getScorecard = function(req, res) {
     })
 };
 
+exports.fixture_calendars = function(req,res,next){
+    // console.log(Object.entries(req.params))
+    var convertedParams = req.params[0].replace('Premier','division-7')
+      .replace('Division 1','division-8')
+      .replace('Division-1','division-8')
+      .replace('Division 2','division-9')
+      .replace('Division-2','division-9')
+      .replace('Division 3','division-10')
+      .replace('Division-3','division-10')
+      .replace(/(\/)(20\d\d20\d\d)/g,'$1season-$2')
+    const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
+    // Finding matches using regex and replacing them
+    const replacedMatches = [];
+    const replacedString = req.params[0].replace(pattern, (match, p1, p2) => {
+      let replacedMatch;
+      if (p1 === "Premier") {
+        replacedMatch = p1;
+      } else {
+        replacedMatch = `${p1.replace('-', ' ')}${p2}`;
+      }
+      replacedMatches.push(replacedMatch);
+      return replacedMatch;
+    });
+    let divisionString = "All"
+    if (replacedMatches.length > 0){
+      divisionString = replacedMatches[0]
+    }
+    // console.log(regexParams)
+    var searchArray = convertedParams.split('/')
+    let searchObj = searchArray.reduce((acc, str) => {
+      const [key, value] = str.split("-");
+      return { ...acc, [key]: value };
+    }, {});
+    // console.log(searchObj)
+    Fixture.getFixtureDetails(searchObj, function(err,result){
+      if (err){
+        next(err);
+      }
+      else{
+          /* let calendarJSON = {
+            "id":(searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:""),
+            "name":(searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:""),
+            "events":[] 
+          }*/
+          let id = (searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
+          // console.log(calendarJSON)
+          // let events = result.map(row => {return {"id":row.id, "summary":row.homeTeam + " vs " + row.awayTeam,"date":row.date,"location":row.venueName + " " + row.venueLink}})
+          // calendarJSON.events = events
+
+          const jcal = new ICAL.Component('vcalendar');
+          // jcal.addSubcomponent(new ICAL.Component('vcalendar'));
+          jcal.addPropertyWithValue('prodid', (searchObj.season != undefined ? searchObj.season:SEASON) +"/"+ (searchObj.division != undefined ? searchObj.division:"") +"/"+ (searchObj.club != undefined ? searchObj.club:"") +"/"+ (searchObj.team != undefined ? searchObj.team:""));
+          jcal.addPropertyWithValue('version', '2.0');
+          const vcalendar = jcal
+
+          // Iterate over each event and convert it to an iCalendar event
+          // console.log(calendarJSON)
+          result.forEach(row => {
+            let MyDate = new Date(row.date)
+            /* let startDate = ('0' + MyDate.getDate()).slice(-2) + '/'
+                     + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                     + MyDate.getFullYear();
+             let endDate = ('0' + MyDate.getDate()).slice(-2) + '/'
+            + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+            + MyDate.getFullYear(); */
+            let startDate = MyDate.getFullYear()+ "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + MyDate.getDate()).slice(-2) + "T00:00:00Z"
+            let endDate = MyDate.getFullYear() + "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + (MyDate.getDate()+1)).slice(-2) + "T00:00:00Z"
+
+            /* let startDate = MyDate.getFullYear()+ ('0' + (MyDate.getMonth())).slice(-2)  + ('0' + MyDate.getDate()).slice(-2)
+            let endDate = MyDate.getFullYear() + ('0' + (MyDate.getMonth())).slice(-2) + ('0' + MyDate.getDate()+1).slice(-2) */
+            const vevent = new ICAL.Component('vevent');
+            vevent.addPropertyWithValue('uid', row.id.toString());
+            vevent.addPropertyWithValue('summary', row.homeTeam + " vs " + row.awayTeam);
+            vevent.addPropertyWithValue('dtstart', startDate);
+            vevent.addPropertyWithValue('dtend', endDate);
+            vevent.addPropertyWithValue('location', row.venueName + " " + row.venueLink);
+
+            // Add other properties if needed
+
+            vcalendar.addSubcomponent(vevent);
+          });
+
+          // Convert the iCalendar object to a string
+          const icsData = jcal.toString();
+
+          // Set the response headers
+          res.setHeader('Content-Type', 'text/calendar');
+          res.setHeader('Content-Disposition', `attachment; filename=${id}.ics`);
+
+          // Send the iCalendar data as the response
+          res.send(icsData);
+          
+          // res.status(200);
+          // res.send(calendarJSON)
+
+      }
+    })
+}
+
 // Display detail page for a specific Fixture
 exports.fixture_detail_byDivision = function(req,res,next) {
     let divisionString = "";
@@ -528,6 +635,7 @@ exports.fixture_detail_byDivision = function(req,res,next) {
             jsonResult = JSON.stringify(griddedData);
           }
           let renderObject = {
+              path:req.path,
               user:req.user,
               static_path: '/static',
               pageTitle : "Fixtures & Results: "+ divisionString,
@@ -559,6 +667,7 @@ exports.fixture_detail_byDivision = function(req,res,next) {
     })
    }
 };
+
 
 // Display Fixture create form on GET
 exports.fixture_create_get = function(req, res,next) {

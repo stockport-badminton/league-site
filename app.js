@@ -926,6 +926,7 @@ const { getAllLeagueTables } = require('./models/league');
     //TODO: add calendar exports so that teams can import to calendars
     //TODO: some sort of notification for rearrangements?
     router.get('/results/*', fixture_controller.fixture_detail_byDivision);
+    router.get('/calendars/*', fixture_controller.fixture_calendars);
     router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
     /* router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
     router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
