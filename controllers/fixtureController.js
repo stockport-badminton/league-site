@@ -470,6 +470,9 @@ exports.fixture_calendars = function(req,res,next){
           // Set the response headers
           res.setHeader('Content-Type', 'text/calendar');
           res.setHeader('Content-Disposition', `attachment; filename=${id}.ics`);
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('ETag', id + new Date().toUTCString()); // Update the ETag value when the calendar data changes
+          res.setHeader('Last-Modified', new Date().toUTCString());
 
           // Send the iCalendar data as the response
           res.send(icsData);
