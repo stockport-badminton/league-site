@@ -368,7 +368,7 @@ exports.getFixtureDetails = function(searchObj, done){
   
 
   
-    db.get().query("select fixture.id, fixture.date, homeTeam.name as homeTeam, homeClub.name as homeClub, awayTeam.name as awayTeam, awayClub.name as awayClub, homeTeam.division as division, venue.address as venueName, venue.gMapUrl as venueLink, fixture.status, fixture.homeScore, fixture.awayScore from fixture join team"+season+" homeTeam on fixture.homeTeam = homeTeam.id join club"+season+" homeClub on homeTeam.club = homeClub.id join venue ON homeTeam.venue = venue.id join team"+season+" awayTeam on fixture.awayTeam = awayTeam.id join club"+season+" awayClub on awayTeam.club = awayClub.id join season on (fixture.date > season.startDate and fixture.date < season.endDate ) where season.name = ?"+whereTerms,sqlArray, function (err, result){
+    db.get().query("select fixture.id, fixture.date, homeTeam.name as homeTeam, homeClub.name as homeClub, awayTeam.name as awayTeam, awayClub.name as awayClub, homeTeam.division as division, venue.address as venueName, venue.gMapUrl as venueLink, fixture.status, fixture.homeScore, fixture.awayScore from fixture join team"+season+" homeTeam on fixture.homeTeam = homeTeam.id join club"+season+" homeClub on homeTeam.club = homeClub.id join venue ON homeTeam.venue = venue.id join team"+season+" awayTeam on fixture.awayTeam = awayTeam.id join club"+season+" awayClub on awayTeam.club = awayClub.id join season on (fixture.date > season.startDate and fixture.date < season.endDate ) where fixture.status in ('complete','outstanding') AND season.name = ?"+whereTerms,sqlArray, function (err, result){
       console.log(this.sql)
       if (err) {
         console.log(this.sql)

@@ -7,10 +7,16 @@
     <p><%= error %></p>
   <% }
   else { %>
+    <div class="col-12 alert alert-info alert-dismissible fade show" role="alert">
+      <strong>NEW!</strong> Grid View and calendar link / download. You can also create a version of this page for your team or club by adding /team-team name or /club-club name at the end of the url above. e.g /results/All/club-College Green or /resuls/All/team-GHAP A
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
     <div class="row col-12">
       <h1><%= division %></h1>
-      <a class="text-secondary" href="<%= path.replace('\/results\/','\/results-grid\/') %>"><i class="fa fa-th"></i></a><br />
-      <a class="text-secondary" href="<%= path.replace('\/results\/','\/calendars\/') %>"><i class="fa fa-calendar"></i></a>
+      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/results-grid\/') %>" data-text="Grid view"><i class="fa fa-th"></i></a><br />
+      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/calendars\/') %>" data-text="download the calendar or copy the link"><i class="fa fa-calendar"></i></a>
     </div>
     <% if (typeof admin !== 'undefined') { %>
     <div class="row col-12">
