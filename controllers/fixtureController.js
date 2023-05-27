@@ -447,16 +447,16 @@ exports.fixture_calendars = function(req,res,next){
              let endDate = ('0' + MyDate.getDate()).slice(-2) + '/'
             + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
             + MyDate.getFullYear(); */
-            let startDate = MyDate.getFullYear()+ "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + MyDate.getDate()).slice(-2) + "T00:00:00Z"
-            let endDate = MyDate.getFullYear() + "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + (MyDate.getDate()+1)).slice(-2) + "T00:00:00Z"
+            /*let startDate = MyDate.getFullYear()+ "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + MyDate.getDate()).slice(-2)
+            let endDate = MyDate.getFullYear() + "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + (MyDate.getDate()+1)).slice(-2) */
 
-            /* let startDate = MyDate.getFullYear()+ ('0' + (MyDate.getMonth())).slice(-2)  + ('0' + MyDate.getDate()).slice(-2)
-            let endDate = MyDate.getFullYear() + ('0' + (MyDate.getMonth())).slice(-2) + ('0' + MyDate.getDate()+1).slice(-2) */
+            let startDate = MyDate.getFullYear()+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + ('0' + MyDate.getDate()).slice(-2)
+            let endDate = MyDate.getFullYear() + ('0' + (MyDate.getMonth()+1)).slice(-2) + ('0' + (MyDate.getDate()+1)).slice(-2)
             const vevent = new ICAL.Component('vevent');
             vevent.addPropertyWithValue('uid', row.id.toString());
             vevent.addPropertyWithValue('summary', row.homeTeam + " vs " + row.awayTeam);
-            vevent.addPropertyWithValue('dtstart', startDate);
-            vevent.addPropertyWithValue('dtend', endDate);
+            vevent.addPropertyWithValue('dtstart;value=date', startDate);
+            vevent.addPropertyWithValue('dtend;value=date', endDate);
             vevent.addPropertyWithValue('location', row.venueName + " " + row.venueLink);
 
             // Add other properties if needed
