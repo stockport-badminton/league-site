@@ -186,8 +186,7 @@
       req.session.returnTo = req.query.returnTo; // Store the returnTo value in session
       console.log("inside login route: " + req.session.returnTo)
       passport.authenticate('auth0', {
-        scope: 'openid email profile',
-        state: req.session.returnTo // Pass the returnTo value as the state parameter
+        scope: 'openid email profile'
       })(req, res, next);
     });
 
