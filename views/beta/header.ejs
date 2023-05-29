@@ -9,7 +9,7 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      <% if(user){ %>
+      <% if (typeof user !== 'undefined') { %>
         
       gtag('config', 'G-PSC0315491',{'cookie_prefix': 'baddersCookie',
   'cookie_domain': 'stockport-badminton.co.uk',

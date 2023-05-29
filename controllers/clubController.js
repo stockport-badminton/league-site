@@ -17,6 +17,7 @@ exports.club_list = function(req, res) {
 
 // Display list of all Clubs
 exports.club_list_detail = function(req, res, next) {
+  console.log(req.session)
     Club.clubDetail(function(err,result){
       if(err){
         // console.log(result)
@@ -61,12 +62,13 @@ exports.club_detail_api = function(req, res,next) {
 };
 
 // Display detail page for a specific Club
-exports.club_detail = function(req, res,next) {
+exports.club_detail = function(req, res) {
+  console.log(req.session)
     Club.getContactDetailsById(req.params.id,function(err,clubrow){
       if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
         console.log(err)
         res.status(500);
-        next(err);
+        done(err);
       }
       else{
         logger.log("clubrow");

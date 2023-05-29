@@ -1,6 +1,9 @@
 
     var AWS = require('aws-sdk');
     var express = require('express');
+    var session = require('express-session');
+    var passport = require('passport');
+    var Auth0Strategy = require('passport-auth0');
     var router = express.Router();
     var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
@@ -14,13 +17,17 @@
     const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
+    const compression = require ('compression');
+    
     // require('dotenv').config()
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    var app = express();
+
     var logger = require('logzio-nodejs').createLogger({
       token: process.env.LOGZ_SECRET,
       host: 'listener-uk.logz.io'
     });
-    const compression = require ('compression');
+    
     
 
     if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
@@ -65,7 +72,7 @@
       region: 'eu-west-1'
      });
 
-    var app = express();
+    
     app.use(function(req, res, next) {
       var ipAddress = getClientIp(req);
     if(BLACKLIST.indexOf(ipAddress) === -1){
@@ -89,37 +96,13 @@
     var db = require('./db_connect');
     var port = process.env.PORT || 3000;
 
-    // Connect to MySQL on start
-    db.connect(function(err) {
-      if (err) {
-        console.log('Unable to connect to MySQL.')
-        process.exit(1)
-      } else {
-        var server = app.listen(port, function() {
-          console.log('Server running at http://127.0.0.1:' + port + '/');
-        })
-      }
-    })
+    
 
-    var session = require('express-session');
-    // config express-session
-    var sess = {
-      secret: 'ThisisMySecret',
-      cookie: {},
-      resave: false,
-      saveUninitialized: true
-    };
-    if (app.get('env') === 'prod') {
-      app.set('trust proxy', 1); // trust first proxy
-      sess.cookie.secure = true; // serve secure cookies, requires https
-      // console.log("session:sess");
-      // console.log(sess);
-    }  
+    
+  
 
-    app.use(session(sess));
-
-    var passport = require('passport');
-    var Auth0Strategy = require('passport-auth0');
+    
+    
 
     // Configure Passport to use Auth0
     var strategy = new Auth0Strategy(
@@ -138,8 +121,8 @@
     );
 
     passport.use(strategy);
-    app.use(passport.initialize());
-    app.use(passport.session());
+    
+    
 
     // You can use this section to keep a smaller payload
     passport.serializeUser(function (user, done) {
@@ -150,6 +133,26 @@
       done(null, user);
     });
 
+    // config express-session
+    var sess = {
+      secret: 'ThisisMySecret',
+     // cookie: {},
+      resave: false,
+      saveUninitialized: false
+    };
+    if (app.get('env') === 'prod') {
+      console.log("prod environment")
+      app.set('trust proxy', 1); // trust first proxy
+      sess.cookie.secure = true; // serve secure cookies, requires https
+      sess.proxy = true;
+      // console.log("session:sess");
+      // console.log(sess);
+    }  
+
+    
+    app.use(session(sess));
+    app.use(passport.initialize());
+    app.use(passport.session());
     
 
 
@@ -166,24 +169,90 @@
     var contact_controller = require(__dirname + '/controllers/contactusController');
     var static_controller = require(__dirname + '/controllers/staticPagesController');
     var userInViews = require(__dirname + '/models/userInViews');
-    var secured = require(__dirname + '/models/secured');
     var auth_controller = require(__dirname + '/models/auth.js');
 
-    app.use(userInViews())
+    
 
-    app.get('/login', passport.authenticate('auth0', {
+    router.use(userInViews())
+
+    /* app.get('/login', passport.authenticate('auth0', {
       scope: 'openid email profile'
     }), function (req, res) {
       // console.log("/login returnTo Value:" + req.session.returnTo);
       res.redirect(req.params.returnTo);
+    }); */
+
+    router.get('/login', function(req, res, next) {
+      req.session.returnTo = req.query.returnTo; // Store the returnTo value in session
+      console.log("inside login route: " + req.session.returnTo)
+      passport.authenticate('auth0', {
+        scope: 'openid email profile',
+        state: req.session.returnTo // Pass the returnTo value as the state parameter
+      })(req, res, next);
     });
 
-    app.get('/chooseUser',function(req,res,next){
+    // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
+    /* app.get('/callback', function (req, res, next) {
+      passport.authenticate('auth0', function (err, user, info) {
+        if (err) { return next(err); }
+        if (!user) {
+          res.render('beta/failed-login', {
+            static_path:'/static',
+            theme:process.env.THEME || 'flatly',
+            pageTitle : "Access Denied",
+            pageDescription : "Access Denied",
+            query:req.query
+          });
+        }
+        else {
+          req.logIn(user, function (err) {
+            if (err) { return next(err); }
+            const returnTo = decodeURIComponent(req.query.state || '/');
+            res.redirect(returnTo);
+            /* const returnTo = req.session.returnTo;
+            delete req.session.returnTo;
+            res.redirect(returnTo || '/');
+          });
+        }
+      })(req, res, next);
+    }); */
+
+    router.get('/callback', function(req, res, next) {
+      console.log("inside callback route: " + req.session.returnTo)
+      passport.authenticate('auth0', function(err, user, info) {
+        console.log("inside callback authenticate function: " + req.session.returnTo)
+        console.log(user)
+        console.log(info)
+        if (err) { return next(err); }
+        if (!user) {
+          console.log(user)
+          console.log(info)
+          res.render('beta/failed-login', {
+            static_path:'/static',
+            theme:process.env.THEME || 'flatly',
+            pageTitle : "Access Denied",
+            pageDescription : "Access Denied",
+            query:req.query
+          });
+        } else {
+          req.logIn(user, function (err) {
+            if (err) {console.log(err); return next(err); }
+            console.log("inside callback route: " + req.session.returnTo)
+            console.log("user inside callback route: " + user)
+            const returnTo = req.session.returnTo || '/'; // Retrieve the returnTo value from session
+            delete req.session.returnTo; // Remove the returnTo value from session
+            res.redirect(returnTo);
+          });
+        }
+      })(req, res, next);
+    });
+    /*
+    router.get('/chooseUser',function(req,res,next){
       // console.log(req.query.state)
       res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
     })
-
-    app.post('/sendgrid',function(req,res,next){
+*/
+    router.post('/sendgrid',function(req,res,next){
       // logger.log(JSON.stringify(req.body))
       // console.log(req.body)
       res.sendStatus(200)
@@ -193,7 +262,7 @@
     const canvas = createCanvas(1080, 1350)
     const ctx = canvas.getContext('2d')
 
-    app.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
+    router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
       loadImage('static/beta/images/bg/social-'+ req.params.division.replace(/([\s]{1,})/g,'-') +'.png').then((image) => {
         ctx.drawImage(image, 0,0,1080, 1350)
         ctx.font = 'bold 60px Arial'
@@ -240,7 +309,7 @@
       })
     })
 
-    app.get('/tables-social',function(req,res,next) {
+    router.get('/tables-social',function(req,res,next) {
       const canvasWidth = 1080; // Set canvas width
       const canvasHeight = 1080; // Set canvas height
       const bigCanvasWidth = 1080;
@@ -381,62 +450,21 @@
       }) 
     })
 
-    // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
-    app.get('/callback', function (req, res, next) {
-      passport.authenticate('auth0', function (err, user, info) {
-        // console.log('USER:')
-        // console.log(user)
-        // console.log('INFO:')
-        // console.log(info)
-        if (err) { return next(err); }
-        if (!user) {
-          //console.log(req);
-          res.render('beta/failed-login', {
-            static_path:'/static',
-            theme:process.env.THEME || 'flatly',
-            pageTitle : "Access Denied",
-            pageDescription : "Access Denied",
-            query:req.query
-          });
-        }
-        else {
-          req.logIn(user, function (err) {
-            // console.log("callback")
-            // console.log(req.session.returnTo)
-            // console.log(req.params.returnTo)
-            if (err) { return next(err); }
-            // console.log("callback returnTo Value:" + req.session.returnTo);
-            const returnTo = req.session.returnTo;
-            delete req.session.returnTo;
-            res.redirect(returnTo || '/');
-          });
-        }
-      })(req, res, next);
-    });
+    
 
     // Perform session logout and redirect to homepage
 
-    app.get('/logout', function(req, res, next) {
+    router.get('/logout', function(req, res, next) {
       req.logout(function(err) {
         if (err) { return next(err); }
         res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/v2/logout?clientid='+ process.env.AUTH0_CLIENTID +'&returnTo=https://'+ req.headers.host);
       });
     });
 
-    app.get('/user', secured(), async function (req, res, next) {
-        const { _raw, _json, userProfile } = req.user;
-        res.render('beta/user', {
-          userProfile: JSON.stringify(userProfile, null, 2),
-          static_path:'/static',
-          theme:process.env.THEME || 'flatly',
-          pageTitle : "User Profile",
-          pageDescription : "User Profile",
-        });
-    });
 
     //GET to return signed S3 url for uploading scorecards
     
-    app.get('/sign-s3', (req, res) => {
+    router.get('/sign-s3', (req, res) => {
       const s3 = new AWS.S3();
       const fileName = req.query['file-name'];
       const fileType = req.query['file-type'];
@@ -465,9 +493,9 @@
     
 
 
-    app.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
+    router.get('/upload-scoresheet',fixture_controller.upload_scoresheet)
 
-    app.post('/SESemail', (req,res,next) => {
+    router.post('/SESemail', (req,res,next) => {
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       
       var params = {
@@ -518,35 +546,26 @@
     const multer  = require('multer');
 const { getAllLeagueTables } = require('./models/league');
     const upload = multer();
-    app.post('/mail', upload.any(),contact_controller.distribution_list); 
-    app.post('/mailtest',contact_controller.distribution_list); 
+    router.post('/mail', upload.any(),contact_controller.distribution_list); 
+    router.post('/mailtest',contact_controller.distribution_list); 
 
     // Scorecard - Results Entry related routes
 
-    //GET to display a scorecard without the modal - not currently in use, but could be developed if there was a need for it
-    app.get('/scorecard-beta-nonmodal', secured(), fixture_controller.scorecard_nonmodal);
-
-    //GET for displaying a results entry form - may be redundant - although this one doesn't have the option to upload a photo of your scorecard
-    app.get('/scorecard-beta', secured(), fixture_controller.scorecard_beta);
-
-    //GET for displaying results entry for for users
-    app.get('/email-scorecard', secured(), fixture_controller.email_scorecard);
-    // app.get('/messer-scorecard', secured(), fixture_controller.messer_scorecard);
 
     //POST for processing results entry form - possibly redundant.
-    app.post('/scorecard-beta',fixture_controller.validateScorecard, fixture_controller.full_fixture_post);
+    router.post('/scorecard-beta',fixture_controller.validateScorecard, fixture_controller.full_fixture_post);
 
     // static page to display scorecard received messages - likely not being used
-    app.get('/scorecard-received',fixture_controller.scorecard_received);
+    router.get('/scorecard-received',fixture_controller.scorecard_received);
     
     // url for testing upload of scorecards
-    /* app.get('/scorecard-upload', fixture_controller.scorecard_upload); */
+    /* router.get('/scorecard-upload', fixture_controller.scorecard_upload); */
 
     // post for processing results from entry form and emailing admin with confirmation link and link to scorecard photo
-    app.post('/email-scorecard', fixture_controller.validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
+    router.post('/email-scorecard', fixture_controller.validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
 
     // post for processing results from excel spreadsheet
-    app.post('/submit-form', (req,res,next) => {
+    router.post('/submit-form', (req,res,next) => {
       var data = [];
       data = req.body;
       logger.log(req.body)
@@ -555,30 +574,30 @@ const { getAllLeagueTables } = require('./models/league');
 
     //GET for displaying a populated form for the admin to review and confirm
     //TODO check larger file uploads & pdfs
-    app.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
+    router.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
       logger.log(req.params)
       fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
     })
 
-    app.get('/populated-scorecard-beta/:id',(req,res,next) => {
+    router.get('/populated-scorecard-beta/:id',(req,res,next) => {
       logger.log(req.body);
       fixture_controller.fixture_populate_scorecard_fromId(req,res,next)
     })
 
 
     // Static page routes
-    app.get('/privacy-policy', static_controller.privacy_policy);
-    app.get('/messer-rules', static_controller.messer_rules);
-    app.get('/messer-draw/:section', team_controller.messer_draw);
-    app.get('/rules', static_controller.rules);
+    router.get('/privacy-policy', static_controller.privacy_policy);
+    router.get('/messer-rules', static_controller.messer_rules);
+    router.get('/messer-draw/:section', team_controller.messer_draw);
+    router.get('/rules', static_controller.rules);
     
 
     // POST to process input from Auth0 when non-authorised user attempt to use secure pages on the site and email the admin
     // TODO - prevent duplicate emails being sent when an existing user in Auth0 gets bounced out again because they're not authorised still.
 
-    app.get('/approve-user/:userId',auth_controller.grantResultsAccess);
+    router.get('/approve-user/:userId',auth_controller.grantResultsAccess);
 
-    app.post('/new-users-v2',(req,res,next) => {
+    router.post('/new-users-v2',(req,res,next) => {
       //console.log(req.body);
       //console.log("req.body.user:"+req.body.user);
       //console.log("req.body.id:"+req.body.id);
@@ -611,21 +630,10 @@ const { getAllLeagueTables } = require('./models/league');
     })
 
     /* contact us routes */
-    app.get('/contact-us', contact_controller.contactus_get);
-    app.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
+    router.get('/contact-us', contact_controller.contactus_get);
+    router.post('/contact-us',contact_controller.validateContactUs, contact_controller.contactus);
 
     /// PLAYER ROUTES ///
-
-    /* player listing / filtering routes */
-    router.get('/players/club-:club?/team-:team?/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
-    router.get('/players/club-:club?', secured(),player_controller.player_list_clubs_teams);
-    router.get('/players/team-:team?', secured(),player_controller.player_list_clubs_teams);
-    router.get('/players/gender-:gender?', secured(),player_controller.player_list_clubs_teams);
-    router.get('/players', secured(),player_controller.player_list_clubs_teams);
-    router.get('/manage/players/club-:club?', secured(),player_controller.manage_player_list_clubs_teams);
-
-    /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
-    router.get('/player/create',secured(), player_controller.player_create_get);
 
     /* POST request for creating Player. */
     router.post('/player/create', player_controller.player_create);
@@ -633,8 +641,6 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
-
-    router.post('/player/batch-update', secured(), player_controller.player_batch_update);
 
     /* GET request to delete Player. */
     router.get('/player/:id/delete', player_controller.player_delete_get);
@@ -802,16 +808,11 @@ const { getAllLeagueTables } = require('./models/league');
     router.patch('/club/:id',checkJwt, club_controller.club_update_post);
 
     /* GET request for one Club. */
-    // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
-    router.get('/club/:id',secured(), club_controller.club_detail);
-    router.get('/club-api/:id',secured(), club_controller.club_detail_api);
 
     /* GET request for list of all Club items. */
     router.get('/clubs', club_controller.club_list);
-
     /* GET request for list of all Club items. */
     router.get('/info/clubs', club_controller.club_list_detail);
-    router.get('/admin/info/clubs',secured(), club_controller.club_list_detail);
 
     /// DIVISION ROUTES ///
 
@@ -849,7 +850,7 @@ const { getAllLeagueTables } = require('./models/league');
     router.get('/fixture/create', fixture_controller.fixture_create_get);
 
     //POST for Zapier to call to daily to email reminders for scorecards
-    app.post('/fixture/reminder', fixture_controller.fixture_reminder_post);
+    router.post('/fixture/reminder', fixture_controller.fixture_reminder_post);
 
     /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
     router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
@@ -857,8 +858,6 @@ const { getAllLeagueTables } = require('./models/league');
     /* Get late scorecards (so that i can ping a daily Zap and get an email of them.) */
     router.get('/fixture/generate', fixtureGen_controller.genFixtures);
 
-    /* Get request for quick results form */
-    router.get('/fixture/short-result',secured(), fixture_controller.fixture_outstanding);
 
     /* POST request for sending the quick result to */
     router.post('/fixture/short-result', fixture_controller.fixture_outstanding_post);
@@ -933,9 +932,6 @@ const { getAllLeagueTables } = require('./models/league');
     router.get('/results-grid/:division', fixture_controller.fixture_detail_byDivision);
     router.get('/results-grid/:division/:season', fixture_controller.fixture_detail_byDivision); */
 
-    /* GET request for list of all Fixture items. */
-    router.get('/admin/results/*', secured(), fixture_controller.fixture_detail_byDivision);
-    router.get('/admin/results/:division/:season', secured(), fixture_controller.fixture_detail_byDivision);
 
     /// GAME ROUTES ///
 
@@ -995,25 +991,100 @@ const { getAllLeagueTables } = require('./models/league');
     /* GET request for list of all Venue items. */
     router.get('/venues', venue_controller.venue_list);
 
-     app.use('/',router);
 
-    // Handle 404
-     app.use(function(req, res) {
-        res.status(404);
-        res.render('beta/404-error', {
-           static_path: '/static',
-           pageTitle : "Can't find the page your looking for",
-           pageDescription : "HTTP 404 Error"
-       });
-    });
+    /***** SECURED ROUTES ******/
 
-    // Handle 500
-    app.use(function(error, req, res) {
-      res.status(500);
-      res.render('beta/500-error', {
-        static_path: '/static',
-        pageTitle : "HTTP 500 Error",
-        pageDescription : "HTTP 500 Error",
-        error:error
+    // router.use(secured)
+    function secured(req, res, next) {
+      if (req.isAuthenticated()) {
+        return next();
+      }
+      console.log("query in middleware: " + req.query.state)
+      console.log("originalUrl in middleware: " + req.originalUrl)
+      const returnTo = req.query.state || req.originalUrl;
+      req.session.returnTo = returnTo; // Store the returnTo value in session
+      console.log("returnTo in middleware: " + returnTo)
+      console.log("session.returnTo in middleware: " + req.session.returnTo)
+      res.redirect('/login?returnTo=' + encodeURIComponent(returnTo));
+    }
+
+    router.get('/admin/results/*', secured,fixture_controller.fixture_detail_byDivision);
+    router.get('/admin/results/:division/:season',  secured,fixture_controller.fixture_detail_byDivision);
+secured,
+    router.get('/user', secured,async function (req, res) {
+      const { _raw, _json, userProfile } = req.user;
+      console.log(req.user)
+      res.render('beta/user', {
+        userProfile: JSON.stringify(userProfile, null, 2),
+        static_path:'/static',
+        theme:process.env.THEME || 'flatly',
+        pageTitle : "User Profile",
+        pageDescription : "User Profile",
       });
     });
+
+    //GET to display a scorecard without the modal - not currently in use, but could be developed if there was a need for it
+    router.get('/scorecard-beta-nonmodal', secured,fixture_controller.scorecard_nonmodal);
+
+    //GET for displaying a results entry form - may be redundant - although this one doesn't have the option to upload a photo of your scorecard
+    router.get('/scorecard-beta', secured,fixture_controller.scorecard_beta);
+
+    //GET for displaying results entry for for users
+    router.get('/email-scorecard', secured,fixture_controller.email_scorecard);
+    // app.get('/messer-scorecard', fixture_controller.messer_scorecard);
+
+    /* player listing / filtering routes */
+    router.get('/players/club-:club?/team-:team?/gender-:gender?', secured,player_controller.player_list_clubs_teams);
+    router.get('/players/club-:club?', secured,player_controller.player_list_clubs_teams);
+    router.get('/players/team-:team?', secured,player_controller.player_list_clubs_teams);
+    router.get('/players/gender-:gender?', secured,player_controller.player_list_clubs_teams);
+    router.get('/players', secured,player_controller.player_list_clubs_teams);
+    router.get('/manage/players/club-:club?', secured,player_controller.manage_player_list_clubs_teams);
+
+    /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
+    router.get('/player/create', secured,player_controller.player_create_get);
+    router.post('/player/batch-update',  secured,player_controller.player_batch_update);
+    // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
+    router.get('/club/:id', secured,club_controller.club_detail);
+    router.get('/club-api/:id', secured,club_controller.club_detail_api);
+    router.get('/admin/info/clubs', secured,club_controller.club_list_detail);
+
+    /* Get request for quick results form */
+    router.get('/fixture/short-result', secured,fixture_controller.fixture_outstanding);
+    /* GET request for list of all Fixture items. */
+    
+
+    app.use(router);
+
+    // Connect to MySQL on start
+    db.connect(function(err) {
+      if (err) {
+        console.log('Unable to connect to MySQL.')
+        process.exit(1)
+      } else {
+        var server = app.listen(port, function() {
+          console.log('Server running at http://127.0.0.1:' + port + '/');
+        })
+      }
+    })
+
+     // Handle 404
+     router.use(function(req, res) {
+      res.status(404);
+      res.render('beta/404-error', {
+         static_path: '/static',
+         pageTitle : "Can't find the page your looking for",
+         pageDescription : "HTTP 404 Error"
+     });
+  });
+
+  // Handle 500
+  router.use(function(error, req, res) {
+    res.status(500);
+    res.render('beta/500-error', {
+      static_path: '/static',
+      pageTitle : "HTTP 500 Error",
+      pageDescription : "HTTP 500 Error",
+      error:error
+    });
+  });

@@ -485,7 +485,8 @@ exports.fixture_calendars = function(req,res,next){
 }
 
 // Display detail page for a specific Fixture
-exports.fixture_detail_byDivision = function(req,res,next) {
+exports.fixture_detail_byDivision = function(req,res) {
+  console.log(req.user)
     let divisionString = "";
     let searchObj = {}
     if (req.params.division !== undefined){
@@ -597,6 +598,7 @@ exports.fixture_detail_byDivision = function(req,res,next) {
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
+    console.log(req.session.user)
     if(req.path.search('admin') != -1){
       if (req.user._json["https://my-app.example.com/role"] !== undefined){
         if (req.user._json["https://my-app.example.com/role"] == "admin"){
@@ -1620,7 +1622,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
               headers:{
                 "Authorization":"Bearer "+apiKey
               },
-              url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+              url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.session.user.id+'&fields=app_metadata,nickname,email'
             }
             //console.log(options);
             request(options,function(err,response,userBody){
@@ -1662,7 +1664,7 @@ exports.messer_scorecard = function(req,res,next){
             headers:{
               "Authorization":"Bearer "+apiKey
             },
-            url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.user.id+'&fields=app_metadata,nickname,email'
+            url:'https://'+process.env.AUTH0_DOMAIN+'/api/v2/users?q=user_id:'+req.session.user.id+'&fields=app_metadata,nickname,email'
           }
           //console.log(options);
           request(options,function(err,response,userBody){
