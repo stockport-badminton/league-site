@@ -24,7 +24,11 @@
         </tr>
       </thead>
       <tbody>
-    <% result.forEach(function(row){ %>
+    <% result.forEach(function(row){ 
+      if (row['clubId'] != 63) { %>
+
+      
+
       <tr>
         <% if (row['clubWebsite'] != ''){ %>
           <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
@@ -54,7 +58,9 @@
           <% }
           %>
       </tr>
-    <% }) %>
+    <% 
+     }
+      }) %>
       </tbody>
     </table>
     </div>
