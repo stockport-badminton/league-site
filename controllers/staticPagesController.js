@@ -1,3 +1,11 @@
+var SEASON = '';
+    if (new Date().getMonth() < 6){
+      SEASON = '' + new Date().getFullYear()-1 +'/'+ new Date().getFullYear();
+    }
+    else {
+      SEASON = '' + new Date().getFullYear() +'/'+ (new Date().getFullYear()+1);
+    }
+
 exports.privacy_policy = function(req, res) {
     res.render('beta/privacy', {
         static_path: '/static',
@@ -20,6 +28,7 @@ exports.messer_rules = function(req, res) {
 
 exports.rules = function(req, res) {
     res.render('beta/rules', {
+        season:SEASON,
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
