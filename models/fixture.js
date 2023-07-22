@@ -330,7 +330,7 @@ exports.getFixtureDetails = function(searchObj, done){
       return false
     }
     else {
-      if (firstYear < 2012 || firstYear > 2021){
+      if (firstYear < 2012 || season == SEASON){
         return false
       }
       else return true
