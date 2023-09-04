@@ -245,13 +245,16 @@
       }) */
 
       $('#fixtureRearange').click(function(){
-        
-               console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
-               $('#rearrangementModal > .formMessage').show();
-               $('#rearrangementForm > label').hide()
-               $('#rearrangementForm > #date').hide()
-               $('#emailHelp').hide()
-               $('#fixtureRearange').hide();
+        $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
+          console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
+          $('#rearrangementModal > .formMessage').show();
+          $('#rearrangementForm > label').hide()
+          $('#rearrangementForm > #date').hide()
+          $('#emailHelp').hide()
+          $('#fixtureRearange').hide();
+      });
+               
+               
       })
 
       $('#remindFixture').click(function(){
