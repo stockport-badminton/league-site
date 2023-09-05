@@ -157,14 +157,14 @@ function handleDragLeave(e) {
 }
 
 function handlePlayerRemove(e) {
-  e.target.parentNode.parentNode.removeChild(e.target.parentNode);
-  alert(e.target.parentNode.textContent+" ("+ e.target.parentNode.attributes['data-id'].nodeValue +") removed");
+  e.target.parentNode.parentNode.parentNode.removeChild(e.target.parentNode.parentNode);
+  alert(e.target.parentNode.parentNode.childNodes[0].nodeValue+" ("+ e.target.parentNode.parentNode.attributes['data-id'].nodeValue +") removed");
   var batchObj = {
     "tablename":"player",
     "fields":[
         "id","club","team","rank"
     ],
-    "data":[[parseInt(e.target.parentNode.attributes['data-id'].nodeValue),63,52,99]]
+    "data":[[parseInt(e.target.parentNode.parentNode.attributes['data-id'].nodeValue),63,52,99]]
   }
   console.log(batchObj);
   fetch('/player/batch-update', {
@@ -274,8 +274,14 @@ items.forEach(function(item) {
   item.addEventListener('dragstart', handleDragStart);
   item.addEventListener('dragover', handleDragOver);
   item.addEventListener('dragend', handleDragEnd);
-  // item.children[0].addEventListener('click',handlePlayerRemove);
+  
 });
+let removeButtons = document.querySelectorAll('div.player-box > div.dropdown-menu > button:nth-child(1)')
+removeButtons.forEach(function(removePlayer){
+  removePlayer.addEventListener('click',handlePlayerRemove)
+})
+
+// item.children[0].addEventListener('click',handlePlayerRemove);
 let mensTeamTargets = document.querySelectorAll('.nominated-container > div > div.men');
 let ladiesTeamTargets = document.querySelectorAll('.nominated-container > div > div.ladies');
 let mensReserveTargets = document.querySelectorAll('.reserves-container > div > div.men');
