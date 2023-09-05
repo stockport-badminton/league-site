@@ -113,7 +113,7 @@
           <% } %>
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
-            <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged') { %>
+            <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged' || row['status'] === 'rearranging') { %>
                   <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['fixtureId'] %>">Rearrange</a> 
                   <% if(resultValue === 'Awaiting Result'){ %>
                   <br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
