@@ -18,6 +18,8 @@
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
     const compression = require ('compression');
+    // const { v4: uuidv4 } = require('uuid');
+
     
     // require('dotenv').config()
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -96,14 +98,6 @@
     var db = require('./db_connect');
     var port = process.env.PORT || 3000;
 
-    
-
-    
-  
-
-    
-    
-
     // Configure Passport to use Auth0
     var strategy = new Auth0Strategy(
       {
@@ -136,7 +130,7 @@
     // config express-session
     var sess = {
       secret: 'ThisisMySecret',
-     // cookie: {},
+      // cookie: {},
       resave: false,
       saveUninitialized: false
     };
@@ -185,8 +179,10 @@
     router.get('/login', function(req, res, next) {
       req.session.returnTo = req.query.returnTo; // Store the returnTo value in session
       console.log("inside login route: " + req.session.returnTo)
+      // const state = uuidv4(); 
       passport.authenticate('auth0', {
         scope: 'openid email profile'
+  //      state: state // Pass the returnTo value as the state parameter
       })(req, res, next);
     });
 
@@ -220,6 +216,7 @@
       console.log("inside callback route: " + req.session.returnTo)
       passport.authenticate('auth0', function(err, user, info) {
         console.log("inside callback authenticate function: " + req.session.returnTo)
+        // req.session.cookie.path = req.session.returnTo
         console.log(user)
         console.log(info)
         if (err) { return next(err); }
@@ -236,6 +233,7 @@
         } else {
           req.logIn(user, function (err) {
             if (err) {console.log(err); return next(err); }
+            // console.log(req.session)
             console.log("inside callback route: " + req.session.returnTo)
             console.log("user inside callback route: " + user)
             const returnTo = req.session.returnTo || '/'; // Retrieve the returnTo value from session
@@ -661,42 +659,10 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* player stats routes and filters. */
 
-    router.get('/player-stats/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/game-:gameType?/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/club-:club?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/club-:club?/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/club-:club?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/club-:club?', player_controller.all_player_stats);
-    router.get('/player-stats/team-:team?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/team-:team?/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/team-:team?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/team-:team?', player_controller.all_player_stats);
-    router.get('/player-stats/season-:season?/division-:divisionId?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/season-:season?/division-:divisionId?', player_controller.all_player_stats);
-    router.get('/player-stats/season-:season?/game-:gameType?', player_controller.all_player_stats);
-    router.get('/player-stats/season-:season?', player_controller.all_player_stats);
-    router.get('/player-stats/season-:season?/gender-:gender?', player_controller.all_player_stats);
-    router.get('/player-stats/gender-:gender?', player_controller.all_player_stats);
+    router.get('/player-stats/*', player_controller.all_player_stats);
+    router.get('/player-stats', player_controller.all_player_stats);
 
-    router.get('/pair-stats/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/game-:gameType?/division-:divisionId?', player_controller.all_pair_stats);
-    router.get('/pair-stats/division-:divisionId?', player_controller.all_pair_stats);
-    router.get('/pair-stats/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/club-:club?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/club-:club?/division-:divisionId?', player_controller.all_pair_stats);
-    router.get('/pair-stats/club-:club?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/club-:club?', player_controller.all_pair_stats);
-    router.get('/pair-stats/team-:team?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/team-:team?/division-:divisionId?', player_controller.all_pair_stats);
-    router.get('/pair-stats/team-:team?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/team-:team?', player_controller.all_pair_stats);
-    router.get('/pair-stats/:season?/division-:divisionId?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/:season?/division-:divisionId?', player_controller.all_pair_stats);
-    router.get('/pair-stats/:season?/game-:gameType?', player_controller.all_pair_stats);
-    router.get('/pair-stats/:season?', player_controller.all_pair_stats);
-
+    router.get('/pair-stats/*', player_controller.all_pair_stats);
     router.get('/pair-stats', player_controller.all_pair_stats);
 
     /* GET request for one Player. */

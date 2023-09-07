@@ -242,12 +242,13 @@ exports.player_detail = function(req, res) {
   })
 };
 
-exports.all_player_stats = function (req, res,next){
+exports.old_all_player_stats = function (req, res,next){
   Player.getPlayerStats(req.params,function(err,result){
     if (err){
       return next(err)
     }
     else {
+      console.log(req.params);
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -260,8 +261,148 @@ exports.all_player_stats = function (req, res,next){
   })
 }
 
-exports.all_pair_stats = function (req, res,next){
+exports.all_player_stats = function (req, res,next){
+  // console.log(Object.entries(req.params))
+  var convertedParams = req.params[0].replace('Premier','division-7')
+  .replace('Division 1','division-8')
+  .replace('Division-1','division-8')
+  .replace('Division 2','division-9')
+  .replace('Division-2','division-9')
+  .replace('Division 3','division-10')
+  .replace('Division-3','division-10')
+  .replace(/(\/)(20\d\d20\d\d)/g,'$1season-$2')
+  .replace(/(20\d\d20\d\d)/g,'season-$1')
+  const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
+  // Finding matches using regex and replacing them
+  const replacedMatches = [];
+  const replacedString = req.params[0].replace(pattern, (match, p1, p2) => {
+    let replacedMatch;
+    if (p1 === "Premier") {
+      replacedMatch = p1;
+    } else {
+      replacedMatch = `${p1.replace('-', ' ')}${p2}`;
+    }
+    replacedMatches.push(replacedMatch);
+    return replacedMatch;
+  });
+  let divisionString = "All"
+  if (replacedMatches.length > 0){
+    divisionString = replacedMatches[0]
+  }
+
+
+
+  // console.log(regexParams)
+  var searchArray = convertedParams.split('/')
+  let searchObj = searchArray.reduce((acc, str) => {
+    const [key, value] = str.split("-");
+    return { ...acc, [key]: value };
+  }, {});
+  // console.log(req.session.user)
+  if (typeof req.session.user != 'undefined'){
+    if (req.user._json["https://my-app.example.com/role"] !== undefined){
+      if (req.user._json["https://my-app.example.com/role"] == "admin"){
+        if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined){
+        searchObj.club = req.user._json["https://my-app.example.com/club"]
+        }
+      }
+    }
+  }
+  console.log(searchObj)
+  Player.newGetPlayerStats(searchObj,function(err,result){
+    if (err){
+      return next(err)
+    }
+    else {
+      console.log(req.params);
+      res.render('beta/player-stats', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Player Stats",
+           pageDescription : "Geek out on Stockport League Player stats!",
+           result : result
+       });
+    }
+  })
+}
+
+exports.old_all_pair_stats = function (req, res,next){
   Player.getPairStats(req.params,function(err,result){
+    if (err){
+      return next(err)
+    }
+    else {
+      res.render('beta/pair-stats', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Pair Stats",
+           pageDescription : "Geek out on Stockport League Player stats!",
+           result : result
+       });
+    }
+  })
+}
+
+exports.all_pair_stats = function (req, res,next){
+  // console.log(Object.entries(req.params))
+  const replacedMatches = [];
+  const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
+  if (typeof req.params !=  'undefined' && req.params.length == 0) {
+    var convertedParams = req.params[0].replace('Premier','division-7')
+    .replace('Division 1','division-8')
+    .replace('Division-1','division-8')
+    .replace('Division 2','division-9')
+    .replace('Division-2','division-9')
+    .replace('Division 3','division-10')
+    .replace('Division-3','division-10')
+    // .replace(/(\/)(20\d\d20\d\d)/g,'$1season-$2')
+    .replace(/(20\d\d20\d\d)/g,'season-$1')
+    
+    // Finding matches using regex and replacing them
+    
+    const replacedString = req.params[0].replace(pattern, (match, p1, p2) => {
+      let replacedMatch;
+      if (p1 === "Premier") {
+        replacedMatch = p1;
+      } else {
+        replacedMatch = `${p1.replace('-', ' ')}${p2}`;
+      }
+      replacedMatches.push(replacedMatch);
+      return replacedMatch;
+    });
+    // console.log(regexParams)
+    var searchArray = convertedParams.split('/')
+    let searchObj = searchArray.reduce((acc, str) => {
+      const [key, value] = str.split("-");
+      return { ...acc, [key]: value };
+    }, {});
+    // console.log(req.session.user)
+    if (typeof req.session.user != 'undefined'){
+      if (req.user._json["https://my-app.example.com/role"] !== undefined){
+        if (req.user._json["https://my-app.example.com/role"] == "admin"){
+          if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined){
+          searchObj.club = req.user._json["https://my-app.example.com/club"]
+          }
+        }
+      }
+    }
+    
+  }
+  else {
+    searchObj = {}
+  }
+  let divisionString = "All"
+  if (replacedMatches.length > 0){
+    divisionString = replacedMatches[0]
+  }
+
+
+
+  
+  console.log(searchObj)
+  Player.newGetPairStats(searchObj,function(err,result){
     if (err){
       return next(err)
     }
