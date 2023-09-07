@@ -349,7 +349,9 @@ exports.all_pair_stats = function (req, res,next){
   // console.log(Object.entries(req.params))
   const replacedMatches = [];
   const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
-  if (typeof req.params !=  'undefined' && req.params.length == 0) {
+  let searchObj = {}
+  //console.log(req.params)
+  if (typeof req.params !=  'undefined') {
     var convertedParams = req.params[0].replace('Premier','division-7')
     .replace('Division 1','division-8')
     .replace('Division-1','division-8')
@@ -374,10 +376,12 @@ exports.all_pair_stats = function (req, res,next){
     });
     // console.log(regexParams)
     var searchArray = convertedParams.split('/')
-    let searchObj = searchArray.reduce((acc, str) => {
+    // console.log(searchArray)
+    searchObj = searchArray.reduce((acc, str) => {
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
+    // console.log(searchObj)
     // console.log(req.session.user)
     if (typeof req.session.user != 'undefined'){
       if (req.user._json["https://my-app.example.com/role"] !== undefined){
@@ -401,7 +405,7 @@ exports.all_pair_stats = function (req, res,next){
 
 
   
-  console.log(searchObj)
+  // console.log(searchObj)
   Player.newGetPairStats(searchObj,function(err,result){
     if (err){
       return next(err)
