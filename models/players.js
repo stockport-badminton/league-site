@@ -337,9 +337,9 @@ exports.newGetPlayerStats = function(searchObj,done){
     }
   }
 
-  if (!searchObj.season){
-    console.log("no season");
+  if (searchObj.season === undefined || !checkSeason(searchObj.season)){
     seasonVal = seasonString
+    console.log("no season");
   }
   else {
     season = searchObj.season;
@@ -531,9 +531,9 @@ exports.newGetPairStats = function(searchObj,done){
     }
   }
 
-  if (!searchObj.season){
-    console.log("no season");
+  if (searchObj.season === undefined || !checkSeason(searchObj.season)){
     seasonVal = seasonString
+    console.log("no season");
   }
   else {
     season = searchObj.season;
