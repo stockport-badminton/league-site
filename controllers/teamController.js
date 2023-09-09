@@ -105,13 +105,13 @@ exports.messer_draw = function(req, res) {
       console.log(rows.length);
       var totalRounds = Math.ceil(Math.log(rows.length)/Math.log(2))
       console.log(JSON.stringify(rows));
-      res.render('beta/messer-draw', {
+      res.render('beta/messer-draw-'+req.params.section, {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
         teams: rows,
-        pageTitle : "Messer Tropy Rules",
-        pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
+        pageTitle : "Messer Tropy Draws and results",
+        pageDescription : "Messer Trophy Draws and results"
       });
     }
   })
