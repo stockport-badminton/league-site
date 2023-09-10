@@ -183,6 +183,10 @@
             })
             .then((data) => {
               console.log('Success:', data);
+              var searchButton = document.getElementById("searchPlayer")
+              var newAddButton = searchButton.previousSibling
+              newAddButton.style = "display:none";
+              searchButton.style = "display:auto";
             })
             .catch((error) => {
               console.error('Error:', error);
