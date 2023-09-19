@@ -102,7 +102,7 @@
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
             <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
             <% if (typeof admin !== 'undefined') { %>
-            <td><a href="/scorecard/fixture/<%= row['fixtureId'] %>">Details</a></td>
+            <td><a href="/scorecard/fixture/<%= row['id'] %>">Details</a></td>
             <% } %>
           <% }
           else { %>
