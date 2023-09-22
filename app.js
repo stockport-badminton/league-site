@@ -329,9 +329,9 @@
               return {
                 divisionName:obj.divisionName,
                 name: obj.name,
-                points: obj.pointsFor,
+                points: (obj.pointsFor === null ? 0 : obj.pointsFor ),
                 played: obj.played,
-                pointsAgainst: obj.pointsAgainst,
+                pointsAgainst:(obj.pointsAgainst === null ? 0 : obj.pointsAgainst ),
               };
             })
             divObject[divArray[0].divisionName] = divArray
@@ -417,8 +417,8 @@
                 ctx.fillText(value[i].pointsAgainst, posX, posY);
                 bigCtx.fillText(value[i].pointsAgainst, posX, posY+mergedPosY);
                 posX += numberSpace
-                ctx.fillText(avg, posX, posY);
-                bigCtx.fillText(avg, posX, posY+mergedPosY);
+                ctx.fillText((avg >= 0 ? avg:0), posX, posY);
+                bigCtx.fillText((avg >= 0 ? avg:0), posX, posY+mergedPosY);
                 posY += 90;
               };
 
