@@ -20,7 +20,7 @@
     const compression = require ('compression');
     // const { v4: uuidv4 } = require('uuid');
 
-    
+    let currentURL = ""
     // require('dotenv').config()
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     var app = express();
@@ -130,7 +130,7 @@
     // config express-session
     var sess = {
       secret: 'ThisisMySecret',
-      // cookie: {},
+      cookie: {},
       resave: false,
       saveUninitialized: false
     };
@@ -179,6 +179,7 @@
     router.get('/login', function(req, res, next) {
       req.session.returnTo = req.query.returnTo; // Store the returnTo value in session
       console.log("inside login route: " + req.session.returnTo)
+      // session.cookie = req.session.returnTo
       // const state = uuidv4(); 
       passport.authenticate('auth0', {
         scope: 'openid email profile'
@@ -213,9 +214,11 @@
     }); */
 
     router.get('/callback', function(req, res, next) {
-      console.log("inside callback route: " + req.session.returnTo)
+      console.log("inside callback route: " + req.session.cookie.returnTo)
+      console.log(currentURL)
       passport.authenticate('auth0', function(err, user, info) {
-        console.log("inside callback authenticate function: " + req.session.returnTo)
+        console.log("inside callback authenticate function: " + req.session.cookie.returnTo)
+        console.log(currentURL)
         // req.session.cookie.path = req.session.returnTo
         console.log(user)
         console.log(info)
@@ -238,7 +241,7 @@
             console.log("user inside callback route: " + user)
             const returnTo = req.session.returnTo || '/'; // Retrieve the returnTo value from session
             delete req.session.returnTo; // Remove the returnTo value from session
-            res.redirect(returnTo);
+            res.redirect(currentURL);
           });
         }
       })(req, res, next);
@@ -964,6 +967,7 @@ const { getAllLeagueTables } = require('./models/league');
       if (req.isAuthenticated()) {
         return next();
       }
+      currentURL = req.originalUrl
       console.log("query in middleware: " + req.query.state)
       console.log("originalUrl in middleware: " + req.originalUrl)
       const returnTo = req.query.state || req.originalUrl;
