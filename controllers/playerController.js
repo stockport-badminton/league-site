@@ -9,6 +9,8 @@ var request = require('request');
 var Auth = require('../models/auth.js');
 const { read } = require('fs');
 const { validationResult } = require('express-validator');
+const docx = require("docx");
+const fs = require("fs")
 
 
 function logger(data) {
@@ -90,7 +92,7 @@ exports.player_list_clubs_teams = function(req, res) {
 };
 
 exports.find_closest_matched_player = function(req, res) {
-  console.log("received request")
+// console.log("received request")
   var searchTerms = {
     "name":req.params.name,
     "gender":req.params.gender
@@ -178,16 +180,118 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                 return next("no club by that name");
               }
               else {
+                
                 var manageTeamObject = {}
                 manageTeamObject.teams = [];
                 var teamNames = jp.query(rows,"$..teamName").filter((v,i,a)=>a.indexOf(v)==i)
                 var teamIds = jp.query(rows,"$..teamId").filter((v,i,a)=>a.indexOf(v)==i)
+                const table = new docx.Table({
+                  rows:[
+                    new docx.TableRow({
+                      children: [
+                          new docx.TableCell({
+                              children: [new docx.Paragraph({
+                                text: teamNames[0].substring(0,teamNames[0].length-2) + " Registrations",
+                                style:"docHeading"
+                            })],
+                              columnSpan:4
+                          })
+                      ]
+                  })
+                  ],
+                  margins: {
+                    top: docx.convertInchesToTwip(0.05),
+                    bottom: docx.convertInchesToTwip(0.05),
+                    right: docx.convertInchesToTwip(0.1),
+                    left: docx.convertInchesToTwip(0.1),
+                  },
+                  width:{
+                    size:100,
+                    type:docx.percentage
+                  }});
                 // console.log(teamNames);
                 for(let i=0; i < teamNames.length; i++) {
+                  table.addChildElement(new docx.TableRow({
+                    children: [
+                        new docx.TableCell({
+                            children: [new docx.Paragraph({
+                              text: teamNames[i],
+                              style:"teamHeading"
+                          })],
+                            columnSpan:4
+                        })
+                    ],
+                  }))
+                  table.addChildElement(new docx.TableRow({
+                    children: [
+                        new docx.TableCell({
+                            children: [new docx.Paragraph({
+                              text: "Men",
+                              style:"gender"
+                          })],
+                            columnSpan:2
+                        }),
+                        new docx.TableCell({
+                            children: [new docx.Paragraph({
+                              text: "Ladies",
+                              style:"gender"
+                          })],
+                            columnSpan:2
+                        }),
+                    ],
+                  }))
+                
                   var nomMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Male')]")
                   var nomLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank != 99 && @.gender == 'Female')]")
                   var resMen = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Male')]")
                   var resLadies = jp.query(rows,"$..[?(@.teamName=='"+teamNames[i]+"' && @.rank == 99 && @.gender == 'Female')]")
+                  let longest = Math.max(nomMen.length + resMen.length,nomLadies.length + resLadies.length);
+                  // console.log(nomMen.length + ": " + resMen.length + ": " + nomLadies.length + ": " + resLadies.length + ": " + longest)
+                  for(let j=1; j <= longest; j++){
+                    var manName = (j > (nomMen.length + resMen.length) ? "" : (j > nomMen.length ? resMen[j - nomMen.length-1].name : nomMen[j-1].name))
+                    var menTeamName = teamNames[i].substring(teamNames[i].length - 1)
+                    var ladiesTeamName = menTeamName
+                    if (j > nomMen.length){
+                      menTeamName = "R"
+                    }
+                    if (j > nomLadies.length){
+                      ladiesTeamName = "R"
+                    }
+                    var ladyName = (j > (nomLadies.length + resLadies.length) ? "" : (j > nomLadies.length ? resLadies[j - nomLadies.length - 1].name : nomLadies[j-1].name))
+                    table.addChildElement(new docx.TableRow({
+                      children: [
+                          new docx.TableCell({
+                              children: [new docx.Paragraph(manName)],
+                              width:{
+                                size:40,
+                                type:docx.PERCENTAGE
+                              }
+                          }),
+                          new docx.TableCell({
+                              children: [new docx.Paragraph(menTeamName)],
+                              width:{
+                                size:10,
+                                type:docx.PERCENTAGE
+                              }
+                          }),
+                          new docx.TableCell({
+                              children: [new docx.Paragraph(ladyName)],
+                              width:{
+                                size:40,
+                                type:docx.PERCENTAGE
+                              }
+                          }),
+                          new docx.TableCell({
+                              children: [new docx.Paragraph(ladiesTeamName)],
+                              width:{
+                                size:10,
+                                type:docx.PERCENTAGE
+                              }
+                          }),
+                      ],
+                  }))
+                  }
+
                   var teamObject = {
                     name:teamNames[i],
                     id:teamIds[i],
@@ -200,9 +304,53 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                       ladies:resLadies
                     }
                   }
+
                   manageTeamObject.teams.push(teamObject);
   
                 }
+                const doc = new docx.Document({
+                  title: "Title",
+                  sections: [
+                      {
+                          children: [table],
+                      },
+                  ],
+                  styles:{
+                    paragraphStyles:[{
+                      name:'Normal',
+                      run:{
+                        font:"Arial"
+                      }
+                    },
+                    {
+                      name:'docHeading',
+                      basedOn:"Normal",
+                      run:{
+                        bold:true,
+                        size:30
+                      }
+                    },
+                    {
+                      name:'teamHeading',
+                      basedOn:"Normal",
+                      run:{
+                        bold:true,
+                        size:24
+                      }
+                    },
+                    {
+                      name:'gender',
+                      basedOn:"Normal",
+                      run:{
+                        bold:true
+                      }
+                    }]
+                  }
+                });
+                
+                docx.Packer.toBuffer(doc).then((buffer) => {
+                    fs.writeFileSync('static/beta/docs/'+teamNames[0].substring(0,teamNames[0].length-2)+'.docx', buffer);
+                });
                 // console.log(JSON.stringify(manageTeamObject));
                 res.render('beta/team-admin', {
                     static_path: '/static',
@@ -248,7 +396,7 @@ exports.old_all_player_stats = function (req, res,next){
       return next(err)
     }
     else {
-      console.log(req.params);
+// console.log(req.params);
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -307,7 +455,7 @@ exports.all_player_stats = function (req, res,next){
         }
       }
     }
-    console.log(searchObj)
+// console.log(searchObj)
   }
   else {
     searchObj = {}
@@ -324,7 +472,7 @@ exports.all_player_stats = function (req, res,next){
       return next(err)
     }
     else {
-      console.log(req.params);
+// console.log(req.params);
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -454,7 +602,7 @@ exports.player_create_from_team = function(req,res){
       res.send(err);
     }
     else {
-      console.log(row.insertId)
+// console.log(row.insertId)
       res.send(row)
     }
   })
@@ -547,7 +695,7 @@ exports.player_batch_create = function(req, res){
   Player.createBatch(req.body,function(err,result){
     if(err){
       res.send(err);
-      console.log(err);
+// console.log(err);
     }
     else{
       // console.log(result)
@@ -560,7 +708,7 @@ exports.player_batch_update = function(req, res){
   Player.updateBulk(req.body,function(err,result){
     if(err){
       res.send(err);
-      console.log(err);
+// console.log(err);
     }
     else{
       // console.log(result)

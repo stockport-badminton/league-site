@@ -135,7 +135,7 @@
       saveUninitialized: false
     };
     if (app.get('env') === 'prod') {
-      console.log("prod environment")
+// console.log("prod environment")
       app.set('trust proxy', 1); // trust first proxy
       sess.cookie.secure = true; // serve secure cookies, requires https
       sess.proxy = true;
@@ -169,63 +169,20 @@
 
     router.use(userInViews())
 
-    /* app.get('/login', passport.authenticate('auth0', {
-      scope: 'openid email profile'
-    }), function (req, res) {
-      // console.log("/login returnTo Value:" + req.session.returnTo);
-      res.redirect(req.params.returnTo);
-    }); */
-
     router.get('/login', function(req, res, next) {
-      req.session.returnTo = req.query.returnTo; // Store the returnTo value in session
-      console.log("inside login route: " + req.session.returnTo)
-      // session.cookie = req.session.returnTo
-      // const state = uuidv4(); 
       passport.authenticate('auth0', {
         scope: 'openid email profile'
-  //      state: state // Pass the returnTo value as the state parameter
       })(req, res, next);
     });
 
-    // Perform the final stage of authentication and redirect to previously requested URL or homepage ('/')
-    /* app.get('/callback', function (req, res, next) {
-      passport.authenticate('auth0', function (err, user, info) {
-        if (err) { return next(err); }
-        if (!user) {
-          res.render('beta/failed-login', {
-            static_path:'/static',
-            theme:process.env.THEME || 'flatly',
-            pageTitle : "Access Denied",
-            pageDescription : "Access Denied",
-            query:req.query
-          });
-        }
-        else {
-          req.logIn(user, function (err) {
-            if (err) { return next(err); }
-            const returnTo = decodeURIComponent(req.query.state || '/');
-            res.redirect(returnTo);
-            /* const returnTo = req.session.returnTo;
-            delete req.session.returnTo;
-            res.redirect(returnTo || '/');
-          });
-        }
-      })(req, res, next);
-    }); */
-
     router.get('/callback', function(req, res, next) {
-      console.log("inside callback route: " + req.session.cookie.returnTo)
-      console.log(currentURL)
       passport.authenticate('auth0', function(err, user, info) {
-        console.log("inside callback authenticate function: " + req.session.cookie.returnTo)
-        console.log(currentURL)
-        // req.session.cookie.path = req.session.returnTo
-        console.log(user)
-        console.log(info)
+// console.log(user)
+// console.log(info)
         if (err) { return next(err); }
         if (!user) {
-          console.log(user)
-          console.log(info)
+// console.log(user)
+// console.log(info)
           res.render('beta/failed-login', {
             static_path:'/static',
             theme:process.env.THEME || 'flatly',
@@ -236,9 +193,6 @@
         } else {
           req.logIn(user, function (err) {
             if (err) {console.log(err); return next(err); }
-            // console.log(req.session)
-            console.log("inside callback route: " + req.session.returnTo)
-            console.log("user inside callback route: " + user)
             const returnTo = req.session.returnTo || '/'; // Retrieve the returnTo value from session
             delete req.session.returnTo; // Remove the returnTo value from session
             res.redirect(currentURL);
@@ -246,15 +200,8 @@
         }
       })(req, res, next);
     });
-    /*
-    router.get('/chooseUser',function(req,res,next){
-      // console.log(req.query.state)
-      res.redirect('https://'+ process.env.AUTH0_DOMAIN + '/continue?state='+req.query.state);
-    })
-*/
+    
     router.post('/sendgrid',function(req,res,next){
-      // logger.log(JSON.stringify(req.body))
-      // console.log(req.body)
       res.sendStatus(200)
     })
 
@@ -624,7 +571,7 @@ const { getAllLeagueTables } = require('./models/league');
       }
       else{
         res.sendStatus(200);
-        console.log('userid undefined');
+// console.log('userid undefined');
       }
       
     })
@@ -968,12 +915,12 @@ const { getAllLeagueTables } = require('./models/league');
         return next();
       }
       currentURL = req.originalUrl
-      console.log("query in middleware: " + req.query.state)
-      console.log("originalUrl in middleware: " + req.originalUrl)
+// console.log("query in middleware: " + req.query.state)
+// console.log("originalUrl in middleware: " + req.originalUrl)
       const returnTo = req.query.state || req.originalUrl;
       req.session.returnTo = returnTo; // Store the returnTo value in session
-      console.log("returnTo in middleware: " + returnTo)
-      console.log("session.returnTo in middleware: " + req.session.returnTo)
+// console.log("returnTo in middleware: " + returnTo)
+// console.log("session.returnTo in middleware: " + req.session.returnTo)
       res.redirect('/login?returnTo=' + encodeURIComponent(returnTo));
     }
 
@@ -982,7 +929,7 @@ const { getAllLeagueTables } = require('./models/league');
 secured,
     router.get('/user', secured,async function (req, res) {
       const { _raw, _json, userProfile } = req.user;
-      console.log(req.user)
+// console.log(req.user)
       res.render('beta/user', {
         userProfile: JSON.stringify(userProfile, null, 2),
         static_path:'/static',

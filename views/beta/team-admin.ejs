@@ -9,6 +9,8 @@
   else { 
     %> 
     <h1>Registered Players</h1>
+    
+    <a href="/static/beta/docs/<%= result.teams[0].name.substring(0,result.teams[0].name.length - 2) %>.docx">Download</a>
     <div class="container row">
     <% result.teams.forEach(function(team){ %>
         <div class="team-container border border-secondary rounded col p-3">
@@ -146,7 +148,7 @@ function handleDragEnter(e) {
   counter++;
   this.classList.add('shadow');
   
-  console.log(e.target);
+// console.log(e.target);
 }
 
 function handleDragLeave(e) {
@@ -166,7 +168,7 @@ function handlePlayerRemove(e) {
     ],
     "data":[[parseInt(e.target.parentNode.parentNode.attributes['data-id'].nodeValue),63,52,99]]
   }
-  console.log(batchObj);
+// console.log(batchObj);
   fetch('/player/batch-update', {
     method: 'POST', // or 'PUT'
     headers: {
@@ -176,7 +178,7 @@ function handlePlayerRemove(e) {
   })
   .then((response) => response.json())
   .then((data) => {
-    console.log('Success:', data);
+// console.log('Success:', data);
   })
   .catch((error) => {
     console.error('Error:', error);
@@ -317,6 +319,11 @@ ladiesReserveTargets.forEach(function(team) {
 });
 
 </script>
+
+<script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
+
+
 
 </body>
 </html>
