@@ -55,8 +55,6 @@
         var status = ""
         var MyDate = new Date(row['date']);
         var NowDate = Date.now();
-        var tournamentDate = new Date("2023-11-11 00:00:00")
-        var tournament2Date = new Date("2023-11-18 00:00:00")
         if ((MyDate < NowDate) && (row['homeScore'] == null) && (row['status'] != 'void')) {
           rowClass = 'table-danger'
           var resultValue = 'Awaiting Result';
@@ -76,6 +74,12 @@
         var status = ""
        }
        %>
+
+       <% if (row['homeTeam'].indexOf('Tournament') > -1 ){
+         var rowClass = 'table-danger';
+         var status = ""
+        }
+        %>
        <% if (row['status'] == 'rearranged'){
         var rowClass = 'table-warning';
         var resultValue = 'Rearranged';
@@ -97,28 +101,6 @@
         }
         %>
 
-        <% if ((MyDate - tournamentDate) <= 1 && !tournamentReminder ){
-          tournamentReminder = true
-           %>
-          <tr class="table-danger">
-            <td>11/11/2023</td>
-            <td>Open Tournament</td>
-            <td>@ Seal Road</td>
-            <td></td>
-          </tr>    
-        <% }
-         %>
-         <% if ((MyDate - tournament2Date) <= 1 && !tournament2Reminder ){
-          tournament2Reminder = true
-           %>
-          <tr class="table-danger">
-            <td>18/11/2023</td>
-            <td>Open Tournament</td>
-            <td>@ Seal Road</td>
-            <td></td>
-          </tr>    
-        <% }
-         %>
       <tr class="<%= rowClass %>">
 
           <td><%= MyDateString %></td>
