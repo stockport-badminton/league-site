@@ -415,40 +415,22 @@ exports.fixture_calendars = function(req,res,next){
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
-    // console.log(searchObj)
+    console.log(searchObj)
     Fixture.getFixtureDetails(searchObj, function(err,result){
       if (err){
         next(err);
       }
       else{
-          /* let calendarJSON = {
-            "id":(searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:""),
-            "name":(searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:""),
-            "events":[] 
-          }*/
           let id = (searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
-          // console.log(calendarJSON)
-          // let events = result.map(row => {return {"id":row.id, "summary":row.homeTeam + " vs " + row.awayTeam,"date":row.date,"location":row.venueName + " " + row.venueLink}})
-          // calendarJSON.events = events
 
           const jcal = new ICAL.Component('vcalendar');
-          // jcal.addSubcomponent(new ICAL.Component('vcalendar'));
           jcal.addPropertyWithValue('prodid', (searchObj.season != undefined ? searchObj.season:SEASON) +"/"+ (searchObj.division != undefined ? searchObj.division:"") +"/"+ (searchObj.club != undefined ? searchObj.club:"") +"/"+ (searchObj.team != undefined ? searchObj.team:""));
           jcal.addPropertyWithValue('version', '2.0');
           const vcalendar = jcal
 
           // Iterate over each event and convert it to an iCalendar event
-          // console.log(calendarJSON)
           result.forEach(row => {
             let MyDate = new Date(row.date)
-            /* let startDate = ('0' + MyDate.getDate()).slice(-2) + '/'
-                     + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-                     + MyDate.getFullYear();
-             let endDate = ('0' + MyDate.getDate()).slice(-2) + '/'
-            + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-            + MyDate.getFullYear(); */
-            /*let startDate = MyDate.getFullYear()+ "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + MyDate.getDate()).slice(-2)
-            let endDate = MyDate.getFullYear() + "-"+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + "-" + ('0' + (MyDate.getDate()+1)).slice(-2) */
 
             let startDate = MyDate.getFullYear()+ ('0' + (MyDate.getMonth()+1)).slice(-2)  + ('0' + MyDate.getDate()).slice(-2)
             let endDate = MyDate.getFullYear() + ('0' + (MyDate.getMonth()+1)).slice(-2) + ('0' + (MyDate.getDate()+1)).slice(-2)
@@ -556,7 +538,7 @@ exports.fixture_detail_byDivision = function(req,res) {
                 }
               }
             }
-            console.log(renderObject)
+            // console.log(renderObject)
             res.render('beta/fixtures-results'+type, renderObject);
           }
         })
@@ -639,11 +621,26 @@ exports.fixture_detail_byDivision = function(req,res) {
             type = '-grid'
             jsonResult = JSON.stringify(griddedData);
           }
+          let titleString = ""
+          if (searchObj !== undefined){
+            let filterArray = ['season','division','club','team']
+            
+            for (filter of filterArray){
+              console.log(filter)
+              console.log(Object.entries(searchObj))
+              let sqlParams = Object.entries(searchObj).filter(obj => obj[0] === filter)
+              if (sqlParams.length > 0){
+                titleString += sqlParams[0][1]
+                titleString += " "
+                console.log("titleString:" + titleString)
+              }
+            }
+          }        
           let renderObject = {
               path:req.path,
               user:req.user,
               static_path: '/static',
-              pageTitle : "Fixtures & Results: "+ divisionString,
+              pageTitle : "Fixtures & Results: "+ titleString,
               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",
               result: result,
               jsonResult:griddedData,
@@ -741,10 +738,10 @@ exports.fixture_update_by_team_name = function(req, res,next){
   Fixture.updateByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-      // console.log(err);
+      console.log(err);
     }
     else{
-      // console.log(result)
+      console.log(result)
       res.send(result);
     }
   })
@@ -755,10 +752,10 @@ exports.fixture_rearrange_by_team_name = function(req, res,next){
   Fixture.rearrangeByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-      // console.log(err);
+       console.log(err);
     }
     else{
-      // console.log(result)
+       console.log(result)
       res.send(result);
     }
   })
