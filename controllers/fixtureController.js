@@ -707,18 +707,36 @@ exports.fixture_get_summary = function(req, res,next) {
             next(err);
           }
           else{
-            // console.log(result);
-            res.render('beta/homepage', {
-                static_path: '/static',
-                pageTitle : "Homepage",
-                pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
-                result : recentResults,
-                row : upcomingFixtures
-            });
-          }
-        })
-      }
-    })
+            var options = {
+              'method': 'GET',
+              'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/tournmanentcarousel?max_results=30',
+              'headers': {
+                'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
+              }
+            }
+            //console.log(options);
+            request(options,function(err,response,assets){
+              //console.log(options);
+              if (err){
+                //console.log(err)
+                return false
+              }
+              else{
+                console.log(JSON.parse(response.body).resources);
+                res.render('beta/homepage', {
+                    static_path: '/static',
+                    pageTitle : "Homepage",
+                    pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
+                    result : recentResults,
+                    row : upcomingFixtures,
+                    assets : JSON.parse(response.body).resources
+                });
+              }
+          })
+        }
+      })
+    }
+  })
 };
 
 exports.fixture_batch_create = function(req, res,next){

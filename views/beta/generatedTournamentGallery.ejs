@@ -1,0 +1,51 @@
+<div class="modal" id="generatedTournamentGalleryModal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h4 class="modal-title">Tournament Gallery</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+        <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
+          <div class="carousel-inner">
+            <%  
+                var i = 0 
+                var active = "active"
+                assets.forEach(function(image){ 
+                  if (i > 0){
+                    active = ""
+                  }
+                  i++
+                  var imageref = image.url.replace("/upload","/upload/f_auto,c_fill/w_auto:breakpoints_200_1920_30_10:300")
+              %>
+              <div class="carousel-item <%= active %>">
+                    <img class="d-block img-fluid" src="<%= imageref %>" sizes="100vw" width="100%" border=0 alt="" title=""/>
+                <div class="carousel-caption d-none d-md-block">
+                  <h5></h5>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+          <a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="sr-only">Previous</span>
+          </a>
+          <a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="sr-only">Next</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>

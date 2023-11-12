@@ -1,4 +1,4 @@
-
+//  find all console logs: ^(((?!\s\/\/).)*(console.log))
     var AWS = require('aws-sdk');
     var express = require('express');
     var session = require('express-session');
@@ -287,7 +287,7 @@
             divObject[divArray[0].divisionName] = divArray
             newResultsArray.push(divObject)
           }
-          res.sendStatus(200)
+          // res.sendStatus(200)
           var i = 0
          for (division of newResultsArray){
 
@@ -377,6 +377,7 @@
               const stream = canvas.createPNGStream();
               stream.pipe(out);
               out.on('finish', () => console.log('League table image created!'));
+              // res.download('static/beta/images/generated/league-table-'+key+'.png')
             })
 
             
@@ -390,14 +391,207 @@
               // imageArray.push(canvas.toBuffer("image/png"))
               stream.pipe(bigOut);
               bigOut.on('finish', () => console.log('League table image created!'));
-
+              res.render('beta/league-table-social', {
+                static_path:'/static',
+                theme:process.env.THEME || 'flatly',
+                pageTitle : "Table Social Images",
+                pageDescription : "Table Social Images",
+                query:req.query
+              });
           
         }
         
       }) 
     })
 
-    
+    router.get('/tournament-social',function(req,res,next) {
+      const canvasWidth = 1080; // Set canvas width
+      const canvasHeight = 1080; // Set canvas height
+      let canvas = createCanvas(canvasWidth, canvasHeight); // Create canvas instance
+      let ctx = canvas.getContext('2d');
+      loadImage('static/beta/images/bg/social.png').then(async (image) => {
+
+        ctx.drawImage(image, 0,0,canvasWidth, canvasHeight)
+
+        // Set font styles
+        ctx.font = 'bold 40px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+
+        let posY = 120;
+        let posX = 540
+        ctx.font = 'bold 65px Arial';
+        ctx.fillText('Open Tournament', posX, posY);
+        posY += 100
+        ctx.font = 'normal 40px Arial';
+        ctx.fillText('LifeLeisure Bramhall Recreation', posX, posY);
+        posY += 50
+        ctx.fillText('Centre, Seal Rd, Bramhall', posX, posY);
+        posY += 100
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText('11th November', posX, posY);
+        posY += 100
+        ctx.font = 'normal 40px Arial';
+        ctx.fillText('Mens & Womens Doubles', posX, posY);
+        posY += 100
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText('18th November', posX, posY);
+        posY += 100
+        ctx.font = 'normal 40px Arial';
+        ctx.fillText('Mens & Womens Singles', posX, posY);
+        posY += 50
+        ctx.fillText('Mixed Doubles', posX, posY);
+        posY += 100
+        ctx.fillText('Entry form and details on the website', posX, posY);
+        posY += 50
+        ctx.fillText('https://stockport-badminton.co.uk', posX, posY);
+        
+
+        // Save image to file
+        const out = fs.createWriteStream('static/beta/images/generated/open-tournament-social.png');
+        const stream = canvas.createPNGStream();
+        stream.pipe(out);
+        out.on('finish', () => console.log('League table image created!'));
+      })
+      let bcanvas = createCanvas(canvasWidth, canvasHeight); // Create canvas instance
+      let bctx = bcanvas.getContext('2d');
+      loadImage('static/beta/images/bg/social.png').then(async (image) => {
+
+        bctx.drawImage(image, 0,0,canvasWidth, canvasHeight)
+
+        // Set font styles
+        bctx.font = 'bold 40px Arial';
+        bctx.fillStyle = '#000';
+        bctx.textAlign = 'center';
+
+        let posY = 120;
+        let posX = 540
+        bctx.font = 'bold 65px Arial';
+        bctx.fillText('`B` Tournament', posX, posY);
+        posY += 100
+        bctx.font = 'normal 40px Arial';
+        bctx.fillText('LifeLeisure Bramhall Recreation', posX, posY);
+        posY += 50
+        bctx.fillText('Centre, Seal Rd, Bramhall', posX, posY);
+        posY += 100
+        bctx.font = 'bold 40px Arial';
+        bctx.fillText('11th November', posX, posY);
+        posY += 100
+        bctx.font = 'normal 40px Arial';
+        bctx.fillText('Mens & Womens Doubles', posX, posY);
+        posY += 100
+        bctx.font = 'bold 40px Arial';
+        bctx.fillText('18th November', posX, posY);
+        posY += 100
+        bctx.font = 'normal 40px Arial';
+        bctx.fillText('Singles', posX, posY);
+        posY += 50
+        bctx.fillText('Mixed Doubles', posX, posY);
+        posY += 100
+        bctx.fillText('Entry form and details on the website', posX, posY);
+        posY += 50
+        bctx.fillText('https://stockport-badminton.co.uk', posX, posY);
+        
+
+        // Save image to file
+        const out = fs.createWriteStream('static/beta/images/generated/B-tournament-social.png');
+        const stream = bcanvas.createPNGStream();
+        stream.pipe(out);
+        out.on('finish', () => console.log('League table image created!'));
+      })
+      ccanvas = createCanvas(canvasWidth, canvasHeight); // Create canvas instance
+      cctx = ccanvas.getContext('2d');
+      loadImage('static/beta/images/bg/social.png').then(async (image) => {
+
+        cctx.drawImage(image, 0,0,canvasWidth, canvasHeight)
+
+        // Set font styles
+        cctx.font = 'bold 40px Arial';
+        cctx.fillStyle = '#000';
+        cctx.textAlign = 'center';
+
+        let posY = 120;
+        let posX = 540
+        cctx.font = 'bold 65px Arial';
+        cctx.fillText('`C` Tournament', posX, posY);
+        posY += 100
+        cctx.font = 'normal 40px Arial';
+        cctx.fillText('LifeLeisure Bramhall Recreation', posX, posY);
+        posY += 50
+        cctx.fillText('Centre, Seal Rd, Bramhall', posX, posY);
+        posY += 100
+        cctx.font = 'bold 40px Arial';
+        cctx.fillText('11th November', posX, posY);
+        posY += 100
+        cctx.font = 'normal 40px Arial';
+        cctx.fillText('Mens & Womens Doubles', posX, posY);
+        posY += 100
+        cctx.font = 'bold 40px Arial';
+        cctx.fillText('18th November', posX, posY);
+        posY += 100
+        cctx.font = 'normal 40px Arial';
+        cctx.fillText('Mixed Doubles', posX, posY);
+        posY += 100
+        cctx.fillText('Entry form and details on the website', posX, posY);
+        posY += 50
+        cctx.fillText('https://stockport-badminton.co.uk', posX, posY);
+        
+
+        // Save image to file
+        const out = fs.createWriteStream('static/beta/images/generated/c-tournament-social.png');
+        const stream = ccanvas.createPNGStream();
+        stream.pipe(out);
+        out.on('finish', () => console.log('League table image created!'));
+      })
+      supervetcanvas = createCanvas(canvasWidth, canvasHeight); // Create canvas instance
+      supervetctx = supervetcanvas.getContext('2d');
+      loadImage('static/beta/images/bg/social.png').then(async (image) => {
+
+        supervetctx.drawImage(image, 0,0,canvasWidth, canvasHeight)
+
+        // Set font styles
+        supervetctx.font = 'bold 40px Arial';
+        supervetctx.fillStyle = '#000';
+        supervetctx.textAlign = 'center';
+
+        let posY = 120;
+        let posX = 540
+        supervetctx.font = 'bold 65px Arial';
+        supervetctx.fillText('Supervet Tournament', posX, posY);
+        posY += 100
+        supervetctx.font = 'normal 40px Arial';
+        supervetctx.fillText('LifeLeisure Bramhall Recreation', posX, posY);
+        posY += 50
+        supervetctx.fillText('Centre, Seal Rd, Bramhall', posX, posY);
+        posY += 100
+        supervetctx.font = 'bold 40px Arial';
+        supervetctx.fillText('11th November', posX, posY);
+        posY += 100
+        supervetctx.font = 'normal 40px Arial';
+        supervetctx.fillText('Mixed Doubles', posX, posY);
+        posY += 100
+        supervetctx.font = 'bold 40px Arial';
+        supervetctx.fillText('18th November', posX, posY);
+        posY += 100
+        supervetctx.font = 'normal 40px Arial';
+        supervetctx.fillText('Mens Doubles', posX, posY);
+        posY += 50
+        supervetctx.fillText('Womens Doubles', posX, posY);
+        posY += 100
+        supervetctx.fillText('Entry form and details on the website', posX, posY);
+        posY += 50
+        supervetctx.fillText('https://stockport-badminton.co.uk', posX, posY);
+        
+
+        // Save image to file
+        const out = fs.createWriteStream('static/beta/images/generated/supervet-tournament-social.png');
+        const stream = supervetcanvas.createPNGStream();
+        stream.pipe(out);
+        out.on('finish', () => console.log('League table image created!'));
+      })
+
+      
+    })
 
     // Perform session logout and redirect to homepage
 
@@ -836,17 +1030,11 @@ const { getAllLeagueTables } = require('./models/league');
     router.get('/', fixture_controller.fixture_get_summary);
 
     /* GET request for list of all Fixture items. */
-    //TODO: filter by club & team
-    //TODO: add calendar exports so that teams can import to calendars
+    
     //TODO: some sort of notification for rearrangements?
     router.get('/results/*', fixture_controller.fixture_detail_byDivision);
     router.get('/calendars/*', fixture_controller.fixture_calendars);
     router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
-    /* router.get('/results/:division', fixture_controller.fixture_detail_byDivision);
-    router.get('/results/:division/:season', fixture_controller.fixture_detail_byDivision);
-    router.get('/results-grid/:division', fixture_controller.fixture_detail_byDivision);
-    router.get('/results-grid/:division/:season', fixture_controller.fixture_detail_byDivision); */
-
 
     /// GAME ROUTES ///
 
