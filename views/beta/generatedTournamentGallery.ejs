@@ -21,11 +21,15 @@
                   }
                   i++
                   var imageref = image.url.replace("/upload","/upload/f_auto,c_fill/w_auto:breakpoints_200_1920_30_10:300")
+                  if (typeof image.context != 'undefined'){
+                    var caption = (image.context.custom.caption.length > 0 ? image.context.custom.caption : "")
+                  }
+                  
               %>
               <div class="carousel-item <%= active %>">
                     <img class="d-block img-fluid" src="<%= imageref %>" sizes="100vw" width="100%" border=0 alt="" title=""/>
                 <div class="carousel-caption d-none d-md-block">
-                  <h5></h5>
+                  <h5><%= caption %></h5>
                 </div>
               </div>
             <% }) %>

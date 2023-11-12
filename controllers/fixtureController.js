@@ -709,7 +709,7 @@ exports.fixture_get_summary = function(req, res,next) {
           else{
             var options = {
               'method': 'GET',
-              'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/tournmanentcarousel?max_results=30',
+              'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/tournmanentcarousel?max_results=30&context=true',
               'headers': {
                 'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
               }
@@ -722,7 +722,7 @@ exports.fixture_get_summary = function(req, res,next) {
                 return false
               }
               else{
-                console.log(JSON.parse(response.body).resources);
+                // console.log(JSON.parse(response.body).resources);
                 res.render('beta/homepage', {
                     static_path: '/static',
                     pageTitle : "Homepage",
