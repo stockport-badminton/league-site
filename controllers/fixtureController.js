@@ -495,7 +495,7 @@ exports.fixture_detail_byDivision = function(req,res) {
               let griddedData = []
               for (division of divisionsArray){
                 // console.log(division);
-                let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged')
+                let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged' && row.id != 99999)
                 // console.log(gridFixtures)
                 gridFixtures.sort(function (x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
                 let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
@@ -603,7 +603,7 @@ exports.fixture_detail_byDivision = function(req,res) {
           let griddedData = []
           for (division of divisionsArray){
             // console.log(division);
-            let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged')
+            let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged' && row.id != 99999)
             // console.log(gridFixtures)
             gridFixtures.sort(function (x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
             let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
