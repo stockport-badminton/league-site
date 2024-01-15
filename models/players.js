@@ -133,7 +133,7 @@ exports.getAll = function(done){
 
 // GET
 exports.getNominatedPlayers = function(teamName,done){
-  db.get().query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.rank IS NOT NULL ORDER BY gender , player.rank",teamName, function (err, rows){
+  db.get().query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.`rank` IS NOT NULL ORDER BY gender , player.`rank`",teamName, function (err, rows){
     logger.log(this.sql)
     if (err) return done(err);
     done(null, rows);
@@ -187,14 +187,14 @@ exports.getNamesClubsTeams = function(searchTerms,done){
     var conditions = whereTerms.join(' AND ');
     // console.log(conditions);
     conditions = ' WHERE '+ conditions
-    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender, rank",whereValue,function(err,rows){
+    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.`rank`, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.`rank`, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender, `rank`",whereValue,function(err,rows){
       console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
     })
   }
   else {
-    db.get().query("select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id order by teamName, gender, rank",function(err,rows){
+    db.get().query("select playerId, a.name, gender, date_of_registration, a.`rank`, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.`rank`, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id order by teamName, gender, rank",function(err,rows){
       console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
@@ -686,7 +686,7 @@ exports.search = function(searchTerms,done){
 }
 
 exports.findElgiblePlayersFromTeamId = function(id,gender,done){
-  db.get().query('select player.id, player.first_name, player.family_name, b.rank as teamRank, player.rank as playerRank from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ? order by b.rank asc,player.rank desc, player.family_name',[id,gender],function(err,result){
+  db.get().query('select player.id, player.first_name, player.family_name, b.`rank` as teamRank, player.`rank` as playerRank from (select team.id, team.name, team.`rank` from (SELECT club.id, club.name, team.`rank` as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.`rank` >= originalRank) as b join player where player.team = b.id AND player.gender= ? order by b.`rank` asc,player.`rank` desc, player.family_name',[id,gender],function(err,result){
     console.log(this.sql);
     if (err){
       return done(err)
@@ -698,7 +698,7 @@ exports.findElgiblePlayersFromTeamId = function(id,gender,done){
 }
 
 exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, first, second, third,done){
-  db.get().query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender],function(err,rows){
+  db.get().query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.`rank` FROM (SELECT club.id, club.name, team.`rank` AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.`rank` >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender],function(err,rows){
     logger.log(this.sql);
     if(err) return done(err)
     done(null,rows)
@@ -706,7 +706,7 @@ exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, firs
 }
 
 exports.getEligiblePlayersAndSelectedById = function(first, second, third, teamId,gender,done){
-  db.get().query('SELECT player.id ,player.first_name ,player.family_name, case when player.id = ? then 1 else 0 end as first, case when player.id = ? then 1 else 0 end as second, case when player.id = ? then 1 else 0 end as third FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.id like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamId,gender],function(err,rows){
+  db.get().query('SELECT player.id ,player.first_name ,player.family_name, case when player.id = ? then 1 else 0 end as first, case when player.id = ? then 1 else 0 end as second, case when player.id = ? then 1 else 0 end as third FROM ( SELECT team.id ,team.name ,team.`rank` FROM ( SELECT club.id ,club.name ,team.`rank` AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.id like ? ) AS a JOIN team WHERE a.id = team.club AND team.`rank` >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamId,gender],function(err,rows){
     logger.log(this.sql);
     if (err) return done(err);
     done(null,rows);
@@ -714,7 +714,7 @@ exports.getEligiblePlayersAndSelectedById = function(first, second, third, teamI
 }
 
 exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = function(teamName,gender,first, second,third,done){
-  db.get().query('SELECT player.id ,player.first_name ,player.family_name FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.name like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[teamName, gender],function(err,rows){
+  db.get().query('SELECT player.id ,player.first_name ,player.family_name FROM ( SELECT team.id ,team.name ,team.`rank` FROM ( SELECT club.id ,club.name ,team.`rank` AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.name like ? ) AS a JOIN team WHERE a.id = team.club AND team.`rank` >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[teamName, gender],function(err,rows){
     logger.log(this.sql);
     if(err) return done(err)
     else {
@@ -765,7 +765,7 @@ exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = function(team
 }
 
 exports.findElgiblePlayersFromTeamIdAndSelectedNew = function(teamName,gender, first, second, third,done){
-  db.get().query("SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) as totalLev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ? Order by totalLev asc, first asc, second asc, third asc",[first, second, third, first, second, third,teamName, gender],function(err,rows){
+  db.get().query("SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) as totalLev FROM (SELECT team.id, team.name, team.`rank` FROM (SELECT club.id, club.name, team.`rank` AS originalRank FROM team JOIN club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team WHERE a.id = team.club AND team.`rank` >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ? Order by totalLev asc, first asc, second asc, third asc",[first, second, third, first, second, third,teamName, gender],function(err,rows){
     if(err) return done(err)
     done(null,rows)
   })
