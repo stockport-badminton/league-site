@@ -4,9 +4,9 @@
 <footer class="footer fixed-bottom">
       <div class="container">
         <span class="text-muted">Sponsored by <img src="//cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x.png?v=1502872689" srcset="//cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x.png?v=1502872689 1x, //cdn.shopify.com/s/files/1/2090/8257/files/yehlex-logo_c063f832-634f-410c-9b9e-da9a131efe87_90x@2x.png?v=1502872689 2x" alt="Yehlex" itemprop="logo"></span>
-        <a href="https://www.facebook.com/stockportbadminton" class="fa fa-facebook"></a>
-        <a href="https://www.twitter.com/BaddersResults" class="fa fa-twitter"></a>
-        <a href="https://www.instagram.com/stockport.badders.results" class="fa fa-instagram"></a>
+        <a href="https://www.facebook.com/stockportbadminton" class="fa-brands fa-facebook"></a>
+        <a href="https://www.twitter.com/BaddersResults" class="fa-brands fa-twitter"></a>
+        <a href="https://www.instagram.com/stockport.badders.results" class="fa-brands fa-instagram"></a>
       </div>
     </footer>
 
@@ -19,4 +19,9 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+    <script>
+      $(document).ready(function(){
+        $('#loginLink').attr('href','/login?returnTo='+window.location)
+      })
+    </script>
     
