@@ -589,7 +589,7 @@
         stream.pipe(out);
         out.on('finish', () => console.log('League table image created!'));
       })
-
+      res.sendStatus(200)
       
     })
 
@@ -650,7 +650,7 @@
         stream.pipe(out);
         out.on('finish', () => console.log('League table image created!'));
       })
-      
+      res.sendStatus(200)
     })
 
     // Perform session logout and redirect to homepage
@@ -1174,7 +1174,6 @@ const { getAllLeagueTables } = require('./models/league');
 
     router.get('/admin/results/*', secured,fixture_controller.fixture_detail_byDivision);
     router.get('/admin/results/:division/:season',  secured,fixture_controller.fixture_detail_byDivision);
-secured,
     router.get('/user', secured,async function (req, res) {
       const { _raw, _json, userProfile } = req.user;
 // console.log(req.user)
@@ -1214,7 +1213,7 @@ secured,
     router.get('/admin/info/clubs', secured,club_controller.club_list_detail);
 
     /* Get request for quick results form */
-    router.get('/fixture/short-result', secured,fixture_controller.fixture_outstanding);
+    router.get('/short-results', secured,fixture_controller.fixture_outstanding);
     /* GET request for list of all Fixture items. */
     
 
