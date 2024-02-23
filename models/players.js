@@ -187,7 +187,7 @@ exports.getNamesClubsTeams = function(searchTerms,done){
     var conditions = whereTerms.join(' AND ');
     // console.log(conditions);
     conditions = ' WHERE '+ conditions
-    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender,.rank",whereValue,function(err,rows){
+    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender,`rank`",whereValue,function(err,rows){
       console.log(this.sql);
       if (err) return done(err);
       done(null,rows);
