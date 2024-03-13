@@ -56,7 +56,7 @@ function containsProfanity(value,{req}){
 }
 
 function containsDodgyEmail(value,{req}){
-  var substringsArray = ["projectdept@kanzalshamsprojectmgt.com","evalidator.test@gmail.com","simpsonmiddleton1111@gmail.com","simpsonmiddleton@bankingandfinanceconsultantsltd.com","breiner@cljfarmaceutisch.nl","drbreiner233@gmail.com","smithduncan610@gmail.com","5rdhp2fe29yb@beconfidential.com","stevenlove88@163.com","artweb.agency@gmail.com","help@aweb.sbs","hrhbah-mbi@aghemfondom.com","hrhmbambi@gmail.com","nhu-tran@sac-city.k12.ca.us","yourmail@gmail.com"];
+  var substringsArray = ["lucido.leinteract@gmail.com","projectdept@kanzalshamsprojectmgt.com","evalidator.test@gmail.com","simpsonmiddleton1111@gmail.com","simpsonmiddleton@bankingandfinanceconsultantsltd.com","breiner@cljfarmaceutisch.nl","drbreiner233@gmail.com","smithduncan610@gmail.com","5rdhp2fe29yb@beconfidential.com","stevenlove88@163.com","artweb.agency@gmail.com","help@aweb.sbs","hrhbah-mbi@aghemfondom.com","hrhmbambi@gmail.com","nhu-tran@sac-city.k12.ca.us","yourmail@gmail.com"];
 
   if (substringsArray.some(function(v) { if (value.indexOf(v) >= 0) {console.log(v)}; return value.indexOf(v) >= 0; })) {
      logger.log('dodgyEmail fail')
