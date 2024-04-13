@@ -373,12 +373,12 @@ exports.newGetPlayerStats = function(searchObj,done){
   else {
     whereValue.push(searchObj.gameType)
   }
-  if (!searchObj.divisionId){
+  if (!searchObj.division){
     console.log("no division id");
     whereValue.push("%");
   }
   else {
-    whereValue.push(searchObj.divisionId)
+    whereValue.push(searchObj.division)
   }
   console.log(whereTerms)
   console.log(whereValue);
