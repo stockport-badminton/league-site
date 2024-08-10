@@ -5,16 +5,16 @@
     var passport = require('passport');
     var Auth0Strategy = require('passport-auth0');
     var router = express.Router();
-    var cookieParser = require('cookie-parser');
+    // var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
     const {check, validationResult} = require('express-validator')
     var path = require('path');
-    var request = require('request');
+    // var request = require('request');
     const jwt = require('express-jwt');
-    const jwtAuthz = require('express-jwt-authz');
+    // const jwtAuthz = require('express-jwt-authz');
     const jwksRsa = require('jwks-rsa');
-    const formidable = require('formidable')
-    const exceljs = require('exceljs')
+    //const formidable = require('formidable')
+    //const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
     const compression = require ('compression');
@@ -1086,12 +1086,14 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* GET request for list of all Fixture items. */
     router.get('/fixtures', fixture_controller.fixture_list);
+    
 
     router.get('/', fixture_controller.fixture_get_summary);
 
     /* GET request for list of all Fixture items. */
     
     //TODO: some sort of notification for rearrangements?
+    router.get('/fixtures/*', fixture_controller.fixture_detail_byDivision);
     router.get('/results/*', fixture_controller.fixture_detail_byDivision);
     router.get('/calendars/*', fixture_controller.fixture_calendars);
     router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);

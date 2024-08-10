@@ -35,9 +35,9 @@
           </button>
           <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
             <a class="dropdown-item" href="/player-stats">All</a>
-            <a class="dropdown-item" href="/player-stats/game-Mens">Mens</a>
-            <a class="dropdown-item" href="/player-stats/game-Ladies">Ladies</a>
-            <a class="dropdown-item" href="/player-stats/game-Mixed">Mixed</a>
+            <a class="dropdown-item" href="/player-stats/gameType-Mens">Mens</a>
+            <a class="dropdown-item" href="/player-stats/gameType-Ladies">Ladies</a>
+            <a class="dropdown-item" href="/player-stats/gameType-Mixed">Mixed</a>
           </div>
       </div>     
     </div>
@@ -75,7 +75,16 @@
           <td><%= row['gamesPlayed'] %></td>
           <td><%= row['gamesWon'] %></td>
           <%
-          var n = row['gamesWon']/(row['gamesPlayed'] / 6);
+          var multiplier = 6
+          if (typeof query.gameType !== "undefined"){
+            if (query.gameType == "Mixed"){
+              multiplier = 2
+            }
+            else {
+              multiplier = 4
+            }
+          }
+          var n = row['gamesWon']/(row['gamesPlayed'] / multiplier);
           if(Number.isNaN(n)){
             var n = 0;
           }

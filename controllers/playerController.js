@@ -479,7 +479,8 @@ exports.all_player_stats = function (req, res,next){
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
-           result : result
+           result : result,
+           query:searchObj
        });
     }
   })
@@ -570,13 +571,16 @@ exports.all_pair_stats = function (req, res,next){
       return next(err)
     }
     else {
+      console.log("rendering this page")
+      console.log(JSON.stringify(req.params))
       res.render('beta/pair-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
-           result : result
+           result : result,
+           query: searchObj
        });
     }
   })

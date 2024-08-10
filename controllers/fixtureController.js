@@ -662,9 +662,15 @@ exports.fixture_detail_byDivision = function(req,res) {
               }
             }
           }
+          if (req.path.indexOf('fixtures') > -1){
+            res.status(200);
+            res.send(result);
+          }
+          else {
+            res.status(200);
+            res.render('beta/fixtures-results'+type, renderObject);
+          }
           
-          res.status(200);
-          res.render('beta/fixtures-results'+type, renderObject);
 
       }
     })
