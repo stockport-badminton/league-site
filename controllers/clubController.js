@@ -62,7 +62,7 @@ exports.club_detail_api = function(req, res,next) {
 };
 
 // Display detail page for a specific Club
-exports.club_detail = function(req, res) {
+exports.club_detail = function(req, res,done) {
   console.log(req.session)
     Club.getContactDetailsById(req.params.id,function(err,clubrow){
       if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
