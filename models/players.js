@@ -1,3 +1,4 @@
+const { player_update_get } = require('../controllers/playerController.js');
 var db = require('../db_connect.js');
 var logger = require('logzio-nodejs').createLogger({
   token: process.env.LOGZ_SECRET,
@@ -114,6 +115,7 @@ exports.updateBulk = function(BatchObj,done){
     console.log(sql);
     // done(null,sql)
     db.get().query(sql,function(err,result){
+      console.log(this.sql)
       if (err) return done(err);
       done(null,result)
     }) 
@@ -402,7 +404,7 @@ exports.newGetPlayerStats = function(searchObj,done){
         return done(err)
       }
       else{
-        console.log(this.sql)
+        // console.log(this.sql)
         // console.log("getPlayerStats model success")
         //console.log(rows[2])
         done(null,rows[2])
@@ -804,7 +806,9 @@ exports.getByNameAndTeam = function(playerName,teamId,distance,done){
 }
 
 exports.getById = function(playerId,done){
-  db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
+  console.log(playerId)
+  db.get().query('SELECT id,first_name, family_name, gender,CAST(AES_DECRYPT(playerEmail, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerEmail, CAST(AES_DECRYPT(playerTel, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerTel,teamCaptain, clubSecretary,matchSecrertary,treasurer FROM player WHERE id = ?',playerId, function (err, rows){
+    console.log(this.sql)
     if (err) return done(err);
     done(null,rows);
   })

@@ -1,34 +1,50 @@
-<%- include('header.ejs') %>
+<%- include('beta/header.ejs') %>
+<%- include('beta/nav.ejs') %>
 
 <div class="modal-dialog">
-  <form id="signupForm" role="form" method="post" action="/player/create">
+  <form id="signupForm" role="form" method="post" action="/player/<%= result[0].id %>">
     <div class="modal-content">
       <div class="modal-body">
-
-          <input type="hidden" name="date_of_registration" id="date_of_registration" value="<%= req.body.date_of_registration %>">
           <div class="form-group">
-            <label for="first_name" ><%= req.body.first_name %></label>
-            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name">
+            <label for="first_name" >First Name</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="<%= result[0].first_name %>" value="<%= result[0].first_name %>">
           </div>
           <div class="form-group">
-            <label for="family_name"><%= req.body.family_name %></label>
-            <input type="text" class="form-control" id="family_name" name="family_name" placeholder="Family Name">
+            <label for="family_name">Family Name</label>
+            <input type="text" class="form-control" id="family_name" name="family_name" placeholder="<%= result[0].family_name %>" value="<%= result[0].family_name %>">
+          </div>
+          <div class="form-group">
+            <label for="playerEmail">Email</label>
+            <input type="email" class="form-control" id="playerEmail" name="playerEmail" placeholder="<%= result[0].playerEmail %>" value="<%= result[0].playerEmail %>">
+          </div>
+          <div class="form-group">
+            <label for="playerTel">Phone</label>
+            <input type="tel" class="form-control" id="playerTel" name="playerTel" placeholder="<%= result[0].playerTel %>" value="<%= result[0].playerTel %>">
           </div>
           <div class="form-group">
             <label for="gender">Gender</label>
             <select name="gender" id="gender" class="form-control">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
+              <% if (result[0].gender == 'Male') { %>
+                <option value="Male" selected>Male</option>
+                <option value="Female">Female</option>
+              <% }
+              else { %>
+                <option value="Male">Male</option>
+                <option value="Female" selected>Female</option>
+              <% } %>
             </select>
           </div>
-          <div class="form-group">
-            <label for="team">team</label>
-            <select name="team" id="team" class="form-control">
-              <% team_list.forEach(function(team){ %>
-                <option value="<%= team._id.toString() %>"><%= team.name %></option>
-              <% }) %>
+          
 
-            </select>
+          <div class="form-group">
+            <label for="teamCaptain">Team Captain</label>
+            <input type="checkbox" class="form-control" id="teamCaptain" name="teamCaptain" value="1" <%= result[0].teamCaptain == 1 ? 'checked':'' %>>
+            <label for="clubSecretary">club Secretary</label>
+            <input type="checkbox" class="form-control" id="clubSecretary" name="clubSecretary" value="1" <%= result[0].clubSecretary == 1 ? 'checked':'' %>>
+            <label for="matchSecrertary">match Secretary</label>
+            <input type="checkbox" class="form-control" id="matchSecrertary" name="matchSecrertary" value="1" <%= result[0].matchSecrertary == 1 ? 'checked':'' %>>
+            <label for="treasurer">Treasurer</label>
+            <input type="checkbox" class="form-control" id="treasurer" name="treasurer" value="1" <%= result[0].treasurer == 1 ? 'checked':'' %>>
           </div>
       </div>
       <div class="modal-footer">
@@ -37,4 +53,4 @@
     </div>
   </form>
 </div>
-<%- include('footer.ejs') %>
+<%- include('beta/footer.ejs') %>

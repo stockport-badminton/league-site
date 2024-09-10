@@ -25,6 +25,7 @@
                               <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
                               <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
                                 <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
                                 <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
                                 <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
                               </div>
@@ -39,6 +40,7 @@
                               <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
                               <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
                                 <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
                                 <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
                                 <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
                               </div>
@@ -59,6 +61,7 @@
                               <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
                               <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
                                 <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
                                 <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
                                 <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
                               </div>
@@ -73,6 +76,7 @@
                               <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
                               <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
                                 <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
                                 <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
                                 <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
                               </div>
@@ -185,6 +189,10 @@ function handlePlayerRemove(e) {
   });
 }
 
+function handlePlayerUpdate(e) {
+  window.open('/player/'+e.target.parentNode.parentNode.attributes['data-id'].nodeValue +'/update')
+}
+
 function handleDrop(e) {
   e.stopPropagation(); // stops the browser from redirecting.
   var movedPlayer = dragSrcEl.textContent
@@ -281,6 +289,10 @@ items.forEach(function(item) {
 let removeButtons = document.querySelectorAll('div.player-box > div.dropdown-menu > button:nth-child(1)')
 removeButtons.forEach(function(removePlayer){
   removePlayer.addEventListener('click',handlePlayerRemove)
+})
+let editButtons = document.querySelectorAll('div.player-box > div.dropdown-menu > button:nth-child(2)')
+editButtons.forEach(function(updatePlayer){
+  updatePlayer.addEventListener('click',handlePlayerUpdate)
 })
 
 // item.children[0].addEventListener('click',handlePlayerRemove);

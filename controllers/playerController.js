@@ -10,7 +10,8 @@ var Auth = require('../models/auth.js');
 const { read } = require('fs');
 const { validationResult } = require('express-validator');
 const docx = require("docx");
-const fs = require("fs")
+const fs = require("fs");
+const path = require('path');
 
 
 function logger(data) {
@@ -757,18 +758,42 @@ exports.player_delete = function(req, res) {
 };
 
 // Display Player update form on GET
-exports.player_update_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Player update GET');
+exports.player_update_get = function(req, res,next) {
+  Player.getById(req.params.id,function(err,result){
+    if (err){
+      return next(err)
+    }
+    else {
+      
+      res.render('player_update_form', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Pair Stats",
+           pageDescription : "Geek out on Stockport League Player stats!",
+           result : result
+       });
+    }
+  })
 };
 
 // Handle Player update on POST
 exports.player_update_post = function(req, res) {
-  Player.updateById(req.body.first_name, req.body.family_name, req.body.team, req.body.club, req.body.gender,req.params.id, function(err,row){
+  let patchObj = {
+    "tablename":"player",
+    "fields":[
+        "id","first_name","family_name","gender","playerTel","playerEmail","teamCaptain","clubSecretary","matchSecrertary","treasurer"
+    ],
+    "data":[[req.params.id,req.body.first_name,req.body.family_name,req.body.gender,req.body.playerTel,req.body.playerEmail, req.body.teamCaptain == 1 ? 1 :0, req.body.clubSecretary == 1 ? 1 :0, req.body.matchSecrertary == 1 ? 1 :0, req.body.treasurer == 1 ? 1 : 0]
+  ]
+}
+console.log(patchObj)
+  Player.updateBulk(patchObj, function(err,row){
     if (err){
       res.send(err);
     }
     // console.log(req.body);
     // console.log(row);
-    res.send(row);
+    res.redirect(`/player/${req.params.id}/update`);
   })
 };

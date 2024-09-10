@@ -96,7 +96,7 @@
     app.set('models', __dirname + '/models');
 
     var db = require('./db_connect');
-    var port = process.env.PORT || 3000;
+    var port = process.env.PORT || 8080;
 
     // Configure Passport to use Auth0
     var strategy = new Auth0Strategy(
@@ -852,8 +852,7 @@ const { getAllLeagueTables } = require('./models/league');
     /* GET request to update Player. */
     router.get('/player/:id/update', player_controller.player_update_get);
 
-    // PATCH request to update Player
-    router.patch('/player/:id',checkJwt, player_controller.player_update_post);
+    
 
     /* GET request for one Player. */
     router.get('/player/:id', player_controller.player_detail);
@@ -1174,6 +1173,9 @@ const { getAllLeagueTables } = require('./models/league');
       res.redirect('/login?returnTo=' + encodeURIComponent(returnTo));
     }
 
+    // PATCH request to update Player
+    router.post('/player/:id',secured, player_controller.player_update_post);
+    
     router.get('/admin/results/*', secured,fixture_controller.fixture_detail_byDivision);
     router.get('/admin/results/:division/:season',  secured,fixture_controller.fixture_detail_byDivision);
     router.get('/user', secured,async function (req, res) {
