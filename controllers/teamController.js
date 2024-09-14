@@ -95,22 +95,46 @@ exports.team_update_post = function(req, res) {
     })
 };
 
-exports.messer_draw = function(req, res) {
-  Team.getTeams({"section":"A"},function(err,rows){
+exports.messer_draw = function(req, res,next) {
+  let renderstring = `beta/messer-draw-${req.params.section}`
+  console.log(renderstring)
+  res.render(renderstring, {
+    static_path: '/static',
+    theme: process.env.THEME || 'flatly',
+    flask_debug: process.env.FLASK_DEBUG || 'false',
+    pageTitle : "Messer Tropy Draws and results",
+    pageDescription : "Messer Trophy Draws and results"
+  });
+}
+
+exports.new_messer_draw = function(req, res,next) {
+  var searchObj = {
+    "section":req.params.section.toUpperCase().at(0)
+  }
+  if (req.params.season !== undefined){
+    searchObj.season = req.params.season
+  }
+  Team.getMesser(searchObj,function(err,rows){
     if(err){
       res.send(err);
       console.log(err)
     }
     else{
-      console.log(rows.length);
-      var totalRounds = Math.ceil(Math.log(rows.length)/Math.log(2))
-      console.log(JSON.stringify(rows));
-      res.render('beta/messer-draw-'+req.params.section, {
+      var otherArray = rows.reduce(function(obj,row){
+        obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeScore":row.homeScore,"awayScore":row.awayScore}; 
+        return obj;
+      }, {});
+      
+      // console.log(otherArray);
+      // var totalRounds = Math.ceil(Math.log(rows.length)/Math.log(2))
+      //console.log(JSON.stringify(rows));
+      res.render('beta/messer-draw-a-section', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
-        teams: rows,
-        pageTitle : "Messer Tropy Draws and results",
+        teams: otherArray,
+        section: req.params.section.toUpperCase().at(0),
+        pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section" ,
         pageDescription : "Messer Trophy Draws and results"
       });
     }

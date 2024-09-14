@@ -1,5 +1,13 @@
 var db = require('../db_connect.js');
 
+var SEASON = '';
+if (new Date().getMonth() < 7){
+  SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+}
+else {
+  SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+}
+
 // POST
 exports.create = function(name,starttime,endtime,matchDay,venue,courtspace,club,division,rank,done){
   db.get().query('INSERT INTO `team` (`name`,`starttime`,`endtime`,`matchDay`,`venue`,`courtspace`,`club`,`division`,`rank`) VALUES (?,?,?,?,?,?,?,?,?)',[name,starttime,endtime,matchDay,venue,courtspace,club,division,rank],function(err,result){
@@ -46,6 +54,38 @@ exports.getAll = function(done){
 }
 
 // GET
+exports.getMesser = function(searchTerms,done){
+  var season = ""
+  var seasonVal = SEASON
+
+  if (!searchTerms.season){
+    console.log("no season");
+  }
+  else {
+    season = searchTerms.season;
+    seasonVal = searchTerms.season;
+  }
+  db.get().query(`SELECT 
+    homeTeam.name as homeTeamName,
+    homeTeam.handicap as homeTeamHandicap,
+    awayTeam.name as awayTeamName,
+    awayTeam.handicap as awayTeamHandicap,
+    messer.homeScore,
+    messer.awayScore,
+    messer.drawPos
+FROM
+    team${season} homeTeam join
+    team${season} awayTeam
+        JOIN
+    messer${season} messer ON messer.homeTeam = homeTeam.id and messer.awayTeam = awayTeam.id
+    where messer.section like ?`,searchTerms.section, function (err, rows){
+    if (err) return done(err);
+    // console.log(this.sql);
+    done(null, rows);
+  })
+}
+
+// GET
 exports.getTeams = function(searchObject,done){
   if(db.isObject(searchObject)){
     // console.log(searchObject);
@@ -69,6 +109,12 @@ exports.getTeams = function(searchObject,done){
     else {
       whereTerms.push('`club` = '+searchObject.clubid);
     }
+    if (!searchObject.section){
+      console.log("no section");
+    }
+    else {
+      whereTerms.push('`section` = "'+searchObject.section+'"');
+    }
     // console.log(whereTerms)
 
     if (whereTerms.length > 0) {
@@ -81,6 +127,7 @@ exports.getTeams = function(searchObject,done){
       conditions = ' WHERE ' + conditions;
       // console.log(conditions);
       sql = sql + conditions
+      console.log(sql)
     }
     db.get().query(sql, function (err, rows){
       if (err) {

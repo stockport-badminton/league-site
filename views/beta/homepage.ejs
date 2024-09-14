@@ -7,10 +7,7 @@
 <h1>News</h1>
 
       <p class="lead">
-        <strong>Junior Tournament 2024</strong><br />
-        The Stockport Junior Tournament will be held on 14th September 2024 at Poynton Leisure Centre.<br />
-        Further Details and Entry form <a href="#" data-toggle="modal" data-target="#JuniorTournamentModal">here</a>
-        <br /><br />
+        
 
         <strong>Messer Final</strong><br />
         The Messer Final between Macclesfield A and Cheadle Hulme B was won by Macclesfield 13-2, although the actual games were much closer than the overall score suggested.<br />
@@ -72,13 +69,13 @@
     %>
     <data itemprop="location" itemscope itemtype="http://schema.org/Place"><data itemprop="name" value="" class="d-none"><%= result['venueName'] %></data><a itemprop="hasMap" href="<%= result['mapLink'] %>" class="d-none"></a>
     <data itemprop="latitude" value="" class="d-none"><%= result['Lat'] %></data>
-    <data itemprop="longitude" value="" class="d-none"><%= result['Lng'] %></data><data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress"><data itemprop="streetAddress" value="<%= result['address'] %>"></data></data></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
+    <data itemprop="longitude" value="" class="d-none"><%= result['Lng'] %></data><data itemprop="address" itemscope itemtype="https://schema.org/PostalAddress"><data itemprop="streetAddress" value="<%= result['address'] %>"></data></data></data><div class="col-3" itemprop="startDate"><%= MyDateString %></div><div class="col" itemprop="name"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %><data itemprop="eventAttendanceMode" value="https://schema.org/OnlineEventAttendanceMode"></data><data itemprop="eventAttendanceMode" value="https://schema.org/OnlineEventAttendanceMode"></data><data itemprop="location" itemscope itemtype="http://schema.org/Organization"><data itemprop="name" value="Stockport & District Badminton League" class="d-none">Stockport & District Badminton League</data><data itemprop="url" value="https://stockport-badminton.co.uk" class="d-none">https://stockport-badminton.co.uk</data></data></div>
+    
   </div>
   <% }) %>
 </div>
 
 <%- include('GeneraNoteModal.ejs') %>
-<%- include('JuniorTournamentModal.ejs') %>
 <%- include('generatedTournamentGallery.ejs') %>
 
 <%- include('footer.ejs') %>

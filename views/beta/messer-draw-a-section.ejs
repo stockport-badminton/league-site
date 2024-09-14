@@ -1,81 +1,58 @@
 <%- include('header.ejs') %>
 <%- include('nav.ejs') %>
 
-<h1>Messer Trophy A-Section</h1>
+<h1>Messer Trophy <%= section + " section" %></h1>
+
 <div class="row col-12 bracket-container">
-    <div class="col">
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">College Green A (-9) vs<br />Syddal Park B (-6) <strong>8-7</strong>
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
+    <% 
+    let fixCount=0
+    let offset = (section == 'A' ? 0 : 16)
+    for (let i=0; i < 4; i++) { %>
+        <div class="col">      
+<%
+        for (let j=0; j < 16; j++){ 
+            if (j % Math.pow(2,i) == 0){ 
+                if (i == 0){
+                    if (j == 8){ 
+                        fixCount++
+                        %>
+                        <div class="row align-middle d-flex align-items-center h-6">
+                        <% if (typeof teams[1+offset] !== 'undefined'){ %>
+                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> vs<br /><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong> <% } %>
+                            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
+                        </div>
+                   <% }
+                    else if (j == 9) { 
+                        fixCount++
+                        %>
+                        <div class="row align-middle d-flex align-items-center h-6">
+                        <% if (typeof teams[2+offset] !== 'undefined'){ %>
+                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %> vs<br /><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %> <strong><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong> <% } %>
+                            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
+                        </div>
+                    <% }
+                    else { %>
+                        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
+                    <% }
+                }
+                else { 
+                    fixCount++
+                    %>
+                    <div class="row align-middle d-flex align-items-center h-<%= i > 0 ? (i > 1 ? ( i > 2 ? (i > 3 ? 100 : 50) : 25 ) : 13 ) : 6 %>">
+                        <% if (typeof teams[fixCount+offset] !== 'undefined'){ %>
+
+                        
+                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %> vs<br /><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %> <strong><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong> <% } %>
+                        <div style="" class="bracket <%= fixCount % 2 == 0 ? 'even' : 'odd' %>-fix d-flex flex-fill">&nbsp;</div>
+                    </div>
+                <% } 
+                
+            } 
+            
+         } %> 
         </div>
-        <div class="row align-middle d-flex align-items-center h-6">Dome A (-3) vs<br />Parrswood B (-3) <strong>11-4</strong>
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-    </div>
-    <div class="col">
-        <div class="row align-middle d-flex align-items-center h-13">Racketeers A(-12H) vs<br />Aerospace A (Scr)  <strong>11-1</strong>
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13">Parrswood A(Scr H) vs<br />Macclesfield  A (-9) <strong>0-15</strong>
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">GHAP A(-6) vs<br />Racketeers B(-3H)  <strong>?</strong>
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">Canute A(-9) vs College Green A (-9)  <strong>5-10</strong><br />
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">Dome A (-3) vs<br />Alderley Park A (Scr H) <strong>11-4</strong>
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">Syddal Park A (-6H) vs<br />College Green B (Scr)  <strong>?</strong>
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">David Lloyd A (-3) vs<br />Shell B (-6) <strong>6-9</strong>
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-13 ">Shell A (Scr H) vs<br />Alderley Park B (Scr) <strong>?</strong>
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="row align-middle d-flex align-items-center h-25 ">Racketeers A (-12H) vs<br />Macclesfield A (-9) 
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-25 ">GHAP A (-6) vs<br />College Green A (-9)
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-25 ">Dome A (-3) vs<br />Syddal Park A (-6H)
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-25 ">Shell B (-6) vs<br />Shell A (Scr H)
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="row align-middle d-flex align-items-center h-50 ">Macclesfield A (-9) vs<br />College Green A (-9)
-            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-        <div class="row align-middle d-flex align-items-center h-50 ">Syddal Park A (-6H) vs<br />Shell B (-6)
-            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="row align-middle d-flex align-items-center h-100">vs<br /></div>
-    </div>
+   <%  } %>
+ 
 </div>
 
 <%- include('footer.ejs') %>
