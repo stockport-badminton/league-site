@@ -54,7 +54,28 @@
     
     <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/custom.css"/>
 
+    <% if (pageTitle == 'Local Badminton Club Information'){ 
+      for (row of result ){ %>
+        <script type="application/ld+json">
+          {
+            "@context": "http://schema.org/",
+            "@type": "SportsClub",
+            "name": "<%= row.name %> Badminton Club",
+            "url": "<%= row.clubWebsite %>",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "<%= row.address %>",
+              "addressLocality": "<%= row.address.match(/(Knutsford|Cheadle Hulme|Macclesfield|Cheadle Heath|East Didsbury|Manchester|Whalley Range|Wilmslow|Mellor|Disley)/g) %>",
+              "addressRegion": "Cheshire",
+              "postalCode": "<%= row.address.match(/([A-Z0-9]{3,4})\s([A-Z0-9]{3,4})/g) %>",
+              "addressCountry": "United Kingdom of Great Britain and Northern Ireland"
+            },
+          }
+          </script>
 
+    <%  }
+
+     } %>
 
   </head>
   <body>
