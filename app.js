@@ -1175,6 +1175,8 @@ const { getAllLeagueTables } = require('./models/league');
     }
 
     // PATCH request to update Player
+    router.post('/player/batch-update',  secured,player_controller.player_batch_update);
+
     router.post('/player/:id',secured, player_controller.player_update_post);
     
     router.get('/admin/results/*', secured,fixture_controller.fixture_detail_byDivision);
@@ -1211,8 +1213,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', secured,player_controller.player_create_get);
-    router.post('/player/batch-update',  secured,player_controller.player_batch_update);
-    // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
+        // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
     router.get('/club/:id', secured,club_controller.club_detail);
     router.get('/club-api/:id', secured,club_controller.club_detail_api);
     router.get('/admin/info/clubs', secured,club_controller.club_list_detail);
