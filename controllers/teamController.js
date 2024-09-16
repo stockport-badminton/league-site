@@ -103,7 +103,9 @@ exports.messer_draw = function(req, res,next) {
     theme: process.env.THEME || 'flatly',
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle : "Messer Tropy Draws and results",
-    pageDescription : "Messer Trophy Draws and results"
+    pageDescription : "Messer Trophy Draws and results",
+    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+    "").toLowerCase()
   });
 }
 
@@ -135,7 +137,9 @@ exports.new_messer_draw = function(req, res,next) {
         teams: otherArray,
         section: req.params.section.toUpperCase().at(0),
         pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section" ,
-        pageDescription : "Messer Trophy Draws and results"
+        pageDescription : "Messer Trophy Draws and results",
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+        "").toLowerCase()
       });
     }
   })

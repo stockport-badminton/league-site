@@ -37,7 +37,9 @@ exports.club_list_detail = function(req, res, next) {
                  error: false,
                  recaptcha : process.env.RECAPTCHA,
                  mapsApiKey: process.env.GMAPSAPIKEY,
-                 venues:JSON.stringify(venueRows)
+                 venues:JSON.stringify(venueRows),
+                 canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+                 "").toLowerCase()
              });
           }
 
@@ -81,6 +83,8 @@ exports.club_detail = function(req, res,done) {
             clubrow: clubrow,
             error: false,
             mapsApiKey: process.env.GMAPSAPIKEY,
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+            "").toLowerCase()
         });
       }
     })

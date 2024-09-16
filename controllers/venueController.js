@@ -16,7 +16,9 @@ exports.venue_list = function(req, res,next) {
            pageTitle : "Venues",
            pageDescription : "Venues",
            result: result,
-           error: false
+           error: false,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
       }
     })

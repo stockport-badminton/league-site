@@ -115,7 +115,9 @@ exports.getAPIKey = function(done){
                   theme:process.env.THEME || 'flatly',
                   pageTitle : "Results Access Approved",
                   pageDescription : "Results Access Approved",
-                  result:JSON.stringify(userBody)
+                  result:JSON.stringify(userBody),
+                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+                  "").toLowerCase()
                 });
               })
               .catch(error => {

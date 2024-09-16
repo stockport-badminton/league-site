@@ -53,6 +53,10 @@
     <%- include('datatables-css.ejs') -%>
     
     <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/custom.css"/>
+    <% if (typeof canonical != 'undefined') { %>
+      <link rel="canonical"
+            href="<%= canonical %>" />
+    <% } %>
 
     <% if (pageTitle == 'Local Badminton Club Information'){ 
       for (row of result ){ %>

@@ -63,7 +63,9 @@ exports.player_game_data = function(req, res,next) {
            pageTitle : "Player Game Data:"+ req.params.fullName,
            pageDescription : "Information about games that "+ req.params.fullName + "played in this season",
            result : rows,
-           fullName: req.params.fullName
+           fullName: req.params.fullName,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
     })
 };
@@ -86,7 +88,9 @@ exports.player_list_clubs_teams = function(req, res) {
              flask_debug: process.env.FLASK_DEBUG || 'false',
              pageTitle : "Player Registrations",
              pageDescription : "List of players registered to teams in the Stockport League",
-             result : rows
+             result : rows,
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+             "").toLowerCase()
          });
       }
     })
@@ -362,7 +366,9 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                     result : manageTeamObject,
                     clubId: rows[0].clubId,
                     superadmin:superadmin,
-                    club:club
+                    club:club,
+                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+                    "").toLowerCase()
                 });
               }
             })
@@ -404,7 +410,9 @@ exports.old_all_player_stats = function (req, res,next){
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
-           result : result
+           result : result,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
     }
   })
@@ -481,7 +489,9 @@ exports.all_player_stats = function (req, res,next){
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
-           query:searchObj
+           query:searchObj,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
     }
   })
@@ -499,7 +509,9 @@ exports.old_all_pair_stats = function (req, res,next){
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
-           result : result
+           result : result,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
     }
   })
@@ -581,7 +593,9 @@ exports.all_pair_stats = function (req, res,next){
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
-           query: searchObj
+           query: searchObj,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+           "").toLowerCase()
        });
     }
   })
@@ -596,7 +610,9 @@ exports.player_create_get = function(req, res, next) {
   }, function(err,results){
     if(err){return next(err)};
     // console.log(results);
-    res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',club_list:results.clubs });
+    res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',club_list:results.clubs,
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+      "").toLowerCase() });
   })
 
 };
@@ -626,7 +642,9 @@ exports.player_create = function(req,res){
           res.send(err)
         }
         else{
-          res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',result:req.body, row:rows });
+          res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',result:req.body, row:rows,
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+            "").toLowerCase() });
           // console.log(req.body);
           // console.log(rows);
         }
@@ -710,7 +728,10 @@ exports.player_batch_create = function(req, res){
 }
 
 exports.player_batch_update = function(req, res){
+  console.log("inside player_batch_update")
+  console.log(req.body)
   Player.updateBulk(req.body,function(err,result){
+    
     if(err){
       res.send(err);
 // console.log(err);
@@ -779,6 +800,7 @@ exports.player_update_get = function(req, res,next) {
 
 // Handle Player update on POST
 exports.player_update_post = function(req, res) {
+  console.log("inside player_update_post")
   let patchObj = {
     "tablename":"player",
     "fields":[

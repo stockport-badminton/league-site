@@ -87,7 +87,9 @@ exports.league_table = function(req,res,next) {
              division : req.params.division.replace('-',' '),
              result : result,
              error : err,
-             season:req.params.season
+             season:req.params.season,
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+             "").toLowerCase()
          });
       }
     })
@@ -110,7 +112,9 @@ exports.all_league_tables = function(req,res,next) {
              pageTitle : "League Tables",
              pageDescription : "Find out how your teams are peforming this season",
              result : result,
-             season:req.params.season
+             season:req.params.season,
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+             "").toLowerCase()
          });
       }
     })

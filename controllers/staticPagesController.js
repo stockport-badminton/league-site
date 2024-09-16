@@ -12,7 +12,9 @@ exports.privacy_policy = function(req, res) {
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Stockport & District Badminton League Privacy Policy",
-        pageDescription : "Privacy Policy for the Stockport and District Badminton League"
+        pageDescription : "Privacy Policy for the Stockport and District Badminton League",
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+        "").toLowerCase()
     });
 }
 
@@ -22,7 +24,9 @@ exports.messer_rules = function(req, res) {
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Messer Tropy Rules",
-        pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition"
+        pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition",
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+        "").toLowerCase()
     });
 }
 
@@ -33,7 +37,9 @@ exports.rules = function(req, res) {
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Stockport & District Badminton League Rules",
-        pageDescription : "Rules and regulations for the Stockport and District Badminton League"
+        pageDescription : "Rules and regulations for the Stockport and District Badminton League",
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+        "").toLowerCase()
     });
 }
 
@@ -43,5 +49,7 @@ exports.upload_scoresheet = function(req,res){
       theme:process.env.THEME || 'flatly',
       pageTitle : "Upload Scorecard",
       pageDescription : "Enter some results!",
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+      "").toLowerCase()
     })
   };

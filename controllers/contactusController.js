@@ -90,7 +90,9 @@ exports.contactus = function(req, res,next){
         message: 'Sorry something went wrong',
         static_path:'/static',
         theme:'flatly',
-        content: errors.array()
+        content: errors.array(),
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+        "").toLowerCase()
       });
       return;
   }
@@ -127,7 +129,9 @@ exports.contactus = function(req, res,next){
                   flask_debug: process.env.FLASK_DEBUG || 'false',
                   pageTitle: 'Contact Us - Success',
                   pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
-                  message: 'Success - we\'ve sent your email to your chosen contact'
+                  message: 'Success - we\'ve sent your email to your chosen contact',
+                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+                  "").toLowerCase()
               });
             })
             .catch(error => {
@@ -176,7 +180,9 @@ exports.contactus = function(req, res,next){
             flask_debug: process.env.FLASK_DEBUG || 'false',
             pageTitle: 'Contact Us - Success',
             pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
-            message: 'Success - we\'ve sent your email to your chosen contact'
+            message: 'Success - we\'ve sent your email to your chosen contact',
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
+            "").toLowerCase()
         });
       })
       .catch(error => {
