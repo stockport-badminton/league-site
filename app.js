@@ -189,8 +189,7 @@
             pageTitle : "Access Denied",
             pageDescription : "Access Denied",
             query:req.query,
-            canonical:('https://' + req.get('host') + req.originalUrl).replace('www.', 
-            '').toLowerCase()
+            canonical:('https://' + req.get('host') + req.originalUrl).replace('www.','').replace('.com','.co.uk').replace('-badders.herokuapp','-badminton')
           });
         } else {
           req.logIn(user, function (err) {
@@ -399,8 +398,7 @@
                 pageTitle : "Table Social Images",
                 pageDescription : "Table Social Images",
                 query:req.query,
-                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                "").toLowerCase()
+                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
               });
           
         }
@@ -738,8 +736,7 @@
             pageTitle: 'Contact Us - Success',
             pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
             message: 'Success - we\'ve sent your email to your chosen contact',
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-            "").toLowerCase()
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
         });
       })
       .catch(error => {
@@ -1196,8 +1193,7 @@ const { getAllLeagueTables } = require('./models/league');
         theme:process.env.THEME || 'flatly',
         pageTitle : "User Profile",
         pageDescription : "User Profile",
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       });
     });
 
@@ -1252,8 +1248,7 @@ const { getAllLeagueTables } = require('./models/league');
          static_path: '/static',
          pageTitle : "Can't find the page your looking for",
          pageDescription : "HTTP 404 Error",
-         canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-         "").toLowerCase()
+         canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
      });
   });
 
@@ -1265,7 +1260,6 @@ const { getAllLeagueTables } = require('./models/league');
       pageTitle : "HTTP 500 Error",
       pageDescription : "HTTP 500 Error",
       error:error,
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-      "").toLowerCase()
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
     });
   });

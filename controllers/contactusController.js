@@ -91,8 +91,7 @@ exports.contactus = function(req, res,next){
         static_path:'/static',
         theme:'flatly',
         content: errors.array(),
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       });
       return;
   }
@@ -130,8 +129,7 @@ exports.contactus = function(req, res,next){
                   pageTitle: 'Contact Us - Success',
                   pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
                   message: 'Success - we\'ve sent your email to your chosen contact',
-                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                  "").toLowerCase()
+                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
               });
             })
             .catch(error => {
@@ -181,8 +179,7 @@ exports.contactus = function(req, res,next){
             pageTitle: 'Contact Us - Success',
             pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
             message: 'Success - we\'ve sent your email to your chosen contact',
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-            "").toLowerCase()
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
         });
       })
       .catch(error => {

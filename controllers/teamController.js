@@ -104,8 +104,7 @@ exports.messer_draw = function(req, res,next) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle : "Messer Tropy Draws and results",
     pageDescription : "Messer Trophy Draws and results",
-    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-    "").toLowerCase()
+    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
   });
 }
 
@@ -138,8 +137,7 @@ exports.new_messer_draw = function(req, res,next) {
         section: req.params.section.toUpperCase().at(0),
         pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section" ,
         pageDescription : "Messer Trophy Draws and results",
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       });
     }
   })

@@ -220,8 +220,7 @@ exports.fixture_outstanding = function(req,res,next){
         pageDescription : "Quick Results Entry",
         result:result,
         stringResult:JSON.stringify(result),
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       });
     }
   })
@@ -265,8 +264,7 @@ exports.fixture_outstanding_post = function(req, res,next) {
                 result:result,
                 zapRes:zapRes,
                 success:true,
-                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                "").toLowerCase()
+                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
               });
             }
           })
@@ -315,8 +313,7 @@ exports.get_fixture_players_details = function(req, res) {
             pageTitle : "Fixture Player Details",
             pageDescription : "Find out who played which matches and in what order",
             result: row,
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-            "").toLowerCase()
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
         });
       }
     })
@@ -383,8 +380,7 @@ exports.getScorecard = function(req, res) {
             pageTitle : "Scorecard Info",
             pageDescription : "View scorecard for this match",
             result: row,
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-            "").toLowerCase()
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
         });
       }
     })
@@ -531,8 +527,7 @@ exports.fixture_detail_byDivision = function(req,res) {
                 jsonResult:griddedData,
                 error: false,
                 division : divisionString,
-                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                "").toLowerCase()
+                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
             }
             if(req.path.search('admin') != -1){
               if (req.user._json["https://my-app.example.com/role"] !== undefined){
@@ -657,8 +652,7 @@ exports.fixture_detail_byDivision = function(req,res) {
               jsonResult:griddedData,
               error: false,
               division : divisionString,
-              canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-              "").toLowerCase()
+              canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
           }
           if(req.path.search('admin') != -1){
             if (req.user._json["https://my-app.example.com/role"] !== undefined){
@@ -749,8 +743,7 @@ exports.fixture_get_summary = function(req, res,next) {
                     result : recentResults,
                     row : upcomingFixtures,
                     assets : JSON.parse(response.body).resources,
-                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                    "").toLowerCase()
+                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                 });
               }
           })
@@ -838,8 +831,7 @@ exports.full_fixture_post = function(req,res,next){
         pageDescription : "Something went wrong",
         result:rows,
         errors: errors.array(),
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       })
     })
     
@@ -1143,8 +1135,7 @@ exports.full_fixture_post = function(req,res,next){
                                     awayTeamNomPlayers:awayTeamNomPlayers,
                                     homeTeamFixturePlayers:homeTeamFixturePlayers,
                                     awayTeamFixturePlayers:awayTeamFixturePlayers,
-                                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                                    "").toLowerCase()
+                                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                                   })
                                 })
                                 .catch(error => {
@@ -1234,8 +1225,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
                                     scorecard : renderData,
                                     data:data,
                                     errors : errors.array(),
-                                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                                    "").toLowerCase()
+                                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                                 });
                               }
                           })
@@ -1347,8 +1337,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
                 pageTitle : "Stockport & District Badminton League Scorecard Upload",
                 pageDescription : "Upload your scorecard and send to the website",
                 scorecard:req.body,
-                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                "").toLowerCase()
+                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
               });
             })
             .catch(error => {
@@ -1430,8 +1419,7 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
                                       pageDescription : "Show result of uploading scorecard",
                                       result : renderData,
                                       data : data,
-                                      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                                      "").toLowerCase()
+                                      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                                   });
                                 }
                             })
@@ -1520,8 +1508,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                                           pageDescription : "Show result of uploading scorecard",
                                           result : renderData,
                                           data : rows[0],
-                                          canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                                          "").toLowerCase()
+                                          canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                                       });
                                     }
                                 })
@@ -1610,8 +1597,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                                         pageDescription : "Show result of uploading scorecard",
                                         result : renderData,
                                         data : data,
-                                        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                                        "").toLowerCase()
+                                        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                                     });
                                   }
                               })
@@ -1638,8 +1624,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
         pageTitle : "Scorecard",
         pageDescription : "Enter some results!",
         result:rows,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       })
     })
     
@@ -1653,8 +1638,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
         pageTitle : "Scorecard",
         pageDescription : "Enter some results!",
         result:rows,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       })
     })
     
@@ -1694,8 +1678,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                   pageTitle : "Scorecard",
                   pageDescription : "Enter some results!",
                   result:rows,
-                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                  "").toLowerCase()
+                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                 })
               }
             })
@@ -1738,8 +1721,7 @@ exports.messer_scorecard = function(req,res,next){
                 pageTitle : "Scorecard",
                 pageDescription : "Enter some results!",
                 result:rows,
-                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                "").toLowerCase()
+                canonical:("https://" + req.get("host") + req.originalUrl).replace("www.","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
               })
             }
           })
@@ -1756,8 +1738,7 @@ exports.messer_scorecard = function(req,res,next){
         flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Stockport & District Badminton League Scorecard Upload",
         pageDescription : "Upload your scorecard and send to the website",
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-        "").toLowerCase()
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
     });
   };
 
@@ -1767,8 +1748,7 @@ exports.messer_scorecard = function(req,res,next){
       theme:process.env.THEME || 'flatly',
       pageTitle : "Upload Scorecard",
       pageDescription : "Enter some results!",
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-      "").toLowerCase()
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
     })
   }
 
@@ -1797,8 +1777,7 @@ exports.messer_scorecard = function(req,res,next){
       pageTitle : "Scorecard Received - No Errors",
       pageDescription : "Enter some results!",
       scorecardData: req.body,
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-      "").toLowerCase()
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
     })
   }
 

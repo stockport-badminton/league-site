@@ -88,8 +88,7 @@ exports.league_table = function(req,res,next) {
              result : result,
              error : err,
              season:req.params.season,
-             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-             "").toLowerCase()
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
          });
       }
     })
@@ -113,8 +112,7 @@ exports.all_league_tables = function(req,res,next) {
              pageDescription : "Find out how your teams are peforming this season",
              result : result,
              season:req.params.season,
-             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-             "").toLowerCase()
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
          });
       }
     })

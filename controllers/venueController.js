@@ -17,8 +17,7 @@ exports.venue_list = function(req, res,next) {
            pageDescription : "Venues",
            result: result,
            error: false,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
       }
     })

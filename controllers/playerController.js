@@ -64,8 +64,7 @@ exports.player_game_data = function(req, res,next) {
            pageDescription : "Information about games that "+ req.params.fullName + "played in this season",
            result : rows,
            fullName: req.params.fullName,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     })
 };
@@ -89,8 +88,7 @@ exports.player_list_clubs_teams = function(req, res) {
              pageTitle : "Player Registrations",
              pageDescription : "List of players registered to teams in the Stockport League",
              result : rows,
-             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-             "").toLowerCase()
+             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
          });
       }
     })
@@ -367,8 +365,7 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                     clubId: rows[0].clubId,
                     superadmin:superadmin,
                     club:club,
-                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                    "").toLowerCase()
+                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                 });
               }
             })
@@ -411,8 +408,7 @@ exports.old_all_player_stats = function (req, res,next){
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
   })
@@ -490,8 +486,7 @@ exports.all_player_stats = function (req, res,next){
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
            query:searchObj,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
   })
@@ -510,8 +505,7 @@ exports.old_all_pair_stats = function (req, res,next){
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
   })
@@ -594,8 +588,7 @@ exports.all_pair_stats = function (req, res,next){
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
            query: searchObj,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-           "").toLowerCase()
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
   })
@@ -611,8 +604,7 @@ exports.player_create_get = function(req, res, next) {
     if(err){return next(err)};
     // console.log(results);
     res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',club_list:results.clubs,
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-      "").toLowerCase() });
+      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton") });
   })
 
 };
@@ -643,8 +635,7 @@ exports.player_create = function(req,res){
         }
         else{
           res.render('player_form', { pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path:'/static', theme:'flatly',result:req.body, row:rows,
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-            "").toLowerCase() });
+            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton") });
           // console.log(req.body);
           // console.log(rows);
         }

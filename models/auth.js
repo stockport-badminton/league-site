@@ -116,8 +116,7 @@ exports.getAPIKey = function(done){
                   pageTitle : "Results Access Approved",
                   pageDescription : "Results Access Approved",
                   result:JSON.stringify(userBody),
-                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.", 
-                  "").toLowerCase()
+                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
                 });
               })
               .catch(error => {
