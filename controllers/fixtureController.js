@@ -425,6 +425,8 @@ exports.fixture_calendars = function(req,res,next){
         next(err);
       }
       else{
+          let rows = result
+          result = rows.filter(row => row.homeClub.indexOf('No Club') == -1)
           let id = (searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
 
           const jcal = new ICAL.Component('vcalendar');
