@@ -368,6 +368,26 @@ exports.fixture_detail = function(req, res) {
 };
 
 // Display detail page for a specific Fixture
+exports.fixture_event_detail = function(req, res) {
+  Fixture.getFixtureEventById(req.params.id, function(err,row){
+    if (err){
+      res.send(err);
+      // console.log(err);
+    }
+    else{
+      res.render('beta/viewEventDetails', {
+          static_path: '/static',
+          pageTitle : 'Event Details: '+ row[0].homeTeam + " vs " + row[0].awayTeam,
+          pageDescription : "View scorecard for this match",
+          fixtureDetails: row[0],
+          mapsApiKey:process.env.GMAPSAPIKEY,
+          canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+      });
+    }
+  })
+};
+
+// Display detail page for a specific Fixture
 exports.getScorecard = function(req, res) {
     Fixture.getScorecardDataById(req.params.id, function(err,row){
       if (err){

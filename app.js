@@ -1075,6 +1075,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* GET request for one Fixture. */
     router.get('/fixture/:id',checkJwt, fixture_controller.fixture_detail);
+    router.get('/event/:id/:date-:homeTeam-:awayTeam', fixture_controller.fixture_event_detail);
 
     /* GET request for one Fixture. */
     router.get('/scorecard/fixture/:id', fixture_controller.getScorecard);

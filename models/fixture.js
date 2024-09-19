@@ -219,7 +219,51 @@ exports.getCardsDueToday = function(done){
 }
 
 exports.getupComing = function(done){
-  db.get().query("SELECT a.fixId, a.date, a.status, a.homeTeam, a.homeTeamId, a.address, a.venueName, a.mapLink, a.Lat, a.Lng, team.id AS awayTeamId, team.name AS awayTeam, a.homeScore, a.awayScore FROM (SELECT fixture.id AS fixId, fixture.date, fixture.status, team.id AS homeTeamId, team.name AS homeTeam, venue.address as address, venue.name as venueName, venue.gMapUrl as mapLink, venue.Lat, venue.Lng, fixture.homeScore, fixture.awayScore, fixture.awayTeam FROM fixture JOIN team on fixture.homeTeam = team.id join venue on team.venue = venue.id ) AS a JOIN team WHERE a.awayTeam = team.id AND homeScore IS NULL AND status NOT IN ('rearranged' , 'rearranging') AND date BETWEEN ADDDATE(NOW(), - 1) AND ADDDATE(NOW(), 7) ORDER BY date",function(err,result){
+  db.get().query(`SELECT 
+    fixture.id,
+    fixture.date,
+    homeTeam.name AS homeTeam,
+    homeClub.name AS homeClub,
+    homeClub.clubWebsite,
+    awayTeam.name AS awayTeam,
+    awayClub.name AS awayClub,
+    division.name as divisionName,
+    venue.Lat,
+    venue.Lng,
+    venue.name AS venueName,
+    venue.address AS venueAddress,
+    venue.gMapUrl AS venueLink,
+    fixture.status,
+    fixture.homeScore,
+    fixture.awayScore,
+    concat(teamCaptain.first_name," ",teamCaptain.family_name) as teamCaptain,
+    teamCaptain.id as teamCaptainId,
+    concat(matchSecretary.first_name," ",matchSecretary.family_name) as matchSecretary,
+    matchSecretary.id as matchSecretaryId
+FROM
+    fixture
+        JOIN
+    team homeTeam ON fixture.homeTeam = homeTeam.id
+        JOIN
+    club homeClub ON homeTeam.club = homeClub.id
+        JOIN
+    venue ON homeTeam.venue = venue.id
+        JOIN
+    team awayTeam ON fixture.awayTeam = awayTeam.id
+        JOIN
+    club awayClub ON awayTeam.club = awayClub.id
+        JOIN
+    season ON (fixture.date > season.startDate
+        AND fixture.date < season.endDate)
+	join player teamCaptain on (homeTeam.id = teamCaptain.team AND teamCaptain.teamCaptain = 1)
+    join player matchSecretary on (homeClub.id = matchSecretary.club AND matchSecretary.matchSecrertary = 1)
+    join division on homeTeam.division = division.id
+WHERE
+    fixture.homeScore IS NULL
+        AND fixture.status NOT IN ('rearranged' , 'rearranging')
+        AND fixture.date BETWEEN ADDDATE(NOW(), - 1) AND ADDDATE(NOW(), 7)
+group by fixture.id
+ORDER BY date`,function(err,result){
     if (err) {
       console.log(err);
       return done(err);
@@ -407,6 +451,54 @@ exports.getScorecardDataById = function(fixtureId,done){
 // GET
 exports.getById = function(fixtureId,done){
   db.get().query('SELECT * FROM `fixture` WHERE `id` = ?',fixtureId, function (err, rows){
+    if (err) return done(err);
+    done(null,rows);
+  })
+}
+
+exports.getFixtureEventById = function(fixtureId,done){
+  db.get().query(`SELECT 
+    fixture.id,
+    fixture.date,
+    homeTeam.name AS homeTeam,
+    homeClub.name AS homeClub,
+    homeClub.clubWebsite,
+    awayTeam.name AS awayTeam,
+    awayClub.name AS awayClub,
+    division.name as divisionName,
+    venue.name AS venueName,
+    venue.address AS venueAddress,
+    venue.gMapUrl AS venueLink,
+    venue.Lat,
+    venue.Lng,
+    venue.placeId,
+    fixture.status,
+    fixture.homeScore,
+    fixture.awayScore,
+    concat(teamCaptain.first_name," ",teamCaptain.family_name) as teamCaptain,
+    teamCaptain.id,
+    concat(matchSecretary.first_name," ",matchSecretary.family_name) as matchSecretary,
+    matchSecretary.id
+FROM
+    fixture
+        JOIN
+    team homeTeam ON fixture.homeTeam = homeTeam.id
+        JOIN
+    club homeClub ON homeTeam.club = homeClub.id
+        JOIN
+    venue ON homeTeam.venue = venue.id
+        JOIN
+    team awayTeam ON fixture.awayTeam = awayTeam.id
+        JOIN
+    club awayClub ON awayTeam.club = awayClub.id
+        JOIN
+    season ON (fixture.date > season.startDate
+        AND fixture.date < season.endDate)
+	join player teamCaptain on (homeTeam.id = teamCaptain.team AND teamCaptain.teamCaptain = 1)
+    join player matchSecretary on (homeClub.id = matchSecretary.club AND matchSecretary.matchSecrertary = 1)
+    join division on homeTeam.division = division.id
+WHERE
+    fixture.id = ?`,fixtureId, function (err, rows){
     if (err) return done(err);
     done(null,rows);
   })
