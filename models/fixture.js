@@ -223,6 +223,8 @@ exports.getupComing = function(done){
     fixture.id,
     fixture.date,
     homeTeam.name AS homeTeam,
+    homeTeam.startTime,
+    homeTeam.endTime,
     homeClub.name AS homeClub,
     homeClub.clubWebsite,
     awayTeam.name AS awayTeam,
@@ -461,6 +463,8 @@ exports.getFixtureEventById = function(fixtureId,done){
     fixture.id,
     fixture.date,
     homeTeam.name AS homeTeam,
+    homeTeam.startTime,
+    homeTeam.endTime,
     homeClub.name AS homeClub,
     homeClub.clubWebsite,
     awayTeam.name AS awayTeam,
@@ -476,9 +480,9 @@ exports.getFixtureEventById = function(fixtureId,done){
     fixture.homeScore,
     fixture.awayScore,
     concat(teamCaptain.first_name," ",teamCaptain.family_name) as teamCaptain,
-    teamCaptain.id,
+    teamCaptain.id as teamCaptainId,
     concat(matchSecretary.first_name," ",matchSecretary.family_name) as matchSecretary,
-    matchSecretary.id
+    matchSecretary.id as matchSecretaryId
 FROM
     fixture
         JOIN
