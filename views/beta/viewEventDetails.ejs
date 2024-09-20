@@ -9,19 +9,32 @@ MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
              + MyDate.getFullYear(); %>
 
 <h1 class="w-100"><%= fixtureDetails.homeTeam + " vs " + fixtureDetails.awayTeam %></h1>
-<div class="col-md-12 col-lg-9 col-xl-6 no-gutters">
-<div id="map" class="row col-6"></div>
-<div id="map" class="row col-6"><img src="https://res.cloudinary.com/hvunsveuh/image/upload/co_rgb:000,l_text:Roboto_120_bold:<%= fixtureDetails.homeTeam %>vs/fl_layer_apply,g_south_west,x_10,y_140/co_rgb:000,l_text:Roboto_120_bold:<%= fixtureDetails.awayTeam %>/fl_layer_apply,g_south_west,x_10,y_30/f_auto/q_auto/w_auto:breakpoints_200_1920_30_10:300/social-<%= fixtureDetails.divisionName %>.png" /></div>
-<div id="FixtureSummary" class="row no-gutters col-12">
-  <div class="col-4">
-    Date : <%= MyDateString %>
-  </div>
-  <div class="col-8"></div>
-  <div class="col-4"><%= fixtureDetails.homeTeam %></div>
-  <div class="col-1">vs</div>
-  <div class="col-4"><%= fixtureDetails.awayTeam %></div>
-  <div class="col-3"></div>
+<div class="row no-gutters w-100 align-self-start">
+    <div class="col-auto">
+      Date : <%= MyDateString %>
+    </div>
+    <div class="col-auto"></div>
 </div>
+<div class="row w-100 align-self-start">
+    <div class="col-auto"><%= fixtureDetails.homeTeam %></div>
+    <div class="col-auto">vs</div>
+    <div class="col-auto"><%= fixtureDetails.awayTeam %></div>
+    <div class="col-auto"></div>
+</div>
+<div class="row w-100 align-self-start">
+    <div class="col-auto">Venue: <%= fixtureDetails.venueName + " @ " + fixtureDetails.venueAddress %></div>
+</div>
+<div class="row w-100 align-self-start">
+    <div class="col-auto">Team Captain: <%= fixtureDetails.teamCaptain %></div>
+    <div class="col-auto">Match Secretary: <%= fixtureDetails.matchSecretary %></div>
+</div>
+<div class="row no-gutters w-100 align-self-start">
+    <div id="eventMap" class="col-6"></div>
+    <div class="col-6">
+        <img src="https://res.cloudinary.com/hvunsveuh/image/upload/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.homeTeam %>vs/fl_layer_apply,g_south_west,x_10,y_140/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.awayTeam %>/fl_layer_apply,g_south_west,x_10,y_30/f_auto/q_auto/w_auto:breakpoints_200_1920_30_10:300/social-<%= fixtureDetails.divisionName %>.png" alt="<%= fixtureDetails.homeTeam + " vs " + fixtureDetails.awayTeam %>" />
+    </div>
+</div>
+
 
 <%- include('footer.ejs') %>
 <script>
@@ -50,7 +63,7 @@ await place.fetchFields({
   });
   console.log(place.location)
 
-  map = new Map(document.getElementById("map"), {
+  map = new Map(document.getElementById("eventMap"), {
     center: place.location,
     zoom: 15,
     mapId: "DEMO_MAP_ID",

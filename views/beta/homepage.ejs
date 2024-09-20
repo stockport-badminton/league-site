@@ -63,7 +63,7 @@
                    + MyDate.getFullYear();
     %>
     <div class="col-3"><%= MyDateString %></div>
-    <div class="col"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></div>
+    <div class="col"><a href="<%= '/event/' + result.id + '/' + MyDateString.replaceAll("/","") + '-' + result.homeTeam + '-' + result.awayTeam %>"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></a></div>
   </div>
   <% }) } %>
 </div>
