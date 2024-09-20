@@ -13,25 +13,26 @@ MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
     <div class="col-auto">
       Date : <%= MyDateString %>
     </div>
-    <div class="col-auto"></div>
+    <div class="col-1"></div>
+    <div class="col-auto">Start Time: <%= fixtureDetails.startTime %></div>
 </div>
 <div class="row w-100 align-self-start">
-    <div class="col-auto"><%= fixtureDetails.homeTeam %></div>
-    <div class="col-auto">vs</div>
-    <div class="col-auto"><%= fixtureDetails.awayTeam %></div>
-    <div class="col-auto"></div>
+    <div class="col-auto text-left"><%= fixtureDetails.homeTeam %></div>
+    <div class="col-auto text-left">vs</div>
+    <div class="col-auto text-left"><%= fixtureDetails.awayTeam %></div>
 </div>
 <div class="row w-100 align-self-start">
-    <div class="col-auto">Venue: <%= fixtureDetails.venueName + " @ " + fixtureDetails.venueAddress %></div>
+    <div class="col text-left">Venue: <%= fixtureDetails.venueName + " @ " + fixtureDetails.venueAddress %></div>
 </div>
-<div class="row w-100 align-self-start">
-    <div class="col-auto">Team Captain: <%= fixtureDetails.teamCaptain %></div>
-    <div class="col-auto">Match Secretary: <%= fixtureDetails.matchSecretary %></div>
+<div class="row align-self-start w-100">
+    <div class="col-auto text-left">Team Captain: <%= fixtureDetails.teamCaptain %></div>
+    <div class="col-1"></div>
+    <div class="col-auto text-left">Match Secretary: <%= fixtureDetails.matchSecretary %></div>
 </div>
-<div class="row no-gutters w-100 align-self-start">
-    <div id="eventMap" class="col-6"></div>
-    <div class="col-6">
-        <img src="https://res.cloudinary.com/hvunsveuh/image/upload/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.homeTeam %>vs/fl_layer_apply,g_south_west,x_10,y_140/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.awayTeam %>/fl_layer_apply,g_south_west,x_10,y_30/f_auto/q_auto/w_auto:breakpoints_200_1920_30_10:300/social-<%= fixtureDetails.divisionName %>.png" alt="<%= fixtureDetails.homeTeam + " vs " + fixtureDetails.awayTeam %>" />
+<div class="row no-gutters w-100">
+    <div id="eventMap" class="col-12 col-md-6"></div>
+    <div class="col-12 col-md-6">
+        <img src="https://res.cloudinary.com/hvunsveuh/image/upload/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.homeTeam %>vs/fl_layer_apply,g_south_west,x_10,y_140/co_rgb:000,l_text:Roboto_110_bold:<%= fixtureDetails.awayTeam %>/fl_layer_apply,g_south_west,x_10,y_30/f_auto/q_auto/w_auto:breakpoints_200_1920_30_10:300/social-<%= fixtureDetails.divisionName %>.png" class="img-fluid" alt="<%= fixtureDetails.homeTeam + " vs " + fixtureDetails.awayTeam %>" />
     </div>
 </div>
 
