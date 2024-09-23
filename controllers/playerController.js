@@ -783,7 +783,8 @@ exports.player_update_get = function(req, res,next) {
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
-           result : result
+           result : result,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
   })
