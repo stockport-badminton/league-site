@@ -870,7 +870,10 @@ exports.full_fixture_post = function(req,res,next){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        logger.log(FixtureIdResult);
+        for (i of FixtureIdResult){
+          logger.log(i)
+        }
+        // logger.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -1340,7 +1343,10 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
           next(err)
         }
         else {
-          logger.log(rows);
+          for (i of rows){
+            logger.log(i)
+          }
+          // logger.log(rows);
           let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
           const msg = {
             to: 'stockport.badders.results@gmail.com',

@@ -73,7 +73,12 @@ exports.club_detail = function(req, res,done) {
       }
       else{
         logger.log("clubrow");
-        logger.log(clubrow);
+        for (row of clubrow){
+          logger.log(row)
+          console.log(row)
+        }
+        // logger.log(JSON.stringify(clubrow));
+        // console.log(clubrow)
         res.status(200);
         res.render('beta/club-contact', {
             static_path: '/static',
