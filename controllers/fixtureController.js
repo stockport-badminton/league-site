@@ -870,9 +870,7 @@ exports.full_fixture_post = function(req,res,next){
       else {
         // console.log("getFixtureId err")
         // console.log(res)
-        for (i of FixtureIdResult){
-          logger.log(i)
-        }
+        
         // logger.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
@@ -1343,9 +1341,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
           next(err)
         }
         else {
-          for (i of rows){
-            logger.log(i)
-          }
+          console.log(rows)
           // logger.log(rows);
           let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
           const msg = {
