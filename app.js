@@ -253,7 +253,8 @@
           const stream = canvas.createJPEGStream()
           stream.pipe(out)
           out.on('finish', () =>  console.log('The Jpg file was created.'))
-          res.write(buffer);
+          res.write(buffer)
+          res.end();
       })
     })
 
