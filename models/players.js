@@ -365,7 +365,7 @@ exports.newGetPlayerStats = function(searchObj,done){
   }
   if (!searchObj.division){
     console.log("no division id");
-    whereValue.push("%");
+    // whereValue.push("%");
   }
   else {
     whereValue.push(searchObj.division)
@@ -559,7 +559,7 @@ FROM
   JOIN player player ON playerId = player.id
   AND player.gender Like ?
   JOIN team team ON team.id = player.team
-  AND team.name LIKE ? AND team.division = ?
+  AND team.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND team.division = ?' : ''}
   JOIN club club ON club.id = player.club
   AND club.name LIKE ?
 WHERE
