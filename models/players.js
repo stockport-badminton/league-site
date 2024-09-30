@@ -442,9 +442,9 @@ exports.newGetPlayerStats = function(searchObj,done){
       END AS gameType
     FROM
       seasonFixtureGame
-      JOIN player homePlayer1 ON seasonFixtureGame.homePlayer1 = homePlayer1.id
+      JOIN player${ season } homePlayer1 ON seasonFixtureGame.homePlayer1 = homePlayer1.id
       AND seasonFixtureGame.homePlayer1 != 0
-      JOIN player homePlayer2 ON seasonFixtureGame.homePlayer2 = homePlayer2.id
+      JOIN player${ season } homePlayer2 ON seasonFixtureGame.homePlayer2 = homePlayer2.id
       AND seasonFixtureGame.homePlayer2 != 0
       AND homePlayer2 != 0
   ),
@@ -469,7 +469,7 @@ exports.newGetPlayerStats = function(searchObj,done){
       team.division
     FROM
       gameTypeGender
-      join team team on homeTeam = team.id
+      join team${ season } team on homeTeam = team.id
     UNION all
     SELECT
       gameTypeGender.id,
@@ -491,7 +491,7 @@ exports.newGetPlayerStats = function(searchObj,done){
       team.division
     FROM
       gameTypeGender
-      join team team on homeTeam = team.id
+      join team${ season } team on homeTeam = team.id
     UNION all
     select
       gameTypeGender.id,
@@ -513,7 +513,7 @@ exports.newGetPlayerStats = function(searchObj,done){
       team.division
     FROM
       gameTypeGender
-      join team team on homeTeam = team.id
+      join team${ season } team on homeTeam = team.id
     UNION all
     select
       gameTypeGender.id,
@@ -535,7 +535,7 @@ exports.newGetPlayerStats = function(searchObj,done){
       team.division
     FROM
       gameTypeGender
-      join team team on homeTeam = team.id
+      join team${ season } team on homeTeam = team.id
   )
 SELECT
   CONCAT(
@@ -556,11 +556,11 @@ SELECT
   team.name AS teamName
 FROM
   gameSummary
-  JOIN player player ON playerId = player.id
+  JOIN player${ season } player ON playerId = player.id
   AND player.gender Like ?
-  JOIN team team ON team.id = player.team
+  JOIN team${ season } team ON team.id = player.team
   AND team.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND team.division = ?' : ''}
-  JOIN club club ON club.id = player.club
+  JOIN club${ season } club ON club.id = player.club
   AND club.name LIKE ?
 WHERE
 gameType like ?

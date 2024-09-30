@@ -5,45 +5,46 @@
 
     <h1>Player Stats</h1>
     <div class="row col-12">
-      <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Season
-          </button>
-          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a class="dropdown-item" href="/player-stats">Current</a>
-            <a class="dropdown-item" href="/player-stats/season-20212022">2021-2022</a>
-            <a class="dropdown-item" href="/player-stats/season-20192020">2019-2020</a>
-            <a class="dropdown-item" href="/player-stats/season-20182019">2018-2019</a>
+      <form action="" id="statsFilter">
+        <div class="form-group row">
+          <div class="col-auto">
+            <label for="seasonSelect">Season</label>
+            <select class="form-control" name="seasonSelect" id="seasonSelect">
+              <option value="0">Current</option>
+              <option value="20232024">2023-2024</option>
+              <option value="20222023">2022-2023</option>
+              <option value="20212022">2021-2022</option>
+            </select>
           </div>
-      </div>
-      <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Division
-            </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-              <a class="dropdown-item" href="/player-stats">All</a>
-              <a class="dropdown-item" href="/player-stats/division-7">Prem</a>
-              <a class="dropdown-item" href="/player-stats/division-8">Division 1</a>
-              <a class="dropdown-item" href="/player-stats/division-9">Division 2</a>
-              <a class="dropdown-item" href="/player-stats/division-10">Division 2</a>
-              <a class="dropdown-item" href="/player-stats/division-11">Division 3</a>
-            </div>
-      </div>
-      <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Type
-          </button>
-          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a class="dropdown-item" href="/player-stats">All</a>
-            <a class="dropdown-item" href="/player-stats/gameType-Mens">Mens</a>
-            <a class="dropdown-item" href="/player-stats/gameType-Ladies">Ladies</a>
-            <a class="dropdown-item" href="/player-stats/gameType-Mixed">Mixed</a>
+          <div class="col-auto">
+            <label for="divisionSelect">Division</label>
+            <select class="form-control" name="divisionSelect" id="divisionSelect">
+              <option value="0">All</option>
+              <option value="Premier">Premier</option>
+              <option value="Division-1">Division 1</option>
+              <option value="Division-2">Division 2</option>
+              <option value="Division-3">Division 3</option>
+            </select>
           </div>
-      </div>     
-    </div>
-    <div class="row col-12">
-      <form action="">
-        
+          <div class="col-auto">
+            <label for="gender">Gender</label>
+            <select class="form-control" name="gender" id="gender">
+              <option value="0">All</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label for="gameType">Game Type</label>
+            <select class="form-control" name="gameType" id="gameType">
+              <option value="0">All</option>
+              <option value="Mens">Mens</option>
+              <option value="Ladies">Ladies</option>
+              <option value="Mixed">Mixed</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary">Update</button>
       </form>
     </div>
     <div class="table-responsive">
@@ -159,6 +160,35 @@
         fixedHeader: true
     } );
   } );
+
+  document.addEventListener('DOMContentLoaded', (event) => {
+
+
+
+function updateFilter(e){
+  e.preventDefault()
+  let queryString = ""
+  for (row of document.forms[0]){
+      console.log(row.name)
+      console.log(row.value)
+      if (row.name.indexOf('division') >= 0 && row.value != 0) {
+          queryString+= '/'+row.value 
+      }
+      if (row.name.indexOf('season') >= 0 && row.value != 0) {
+          queryString+= '/'+row.value 
+      }
+      if (row.name.indexOf('gender') >= 0 && row.value !=0) {
+          queryString+= '/gender-'+row.value 
+      }
+      if (row.name.indexOf('gameType') >= 0 && row.value != 0) {
+          queryString+= '/gameType-'+row.value 
+      }
+  }
+  console.log(queryString)
+  window.location.assign(window.location.origin + '/player-stats'+queryString)
+}
+document.querySelector("#statsFilter > button").addEventListener('click',updateFilter);
+})
 </script>
 
 </body>
