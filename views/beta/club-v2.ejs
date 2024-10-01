@@ -18,7 +18,7 @@
           <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
             <th>Manage Players</th>
           <% } %>
-          <th>Match Night</th>
+          <th>Match Details</th>
           <th>Club Night</th>
           <th>Venue</th>
         </tr>
@@ -29,35 +29,38 @@
 
       
 
-      <tr>
-        <% if (row['clubWebsite'] != ''){ %>
-          <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
-        <% }
-        else { %>
-
-          <td><%= row['name'] %></td>
-        <% } %>
-          <td>
-            <button type="button" class="btn btn-primary openForm" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['clubId'] %>">
-              Get in touch
-            </button><br/>
-            <a href="/club/<%= row['clubId'] %>">Login for Contact info</a>
-          </td>
-          <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
-            <td><a href="/manage/players/club-<%= row['name'] %>">Manage Players</a></th>
+        <tr>
+          <% if (row['clubWebsite'] != ''){ %>
+            <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
+          <% }
+          else { %>
+  
+            <td><%= row['name'] %></td>
           <% } %>
-          <td><%= row['matchNightText'] %></td>
-          <td><%= row['clubNightText'] %></td>
-          <%
-            if (row['venue'] == row['matchVenueName']) { %>
-          <td><a href="<%= row['clubVenueURL'] %>" target="_blank"><%= row['address'] %></a></td>
-          <% }
-            else { %>
-              <td>Club: <a href="<%= row['clubVenueURL'] %>" target="_blank"><%= row['address'] %></a><br />
-              Matches: <a href="<%= row['matchVenueURL'] %>" target="_blank"><%= row['matchVenueName'] %></a></td>
-          <% }
-          %>
-      </tr>
+            <td>
+              <button type="button" class="btn btn-primary openForm" data-bs-toggle="modal" data-bs-target="#exampleModal" data-club="<%= row['id'] %>">
+                Get in touch
+              </button><br/>
+              <a href="/club/<%= row['id'] %>">Login for Contact info</a>
+            </td>
+            <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
+              <td><a href="/manage/players/club-<%= row['name'] %>">Manage Players</a></th>
+            <% } %>
+            <td><% if (row.teams.length > 1){ 
+               for (team of row.teams){ %>
+                <%= team.name %>: <a href="<%= team.gMapURL %>" target="_blank"><%= team.address %></a><br />
+                <%= team.matchDay %><br />
+              <% }
+              %>
+              
+            <% } else { %>
+              All Teams: <a href="<%= row.teams[0].gMapURL %>" target="_blank"><%= row.teams[0].address %></a><br />
+              <%= row.teams[0].matchDay %><br />
+            <% } %>
+              </td>
+            <td><%= row['clubNightText'] %></td>
+            <td><a href="<%= row['gMapUrl'] %>" target="_blank"><%= row['address'] %></a></td>
+        </tr>
     <% 
      }
       }) %>
@@ -117,8 +120,13 @@ function initMap() {
   var map = new google.maps.Map(
       document.getElementById('map'), {zoom: 10, center: StockportTownHall});
   var data = <%- venues %>
+  console.log(data)
+  console.log(<%- venues %>)
   data.forEach(function(i){
     var point = {lat:i.Lat, lng:i.Lng}
+    console.log(i)
+    console.log(point)
+
     var contentString = '<div id="content">'+
       '<div id="siteNotice">'+
       '</div>'+ i.venueInfoBox 

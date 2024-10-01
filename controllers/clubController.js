@@ -28,12 +28,56 @@ exports.club_list_detail = function(req, res, next) {
         Venue.getVenueClubs(function(err,venueRows){
           if(err) {res.status(500); next(err);}
           else {
+            let newClubArray = []
+            let newClubElem = {}
+            let prevRowElem = {}
+            let teamElem = {}
+            for (row of result){
+              if (row.clubId == prevRowElem.id ){
+                teamElem = {}
+                teamElem.name = row.teamName
+                teamElem.venue = row.teammatchvenue
+                teamElem.gMapUrl = row.teamgmap
+                teamElem.address = row.teamaddress
+                teamElem.matchDay = row.matchDay
+                if (prevRowElem.teams[prevRowElem.teams.length -1].venue != row.teammatchvenue){
+                  prevRowElem.teams.push(teamElem)
+                }
+              }
+              else {
+                newClubElem = {}
+                newClubElem.id = row.clubId
+                newClubElem.name = row.name
+                newClubElem.venue = row.clubvenue
+                newClubElem.gMapUrl = row.clubgmap
+                newClubElem.address = row.clubaddress
+                newClubElem.matchNightText = row.matchNightText
+                newClubElem.clubNightText = row.clubNightText
+                newClubElem.clubWebsite = row.clubWebsite
+                newClubElem.teams = []
+                teamElem = {}
+                teamElem.name = row.teamName
+                teamElem.venue = row.teammatchvenue
+                teamElem.gMapUrl = row.teamgmap
+                teamElem.address = row.teamaddress
+                teamElem.matchDay = row.matchDay
+                newClubElem.teams.push(teamElem)
+                if (prevRowElem != {}){
+                  newClubArray.push(prevRowElem)
+                }
+                prevRowElem = newClubElem
+              }             
+            }
+            newClubArray.push(newClubElem)
+            newClubArray.shift()
+            // console.log(JSON.stringify(newClubArray))
+
             res.status(200);
             res.render('beta/club-v2', {
                  static_path: '/static',
                  pageTitle : "Local Badminton Club Information",
                  pageDescription : "Find your local badminton clubs, when they play, where they play.",
-                 result: result,
+                 result: newClubArray,
                  error: false,
                  recaptcha : process.env.RECAPTCHA,
                  mapsApiKey: process.env.GMAPSAPIKEY,
