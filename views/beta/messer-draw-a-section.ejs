@@ -13,22 +13,25 @@
         for (let j=0; j < 16; j++){ 
             if (j % Math.pow(2,i) == 0){ 
                 if (i == 0){
-                    if (j == 8){ 
+                    if (j == 7){ 
                         fixCount++
                         %>
                         <div class="row align-middle d-flex align-items-center h-6">
+                            <div class="row col-12 g-0 p-0 m-0 d-flex">
                         <% if (typeof teams[1+offset] !== 'undefined'){ %>
-                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> vs<br /><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong> <% } %>
+                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> <strong><%= teams[1+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><%= teams[1+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong></div> <% } %>
                             <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
                         </div>
                    <% }
-                    else if (j == 9) { 
+                    else if (j == 8) { 
                         fixCount++
                         %>
                         <div class="row align-middle d-flex align-items-center h-6">
-                        <% if (typeof teams[2+offset] !== 'undefined'){ %>
-                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %> vs<br /><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %> <strong><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong> <% } %>
                             <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
+                        <% if (typeof teams[2+offset] !== 'undefined'){ %>
+                            <div class="row col-12 g-0 p-0 m-0 d-flex">
+                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %>  <strong><%= teams[2+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %>  <strong><%= teams[2+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong></div> <% } %>
+                            
                         </div>
                     <% }
                     else { %>
@@ -40,9 +43,8 @@
                     %>
                     <div class="row align-middle d-flex align-items-center h-<%= i > 0 ? (i > 1 ? ( i > 2 ? (i > 3 ? 100 : 50) : 25 ) : 13 ) : 6 %>">
                         <% if (typeof teams[fixCount+offset] !== 'undefined'){ %>
-
-                        
-                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %> vs<br /><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %> <strong><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong> <% } %>
+                            <div class="row col-12 g-0 p-0 m-0 d-flex">
+                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %>  <strong><%= teams[fixCount+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %>  <strong><%= teams[fixCount+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong></div> <% } %>
                         <div style="" class="bracket <%= fixCount % 2 == 0 ? 'even' : 'odd' %>-fix d-flex flex-fill">&nbsp;</div>
                     </div>
                 <% } 

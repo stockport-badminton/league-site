@@ -121,8 +121,65 @@ exports.new_messer_draw = function(req, res,next) {
       console.log(err)
     }
     else{
+      // console.log(rows)
       var otherArray = rows.reduce(function(obj,row){
-        obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeScore":row.homeScore,"awayScore":row.awayScore}; 
+        // console.log(row)
+        let homeTeamAdjHandicap = ''
+        let awayTeamAdjHandicap = ''
+        let homeHand = ''
+        let awayHand = ''
+        homeHand = row.homeTeamHandicap.indexOf('H') >= 0 ? 'H' : ''
+        awayHand = row.awayTeamHandicap.indexOf('H') >= 0 ? 'H' : ''
+        if (homeHand == 'H' && awayHand == 'H'){
+          homeHand = ''
+          awayHand = ''
+        }
+        if ((row.homeTeamHandicap.toString().indexOf('-') >= 0)&&(row.awayTeamHandicap.toString().indexOf('-') >= 0)){
+          console.log("both negative")
+          if (Math.abs(parseInt(row.homeTeamHandicap)) > Math.abs(parseInt(row.awayTeamHandicap))){
+            homeTeamAdjHandicap = Math.round((-21 * (Math.abs(parseInt(row.homeTeamHandicap)) - Math.abs(parseInt(row.awayTeamHandicap))))/(21 + Math.abs(parseInt(row.awayTeamHandicap))))
+            // homeTeamAdjHandicap = homeTeamAdjHandicap < 0 ? Math.ceil(homeTeamAdjHandicap) : Math.floor(homeTeamAdjHandicap)
+            awayTeamAdjHandicap = 'Scr'
+          }
+          else if (Math.abs(parseInt(row.homeTeamHandicap)) == Math.abs(parseInt(row.awayTeamHandicap))){
+            homeTeamAdjHandicap = 'Scr'
+            awayTeamAdjHandicap = 'Scr'
+          }
+          else {
+            awayTeamAdjHandicap = Math.round((-21 * (Math.abs(parseInt(row.awayTeamHandicap)) - Math.abs(parseInt(row.homeTeamHandicap))))/(21 + Math.abs(parseInt(row.homeTeamHandicap))))
+            // awayTeamAdjHandicap = awayTeamAdjHandicap < 0 ? Math.ceil(awayTeamAdjHandicap) : Math.floor(awayTeamAdjHandicap)
+            homeTeamAdjHandicap = 'Scr'
+          }
+        }
+        else if ((row.homeTeamHandicap.toString().indexOf('+') >= 0)&&(row.awayTeamHandicap.toString().indexOf('+') >= 0)){
+          console.log("both positive")
+          if (Math.abs(parseInt(row.homeTeamHandicap)) > Math.abs(parseInt(row.awayTeamHandicap))){
+            homeTeamAdjHandicap = Math.round((21 * (Math.abs(parseInt(row.homeTeamHandicap)) - Math.abs(parseInt(row.awayTeamHandicap))))/(21 - Math.abs(parseInt(row.awayTeamHandicap))))
+            if (homeTeamAdjHandicap > 0){
+              homeTeamAdjHandicap = '+'+homeTeamAdjHandicap
+            }
+            awayTeamAdjHandicap = 'Scr'
+          }
+          else if (Math.abs(parseInt(row.homeTeamHandicap)) == Math.abs(parseInt(row.awayTeamHandicap))){
+            homeTeamAdjHandicap = 'Scr'
+            awayTeamAdjHandicap = 'Scr'
+          }
+          else {
+            awayTeamAdjHandicap = Math.round((21 * (Math.abs(parseInt(row.awayTeamHandicap)) - Math.abs(parseInt(row.homeTeamHandicap))))/(21 - Math.abs(parseInt(row.homeTeamHandicap))))
+            if (awayTeamAdjHandicap > 0){
+              awayTeamAdjHandicap = '+'+awayTeamAdjHandicap
+            }
+            // awayTeamAdjHandicap = awayTeamAdjHandicap < 0 ? Math.floor(awayTeamAdjHandicap) : Math.ceil(awayTeamAdjHandicap)
+            homeTeamAdjHandicap = 'Scr'
+          }
+        }
+        else {
+          homeTeamAdjHandicap = row.homeTeamHandicap.replace('H','')
+          awayTeamAdjHandicap = row.awayTeamHandicap.replace('H','')
+        }
+        // console.log(homeTeamAdjHandicap+homeHand)
+        // console.log(awayTeamAdjHandicap+awayHand)
+        obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeAdjHandicap":homeTeamAdjHandicap+homeHand,"awayAdjHandicap":awayTeamAdjHandicap+awayHand,"homeScore":row.homeScore,"awayScore":row.awayScore}; 
         return obj;
       }, {});
       

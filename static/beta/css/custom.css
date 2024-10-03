@@ -183,11 +183,11 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 }
 
 .h-13 {
-  height: 13%!important;
+  height: 13vmin!important;
 }
 
 .h-6 {
-  height: 6%!important;
+  height: 6vmin!important;
 }
 .w-2 {
   width: 2%!important;
@@ -221,6 +221,7 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 .bracket-container .row {
   padding:5px 0px;
   text-align: left;
+  font-size:1.8vmin;
 }
 .other-tooltip {
   position:relative; /* making the .tooltip span a container for the tooltip text */
