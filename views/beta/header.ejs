@@ -212,6 +212,20 @@
 
      } %>
 
-     <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script><script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script><script>window.amplitude.add(window.sessionReplay.plugin({sampleRate: 1}));window.amplitude.init('ac53e6f7d18ab6b2904f0414cc39fa81', {"autocapture":{"elementInteractions":true}});</script>
+     <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+     <script>
+      window.amplitude.init('ac53e6f7d18ab6b2904f0414cc39fa81', {"autocapture":{"elementInteractions":true}});
+     </script>
+     <% if (typeof user !== 'undefined') { %>
+     <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+     <script>
+      window.amplitude.add(window.sessionReplay.plugin({sampleRate: 1}));
+      
+      
+      window.amplitude.setUserId('<%= user.user_id %>');
+      console.log(<%= user %>);
+    </script>
+      <% } %>
+      
   </head>
   <body>
