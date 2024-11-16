@@ -19,7 +19,7 @@
     gtag('set', 'user_properties', { 
     'crm_id' : '<%= user.user_id %>' 
     });
-    Sentry.setUser({ id: <%= user.user_id %> });
+    Sentry.setUser({ id: '<%= user.user_id %>' });
       
     <% } else{ %>
         
@@ -225,7 +225,6 @@
       
       
       window.amplitude.setUserId('<%= user.user_id %>');
-      console.log(<%= user %>);
     </script>
       <% } %>
       
