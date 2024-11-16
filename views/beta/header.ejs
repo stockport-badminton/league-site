@@ -19,7 +19,10 @@
     gtag('set', 'user_properties', { 
     'crm_id' : '<%= user.user_id %>' 
     });
-    Sentry.setUser({ id: '<%= user.user_id %>' });
+    window.sentryOnLoad = function () {
+      // in here, Sentry is ensured to be loaded & fully available
+      Sentry.setUser({ id: '<%= user.user_id %>' });
+    };
       
     <% } else{ %>
         
@@ -222,9 +225,8 @@
      <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
      <script>
       window.amplitude.add(window.sessionReplay.plugin({sampleRate: 1}));
-      
-      
       window.amplitude.setUserId('<%= user.user_id %>');
+
     </script>
       <% } %>
       
