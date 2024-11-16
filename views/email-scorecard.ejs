@@ -1391,7 +1391,7 @@
         }
 
         function getSignedRequest(file){
-            const xhr = new XMLHttpRequest();
+            // const xhr = new XMLHttpRequest();
             const name = file.name;
             const lastDot = name.lastIndexOf('.');
             const fileName = name.substring(0, lastDot);
@@ -1399,40 +1399,41 @@
             const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text
             const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text
             let filename = homeTeam + '-' + awayTeam + '.' + ext
-            xhr.open('GET', '/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type));
-            xhr.onreadystatechange = () => {
-                if(xhr.readyState === 4){
-                if(xhr.status === 200){
-                    const response = JSON.parse(xhr.responseText);
-                    uploadFile(file, response.signedRequest, response.url);
-                    console.log(response.url);
-                }
-                else{
-                    alert('Could not get signed URL.');
-                }
-                }
-            };
-            xhr.send();
+            try {
+              let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
+              if (!getSignReq.ok) {
+                throw new Error(`Could not get signed URL`);
+              }
+              else {
+                let response = await getSignReq.json()
+                console.log(response)
+                uploadFile(file, response.signedUrl);
+                console.log(response.signedUrl);
+                document.getElementById('scoresheet-url').value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
+                document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
+              }
+            }
+            catch (error){
+              console.error(error.message);
+            }
         }
 
-        function uploadFile(file, signedRequest, url){
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', signedRequest);
-            xhr.onreadystatechange = () => {
-                if(xhr.readyState === 4){
-                if(xhr.status === 200){
-                    document.getElementById('scoresheet-url').value = url;
-                    document.getElementById('scoresheet-img').src = url;
-
-                }
-                else{
-                    logger.log(xhr);
-                    alert('Could not upload file.');
-                }
-                }
-            };
-            xhr.send(file);
+        async function uploadFile(file, signedRequest){
+            // const xhr = new XMLHttpRequest();
+            console.log(file)
+            const uploaded = await fetch(signedRequest, {
+              method: "PUT",
+              body: file,
+              headers:{"Content-Type":file.type},
+            });
+            if (uploaded.status == 200) {
+              // Successfully uploaded image
+              alert('Uploaded successfuly to ' + signedRequest)
+            } else {
+              alert('failed to upload')
+            }
         }
+
     $(document).ready(function() {
       <% if (hasResult || hasErrors || hasScorecard){ %>
         console.log(<%- JSON.stringify(user) %>);
