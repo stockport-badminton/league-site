@@ -1390,7 +1390,7 @@
           gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
         }
 
-        function getSignedRequest(file){
+        async function getSignedRequest(file){
             // const xhr = new XMLHttpRequest();
             const name = file.name;
             const lastDot = name.lastIndexOf('.');
