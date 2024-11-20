@@ -59,7 +59,7 @@ exports.getMesser = function(searchTerms,done){
   var seasonVal = SEASON
 
   if (!searchTerms.season){
-    console.log("no season");
+     //console.log("no season");
   }
   else {
     season = searchTerms.season;
@@ -80,7 +80,7 @@ FROM
     messer${season} messer ON messer.homeTeam = homeTeam.id and messer.awayTeam = awayTeam.id
     where messer.section like ?`,searchTerms.section, function (err, rows){
     if (err) return done(err);
-    // console.log(this.sql);
+     //console.log(this.sql);
     done(null, rows);
   })
 }
@@ -92,25 +92,25 @@ exports.getTeams = function(searchObject,done){
     var sql = 'SELECT * FROM `team`';
     var whereTerms = [];
     if (!searchObject.divisionId){
-      console.log("no division id");
+       //console.log("no division id");
     }
     else {
       whereTerms.push('`division` = '+searchObject.divisionId);
     }
     if (!searchObject.teamName){
-      console.log("no teamName");
+       //console.log("no teamName");
     }
     else {
       whereTerms.push('`name` = "'+searchObject.teamName + '"');
     }
     if (!searchObject.clubid){
-      console.log("no club id");
+       //console.log("no club id");
     }
     else {
       whereTerms.push('`club` = '+searchObject.clubid);
     }
     if (!searchObject.section){
-      console.log("no section");
+       //console.log("no section");
     }
     else {
       whereTerms.push('`section` = "'+searchObject.section+'"');
@@ -127,7 +127,7 @@ exports.getTeams = function(searchObject,done){
       conditions = ' WHERE ' + conditions;
       // console.log(conditions);
       sql = sql + conditions
-      console.log(sql)
+       //console.log(sql)
     }
     db.get().query(sql, function (err, rows){
       if (err) {

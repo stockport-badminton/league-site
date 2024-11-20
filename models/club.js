@@ -99,7 +99,7 @@ exports.clubDetailbyId = function(clubId,done){
 
 exports.getContactDetailsById = function(clubId,done){
   db.get().query('SELECT club.name AS clubName, team.name AS teamName, venue.id AS venueId, venue.name AS venueName, venue.address AS address, matchVenue.id AS matchVenueId, matchVenue.name AS matchVenueName, matchVenue.address AS matchVenueAddress, matchNightText AS matchNight, CONCAT(matchSec.first_name, " ", matchSec.family_name) AS matchSecretary, CAST(AES_DECRYPT(matchSec.playerTel, "euvbdijnyvshmcf") AS CHAR) AS matchSecTel, CAST(AES_DECRYPT(matchSec.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS matchSecEmail, CONCAT(clubSec.first_name, " ", clubSec.family_name) AS clubSecretary, CAST(AES_DECRYPT(clubSec.playerTel, "euvbdijnyvshmcf") AS CHAR) AS clubSecTel, CAST(AES_DECRYPT(clubSec.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS clubSecEmail, CONCAT(teamCaptain.first_name, " ", teamCaptain.family_name) AS teamCaptain, CAST(AES_DECRYPT(teamCaptain.playerTel, "euvbdijnyvshmcf") AS CHAR) AS teamCaptainTel, CAST(AES_DECRYPT(teamCaptain.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS teamCaptainEmail FROM club JOIN team ON team.club = club.id JOIN venue ON club.venue = venue.id JOIN venue matchVenue ON club.matchVenue = matchVenue.id JOIN player matchSec ON club.id = matchSec.club and matchSec.matchSecrertary = 1 JOIN player clubSec ON ((club.id = clubSec.club and clubSec.clubSecretary = 1) OR (club.clubSec = clubSec.id)) JOIN player teamCaptain ON ((team.id = teamCaptain.team and teamCaptain.teamCaptain = 1) OR (team.captain = teamCaptain.id)) WHERE club.id = ? group by teamCaptain order by teamName',clubId, function (err, rows){
-    console.log(this.sql)
+     //console.log(this.sql)
     if (err) return done(err);
     done(null,rows);
   })
@@ -112,7 +112,7 @@ exports.getContactDetailsById = function(clubId,done){
 // GET
 exports.getById = function(clubId,done){
   db.get().query('SELECT * FROM `club` WHERE `id` = ?',clubId, function (err, rows){
-    console.log(this.sql)
+     //console.log(this.sql)
     if (err) return done(err);
     done(null,rows);
   })

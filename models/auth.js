@@ -28,11 +28,11 @@ exports.getManagementAPIKey = function(done){
         else {
           //console.log(body)
           if (body.access_token){
-            console.log('token granted')
+             //console.log('token granted')
             return done(null,body.access_token)
           }
           else {
-            console.log('recaptcha fail')
+             //console.log('recaptcha fail')
             return done(null,"token fail")
           }
         }
@@ -92,7 +92,7 @@ exports.getAPIKey = function(done){
         },
         json:true
       }
-      console.log(options);
+       //console.log(options);
       request(options,function(err,response,userBody){
         //console.log(options);
         if (err){

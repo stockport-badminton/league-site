@@ -61,7 +61,7 @@ exports.getLeagueTable = function(division,season,done){
   }
   division = division.replace('-',' ');
   db.get().query('SELECT c.name, c.played, c.pointsFor, c.pointsAgainst FROM (SELECT team.name, b.played, b.pointsFor - team.penalties as pointsFor, b.pointsAgainst, team.division FROM (SELECT a.date, SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId FROM (SELECT fixture.date, CASE WHEN fixture.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.homeScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.homeScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, homeScore AS pointsFor, awayScore AS pointsAgainst, fixture.homeTeam AS teamId FROM fixture join season where season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate UNION ALL SELECT fixture.date, CASE WHEN fixture.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.awayScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.awayScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, awayScore AS pointsFor, homeScore AS pointsAgainst, fixture.awayTeam AS teamId FROM fixture join season where season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate) AS a GROUP BY a.teamid) AS b JOIN team'+seasonName+' WHERE team.id = b.teamId) AS c JOIN division WHERE c.division = division.id AND division.name = ? AND division.league = 1 ORDER BY pointsFor DESC',[season,season,division],function(err,result){
-    console.log(this.sql);
+     //console.log(this.sql);
     if (err){
       // console.log(this.sql)
       return done(err);
@@ -85,7 +85,7 @@ exports.getAllLeagueTables = function(season,done){
     divisionSeason = season + ' as division'
   }
   db.get().query('SELECT division.name AS divisionName, id AS division, c.name, c.played, c.pointsFor, c.pointsAgainst, c.divRank FROM (SELECT team.name, b.played, b.pointsFor - team.penalties as pointsFor, b.pointsAgainst, team.division, team.divRank FROM (SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId FROM (SELECT fixture.date, CASE WHEN fixture.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.homeScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.homeScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, homeScore AS pointsFor, awayScore AS pointsAgainst, fixture.homeTeam AS teamId FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate AND fixture.status in ("conceded","complete",NULL,"","outstanding") UNION ALL SELECT fixture.date, CASE WHEN fixture.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.awayScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.awayScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, awayScore AS pointsFor, homeScore AS pointsAgainst, fixture.awayTeam AS teamId FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate AND fixture.status in ("conceded","complete",NULL,"","outstanding")) AS a GROUP BY a.teamid) AS b JOIN team'+seasonName+' WHERE team.id = b.teamId) AS c JOIN division'+divisionSeason+' WHERE c.division = division.id AND division.league = 1 ORDER BY division , pointsFor DESC , divRank',[season,season],function(err,result){
-    // console.log(this.sql)
+     //console.log(this.sql)
     if (err) return done(err);
     done(null,result);
   })

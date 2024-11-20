@@ -180,7 +180,7 @@ exports.getLateScorecards = function(req, res) {
       }
       else{
         if (row.length > 0){
-          console.log(JSON.stringify(row));
+           //console.log(JSON.stringify(row));
           for (var x = 0; x < row.length; x++){
               var fixture = {};
               fixture.date = row[x].date;
@@ -439,7 +439,7 @@ exports.fixture_calendars = function(req,res,next){
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
-    console.log(searchObj)
+     //console.log(searchObj)
     Fixture.getFixtureDetails(searchObj, function(err,result){
       if (err){
         next(err);
@@ -494,11 +494,11 @@ exports.fixture_calendars = function(req,res,next){
 
 // Display detail page for a specific Fixture
 exports.fixture_detail_byDivision = function(req,res) {
-  console.log(req.user)
+   //console.log(req.user)
     let divisionString = "";
     let searchObj = {}
     if (req.params.division !== undefined){
-      console.log(req.params)
+       //console.log(req.params)
       divisionString = req.params.division.replace('-',' ')
       Division.getIdByURLParam(req.params.division, function(err,row){
       if (row.length < 1){
@@ -540,7 +540,7 @@ exports.fixture_detail_byDivision = function(req,res) {
                 jsonResult = JSON.stringify(griddedData);
               }
               res.status(200);
-              console.log(division)
+               //console.log(division)
               let renderObject = {
                 static_path: '/static',
                 pageTitle : "Fixtures & Results: " + divisionString,
@@ -607,7 +607,7 @@ exports.fixture_detail_byDivision = function(req,res) {
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
-    console.log(req.session.user)
+     //console.log(req.session.user)
     if(req.path.search('admin') != -1){
       if (req.user._json["https://my-app.example.com/role"] !== undefined){
         if (req.user._json["https://my-app.example.com/role"] == "admin"){
@@ -617,7 +617,7 @@ exports.fixture_detail_byDivision = function(req,res) {
         }
       }
     }
-    console.log(searchObj)
+     //console.log(searchObj)
     Fixture.getFixtureDetails(searchObj, function(err,result){
       if (err){
         next(err);
@@ -654,13 +654,13 @@ exports.fixture_detail_byDivision = function(req,res) {
             let filterArray = ['season','division','club','team']
             
             for (filter of filterArray){
-              console.log(filter)
-              console.log(Object.entries(searchObj))
+               //console.log(filter)
+               //console.log(Object.entries(searchObj))
               let sqlParams = Object.entries(searchObj).filter(obj => obj[0] === filter)
               if (sqlParams.length > 0){
                 titleString += sqlParams[0][1]
                 titleString += " "
-                console.log("titleString:" + titleString)
+                 //console.log("titleString:" + titleString)
               }
             }
           }        
@@ -792,10 +792,10 @@ exports.fixture_update_by_team_name = function(req, res,next){
   Fixture.updateByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-      console.log(err);
+       //console.log(err);
     }
     else{
-      console.log(result)
+       //console.log(result)
       res.send(result);
     }
   })
@@ -806,10 +806,10 @@ exports.fixture_rearrange_by_team_name = function(req, res,next){
   Fixture.rearrangeByTeamNames(req.body,function(err,result){
     if(err){
       next(err);
-       console.log(err);
+        //console.log(err);
     }
     else{
-       console.log(result)
+        //console.log(result)
       res.send(result);
     }
   })
@@ -1136,7 +1136,7 @@ exports.full_fixture_post = function(req,res,next){
                               // console.log(emailData);
                               ejs.renderFile('views/emails/websiteUpdated.ejs', {data:emailData}, {debug:true}, function(err, str){
                                 if (err) console.log(err);
-                                console.log("logged in user email:" + req.body.email);
+                                 //console.log("logged in user email:" + req.body.email);
                                 const msg = {
                                   to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
                                   bcc: 'bigcoops@gmail.com',
@@ -1337,11 +1337,11 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
   scorecardObj['email'] = req.body['email']
       Fixture.createScorecard(scorecardObj,function(err,rows){
         if (err){
-          console.log(err)
+           //console.log(err)
           next(err)
         }
         else {
-          console.log(rows)
+           //console.log(rows)
           // logger.log(rows);
           let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
           const msg = {
@@ -1353,7 +1353,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
           };
           sgMail.send(msg)
             .then(()=>{
-              console.log(msg)
+               //console.log(msg)
               res.render('email-scorecard', {
                 static_path: '/static',
                 theme: process.env.THEME || 'flatly',
@@ -1468,7 +1468,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
   
   Fixture.getScorecardById(req.params.id,(err,rows) => {
     if(err){
-      console.log(err);
+       //console.log(err);
       next(err)
     }
     else{
@@ -1559,7 +1559,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
   exports.fixture_populate_scorecard_fromUrl = function(req,res,next){
     //console.log(data);
     //console.log(data.date);
-    console.log(req.params);
+     //console.log(req.params);
     
     let data = req.params;
     //TODO tidy the chain below up
@@ -1696,13 +1696,21 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
               }
               else{
                 var user = JSON.parse(userBody);
-                res.render('email-scorecard',{
-                  static_path:'/static',
-                  theme:process.env.THEME || 'flatly',
-                  pageTitle : "Scorecard",
-                  pageDescription : "Enter some results!",
-                  result:rows,
-                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                Fixture.getMissingScorecardPhotos(user[0].email, function (err, fixtures) {
+                  if (err) {
+                    next(err);
+                  } 
+                  else {
+                    res.render('email-scorecard',{
+                      static_path:'/static',
+                      theme:process.env.THEME || 'flatly',
+                      pageTitle : "Scorecard",
+                      pageDescription : "Enter some results!",
+                      result:rows,
+                      fixtures:fixtures,
+                      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                    })
+                  }
                 })
               }
             })
@@ -1788,7 +1796,7 @@ exports.messer_scorecard = function(req,res,next){
       }
     };
     msg.to = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : req.body.email);
-    console.log(msg);
+     //console.log(msg);
     sgMail.send(msg)
     .then(()=>res.send("Message Sent"))
     .catch(error => logger.log(error.toString()));
@@ -1819,3 +1827,30 @@ exports.fixture_update_post = function(req, res) {
       }
     })
 };
+
+exports.add_scorecard_photo = function(req,res,next){
+  Fixture.updateScorecardPhoto(req.params.id, req.body.imgURL,function(err,row){
+    if (err){
+      res.send(err);
+      // console.log(err);
+    }
+    else{
+      const msg = {
+        to: 'stockport.badders.results@gmail.com',
+        from: 'stockport.badders.results@stockport-badminton.co.uk',
+        subject: 'scorecard updated',
+        text: `a scorecard has been updated with a photo: ${req.body.imgURL} check the result here: https://tameside-badminton.co.uk/populated-scorecard-beta/${req.params.id}`,
+        html: `<p>a scorecard has been updated with a photo: <a href="${req.body.imgURL}">${req.body.imgURL}}</a><br />Check the result here: <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">Confirm</a> or <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}</a></p>`
+      };
+      sgMail.send(msg)
+        .then(()=>{
+           //console.log(msg)
+          res.sendStatus(200);
+        })
+        .catch(error => {
+          logger.log(error.toString());
+          next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
+        })
+    }
+  })
+}

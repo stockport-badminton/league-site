@@ -33,7 +33,7 @@ exports.create = function(fixtureObj,done){
     sql = sql + updateVars + ') VALUES (' + updateValues + ')';
     // console.log(sql);
     db.get().query(sql,updateArrayVars,function(err,result){
-      console.log(this.sql)
+       //console.log(this.sql)
       if (err) return done(err);
       done(null,result);
     });
@@ -45,7 +45,7 @@ exports.create = function(fixtureObj,done){
 
 exports.getScorecardById = function(fixtureId,done){
   db.get().query('SELECT * FROM `scorecardstore` WHERE `id` = ?',fixtureId, function (err, rows){
-    console.log(this.sql);
+     //console.log(this.sql);
     if (err) return done(err);
     done(null,rows);
   })
@@ -76,7 +76,7 @@ exports.createScorecard = function(fixtureObj,done){
     sql = sql + updateVars + ') VALUES (' + updateValues + ')';
     // console.log(sql);
     db.get().query(sql,updateArrayVars,function(err,result){
-      console.log(this.sql)
+       //console.log(this.sql)
       if (err) return done(err);
       done(null,result);
     });
@@ -120,21 +120,21 @@ exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
   var sqlArray = []
   var seasonName = ''
   if (!fixtureObj.club){
-    console.log("no club name");
+     //console.log("no club name");
   }
   else {
     searchTerms.push('c.name = ?');
     sqlArray.push(fixtureObj.club);
   }
   if (!fixtureObj.team){
-    console.log("no team name");
+     //console.log("no team name");
   }
   else {
     searchTerms.push('c.teamName = ?');
     sqlArray.push(fixtureObj.team);
   }
   if (!fixtureObj.season || fixtureObj.season == SEASON){
-    console.log("no season");
+     //console.log("no season");
     searchTerms.push('season.name = ? AND c.date > season.startDate AND c.date < season.endDate');
     sqlArray.push(SEASON);
   }
@@ -143,7 +143,7 @@ exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
     sqlArray.push(fixtureObj.season);
     seasonName = fixtureObj.season
   }
-  console.log(searchTerms)
+   //console.log(searchTerms)
 
   if (searchTerms.length > 0) {
     var conditions = searchTerms.join(' AND ');
@@ -158,7 +158,7 @@ exports.getMatchPlayerOrderDetails = function(fixtureObj,done){
 
   db.get().query("SELECT c.* FROM (SELECT fixturePlayers.*, club"+seasonName+".name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as teamName, homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as oppositionName, playerNames.Man1, playerNames.Man1Rank, Man1Team.name as Man1TeamName, playerNames.Man2, playerNames.Man2Rank, Man2Team.name as Man2TeamName, playerNames.Man3, playerNames.Man3Rank, Man3Team.name as Man3TeamName, playerNames.Lady1, playerNames.Lady1Rank, Lady1Team.name as Lady1TeamName, playerNames.Lady2, playerNames.Lady2Rank, Lady2Team.name as Lady2TeamName, playerNames.Lady3, playerNames.Lady3Rank, Lady3Team.name as Lady3TeamName FROM (SELECT fixture.id, fixture.date, fixture.homeTeam AS Team, fixture.awayTeam AS Opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS Man1, homeMan1.rank AS Man1Rank, homeMan1.team AS Man1TeamId, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS Man2, homeMan2.rank AS Man2Rank, homeMan2.team AS Man2TeamId, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS Man3, homeMan3.rank AS Man3Rank, homeMan3.team AS Man3TeamId, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS Lady1, homeLady1.rank AS Lady1Rank, homeLady1.team AS Lady1TeamId, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS Lady2, homeLady2.rank AS Lady2Rank, homeLady2.team AS Lady2TeamId, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS Lady3, homeLady3.rank AS Lady3Rank, homeLady3.team AS Lady3TeamId FROM fixture JOIN player homeMan1 ON fixture.homeMan1 = homeMan1.id JOIN player homeMan2 ON fixture.homeMan2 = homeMan2.id JOIN player homeMan3 ON fixture.homeMan3 = homeMan3.id JOIN player homeLady1 ON fixture.homeLady1 = homeLady1.id JOIN player homeLady2 ON fixture.homeLady2 = homeLady2.id JOIN player homeLady3 ON fixture.homeLady3 = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture.awayTeam AS Team, fixture.homeTeam AS Opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS Man1, awayMan1.rank AS Man1Rank, awayMan1.team AS Man1TeamId, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS Man2, awayMan2.rank AS Man2Rank, awayMan2.team AS Man2TeamId, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS Man3, awayMan3.rank AS Man3Rank, awayMan3.team AS Man3TeamId, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS Lady1, awayLady1.rank AS Lady1Rank, awayLady1.team AS Lady1TeamId, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS Lady2, awayLady2.rank AS Lady2Rank, awayLady2.team AS Lady2TeamId, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS Lady3, awayLady3.rank AS Lady3Rank, awayLady3.team AS Lady3TeamId FROM fixture JOIN player awayMan1 ON fixture.awayMan1 = awayMan1.id JOIN player awayMan2 ON fixture.awayMan2 = awayMan2.id JOIN player awayMan3 ON fixture.awayMan3 = awayMan3.id JOIN player awayLady1 ON fixture.awayLady1 = awayLady1.id JOIN player awayLady2 ON fixture.awayLady2 = awayLady2.id JOIN player awayLady3 ON fixture.awayLady3 = awayLady3.id) AS playerNames JOIN team"+seasonName+" homeTeam ON playerNames.Team = homeTeam.id JOIN team"+seasonName+" awayTeam ON playerNames.Opposition = awayTeam.id join team"+seasonName+" Man1Team on playerNames.Man1TeamID = Man1Team.id join team"+seasonName+" Man2Team on playerNames.Man2TeamID = Man2Team.id join team"+seasonName+" Man3Team on playerNames.Man3TeamID = Man3Team.id join team"+seasonName+" Lady1Team on playerNames.Lady1TeamID = Lady1Team.id join team"+seasonName+" Lady2Team on playerNames.Lady2TeamID = Lady2Team.id join team"+seasonName+" Lady3Team on playerNames.Lady3TeamID = Lady3Team.id) AS fixturePlayers JOIN club"+seasonName+" ON club"+seasonName+".id = clubId) AS c "+conditions+" ORDER BY teamName , date DESC"+limit,sqlArray,function(err,rows){
      logger.log(this.sql)
-    console.log(this.sql)
+     //console.log(this.sql)
     if (err) {
       console.log(err);
       return done(err);
@@ -283,7 +283,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   var seasonName = ''
   var clubSeasonName = ''
   if (!fixtureObj.club){
-    console.log("no club name");
+     //console.log("no club name");
   }
   else {
     searchTerms.push('(e.homeClubName = ? OR e.awayClubName = ?)');
@@ -291,7 +291,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     sqlArray.push(fixtureObj.club);
   }
   if (!fixtureObj.team){
-    console.log("no team name");
+     //console.log("no team name");
   }
   else {
     searchTerms.push('(e.homeTeam = ? OR e.awayTeam = ?)');
@@ -299,14 +299,14 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     sqlArray.push(fixtureObj.team);
   }
   if (!fixtureObj.division){
-    console.log("no division name");
+     //console.log("no division name");
   }
   else {
     searchTerms.push('division = ?');
     sqlArray.push(fixtureObj.division);
   }
   if (!fixtureObj.season){
-    console.log("no season");
+     //console.log("no season");
     searchTerms.push('season.name = ? AND e.date > season.startDate AND e.date < season.endDate');
     sqlArray.push(SEASON);
   }
@@ -316,7 +316,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
     seasonName = fixtureObj.season + ' as team'
     clubSeasonName = fixtureObj.season + ' as club'
   }
-  console.log(searchTerms)
+   //console.log(searchTerms)
 
   if (searchTerms.length > 0) {
     var conditions = searchTerms.join(' AND ');
@@ -332,7 +332,7 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
   } */
 
   db.get().query('select e.* from ( SELECT d.*, division.name as divisionName FROM ( SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS awayTeam, team.club AS awayClub, team.division FROM (SELECT team.name AS homeTeam, team.id as homeTeamId, team.club AS homeClub, fixture.id AS fixtureId, fixture.date AS date, fixture.awayTeam AS awayTeamId, fixture.status, fixture.homeScore, fixture.awayScore FROM fixture JOIN team'+seasonName+' WHERE team.id = fixture.homeTeam) AS a JOIN team'+seasonName+' WHERE team.id = a.awayTeamId) AS b JOIN club'+clubSeasonName+' WHERE club.id = b.homeClub) AS c JOIN club'+clubSeasonName+' WHERE club.id = c.awayClub) AS d join division on division.id = d.division) as e JOIN season'+ conditions +' ORDER BY e.date',sqlArray, function (err, result){
-      console.log(this.sql)
+       //console.log(this.sql)
       if (err) {
         //console.log(this.sql)
         return done(err);
@@ -344,8 +344,8 @@ exports.getClubFixtureDetails = function(fixtureObj, done){
 
 exports.getFixtureDetails = function(searchObj, done){
   const filterArray = ['season','division','club','team']
-  console.log("passed to getFixtureDetails")
-  console.log(searchObj)
+   //console.log("passed to getFixtureDetails")
+   //console.log(searchObj)
   let fixtureObj = {}
   let searchTerms = [];
   let sqlArray = []
@@ -371,7 +371,7 @@ exports.getFixtureDetails = function(searchObj, done){
   const checkSeason = function(season){
     let firstYear = parseInt(season.slice(0,4))
     let secondYear = parseInt(season.slice(4))
-    console.log(firstYear+ " "+ secondYear)
+     //console.log(firstYear+ " "+ secondYear)
     if (secondYear - firstYear != 1){
       return false
     }
@@ -417,7 +417,7 @@ exports.getFixtureDetails = function(searchObj, done){
     db.get().query("select fixture.id, fixture.date, homeTeam.name as homeTeam, homeClub.name as homeClub, awayTeam.name as awayTeam, awayClub.name as awayClub, homeTeam.division as division, venue.address as venueName, venue.gMapUrl as venueLink, fixture.status, fixture.homeScore, fixture.awayScore from fixture join team"+season+" homeTeam on fixture.homeTeam = homeTeam.id join club"+season+" homeClub on homeTeam.club = homeClub.id join venue ON homeTeam.venue = venue.id join team"+season+" awayTeam on fixture.awayTeam = awayTeam.id join club"+season+" awayClub on awayTeam.club = awayClub.id join season on (fixture.date > season.startDate and fixture.date < season.endDate ) where fixture.status in ('complete','outstanding','rearranging','rearranged','conceded') AND season.name = ?"+whereTerms,sqlArray, function (err, result){
       // console.log(this.sql)
       if (err) {
-        console.log(this.sql)
+         //console.log(this.sql)
         // logger.log(this.sql)
         return done(err);
       }
@@ -538,7 +538,7 @@ exports.getFixtureId = function(obj,done){
     var sql = 'select id from (select fixture.id, homeTeam, awayTeam from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ?';
     // console.log(obj);
     db.get().query(sql,[SEASON,obj.awayTeam, obj.homeTeam],function(err,result){
-      console.log(this.sql);
+       //console.log(this.sql);
       if (err){
         return done(err)
       }
@@ -561,7 +561,7 @@ exports.getOutstandingFixtureId = function(obj,done){
     var sql = 'select a.id, division.name from (SELECT id, homeTeam FROM (SELECT fixture.id, homeTeam, awayTeam, status FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate) AS a WHERE awayTeam = ? AND homeTeam = ? AND status = "outstanding") as a join team on a.homeTeam = team.id join division on team.division = division.id';
     // console.log(obj);
     db.get().query(sql,[SEASON,obj.awayTeam, obj.homeTeam],function(err,result){
-      console.log(this.sql);
+       //console.log(this.sql);
       if (err){
         return done(err)
       }
@@ -594,7 +594,7 @@ exports.rearrangeByTeamNames = function(updateObj,done){
     }
 
     db.get().query(sql,sqlArray,function(err,result,fields){
-      console.log(this.sql)
+       //console.log(this.sql)
       if (err) {
         return done(err);
       }
@@ -647,7 +647,7 @@ exports.updateByTeamNames = function(updateObj,done){
     })
   }
   else {
-    console.log("updateObj is not an object")
+     //console.log("updateObj is not an object")
     return done("updateObj is not an object");
   }
 }
@@ -677,7 +677,7 @@ exports.sendResultZap = function(zapObject,done){
           const { createCanvas, loadImage } = require('canvas')
           const canvas = createCanvas(1080, 1350)
           const ctx = canvas.getContext('2d')
-          console.log(zapObject);
+           //console.log(zapObject);
           baseImages = ['social.png','social2.jpg','social3.jpg','social3.jpg']
           loadImage('static/beta/images/bg/social-'+zapObject.division.replace(/([\s]{1,})/g,'-')+'.png').then((image) => {
             ctx.drawImage(image, 0,0,1080, 1350)
@@ -754,7 +754,7 @@ exports.updateById = function(fixtureObj,fixtureId,done){
     // console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
     db.get().query(sql,updateArrayVars, function (err, rows){
-      console.log(this.sql);
+      logger.log(this.sql);
       if (err) return done(err);
       // console.log(rows);
       return done(null,rows);
@@ -765,3 +765,52 @@ exports.updateById = function(fixtureObj,fixtureId,done){
   }
 
 }
+
+exports.updateScorecardPhoto = async function(id,imgurl,done){
+  db.get().query("update scorecardstore set `scoresheet-url` = ? where id = ?",[imgurl,id],function(err,rows){
+    logger.log(this.sql);
+    if (err) return done(err);
+    // console.log(rows);
+    return done(null,rows);
+  })
+}
+
+exports.getMissingScorecardPhotos = async function(email,done){
+  let sql = `select
+fixture.id as fixtureid,
+fixture.status,
+scorecardstore.id,
+scorecardstore.date,
+scorecardstore.\`scoresheet-url\`,
+scorecardstore.email,
+homeTeam.name as homeTeam,
+awayTeam.name as awayTeam
+from
+scorecardstore
+join team homeTeam on scorecardstore.homeTeam = homeTeam.id
+join team awayTeam on scorecardstore.awayTeam = awayTeam.id
+join fixture on (
+  scorecardstore.date = fixture.date
+  and fixture.homeTeam = scorecardstore.homeTeam
+  AND fixture.awayTeam = scorecardstore.awayTeam
+)
+  join
+season on fixture.date > season.startDate and fixture.date < season.endDate
+where
+season.name = '${SEASON}' 
+and
+\`scoresheet-url\` = ''
+${
+  email == 'stockport.badders.results@gmail.com' ? 
+  `` :
+  `and email = ? 
+and status not like 'complete'`
+}
+`
+db.get().query(sql,[email],function(err,rows){
+  // console.log(this.sql);
+  if (err) return done(err);
+  // console.log(rows);
+  return done(null,rows);
+})
+ }

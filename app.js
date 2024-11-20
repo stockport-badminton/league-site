@@ -19,6 +19,11 @@
     const sgMail = require('@sendgrid/mail');
     const compression = require ('compression');
     // const { v4: uuidv4 } = require('uuid');
+    const {
+      S3Client,
+      PutObjectCommand,
+    } = require ("@aws-sdk/client-s3");
+    const { getSignedUrl } = require ("@aws-sdk/s3-request-presigner");
 
     let currentURL = ""
     // require('dotenv').config()
@@ -668,31 +673,28 @@
 
     //GET to return signed S3 url for uploading scorecards
     
-    router.get('/sign-s3', (req, res) => {
-      const s3 = new AWS.S3();
+    router.get('/sign-s3', async (req, res, next) => {
       const fileName = req.query['file-name'];
       const fileType = req.query['file-type'];
       const s3Params = {
-        Bucket: S3_BUCKET_NAME,
-        Key: fileName,
-        Expires: 60,
-        ContentType: fileType,
-        ACL: 'public-read'
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: fileName,
+          ContentType: fileType,
+          ACL: 'public-read'
+          // ACL: 'bucket-owner-full-control'
       };
-    
-      s3.getSignedUrl('putObject', s3Params, (err, data) => {
-        if(err){
-          console.log(err);
-          return res.end();
-        }
-        const returnData = {
-          signedRequest: data,
-          url: 'https://'+ S3_BUCKET_NAME + '.s3-eu-west-1.amazonaws.com/'+encodeURIComponent(fileName)
-        };
-        res.write(JSON.stringify(returnData));
-        res.end();
-      });
-    });
+      const s3 = new S3Client({ region: 'eu-west-1' })
+      const command = new PutObjectCommand(s3Params);
+  
+      try {
+          const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
+           //console.log(signedUrl);
+          res.json({ signedUrl })
+      } catch (err) {
+          console.error(err);
+          next(err);
+      }
+  });
 
     
 
@@ -768,6 +770,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     // post for processing results from entry form and emailing admin with confirmation link and link to scorecard photo
     router.post('/email-scorecard', fixture_controller.validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
+    router.post('/add-scorecard-photo/:id',fixture_controller.add_scorecard_photo)
 
     // post for processing results from excel spreadsheet
     router.post('/submit-form', (req,res,next) => {

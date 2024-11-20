@@ -97,7 +97,7 @@ exports.team_update_post = function(req, res) {
 
 exports.messer_draw = function(req, res,next) {
   let renderstring = `beta/messer-draw-${req.params.section}`
-  console.log(renderstring)
+   //console.log(renderstring)
   res.render(renderstring, {
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
@@ -135,7 +135,7 @@ exports.new_messer_draw = function(req, res,next) {
           awayHand = ''
         }
         if ((row.homeTeamHandicap.toString().indexOf('-') >= 0)&&(row.awayTeamHandicap.toString().indexOf('-') >= 0)){
-          console.log("both negative")
+           //console.log("both negative")
           if (Math.abs(parseInt(row.homeTeamHandicap)) > Math.abs(parseInt(row.awayTeamHandicap))){
             homeTeamAdjHandicap = Math.round((-21 * (Math.abs(parseInt(row.homeTeamHandicap)) - Math.abs(parseInt(row.awayTeamHandicap))))/(21 + Math.abs(parseInt(row.awayTeamHandicap))))
             // homeTeamAdjHandicap = homeTeamAdjHandicap < 0 ? Math.ceil(homeTeamAdjHandicap) : Math.floor(homeTeamAdjHandicap)
@@ -152,7 +152,7 @@ exports.new_messer_draw = function(req, res,next) {
           }
         }
         else if ((row.homeTeamHandicap.toString().indexOf('+') >= 0)&&(row.awayTeamHandicap.toString().indexOf('+') >= 0)){
-          console.log("both positive")
+           //console.log("both positive")
           if (Math.abs(parseInt(row.homeTeamHandicap)) > Math.abs(parseInt(row.awayTeamHandicap))){
             homeTeamAdjHandicap = Math.round((21 * (Math.abs(parseInt(row.homeTeamHandicap)) - Math.abs(parseInt(row.awayTeamHandicap))))/(21 - Math.abs(parseInt(row.awayTeamHandicap))))
             if (homeTeamAdjHandicap > 0){

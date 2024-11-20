@@ -24,7 +24,7 @@ function validCaptcha(value,{req}){
         return value
       }
       else {
-        console.log('recaptcha fail')
+         //console.log('recaptcha fail')
         return false
       }
     })
@@ -197,14 +197,14 @@ exports.contactus = function(req, res,next){
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
 
-  console.log("from: " + req.body.from);
-  console.log("to: " + req.body.to);
-  console.log("subject: " + req.body.subject);
+   //console.log("from: " + req.body.from);
+   //console.log("to: " + req.body.to);
+   //console.log("subject: " + req.body.subject);
   // logger.log("html: " + req.body.html);
   
   var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
   recipient = recipient.replace("\"","")
-  console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
+   //console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
     "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
@@ -228,12 +228,12 @@ exports.distribution_list = async function(req,res,next) {
   if(req.files){
     // console.log("files" + req.files)
     req.files.forEach(file =>{
-      console.log(file);
+       //console.log(file);
     })
     //console.log("attachments: " + req.body['attachment-info']);
     var attachments = [];
     for (i = 1; i <= req.body.attachments; i++){
-        console.log(req.body["attachment-info"]["attachment"+i])
+         //console.log(req.body["attachment-info"]["attachment"+i])
         var attachment = {
           content: req.files[i-1].buffer.toString("base64"),
           filename: req.files[i-1].originalname,
@@ -246,7 +246,7 @@ exports.distribution_list = async function(req,res,next) {
     msg.attachments = attachments;
   }
 
-  console.log(msg)
+   //console.log(msg)
   var searchObject = {}
   var roles = [
     {
@@ -370,7 +370,7 @@ exports.distribution_list = async function(req,res,next) {
           msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
           msg.text += rows.join()
           msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
-          console.log(msg)
+           //console.log(msg)
           // console.log(msg.to)
           sgMail.send(msg)
           .then((response)=>{
@@ -414,7 +414,7 @@ exports.distribution_list = async function(req,res,next) {
 exports.contactus_get = function(req, res,next) {
   Club.getAll(function(err,rows){
     if(err){
-      console.log(err);
+       //console.log(err);
       next(err);
     }
     else {

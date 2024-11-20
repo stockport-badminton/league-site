@@ -48,6 +48,21 @@
         <p>Welcome to results entry. If you have any problems email the results secretary, it's more likely to be something broken than something you did wrong.<br />
         Don't worry - you can't break the website entering results!</p>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>
+        <% if (fixtures.length > 0 ){  %>
+          <p>
+            Add scorecard photos:
+            <form action="/updatescorecardphotos" method="post" id="scorecardphotos"></form>
+            <ul id="scorecardlist">
+              <% for (fixture of fixtures){ %>
+                <li>
+                  <%= fixture.homeTeam + ' vs ' + fixture.awayTeam %> 
+                  <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" />
+                  <input type="hidden" name="scoresheet-url-<%= fixture.id %>" id="scoresheet-url-<%= fixture.id %>" /> 
+                </li>
+              <% } %>
+            </ul>
+          </p>
+          <% } %>
         <% } %>
       </div>
 
@@ -1383,11 +1398,79 @@
                 }
                 getSignedRequest(file);
             };
+
+
+            function getScorecardImage(e){
+              // console.log(e)
+              files = e.srcElement.files;
+              const file = files[0];
+              if(file == null){
+              return alert('No file selected.');
+              }
+              otherGetSignedRequest(e);
+            }
+
+            let items = document.querySelectorAll('.scorecardimages');
+            items.forEach(function(item) {
+            item.addEventListener('change', getScorecardImage);        
+            });
         })();
 
         window.onerror = function(message, source, lineno, colno, error) {
           if (error) message = error.stack;
           gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
+        }
+
+        async function otherGetSignedRequest(e){
+            console.log(e)
+            let files = e.srcElement.files
+            // const xhr = new XMLHttpRequest();
+            const file = files[0]
+            const name = files[0].name;
+            const lastDot = name.lastIndexOf('.');
+            const fileName = name.substring(0, lastDot);
+            const ext = name.substring(lastDot + 1);
+            let fixtureString = e.srcElement.previousSibling.data.trim()
+            const homeTeam = fixtureString.split('vs')[0].trim()
+            const awayTeam = fixtureString.split('vs')[1].trim()
+            let filename = homeTeam + '-' + awayTeam + '.' + ext
+            let scorecardId = parseInt(e.srcElement.id.split('-')[2])
+            try {
+              let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
+              if (!getSignReq.ok) {
+                throw new Error(`Could not get signed URL`);
+              }
+              else {
+                let response = await getSignReq.json()
+                console.log(response)
+                uploadFile(file, response.signedUrl);
+                console.log(response.signedUrl);
+                e.srcElement.nextSibling.nextSibling.value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
+
+                const myHeaders = new Headers();
+                myHeaders.append("Content-Type", "application/json");
+                try {
+                  const updatedScorecard = await fetch(window.location.origin+"/add-scorecard-photo/"+scorecardId, {
+                    method: "POST",
+                    body: JSON.stringify({ imgURL:'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+') }),
+                    headers: myHeaders,
+                  });
+                  if (!updatedScorecard.ok) {
+                    throw new Error(`Response status: ${response.status}`);
+                  }
+                  else {
+                    window.alert('scorecard photo updated - Thank you!')
+                  }
+                }
+                catch (error){
+                  console.error(error.message);
+                }
+              }
+            }
+            catch (error){
+              console.error(error.message);
+            }
+            
         }
 
         async function getSignedRequest(file){
@@ -1411,6 +1494,8 @@
                 console.log(response.signedUrl);
                 document.getElementById('scoresheet-url').value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
                 document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
+                console.error(document.getElementById('scoresheet-url').value)
+                console.error(document.getElementById('scoresheet-img').src)
               }
             }
             catch (error){

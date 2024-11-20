@@ -578,8 +578,8 @@ exports.all_pair_stats = function (req, res,next){
       return next(err)
     }
     else {
-      console.log("rendering this page")
-      console.log(JSON.stringify(req.params))
+       //console.log("rendering this page")
+       //console.log(JSON.stringify(req.params))
       res.render('beta/pair-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -719,8 +719,8 @@ exports.player_batch_create = function(req, res){
 }
 
 exports.player_batch_update = function(req, res){
-  console.log("inside player_batch_update")
-  console.log(req.body)
+   //console.log("inside player_batch_update")
+   //console.log(req.body)
   Player.updateBulk(req.body,function(err,result){
     
     if(err){
@@ -792,7 +792,7 @@ exports.player_update_get = function(req, res,next) {
 
 // Handle Player update on POST
 exports.player_update_post = function(req, res) {
-  console.log("inside player_update_post")
+   //console.log("inside player_update_post")
   let patchObj = {
     "tablename":"player",
     "fields":[
@@ -801,7 +801,7 @@ exports.player_update_post = function(req, res) {
     "data":[[req.params.id,req.body.first_name,req.body.family_name,req.body.gender,req.body.playerTel,req.body.playerEmail, req.body.teamCaptain == 1 ? 1 :0, req.body.clubSecretary == 1 ? 1 :0, req.body.matchSecrertary == 1 ? 1 :0, req.body.treasurer == 1 ? 1 : 0]
   ]
 }
-console.log(patchObj)
+ //console.log(patchObj)
   Player.updateBulk(patchObj, function(err,row){
     if (err){
       res.send(err);
