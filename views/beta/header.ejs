@@ -24,6 +24,7 @@
       
       Sentry.init({
         dsn: "https://41a5442332daa78ebc9dba9dfe8da392@o4508301910540288.ingest.de.sentry.io/4508301914800208",
+        replaysSessionSampleRate: 1,
         integrations: [
           Sentry.replayIntegration({
             maskAllText: false,
