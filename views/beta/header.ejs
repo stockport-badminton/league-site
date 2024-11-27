@@ -4,7 +4,7 @@
     
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSC0315491"></script>
-    <script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
+    
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
@@ -21,6 +21,15 @@
     });
     window.sentryOnLoad = function () {
       // in here, Sentry is ensured to be loaded & fully available
+      
+      Sentry.init({
+        dsn: "https://41a5442332daa78ebc9dba9dfe8da392@o4508301910540288.ingest.de.sentry.io/4508301914800208",
+        integrations: [Sentry.captureConsoleIntegration()],
+      });
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      });
       Sentry.setUser({ id: '<%= user.user_id %>' });
     };
       
@@ -33,7 +42,7 @@
 });
       <% } %> 
     </script>
-
+<script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
 <% if (pageTitle.indexOf("Event") >= 0){ 
 
   
