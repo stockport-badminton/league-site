@@ -1493,7 +1493,15 @@
                 uploadFile(file, response.signedUrl);
                 console.log(response.signedUrl);
                 document.getElementById('scoresheet-url').value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
+                let scoresheetUrls = await document.querySelectorAll('#scoresheet-url')
+                for (const ssUrl of scoresheetUrls){
+                  ssUrl.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
+                }
                 document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
+                let scoresheetImgs = await document.querySelectorAll('#scoresheet-img')
+                for (const ssImg of scoresheetImgs){
+                  ssImg.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
+                }
                 console.error(document.getElementById('scoresheet-url').value)
                 console.error(document.getElementById('scoresheet-img').src)
               }
