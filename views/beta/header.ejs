@@ -9,9 +9,10 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+    </script>
 
       <% if (typeof user !== 'undefined') { %>
-        
+        <script> 
       gtag('config', 'G-PSC0315491',{'cookie_prefix': 'baddersCookie',
   'cookie_domain': 'stockport-badminton.co.uk',
   'cookie_expires': 28 * 24 * 60 * 60 ,  // 28 days, in seconds,
@@ -40,18 +41,21 @@
         },
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });
+      </script>
+      <script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
     };
       
     <% } else{ %>
-        
+      <script> 
         gtag('config', 'G-PSC0315491',{
   'cookie_prefix': 'baddersCookie',
   'cookie_domain': 'stockport-badminton.co.uk',
   'cookie_expires': 28 * 24 * 60 * 60  // 28 days, in seconds
 });
+</script>
       <% } %> 
     </script>
-<script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
+
 <% if (pageTitle.indexOf("Event") >= 0){ 
 
   
