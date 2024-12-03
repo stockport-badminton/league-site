@@ -1389,18 +1389,23 @@
 
     <script type="text/javascript">
       
-        (() => {
-            document.getElementById("scoresheet-spreadsheet").onchange = () => {
-                const files = document.getElementById('scoresheet-spreadsheet').files;
-                const file = files[0];
+        (async () => {
+          let scorecardPhotos = await document.querySelectorAll('#scoresheet-spreadsheet');
+          for (const photo of scorecardPhotos){
+              photo.addEventListener('change',(e) => {
+                // console.log(e)
+                let files = e.srcElement.files;
+                let file = files[0]
                 if(file == null){
-                return alert('No file selected.');
+                  return alert('No file selected.');
                 }
                 getSignedRequest(file);
-            };
+              } )
+              
+            }
 
 
-            function getScorecardImage(e){
+            async function getScorecardImage(e){
               // console.log(e)
               files = e.srcElement.files;
               const file = files[0];
@@ -1410,7 +1415,7 @@
               otherGetSignedRequest(e);
             }
 
-            let items = document.querySelectorAll('.scorecardimages');
+            let items = await document.querySelectorAll('.scorecardimages');
             items.forEach(function(item) {
             item.addEventListener('change', getScorecardImage);        
             });
