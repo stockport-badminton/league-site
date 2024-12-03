@@ -308,10 +308,16 @@ exports.get_fixture_players_details = function(req, res) {
         res.send(err);
       }
       else{
+        let clubs = row.map(item => item.name).filter((value, index, self) => self.indexOf(value) === index) 
+        let teams = row.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index) 
         res.render('beta/fixture-players', {
             static_path: '/static',
             pageTitle : "Fixture Player Details",
             pageDescription : "Find out who played which matches and in what order",
+            filter:true,
+            hideFilters:["division","gender","gametype"],
+            teams:teams,
+            clubs:clubs,
             result: row,
             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
         });

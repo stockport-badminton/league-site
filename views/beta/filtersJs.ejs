@@ -1,0 +1,34 @@
+document.addEventListener('DOMContentLoaded', (event) => {
+
+
+
+    function updateFilter(e){
+      e.preventDefault()
+      let queryString = ""
+      for (row of document.forms[0]){
+          console.log(row.name)
+          console.log(row.value)
+          if (row.name.indexOf('division') >= 0 && row.value != 0) {
+              queryString+= '/'+row.value 
+          }
+          if (row.name.indexOf('season') >= 0 && row.value != 0) {
+              queryString+= '/'+row.value 
+          }
+          if (row.name.indexOf('gender') >= 0 && row.value !=0) {
+              queryString+= '/gender-'+row.value 
+          }
+          if (row.name.indexOf('gameType') >= 0 && row.value != 0) {
+              queryString+= '/gameType-'+row.value 
+          }
+          if (row.name.indexOf('club') >= 0 && row.value != 0) {
+              queryString+= '/club-'+row.value 
+          }
+          if (row.name.indexOf('team') >= 0 && row.value != 0) {
+              queryString+= '/team-'+row.value 
+          }
+      }
+      console.log(queryString)
+      window.location.assign(window.location.origin + '/'+window.location.pathname.split('/')[1]+queryString)
+    }
+    document.querySelector("#statsFilter > button").addEventListener('click',updateFilter);
+  })

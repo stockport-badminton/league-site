@@ -90,6 +90,14 @@
               <div class="dropdown-menu" aria-labelledby="dropdown01">
                 <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
                 <a class="dropdown-item" href="/admin/results/All">Results Detail</a>
+                <% 
+                  if(locals.user._json['https://my-app.example.com/role'] == 'superadmin') { %>
+                    <a class="dropdown-item" href="/manage-players/club-Aerospace">Team Management</a>
+                    <a class="dropdown-item" href="/fixture-players">Fixture Players</a>
+                    <a class="dropdown-item" href="/player-stats">Individual Stats</a>
+                    <a class="dropdown-item" href="/pair-stats">Pair Stats</a>
+                 <% }
+                %>
                 <a class="dropdown-item" href="/logout" target="_blank">Logout</a>
               </div>
             </li>

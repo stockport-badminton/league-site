@@ -44,7 +44,7 @@
               <a href="/club/<%= row['id'] %>">Login for Contact info</a>
             </td>
             <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
-              <td><a href="/manage/players/club-<%= row['name'] %>">Manage Players</a></th>
+              <td><a href="/manage-players/club-<%= row['name'] %>">Manage Players</a></th>
             <% } %>
             <td><% if (row.teams.length > 1){ 
                for (team of row.teams){ %>

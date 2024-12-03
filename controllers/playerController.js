@@ -355,18 +355,31 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                     fs.writeFileSync('static/beta/docs/'+teamNames[0].substring(0,teamNames[0].length-2)+'.docx', buffer);
                 });
                 // console.log(JSON.stringify(manageTeamObject));
-                res.render('beta/team-admin', {
-                    static_path: '/static',
-                    theme: process.env.THEME || 'flatly',
-                    flask_debug: process.env.FLASK_DEBUG || 'false',
-                    pageTitle : "Player Registrations",
-                    pageDescription : "List of players registered to teams in the Stockport League",
-                    result : manageTeamObject,
-                    clubId: rows[0].clubId,
-                    superadmin:superadmin,
-                    club:club,
-                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-                });
+                Club.getAll( function(err,clubsRes){
+                  console.log(clubsRes);
+                  if (err){
+                    // console.log("all_player_stats controller error")
+                    return next(err)
+                  }
+                  else {
+                    let clubs = clubsRes.map(row => row.name)
+                    res.render('beta/team-admin', {
+                        static_path: '/static',
+                        theme: process.env.THEME || 'flatly',
+                        flask_debug: process.env.FLASK_DEBUG || 'false',
+                        pageTitle : "Player Registrations",
+                        pageDescription : "List of players registered to teams in the Stockport League",
+                        result : manageTeamObject,
+                        clubId: rows[0].clubId,
+                        superadmin:superadmin,
+                        filter:true,
+                        hideFilters:["season","gametype","gender","division"],
+                        club:club,
+                        clubs:clubs,
+                        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                    });
+                  }
+                })
               }
             })
           }
@@ -401,6 +414,8 @@ exports.old_all_player_stats = function (req, res,next){
     }
     else {
 // console.log(req.params);
+      let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index) 
+      let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index) 
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -408,6 +423,12 @@ exports.old_all_player_stats = function (req, res,next){
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
+           filter : true,
+           hideFilters:[],
+           result : result,
+           clubs : clubs,
+           teams : teams,
+           query:searchObj,
            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
     }
@@ -478,6 +499,8 @@ exports.all_player_stats = function (req, res,next){
     }
     else {
 // console.log(req.params);
+      let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index) 
+      let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index) 
       res.render('beta/player-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
@@ -485,6 +508,11 @@ exports.all_player_stats = function (req, res,next){
            pageTitle : "Player Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
            result : result,
+           filter : true,
+           hideFilters:[],
+           result : result,
+           clubs : clubs,
+           teams : teams,
            query:searchObj,
            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
        });
@@ -580,12 +608,18 @@ exports.all_pair_stats = function (req, res,next){
     else {
        //console.log("rendering this page")
        //console.log(JSON.stringify(req.params))
+      let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index) 
+      let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index) 
       res.render('beta/pair-stats', {
            static_path: '/static',
            theme: process.env.THEME || 'flatly',
            flask_debug: process.env.FLASK_DEBUG || 'false',
            pageTitle : "Pair Stats",
            pageDescription : "Geek out on Stockport League Player stats!",
+           filter:true,
+           hideFilters:[],
+           clubs:clubs,
+           teams:teams,
            result : result,
            query: searchObj,
            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")

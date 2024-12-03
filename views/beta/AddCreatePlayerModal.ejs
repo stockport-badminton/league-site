@@ -139,7 +139,7 @@
               }
               console.log(playerObject);
               
-              $.post('/manage/players/create',playerObject, function (data) {
+              $.post('/manage-players/create',playerObject, function (data) {
                 //console.log(data);
                 var newPlayerElem = document.createElement("div")
                 newPlayerElem.className = "player-box row border rounded p-3"

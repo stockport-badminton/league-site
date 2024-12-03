@@ -4,6 +4,9 @@
 
 
     <h1>Fixture Players</h1>
+    <% if (typeof filter !== 'undefined' && filter == true){ %>
+      <%- include('filters.ejs') %>
+    <% } %>
     <div class="table-responsive">
     <table class="table" id="results-table">
       <thead>
@@ -148,6 +151,11 @@
 
 <%- include('footer.ejs') %>
 <%- include('datatables.ejs') %>
+<script>
+  <% if (typeof filter !== 'undefined' && filter == true){ %>
+      <%- include('filtersJs.ejs') %>
+    <% } %>
+</script>
 
 </body>
 </html>

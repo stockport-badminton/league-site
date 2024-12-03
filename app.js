@@ -846,7 +846,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* POST request for creating Player. */
     router.post('/player/create', player_controller.player_create);
-    router.post('/manage/players/create', player_controller.player_create_from_team);
+    router.post('/manage-players/create', player_controller.player_create_from_team);
 
     /* POST request for batch creating Fixture. */
     router.post('/player/batch-create',checkJwt, player_controller.player_batch_create);
@@ -1218,7 +1218,7 @@ const { getAllLeagueTables } = require('./models/league');
     router.get('/players/team-:team?', secured,player_controller.player_list_clubs_teams);
     router.get('/players/gender-:gender?', secured,player_controller.player_list_clubs_teams);
     router.get('/players', secured,player_controller.player_list_clubs_teams);
-    router.get('/manage/players/club-:club?', secured,player_controller.manage_player_list_clubs_teams);
+    router.get('/manage-players/club-:club?', secured,player_controller.manage_player_list_clubs_teams);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', secured,player_controller.player_create_get);

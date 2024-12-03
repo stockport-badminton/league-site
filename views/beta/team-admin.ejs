@@ -9,6 +9,9 @@
   else { 
     %> 
     <h1>Registered Players</h1>
+    <% if (typeof filter !== 'undefined' && filter == true){ %>
+      <%- include('filters.ejs') %>
+    <% } %>
     
     <a href="/static/beta/docs/<%= result.teams[0].name.substring(0,result.teams[0].name.length - 2) %>.docx">Download</a>
     <div class="container row">
@@ -329,6 +332,10 @@ ladiesReserveTargets.forEach(function(team) {
     team.addEventListener('dragend', handleDragEnd);
 });
 });
+
+<% if (typeof filter !== 'undefined' && filter == true){ %>
+      <%- include('filtersJs.ejs') %>
+    <% } %>
 
 </script>
 
