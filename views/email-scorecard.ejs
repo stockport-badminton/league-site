@@ -1438,7 +1438,14 @@
             let fixtureString = e.srcElement.previousSibling.data.trim()
             const homeTeam = fixtureString.split('vs')[0].trim()
             const awayTeam = fixtureString.split('vs')[1].trim()
-            let filename = homeTeam + '-' + awayTeam + '.' + ext
+            let  SEASON = '';
+            if (new Date().getMonth() < 6){
+              SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+            }
+            else {
+              SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+            }
+            let filename = SEASON + '-'+ homeTeam + '-' + awayTeam + '.' + ext
             let scorecardId = parseInt(e.srcElement.id.split('-')[2])
             try {
               let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
@@ -1450,14 +1457,14 @@
                 console.log(response)
                 uploadFile(file, response.signedUrl);
                 console.log(response.signedUrl);
-                e.srcElement.nextSibling.nextSibling.value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
+                e.srcElement.nextSibling.nextSibling.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
 
                 const myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/json");
                 try {
                   const updatedScorecard = await fetch(window.location.origin+"/add-scorecard-photo/"+scorecardId, {
                     method: "POST",
-                    body: JSON.stringify({ imgURL:'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+') }),
+                    body: JSON.stringify({ imgURL:response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+') }),
                     headers: myHeaders,
                   });
                   if (!updatedScorecard.ok) {
@@ -1486,7 +1493,14 @@
             const ext = name.substring(lastDot + 1);
             const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text
             const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text
-            let filename = homeTeam + '-' + awayTeam + '.' + ext
+            let  SEASON = '';
+            if (new Date().getMonth() < 6){
+              SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+            }
+            else {
+              SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+            }
+            let filename = SEASON + '-' + homeTeam + '-' + awayTeam + '.' + ext
             try {
               let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
               if (!getSignReq.ok) {
@@ -1497,12 +1511,12 @@
                 console.log(response)
                 uploadFile(file, response.signedUrl);
                 console.log(response.signedUrl);
-                document.getElementById('scoresheet-url').value = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+');
+                // document.getElementById('scoresheet-url').value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
                 let scoresheetUrls = await document.querySelectorAll('#scoresheet-url')
                 for (const ssUrl of scoresheetUrls){
                   ssUrl.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
                 }
-                document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
+                // document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
                 let scoresheetImgs = await document.querySelectorAll('#scoresheet-img')
                 for (const ssImg of scoresheetImgs){
                   ssImg.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
