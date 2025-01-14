@@ -19,6 +19,9 @@
           <th>points for</th>
           <th>points against</th>
           <th>type</th>
+          <th>rating before</th>
+          <th>rating after</th>
+          <th>adjustment</th>
         </tr>
       </thead>
       <tbody>
@@ -43,6 +46,9 @@
           <td><%= row['score'] %></td>
           <td><%= row['vsScore'] %></td>
           <td><%= row['gameType'] %></td>
+          <td><%= row['beforeVal'] %></td>
+          <td><%= row['after'] %></td>
+          <td><%= row['adjustment'] %></td>
       </tr>
     <% }) %>
       </tbody>

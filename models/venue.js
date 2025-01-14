@@ -1,15 +1,18 @@
 var db = require('../db_connect.js');
 
 // POST
-exports.create = function(name,address,gMapUrl,done){
-  db.get().query('INSERT INTO `venue` (`name`,`address`,`gMapUrl`) VALUES (?,?,?)',[name,address,gMapUrl],function(err,result){
-    if (err) return done(err);
-    done(null,result);
-  });
+exports.create = async function(name,address,gMapUrl,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('INSERT INTO `venue` (`name`,`address`,`gMapUrl`) VALUES (?,?,?)',[name,address,gMapUrl])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 
 }
 
-exports.createBatch = function(BatchObj,done){
+exports.createBatch = async function(BatchObj,done){
   if(db.isObject(BatchObj)){
     var fields = BatchObj.fields.join("`,`");
     var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
@@ -28,10 +31,13 @@ exports.createBatch = function(BatchObj,done){
     // console.log(containerArray);
     sql = sql + containerArray.join(',')
     // console.log(sql);
-    db.get().query(sql,function(err,result){
-      if (err) return done(err);
-      done(null,result)
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
   }
   else{
     return done('not object');
@@ -39,42 +45,55 @@ exports.createBatch = function(BatchObj,done){
 }
 
 // GET
-exports.getAll = function(done){
-  db.get().query('SELECT * FROM `venue`', function (err, rows){
-    if (err) return done(err);
-    done(null, rows);
-  })
+exports.getAll = async function(done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `venue`')
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
-exports.getVenueClubs = function(done){
-  db.get().query("select venueName, Lat, Lng, group_concat(venueClubsHTML SEPARATOR '<br />' ) as venueInfoBox FROM (Select venueName, Lat, Lng, concat('<strong id=\"firstHeading\" class=\"firstHeading\"><a href=\"',clubWebsite,'\">',clubName,'</a></strong><div id=\"bodyContent\"><p>Match Night:',matchNightText,'<br />Club Night:',clubNightText,'<br />Address:<a href=\"',gMapUrl,'\">',address,'</a></p></div>') as venueClubsHTML FROM (SELECT venue.name AS venueName, venue.address, venue.gMapURL, venue.Lat, venue.Lng, club.name AS clubName, club.matchNightText, club.clubNightText, club.clubWebsite FROM venue JOIN club WHERE venue.id = club.venue UNION SELECT venue.name AS venueName, venue.address, venue.gMapURL, venue.Lat, venue.Lng, club.name AS clubName, club.matchNightText, club.clubNightText, club.clubWebsite FROM venue JOIN club WHERE venue.id = club.matchVenue) as venueInfo) as groupedVenueInfo group by venueName,Lat,Lng",function(err,rows){
-     //console.log(this.sql)
-    if (err) return done(err)
-    done(null,rows)
-  })
+exports.getVenueClubs = async function(done){
+  try {
+		 let [result] = await (await db.otherConnect()).query("select venueName, Lat, Lng, group_concat(venueClubsHTML SEPARATOR '<br />' ) as venueInfoBox FROM (Select venueName, Lat, Lng, concat('<strong id=\"firstHeading\" class=\"firstHeading\"><a href=\"',clubWebsite,'\">',clubName,'</a></strong><div id=\"bodyContent\"><p>Match Night:',matchNightText,'<br />Club Night:',clubNightText,'<br />Address:<a href=\"',gMapUrl,'\">',address,'</a></p></div>') as venueClubsHTML FROM (SELECT venue.name AS venueName, venue.address, venue.gMapURL, venue.Lat, venue.Lng, club.name AS clubName, club.matchNightText, club.clubNightText, club.clubWebsite FROM venue JOIN club WHERE venue.id = club.venue UNION SELECT venue.name AS venueName, venue.address, venue.gMapURL, venue.Lat, venue.Lng, club.name AS clubName, club.matchNightText, club.clubNightText, club.clubWebsite FROM venue JOIN club WHERE venue.id = club.matchVenue) as venueInfo) as groupedVenueInfo group by venueName,Lat,Lng")
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // GET
-exports.getById = function(venueId,done){
-  db.get().query('SELECT * FROM `venue` WHERE `id` = ?',venueId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getById = async function(venueId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `venue` WHERE `id` = ?',venueId)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // DELETE
-exports.deleteById = function(venueId,done){
-  db.get().query('DELETE FROM `venue` WHERE `id` = ?',venueId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.deleteById = async function(venueId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('DELETE FROM `venue` WHERE `id` = ?',venueId)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // PATCH
-exports.updateById = function(name,address,gMapUrl, venueId,done){
-  db.get().query('UPDATE `venue` SET `name` = ?, `address` = ?, `gMapUrl` = ? WHERE `id` = ?',[name,address,gMapUrl, venueId], function (err, rows){
-    if (err) return done(err);
-    // console.log(rows);
-    done(null,rows);
-  })
+exports.updateById = async function(name,address,gMapUrl, venueId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('UPDATE `venue` SET `name` = ?, `address` = ?, `gMapUrl` = ? WHERE `id` = ?',[name,address,gMapUrl, venueId])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }

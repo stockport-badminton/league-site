@@ -10,10 +10,7 @@ const ICAL = require('ical.js');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
- var logger = require('logzio-nodejs').createLogger({
-  token: process.env.LOGZ_SECRET,
-  host: 'listener-uk.logz.io'
- });
+ 
  let  SEASON = '';
  if (new Date().getMonth() < 6){
    SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
@@ -198,7 +195,7 @@ exports.getLateScorecards = function(req, res) {
       if (today.getMonth() <= 4 || today.getMonth() >= 7){
         sgMail.send(msg)
         .then(()=>res.send("Message Sent"))
-        .catch(error => logger.log(error.toString()));
+        .catch(error => console.log(error.toString()));
       }
       else {
         res.sendStatus(200);
@@ -499,7 +496,7 @@ exports.fixture_calendars = function(req,res,next){
 }
 
 // Display detail page for a specific Fixture
-exports.fixture_detail_byDivision = function(req,res) {
+exports.fixture_detail_byDivision = function(req,res,next) {
    //console.log(req.user)
     let divisionString = "";
     let searchObj = {}
@@ -865,7 +862,7 @@ exports.full_fixture_post = function(req,res,next){
     
   }
   else {
-    // logger.log(req.body);
+    // console.log(req.body);
     // console.log(req.body);
     Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
       if (err) {
@@ -877,7 +874,7 @@ exports.full_fixture_post = function(req,res,next){
         // console.log("getFixtureId err")
         // console.log(res)
         
-        // logger.log(FixtureIdResult);
+        // console.log(FixtureIdResult);
         var fixtureObject = {
           homeMan1 : req.body.homeMan1,
           homeMan2 : req.body.homeMan2,
@@ -1116,21 +1113,27 @@ exports.full_fixture_post = function(req,res,next){
                   // console.log(zapObject)
                   Fixture.sendResultZap(zapObject,function(err,zapRes){
                     if (err) res.send(err)
+                    // console.log(`zapRes:${zapRes}`)
                     Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam,function(err,homeTeamNomPlayers){
+                      // console.log(`homeTeamNomPlayers:${homeTeamNomPlayers}`)
                       if (err) res.send(err)
                       Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,awayTeamNomPlayers){
+                        // console.log(`awayTeamNomPlayers:${awayTeamNomPlayers}`)
                         if (err) res.send(err)
                         var searchObj = {};
                         searchObj.team = getFixtureDetailsResult[0].homeTeam
                         searchObj.limit = 4
                         Fixture.getMatchPlayerOrderDetails(searchObj,function(err,homeTeamFixturePlayers){
+                          // console.log(`homeTeamFixturePlayers:${homeTeamFixturePlayers}`)
                           if (err) res.send(err)
                           var searchObj = {};
                           searchObj.team = getFixtureDetailsResult[0].awayTeam
                           searchObj.limit = 4
                           Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
+                            // console.log(`awayTeamFixturePlayers:${awayTeamFixturePlayers}`)
                             if (err) res.send(err);
                             Player.getMatchStats(FixtureIdResult[0].id,function(err,matchStats){
+                              // console.log(`matchStats:${matchStats}`)
                               if (err) res.send(err);                              
                               const ejs = require('ejs');
                               var emailData = {                                
@@ -1153,7 +1156,8 @@ exports.full_fixture_post = function(req,res,next){
                                 };
                                 // console.log(msg)
                                 sgMail.send(msg)
-                                .then(()=>{                                
+                                .then(()=>{    
+                                  // console.log(`renderFixturePage:${gameObject}`)                            
                                   res.render('index-scorecard',{
                                     static_path:'/static',
                                     theme:process.env.THEME || 'flatly',
@@ -1168,7 +1172,7 @@ exports.full_fixture_post = function(req,res,next){
                                   })
                                 })
                                 .catch(error => {
-                                  logger.log(error.toString());
+                                  console.log(error.toString());
                                   res.send("Sorry something went wrong sending your email - try sending it manually" + error);
                                 })
                               });   
@@ -1194,7 +1198,7 @@ exports.fixture_populate_scorecard_errors = function(req, res,next) {
   // console.log(errors.array());
   if (!errors.isEmpty()) {
     let data = req.body;
-    logger.log(data);
+    console.log(data);
 Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
   if(err){
     next(err)
@@ -1246,7 +1250,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
                                   "awayMenRows":awayMenRows,
                                   "awayLadiesRows":awayLadiesRows
                                 };
-                                logger.log(renderData);
+                                console.log(renderData);
                                 res.render('email-scorecard', {
                                     static_path: '/static',
                                     pageTitle : "Spreadsheet Upload Scorecard",
@@ -1348,7 +1352,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
         }
         else {
            //console.log(rows)
-          // logger.log(rows);
+          // console.log(rows);
           let scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
           const msg = {
             to: 'stockport.badders.results@gmail.com',
@@ -1371,7 +1375,7 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
               });
             })
             .catch(error => {
-              logger.log(error.toString());
+              console.log(error.toString());
               next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
             })
 
@@ -1442,7 +1446,7 @@ exports.fixture_populate_scorecard = function(data,req,res,next){
                                     "awayMenRows":awayMenRows,
                                     "awayLadiesRows":awayLadiesRows
                                   };
-                                  logger.log(renderData);
+                                  console.log(renderData);
                                   res.render('populated-scorecard', {
                                       static_path: '/static',
                                       pageTitle : "Spreadsheet Upload Scorecard",
@@ -1530,7 +1534,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                                         "awayLadiesRows":awayLadiesRows,
                                       };
                                       // console.log(renderData);
-                                      logger.log(renderData);
+                                      console.log(renderData);
 
                                       res.render('populated-scorecard', {
                                           static_path: '/static',
@@ -1620,7 +1624,7 @@ exports.fixture_populate_scorecard_fromId = function(req,res,next){
                                       "awayMenRows":awayMenRows,
                                       "awayLadiesRows":awayLadiesRows
                                     };
-                                    logger.log(renderData);
+                                    console.log(renderData);
                                     res.render('populated-scorecard', {
                                         static_path: '/static',
                                         pageTitle : "Spreadsheet Upload Scorecard",
@@ -1805,7 +1809,7 @@ exports.messer_scorecard = function(req,res,next){
      //console.log(msg);
     sgMail.send(msg)
     .then(()=>res.send("Message Sent"))
-    .catch(error => logger.log(error.toString()));
+    .catch(error => console.log(error.toString()));
   }
 
   exports.scorecard_received = function(req,res,next){
@@ -1854,7 +1858,7 @@ exports.add_scorecard_photo = function(req,res,next){
           res.sendStatus(200);
         })
         .catch(error => {
-          logger.log(error.toString());
+          console.log(error.toString());
           next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
         })
     }

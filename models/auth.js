@@ -1,10 +1,7 @@
 var request = require('request');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-var logger = require('logzio-nodejs').createLogger({
-  token: process.env.LOGZ_SECRET,
-  host: 'listener-uk.logz.io'
-});
+
 
 exports.getManagementAPIKey = function(done){
   var options = {
@@ -120,7 +117,7 @@ exports.getAPIKey = function(done){
                 });
               })
               .catch(error => {
-                logger.log(error.toString());
+                console.log(error.toString());
                 next("Sorry something went wrong sending your email.");
               })   
           

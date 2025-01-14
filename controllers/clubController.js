@@ -2,10 +2,7 @@ var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
 require('dotenv').config()
-var logger = require('logzio-nodejs').createLogger({
-  token: process.env.LOGZ_SECRET,
-  host: 'listener-uk.logz.io'
-});
+
 
 // Display list of all Clubs
 exports.club_list = function(req, res) {
@@ -116,12 +113,12 @@ exports.club_detail = function(req, res,done) {
         done(err);
       }
       else{
-        logger.log("clubrow");
+        console.log("clubrow");
         for (row of clubrow){
-          logger.log(row)
+          console.log(row)
            //console.log(row)
         }
-        // logger.log(JSON.stringify(clubrow));
+        // console.log(JSON.stringify(clubrow));
         // console.log(clubrow)
         res.status(200);
         res.render('beta/club-contact', {

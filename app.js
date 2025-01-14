@@ -5,20 +5,14 @@
     var passport = require('passport');
     var Auth0Strategy = require('passport-auth0');
     var router = express.Router();
-    // var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
     const {check, validationResult} = require('express-validator')
     var path = require('path');
-    // var request = require('request');
     const jwt = require('express-jwt');
-    // const jwtAuthz = require('express-jwt-authz');
     const jwksRsa = require('jwks-rsa');
-    //const formidable = require('formidable')
-    //const exceljs = require('exceljs')
     const fs = require('fs');
     const sgMail = require('@sendgrid/mail');
     const compression = require ('compression');
-    // const { v4: uuidv4 } = require('uuid');
     const {
       S3Client,
       PutObjectCommand,
@@ -30,10 +24,7 @@
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     var app = express();
 
-    var logger = require('logzio-nodejs').createLogger({
-      token: process.env.LOGZ_SECRET,
-      host: 'listener-uk.logz.io'
-    });
+    
     
     
 
@@ -109,7 +100,7 @@
         domain: process.env.AUTH0_DOMAIN,
         clientID: process.env.AUTH0_CLIENTID,
         clientSecret: process.env.AUTH0_CLIENT_SECRET,
-        callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:3000/callback'
+        callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:8080/callback'
       },
       function (accessToken, refreshToken, extraParams, profile, done) {
         // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -776,19 +767,19 @@ const { getAllLeagueTables } = require('./models/league');
     router.post('/submit-form', (req,res,next) => {
       var data = [];
       data = req.body;
-      logger.log(req.body)
+      console.log(req.body)
       fixture_controller.fixture_populate_scorecard(data,req,res,next)
     });
 
     //GET for displaying a populated form for the admin to review and confirm
     //TODO check larger file uploads & pdfs
     router.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req,res,next) => {
-      logger.log(req.params)
+      console.log(req.params)
       fixture_controller.fixture_populate_scorecard_fromUrl(req,res,next)
     })
 
     router.get('/populated-scorecard-beta/:id',(req,res,next) => {
-      logger.log(req.body);
+      console.log(req.body);
       fixture_controller.fixture_populate_scorecard_fromId(req,res,next)
     })
 
@@ -822,12 +813,12 @@ const { getAllLeagueTables } = require('./models/league');
       if (typeof req.body.id != 'undefined' && req.body.id.length > 3 && req.body.id != 'undefined'){
         sgMail.send(msg)
           .then(()=>{
-            logger.log(msg);
+            console.log(msg);
             // console.log(msg)
             res.sendStatus(200);
           })
           .catch(error => {
-            logger.log(error.toString());
+            console.log(error.toString());
             next("Sorry something went wrong sending your email.");
           })
       }
@@ -1222,6 +1213,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', secured,player_controller.player_create_get);
+    router.get('/players/eloPop', player_controller.player_elo_populate);
         // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
     router.get('/club/:id', secured,club_controller.club_detail);
     router.get('/club-api/:id', secured,club_controller.club_detail_api);
@@ -1233,18 +1225,22 @@ const { getAllLeagueTables } = require('./models/league');
     
 
     app.use(router);
-
+    const connection = null
     // Connect to MySQL on start
-    db.connect(function(err) {
-      if (err) {
-        console.log('Unable to connect to MySQL.')
-        process.exit(1)
-      } else {
+    try {
+        db.connect();
         var server = app.listen(port, function() {
-          console.log('Server running at http://127.0.0.1:' + port + '/');
-        })
-      }
-    })
+        console.log('Server running at http://127.0.0.1:' + port + '/');
+      })
+    }
+    catch {
+      console.log('Unable to connect to MySQL.')
+      process.exit(1)
+    }
+
+      /* var server = app.listen(port, function() {
+        console.log('Server running at http://127.0.0.1:' + port + '/');
+      }) */
 
      // Handle 404
      router.use(function(req, res) {

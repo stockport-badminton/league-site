@@ -1,4 +1,6 @@
 var Club = require('../models/club');
+var Fixture = require('../models/fixture');
+var Game = require('../models/game');
 var Player = require('../models/players');
 var Team = require('../models/teams');
 var Venue = require('../models/venue');
@@ -12,11 +14,6 @@ const { validationResult } = require('express-validator');
 const docx = require("docx");
 const fs = require("fs");
 const path = require('path');
-
-
-function logger(data) {
-  return JSON.stringify(data, undefined, 2);
-}
 
 exports.index = function(req, res) {
 
@@ -407,33 +404,6 @@ exports.player_detail = function(req, res) {
   })
 };
 
-exports.old_all_player_stats = function (req, res,next){
-  Player.getPlayerStats(req.params,function(err,result){
-    if (err){
-      return next(err)
-    }
-    else {
-// console.log(req.params);
-      let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index) 
-      let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index) 
-      res.render('beta/player-stats', {
-           static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
-           pageTitle : "Player Stats",
-           pageDescription : "Geek out on Stockport League Player stats!",
-           result : result,
-           filter : true,
-           hideFilters:[],
-           result : result,
-           clubs : clubs,
-           teams : teams,
-           query:searchObj,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-       });
-    }
-  })
-}
 
 exports.all_player_stats = function (req, res,next){
   // console.log(Object.entries(req.params))
@@ -520,24 +490,7 @@ exports.all_player_stats = function (req, res,next){
   })
 }
 
-exports.old_all_pair_stats = function (req, res,next){
-  Player.getPairStats(req.params,function(err,result){
-    if (err){
-      return next(err)
-    }
-    else {
-      res.render('beta/pair-stats', {
-           static_path: '/static',
-           theme: process.env.THEME || 'flatly',
-           flask_debug: process.env.FLASK_DEBUG || 'false',
-           pageTitle : "Pair Stats",
-           pageDescription : "Geek out on Stockport League Player stats!",
-           result : result,
-           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-       });
-    }
-  })
-}
+
 
 exports.all_pair_stats = function (req, res,next){
   // console.log(Object.entries(req.params))
@@ -845,3 +798,104 @@ exports.player_update_post = function(req, res) {
     res.redirect(`/player/${req.params.id}/update`);
   })
 };
+
+exports.player_elo_populate = async function(req,res){
+  Fixture.getFixtureDetails({"status":"complete"},async function(err,rows){
+    if (err){
+      res.send(err);
+    }
+    else {
+      let totalFixtures = rows.length
+      // let totalFixtures = 4
+      let subLoopLength = 10
+      let start = 0
+      do {
+        let subFixtures = await rows.filter((el,i)=> i >= 0 && i < start + subLoopLength)
+        start += subLoopLength
+        for (fixture of await subFixtures){
+          if (fixture.id !== 99999){
+            let fixtureDate = await fixture.date
+            // console.log(`fixture: ${JSON.stringify(fixture)}`)
+
+            let fixturePlayers = {}
+            // console.log(Player.getPrevRating(fixture.homeMan1,fixtureDate))
+            fixturePlayers[fixture.homeMan1] = {}
+            fixturePlayers[fixture.homeMan2] = {}
+            fixturePlayers[fixture.homeMan3] = {}
+            fixturePlayers[fixture.homeLady1] = {}
+            fixturePlayers[fixture.homeLady2] = {}
+            fixturePlayers[fixture.homeLady3] = {}
+            fixturePlayers[fixture.awayMan1] = {}
+            fixturePlayers[fixture.awayMan2] = {}
+            fixturePlayers[fixture.awayMan3] = {}
+            fixturePlayers[fixture.awayLady1] = {}
+            fixturePlayers[fixture.awayLady2] = {}
+            fixturePlayers[fixture.awayLady3] = {}
+              
+            await Player.getPrevRating(await fixtureDate, fixturePlayers, async function(err,row){
+              if (err) console.error(`error: , player:${JSON.stringify(err)}`)
+              fixturePlayers = await row;
+              // console.log(`fixturePlayers: ${JSON.stringify(row)}`)
+              await Game.getByFixture(fixture.id,async function(gameErr,results){
+                if (gameErr){
+                  res.send(gameErr);
+                }
+                else {
+                  // console.log(`games found for fixture: ${fixture.id} : ${results.length}`)
+                  // console.log(`pre Game calcRating: fixturePlayers ${JSON.stringify(fixturePlayers)}`)
+                  for (game of await results){
+                    // console.log(`gameId: ${game.id}`)
+                    
+                    await Game.calculateRating(game,fixturePlayers,fixtureDate, async function(rateErr, rateResult){
+                      // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
+                      if (rateErr){
+                        console.error(`rateErr: ${JSON.stringify(rateErr)}`)
+                      }
+                      else if (await rateResult){
+                        fixturePlayers[game.homePlayer1] = {"rating":rateResult.updateObj.homePlayer1End, "date":fixtureDate}
+                        fixturePlayers[game.homePlayer2] = {"rating":rateResult.updateObj.homePlayer2End, "date":fixtureDate}
+                        fixturePlayers[game.awayPlayer1] = {"rating":rateResult.updateObj.awayPlayer1End, "date":fixtureDate}
+                        fixturePlayers[game.awayPlayer2] = {"rating":rateResult.updateObj.awayPlayer2End, "date":fixtureDate}
+                        await Game.updateById(rateResult.updateObj,game.id, async function(ratingErr, ratingResult){
+                          if (ratingErr){
+                            // console.error(`gameObj: ${JSON.stringify(rateResult)}`)
+                            // console.error(`ratingErr: ${ratingErr}`)
+                          }
+                        })
+                      }
+                    })
+                  }
+    
+    
+                  let playerUpdate = {}
+                  playerUpdate.tablename = "player"
+                  playerUpdate.data = []
+                  playerUpdate.fields = ["id","rating"]
+                  // console.log(`${rateResult.prevRatingDates.homePlayer1Start} vs ${fixtureDate}: ${rateResult.prevRatingDates.homePlayer1Start > fixtureDate}`)
+                  // console.log(`fixturePlayers: ${JSON.stringify(fixturePlayers)}`)
+                  for ([index,player] of Object.entries(fixturePlayers)){
+                    playerUpdate.data.push([index,player.rating])
+                  }
+                  if (playerUpdate.data.length > 0){
+                    console.log(`playerUpdate: ${JSON.stringify(playerUpdate)}`)
+                    await Player.updateBulk(playerUpdate,async function(playerErr,updateRes){
+                      if (playerErr){
+                        console.error(`playerErr: ${playerErr}`)
+                      }
+                      else {
+                        console.log(`Player rankings updated again`)
+                      }
+                    })
+                  }
+                }
+              })
+              // console.log(fixturePlayers[i])
+            })
+          }
+        }
+
+      } while ((start + subLoopLength) < totalFixtures)
+      res.send("all done")
+    }
+  })
+}

@@ -1,25 +1,38 @@
-var mysql = require('mysql')
+var mysql = require('mysql2/promise')
   , async = require('async')
+
 
 var state = {
   pool: null
 }
+
+var pool = {}
 
 var hostname = process.env.RDS_HOSTNAME
 var username = process.env.RDS_USERNAME
 var password = process.env.RDS_PASSWORD
 var database = process.env.RDS_DATABASE || 'badminton';
 
-exports.connect = function(done) {
-  state.pool = mysql.createPool({
-    'connectionLimit':8,
+exports.connect = async function() {
+  state.pool =  mysql.createPool({
+    'host'     : hostname,
+    'user'     : username,
+    'password' : password,
+    'database' : database,
+    'multipleStatements':true
+  });
+}
+
+exports.otherConnect = async function() {
+  /* const conn = await mysql.createConnection({
     'host'     : hostname,
     'user'     : username,
     'password' : password,
     'database' : database,
     'multipleStatements':true
   })
-  done()
+  return conn */
+  return state.pool;
 }
 
 exports.get = function() {

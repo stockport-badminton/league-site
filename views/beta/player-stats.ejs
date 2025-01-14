@@ -23,6 +23,7 @@
           <th>Games Won / Match</th>
           <th>Pts For / Game</th>
           <th>Pts Against / Game</th>
+          <th>Rating</th>
         </tr>
       </thead>
       <tbody>
@@ -31,7 +32,7 @@
 
       <tr>
 
-          <td><%= row['playername'] %></td>
+          <td><a href="/playerStats/<%= row['playerId'] %>/<%= row['playername'] %>"><%= row['playername'] %></a></td>
           <td><%= row['playergender'] %></td>
           <td><%= row['teamName'] %></td>
           <td><%= row['clubName'] %></td>
@@ -85,6 +86,7 @@
           }
           %>
           <td><%= n %></td>
+          <td><%= row['rating'] %></td>
       </tr>
     <% }) %>
       </tbody>

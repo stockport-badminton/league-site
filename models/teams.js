@@ -9,14 +9,17 @@ else {
 }
 
 // POST
-exports.create = function(name,starttime,endtime,matchDay,venue,courtspace,club,division,rank,done){
-  db.get().query('INSERT INTO `team` (`name`,`starttime`,`endtime`,`matchDay`,`venue`,`courtspace`,`club`,`division`,`rank`) VALUES (?,?,?,?,?,?,?,?,?)',[name,starttime,endtime,matchDay,venue,courtspace,club,division,rank],function(err,result){
-    if (err) return done(err);
-    done(null,result);
-  });
+exports.create = async function(name,starttime,endtime,matchDay,venue,courtspace,club,division,rank,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('INSERT INTO `team` (`name`,`starttime`,`endtime`,`matchDay`,`venue`,`courtspace`,`club`,`division`,`rank`) VALUES (?,?,?,?,?,?,?,?,?)',[name,starttime,endtime,matchDay,venue,courtspace,club,division,rank])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
-exports.createBatch = function(BatchObj,done){
+exports.createBatch = async function(BatchObj,done){
   if(db.isObject(BatchObj)){
     var fields = BatchObj.fields.join("`,`");
     var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
@@ -35,10 +38,13 @@ exports.createBatch = function(BatchObj,done){
     // console.log(containerArray);
     sql = sql + containerArray.join(',')
     // console.log(sql);
-    db.get().query(sql,function(err,result){
-      if (err) return done(err);
-      done(null,result)
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
   }
   else{
     return done('not object');
@@ -46,15 +52,18 @@ exports.createBatch = function(BatchObj,done){
 }
 
 // GET
-exports.getAll = function(done){
-  db.get().query('SELECT * FROM `team`', function (err, rows){
-    if (err) return done(err);
-    done(null, rows);
-  })
+exports.getAll = async function(done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `team`')
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // GET
-exports.getMesser = function(searchTerms,done){
+exports.getMesser = async function(searchTerms,done){
   var season = ""
   var seasonVal = SEASON
 
@@ -65,7 +74,8 @@ exports.getMesser = function(searchTerms,done){
     season = searchTerms.season;
     seasonVal = searchTerms.season;
   }
-  db.get().query(`SELECT 
+  try {
+		 let [result] = await (await db.otherConnect()).query(`SELECT 
     homeTeam.name as homeTeamName,
     homeTeam.handicap as homeTeamHandicap,
     awayTeam.name as awayTeamName,
@@ -78,15 +88,16 @@ FROM
     team${season} awayTeam
         JOIN
     messer${season} messer ON messer.homeTeam = homeTeam.id and messer.awayTeam = awayTeam.id
-    where messer.section like ?`,searchTerms.section, function (err, rows){
-    if (err) return done(err);
-     //console.log(this.sql);
-    done(null, rows);
-  })
+    where messer.section like ?`,searchTerms.section)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // GET
-exports.getTeams = function(searchObject,done){
+exports.getTeams = async function(searchObject,done){
   if(db.isObject(searchObject)){
     // console.log(searchObject);
     var sql = 'SELECT * FROM `team`';
@@ -129,15 +140,13 @@ exports.getTeams = function(searchObject,done){
       sql = sql + conditions
        //console.log(sql)
     }
-    db.get().query(sql, function (err, rows){
-      if (err) {
-        return done(err);
-      }
-      else {
-        done(null, rows);
-      }
-
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
   }
   else{
     return done('not object');
@@ -145,45 +154,60 @@ exports.getTeams = function(searchObject,done){
 }
 
 // GET
-exports.getById = function(teamId,done){
-  db.get().query('SELECT * FROM `team` WHERE `id` = ?',teamId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getById = async function(teamId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `team` WHERE `id` = ?',teamId)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // GET
-exports.getByName = function(teamName,done){
-  db.get().query('SELECT * FROM `team` WHERE `name` = ?',teamName, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getByName = async function(teamName,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `team` WHERE `name` = ?',teamName)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
-exports.getAllAndSelectedByName = function(teamName,divisionId,done){
-  db.get().query('select *, CASE WHEN team.name = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamName,divisionId],function(err,rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getAllAndSelectedByName = async function(teamName,divisionId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('select *, CASE WHEN team.name = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamName,divisionId])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
-exports.getAllAndSelectedById = function(teamId,divisionId,done){
-  db.get().query('select *, CASE WHEN team.id = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamId,divisionId],function(err,rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getAllAndSelectedById = async function(teamId,divisionId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('select *, CASE WHEN team.id = ? THEN true ELSE false END as selected from team WHERE division = ?',[teamId,divisionId])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // DELETE
-exports.deleteById = function(teamId,done){
-  db.get().query('DELETE FROM `team` WHERE `id` = ?',teamId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.deleteById = async function(teamId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('DELETE FROM `team` WHERE `id` = ?',teamId)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
 }
 
 // PATCH
-exports.updateById = function(teamObj,teamId,done){
+exports.updateById = async function(teamObj,teamId,done){
   if (db.isObject(teamObj)){
     var sql = 'UPDATE `team` SET ';
     var updateArray = [];
@@ -198,11 +222,13 @@ exports.updateById = function(teamObj,teamId,done){
     //console.log(updateVars);
     sql = sql + updateVars + ' where `id` = ?'
     // console.log(sql);
-    db.get().query(sql,updateArrayVars, function (err, rows){
-      if (err) return done(err);
-      // console.log(rows);
-      done(null,rows);
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql,updateArrayVars)
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
   }
   else {
     return done(err);

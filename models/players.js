@@ -1,9 +1,6 @@
+const { BuilderElement } = require('docx');
 const { player_update_get } = require('../controllers/playerController.js');
 var db = require('../db_connect.js');
-var logger = require('logzio-nodejs').createLogger({
-  token: process.env.LOGZ_SECRET,
-  host: 'listener-uk.logz.io'
- });
 const levenshtein = require('js-levenshtein');
 var SEASON = '';
 if (new Date().getMonth() < 7){
@@ -15,36 +12,36 @@ else {
 
 
 // POST
-exports.create = function(first_name,family_name,team,club,gender,done){
+exports.create = async function(first_name,family_name,team,club,gender,done){
   var date_of_registration = new Date();
-  db.get().query('INSERT INTO `player` (`first_name`,`family_name`,`date_of_registration`,`team`,`club`,`gender`) VALUES (?,?,?,?,?,?)',[first_name,family_name,date_of_registration,team,club,gender],function(err,result){
-    if (err) return done(err);
-     //console.log(this.sql);
-     //console.log(result)
-    done(null,result);
-  });
-
+  try {
+		let [result] = await (await db.otherConnect()).query('INSERT INTO `player` (`first_name`,`family_name`,`date_of_registration`,`team`,`club`,`gender`) VALUES (?,?,?,?,?,?)',[first_name,family_name,date_of_registration,team,club,gender])
+    done(null,result)
+  }
+  catch (err) {
+    return done (err);
+  }
 }
 
-exports.createByName = function(obj,done){
+exports.createByName = async function(obj,done){
   if(db.isObject(obj)){
     sql = 'insert into player (first_name, family_name, gender, club, team, date_of_registration) values (?, ?, ?,(select id from club where name = ?),(select id from team where name = ?),?)'
     // console.log(JSON.stringify(obj));
-    db.get().query(sql,[obj.first_name, obj.family_name, obj.gender,obj.clubName, obj.teamName, obj.date],function(err,result){
-      if (err){
-        return done(err);
-      }
-      else {
-        done(null,result);
-      }
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql,[obj.first_name, obj.family_name, obj.gender,obj.clubName, obj.teamName, obj.date])
+      done(null,result)
+    }
+    catch (err) {
+        return done (err);
+    }
+    
   }
   else {
     return done('not object');
   }
 }
 
-exports.createBatch = function(BatchObj,done){
+exports.createBatch = async function(BatchObj,done){
   if(db.isObject(BatchObj)){
     var fields = BatchObj.fields.join("`,`");
     var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
@@ -63,10 +60,13 @@ exports.createBatch = function(BatchObj,done){
     // console.log(containerArray);
     sql = sql + containerArray.join(',')
     // console.log(sql);
-    db.get().query(sql,function(err,result){
-      if (err) return done(err);
+    try {
+		  let [result] = await (await db.otherConnect()).query(sql)
       done(null,result)
-    })
+    }
+    catch (err) {
+        return done (err);
+    }
   }
   else{
     return done('not object');
@@ -74,15 +74,17 @@ exports.createBatch = function(BatchObj,done){
 }
 
 // PATCH
-exports.updateById = function(first_name,family_name,team,club,gender,playerId,done){
-  db.get().query('UPDATE `player` SET `first_name` = ?, `family_name` = ?, `team` = ?, `club` = ?, `gender` = ? WHERE `id` = ?',[first_name,family_name,team,club,gender,playerId], function (err, rows){
-    if (err) return done(err);
-    // console.log(rows);
-    done(null,rows);
-  })
+exports.updateById = async function(first_name,family_name,team,club,gender,playerId,done){
+  try {
+		let [result] = await (await db.otherConnect()).query('UPDATE `player` SET `first_name` = ?, `family_name` = ?, `team` = ?, `club` = ?, `gender` = ? WHERE `id` = ?',[first_name,family_name,team,club,gender,playerId])
+    done(null,result)
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
-exports.updateBulk = function(BatchObj,done){
+exports.updateBulk = async function(BatchObj,done){
   if(db.isObject(BatchObj)){
      //console.log("inside players model.js")
      //console.log(BatchObj);
@@ -115,11 +117,13 @@ exports.updateBulk = function(BatchObj,done){
     sql = containerArray.join(';')
      //console.log(sql);
     // done(null,sql)
-    db.get().query(sql,function(err,result){
-       //console.log(this.sql)
-      if (err) return done(err);
+    try {
+  		let [result] = await (await db.otherConnect()).query(sql)
       done(null,result)
-    }) 
+    }
+    catch (err) {
+        return done (err);
+    }
   }
   else{
     return done('not object');
@@ -127,32 +131,39 @@ exports.updateBulk = function(BatchObj,done){
 }
 
 // GET
-exports.getAll = function(done){
-  db.get().query('SELECT * FROM `player`', function (err, rows){
-    if (err) return done(err);
-    done(null, rows);
-  })
+exports.getAll = async function(done){
+  try {
+		let [result] = await (await db.otherConnect()).query('SELECT * FROM `player`')
+    done(null,result)
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
 // GET
-exports.getNominatedPlayers = function(teamName,done){
-  db.get().query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.rank IS NOT NULL ORDER BY gender , player.rank",teamName, function (err, rows){
-    logger.log(this.sql)
-    if (err) return done(err);
-    done(null, rows);
-  })
+exports.getNominatedPlayers = async function(teamName,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query("SELECT CONCAT(first_name, ' ', family_name) AS name, gender FROM player JOIN team WHERE team.id = player.team AND team.name = ? AND player.rank IS NOT NULL ORDER BY gender , player.rank",teamName)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.getMatchStats = function(fixtureId,done){
-  db.get().query("SET @fixtureId = ?; SELECT concat(player.first_name,' ',player.family_name) AS name ,team.name AS teamName ,b.avgPtsFor ,b.avgPtsAgainst ,gamesWon FROM ( SELECT playerId ,AVG(ptsFor) AS avgPtsFor ,AVG(ptsAgainst) AS avgPtsAgainst ,SUM(won) AS gamesWon FROM ( SELECT homePlayer1 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT homePlayer2 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer1 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer2 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY teamName, gamesWon desc, avgPtsAgainst asc",fixtureId,function(err,rows){
-     //console.log(this.sql)
-    if (err) return done(err);
-    done (null,rows)
-  })
+exports.getMatchStats = async function(fixtureId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query("SET @fixtureId = ?; SELECT concat(player.first_name,' ',player.family_name) AS name ,team.name AS teamName ,b.avgPtsFor ,b.avgPtsAgainst ,gamesWon FROM ( SELECT playerId ,AVG(ptsFor) AS avgPtsFor ,AVG(ptsAgainst) AS avgPtsAgainst ,SUM(won) AS gamesWon FROM ( SELECT homePlayer1 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT homePlayer2 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer1 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer2 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY teamName, gamesWon desc, avgPtsAgainst asc",fixtureId)
+  done(null,result)
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
 
-exports.getNamesClubsTeams = function(searchTerms,done){
+exports.getNamesClubsTeams = async function(searchTerms,done){
   var whereTerms = [];
   var whereValue = [];
   var nameMatch = ""
@@ -190,115 +201,121 @@ exports.getNamesClubsTeams = function(searchTerms,done){
     var conditions = whereTerms.join(' AND ');
     // console.log(conditions);
     conditions = ' WHERE '+ conditions
-    db.get().query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender,`rank`",whereValue,function(err,rows){
-       //console.log(this.sql);
-      if (err) return done(err);
-      done(null,rows);
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query("select * from (select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id ) as b"+conditions+" order by teamName, gender,`rank`",whereValue)
+    done(null,result)
+    }
+    catch (err) {
+        return done (err);
+    }
   }
   else {
-    db.get().query("select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id order by teamName, gender, `rank`",function(err,rows){
-       //console.log(this.sql);
-      if (err) return done(err);
-      done(null,rows);
-    })
+    try {
+		  let [result] = await (await db.otherConnect()).query("select playerId, a.name, gender, date_of_registration, a.rank, club.id as clubId, club.name as clubName, teamName, teamId from (SELECT player.id as playerID, concat(first_name, ' ', family_name) as name, gender, date_of_registration, player.rank, team.id as teamId, team.name as teamName, player.club as clubId from player join team where team.id = player.team "+ nameMatch +") as a join club where a.clubId = club.id order by teamName, gender, `rank`")
+      done(null,result)
+    }
+    catch (err) {
+      return done (err);
+    }
   }
 }
 
-exports.getPlayerGameData = function(id,done){
-  db.get().query("Select date, gamesData.id, concat(player1.first_name,' ',player1.family_name) as playerName, concat(player2.first_name,' ',player2.family_name) as partnerName, concat(player3.first_name,' ',player3.family_name) as oppName1, concat(player4.first_name,' ',player4.family_name) as oppName2, gamesData.score, gamesData.vsScore, gameType from (Select fixture.date, allPlayedGames.id, playerId, partnerId, oppPlayer1, oppPlayer2, allPlayedGames.score, allPlayedGames.vsScore, gameType from (select id, homePlayer1 as playerId, homePlayer2 as partnerId, awayPlayer1 as oppPlayer1, awayPlayer2 as oppPlayer2, homeScore as score, awayScore as vsScore, fixture, gameType from game where homePlayer1 = ? UNION ALL select id, homePlayer2 as playerId, homePlayer1 as partnerId, awayPlayer1 as oppPlayer1, awayPlayer2 as oppPlayer2, homeScore as score, awayScore as vsScore, fixture, gameType from game where homePlayer2 = ? UNION ALL select id, awayPlayer1 as playerId, awayPlayer2 as partnerId, homePlayer1 as oppPlayer1, homePlayer2 as oppPlayer2, awayScore as score, homeScore as vsScore, fixture, gameType from game where awayPlayer1 = ? UNION ALL select id, awayPlayer2 as playerId, awayPlayer1 as partnerId, homePlayer1 as oppPlayer1, homePlayer2 as oppPlayer2, awayScore as score, homeScore as vsScore, fixture, gameType from game where awayPlayer2 = ?) as allPlayedGames join fixture where allPlayedGames.fixture = fixture.id order by date) as gamesData join player player1 on playerId = player1.id join player player2 on partnerId = player2.id join player player3 on oppPlayer1 = player3.id join player player4 on oppPlayer2 = player4.id order by date, gameType ",[id,id,id,id],function(err,rows){
-    if(err) return done(err)
-    done(null,rows)
-  })
+exports.getPlayerGameData = async function(id,done){
+  let sql = `with playerGames as (select game.*, fixture.date from game 
+join fixture on game.fixture = fixture.id 
+where 
+(? in(homePlayer1,homePlayer2,awayPlayer1,awayPlayer2) and (
+  homePlayer1End is not null and
+  homePlayer2End is not null and
+  awayPlayer1End is not null and
+  awayPlayer2End is not null
+))
+order by date desc, id),
+allGames as (
+  select 
+  id,
+  date,
+  case when homePlayer1 = ? then homePlayer1
+  when homePlayer2 = ? then homePlayer2
+  when awayPlayer1 = ? then awayPlayer1
+  when awayPlayer2 = ? then awayPlayer2
+  end as playerName,
+  case when homePlayer1 = ? then homePlayer2
+  when homePlayer2 = ? then homePlayer1
+  when awayPlayer1 = ? then awayPlayer2
+  when awayPlayer2 = ? then awayPlayer1
+  end as partner,
+  case when homePlayer1 = ? then awayPlayer1
+  when homePlayer2 = ? then awayPlayer1
+  when awayPlayer1 = ? then homePlayer1
+  when awayPlayer2 = ? then homePlayer1
+  end as oppo1,
+  case when homePlayer1 = ? then awayPlayer2
+  when homePlayer2 = ? then awayPlayer2
+  when awayPlayer1 = ? then homePlayer2
+  when awayPlayer2 = ? then homePlayer2
+  end as oppo2,
+  case when homePlayer1 = ? then homeScore
+  when homePlayer2 = ? then homeScore
+  when awayPlayer1 = ? then awayScore
+  when awayPlayer2 = ? then awayScore
+  end as score,
+  case when homePlayer1 = ? then awayScore
+  when homePlayer2 = ? then awayScore
+  when awayPlayer1 = ? then homeScore
+  when awayPlayer2 = ? then homeScore
+  end as vsScore,
+  gameType,
+  case when homePlayer1 = ? then homePlayer1Start
+  when homePlayer2 = ? then homePlayer2Start
+  when awayPlayer1 = ? then awayPlayer1Start
+  when awayPlayer2 = ? then awayPlayer2Start
+  end as beforeVal,
+  case when homePlayer1 = ? then homePlayer1End
+  when homePlayer2 = ? then homePlayer2End
+  when awayPlayer1 = ? then awayPlayer1End
+  when awayPlayer2 = ? then awayPlayer2End
+  end as after,
+  case when homePlayer1 = ? then homePlayer1End - homePlayer1Start
+  when homePlayer2 = ? then homePlayer2End - homePlayer2Start
+  when awayPlayer1 = ? then awayPlayer1End - awayPlayer1Start
+  when awayPlayer2 = ? then awayPlayer2End - awayPlayer2Start
+  end as adjustment
+  from playerGames
+)
+select
+allGames.id,
+date, 
+player.first_name || ' ' || player.family_name as playerName,
+partner.first_name || ' ' || partner.family_name as partnerName,
+oppo1.first_name || ' ' || oppo1.family_name as oppName1,
+oppo2.first_name || ' ' || oppo2.family_name as oppName2,
+score,
+vsScore,
+gameType,
+beforeVal,
+after,
+adjustment
+from allGames join 
+player on player.id = allGames.playerName join
+player partner on partner.id = allGames.partner join
+player oppo1 on oppo1.id = allGames.oppo1  join
+player oppo2 on oppo2.id = allGames.oppo2`
+
+let idArray = Array(37).fill(id*1)
+
+  try {
+		let [result] = await (await db.otherConnect()).query(sql,idArray)
+    done(null,result)
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
-exports.getPlayerStats = function(searchTerms,done){
-   //console.log(searchTerms);
-
-  var whereTerms = [];
-  var whereValue = []
-  var conditions = "";
-  var season = ""
-  var seasonVal = SEASON
-
-  if (!searchTerms.season){
-     //console.log("no season");
-  }
-  else {
-    season = searchTerms.season;
-    seasonVal = searchTerms.season;
-  }
-  if (!searchTerms.gender){
-     //console.log("no gender");
-    whereValue.push('%');
-  }
-  else {
-    whereTerms.push('`gender` = ?');
-    whereValue.push(searchTerms.gender)
-  }
-  if (!searchTerms.team){
-     //console.log("no team");
-    whereValue.push("%");
-  }
-  else {
-    whereValue.push(searchTerms.team)
-  }
-  if (!searchTerms.club){
-     //console.log("no club");
-    whereValue.push("%");
-  }
-  else {
-    whereValue.push(searchTerms.club)
-  }
-  if (!searchTerms.gameType){
-     //console.log("no gameType");
-    whereValue.push("%");
-  }
-  else {
-    whereTerms.push('`gameType` = ?');
-    whereValue.push(searchTerms.gameType)
-  }
-  if (!searchTerms.divisionId){
-     //console.log("no division id");
-    whereValue.push("%");
-  }
-  else {
-    whereTerms.push('`division` = ?');
-    whereValue.push(searchTerms.divisionId)
-  }
-   //console.log(whereTerms)
-   //console.log(whereValue);
-
-  if (whereTerms.length > 0) {
-    var conditions = whereTerms.join(' AND ');
-     //console.log(conditions);
-    conditions = ' WHERE '+ conditions
-  }
-  var seasonArray = [seasonVal,seasonVal,seasonVal,seasonVal]
-  whereValue = seasonArray.concat(whereValue)
-   //console.log(whereValue)
-  
-  var sql = "DROP TABLE IF EXISTS gameSummary; CREATE TEMPORARY TABLE gameSummary AS SELECT b.id ,b.homePlayer1 AS playerId ,b.playergender ,b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game WHERE game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player"+ season + " homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player"+ season + " homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 ) AS b JOIN team"+ season + " team WHERE homeTeam = team.id UNION ALL SELECT b.id ,b.homePlayer2 AS playerId ,b.playergender ,b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game WHERE game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player"+ season + " homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player"+ season + " homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 ) AS b JOIN team"+ season + " team WHERE homeTeam = team.id UNION ALL SELECT b.id ,b.awayPlayer1 AS playerId ,b.playergender ,b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game WHERE game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player"+ season + " homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player"+ season + " homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 ) AS b JOIN team"+ season + " team ON homeTeam = team.id UNION ALL SELECT b.id ,b.awayPlayer2 AS playerId ,b.playergender ,b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game WHERE game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player"+ season + " homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player"+ season + " homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 ) AS b JOIN team"+ season + " team ON homeTeam = team.id; SELECT CONCAT(player.first_name,' ',player.family_name) AS name ,playerId ,playergender, gameType, a.division ,SUM(forPoints) AS forPoints ,SUM(againstPoints) AS againstPoints ,SUM(gamesWon) AS gamesWon ,SUM(gamesPlayed) AS gamesPlayed ,(sum(gamesPlayed) + sum(gamesWon)) - (sum(gamesPlayed) - sum(gamesWon)) as Points, club.name AS clubName ,team.name AS teamName FROM ( SELECT * FROM gameSummary ) AS a JOIN player"+ season + " player ON playerId = player.id AND player.gender Like ? JOIN team"+ season + " team ON team.id = player.team AND team.name LIKE ? JOIN club"+ season + " club ON club.id = player.club AND club.name LIKE ? where gameType like ? AND a.division like ? GROUP BY playerId ORDER BY Points DESC;"
-    db.get().query(sql,whereValue,function (err,rows){
-       //console.log(this.sql)
-      logger.log(this.sql);
-      if (err){
-         //console.log("getPlayerStats model error")
-         //console.log(err)
-        return done(err)
-      }
-      else{
-         //console.log(this.sql)
-        // console.log("getPlayerStats model success")
-        //console.log(rows[2])
-        done(null,rows[2])
-      }
-    })
 
 
-}
-
-exports.newGetPlayerStats = function(searchObj,done){
+exports.newGetPlayerStats = async function(searchObj,done){
   const filterArray = ['season','division','club','team','gameType','gender']
   // console.log("passed to getFixtureDetails")
    //console.log(searchObj)
@@ -325,7 +342,7 @@ exports.newGetPlayerStats = function(searchObj,done){
   let whereTerms = ""
   let whereValue = []
   searchArray = []
-  const checkSeason = function(season){
+  const checkSeason = async function(season){
     let firstYear = parseInt(season.slice(0,4))
     let secondYear = parseInt(season.slice(4))
      //console.log(firstYear+ " "+ secondYear)
@@ -553,7 +570,8 @@ SELECT
   SUM(gamesPlayed) AS gamesPlayed,
   (sum(gamesPlayed) + sum(gamesWon)) - (sum(gamesPlayed) - sum(gamesWon)) as Points,
   club.name AS clubName,
-  team.name AS teamName
+  team.name AS teamName,
+  player.rating
 FROM
   gameSummary
   JOIN player${ season } player ON playerId = player.id
@@ -571,105 +589,23 @@ GROUP BY
   playergender,
   team.division,
   clubName,
-  teamName
+  teamName,
+  rating
 ORDER BY
   Points DESC;`
-    db.get().query(sql,whereValue,function (err,rows){
-      // console.log(this.sql)
-      // logger.log(this.sql);
-      if (err){
-         //console.log("getPlayerStats model error")
-         //console.log(err)
-        return done(err)
-      }
-      else{
-        // console.log(this.sql)
-        // console.log("getPlayerStats model success")
-        //console.log(rows[2])
-        done(null,rows)
-      }
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql,whereValue)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 
 
 }
 
-exports.getPairStats = function(searchTerms,done){
-  // console.log(searchTerms);
 
-  var whereTerms = [];
-  var whereValue = []
-  var conditions = "";
-  var season = ""
-  var seasonVal = SEASON
-
-  if (!searchTerms.season){
-     //console.log("no season");
-  }
-  else {
-    season = searchTerms.season;
-    seasonVal = searchTerms.season;
-  }
-  if (!searchTerms.divisionId){
-     //console.log("no division id");
-  }
-  else {
-    whereTerms.push('`division` = ?');
-    whereValue.push(searchTerms.divisionId)
-  }
-  if (!searchTerms.team){
-     //console.log("no team");
-    whereValue.push("%");
-  }
-  else {
-    whereValue.push(searchTerms.team)
-  }
-  if (!searchTerms.club){
-     //console.log("no club");
-    whereValue.push("%");
-  }
-  else {
-    whereValue.push(searchTerms.club)
-  }
-  if (!searchTerms.gameType){
-     //console.log("no gameType");
-    whereValue.push("%");
-  }
-  else {
-    whereTerms.push('`gameType` = ?');
-    whereValue.push(searchTerms.gameType)
-  }
-   //console.log(whereTerms)
-
-  if (whereTerms.length > 0) {
-    var conditions = whereTerms.join(' AND ');
-     //console.log(conditions);
-    conditions = ' WHERE '+ conditions
-  }
-  var seasonArray = [seasonVal,seasonVal]
-  whereValue = seasonArray.concat(whereValue)
-  
-  var sql = "DROP TABLE IF EXISTS PairsgameSummary; CREATE TEMPORARY TABLE PairsgameSummary AS SELECT b.id, least(b.homePlayer1,b.homePlayer2) AS player1Id, greatest(b.homePlayer1,b.homePlayer2) AS player2Id, b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id UNION ALL SELECT b.id, least(b.awayPlayer1,b.awayPlayer2) AS player1Id, greatest(b.awayPlayer2,b.awayPlayer1) AS player2Id, b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id; SELECT concat(Player1.first_name,' ', Player1.family_name, ' & ', Player2.first_name, ' ', Player2.family_name) as Pairing ,player1Id ,player2Id ,SUM(forPoints) AS forPoints ,SUM(againstPoints) AS againstPoints ,SUM(gamesWon) AS gamesWon ,SUM(gamesPlayed) AS gamesPlayed ,SUM(gamesWon) / SUM(gamesPlayed) As winRate, (sum(gamesWon) + sum(gamesPlayed)) - (sum(gamesPlayed) - sum(gamesWon)) as Points, club.name AS clubName ,team.name AS teamName ,gameType FROM ( SELECT * FROM PairsgameSummary ) AS a JOIN player" + season +" Player1 ON Player1.id = a.player1Id JOIN player" + season +" Player2 ON Player2.id = a.player2Id JOIN team" + season +" team ON team.id = Player1.team AND team.name LIKE ? JOIN club" + season +" club ON club.id = Player1.club AND club.name LIKE ? AND gameType like ? GROUP BY Pairing ORDER BY winRate DESC, Points DESC;"
-     //console.log(sql);
-    db.get().query(sql,whereValue,function (err,rows){
-       //console.log(this.sql)
-      logger.log(this.sql);
-      if (err){
-         //console.log("getPairStats model error")
-         //console.log(err)
-        return done(err)
-      }
-      else{
-        // console.log(this.sql)
-        // console.log("getPlayerStats model success")
-        //console.log(rows[2])
-        done(null,rows[2])
-      }
-    })
-
-
-}
-
-exports.newGetPairStats = function(searchObj,done){
+exports.newGetPairStats = async function(searchObj,done){
   const filterArray = ['season','division','club','team','gameType','gender']
   // console.log("passed to getFixtureDetails")
    //console.log(searchObj)
@@ -697,7 +633,7 @@ exports.newGetPairStats = function(searchObj,done){
   let divisionSql = ""
   let whereValue = []
   searchArray = []
-  const checkSeason = function(season){
+  const checkSeason = async function(season){
     let firstYear = parseInt(season.slice(0,4))
     let secondYear = parseInt(season.slice(4))
      //console.log(firstYear+ " "+ secondYear)
@@ -762,21 +698,13 @@ exports.newGetPairStats = function(searchObj,done){
   
   var sql = "DROP TABLE IF EXISTS PairsgameSummary; CREATE TEMPORARY TABLE PairsgameSummary AS SELECT b.id, least(b.homePlayer1,b.homePlayer2) AS player1Id, greatest(b.homePlayer1,b.homePlayer2) AS player2Id, b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id UNION ALL SELECT b.id, least(b.awayPlayer1,b.awayPlayer2) AS player1Id, greatest(b.awayPlayer2,b.awayPlayer1) AS player2Id, b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id; SELECT concat(Player1.first_name,' ', Player1.family_name, ' & ', Player2.first_name, ' ', Player2.family_name) as Pairing ,player1Id ,player2Id ,SUM(forPoints) AS forPoints ,SUM(againstPoints) AS againstPoints ,SUM(gamesWon) AS gamesWon ,SUM(gamesPlayed) AS gamesPlayed ,SUM(gamesWon) / SUM(gamesPlayed) As winRate, (sum(gamesWon) + sum(gamesPlayed)) - (sum(gamesPlayed) - sum(gamesWon)) as Points, club.name AS clubName ,team.name AS teamName ,gameType FROM ( SELECT * FROM PairsgameSummary ) AS a JOIN player" + season +" Player1 ON Player1.id = a.player1Id JOIN player" + season +" Player2 ON Player2.id = a.player2Id JOIN team" + season +" team ON team.id = Player1.team " + divisionSql + "AND team.name LIKE ? JOIN club" + season +" club ON club.id = Player1.club AND club.name LIKE ? AND gameType like ? GROUP BY Pairing ORDER BY winRate DESC, Points DESC;"
     // console.log(sql);
-    db.get().query(sql,whereValue,function (err,rows){
-       //console.log(this.sql)
-      // logger.log(this.sql);
-      if (err){
-         //console.log("getPairStats model error")
-         //console.log(err)
-        return done(err)
-      }
-      else{
-        // console.log(this.sql)
-        // console.log("getPlayerStats model success")
-        //console.log(rows[2])
-        done(null,rows[2])
-      }
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query(sql,whereValue)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 
 
 }
@@ -817,20 +745,19 @@ exports.getEmails = async function(searchTerms,done){
     // console.log(conditions);
     sql = sql + conditions
   }
-  db.get().query(sql, function (err, rows){
-    if (err) return done(err);
-    else {
-      // console.log(rows)
-      var emailArray = rows.map(row => {const {playerEmail} = row; return playerEmail})
-      tempArray = emailArray
-      emailArray = tempArray.filter(email => email.indexOf("@") != -1)
-       //console.log(emailArray)
-    }
-    done(null, emailArray);
-  })
+  try {
+		let [result] = await (await db.otherConnect()).query(sql)
+    var emailArray = result.map(row => {const {playerEmail} = row; return playerEmail})
+    tempArray = emailArray
+    emailArray = tempArray.filter(email => email.indexOf("@") != -1)
+    done(null,emailArray)
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
-exports.search = function(searchTerms,done){
+exports.search = async function(searchTerms,done){
    //console.log(searchTerms);
   var sql = 'SELECT * FROM `player`';
   var whereTerms = [];
@@ -860,162 +787,279 @@ exports.search = function(searchTerms,done){
     // console.log(conditions);
     sql = sql + conditions
   }
-  db.get().query(sql, function (err, rows){
-    if (err) return done(err);
-    done(null, rows);
-  })
+  try {
+		 let [result] = await (await db.otherConnect()).query(sql)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.findElgiblePlayersFromTeamId = function(id,gender,done){
-  db.get().query('select player.id, player.first_name, player.family_name, b.rank as teamRank, player.rank as playerRank from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ? order by b.rank asc,player.rank desc, player.family_name',[id,gender],function(err,result){
-     //console.log(this.sql);
-    if (err){
-      return done(err)
-    }
-    else{
-      done(null,result);
-    }
-  })
+exports.findElgiblePlayersFromTeamId = async function(id,gender,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('select player.id, player.first_name, player.family_name, b.rank as teamRank, player.rank as playerRank from (select team.id, team.name, team.rank from (SELECT club.id, club.name, team.rank as originalRank FROM team JOIN club WHERE team.club = club.id AND team.id = ?) as a join team where a.id = team.club AND team.rank >= originalRank) as b join player where player.team = b.id AND player.gender= ? order by b.rank asc,player.rank desc, player.family_name',[id,gender])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.findElgiblePlayersFromTeamIdAndSelected = function(teamName,gender, first, second, third,done){
-  db.get().query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender],function(err,rows){
-    logger.log(this.sql);
-    if(err) return done(err)
-    done(null,rows)
-  })
+exports.findElgiblePlayersFromTeamIdAndSelected = async function(teamName,gender, first, second, third,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name, " ", player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND levenshtein(team.name,?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamName, gender])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.getEligiblePlayersAndSelectedById = function(first, second, third, teamId,gender,done){
-  db.get().query('SELECT player.id ,player.first_name ,player.family_name, case when player.id = ? then 1 else 0 end as first, case when player.id = ? then 1 else 0 end as second, case when player.id = ? then 1 else 0 end as third FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.id like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamId,gender],function(err,rows){
-    logger.log(this.sql);
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getEligiblePlayersAndSelectedById = async function(first, second, third, teamId,gender,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT player.id ,player.first_name ,player.family_name, case when player.id = ? then 1 else 0 end as first, case when player.id = ? then 1 else 0 end as second, case when player.id = ? then 1 else 0 end as third FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.id like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[first, second, third, teamId,gender])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = function(teamName,gender,first, second,third,done){
-  db.get().query('SELECT player.id ,player.first_name ,player.family_name FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.name like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[teamName, gender],function(err,rows){
-    logger.log(this.sql);
-    if(err) return done(err)
-    else {
-      rows[0].first = 1;
-      rows[0].second = 1;
-      rows[0].third = 1;
-      let lowestFirstIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,first)];
-      let lowestSecondIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,second)];
-      let lowestThirdIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,third)]
-      for (let i = 1; i < rows.length; i++){ 
-        rowFirstLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,first);
-        rowSecondLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,second);
-        rowThirdLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,third);
-        if (lowestFirstIndex[1] > rowFirstLevenshtein) {
-          rows[lowestFirstIndex[0]].first = 0;
-          rows[i].first = 1;
-          lowestFirstIndex[0] = i;
-          lowestFirstIndex[1] = rowFirstLevenshtein;
-        } 
-        else {
-          rows[i].first = 0;
-        }
-        if (lowestSecondIndex[1] > rowSecondLevenshtein) {
-          rows[lowestSecondIndex[0]].second = 0;
-          rows[i].second = 1;
-          lowestSecondIndex[0] = i;
-          lowestSecondIndex[1] = rowSecondLevenshtein;
-        } 
-        else {
-          rows[i].second = 0;
-        }
+exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async function(teamName,gender,first, second,third,done){
+  try {
+		let [rows] = await (await db.otherConnect()).query('SELECT player.id ,player.first_name ,player.family_name FROM ( SELECT team.id ,team.name ,team.rank FROM ( SELECT club.id ,club.name ,team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND team.name like ? ) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank ) AS b JOIN player WHERE player.team = b.id AND player.gender = ?',[teamName, gender])
 
-        if (lowestThirdIndex[1] > rowThirdLevenshtein) {
-          rows[lowestThirdIndex[0]].third = 0;
-          rows[i].third = 1;
-          lowestThirdIndex[0] = i;
-          lowestThirdIndex[1] = rowThirdLevenshtein;
-        } 
-        else {
-          rows[i].third = 0;
-        }
+    rows[0].first = 1;
+    rows[0].second = 1;
+    rows[0].third = 1;
+    let lowestFirstIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,first)];
+    let lowestSecondIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,second)];
+    let lowestThirdIndex = [0,levenshtein(rows[0].first_name + " " + rows[0].family_name,third)]
+    for (let i = 1; i < rows.length; i++){ 
+      rowFirstLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,first);
+      rowSecondLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,second);
+      rowThirdLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name,third);
+      if (lowestFirstIndex[1] > rowFirstLevenshtein) {
+        rows[lowestFirstIndex[0]].first = 0;
+        rows[i].first = 1;
+        lowestFirstIndex[0] = i;
+        lowestFirstIndex[1] = rowFirstLevenshtein;
+      } 
+      else {
+        rows[i].first = 0;
       }
-      
-      done(null,rows)
+      if (lowestSecondIndex[1] > rowSecondLevenshtein) {
+        rows[lowestSecondIndex[0]].second = 0;
+        rows[i].second = 1;
+        lowestSecondIndex[0] = i;
+        lowestSecondIndex[1] = rowSecondLevenshtein;
+      } 
+      else {
+        rows[i].second = 0;
+      }
+
+      if (lowestThirdIndex[1] > rowThirdLevenshtein) {
+        rows[lowestThirdIndex[0]].third = 0;
+        rows[i].third = 1;
+        lowestThirdIndex[0] = i;
+        lowestThirdIndex[1] = rowThirdLevenshtein;
+      } 
+      else {
+        rows[i].third = 0;
+      }
     }
     
-  })
-}
-
-exports.findElgiblePlayersFromTeamIdAndSelectedNew = function(teamName,gender, first, second, third,done){
-  db.get().query("SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) as totalLev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ? Order by totalLev asc, first asc, second asc, third asc",[first, second, third, first, second, third,teamName, gender],function(err,rows){
-    if(err) return done(err)
     done(null,rows)
-  })
+  }
+  catch (err) {
+      return done (err);
+  }
 }
 
-exports.count = function(searchTerm,done){
+exports.findElgiblePlayersFromTeamIdAndSelectedNew = async function(teamName,gender, first, second, third,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query("SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name, ' ', player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) as totalLev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team JOIN club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team WHERE a.id = team.club AND team.rank >= originalRank) AS b JOIN player WHERE player.team = b.id AND player.gender = ? Order by totalLev asc, first asc, second asc, third asc",[first, second, third, first, second, third,teamName, gender])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
+}
+
+exports.count = async function(searchTerm,done){
   if (searchTerm == ""){
-    db.get().query('SELECT COUNT(*) as `players` FROM `player`', function (err,result){
-      if (err) return done(err);
-      // console.log(searchTerm + " model:" + JSON.stringify(result));
-      done(null,result);
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query('SELECT COUNT(*) as `players` FROM `player`')
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
   }
   else {
-    db.get().query('SELECT COUNT(*) as `players` FROM `player` WHERE `gender` = ?',searchTerm, function (err,result){
-      if (err) return done(err);
-      // console.log(searchTerm + " model:" + JSON.stringify(result));
-      done(null,result);
-    })
+    try {
+		 let [result] = await (await db.otherConnect()).query('SELECT COUNT(*) as `players` FROM `player` WHERE `gender` = ?',searchTerm)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
+      
   }
 }
 
 // GET
-exports.getByName = function(playerName,done){
-  db.get().query('SELECT * FROM player where levenshtein(concat(first_name," ",family_name), ?) < 4',playerName, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getByName = async function(playerName,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM player where levenshtein(concat(first_name," ",family_name), ?) < 4',playerName)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.getByNameAndTeam = function(playerName,teamId,distance,done){
-  db.get().query('select * from (select player.id as playerId, concat(first_name," ",family_name) as playerName, team.id as teamId, team.name as teamName from player join team where player.team = team.id) as playerClub where teamId=? AND levenshtein(playerName,?) < ?',[teamid,playerName,distance], function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.getByNameAndTeam = async function(playerName,teamId,distance,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('select * from (select player.id as playerId, concat(first_name," ",family_name) as playerName, team.id as teamId, team.name as teamName from player join team where player.team = team.id) as playerClub where teamId=? AND levenshtein(playerName,?) < ?',[teamid,playerName,distance])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.getById = function(playerId,done){
+exports.getById = async function(playerId,done){
    //console.log(playerId)
-  db.get().query('SELECT id,first_name, family_name, gender,CAST(AES_DECRYPT(playerEmail, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerEmail, CAST(AES_DECRYPT(playerTel, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerTel,teamCaptain, clubSecretary,matchSecrertary,treasurer FROM player WHERE id = ?',playerId, function (err, rows){
-     //console.log(this.sql)
-    if (err) return done(err);
-    done(null,rows);
-  })
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT id,first_name, family_name, gender,CAST(AES_DECRYPT(playerEmail, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerEmail, CAST(AES_DECRYPT(playerTel, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerTel,teamCaptain, clubSecretary,matchSecrertary,treasurer FROM player WHERE id = ?',playerId)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
-exports.getPlayerClubandTeamById = function(playerId,done){
-  db.get().query("select playerId, playerName, clubName, team.name as teamName, date_of_registration from (select playerId, playerName, club.name as clubName, teamId, date_of_registration from (select player.id as playerId, concat(player.first_name, ' ', player.family_name) as playerName, player.club as clubID, player.team as teamId, player.date_of_registration from player where id = ?) as a join club where clubId = club.id) as b join team where teamId = team.id",[playerId],function(err, rows){
-    if (err){
-      return done(err)
-    }
-    else{
-      done(null,rows)
-    }
-  })
+exports.getPlayerClubandTeamById = async function(playerId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query("select playerId, playerName, clubName, team.name as teamName, date_of_registration from (select playerId, playerName, club.name as clubName, teamId, date_of_registration from (select player.id as playerId, concat(player.first_name, ' ', player.family_name) as playerName, player.club as clubID, player.team as teamId, player.date_of_registration from player where id = ?) as a join club where clubId = club.id) as b join team where teamId = team.id",[playerId])
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
 // GET
-exports.findByName = function(searchObject,done){
-  db.get().query('SELECT * FROM `player` WHERE `id` = ?',playerId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.findByName = async function(searchObject,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `player` WHERE `id` = ?',playerId)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
 }
 
 // DELETE
-exports.deleteById = function(playerId,done){
-  db.get().query('DELETE FROM `player` WHERE `id` = ?',playerId, function (err, rows){
-    if (err) return done(err);
-    done(null,rows);
-  })
+exports.deleteById = async function(playerId,done){
+  try {
+		 let [result] = await (await db.otherConnect()).query('DELETE FROM `player` WHERE `id` = ?',playerId)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
+}
+
+exports.getPrevRating = async function(endDate,fixturePlayers,done){
+  let playerArray = Object.entries(fixturePlayers)
+  let sqlArray = []
+  let sqlValsArray = []
+  // console.log(`player Array: ${JSON.stringify(playerArray)}`)
+  for (row of playerArray){
+    // console.log(el)
+    let i = row[0]
+    
+    let sql = `select * from (select 
+case
+    when homePlayer1 = ? then homePlayer1
+    when homePlayer2 = ? then homePlayer2
+    when awayPlayer1 = ? then awayPlayer1
+    when awayPlayer2 = ? then awayPlayer2
+    end as playerId,
+case 
+    when homePlayer1 = ? then homePlayer1End
+    when homePlayer2 = ? then homePlayer2End
+    when awayPlayer1 = ? then awayPlayer1End
+    when awayPlayer2 = ? then awayPlayer2End
+    end as rating,
+fixture.date 
+from game 
+    join fixture on game.fixture = fixture.id 
+    join season on (fixture.date > season.startDate and fixture.date < season.endDate and season.name = ?)
+    where 
+    (homePlayer1 = ? OR
+    homePlayer2 = ? OR
+    awayPlayer1 = ? OR
+    awayPlayer2 = ?) and (
+    homePlayer1End is not null and
+    homePlayer2End is not null and
+    awayPlayer1End is not null and
+    awayPlayer2End is not null
+    )
+    and date < ?
+    order by date desc, game.id desc
+    limit 1) as a`
+    sqlArray.push(sql)
+    sqlValsArray = [...sqlValsArray,i*1,i*1,i*1,i*1,i*1,i*1,i*1,i*1,SEASON,i*1,i*1,i*1,i*1,endDate]
+    
+    
+    /* 
+    Player.getPrevRating(i,fixtureDate,fixturePlayers)
+done(null,result)
+}
+catch (err) {
+		 return done (err);
+}
+      if (err) console.error(`error: , player:${JSON.stringify(el)}`)
+      fixturePlayers = row;
+      // console.log(fixturePlayers[i])
+    }) */
+   
+  }
+  try {
+		let rows = await (await db.otherConnect()).query(sqlArray.join(' union all '),sqlValsArray)
+    if (rows[0].length > 0){
+      console.log(`prev Rating Results rows > 1: ${JSON.stringify(rows[0])}`);
+      for(player of playerArray){
+        console.log(`player: ${JSON.stringify(player)}`)
+        let filtered = rows[0].filter(i => i.playerId == player[0])
+        if (filtered.length > 0){
+          console.log(`filtered: ${JSON.stringify(filtered)}`)          
+          player[1].rating = filtered[0].rating
+          player[1].date = filtered[0].date
+          console.log(`player: ${JSON.stringify(player)}`)
+        }
+        else {
+          player[1].rating = 1500
+          player[1].date = "2020-01-01 00:00:00"
+        }
+      }
+    }
+    else {
+      for(player of playerArray){
+          player[1].rating = 1500
+          player[1].date = "2020-01-01 00:00:00"
+      }
+    }
+    fixturePlayers = Object.fromEntries(playerArray)
+    // console.log(`${JSON.stringify(fixturePlayers)}`)
+    done(null, fixturePlayers)
+  }
+  catch (err) {
+      return done (err);
+  }
+
 }
