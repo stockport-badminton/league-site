@@ -666,10 +666,16 @@ exports.fixture_detail_byDivision = function(req,res,next) {
                  //console.log("titleString:" + titleString)
               }
             }
-          }        
+          }
+          let clubs = result.map(item => item.homeClub).filter((value, index, self) => self.indexOf(value) === index) 
+          let teams = result.map(item => item.homeTeam).filter((value, index, self) => self.indexOf(value) === index)         
           let renderObject = {
               path:req.path,
               user:req.user,
+              clubs:clubs,
+              teams:teams,
+              filter:true,
+              hideFilters:["gender","gametype"],
               static_path: '/static',
               pageTitle : "Fixtures & Results: "+ titleString,
               pageDescription : "Find out how the teams in your division have got on, and check when your next match is",

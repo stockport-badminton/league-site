@@ -1,18 +1,7 @@
 <div class="row col-12">
       <form action="" id="statsFilter">
         <div class="form-group row">
-        <% if (typeof hideFilters !== "undefined" && hideFilters.indexOf("season") == -1){ %>
-          <div class="col-auto">
-            <label for="seasonSelect">Season</label>
-            <select class="form-control" name="seasonSelect" id="seasonSelect">
-              <option value="0">Current</option>
-              <option value="20232024">2023-2024</option>
-              <option value="20222023">2022-2023</option>
-              <option value="20212022">2021-2022</option>
-            </select>
-          </div>
-          <% } %>
-          <% if (typeof hideFilters !== "undefined" && hideFilters.indexOf("division") == -1){ %>
+        <% if (typeof hideFilters !== "undefined" && hideFilters.indexOf("division") == -1){ %>
           <div class="col-auto">
             <label for="divisionSelect">Division</label>
             <select class="form-control" name="divisionSelect" id="divisionSelect">
@@ -21,6 +10,34 @@
               <option value="Division-1">Division 1</option>
               <option value="Division-2">Division 2</option>
               <option value="Division-3">Division 3</option>
+            </select>
+          </div>
+          <% } %>
+        <% if (typeof hideFilters !== "undefined" && hideFilters.indexOf("season") == -1){ %>
+          <div class="col-auto">
+            <label for="seasonSelect">Season</label>
+            <select class="form-control" name="seasonSelect" id="seasonSelect">
+              <option value="0">Current</option>
+              <option value="20232024">2023-2024</option>
+              <option value="20222023">2022-2023</option>
+              <option value="20212022">2021-2022</option>
+              <option value="20202021">2020-2021</option>
+              <option value="20192020">2019-2020</option>
+              <option value="20182019">2018-2019</option>
+            </select>
+          </div>
+          <% } %>
+          
+          <% if (typeof hideFilters !== "undefined" && hideFilters.indexOf("status") == -1){ %>
+          <div class="col-auto">
+            <label for="statusSelect">Status</label>
+            <select class="form-control" name="statusSelect" id="statusSelect">
+              <option value="0">All</option>
+              <option value="outstanding">Outstanding</option>
+              <option value="rearranging">Rearranging</option>
+              <option value="rearranged">Rearranged</option>
+              <option value="conceded">Conceded</option>
+              <option value="completed">Completed</option>
             </select>
           </div>
           <% } %>
