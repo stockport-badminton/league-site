@@ -845,25 +845,34 @@ exports.player_elo_populate = async function(req,res){
                   // console.log(`pre Game calcRating: fixturePlayers ${JSON.stringify(fixturePlayers)}`)
                   for (game of await results){
                     // console.log(`gameId: ${game.id}`)
+                    if ((game.homePlayer1End + game.homePlayer2End + game.awayPlayer1End + game.awayPlayer2End) == 0){
+                      await Game.calculateRating(game,fixturePlayers,fixtureDate, async function(rateErr, rateResult){
+                        // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
+                        if (rateErr){
+                          console.error(`rateErr: ${JSON.stringify(rateErr)}`)
+                        }
+                        else if (await rateResult){
+                          fixturePlayers[game.homePlayer1] = {"rating":rateResult.updateObj.homePlayer1End, "date":fixtureDate}
+                          fixturePlayers[game.homePlayer2] = {"rating":rateResult.updateObj.homePlayer2End, "date":fixtureDate}
+                          fixturePlayers[game.awayPlayer1] = {"rating":rateResult.updateObj.awayPlayer1End, "date":fixtureDate}
+                          fixturePlayers[game.awayPlayer2] = {"rating":rateResult.updateObj.awayPlayer2End, "date":fixtureDate}
+                          await Game.updateById(rateResult.updateObj,game.id, async function(ratingErr, ratingResult){
+                            if (ratingErr){
+                              // console.error(`gameObj: ${JSON.stringify(rateResult)}`)
+                              // console.error(`ratingErr: ${ratingErr}`)
+                            }
+                          })
+                        }
+                      })
+                    }
+                    else {
+                      console.log(`game skipped: ${game.id}`)
+                      fixturePlayers[game.homePlayer1] = {"rating":game.homePlayer1End, "date":fixtureDate}
+                      fixturePlayers[game.homePlayer2] = {"rating":game.homePlayer2End, "date":fixtureDate}
+                      fixturePlayers[game.awayPlayer1] = {"rating":game.awayPlayer1End, "date":fixtureDate}
+                      fixturePlayers[game.awayPlayer2] = {"rating":game.awayPlayer2End, "date":fixtureDate}
+                    }
                     
-                    await Game.calculateRating(game,fixturePlayers,fixtureDate, async function(rateErr, rateResult){
-                      // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
-                      if (rateErr){
-                        console.error(`rateErr: ${JSON.stringify(rateErr)}`)
-                      }
-                      else if (await rateResult){
-                        fixturePlayers[game.homePlayer1] = {"rating":rateResult.updateObj.homePlayer1End, "date":fixtureDate}
-                        fixturePlayers[game.homePlayer2] = {"rating":rateResult.updateObj.homePlayer2End, "date":fixtureDate}
-                        fixturePlayers[game.awayPlayer1] = {"rating":rateResult.updateObj.awayPlayer1End, "date":fixtureDate}
-                        fixturePlayers[game.awayPlayer2] = {"rating":rateResult.updateObj.awayPlayer2End, "date":fixtureDate}
-                        await Game.updateById(rateResult.updateObj,game.id, async function(ratingErr, ratingResult){
-                          if (ratingErr){
-                            // console.error(`gameObj: ${JSON.stringify(rateResult)}`)
-                            // console.error(`ratingErr: ${ratingErr}`)
-                          }
-                        })
-                      }
-                    })
                   }
     
     
