@@ -807,7 +807,7 @@ exports.player_elo_populate = async function(req,res){
     else {
       let totalFixtures = rows.length
       // let totalFixtures = 4
-      let subLoopLength = 10
+      let subLoopLength = 15
       let start = 0
       do {
         let subFixtures = await rows.filter((el,i)=> i >= 0 && i < start + subLoopLength)

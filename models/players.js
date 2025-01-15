@@ -306,6 +306,7 @@ let idArray = Array(37).fill(id*1)
 
   try {
 		let [result] = await (await db.otherConnect()).query(sql,idArray)
+    // console.log(`playerStats result: ${JSON.stringify([result])}`)
     done(null,result)
   }
   catch (err) {
