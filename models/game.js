@@ -208,5 +208,9 @@ exports.calculateRating = async function(game,fixturePlayers,endDate,done){
     }
   }  
   // console.log(`${JSON.stringify(updateObj)}`)
+  if (updateObj.homePlayer1Start == 0 || updateObj.homePlayer1Start == 0 || updateObj.awayPlayer1Start == 0 || updateObj.awayPlayer2Start == 0){
+    console.log(`calculate Rating game: ${JSON.stringify(game)}`)
+    console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)
+  }
   done(null, {updateObj,prevRatingDates})
 }

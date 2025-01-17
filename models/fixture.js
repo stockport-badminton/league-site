@@ -339,7 +339,7 @@ try{
 }
 
 exports.getFixtureDetails = async function(searchObj, done){
-  const filterArray = ['season','division','club','team','status','endDate','startDate']
+  const filterArray = ['season','division','club','team','status','endDate','startDate','type']
    //console.log("passed to getFixtureDetails")
    //console.log(searchObj)
   let fixtureObj = {}
@@ -437,6 +437,11 @@ exports.getFixtureDetails = async function(searchObj, done){
     fixture.awayTeam as awayteamid
   from
     fixture
+    ${
+      fixtureObj.type == 'eloSetting' 
+      ? `join game on game.fixture = fixture.id`
+      : ``
+    } 
     join ${'team' + season} homeTeam on fixture.homeTeam = homeTeam.id
     join ${'club' + season} homeClub on homeTeam.club = homeClub.id
     join venue on homeTeam.venue = venue.id
@@ -455,6 +460,11 @@ exports.getFixtureDetails = async function(searchObj, done){
       'conceded'
     )
     and season.name = ?
+    ${
+      fixtureObj.type == 'eloSetting' 
+      ? `and (((homePlayer1End + homePlayer2End + awayPlayer1End + awayPlayer2End) = 0) OR (homePlayer1Start < 700 OR homePlayer2Start < 700 OR awayPlayer1Start < 700 OR awayPlayer2Start < 700))`
+      : ``
+    } 
     ${
         fixtureObj.club !== undefined 
         ? `and (homeClub.name = ? OR awayClub.name = ?)`
@@ -485,17 +495,25 @@ exports.getFixtureDetails = async function(searchObj, done){
         ? `and fixture.date > ?`
         : ``
     }
+    ${
+      fixtureObj.type == 'eloSetting' 
+      ? `group by fixture.id`
+      : ``
+    } 
     order by fixture.date asc`
 
     try {
       let [result] = await (await db.otherConnect()).query(sql,sqlArray);
       // console.log(await [result]); // results contains rows returned by server
-
-      result.push({"id":99999,"date":"2025-04-8T23:00:00.000Z","homeTeam":"Messer Section Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
-      result.push({"id":99999,"date":"2025-04-15T23:00:00.000Z","homeTeam":"Messer Section Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
-      result.push({"id":99999,"date":"2024-09-14T23:00:00.000Z","homeTeam":"Junior Tournament","homeClub":"No Club","awayTeam":"@ Poynton Leisure Centre","awayClub":"No Club","division":7,"venueName":"Poynton Leisure Centre, Yew Tree Lane, Poynton. SK12 1PU","venueLink":"https://maps.app.goo.gl/B4M3PVQiRSoDG6Tq8","status":"outstanding","homeScore":null,"awayScore":null})
-      result.push({"id":99999,"date":"2025-04-29T23:00:00.000Z","homeTeam":"Messer Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
-      // console.log(`result: ${JSON.stringify(result)}`)
+      
+      if (fixtureObj.type == undefined || fixtureObj.type != 'eloSetting'){
+        
+        result.push({"id":99999,"date":"2025-04-8T23:00:00.000Z","homeTeam":"Messer Section Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
+        result.push({"id":99999,"date":"2025-04-15T23:00:00.000Z","homeTeam":"Messer Section Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
+        // result.push({"id":99999,"date":"2024-09-14T23:00:00.000Z","homeTeam":"Junior Tournament","homeClub":"No Club","awayTeam":"@ Poynton Leisure Centre","awayClub":"No Club","division":7,"venueName":"Poynton Leisure Centre, Yew Tree Lane, Poynton. SK12 1PU","venueLink":"https://maps.app.goo.gl/B4M3PVQiRSoDG6Tq8","status":"outstanding","homeScore":null,"awayScore":null})
+        result.push({"id":99999,"date":"2025-04-29T23:00:00.000Z","homeTeam":"Messer Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
+        // console.log(`result: ${JSON.stringify(result)}`)
+      }
       done(null, await result);
       
     } catch (err) {

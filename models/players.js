@@ -1033,15 +1033,15 @@ catch (err) {
   try {
 		let rows = await (await db.otherConnect()).query(sqlArray.join(' union all '),sqlValsArray)
     if (rows[0].length > 0){
-      console.log(`prev Rating Results rows > 1: ${JSON.stringify(rows[0])}`);
+      // console.log(`prev Rating Results rows > 1: ${JSON.stringify(rows[0])}`);
       for(player of playerArray){
-        console.log(`player: ${JSON.stringify(player)}`)
+        // console.log(`player: ${JSON.stringify(player)}`)
         let filtered = rows[0].filter(i => i.playerId == player[0])
         if (filtered.length > 0){
-          console.log(`filtered: ${JSON.stringify(filtered)}`)          
+          // console.log(`filtered: ${JSON.stringify(filtered)}`)          
           player[1].rating = filtered[0].rating
           player[1].date = filtered[0].date
-          console.log(`player: ${JSON.stringify(player)}`)
+          // console.log(`player: ${JSON.stringify(player)}`)
         }
         else {
           player[1].rating = 1500

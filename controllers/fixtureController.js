@@ -870,7 +870,7 @@ exports.full_fixture_post = function(req,res,next){
   else {
     // console.log(req.body);
     // console.log(req.body);
-    Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},function(err,FixtureIdResult){
+    Fixture.getOutstandingFixtureId({homeTeam:req.body.homeTeam, awayTeam:req.body.awayTeam},async function(err,FixtureIdResult){
       if (err) {
         // console.log("getFixtureId sucess")
         // console.log(res)
@@ -898,300 +898,341 @@ exports.full_fixture_post = function(req,res,next){
           homeScore:req.body.homeScore,
           awayScore:req.body.awayScore
         }
+        
+        let prevScores = {}
+        // console.log(Player.getPrevRating(fixture.homeMan1,fixtureDate))
+        prevScores[req.body.homeMan1] = {}
+        prevScores[req.body.homeMan2] = {}
+        prevScores[req.body.homeMan3] = {}
+        prevScores[req.body.homeLady1] = {}
+        prevScores[req.body.homeLady2] = {}
+        prevScores[req.body.homeLady3] = {}
+        prevScores[req.body.awayMan1] = {}
+        prevScores[req.body.awayMan2] = {}
+        prevScores[req.body.awayMan3] = {}
+        prevScores[req.body.awayLady1] = {}
+        prevScores[req.body.awayLady2] = {}
+        prevScores[req.body.awayLady3] = {}
+        await Player.getPrevRating(await req.body.date, prevScores, async function(err,row){
         // console.log(fixtureObject);
         // TODO - fix this so that it doesn't break the website when no fixture matches the query
-        Fixture.updateById(fixtureObject,FixtureIdResult[0].id,function(err,fixResult){
-          if (err) {
-            // console.log("updateById err")
-            // console.log(res)
-            res.send(err)
-          }
-          else {
-            // console.log("updateById sucess")
-            // console.log(res)
-            // console.log(fixResult)
-            var gameObject = {
-              tablename:"game",
-              fields:[
-                "homePlayer1", "homePlayer2", "awayPlayer1","awayPlayer2","homeScore","awayScore","fixture","gameType"
-              ],
-              data:[
-                {
-                  homePlayer1:req.body.FirstMenshomeMan1,
-                  homePlayer2:req.body.FirstMenshomeMan2,
-                  awayPlayer1:req.body.FirstMensawayMan1,
-                  awayPlayer2:req.body.FirstMensawayMan2,
-                  homeScore:req.body.Game1homeScore,
-                  awayScore:req.body.Game1awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstMens'
-                },
-                {
-                  homePlayer1:req.body.FirstMenshomeMan1,
-                  homePlayer2:req.body.FirstMenshomeMan2,
-                  awayPlayer1:req.body.FirstMensawayMan1,
-                  awayPlayer2:req.body.FirstMensawayMan2,
-                  homeScore:req.body.Game2homeScore,
-                  awayScore:req.body.Game2awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstMens'
-                },
-                {
-                  homePlayer1:req.body.FirstLadieshomeLady1,
-                  homePlayer2:req.body.FirstLadieshomeLady2,
-                  awayPlayer1:req.body.FirstLadiesawayLady1,
-                  awayPlayer2:req.body.FirstLadiesawayLady2,
-                  homeScore:req.body.Game3homeScore,
-                  awayScore:req.body.Game3awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstLadies'
-                },
-                {
-                  homePlayer1:req.body.FirstLadieshomeLady1,
-                  homePlayer2:req.body.FirstLadieshomeLady2,
-                  awayPlayer1:req.body.FirstLadiesawayLady1,
-                  awayPlayer2:req.body.FirstLadiesawayLady2,
-                  homeScore:req.body.Game4homeScore,
-                  awayScore:req.body.Game4awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstLadies'
-                },
-                {
-                  homePlayer1:req.body.SecondMenshomeMan1,
-                  homePlayer2:req.body.SecondMenshomeMan3,
-                  awayPlayer1:req.body.SecondMensawayMan1,
-                  awayPlayer2:req.body.SecondMensawayMan3,
-                  homeScore:req.body.Game5homeScore,
-                  awayScore:req.body.Game5awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondMens'
-                },
-                {
-                  homePlayer1:req.body.SecondMenshomeMan1,
-                  homePlayer2:req.body.SecondMenshomeMan3,
-                  awayPlayer1:req.body.SecondMensawayMan1,
-                  awayPlayer2:req.body.SecondMensawayMan3,
-                  homeScore:req.body.Game6homeScore,
-                  awayScore:req.body.Game6awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondMens'
-                },
-                {
-                  homePlayer1:req.body.SecondLadieshomeLady1,
-                  homePlayer2:req.body.SecondLadieshomeLady3,
-                  awayPlayer1:req.body.SecondLadiesawayLady1,
-                  awayPlayer2:req.body.SecondLadiesawayLady3,
-                  homeScore:req.body.Game7homeScore,
-                  awayScore:req.body.Game7awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondLadies'
-                },
-                {
-                  homePlayer1:req.body.SecondLadieshomeLady1,
-                  homePlayer2:req.body.SecondLadieshomeLady3,
-                  awayPlayer1:req.body.SecondLadiesawayLady1,
-                  awayPlayer2:req.body.SecondLadiesawayLady3,
-                  homeScore:req.body.Game8homeScore,
-                  awayScore:req.body.Game8awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondLadies'
-                },
-                {
-                  homePlayer1:req.body.ThirdMenshomeMan2,
-                  homePlayer2:req.body.ThirdMenshomeMan3,
-                  awayPlayer1:req.body.ThirdMensawayMan2,
-                  awayPlayer2:req.body.ThirdMensawayMan3,
-                  homeScore:req.body.Game9homeScore,
-                  awayScore:req.body.Game9awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdMens'
-                },
-                {
-                  homePlayer1:req.body.ThirdMenshomeMan2,
-                  homePlayer2:req.body.ThirdMenshomeMan3,
-                  awayPlayer1:req.body.ThirdMensawayMan2,
-                  awayPlayer2:req.body.ThirdMensawayMan3,
-                  homeScore:req.body.Game10homeScore,
-                  awayScore:req.body.Game10awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdMens'
-                },
-                {
-                  homePlayer1:req.body.ThirdLadieshomeLady2,
-                  homePlayer2:req.body.ThirdLadieshomeLady3,
-                  awayPlayer1:req.body.ThirdLadiesawayLady2,
-                  awayPlayer2:req.body.ThirdLadiesawayLady3,
-                  homeScore:req.body.Game11homeScore,
-                  awayScore:req.body.Game11awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdLadies'
-                },
-                {
-                  homePlayer1:req.body.ThirdLadieshomeLady2,
-                  homePlayer2:req.body.ThirdLadieshomeLady3,
-                  awayPlayer1:req.body.ThirdLadiesawayLady2,
-                  awayPlayer2:req.body.ThirdLadiesawayLady3,
-                  homeScore:req.body.Game12homeScore,
-                  awayScore:req.body.Game12awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdLadies'
-                },
-                {
-                  homePlayer1:req.body.FirstMixedhomeMan1,
-                  homePlayer2:req.body.FirstMixedhomeLady1,
-                  awayPlayer1:req.body.FirstMixedawayMan1,
-                  awayPlayer2:req.body.FirstMixedawayLady1,
-                  homeScore:req.body.Game13homeScore,
-                  awayScore:req.body.Game13awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstMixed'
-                },
-                {
-                  homePlayer1:req.body.FirstMixedhomeMan1,
-                  homePlayer2:req.body.FirstMixedhomeLady1,
-                  awayPlayer1:req.body.FirstMixedawayMan1,
-                  awayPlayer2:req.body.FirstMixedawayLady1,
-                  homeScore:req.body.Game14homeScore,
-                  awayScore:req.body.Game14awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'FirstMixed'
-                },
-                {
-                  homePlayer1:req.body.SecondMixedhomeMan2,
-                  homePlayer2:req.body.SecondMixedhomeLady2,
-                  awayPlayer1:req.body.SecondMixedawayMan2,
-                  awayPlayer2:req.body.SecondMixedawayLady2,
-                  homeScore:req.body.Game15homeScore,
-                  awayScore:req.body.Game15awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondMixed'
-                },
-                {
-                  homePlayer1:req.body.SecondMixedhomeMan2,
-                  homePlayer2:req.body.SecondMixedhomeLady2,
-                  awayPlayer1:req.body.SecondMixedawayMan2,
-                  awayPlayer2:req.body.SecondMixedawayLady2,
-                  homeScore:req.body.Game16homeScore,
-                  awayScore:req.body.Game16awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'SecondMixed'
-                },
-                {
-                  homePlayer1:req.body.ThirdMixedhomeMan3,
-                  homePlayer2:req.body.ThirdMixedhomeLady3,
-                  awayPlayer1:req.body.ThirdMixedawayMan3,
-                  awayPlayer2:req.body.ThirdMixedawayLady3,
-                  homeScore:req.body.Game17homeScore,
-                  awayScore:req.body.Game17awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdMixed'
-                },
-                {
-                  homePlayer1:req.body.ThirdMixedhomeMan3,
-                  homePlayer2:req.body.ThirdMixedhomeLady3,
-                  awayPlayer1:req.body.ThirdMixedawayMan3,
-                  awayPlayer2:req.body.ThirdMixedawayLady3,
-                  homeScore:req.body.Game18homeScore,
-                  awayScore:req.body.Game18awayScore,
-                  fixture:FixtureIdResult[0].id,
-                  gameType:'ThirdMixed'
-                }
-              ]
+          prevScores = await row;
+          Fixture.updateById(fixtureObject,FixtureIdResult[0].id,async function(err,fixResult){
+            if (err) {
+              // console.log("updateById err")
+              // console.log(res)
+              res.send(err)
             }
-            Game.createBatch(gameObject,function(err,gameResult){
-              if (err){
-                // console.log("createBatch err")
-                // console.log(res)
-                res.send(err)
+            else {
+              // console.log("updateById sucess")
+              // console.log(res)
+              // console.log(fixResult)
+              var gameObject = {
+                tablename:"game",
+                fields:[
+                  "homePlayer1", "homePlayer2", "awayPlayer1","awayPlayer2","homeScore","awayScore","fixture","gameType","homePlayer1Start","homePlayer2Start","awayPlayer1Start","awayPlayer2Start","homePlayer1End","homePlayer2End","awayPlayer1End","awayPlayer2End"
+                ],
+                data:[
+                  {
+                    homePlayer1:req.body.FirstMenshomeMan1,
+                    homePlayer2:req.body.FirstMenshomeMan2,
+                    awayPlayer1:req.body.FirstMensawayMan1,
+                    awayPlayer2:req.body.FirstMensawayMan2,
+                    homeScore:req.body.Game1homeScore,
+                    awayScore:req.body.Game1awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstMens'
+                  },
+                  {
+                    homePlayer1:req.body.FirstMenshomeMan1,
+                    homePlayer2:req.body.FirstMenshomeMan2,
+                    awayPlayer1:req.body.FirstMensawayMan1,
+                    awayPlayer2:req.body.FirstMensawayMan2,
+                    homeScore:req.body.Game2homeScore,
+                    awayScore:req.body.Game2awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstMens'
+                  },
+                  {
+                    homePlayer1:req.body.FirstLadieshomeLady1,
+                    homePlayer2:req.body.FirstLadieshomeLady2,
+                    awayPlayer1:req.body.FirstLadiesawayLady1,
+                    awayPlayer2:req.body.FirstLadiesawayLady2,
+                    homeScore:req.body.Game3homeScore,
+                    awayScore:req.body.Game3awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstLadies'
+                  },
+                  {
+                    homePlayer1:req.body.FirstLadieshomeLady1,
+                    homePlayer2:req.body.FirstLadieshomeLady2,
+                    awayPlayer1:req.body.FirstLadiesawayLady1,
+                    awayPlayer2:req.body.FirstLadiesawayLady2,
+                    homeScore:req.body.Game4homeScore,
+                    awayScore:req.body.Game4awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstLadies'
+                  },
+                  {
+                    homePlayer1:req.body.SecondMenshomeMan1,
+                    homePlayer2:req.body.SecondMenshomeMan3,
+                    awayPlayer1:req.body.SecondMensawayMan1,
+                    awayPlayer2:req.body.SecondMensawayMan3,
+                    homeScore:req.body.Game5homeScore,
+                    awayScore:req.body.Game5awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondMens'
+                  },
+                  {
+                    homePlayer1:req.body.SecondMenshomeMan1,
+                    homePlayer2:req.body.SecondMenshomeMan3,
+                    awayPlayer1:req.body.SecondMensawayMan1,
+                    awayPlayer2:req.body.SecondMensawayMan3,
+                    homeScore:req.body.Game6homeScore,
+                    awayScore:req.body.Game6awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondMens'
+                  },
+                  {
+                    homePlayer1:req.body.SecondLadieshomeLady1,
+                    homePlayer2:req.body.SecondLadieshomeLady3,
+                    awayPlayer1:req.body.SecondLadiesawayLady1,
+                    awayPlayer2:req.body.SecondLadiesawayLady3,
+                    homeScore:req.body.Game7homeScore,
+                    awayScore:req.body.Game7awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondLadies'
+                  },
+                  {
+                    homePlayer1:req.body.SecondLadieshomeLady1,
+                    homePlayer2:req.body.SecondLadieshomeLady3,
+                    awayPlayer1:req.body.SecondLadiesawayLady1,
+                    awayPlayer2:req.body.SecondLadiesawayLady3,
+                    homeScore:req.body.Game8homeScore,
+                    awayScore:req.body.Game8awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondLadies'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdMenshomeMan2,
+                    homePlayer2:req.body.ThirdMenshomeMan3,
+                    awayPlayer1:req.body.ThirdMensawayMan2,
+                    awayPlayer2:req.body.ThirdMensawayMan3,
+                    homeScore:req.body.Game9homeScore,
+                    awayScore:req.body.Game9awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdMens'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdMenshomeMan2,
+                    homePlayer2:req.body.ThirdMenshomeMan3,
+                    awayPlayer1:req.body.ThirdMensawayMan2,
+                    awayPlayer2:req.body.ThirdMensawayMan3,
+                    homeScore:req.body.Game10homeScore,
+                    awayScore:req.body.Game10awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdMens'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdLadieshomeLady2,
+                    homePlayer2:req.body.ThirdLadieshomeLady3,
+                    awayPlayer1:req.body.ThirdLadiesawayLady2,
+                    awayPlayer2:req.body.ThirdLadiesawayLady3,
+                    homeScore:req.body.Game11homeScore,
+                    awayScore:req.body.Game11awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdLadies'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdLadieshomeLady2,
+                    homePlayer2:req.body.ThirdLadieshomeLady3,
+                    awayPlayer1:req.body.ThirdLadiesawayLady2,
+                    awayPlayer2:req.body.ThirdLadiesawayLady3,
+                    homeScore:req.body.Game12homeScore,
+                    awayScore:req.body.Game12awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdLadies'
+                  },
+                  {
+                    homePlayer1:req.body.FirstMixedhomeMan1,
+                    homePlayer2:req.body.FirstMixedhomeLady1,
+                    awayPlayer1:req.body.FirstMixedawayMan1,
+                    awayPlayer2:req.body.FirstMixedawayLady1,
+                    homeScore:req.body.Game13homeScore,
+                    awayScore:req.body.Game13awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstMixed'
+                  },
+                  {
+                    homePlayer1:req.body.FirstMixedhomeMan1,
+                    homePlayer2:req.body.FirstMixedhomeLady1,
+                    awayPlayer1:req.body.FirstMixedawayMan1,
+                    awayPlayer2:req.body.FirstMixedawayLady1,
+                    homeScore:req.body.Game14homeScore,
+                    awayScore:req.body.Game14awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'FirstMixed'
+                  },
+                  {
+                    homePlayer1:req.body.SecondMixedhomeMan2,
+                    homePlayer2:req.body.SecondMixedhomeLady2,
+                    awayPlayer1:req.body.SecondMixedawayMan2,
+                    awayPlayer2:req.body.SecondMixedawayLady2,
+                    homeScore:req.body.Game15homeScore,
+                    awayScore:req.body.Game15awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondMixed'
+                  },
+                  {
+                    homePlayer1:req.body.SecondMixedhomeMan2,
+                    homePlayer2:req.body.SecondMixedhomeLady2,
+                    awayPlayer1:req.body.SecondMixedawayMan2,
+                    awayPlayer2:req.body.SecondMixedawayLady2,
+                    homeScore:req.body.Game16homeScore,
+                    awayScore:req.body.Game16awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'SecondMixed'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdMixedhomeMan3,
+                    homePlayer2:req.body.ThirdMixedhomeLady3,
+                    awayPlayer1:req.body.ThirdMixedawayMan3,
+                    awayPlayer2:req.body.ThirdMixedawayLady3,
+                    homeScore:req.body.Game17homeScore,
+                    awayScore:req.body.Game17awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdMixed'
+                  },
+                  {
+                    homePlayer1:req.body.ThirdMixedhomeMan3,
+                    homePlayer2:req.body.ThirdMixedhomeLady3,
+                    awayPlayer1:req.body.ThirdMixedawayMan3,
+                    awayPlayer2:req.body.ThirdMixedawayLady3,
+                    homeScore:req.body.Game18homeScore,
+                    awayScore:req.body.Game18awayScore,
+                    fixture:FixtureIdResult[0].id,
+                    gameType:'ThirdMixed'
+                  }
+                ]
               }
-              else {
-                // console.log("createBatch sucess")
-                Fixture.getFixtureDetailsById(FixtureIdResult[0].id,function(err,getFixtureDetailsResult){
-                  if(err) res.send(err)
-                  zapObject = {
-                    "host":req.headers.host,
-                    "homeTeam":getFixtureDetailsResult[0].homeTeam,
-                    "awayTeam":getFixtureDetailsResult[0].awayTeam,
-                    "homeScore":getFixtureDetailsResult[0].homeScore,
-                    "awayScore":getFixtureDetailsResult[0].awayScore,
-                    "division":FixtureIdResult[0].name
-                   }
-                  // console.log(zapObject)
-                  Fixture.sendResultZap(zapObject,function(err,zapRes){
-                    if (err) res.send(err)
-                    // console.log(`zapRes:${zapRes}`)
-                    Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam,function(err,homeTeamNomPlayers){
-                      // console.log(`homeTeamNomPlayers:${homeTeamNomPlayers}`)
+              for (game of gameObject.data){
+                // console.log(`gameId: ${game.id}`)
+                game.homePlayer1Start = prevScores[game.homePlayer1].rating
+                game.homePlayer2Start = prevScores[game.homePlayer2].rating
+                game.awayPlayer1Start = prevScores[game.awayPlayer1].rating
+                game.awayPlayer2Start = prevScores[game.awayPlayer2].rating
+                await Game.calculateRating(game,prevScores,req.body.date, async function(rateErr, rateResult){
+                  // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
+                  if (rateErr){
+                    console.error(`rateErr: ${JSON.stringify(rateErr)}`)
+                  }
+                  else if (rateResult){
+                    prevScores[game.homePlayer1] = {"rating":rateResult.updateObj.homePlayer1End, "date":req.body.date}
+                    prevScores[game.homePlayer2] = {"rating":rateResult.updateObj.homePlayer2End, "date":req.body.date}
+                    prevScores[game.awayPlayer1] = {"rating":rateResult.updateObj.awayPlayer1End, "date":req.body.date}
+                    prevScores[game.awayPlayer2] = {"rating":rateResult.updateObj.awayPlayer2End, "date":req.body.date}
+                    game.homePlayer1End = rateResult.updateObj.homePlayer1End
+                    game.homePlayer2End = rateResult.updateObj.homePlayer2End
+                    game.awayPlayer1End = rateResult.updateObj.awayPlayer1End
+                    game.awayPlayer2End = rateResult.updateObj.awayPlayer2End
+                  }
+                })
+              }
+              Game.createBatch(gameObject,function(err,gameResult){
+                if (err){
+                  // console.log("createBatch err")
+                  // console.log(res)
+                  res.send(err)
+                }
+                else {
+                  // console.log("createBatch sucess")
+                  Fixture.getFixtureDetailsById(FixtureIdResult[0].id,function(err,getFixtureDetailsResult){
+                    if(err) res.send(err)
+                    zapObject = {
+                      "host":req.headers.host,
+                      "homeTeam":getFixtureDetailsResult[0].homeTeam,
+                      "awayTeam":getFixtureDetailsResult[0].awayTeam,
+                      "homeScore":getFixtureDetailsResult[0].homeScore,
+                      "awayScore":getFixtureDetailsResult[0].awayScore,
+                      "division":FixtureIdResult[0].name
+                    }
+                    // console.log(zapObject)
+                    Fixture.sendResultZap(zapObject,function(err,zapRes){
                       if (err) res.send(err)
-                      Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,awayTeamNomPlayers){
-                        // console.log(`awayTeamNomPlayers:${awayTeamNomPlayers}`)
+                      // console.log(`zapRes:${zapRes}`)
+                      Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam,function(err,homeTeamNomPlayers){
+                        // console.log(`homeTeamNomPlayers:${homeTeamNomPlayers}`)
                         if (err) res.send(err)
-                        var searchObj = {};
-                        searchObj.team = getFixtureDetailsResult[0].homeTeam
-                        searchObj.limit = 4
-                        Fixture.getMatchPlayerOrderDetails(searchObj,function(err,homeTeamFixturePlayers){
-                          // console.log(`homeTeamFixturePlayers:${homeTeamFixturePlayers}`)
+                        Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam,function(err,awayTeamNomPlayers){
+                          // console.log(`awayTeamNomPlayers:${awayTeamNomPlayers}`)
                           if (err) res.send(err)
                           var searchObj = {};
-                          searchObj.team = getFixtureDetailsResult[0].awayTeam
+                          searchObj.team = getFixtureDetailsResult[0].homeTeam
                           searchObj.limit = 4
-                          Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
-                            // console.log(`awayTeamFixturePlayers:${awayTeamFixturePlayers}`)
-                            if (err) res.send(err);
-                            Player.getMatchStats(FixtureIdResult[0].id,function(err,matchStats){
-                              // console.log(`matchStats:${matchStats}`)
-                              if (err) res.send(err);                              
-                              const ejs = require('ejs');
-                              var emailData = {                                
-                                "homeTeam":zapObject.homeTeam,
-                                "awayTeam":zapObject.awayTeam,
-                                "generatedImage":zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-'),
-                                "matchStats":matchStats[1]
-                              }
-                              // console.log(emailData);
-                              ejs.renderFile('views/emails/websiteUpdated.ejs', {data:emailData}, {debug:true}, function(err, str){
-                                if (err) console.log(err);
-                                 //console.log("logged in user email:" + req.body.email);
-                                const msg = {
-                                  to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
-                                  bcc: 'bigcoops@gmail.com',
-                                  from: 'stockport.badders.results@stockport-badminton.co.uk',
-                                  subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
-                                  text: 'Thanks for sending your scorecard - website updated',
-                                  html:str
-                                };
-                                // console.log(msg)
-                                sgMail.send(msg)
-                                .then(()=>{    
-                                  // console.log(`renderFixturePage:${gameObject}`)                            
-                                  res.render('index-scorecard',{
-                                    static_path:'/static',
-                                    theme:process.env.THEME || 'flatly',
-                                    pageTitle : "Scorecard Received - No Errors",
-                                    pageDescription : "Enter some results!",
-                                    scorecardData: gameObject,
-                                    homeTeamNomPlayers:homeTeamNomPlayers,
-                                    awayTeamNomPlayers:awayTeamNomPlayers,
-                                    homeTeamFixturePlayers:homeTeamFixturePlayers,
-                                    awayTeamFixturePlayers:awayTeamFixturePlayers,
-                                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                          Fixture.getMatchPlayerOrderDetails(searchObj,function(err,homeTeamFixturePlayers){
+                            // console.log(`homeTeamFixturePlayers:${homeTeamFixturePlayers}`)
+                            if (err) res.send(err)
+                            var searchObj = {};
+                            searchObj.team = getFixtureDetailsResult[0].awayTeam
+                            searchObj.limit = 4
+                            Fixture.getMatchPlayerOrderDetails(searchObj,function(err,awayTeamFixturePlayers){
+                              // console.log(`awayTeamFixturePlayers:${awayTeamFixturePlayers}`)
+                              if (err) res.send(err);
+                              Player.getMatchStats(FixtureIdResult[0].id,function(err,matchStats){
+                                // console.log(`matchStats:${matchStats}`)
+                                if (err) res.send(err);                              
+                                const ejs = require('ejs');
+                                var emailData = {                                
+                                  "homeTeam":zapObject.homeTeam,
+                                  "awayTeam":zapObject.awayTeam,
+                                  "generatedImage":zapObject.homeTeam.replace(/([\s]{1,})/g,'-') + zapObject.awayTeam.replace(/([\s]{1,})/g,'-'),
+                                  "matchStats":matchStats[1]
+                                }
+                                // console.log(emailData);
+                                ejs.renderFile('views/emails/websiteUpdated.ejs', {data:emailData}, {debug:true}, function(err, str){
+                                  if (err) console.log(err);
+                                  //console.log("logged in user email:" + req.body.email);
+                                  const msg = {
+                                    to: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? req.body.email : 'stockport.badders.results@gmail.com') : 'stockport.badders.results@gmail.com'),
+                                    bcc: 'bigcoops@gmail.com',
+                                    from: 'stockport.badders.results@stockport-badminton.co.uk',
+                                    subject: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
+                                    text: 'Thanks for sending your scorecard - website updated',
+                                    html:str
+                                  };
+                                  // console.log(msg)
+                                  sgMail.send(msg)
+                                  .then(()=>{    
+                                    // console.log(`renderFixturePage:${gameObject}`)                            
+                                    res.render('index-scorecard',{
+                                      static_path:'/static',
+                                      theme:process.env.THEME || 'flatly',
+                                      pageTitle : "Scorecard Received - No Errors",
+                                      pageDescription : "Enter some results!",
+                                      scorecardData: gameObject,
+                                      homeTeamNomPlayers:homeTeamNomPlayers,
+                                      awayTeamNomPlayers:awayTeamNomPlayers,
+                                      homeTeamFixturePlayers:homeTeamFixturePlayers,
+                                      awayTeamFixturePlayers:awayTeamFixturePlayers,
+                                      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                                    })
                                   })
-                                })
-                                .catch(error => {
-                                  console.log(error.toString());
-                                  res.send("Sorry something went wrong sending your email - try sending it manually" + error);
-                                })
-                              });   
+                                  .catch(error => {
+                                    console.log(error.toString());
+                                    res.send("Sorry something went wrong sending your email - try sending it manually" + error);
+                                  })
+                                });   
+                              })
                             })
                           })
                         })
                       })
                     })
                   })
-                })
-              }
-            })
-          }
+                }
+              })
+            }
+          })
         })
       }
     })
