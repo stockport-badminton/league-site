@@ -19,7 +19,8 @@ exports.connect = async function() {
     'user'     : username,
     'password' : password,
     'database' : database,
-    'multipleStatements':true
+    'multipleStatements':true,
+    'connectionLimit':12
   });
 }
 
