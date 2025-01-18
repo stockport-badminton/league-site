@@ -8,7 +8,7 @@
       <%- include('filters.ejs') %>
     <% } %>
     <div class="table-responsive">
-    <table class="table" id="results-table">
+    <table class="table" id="results-table" style="width: 100%;">
       <thead>
         <tr>
           <th>Name</th>
@@ -121,6 +121,21 @@
         orderCellsTop: true,
         fixedHeader: true
     } );
+
+    if (window.location.pathname.indexOf('/player-stats') > -1 ){
+        document.querySelectorAll('#columnToggle > option').forEach((el) => {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+        
+                let columnIdx = e.target.getAttribute('value');
+                let column = table.column(columnIdx);
+        
+                // Toggle the visibility
+                column.visible(!column.visible());
+                table.columns.adjust().draw();
+            });
+        });
+    }
   } );
 
   <% if (typeof filter !== 'undefined' && filter == true){ %>

@@ -88,7 +88,29 @@
             </select>
           </div>
           <% } %>
+          <button class="w-auto mx-1 btn btn-primary" id="statsUpdate">Update</button>
         </div>
-        <button class="btn btn-primary">Update</button>
+        
       </form>
+      <% if(typeof canonical !== "undefined" && canonical.indexOf("player-stats") > -1) { %>
+        <form action="" class="col-auto">
+          <label for="columnToggle" class="d-block">Show/Hide Columns</label>
+          <select multiple name="columnToggle" id="columnToggle">
+            <option value="0">Name</option>
+            <option value="1">Gender</option>
+            <option value="2">Team</option>
+            <option value="3">Club</option>
+            <option value="4">Aces For</option>
+            <option value="5">Aces Against</option>
+            <option value="6">P + W - L</option>
+            <option value="7">Games Played</option>
+            <option value="8">Games Won</option>
+            <option value="9">Games Won / Match</option>
+            <option value="10">Pts For / Game</option>
+            <option value="11">Pts Against / Game</option>
+            <option value="12">Rating</option>
+          </select>
+        </form>
+      <% } %>
+      
     </div>
