@@ -34,7 +34,7 @@
 
     const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
     
-    const BLACKLIST =['136.243.212.110','165.231.182.103'];
+    const BLACKLIST =['136.243.212.110','165.231.182.103','65.0.96.6'];
     //better to store as an String in process.env.BLACKLIST
     var getClientIp = function(req) {
       var ipAddress = req.connection.remoteAddress;
