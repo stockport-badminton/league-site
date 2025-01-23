@@ -337,6 +337,8 @@ exports.newGetPlayerStats = async function(searchObj,done){
     }
     
   }
+  // console.log(searchObj)
+  // console.log(sqlParams)
   
   let season = ""
   let seasonString = SEASON
@@ -413,6 +415,8 @@ exports.newGetPlayerStats = async function(searchObj,done){
   // var seasonArray = [seasonVal,seasonVal,seasonVal,seasonVal]
   // whereValue = seasonArray.concat(whereValue)
    //console.log(whereValue)
+
+   // console.log(whereValue)
 
   var sql = `with
   seasonFixture as (
@@ -599,6 +603,7 @@ ORDER BY
 done(null,result)
 }
 catch (err) {
+    console.log(err.sql)
 		 return done (err);
 }
 

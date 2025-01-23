@@ -423,6 +423,8 @@ exports.all_player_stats = function (req, res,next){
     .replace('season-','')
     .replace(/(\/)(20\d\d20\d\d)/g,'$1season-$2')
     .replace(/(20\d\d20\d\d)/g,'season-$1')
+    .replace('season-season','season')
+    // console.log(convertedParams)
   
     // Finding matches using regex and replacing them
     
@@ -462,7 +464,6 @@ exports.all_player_stats = function (req, res,next){
   }
 
   // console.log(regexParams)
-  
   Player.newGetPlayerStats(searchObj,function(err,result){
     if (err){
       return next(err)
