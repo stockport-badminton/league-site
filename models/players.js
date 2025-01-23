@@ -571,8 +571,8 @@ SELECT
   SUM(gamesPlayed) AS gamesPlayed,
   (sum(gamesPlayed) + sum(gamesWon)) - (sum(gamesPlayed) - sum(gamesWon)) as Points,
   club.name AS clubName,
-  team.name AS teamName,
-  player.rating
+  team.name AS teamName
+  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
 FROM
   gameSummary
   JOIN player${ season } player ON playerId = player.id
@@ -590,8 +590,8 @@ GROUP BY
   playergender,
   team.division,
   clubName,
-  teamName,
-  rating
+  teamName
+  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',rating' : ''}
 ORDER BY
   Points DESC;`
     try {
