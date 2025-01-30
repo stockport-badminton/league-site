@@ -428,6 +428,7 @@ exports.getFixtureDetails = async function(searchObj, done){
     awayTeam.name as awayTeam,
     awayClub.name as awayClub,
     homeTeam.division as division,
+    division.rank,
     venue.address as venueName,
     venue.gMapUrl as venueLink,
     fixture.status,
@@ -447,6 +448,7 @@ exports.getFixtureDetails = async function(searchObj, done){
     join venue on homeTeam.venue = venue.id
     join ${'team' + season} awayTeam on fixture.awayTeam = awayTeam.id
     join ${'club' + season} awayClub on awayTeam.club = awayClub.id
+    join division on homeTeam.division = division.id
     join season on (
       fixture.date > season.startDate
       and fixture.date < season.endDate
@@ -514,6 +516,7 @@ exports.getFixtureDetails = async function(searchObj, done){
         result.push({"id":99999,"date":"2025-04-29T23:00:00.000Z","homeTeam":"Messer Finals","homeClub":"No Club","awayTeam":"@ Ladybridge Park Residents Club","awayClub":"No Club","division":7,"venueName":"ELadybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX","venueLink":"https://maps.app.goo.gl/svEEaaVQ8SERDrF6A","status":"outstanding","homeScore":null,"awayScore":null})
         // console.log(`result: ${JSON.stringify(result)}`)
       }
+      // console.log(sql)
       done(null, await result);
       
     } catch (err) {
@@ -665,7 +668,7 @@ exports.getFixtureId = async function(obj,done){
 exports.getOutstandingFixtureId = async function(obj,done){
   if(db.isObject(obj)){
     // var sql = 'select id from (select fixture.id, homeTeam, awayTeam, status from fixture join season where season.name=? AND fixture.date > season.startDate) as a where awayTeam = ? AND homeTeam = ? AND status = "outstanding"';
-    var sql = 'select a.id, division.name from (SELECT id, homeTeam FROM (SELECT fixture.id, homeTeam, awayTeam, status FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate) AS a WHERE awayTeam = ? AND homeTeam = ? AND status = "outstanding") as a join team on a.homeTeam = team.id join division on team.division = division.id';
+    var sql = 'select a.id, division.name, division.rank from (SELECT id, homeTeam FROM (SELECT fixture.id, homeTeam, awayTeam, status FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate) AS a WHERE awayTeam = ? AND homeTeam = ? AND status = "outstanding") as a join team on a.homeTeam = team.id join division on team.division = division.id';
     // console.log(obj);
 try{
     let [result] = await (await db.otherConnect()).query(sql,[SEASON,obj.awayTeam, obj.homeTeam])

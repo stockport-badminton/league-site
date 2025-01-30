@@ -37,7 +37,7 @@
               <option value="rearranging">Rearranging</option>
               <option value="rearranged">Rearranged</option>
               <option value="conceded">Conceded</option>
-              <option value="completed">Completed</option>
+              <option value="complete">Completed</option>
             </select>
           </div>
           <% } %>
@@ -92,7 +92,7 @@
         </div>
         
       </form>
-      <% if(typeof canonical !== "undefined" && canonical.indexOf("player-stats") > -1) { %>
+        <% if(typeof canonical !== "undefined" && canonical.indexOf("player-stats") > -1) { %>
         <form action="" class="col-auto">
           <label for="columnToggle" class="d-block">Show/Hide Columns</label>
           <select multiple name="columnToggle" id="columnToggle">

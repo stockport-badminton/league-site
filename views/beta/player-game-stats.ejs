@@ -13,6 +13,7 @@
       <thead>
         <tr>
           <th>date</th>
+          <th>team</th>
           <th>Partner</th>
           <th>Opponent 1</th>
           <th>Opponent 2</th>
@@ -40,6 +41,7 @@
       <tr>
 
           <td><%= MyDateString %></td>
+          <td><%= row['teamName'] %> <% if(row['teamAdjustment'] > 0) { %>(+<%= row['teamAdjustment'] %>)<% } %></td>
           <td><%= row['partnerName'] %></td>
           <td><%= row['oppName1'] %></td>
           <td><%= row['oppName2'] %></td>

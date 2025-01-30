@@ -137,11 +137,15 @@ exports.updateById = async function(gameObj,gameId,done){
 
 }
 
-exports.calculateRating = async function(game,fixturePlayers,endDate,done){
+exports.calculateRating = async function(game,fixturePlayers,endDate,division,done){
     
   // console.log(homePlayer1Start)
-  console.log(`calculate Rating game: ${JSON.stringify(game)}`)
-  console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)
+  if (game.fixture == 5731 || game.fixture == 5730){
+     console.log(`calculate Rating game: ${JSON.stringify(game)}`)
+     console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)  
+  }
+  // console.log(`calculate Rating game: ${JSON.stringify(game)}`)
+  // console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)
   let updateObj = {}
   let prevRatingDates = {}
   if (game.homePlayer1 == 0 || game.homePlayer2 == 0 || game.awayPlayer1 == 0 || game.awayPlayer2 == 0 ){
@@ -169,8 +173,8 @@ exports.calculateRating = async function(game,fixturePlayers,endDate,done){
     console.log(`homePlayer2 ${game.homePlayer2} : ${fixturePlayers[game.homePlayer2].rating}`)
     console.log(`awayPlayer1 ${game.awayPlayer1} : ${fixturePlayers[game.awayPlayer1].rating}`)
     console.log(`awayPlayer2 ${game.awayPlayer2} : ${fixturePlayers[game.awayPlayer2].rating}`) */
-    let homePairStart = (1*fixturePlayers[game.homePlayer1].rating + 1*fixturePlayers[game.homePlayer2].rating)/2
-    let awayPairStart = (1*fixturePlayers[game.awayPlayer1].rating  + 1*fixturePlayers[game.awayPlayer2].rating)/2
+    let homePairStart = ((1*fixturePlayers[game.homePlayer1].rating + ((1*fixturePlayers[game.awayPlayer1].rank - division)*500)) + (1*fixturePlayers[game.homePlayer2].rating + ((1*fixturePlayers[game.awayPlayer2].rank - division)*500)))/2
+    let awayPairStart = ((1*fixturePlayers[game.awayPlayer1].rating + ((1*fixturePlayers[game.homePlayer1].rank - division)*500)) + (1*fixturePlayers[game.awayPlayer2].rating + ((1*fixturePlayers[game.homePlayer2].rank - division)*500)))/2
     let awayAdjustment = 0
     let homeAdjustment = 0
     let homeExpectOutcome = 1 / (1 + Math.pow(10,((awayPairStart - homePairStart)/400)))
@@ -178,12 +182,17 @@ exports.calculateRating = async function(game,fixturePlayers,endDate,done){
     if (1*game.homeScore > 1*game.awayScore){
       homeAdjustment = Math.round(32 * (1 - homeExpectOutcome))
       awayAdjustment = Math.round(32 * (0 - awayExpectOutcome))
-      console.log(`home win: ${ homeAdjustment } : ${awayAdjustment} : ${game.homeScore} - ${game.awayScore}`)
+      if (game.fixture == 5731 || game.fixture == 5730){
+        console.log(`home win: ${ homeAdjustment } : ${awayAdjustment} : ${game.homeScore} - ${game.awayScore}`)
+      }
+      
     }
     else {
       homeAdjustment = Math.round(32 * (0 - homeExpectOutcome))
       awayAdjustment = Math.round(32 * (1 - awayExpectOutcome))
-      console.log(`away win: ${ homeAdjustment } : ${awayAdjustment} : ${game.homeScore} - ${game.awayScore}`)
+      if (game.fixture == 5731 || game.fixture == 5730){
+        console.log(`away win: ${ homeAdjustment } : ${awayAdjustment} : ${game.homeScore} - ${game.awayScore}`)
+      }
     }
 
     let homePlayer1End = 1*fixturePlayers[game.homePlayer1].rating + 1*homeAdjustment
@@ -209,8 +218,8 @@ exports.calculateRating = async function(game,fixturePlayers,endDate,done){
   }  
   // console.log(`${JSON.stringify(updateObj)}`)
   if (updateObj.homePlayer1Start == 0 || updateObj.homePlayer1Start == 0 || updateObj.awayPlayer1Start == 0 || updateObj.awayPlayer2Start == 0){
-    console.log(`calculate Rating game: ${JSON.stringify(game)}`)
-    console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)
+    // console.log(`calculate Rating game: ${JSON.stringify(game)}`)
+    // console.log(`calculate Rating fixturePlauers: ${JSON.stringify(fixturePlayers)}`)
   }
   done(null, {updateObj,prevRatingDates})
 }

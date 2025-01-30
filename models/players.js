@@ -221,8 +221,10 @@ exports.getNamesClubsTeams = async function(searchTerms,done){
 }
 
 exports.getPlayerGameData = async function(id,done){
-  let sql = `with playerGames as (select game.*, fixture.date from game 
+  let sql = `with playerGames as (select game.*, fixture.date, homeTeam.name as homeTeamName, homeTeam.rank as homeTeamRank, awayTeam.name as awayTeamName, awayTeam.rank as awayTeamRank from game 
 join fixture on game.fixture = fixture.id 
+join team homeTeam on fixture.homeTeam = homeTeam.id
+join team awayTeam on fixture.awayTeam = awayTeam.id
 where 
 (? in(homePlayer1,homePlayer2,awayPlayer1,awayPlayer2) and (
   homePlayer1End is not null and
@@ -235,6 +237,16 @@ allGames as (
   select 
   id,
   date,
+  case when homePlayer1 = ? then homeTeamName
+  when homePlayer2 = ? then homeTeamName
+  when awayPlayer1 = ? then awayTeamName
+  when awayPlayer2 = ? then awayTeamName
+  end as teamName,
+  case when homePlayer1 = ? then homeTeamRank
+  when homePlayer2 = ? then homeTeamRank
+  when awayPlayer1 = ? then awayTeamRank
+  when awayPlayer2 = ? then awayTeamRank
+  end as teamRank,
   case when homePlayer1 = ? then homePlayer1
   when homePlayer2 = ? then homePlayer2
   when awayPlayer1 = ? then awayPlayer1
@@ -286,6 +298,8 @@ allGames as (
 select
 allGames.id,
 date, 
+teamName,
+team.rank - teamRank as teamAdjustment,
 concat(player.first_name,' ',player.family_name) as playerName,
 concat(partner.first_name,' ',partner.family_name) as partnerName,
 concat(oppo1.first_name,' ',oppo1.family_name) as oppName1,
@@ -300,9 +314,10 @@ from allGames join
 player on player.id = allGames.playerName join
 player partner on partner.id = allGames.partner join
 player oppo1 on oppo1.id = allGames.oppo1  join
-player oppo2 on oppo2.id = allGames.oppo2`
+player oppo2 on oppo2.id = allGames.oppo2
+join team on player.team = team.id`
 
-let idArray = Array(37).fill(id*1)
+let idArray = Array(45).fill(id*1)
 
   try {
 		let [result] = await (await db.otherConnect()).query(sql,idArray)
@@ -988,7 +1003,7 @@ exports.getPrevRating = async function(endDate,fixturePlayers,done){
     // console.log(el)
     let i = row[0]
     
-    let sql = `select * from (select 
+    let sql = `(select * from (select * from (select 
 case
     when homePlayer1 = ? then homePlayer1
     when homePlayer2 = ? then homePlayer2
@@ -1001,10 +1016,14 @@ case
     when awayPlayer1 = ? then awayPlayer1End
     when awayPlayer2 = ? then awayPlayer2End
     end as rating,
-fixture.date 
+fixture.date, 
+division.rank
 from game 
     join fixture on game.fixture = fixture.id 
     join season on (fixture.date > season.startDate and fixture.date < season.endDate and season.name = ?)
+    join player on (game.homePlayer1 = player.id OR game.homePlayer2 = player.id OR game.awayPlayer1 = player.id OR game.awayPlayer2 = player.id)
+    join team on player.team = team.id
+	join division on team.division = division.id
     where 
     (homePlayer1 = ? OR
     homePlayer2 = ? OR
@@ -1017,9 +1036,16 @@ from game
     )
     and date < ?
     order by date desc, game.id desc
-    limit 1) as a`
+    limit 1) as a
+    union all
+select player.id as playerId, 1500 as rating, ? as date, division.rank from player join 
+team on player.team = team.id join 
+division on team.division = division.id
+where player.id = ?) as b
+where rating > 0
+limit 1)`
     sqlArray.push(sql)
-    sqlValsArray = [...sqlValsArray,i*1,i*1,i*1,i*1,i*1,i*1,i*1,i*1,SEASON,i*1,i*1,i*1,i*1,endDate]
+    sqlValsArray = [...sqlValsArray,i*1,i*1,i*1,i*1,i*1,i*1,i*1,i*1,SEASON,i*1,i*1,i*1,i*1,endDate,endDate,i*1]
     
     
     /* 
@@ -1037,27 +1063,34 @@ catch (err) {
   }
   try {
 		let rows = await (await db.otherConnect()).query(sqlArray.join(' union all '),sqlValsArray)
+    // console.log(rows)
     if (rows[0].length > 0){
       // console.log(`prev Rating Results rows > 1: ${JSON.stringify(rows[0])}`);
       for(player of playerArray){
-        // console.log(`player: ${JSON.stringify(player)}`)
-        let filtered = rows[0].filter(i => i.playerId == player[0])
+        if (player.playerId == 758){
+          console.log(`player: ${JSON.stringify(player)}`)
+        }
+        let filtered = await rows[0].filter(i => i.playerId == player[0])
         if (filtered.length > 0){
           // console.log(`filtered: ${JSON.stringify(filtered)}`)          
           player[1].rating = filtered[0].rating
           player[1].date = filtered[0].date
+          player[1].rank = filtered[0].rank
           // console.log(`player: ${JSON.stringify(player)}`)
         }
         else {
           player[1].rating = 1500
           player[1].date = "2020-01-01 00:00:00"
+          player[1].rank = 1
         }
       }
+      // console.log(player)
     }
     else {
       for(player of playerArray){
           player[1].rating = 1500
           player[1].date = "2020-01-01 00:00:00"
+          player[1].rank = 1
       }
     }
     fixturePlayers = Object.fromEntries(playerArray)

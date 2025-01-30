@@ -14,6 +14,7 @@ const { validationResult } = require('express-validator');
 const docx = require("docx");
 const fs = require("fs");
 const path = require('path');
+const { match } = require('assert');
 
 exports.index = function(req, res) {
 
@@ -806,22 +807,26 @@ exports.player_elo_populate = async function(req,res){
       res.send(err);
     }
     else {
+      // console.log(rows)
       let totalFixtures = rows.length
-      // let totalFixtures = 4
+      // let totalFixtures = 2
       let subLoopLength = 10
       let start = 0
       let gamesprocessed = 0
       let gamesskipped = 0
       let fixGamesSkipped = 0
       do {
-        let subFixtures = await rows.filter((el,i)=> i >= 0 && i < start + subLoopLength)
+        let subFixtures = await rows.filter((el,i)=> i >= start && i < start + subLoopLength)
         start += subLoopLength
         for (fixture of await subFixtures){
           if (fixture.id !== 99999){
             let fixtureDate = await fixture.date
+            let fixtureRank = await fixture.rank
+            let tempFixture = await fixture
             // console.log(`fixture: ${JSON.stringify(fixture)}`)
 
             let fixturePlayers = {}
+            let origFixturePlayers = {}
             // console.log(Player.getPrevRating(fixture.homeMan1,fixtureDate))
             fixturePlayers[fixture.homeMan1] = {}
             fixturePlayers[fixture.homeMan2] = {}
@@ -839,6 +844,7 @@ exports.player_elo_populate = async function(req,res){
             await Player.getPrevRating(await fixtureDate, fixturePlayers, async function(err,row){
               if (err) console.error(`error: , player:${JSON.stringify(err)}`)
               fixturePlayers = await row;
+              origFixturePlayers = fixturePlayers
               // console.log(`fixturePlayers: ${JSON.stringify(row)}`)
               await Game.getByFixture(fixture.id,async function(gameErr,results){
                 if (gameErr){
@@ -851,16 +857,20 @@ exports.player_elo_populate = async function(req,res){
                   for (game of await results){
                     // console.log(`gameId: ${game.id}`)
                     // if ((game.homePlayer1End + game.homePlayer2End + game.awayPlayer1End + game.awayPlayer2End) == 0){
-                      await Game.calculateRating(game,fixturePlayers,fixtureDate, async function(rateErr, rateResult){
+                      await Game.calculateRating(game,fixturePlayers,fixtureDate,fixtureRank, async function(rateErr, rateResult){
                         // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
                         if (rateErr){
                           console.error(`rateErr: ${JSON.stringify(rateErr)}`)
                         }
-                        else if (await rateResult){
-                          fixturePlayers[game.homePlayer1] = {"rating":rateResult.updateObj.homePlayer1End, "date":fixtureDate}
-                          fixturePlayers[game.homePlayer2] = {"rating":rateResult.updateObj.homePlayer2End, "date":fixtureDate}
-                          fixturePlayers[game.awayPlayer1] = {"rating":rateResult.updateObj.awayPlayer1End, "date":fixtureDate}
-                          fixturePlayers[game.awayPlayer2] = {"rating":rateResult.updateObj.awayPlayer2End, "date":fixtureDate}
+                        else if (await rateResult && (game.homePlayer1 != 0 || game.homePlayer2 != 0 || game.awayPlayer1 != 0 || game.awayPlayer2 != 0 )){
+                          fixturePlayers[game.homePlayer1].rating = rateResult.updateObj.homePlayer1End
+                          fixturePlayers[game.homePlayer1].date = fixtureDate
+                          fixturePlayers[game.homePlayer2].rating = rateResult.updateObj.homePlayer2End
+                          fixturePlayers[game.homePlayer2].date = fixtureDate
+                          fixturePlayers[game.awayPlayer1].rating = rateResult.updateObj.awayPlayer1End
+                          fixturePlayers[game.awayPlayer1].date = fixtureDate
+                          fixturePlayers[game.awayPlayer2].rating = rateResult.updateObj.awayPlayer2End
+                          fixturePlayers[game.awayPlayer2].date = fixtureDate
                           await Game.updateById(rateResult.updateObj,game.id, async function(ratingErr, ratingResult){
                             if (ratingErr){
                               // console.error(`gameObj: ${JSON.stringify(rateResult)}`)
@@ -889,7 +899,31 @@ exports.player_elo_populate = async function(req,res){
                     playerUpdate.data = []
                     playerUpdate.fields = ["id","rating"]
                     // console.log(`${rateResult.prevRatingDates.homePlayer1Start} vs ${fixtureDate}: ${rateResult.prevRatingDates.homePlayer1Start > fixtureDate}`)
-                    // console.log(`fixturePlayers: ${JSON.stringify(fixturePlayers)}`)
+                    /* console.log(`fixture: ${JSON.stringify(tempFixture)}`)
+                     console.log(`fixturePlayers: ${JSON.stringify(fixturePlayers)}`)
+                    let ratingDiffs = {}
+                    ratingDiffs[tempFixture.homeMan1] = await fixturePlayers[tempFixture.homeMan1].rating - await origFixturePlayers[tempFixture.homeMan1].rating
+                    ratingDiffs[tempFixture.homeMan2] = await fixturePlayers[tempFixture.homeMan2].rating - await origFixturePlayers[tempFixture.homeMan2].rating
+                    ratingDiffs[tempFixture.homeMan3] = await fixturePlayers[tempFixture.homeMan3].rating - await origFixturePlayers[tempFixture.homeMan3].rating
+                    ratingDiffs[tempFixture.homeLady1] = await fixturePlayers[tempFixture.homeLady1].rating - await origFixturePlayers[tempFixture.homeLady1].rating
+                    ratingDiffs[tempFixture.homeLady2] = await fixturePlayers[tempFixture.homeLady2].rating - await origFixturePlayers[tempFixture.homeLady2].rating
+                    ratingDiffs[tempFixture.homeLady3] = await fixturePlayers[tempFixture.homeLady3].rating - await origFixturePlayers[tempFixture.homeLady3].rating
+                    ratingDiffs[tempFixture.awayMan1] = await fixturePlayers[tempFixture.awayMan1].rating - await origFixturePlayers[tempFixture.awayMan1].rating
+                    ratingDiffs[tempFixture.awayMan2] = await fixturePlayers[tempFixture.awayMan2].rating - await origFixturePlayers[tempFixture.awayMan2].rating
+                    ratingDiffs[tempFixture.awayMan3] = await fixturePlayers[tempFixture.awayMan3].rating - await origFixturePlayers[tempFixture.awayMan3].rating
+                    ratingDiffs[tempFixture.awayLady1] = await fixturePlayers[tempFixture.awayLady1].rating - await origFixturePlayers[tempFixture.awayLady1].rating
+                    ratingDiffs[tempFixture.awayLady2] = await fixturePlayers[tempFixture.awayLady2].rating - await origFixturePlayers[tempFixture.awayLady2].rating
+                    ratingDiffs[tempFixture.awayLady3] = await fixturePlayers[tempFixture.awayLady3].rating - await origFixturePlayers[tempFixture.awayLady3].rating
+                    for (playerRow of Object.entries(ratingDiffs)){
+                      console.log(playerRow)
+                      console.log(fixturePlayers[playerRow[0]].rating)
+                      console.log(origFixturePlayers[playerRow[0]].rating)
+                      if (Math.abs(playerRow) > 200){
+                        console.log("rating adjustment error in fixture: "+ fixture.id + " rating Diffs: " + JSON.stringify(ratingDiffs))
+                      }
+                    } */
+
+
                     for ([index,player] of Object.entries(fixturePlayers)){
                       playerUpdate.data.push([index,player.rating])
                     }
