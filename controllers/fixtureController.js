@@ -1117,28 +1117,37 @@ exports.full_fixture_post = function(req,res,next){
               }
               for (game of gameObject.data){
                 // console.log(`gameId: ${game.id}`)
-                game.homePlayer1Start = prevScores[game.homePlayer1].rating
-                game.homePlayer2Start = prevScores[game.homePlayer2].rating
-                game.awayPlayer1Start = prevScores[game.awayPlayer1].rating
-                game.awayPlayer2Start = prevScores[game.awayPlayer2].rating
+                if ((game.homePlayer1 != 0 || game.homePlayer2 != 0 || game.awayPlayer1 != 0 || game.awayPlayer2 != 0 )){
+                  game.homePlayer1Start = prevScores[game.homePlayer1].rating
+                  game.homePlayer2Start = prevScores[game.homePlayer2].rating
+                  game.awayPlayer1Start = prevScores[game.awayPlayer1].rating
+                  game.awayPlayer2Start = prevScores[game.awayPlayer2].rating
+                }
+                
                 await Game.calculateRating(game,prevScores,req.body.date,FixtureIdResult[0].rank, async function(rateErr, rateResult){
                   // console.log(`rateResult: ${JSON.stringify(rateResult)}`)
                   if (rateErr){
                     console.error(`rateErr: ${JSON.stringify(rateErr)}`)
                   }
                   else if (rateResult){
-                    prevScores[game.homePlayer1].rating = rateResult.updateObj.homePlayer1End
-                    prevScores[game.homePlayer1].date = req.body.date
-                    prevScores[game.homePlayer2].rating = rateResult.updateObj.homePlayer2End
-                    prevScores[game.homePlayer2].date = req.body.date
-                    prevScores[game.awayPlayer1].rating = rateResult.updateObj.awayPlayer1End
-                    prevScores[game.awayPlayer1].date = req.body.date
-                    prevScores[game.awayPlayer2].rating = rateResult.updateObj.awayPlayer2End
-                    prevScores[game.awayPlayer2].date = req.body.date
+                    if ((game.homePlayer1 != 0 || game.homePlayer2 != 0 || game.awayPlayer1 != 0 || game.awayPlayer2 != 0 )){
+                      prevScores[game.homePlayer1].rating = rateResult.updateObj.homePlayer1End
+                      prevScores[game.homePlayer1].date = req.body.date
+                      prevScores[game.homePlayer2].rating = rateResult.updateObj.homePlayer2End
+                      prevScores[game.homePlayer2].date = req.body.date
+                      prevScores[game.awayPlayer1].rating = rateResult.updateObj.awayPlayer1End
+                      prevScores[game.awayPlayer1].date = req.body.date
+                      prevScores[game.awayPlayer2].rating = rateResult.updateObj.awayPlayer2End
+                      prevScores[game.awayPlayer2].date = req.body.date
+                    }
                     game.homePlayer1End = rateResult.updateObj.homePlayer1End
                     game.homePlayer2End = rateResult.updateObj.homePlayer2End
                     game.awayPlayer1End = rateResult.updateObj.awayPlayer1End
                     game.awayPlayer2End = rateResult.updateObj.awayPlayer2End
+                    game.homePlayer1Start = rateResult.updateObj.homePlayer1Start
+                    game.homePlayer2Start = rateResult.updateObj.homePlayer2Start
+                    game.awayPlayer1Start = rateResult.updateObj.awayPlayer1Start
+                    game.awayPlayer2Start = rateResult.updateObj.awayPlayer2Start
                   }
                 })
               }
