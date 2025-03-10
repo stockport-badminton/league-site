@@ -9,12 +9,11 @@ This application uses Heroku, JawsDB, Sendgrid, Express, Bootstrap, MySQL, EJS, 
 * POST requests locked down with access tokens using Auth0
 * rudimentary stats for players based on results entry
 * user registration for results entry
-* excel spreadsheet processing and upload (for admin only)
 * fuzzy matching clientside
 * FREE heroku friendly build (no local file storage)
+* UI for CRUD for players
 
 
 ## Future Stuff
 * UI for CRUD for fixtures & results
 * UI for CRUD for club, team and venue details
-* UI for CRUD for players
