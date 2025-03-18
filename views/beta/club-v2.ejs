@@ -38,10 +38,18 @@
             <td><%= row['name'] %></td>
           <% } %>
             <td>
-              <button type="button" class="btn btn-primary openForm" data-bs-toggle="modal" data-bs-target="#exampleModal" data-club="<%= row['id'] %>">
-                Get in touch
-              </button><br/>
-              <a href="/club/<%= row['id'] %>">Login for Contact info</a>
+              <% if(locals.user) { %>
+                <a href="/club/<%= row['id'] %>">Club Contact Details</a><br />
+                <button type="button" class="btn btn-primary openForm" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['id'] %>">
+                  Get in touch
+                </button>
+              <% } 
+              else { %>
+                <button type="button" class="btn btn-primary openForm" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['id'] %>">
+                  Get in touch
+                </button>
+              <% }
+              %>
             </td>
             <% if (typeof user !== 'undefined' && user['_json']['https://my-app.example.com/role'] == "superadmin") { %>
               <td><a href="/manage-players/club-<%= row['name'] %>">Manage Players</a></th>
@@ -118,12 +126,13 @@ function initMap() {
   // The location of Uluru
   var StockportTownHall = {lat:53.4060787,lng:-2.1606755};
   var map = new google.maps.Map(
-      document.getElementById('map'), {zoom: 10, center: StockportTownHall});
+      document.getElementById('map'), {zoom: 10, center: StockportTownHall, mapId: '28eeb908f19e8aab',});
   var data = <%- venues %>
   console.log(data)
   console.log(<%- venues %>)
   data.forEach(function(i){
-    var point = {lat:i.Lat, lng:i.Lng}
+    if (i.Lat != null){
+        var point = {lat:i.Lat, lng:i.Lng}
     console.log(i)
     console.log(point)
 
@@ -135,26 +144,27 @@ function initMap() {
   var infowindow = new google.maps.InfoWindow({
     content: contentString
   });
-    var clubMarker = new google.maps.Marker({position:point, map:map})
-    clubMarker.addListener('click', function() {
+  var clubMarker = new google.maps.marker.AdvancedMarkerElement({position:point, map:map})
+  clubMarker.addListener('gmp-click', function() {
     infowindow.open(map, clubMarker);
   });
+    }
+    
   })
 
-  var markerStockPortTownHall = new google.maps.Marker({position: StockportTownHall, map: map});
+  var markerStockPortTownHall = new google.maps.marker.AdvancedMarkerElement({position: StockportTownHall, map: map});
   var circle = new google.maps.Circle({
-  map: map,
   radius: 16093,    // 10 miles in metres
   strokeColor: '#FF0000',
   strokeOpacity: 0.1,
   strokeWeight: 0.5,
   fillColor: '#0000ff',
-  fillOpacity: 0.1})
-  circle.bindTo('center', markerStockPortTownHall, 'position');
-
+  fillOpacity: 0.1,
+  map,
+  center:StockportTownHall})
 }
 </script>
-<script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>"></script>
+<script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&libraries=marker&callback=initMap&loading=async" async defer></script>
 
 <script src="//www.google.com/recaptcha/api.js" async defer></script>
 
@@ -164,11 +174,12 @@ function initMap() {
   $(document).ready(function(){
     $('.openForm').click(function(){
       var clubName = $(this).attr('data-club')
+      var clubDesc = this.parentNode.previousSibling.previousElementSibling.childNodes[0].childNodes[0].textContent
       console.log($(this).attr('data-club'))
-      $('#exampleModalLabel').html("Get in touch with " + clubName)
+      $('#exampleModalLabel').html("Get in touch with " + clubDesc)
       $('#clubSelect').val(clubName)
     })
-    google.maps.event.addDomListener(window, 'load', initMap);
+    // google.maps.event.addDomListener(window, 'load', initMap);
   })
 </script>
 
