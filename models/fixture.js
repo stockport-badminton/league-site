@@ -204,6 +204,25 @@ exports.getOutstandingResults = async function(done){
   }
 }
 
+exports.getOutstandingScorecards = async function(done){
+  try {
+    let [result] = await (await db.otherConnect()).query(`select * from 
+(select homeTeam.name as homeTeam, homeTeam.id as homeId, awayTeam.name as awayTeam, awayTeam.id as awayId, fixture.date,fixture.status, scorecardstore.id as scoreCardId from 
+fixture join 
+season on fixture.date > season.startDate AND fixture.date < season.endDate join 
+team homeTeam on fixture.homeTeam = homeTeam.id join 
+team awayTeam on fixture.awayTeam = awayTeam.id left join
+scorecardstore on (fixture.date = scorecardstore.date AND fixture.homeTeam = scorecardstore.homeTeam AND fixture.awayTeam = scorecardstore.awayTeam)
+where season.name = '${SEASON}' AND fixture.status not in ('rearranged','rearranging','conceded','void')
+order by date) as a 
+where date < NOW() and scoreCardId is null`)
+done(null, result)
+  }
+  catch(err){
+    return done(err)
+  }
+}
+
 exports.getCardsDueToday = async function(done){
   othersql = "select fixId, date, status, homeTeam, team.name as awayTeam, homeScore, awayScore from  (select fixture.id as fixId, fixture.date, fixture.status, team.name as homeTeam, fixture.homeScore, fixture.awayScore, fixture.awayTeam from fixture join team where fixture.homeTeam = team.id AND fixture.status not in ('rearranged','rearranging')) as a join team where a.awayTeam = team.id AND homeScore is null AND date between adddate(now(),-7) and adddate(now(),-6) order by date";
   try{

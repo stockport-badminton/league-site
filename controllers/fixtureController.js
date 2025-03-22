@@ -739,49 +739,58 @@ exports.fixture_create_post = function(req, res,next) {
 
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = function(req, res,next) {
-    Fixture.getRecent(function(err,recentResults){
-      if (err){
-        // console.log(err);
-        next(err);
-      }
-      else{
-        Fixture.getupComing(function(err,upcomingFixtures){
-          if (err){
-            // console.log(err);
-            next(err);
-          }
-          else{
-            var options = {
-              'method': 'GET',
-              'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2024?max_results=30&context=true',
-              'headers': {
-                'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
-              }
-            }
-            //console.log(options);
-            request(options,function(err,response,assets){
-              //console.log(options);
-              if (err){
-                //console.log(err)
-                return false
-              }
-              else{
-                // console.log(JSON.parse(response.body).resources);
-                res.render('beta/homepage', {
-                    static_path: '/static',
-                    pageTitle : "Homepage",
-                    pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
-                    result : recentResults,
-                    row : upcomingFixtures,
-                    assets : JSON.parse(response.body).resources,
-                    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-                });
-              }
-          })
-        }
-      })
+  Fixture.getOutstandingScorecards(function(err,scorecards){
+    if (err){
+      // console.log(err);
+      next(err);
     }
-  })
+    else{
+      Fixture.getRecent(function(err,recentResults){
+        if (err){
+          // console.log(err);
+          next(err);
+        }
+        else{
+          Fixture.getupComing(function(err,upcomingFixtures){
+            if (err){
+              // console.log(err);
+              next(err);
+            }
+            else{
+              var options = {
+                'method': 'GET',
+                'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2024?max_results=30&context=true',
+                'headers': {
+                  'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
+                }
+              }
+              //console.log(options);
+              request(options,function(err,response,assets){
+                //console.log(options);
+                if (err){
+                  //console.log(err)
+                  return false
+                }
+                else{
+                  // console.log(JSON.parse(response.body).resources);
+                  res.render('beta/homepage', {
+                      static_path: '/static',
+                      pageTitle : "Homepage",
+                      pageDescription : "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
+                      result : recentResults,
+                      row : upcomingFixtures,
+                      scorecards:scorecards,
+                      assets : JSON.parse(response.body).resources,
+                      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+                  });
+                }
+            })
+          }
+        })
+      }
+    })
+  }
+})
 };
 
 exports.fixture_batch_create = function(req, res,next){

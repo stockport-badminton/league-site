@@ -13,28 +13,66 @@
       </p>
 </div>
 <div class="col-md-4">
-  <h1>Recent Results</h1>
-  <% result.forEach(function(row){ %>
-    <div class="row">
-    <%
+  <% if (typeof scorecards !== 'undefined' && scorecards.length > 0){ %>
+  <div class="col-12">
+    <h1>Outstanding Scorecards</h1>
+    <% scorecards.forEach(function(row){ 
+      var rowClass = "";
       var MyDate = new Date(row['date']);
-      var MyDateString, otherDateString;
+        var NowDate = Date.now();
+        if((NowDate - MyDate) > (5 * 24 * 60 * 60* 1000)){
+          rowClass = "bg-warning"
+        }
+        if((NowDate - MyDate) > (7 * 24 * 60 * 60* 1000)){
+          rowClass = "bg-danger"
+        }
+      
+      %>
 
-      // MyDate.setDate(MyDate.getDate() + 20);
+      <div class="row <%= rowClass %>">
+      <%
+        var MyDateString, otherDateString;
 
-      MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
-                   + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-                   + MyDate.getFullYear();
+        // MyDate.setDate(MyDate.getDate() + 20);
 
-       otherDateString = MyDate.getFullYear() + '/'
-                      + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-                      + ('0' + MyDate.getDate()).slice(-2)
-    %>
-    <div class="col-3"><%= MyDateString %></div>
-    <div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div>
-    <div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
-    </div>
-  <% }) %>
+        MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                    + MyDate.getFullYear();
+
+        otherDateString = MyDate.getFullYear() + '/'
+                        + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                        + ('0' + MyDate.getDate()).slice(-2)
+      %>
+      <div class="col-3"><%= MyDateString %></div>
+      <div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div>
+      </div>
+    <% }) %>
+  </div>
+  <% } %>
+  <div class="col-12">
+    <h1>Recent Results</h1>
+    <% result.forEach(function(row){ %>
+      <div class="row warning">
+      <%
+        var MyDate = new Date(row['date']);
+        var MyDateString, otherDateString;
+
+        // MyDate.setDate(MyDate.getDate() + 20);
+
+        MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                    + MyDate.getFullYear();
+
+        otherDateString = MyDate.getFullYear() + '/'
+                        + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                        + ('0' + MyDate.getDate()).slice(-2)
+      %>
+      <div class="col-3"><%= MyDateString %></div>
+      <div class="col"><%= row['homeTeam'] %> vs <%= row['awayTeam'] %></div>
+      <div class="col-3"><%= row['homeScore'] %>-<%= row['awayScore'] %></div>
+      </div>
+    <% }) %>
+  </div>
 </div>
 <div class="col-md-4">
   <h1>Upcoming Fixtures</h1>
