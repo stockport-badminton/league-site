@@ -1254,8 +1254,33 @@ exports.full_fixture_post = function(req,res,next){
                                     text: 'Thanks for sending your scorecard - website updated',
                                     html:str
                                   };
+                                  var params = {
+                                    Destination: { /* required */
+                                      ToAddresses: (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']),
+                                      BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com']
+                                    },
+                                    Message: { /* required */
+                                      Body: {
+                                        Html: {
+                                          Charset: 'UTF-8',
+                                          Data: str
+                                        }
+                                        },
+                                        Subject: {
+                                        Charset: 'UTF-8',
+                                        Data: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam,
+                                        }
+                                      },
+                                    Source: 'results@stockport-badminton.co.uk', /* required */
+                                    ReplyToAddresses: [
+                                      'stockport.badders.results@gmail.com'
+                                    ],
+                                  };
                                   // console.log(msg)
-                                  sgMail.send(msg)
+                                  //sgMail.send(msg)
+                                  var ses = new AWS.SES({apiVersion: '2010-12-01'});
+                                  const sendPromise = ses.sendEmail(params).promise();
+                                  sendPromise
                                   .then(()=>{    
                                     // console.log(`renderFixturePage:${gameObject}`)                            
                                     res.render('index-scorecard',{
@@ -1462,7 +1487,33 @@ Division.getAllAndSelectedById(1,data.division,function(err,divisionRows){
             text: 'a new scorecard has been uploaded: ' + req.body["scoresheet-url"] + '\n check the result here:' + scorecardUrl,
             html: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a><br />Check the result here: <a href="'+ scorecardUrl +'">Confirm</a> or <a href="'+ scorecardUrlBeta + '">'+ scorecardUrlBeta + '</a></p>'
           };
-          sgMail.send(msg)
+          var params = {
+            Destination: { /* required */
+              ToAddresses: ['stockport.badders.results@gmail.com'],
+              BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com']
+            },
+            Message: { /* required */
+              Body: {
+                Html: {
+                  Charset: 'UTF-8',
+                  Data: '<p>a new scorecard has been uploaded: <a href="'+ req.body["scoresheet-url"] +'">'+ req.body["scoresheet-url"]+ '</a><br />Check the result here: <a href="'+ scorecardUrl +'">Confirm</a> or <a href="'+ scorecardUrlBeta + '">'+ scorecardUrlBeta + '</a></p>'
+                }
+                },
+                Subject: {
+                Charset: 'UTF-8',
+                Data: 'Scorecard Received',
+                }
+              },
+            Source: 'results@stockport-badminton.co.uk', /* required */
+            ReplyToAddresses: [
+              'stockport.badders.results@gmail.com'
+            ],
+          };
+          // console.log(msg)
+          //sgMail.send(msg)
+          var ses = new AWS.SES({apiVersion: '2010-12-01'});
+          const sendPromise = ses.sendEmail(params).promise();
+          sendPromise
             .then(()=>{
                //console.log(msg)
               res.render('email-scorecard', {
@@ -1985,7 +2036,33 @@ exports.add_scorecard_photo = function(req,res,next){
         text: `a scorecard has been updated with a photo: ${req.body.imgURL} check the result here: https://tameside-badminton.co.uk/populated-scorecard-beta/${req.params.id}`,
         html: `<p>a scorecard has been updated with a photo: <a href="${req.body.imgURL}">${req.body.imgURL}}</a><br />Check the result here: <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">Confirm</a> or <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}</a></p>`
       };
-      sgMail.send(msg)
+      var params = {
+        Destination: { /* required */
+          ToAddresses: ['stockport.badders.results@gmail.com'],
+          BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com']
+        },
+        Message: { /* required */
+          Body: {
+            Html: {
+              Charset: 'UTF-8',
+              Data: `<p>a scorecard has been updated with a photo: <a href="${req.body.imgURL}">${req.body.imgURL}}</a><br />Check the result here: <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">Confirm</a> or <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}</a></p>`
+            }
+            },
+            Subject: {
+            Charset: 'UTF-8',
+            Data: 'Scorecard Updated',
+            }
+          },
+        Source: 'results@stockport-badminton.co.uk', /* required */
+        ReplyToAddresses: [
+          'stockport.badders.results@gmail.com'
+        ],
+      };
+      // console.log(msg)
+      //sgMail.send(msg)
+      var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      const sendPromise = ses.sendEmail(params).promise();
+      sendPromise
         .then(()=>{
            //console.log(msg)
           res.sendStatus(200);

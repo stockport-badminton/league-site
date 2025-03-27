@@ -1,6 +1,7 @@
 var request = require('request');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+var AWS = require('aws-sdk');
 
 
 exports.getManagementAPIKey = function(done){
@@ -104,7 +105,33 @@ exports.getAPIKey = function(done){
             text: 'Thanks for registering - i\'ve approved your access',
             html: '<p>Thanks for registering - i\'ve approved your access</p>'
           };
-          sgMail.send(msg)
+          var params = {
+                  Destination: { /* required */
+                    ToAddresses: [userBody.email],
+                    BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com','stockport.badders.results@gmail.com']
+                  },
+                  Message: { /* required */
+                    Body: {
+                      Html: {
+                        Charset: 'UTF-8',
+                        Data: '<p>Thanks for registering - i\'ve approved your access</p>'
+                      }
+                      },
+                      Subject: {
+                      Charset: 'UTF-8',
+                      Data: 'Results Entry Access',
+                      }
+                    },
+                  Source: 'results@stockport-badminton.co.uk', /* required */
+                  ReplyToAddresses: [
+                    'stockport.badders.results@gmail.com'
+                  ],
+                };
+                // console.log(msg)
+                //sgMail.send(msg)
+                var ses = new AWS.SES({apiVersion: '2010-12-01'});
+                const sendPromise = ses.sendEmail(params).promise();
+                sendPromise
               .then(()=>{
                 console.log(msg)
                 res.render('beta/userapproved',{

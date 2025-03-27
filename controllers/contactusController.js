@@ -118,8 +118,35 @@ exports.contactus = function(req, res,next){
         }
         else {
           // msg.to = rows[0].contactUs;
-          msg.to = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : rows[0].clubSecEmail);
-          sgMail.send(msg)
+          var params = {
+            Destination: { /* required */
+              ToAddresses: [              
+              ],
+              BccAddresses:['stockport.badders.results@gmail.com','bigcoops@outlook.com']
+              
+            },
+            Message: { /* required */
+              Body: {
+                Html: {
+                  Charset: 'UTF-8',
+                  Data: generateContactUsHTML(req.body.contactQuery,req.body.contactEmail)
+                }
+                },
+                Subject: {
+                Charset: 'UTF-8',
+                Data: 'Somebody is trying to get in touch'
+                }
+              },
+            Source: 'results@stockport-badminton.co.uk', /* required */
+            ReplyToAddresses: [
+              'stockport.badders.results@gmail.com',req.body.contactEmail
+            ],
+          };
+          params.Destination.ToAddresses = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : [rows[0].clubSecEmail]);
+          //sgMail.send(msg)
+          var ses = new AWS.SES({apiVersion: '2010-12-01'});
+          const sendPromise = ses.sendEmail(params).promise();
+          sendPromise
             .then(()=>{
               console.log(msg);
               res.render('beta/contact-us-form-delivered', {
@@ -169,7 +196,35 @@ exports.contactus = function(req, res,next){
           break;
         default:
       }
-      sgMail.send(msg)
+      var params = {
+        Destination: { /* required */
+          ToAddresses: [              
+          ],
+          BccAddresses:['stockport.badders.results@gmail.com','bigcoops@outlook.com']
+          
+        },
+        Message: { /* required */
+          Body: {
+            Html: {
+              Charset: 'UTF-8',
+              Data: generateContactUsHTML(req.body.contactQuery,req.body.contactEmail)
+            }
+            },
+            Subject: {
+            Charset: 'UTF-8',
+            Data: 'Somebody is trying to get in touch'
+            }
+          },
+        Source: 'results@stockport-badminton.co.uk', /* required */
+        ReplyToAddresses: [
+          'stockport.badders.results@gmail.com',req.body.contactEmail
+        ],
+      };
+      params.Destination.ToAddresses = msg.to;
+      //sgMail.send(msg)
+      var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      const sendPromise = ses.sendEmail(params).promise();
+      sendPromise
       .then(()=>{
         console.log(msg);
         res.render('beta/contact-us-form-delivered', {
