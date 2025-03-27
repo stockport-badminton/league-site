@@ -699,14 +699,14 @@
       var params = {
         Destination: { /* required */
           ToAddresses: [ 
-            'bigcoops@gmail.com','stockport.badders.results@gmail.com'
+            'bigcoops@gmail.com','stockport.badders.results@gmail.com','bigcoops@outlook.com'
           ]
         },
         Message: { /* required */
           Body: {
             Html: {
              Charset: 'UTF-8',
-             Data: contact_controller.generateReminderHTML()
+             Data: contact_controller.generateContactUsHTML("some generic contact message","fromme@gmail.com")
             }
            },
            Subject: {
@@ -714,7 +714,7 @@
             Data: 'Somebody is trying to get in touch'
            }
           },
-        Source: 'stockport.badders.results@gmail.com', /* required */
+        Source: 'results@stockport-badminton.co.uk', /* required */
         ReplyToAddresses: [
           'stockport.badders.results@gmail.com'
         ],

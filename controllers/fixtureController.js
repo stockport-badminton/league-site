@@ -9,6 +9,7 @@ var Auth = require('../models/auth.js');
 const ICAL = require('ical.js');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+var contact_controller = require(__dirname + '/contactusController');
 
  
  let  SEASON = '';
@@ -172,6 +173,7 @@ exports.getLateScorecards = function(req, res) {
           "missingFixtures":[]
         }
       };
+
       if (err){        
         msg.dynamic_template_data.errors = JSON.stringify(err);
       }
@@ -185,6 +187,33 @@ exports.getLateScorecards = function(req, res) {
               fixture.awayTeam = row[x].awayTeam;
               msg.dynamic_template_data.missingFixtures.push(fixture);
           }
+          
+            
+          var params = {
+            Destination: { /* required */
+              ToAddresses: [ 
+                'stockport.badders.results@gmail.com','bigcoops@outlook.com'
+              ]
+            },
+            Message: { /* required */
+              Body: {
+                Html: {
+                  Charset: 'UTF-8',
+                  Data: contact_controller.generateMissingScorecardHTML(msg.dynamic_template_data.missingFixtures)
+                }
+                },
+                Subject: {
+                Charset: 'UTF-8',
+                Data: 'Todays Missing Scorecards'
+                }
+              },
+            Source: 'results@stockport-badminton.co.uk', /* required */
+            ReplyToAddresses: [
+              'stockport.badders.results@gmail.com'
+            ],
+          };
+
+
         }
         else {   
           msg.dynamic_template_data.noFixtures = 'No outstanding fixtures today';
@@ -193,7 +222,10 @@ exports.getLateScorecards = function(req, res) {
       }
       let today = new Date()
       if (today.getMonth() <= 4 || today.getMonth() >= 7){
-        sgMail.send(msg)
+        var ses = new AWS.SES({apiVersion: '2010-12-01'});
+        const sendPromise = ses.sendEmail(params).promise();
+        sendPromise
+        // sgMail.send(msg)
         .then(()=>res.send("Message Sent"))
         .catch(error => console.log(error.toString()));
       }
@@ -1864,6 +1896,30 @@ exports.messer_scorecard = function(req,res,next){
   }
 
   exports.fixture_reminder_post = function(req,res,next){
+
+    var params = {
+      Destination: { /* required */
+        ToAddresses: [ 
+          'stockport.badders.results@gmail.com','bigcoops@outlook.com'
+        ]
+      },
+      Message: { /* required */
+        Body: {
+          Html: {
+            Charset: 'UTF-8',
+            Data: contact_controller.generateScorecardReminderHTML()
+          }
+          },
+          Subject: {
+          Charset: 'UTF-8',
+          Data: `Reminder: ${req.body.homeTeam} vs ${req.body.awayTeam}`
+          }
+        },
+      Source: 'results@stockport-badminton.co.uk', /* required */
+      ReplyToAddresses: [
+        'stockport.badders.results@gmail.com'
+      ],
+    };
     
     const msg = {
       cc: 'stockport.badders.results@gmail.com',
@@ -1874,9 +1930,17 @@ exports.messer_scorecard = function(req,res,next){
         "awayTeam":req.body.awayTeam
       }
     };
-    msg.to = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : req.body.email);
+    // msg.to = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : req.body.email);
+    let localToAdds = []
+    localToAdds = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : [req.body.email])
+    localToAdds.push('stockport.badders.results@gmail.com')
+    localToAdds.push('bigcoops@outlook.com')
+    params.Destination.ToAddresses = localToAdds
+
      //console.log(msg);
-    sgMail.send(msg)
+     var ses = new AWS.SES({apiVersion: '2010-12-01'});
+     const sendPromise = ses.sendEmail(params).promise();
+     sendPromise
     .then(()=>res.send("Message Sent"))
     .catch(error => console.log(error.toString()));
   }

@@ -621,7 +621,7 @@ ol ol ol ol {
   `
 }
 
-exports.generateContactUsHTML = function() {
+exports.generateContactUsHTML = function(message, email) {
   return `
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html data-editor-version="2" class="sg-campaigns" xmlns="http://www.w3.org/1999/xhtml">
@@ -776,9 +776,9 @@ exports.generateContactUsHTML = function() {
     </table><table class="module" role="module" data-type="text" border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;" data-mc-module-version="2019-10-22">
       <tr>
         <td style="padding:18px 10px 18px 10px;line-height:22px;text-align:inherit;" height="100%" valign="top" bgcolor="">
-            <div>{{message}}</div>
+            <div>${message}</div>
 
-<div>from: {{email}}</div>
+<div>from: ${email}</div>
         </td>
       </tr>
     </table><div data-role="module-unsubscribe" class="module unsubscribe-css__unsubscribe___2CDlR" role="module" data-type="unsubscribe" style="color:#444444;font-size:12px;line-height:20px;padding:16px 16px 16px 16px;text-align:center"><p style="font-family:[Sender_Name];font-size:12px;line-height:20px"><a class="Unsubscribe--unsubscribeLink" href="<%asm_group_unsubscribe_raw_url%>">Unsubscribe</a> - <a class="Unsubscribe--unsubscribePreferences" href="<%asm_preferences_raw_url%>">Unsubscribe Preferences</a></p></div></td>
@@ -806,7 +806,12 @@ exports.generateContactUsHTML = function() {
   `
 }
 
-exports.generateMissingScorecardHTML = function() {
+exports.generateMissingScorecardHTML = function(fixtures) {
+  let missingFixtures = ""
+  for (fixture of fixtures){
+    missingFixtures += `${fixture.date}: ${fixture.homeTeam} vs ${fixture.awayTeam} 
+    <br />`
+  }
   return `
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html data-editor-version="2" class="sg-campaigns" xmlns="http://www.w3.org/1999/xhtml">
@@ -962,15 +967,7 @@ exports.generateMissingScorecardHTML = function() {
       <tr>
         <td height="100%" valign="top">
           <div style="padding:18px 10px">
-  {{#if error}}
-    {{error}}
-  {{else if noFixtures}}
-    {{noFixtures}}
-  {{else}}
-    {{#each missingFixtures}}
-      {{date}}: {{homeTeam}} vs {{awayTeam}}<br>
-    {{/each}}    
-  {{/if}}
+  ${missingFixtures}
 
 </div>
         </td>
