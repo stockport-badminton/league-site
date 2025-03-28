@@ -439,7 +439,7 @@ exports.distribution_list = async function(req,res,next) {
   
   console.log(req.headers)
   if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
-    console.log(`found message header: ${req.body}`)
+    console.log(`found message header: ${JSON.stringify(req.body)}`)
 
     https.get(req.body.SubscribeURL, (res) => {
     console.log('statusCode:', res.statusCode);
@@ -454,7 +454,7 @@ exports.distribution_list = async function(req,res,next) {
   });
   }
   else {
-    console.log(`didn't find message header: ${req.body}`)
+    console.log(`didn't find message header: ${JSON.stringify(req.body)}`)
   }
 
    //console.log("from: " + req.body.from);
