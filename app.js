@@ -745,7 +745,7 @@
     const multer  = require('multer');
 const { getAllLeagueTables } = require('./models/league');
     const upload = multer();
-    router.post('/mail', upload.any(),contact_controller.distribution_list); 
+    router.post('/mail', contact_controller.distribution_list); 
     router.post('/mailtest',contact_controller.distribution_list); 
 
     // Scorecard - Results Entry related routes
