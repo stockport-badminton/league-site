@@ -435,8 +435,16 @@ exports.contactus = function(req, res,next){
 
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
-  console.log(req.body)
-  console.log(req)
+  
+  console.log(req.headers)
+  if (typeof req.headers.Type !== 'undefined' && req.headers.Type == 'SubscriptionConfirmation'){
+    console.log(req.body.Message)
+    request(req.body.SubscribeURL)
+    res.send(200)
+  }
+  else {
+    console.log(req.body.Message)
+  }
 
    //console.log("from: " + req.body.from);
    //console.log("to: " + req.body.to);
