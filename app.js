@@ -88,6 +88,7 @@
     app.set('view engine', 'ejs');
     app.set('views', __dirname + '/views');
     app.use(bodyParser.json());
+    app.use(bodyParser.text());
     app.use(bodyParser.urlencoded({extended:false}));
     app.set('node_modules', __dirname + '/node_modules');
     app.set('models', __dirname + '/models');
