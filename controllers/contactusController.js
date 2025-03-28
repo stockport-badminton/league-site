@@ -436,7 +436,7 @@ exports.contactus = function(req, res,next){
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
   console.log(req.body)
-  console.log(JSON.stringify(req))
+  console.log(req)
 
    //console.log("from: " + req.body.from);
    //console.log("to: " + req.body.to);
