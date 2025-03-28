@@ -4,7 +4,7 @@ const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var AWS = require('aws-sdk');
 
-const { body,validationResult } = require("express-validator");
+const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
@@ -304,6 +304,7 @@ exports.contactus = function(req, res,next){
         }
         else {
           // msg.to = rows[0].contactUs;
+          console.log(JSON.stringify(rows))
           var params = {
             Destination: { /* required */
               ToAddresses: [              
@@ -452,6 +453,29 @@ exports.distribution_list = async function(req,res,next) {
     "html": req.body.html,
     "isMultiple":true
   };
+  var params = {
+    Destination: { /* required */
+      ToAddresses: ["stockport.badders.results\+"+recipient+"@gmail.com"],
+      BccAddresses:["bigcoops\+"+recipient+"@outlook.com"]
+      
+    },
+    Message: { /* required */
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: req.body.html
+        }
+        },
+        Subject: {
+        Charset: 'UTF-8',
+        Data: req.body.subject
+        }
+      },
+    Source: 'results@stockport-badminton.co.uk', /* required */
+    ReplyToAddresses: [
+      'stockport.badders.results@gmail.com'
+    ],
+  };
   // console.log(req.body.to.indexOf("test"))
   if (req.body.to.indexOf("test") >= 0 ){
     // console.log("detected test")
@@ -589,41 +613,82 @@ exports.distribution_list = async function(req,res,next) {
         if (msg.subject.indexOf('test') == -1){
           var tempArray = msg.to
           msg.to = tempArray.concat(rows)
+          param.Destination.ToAddresses = tempArray.concat(rows)
           // console.log(msg.to)
-          sgMail.send(msg)
-          .then((msg,response)=>{
-            // console.log(msg);
-            // console.info("within sgMail send then");
-            console.info(msg);
-            res.sendStatus(200);
-          })
-          .catch(error => {
-            console.error("within error catch");
-            console.error(error.response.body.errors)
-            console.info(msg);
-            next("Sorry something went wrong sending your email.");
-          })
+          if (msg.attachments.length > 0){
+            sgMail.send(msg)
+            .then((msg,response)=>{
+              // console.log(msg);
+              // console.info("within sgMail send then");
+              console.info(msg);
+              res.sendStatus(200);
+            })
+            .catch(error => {
+              console.error("within error catch");
+              console.error(error.response.body.errors)
+              console.info(msg);
+              next("Sorry something went wrong sending your email.");
+            })
+          }
+          else {
+            var ses = new AWS.SES({apiVersion: '2010-12-01'});
+            const sendPromise = ses.sendEmail(params).promise();
+            sendPromise
+            .then((msg,response)=>{
+              // console.log(msg);
+              // console.info("within sgMail send then");
+              console.info(msg);
+              res.sendStatus(200);
+            })
+            .catch(error => {
+              console.error("within error catch");
+              console.error(error.response.body.errors)
+              console.info(msg);
+              next("Sorry something went wrong sending your email.");
+            })
+          }
+          
         }
         else {
           msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
           msg.text += rows.join()
           msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+          params.Message.Body.Html = params.Message.Body.Html.replace("<body>","<body><p id=\"emaillist\"></p>")
+          params.Message.Body.Html = params.Message.Body.Html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
            //console.log(msg)
           // console.log(msg.to)
-          sgMail.send(msg)
-          .then((response)=>{
-            // console.log(msg);
-            // console.info("within sgMail send then");
-            // console.info(response);
-            res.sendStatus(200);
-          })
-          .catch(error => {
-            // console.error("within error catch");
-            console.error(error);
-            console.error(error.response.body.errors)
-            console.info(msg);
-            next("Sorry something went wrong sending your email.");
-          })
+          if (msg.attachments.length > 0){
+            sgMail.send(msg)
+            .then((msg,response)=>{
+              // console.log(msg);
+              // console.info("within sgMail send then");
+              console.info(msg);
+              res.sendStatus(200);
+            })
+            .catch(error => {
+              console.error("within error catch");
+              console.error(error.response.body.errors)
+              console.info(msg);
+              next("Sorry something went wrong sending your email.");
+            })
+          }
+          else {
+            var ses = new AWS.SES({apiVersion: '2010-12-01'});
+            const sendPromise = ses.sendEmail(params).promise();
+            sendPromise
+            .then((msg,response)=>{
+              // console.log(msg);
+              // console.info("within sgMail send then");
+              console.info(msg);
+              res.sendStatus(200);
+            })
+            .catch(error => {
+              console.error("within error catch");
+              console.error(error.response.body.errors)
+              console.info(msg);
+              next("Sorry something went wrong sending your email.");
+            })
+          }
         }
       }
     })
@@ -631,19 +696,38 @@ exports.distribution_list = async function(req,res,next) {
   else {
     // console.log(msg)
     // console.log(msg.to)
-    sgMail.send(msg)
-    .then((response)=>{
-      // console.log(msg);
-      // console.info("within sgMail send then");
-      // console.info(response);
-      res.sendStatus(200);
-    })
-    .catch(error => {
-      console.error("within error catch");
-      console.error(error);
-      console.info(msg);
-      next("Sorry something went wrong sending your email.");
-    })
+    if (msg.attachments.length > 0){
+      sgMail.send(msg)
+      .then((msg,response)=>{
+        // console.log(msg);
+        // console.info("within sgMail send then");
+        console.info(msg);
+        res.sendStatus(200);
+      })
+      .catch(error => {
+        console.error("within error catch");
+        console.error(error.response.body.errors)
+        console.info(msg);
+        next("Sorry something went wrong sending your email.");
+      })
+    }
+    else {
+      var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      const sendPromise = ses.sendEmail(params).promise();
+      sendPromise
+      .then((msg,response)=>{
+        // console.log(msg);
+        // console.info("within sgMail send then");
+        console.info(msg);
+        res.sendStatus(200);
+      })
+      .catch(error => {
+        console.error("within error catch");
+        console.error(error.response.body.errors)
+        console.info(msg);
+        next("Sorry something went wrong sending your email.");
+      })
+    }
   }
     
   }
