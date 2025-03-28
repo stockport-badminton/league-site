@@ -3,6 +3,7 @@ var Player = require('../models/players.js');
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var AWS = require('aws-sdk');
+const https = require('node:https');
 
 const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
@@ -437,10 +438,20 @@ exports.contactus = function(req, res,next){
 exports.distribution_list = async function(req,res,next) {
   
   console.log(req.headers)
-  if (typeof req.headers.Type !== 'undefined' && req.headers.Type == 'SubscriptionConfirmation'){
+  if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
     console.log(req.body.Message)
-    request(req.body.SubscribeURL)
-    res.send(200)
+
+    https.get(req.body.SubscribeURL, (res) => {
+    console.log('statusCode:', res.statusCode);
+    console.log('headers:', res.headers);
+
+    res.on('data', (d) => {
+      process.stdout.write(d);
+    });
+
+  }).on('error', (e) => {
+    console.error(e);
+  });
   }
   else {
     console.log(req.body.Message)
