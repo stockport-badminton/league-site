@@ -461,7 +461,6 @@ exports.distribution_list = async function(req,res,next) {
   }
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
-      app.use(bodyParser.json());
       console.log(req.body.Message)
       const message = JSON.parse(req.body.Message);
 
