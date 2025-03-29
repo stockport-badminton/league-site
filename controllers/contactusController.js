@@ -439,7 +439,7 @@ exports.contactus = function(req, res,next){
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
   
-  console.log(req.headers)
+  // console.log(req.headers)
   if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
     let msgBody = JSON.parse(req.body)
     // console.log(req)
@@ -461,6 +461,8 @@ exports.distribution_list = async function(req,res,next) {
   }
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
+      app.use(bodyParser.json());
+      console.log(req.body.Message)
       const message = JSON.parse(req.body.Message);
 
       console.log("Received SNS message:", message);
