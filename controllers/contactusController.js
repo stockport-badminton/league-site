@@ -489,16 +489,9 @@ exports.distribution_list = async function(req,res,next) {
       }));
 
       // Prepare SES parameters
-      const params = {
-          Destination: {
+      var params = {
+          Destinations: {
               ToAddresses: ["bigcoops@outlook.com","stockport.badders.results@gmail.com"],  // Change to your forwarding address
-          },
-          Message: {
-              Body: {
-                  Text: { Data: textBody },
-                  Html: { Data: htmlBody },
-              },
-              Subject: { Data: `FWD: ${subject}` },
           },
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
@@ -531,8 +524,8 @@ exports.distribution_list = async function(req,res,next) {
    //console.log("subject: " + req.body.subject);
   // console.log("html: " + req.body.html);
   
-  var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
-  recipient = recipient.replace("\"","")
+  // var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
+  // recipient = recipient.replace("\"","")
    //console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
