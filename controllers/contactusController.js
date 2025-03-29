@@ -517,7 +517,8 @@ exports.distribution_list = async function(req,res,next) {
       });
       } catch (error) {
           console.error("Error processing message:", error);
-          res.status(500).send("Internal Server Error");
+          // res.status(500).send("Internal Server Error");
+          next(error)
       }
   }
   else {
