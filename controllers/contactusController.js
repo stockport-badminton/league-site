@@ -465,10 +465,10 @@ exports.distribution_list = async function(req,res,next) {
       let message = JSON.parse(req.body);
       console.log(message)
 
-      console.log("Received SNS message:", message.Message);
+      console.log("Received SNS message:", message["Message"]);
 
       // Extract the raw email data from SES notification
-      const rawEmail = message.Message.content;
+      const rawEmail = message["Message"].content;
       const buffer = Buffer.from(rawEmail, "base64");
 
       // Parse the email using mailparser
