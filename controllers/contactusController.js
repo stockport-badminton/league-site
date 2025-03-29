@@ -443,7 +443,7 @@ exports.distribution_list = async function(req,res,next) {
   if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
     let msgBody = JSON.parse(req.body)
     // console.log(req)
-    console.log("req Body:" + req.body)
+    // console.log("req Body:" + req.body)
     console.log(`found message header: ${msgBody.SubscribeURL}`)
 
     https.get(msgBody.SubscribeURL, (res) => {
@@ -461,11 +461,11 @@ exports.distribution_list = async function(req,res,next) {
   }
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
-      console.log(req.body)
+      // console.log(req.body)
       let message = JSON.parse(req.body);
-      console.log(JSON.parse(message.Message))
+      // console.log(JSON.parse(message.Message))
 
-      console.log("Received SNS message:", message["Message"]);
+      // console.log("Received SNS message:", message["Message"]);
 
       // Extract the raw email data from SES notification
       const rawEmail = JSON.parse(message["Message"]).content;
@@ -473,7 +473,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Parse the email using mailparser
       const parsedEmail = await simpleParser(buffer);
-      console.log("Parsed email:", parsedEmail);
+      // console.log("Parsed email:", parsedEmail);
 
       // Extract email details
       const sender = parsedEmail.from.text;
@@ -490,12 +490,13 @@ exports.distribution_list = async function(req,res,next) {
 
       // Prepare SES parameters
       var params = {
-          Destinations: ["to:stockport.badders.results@gmail.com","bigcoops@outlook.com","bcc:ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
+          Destinations: ["to:stockport.badders.results@gmail.com,bigcoops@outlook.com","bcc:ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
           },
       };
+      console.log(params);
       // Send the email using SES
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       ses.sendRawEmail(params, (err, data) => {
@@ -526,7 +527,8 @@ exports.distribution_list = async function(req,res,next) {
    //console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
-    "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
+    // "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
+    "to": ["stockport.badders.results@gmail.com"],
     "from": "stockport.badders.results@stockport-badminton.co.uk",
     "subject": req.body.subject,
     "text": "Email from sengrid parse send to "+req.body.to,
@@ -535,7 +537,8 @@ exports.distribution_list = async function(req,res,next) {
   };
   var params = {
     Destination: { /* required */
-      ToAddresses: ["stockport.badders.results\+"+recipient+"@gmail.com"],
+      // ToAddresses: ["stockport.badders.results\+"+recipient+"@gmail.com"],
+      ToAddresses: ["stockport.badders.results@gmail.com"],
       BccAddresses:["bigcoops\+"+recipient+"@outlook.com"]
       
     },
