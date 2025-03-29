@@ -4,6 +4,8 @@ const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var AWS = require('aws-sdk');
 const https = require('node:https');
+const { simpleParser } = require("mailparser");
+
 
 const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
@@ -456,6 +458,66 @@ exports.distribution_list = async function(req,res,next) {
     console.error("error:")
     console.error(e);
   });
+  }
+  else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
+    try {
+      const message = JSON.parse(req.body.Message);
+
+      console.log("Received SNS message:", message);
+
+      // Extract the raw email data from SES notification
+      const rawEmail = message.content;
+      const buffer = Buffer.from(rawEmail, "base64");
+
+      // Parse the email using mailparser
+      const parsedEmail = await simpleParser(buffer);
+      console.log("Parsed email:", parsedEmail);
+
+      // Extract email details
+      const sender = parsedEmail.from.text;
+      const subject = parsedEmail.subject || "No Subject";
+      const textBody = parsedEmail.text || "No text content";
+      const htmlBody = parsedEmail.html || "No HTML content";
+
+      // Extract attachments (if any)
+      const attachments = parsedEmail.attachments.map((attachment) => ({
+          filename: attachment.filename,
+          content: attachment.content,
+          encoding: "base64",
+      }));
+
+      // Prepare SES parameters
+      const params = {
+          Destination: {
+              ToAddresses: ["bigcoops@outlook.com","stockport.badders.results@gmail.com"],  // Change to your forwarding address
+          },
+          Message: {
+              Body: {
+                  Text: { Data: textBody },
+                  Html: { Data: htmlBody },
+              },
+              Subject: { Data: `FWD: ${subject}` },
+          },
+          Source: "results@stockport-badminton.co.uk",  // Verified SES email address
+          RawMessage: {
+              Data: buffer,
+          },
+      };
+
+      // Send the email using SES
+      var ses = new AWS.SES({apiVersion: '2010-12-01'});
+      ses.sendRawEmail(params, (err, data) => {
+          if (err) {
+              console.error("Error sending email:", err);
+              return res.status(500).send("Error forwarding email.");
+          }
+          console.log("Email forwarded successfully:", data);
+          res.send("Success");
+      });
+      } catch (error) {
+          console.error("Error processing message:", error);
+          res.status(500).send("Internal Server Error");
+      }
   }
   else {
     console.log(`didn't find message header: ${JSON.stringify(req.body)}`)
