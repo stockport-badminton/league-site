@@ -461,13 +461,13 @@ exports.distribution_list = async function(req,res,next) {
   }
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
-      console.log(req.body.Message)
-      const message = JSON.parse(req.body.Message);
+      console.log(req.body)
+      const message = JSON.parse(req.body);
 
-      console.log("Received SNS message:", message);
+      console.log("Received SNS message:", message.Message);
 
       // Extract the raw email data from SES notification
-      const rawEmail = message.content;
+      const rawEmail = message.Message.content;
       const buffer = Buffer.from(rawEmail, "base64");
 
       // Parse the email using mailparser
