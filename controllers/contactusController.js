@@ -462,7 +462,8 @@ exports.distribution_list = async function(req,res,next) {
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
       console.log(req.body)
-      const message = JSON.parse(req.body);
+      let message = JSON.parse(req.body);
+      console.log(message)
 
       console.log("Received SNS message:", message.Message);
 
