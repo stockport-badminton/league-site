@@ -463,7 +463,7 @@ exports.distribution_list = async function(req,res,next) {
     try {
       console.log(req.body)
       let message = JSON.parse(req.body);
-      console.log(message)
+      console.log(JSON.parse(message.Message))
 
       console.log("Received SNS message:", message["Message"]);
 
