@@ -490,15 +490,16 @@ exports.distribution_list = async function(req,res,next) {
 
       // Prepare SES parameters
       var params = {
-          Destinations: {
-              ToAddresses: ["bigcoops@outlook.com","stockport.badders.results@gmail.com"],  // Change to your forwarding address
-          },
+          Destinations: [
+            {
+              ToAddresses:["stockport.badders.results@gmail.com","bigcoops@outlook.com"],
+              BccAddresses:["ncooper@amplience.com","bigcoops+testbcc@amplience.com"]
+            }],  // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
           },
       };
-
       // Send the email using SES
       var ses = new AWS.SES({apiVersion: '2010-12-01'});
       ses.sendRawEmail(params, (err, data) => {
