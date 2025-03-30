@@ -438,7 +438,7 @@ exports.contactus = function(req, res,next){
 
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
-  
+  let recipient = ""
   // console.log(req.headers)
   if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
     let msgBody = JSON.parse(req.body)
@@ -477,6 +477,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Extract email details
       const sender = parsedEmail.from.text;
+      recipient = parsedEmail.to.text;
       const subject = parsedEmail.subject || "No Subject";
       const textBody = parsedEmail.text || "No text content";
       const htmlBody = parsedEmail.html || "No HTML content";
@@ -522,9 +523,9 @@ exports.distribution_list = async function(req,res,next) {
    //console.log("subject: " + req.body.subject);
   // console.log("html: " + req.body.html);
   
-  // var recipient = req.body.to.substring(0,req.body.to.indexOf("@"));
-  // recipient = recipient.replace("\"","")
-   //console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
+  recipient = recipient.substring(0,recipient.indexOf("@"));
+  recipient = recipient.replace("\"","")
+  console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
     // "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
