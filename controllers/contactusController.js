@@ -781,7 +781,7 @@ exports.distribution_list = async function(req,res,next) {
   else {
     // console.log(msg)
     // console.log(msg.to)
-    if (msg.attachments.length > 0){
+    if (typeof msg.attachments !== 'undefined' && msg.attachments.length > 0){
       sgMail.send(msg)
       .then((msg,response)=>{
         // console.log(msg);
