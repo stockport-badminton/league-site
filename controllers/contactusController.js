@@ -503,7 +503,8 @@ exports.distribution_list = async function(req,res,next) {
       ses.sendRawEmail(params, (err, data) => {
           if (err) {
               console.error("Error sending email:", err);
-              return res.status(500).send("Error forwarding email.");
+              // return res.status(500).send("Error forwarding email.");
+              next(err)
           }
           console.log("Email forwarded successfully:", data);
           res.send("Success");
