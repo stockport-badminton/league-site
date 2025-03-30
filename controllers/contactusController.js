@@ -507,7 +507,7 @@ exports.distribution_list = async function(req,res,next) {
               next(err)
           }
           console.log("Email forwarded successfully:", data);
-          res.send("Success");
+          res.sendStatus(200);
       });
       } catch (error) {
           console.error("Error processing message:", error);
