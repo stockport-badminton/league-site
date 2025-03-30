@@ -490,7 +490,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Prepare SES parameters
       var params = {
-          Destinations: ["To:stockport.badders.results@gmail.com,bigcoops@outlook.com","BCC:ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
+          Destinations: ["To: stockport.badders.results@gmail.com,bigcoops@outlook.com","Bcc: ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
@@ -561,7 +561,7 @@ exports.distribution_list = async function(req,res,next) {
     ],
   };
   // console.log(req.body.to.indexOf("test"))
-  if (req.body.to.indexOf("test") >= 0 ){
+  /* if (req.body.to.indexOf("test") >= 0 ){
     // console.log("detected test")
     msg["mail_settings"] = {
       "sandbox_mode": {
@@ -569,7 +569,7 @@ exports.distribution_list = async function(req,res,next) {
         }
     }
     // console.log(msg)
-  }
+  } 
   
   if(req.files){
     // console.log("files" + req.files)
@@ -590,7 +590,7 @@ exports.distribution_list = async function(req,res,next) {
         attachments.push(attachment);
       };
     msg.attachments = attachments;
-  }
+  } */
 
    //console.log(msg)
   var searchObject = {}
