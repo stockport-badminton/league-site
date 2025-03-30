@@ -495,7 +495,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Prepare SES parameters
       var params = {
-          Destinations: ["To: stockport.badders.results@gmail.com,bigcoops@outlook.com","Bcc: ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
+          Destinations: ["stockport.badders.results@gmail.com,bigcoops@outlook.com","ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
