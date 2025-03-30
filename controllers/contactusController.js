@@ -791,7 +791,7 @@ exports.distribution_list = async function(req,res,next) {
       })
       .catch(error => {
         console.error("within error catch");
-        console.error(error.response.body.errors)
+        console.error(error)
         console.info(msg);
         next("Sorry something went wrong sending your email.");
       })
@@ -808,7 +808,7 @@ exports.distribution_list = async function(req,res,next) {
       })
       .catch(error => {
         console.error("within error catch");
-        console.error(error.response.body.errors)
+        console.error(error)
         console.info(msg);
         next("Sorry something went wrong sending your email.");
       })
