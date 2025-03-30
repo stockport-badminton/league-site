@@ -528,8 +528,8 @@ exports.distribution_list = async function(req,res,next) {
   console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
   var msg = {
-    // "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
-    "to": ["stockport.badders.results@gmail.com"],
+    "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
+    // "to": ["stockport.badders.results@gmail.com"],
     "from": "stockport.badders.results@stockport-badminton.co.uk",
     "subject": req.body.subject,
     "text": "Email from sengrid parse send to "+req.body.to,
@@ -538,10 +538,10 @@ exports.distribution_list = async function(req,res,next) {
   };
   var params = {
     Destination: { /* required */
-      // ToAddresses: ["stockport.badders.results\+"+recipient+"@gmail.com"],
-      ToAddresses: ["stockport.badders.results@gmail.com"],
-      // BccAddresses:["bigcoops\+"+recipient+"@outlook.com"]
-      BccAddresses:["bigcoops@outlook.com"]
+      ToAddresses: ["stockport.badders.results\+"+recipient+"@gmail.com"],
+      // ToAddresses: ["stockport.badders.results@gmail.com"],
+      BccAddresses:["bigcoops\+"+recipient+"@outlook.com"]
+      // BccAddresses:["bigcoops@outlook.com"]
       
     },
     Message: { /* required */
