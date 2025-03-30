@@ -495,7 +495,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Prepare SES parameters
       var params = {
-          Destinations: ["stockport.badders.results@gmail.com,bigcoops@outlook.com","ncooper@amplience.com,bigcoops+testbcc@amplience.com"], // Change to your forwarding address
+          Destinations: ["stockport.badders.results@gmail.com,bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
@@ -547,7 +547,6 @@ exports.distribution_list = async function(req,res,next) {
       // ToAddresses: ["stockport.badders.results@gmail.com"],
       BccAddresses:["bigcoops\+"+recipient+"@outlook.com"]
       // BccAddresses:["bigcoops@outlook.com"]
-      
     },
     Message: { /* required */
       Body: {
@@ -559,12 +558,12 @@ exports.distribution_list = async function(req,res,next) {
           Charset: 'UTF-8',
           Data: textBody
         }
-        },
-        Subject: {
-        Charset: 'UTF-8',
-        Data: subject
-        }
       },
+      Subject: {
+      Charset: 'UTF-8',
+      Data: subject
+      }
+    },
     Source: 'results@stockport-badminton.co.uk', /* required */
     ReplyToAddresses: [
       'stockport.badders.results@gmail.com'
