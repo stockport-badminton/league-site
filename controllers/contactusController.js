@@ -439,6 +439,10 @@ exports.contactus = function(req, res,next){
 // Display list of all Players
 exports.distribution_list = async function(req,res,next) {
   let recipient = ""
+  let subject = ""
+  let textBody = ""
+  let htmlBody = ""
+  let sender = ""
   // console.log(req.headers)
   if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
     let msgBody = JSON.parse(req.body)
@@ -476,11 +480,11 @@ exports.distribution_list = async function(req,res,next) {
       // console.log("Parsed email:", parsedEmail);
 
       // Extract email details
-      const sender = parsedEmail.from.text;
+      sender = parsedEmail.from.text;
       recipient = parsedEmail.to.text;
-      const subject = parsedEmail.subject || "No Subject";
-      const textBody = parsedEmail.text || "No text content";
-      const htmlBody = parsedEmail.html || "No HTML content";
+      subject = parsedEmail.subject || "No Subject";
+      textBody = parsedEmail.text || "No text content";
+      htmlBody = parsedEmail.html || "No HTML content";
 
       // Extract attachments (if any)
       const attachments = parsedEmail.attachments.map((attachment) => ({
@@ -532,9 +536,9 @@ exports.distribution_list = async function(req,res,next) {
     "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
     // "to": ["stockport.badders.results@gmail.com"],
     "from": "stockport.badders.results@stockport-badminton.co.uk",
-    "subject": req.body.subject,
-    "text": "Email from sengrid parse send to "+req.body.to,
-    "html": req.body.html,
+    "subject": subject,
+    "text": "Email from sengrid parse send to "+recipient,
+    "html": htmlBody,
     "isMultiple":true
   };
   var params = {
@@ -549,12 +553,16 @@ exports.distribution_list = async function(req,res,next) {
       Body: {
         Html: {
           Charset: 'UTF-8',
-          Data: req.body.html
+          Data: htmlBody
+        },
+        Text:{
+          Charset: 'UTF-8',
+          Data: textBody
         }
         },
         Subject: {
         Charset: 'UTF-8',
-        Data: req.body.subject
+        Data: subject
         }
       },
     Source: 'results@stockport-badminton.co.uk', /* required */
@@ -710,7 +718,7 @@ exports.distribution_list = async function(req,res,next) {
               res.sendStatus(200);
             })
             .catch(error => {
-              console.error("within error catch");
+              console.error("within error catch test subject");
               console.error(error.response.body.errors)
               console.info(msg);
               next("Sorry something went wrong sending your email.");
