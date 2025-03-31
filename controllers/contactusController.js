@@ -311,7 +311,7 @@ exports.contactus = function(req, res,next){
         }
         else {
           // msg.to = rows[0].contactUs;
-          console.log(JSON.stringify(rows))
+          // console.log(JSON.stringify(rows))
           var params = {
             Destination: { /* required */
               ToAddresses: [              
@@ -652,7 +652,7 @@ exports.distribution_list = async function(req,res,next) {
                   next(err)
                 }
                 else {
-                  console.log(info.envelope);
+                  // console.log(info.envelope);
                   console.log(info.messageId);
                   res.sendStatus(200)
                 }     
@@ -663,10 +663,11 @@ exports.distribution_list = async function(req,res,next) {
               msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
               msg.text += rows.join()
               msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+
               nodemailconfig.html = nodemailconfig.html.replace("<body>","<body><p id=\"emaillist\"></p>")
               nodemailconfig.html = nodemailconfig.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
 
-               //console.log(msg)
+               console.log(nodemailconfig.html)
               // console.log(msg.to)
               transporter.sendMail(nodemailconfig,(err,info) => {
                 if (err){
