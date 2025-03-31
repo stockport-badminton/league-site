@@ -639,7 +639,7 @@ exports.distribution_list = async function(req,res,next) {
           }
           else {
             //console.log(rows);
-            if (msg.subject.indexOf('test') == -1){
+            if (subject.indexOf('test') == -1){
               var tempArray = msg.to
               msg.to = tempArray.concat(rows)
               // params.Destination.ToAddresses = tempArray.concat(rows)
