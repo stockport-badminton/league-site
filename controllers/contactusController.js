@@ -528,7 +528,7 @@ exports.distribution_list = async function(req,res,next) {
               Data: buffer,
           },
       };
-      console.log(params);
+      // console.log(params);
 
       let transporter = nodemailer.createTransport({
         SES: new AWS.SES({ region: 'eu-west-1', apiVersion: "2010-12-01" })
@@ -666,7 +666,7 @@ exports.distribution_list = async function(req,res,next) {
 
               nodemailconfig.html = nodemailconfig.html.replace("</body>","<p id=\"emaillist\"></p></body>")
               nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>","<p id=\"emaillist\">"+rows.join()+"<br/></p></body>")
-
+              console.log("--- NODEMAIL HTML---- ")
                console.log(nodemailconfig.html)
               // console.log(msg.to)
               transporter.sendMail(nodemailconfig,(err,info) => {
