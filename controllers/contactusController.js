@@ -664,8 +664,8 @@ exports.distribution_list = async function(req,res,next) {
               msg.text += rows.join()
               msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
 
-              nodemailconfig.html = nodemailconfig.html.replace("<body>","<body><p id=\"emaillist\"></p>")
-              nodemailconfig.html = nodemailconfig.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+              nodemailconfig.html = nodemailconfig.html.replace("</body>","<p id=\"emaillist\"></p></body>")
+              nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>","<p id=\"emaillist\">"+rows.join()+"<br/></p></body>")
 
                console.log(nodemailconfig.html)
               // console.log(msg.to)
