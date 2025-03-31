@@ -4,7 +4,10 @@ const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var AWS = require('aws-sdk');
 const https = require('node:https');
+const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
+const MailComposer = require("nodemailer/lib/mail-composer");
+
 
 
 const { body,validationResult, param } = require("express-validator");
@@ -12,6 +15,7 @@ const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
 const fs = require('fs');
+const { networkInterfaces } = require('node:os');
 
 exports.generateContactUsHTML = function(message, email) {
   return `
@@ -503,16 +507,36 @@ exports.distribution_list = async function(req,res,next) {
         "isMultiple":true
       };
 
+      let nodemailconfig = {
+        from: 'results@stockport-badminton.co.uk',
+        to: "stockport.badders.results\+"+recipient+"@gmail.com",
+        bcc: "bigcoops\+"+recipient+"@outlook.com",
+        subject: subject,                // Subject line
+        text: "Email from sengrid parse send to "+recipient,                      // plaintext version
+        html: htmlBody, // html version
+        attachments:attachments
+      }
+      
+      
+
       // Prepare SES parameters
       var params = {
           // Destinations: ["stockport.badders.results@gmail.com","bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
-          Destinations: ["stockport.badders.results@gmail.com","bcc:bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
+          Destinations: ["stockport.badders.results@gmail.com","bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
           Source: "results@stockport-badminton.co.uk",  // Verified SES email address
           RawMessage: {
               Data: buffer,
           },
       };
       console.log(params);
+
+      let transporter = nodemailer.createTransport({
+        SES: new AWS.SES({ region: 'eu-west-1', apiVersion: "2010-12-01" })
+      });
+      
+      
+      // send mail with defined transport object
+      
 
 
       var searchObject = {}
@@ -620,91 +644,41 @@ exports.distribution_list = async function(req,res,next) {
               msg.to = tempArray.concat(rows)
               // params.Destination.ToAddresses = tempArray.concat(rows)
               params.Destinations = tempArray.concat(rows)
+              nodemailconfig.bcc = tempArray.concat(rows)
               // console.log(msg.to)
-              if (msg.attachments.length > 0){
-                sgMail.send(msg)
-                .then((msg,response)=>{
-                  // console.log(msg);
-                  // console.info("within sgMail send then");
-                  console.info(msg);
-                  res.sendStatus(200);
-                })
-                .catch(error => {
-                  console.error("within error catch sgmail not test subject");
-                  console.error(error.response.body.errors)
-                  console.info(msg);
-                  next("Sorry something went wrong sending your email.");
-                })
-              }
-              else {
-                var ses = new AWS.SES({apiVersion: '2010-12-01'});
-                ses.sendRawEmail(params, (err, data) => {
-                    if (err) {
-                        console.error("Error sending email:", err);
-                        // return res.status(500).send("Error forwarding email.");
-                        next(err)
-                    }
-                    console.log("Email sent successfully:", data);
-                    res.sendStatus(200);
-                });
-                /* var ses = new AWS.SES({apiVersion: '2010-12-01'});
-                const sendPromise = ses.sendEmail(params).promise();
-                sendPromise
-                .then((msg,response)=>{
-                  // console.log(msg);
-                  // console.info("within sgMail send then");
-                  console.info(msg);
-                  res.sendStatus(200);
-                })
-                .catch(error => {
-                  console.error("within error catch with ses not test");
-                  console.error(error.response.body.errors)
-                  console.info(msg);
-                  next("Sorry something went wrong sending your email.");
-                }) */
-              }
+              transporter.sendMail(nodemailconfig,(err,info) => {
+                if (err){
+                  console.error(err)
+                  next(err)
+                }
+                else {
+                  console.log(info.envelope);
+                  console.log(info.messageId);
+                  res.sendStatus(200)
+                }     
+              });
               
             }
             else {
               msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
               msg.text += rows.join()
               msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
-              params.Message.Body.Html = params.Message.Body.Html.replace("<body>","<body><p id=\"emaillist\"></p>")
-              params.Message.Body.Html = params.Message.Body.Html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+              nodemailconfig.html = nodemailconfig.html.replace("<body>","<body><p id=\"emaillist\"></p>")
+              nodemailconfig.html = nodemailconfig.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
+
                //console.log(msg)
               // console.log(msg.to)
-              if (msg.attachments.length > 0){
-                sgMail.send(msg)
-                .then((msg,response)=>{
-                  // console.log(msg);
-                  // console.info("within sgMail send then");
-                  console.info(msg);
-                  res.sendStatus(200);
-                })
-                .catch(error => {
-                  console.error("within error catch sgmail test with attachments");
-                  console.error(error.response.body.errors)
-                  console.info(msg);
-                  next("Sorry something went wrong sending your email.");
-                })
-              }
-              else {
-                var ses = new AWS.SES({apiVersion: '2010-12-01'});
-                const sendPromise = ses.sendEmail(params).promise();
-                sendPromise
-                .then((msg,response)=>{
-                  // console.log(msg);
-                  // console.info("within sgMail send then");
-                  console.info(msg);
-                  res.sendStatus(200);
-                })
-                .catch(error => {
-                  console.error("within error catch ses test without attachments");
-                  console.error(error.response.body.errors)
-                  console.info(msg);
-                  next("Sorry something went wrong sending your email.");
-                })
-              }
+              transporter.sendMail(nodemailconfig,(err,info) => {
+                if (err){
+                  console.error(err)
+                  next(err)
+                }
+                else {
+                  console.log(info.envelope);
+                  console.log(info.messageId);
+                  res.sendStatus(200)
+                }     
+              });
             }
           }
         })
@@ -712,33 +686,17 @@ exports.distribution_list = async function(req,res,next) {
       else {
         // console.log(msg)
         // console.log(msg.to)
-        if (typeof msg.attachments !== 'undefined' && msg.attachments.length > 0){
-          sgMail.send(msg)
-          .then((msg,response)=>{
-            // console.log(msg);
-            // console.info("within sgMail send then");
-            console.info(msg);
-            res.sendStatus(200);
-          })
-          .catch(error => {
-            console.error("within error catch sgmail not distribution");
-            console.error(error)
-            console.info(msg);
-            next("Sorry something went wrong sending your email.");
-          })
-        }
-        else {
-          var ses = new AWS.SES({apiVersion: '2010-12-01'});
-          ses.sendRawEmail(params, (err, data) => {
-              if (err) {
-                  console.error("Error sending email:", err);
-                  // return res.status(500).send("Error forwarding email.");
-                  next(err)
-              }
-              console.log("Email sent successfully:", data);
-              res.sendStatus(200);
-          });
-        }
+        transporter.sendMail(nodemailconfig,(err,info) => {
+          if (err){
+            console.error(err)
+            next(err)
+          }
+          else {
+            console.log(info.envelope);
+            console.log(info.messageId);
+            res.sendStatus(200)
+          }     
+        });
       }
       
     } catch (error) {
