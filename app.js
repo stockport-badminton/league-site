@@ -889,17 +889,6 @@ const { getAllLeagueTables } = require('./models/league');
     /* GET request for one Player. */
     router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 
-    /* player stats routes and filters. */
-
-    router.get('/player-stats/*', player_controller.all_player_stats);
-    router.get('/player-stats', player_controller.all_player_stats);
-
-    router.get('/pair-stats/*', player_controller.all_pair_stats);
-    router.get('/pair-stats', player_controller.all_pair_stats);
-
-    /* GET request for one Player. */
-    router.get('/player-stats', player_controller.all_player_stats);
-
     /* GET request for one Player. */
     router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
 
@@ -1244,6 +1233,17 @@ const { getAllLeagueTables } = require('./models/league');
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', secured,player_controller.player_create_get);
     router.get('/players/eloPop', player_controller.player_elo_populate);
+
+    /* player stats routes and filters. */
+
+    router.get('/player-stats/*', secured, player_controller.all_player_stats);
+    router.get('/player-stats', secured, player_controller.all_player_stats);
+
+    router.get('/pair-stats/*', secured, player_controller.all_pair_stats);
+    router.get('/pair-stats', secured, player_controller.all_pair_stats);
+
+    /* GET request for one Player. */
+    router.get('/player-stats', player_controller.all_player_stats);
         // TODO: Create page showing teams, venue, club night and match night details, player stats for the club, team registrations
     router.get('/club/:id', secured,club_controller.club_detail);
     router.get('/club-api/:id', secured,club_controller.club_detail_api);

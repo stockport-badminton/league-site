@@ -463,6 +463,15 @@ exports.all_player_stats = function (req, res,next){
   if (replacedMatches.length > 0){
     divisionString = replacedMatches[0]
   }
+  if (req.user._json["https://my-app.example.com/role"] !== undefined){
+    if (req.user._json["https://my-app.example.com/role"] == "admin"){
+      if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined){
+      searchObj.club = req.user._json["https://my-app.example.com/club"]
+      }
+    }
+  }
+
+  console.log(searchObj)
 
   // console.log(regexParams)
   Player.newGetPlayerStats(searchObj,function(err,result){
