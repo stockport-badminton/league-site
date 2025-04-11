@@ -841,7 +841,7 @@ SELECT
   ) as Pairing,
   player1Id,
   player2Id,
-  (Player1.rating + Player2.rating) / 2 as pairRating,
+  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? '(Player1.rating + Player2.rating) / 2 as pairRating,' : ''}
   SUM(forPoints) AS forPoints,
   SUM(againstPoints) AS againstPoints,
   SUM(gamesWon) AS gamesWon,
@@ -868,10 +868,10 @@ FROM
   ${ (searchObj.gameType !== undefined) ? 'AND gameType  like "'+ searchObj.gameType +'"' : 'AND gameType LIKE "%"'}
 GROUP BY
   Pairing,
-  pairRating,
   player1Id,
   player2Id,
   clubName,
+  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? 'pairRating,' : ''}
   gameType
 ORDER BY
   winRate DESC,
