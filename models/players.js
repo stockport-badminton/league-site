@@ -716,8 +716,167 @@ exports.newGetPairStats = async function(searchObj,done){
   var seasonArray = [seasonVal,seasonVal]
   whereValue = seasonArray.concat(whereValue)
    //console.log(whereValue)
-  
-  var sql = "DROP TABLE IF EXISTS PairsgameSummary; CREATE TEMPORARY TABLE PairsgameSummary AS SELECT b.id, least(b.homePlayer1,b.homePlayer2) AS player1Id, greatest(b.homePlayer1,b.homePlayer2) AS player2Id, b.homeScore AS forPoints ,b.awayScore AS againstPoints ,CASE WHEN b.homeScore > b.awayScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.homeTeam AS team ,b.awayTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id UNION ALL SELECT b.id, least(b.awayPlayer1,b.awayPlayer2) AS player1Id, greatest(b.awayPlayer2,b.awayPlayer1) AS player2Id, b.awayScore AS forPoints ,b.homeScore AS againstPoints ,CASE WHEN b.awayScore > b.homeScore THEN 1 ELSE 0 END AS gamesWon ,CASE WHEN b.homeScore IS NOT NULL THEN 1 ELSE 0 END AS gamesPlayed ,b.fixture ,b.awayTeam AS team ,b.homeTeam AS opposition ,b.gameType ,team.division FROM ( SELECT a.* ,CASE WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Male' THEN 'Mens' WHEN homePlayer1.gender = homePlayer2.gender AND homePlayer1.gender = 'Female' THEN 'Ladies' ELSE 'Mixed' END AS gameType ,homePlayer1.gender AS playergender FROM ( SELECT game.id ,game.homePlayer1 ,game.homePlayer2 ,game.awayPlayer1 ,game.awayPlayer2 ,game.homeScore ,game.awayScore ,game.fixture ,seasonFixtures.homeTeam ,seasonFixtures.awayTeam FROM ( SELECT fixture.id ,fixture.homeTeam ,fixture.awayTeam FROM fixture JOIN season ON season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate ) AS seasonFixtures JOIN game ON game.fixture = seasonFixtures.id AND (game.homePlayer1 != 0 OR game.homePlayer2 != 0 or game.awayPlayer1 !=0 or game.awayPlayer2 !=0) ) AS a JOIN player" + season +" homePlayer1 ON a.homePlayer1 = homePlayer1.id AND a.homePlayer1 !=0 JOIN player" + season +" homePlayer2 ON a.homePlayer2 = homePlayer2.id AND a.homePlayer2 != 0 AND homePlayer2 !=0 ) AS b JOIN team" + season +" team ON homeTeam = team.id; SELECT concat(Player1.first_name,' ', Player1.family_name, ' & ', Player2.first_name, ' ', Player2.family_name) as Pairing ,player1Id ,player2Id ,SUM(forPoints) AS forPoints ,SUM(againstPoints) AS againstPoints ,SUM(gamesWon) AS gamesWon ,SUM(gamesPlayed) AS gamesPlayed ,SUM(gamesWon) / SUM(gamesPlayed) As winRate, (sum(gamesWon) + sum(gamesPlayed)) - (sum(gamesPlayed) - sum(gamesWon)) as Points, club.name AS clubName ,team.name AS teamName ,gameType FROM ( SELECT * FROM PairsgameSummary ) AS a JOIN player" + season +" Player1 ON Player1.id = a.player1Id JOIN player" + season +" Player2 ON Player2.id = a.player2Id JOIN team" + season +" team ON team.id = Player1.team " + divisionSql + "AND team.name LIKE ? JOIN club" + season +" club ON club.id = Player1.club AND club.name LIKE ? AND gameType like ? GROUP BY Pairing ORDER BY winRate DESC, Points DESC;"
+
+  var sql = `with
+  seasonFixture as (
+    SELECT
+      fixture.id,
+      fixture.homeTeam,
+      fixture.awayTeam
+    FROM
+      fixture
+      JOIN season ON season.name like ?
+      AND fixture.date > season.startDate
+      AND fixture.date < season.endDate
+  ),
+  seasonFixtureGame as (
+    SELECT
+      game.id,
+      game.homePlayer1,
+      game.homePlayer2,
+      game.awayPlayer1,
+      game.awayPlayer2,
+      game.homeScore,
+      game.awayScore,
+      game.fixture,
+      seasonFixture.homeTeam,
+      seasonFixture.awayTeam
+    FROM
+      seasonFixture
+      JOIN game ON game.fixture = seasonFixture.id
+      AND (
+        game.homePlayer1 != 0
+        OR game.homePlayer2 != 0
+        or game.awayPlayer1 != 0
+        or game.awayPlayer2 != 0
+      )
+  ),
+  gameTypeGender as (
+    SELECT
+      seasonFixtureGame.*,
+      CASE
+        WHEN homePlayer1.gender = homePlayer2.gender
+        AND homePlayer1.gender = 'Male' THEN 'Mens'
+        WHEN homePlayer1.gender = homePlayer2.gender
+        AND homePlayer1.gender = 'Female' THEN 'Ladies'
+        ELSE 'Mixed'
+      END AS gameType,
+      homePlayer1.gender AS playergender
+    FROM
+      seasonFixtureGame
+      JOIN player${ season } homePlayer1 ON seasonFixtureGame.homePlayer1 = homePlayer1.id
+      AND seasonFixtureGame.homePlayer1 != 0
+      JOIN player${ season } homePlayer2 ON seasonFixtureGame.homePlayer2 = homePlayer2.id
+      AND seasonFixtureGame.homePlayer2 != 0
+      AND homePlayer2 != 0
+  ),
+  PairsgameSummary as (
+    SELECT
+      gameTypeGender.id,
+      least(
+        gameTypeGender.homePlayer1,
+        gameTypeGender.homePlayer2
+      ) AS player1Id,
+      greatest(
+        gameTypeGender.homePlayer1,
+        gameTypeGender.homePlayer2
+      ) AS player2Id,
+      gameTypeGender.homeScore AS forPoints,
+      gameTypeGender.awayScore AS againstPoints,
+      CASE
+        WHEN gameTypeGender.homeScore > gameTypeGender.awayScore THEN 1
+        ELSE 0
+      END AS gamesWon,
+      CASE
+        WHEN gameTypeGender.homeScore IS NOT NULL THEN 1
+        ELSE 0
+      END AS gamesPlayed,
+      gameTypeGender.fixture,
+      gameTypeGender.homeTeam AS team,
+      gameTypeGender.awayTeam AS opposition,
+      gameTypeGender.gameType,
+      team.division
+    FROM
+      gameTypeGender
+      JOIN team${ season } team ON homeTeam = team.id
+    UNION ALL
+    SELECT
+      gameTypeGender.id,
+      least(
+        gameTypeGender.awayPlayer1,
+        gameTypeGender.awayPlayer2
+      ) AS player1Id,
+      greatest(
+        gameTypeGender.awayPlayer2,
+        gameTypeGender.awayPlayer1
+      ) AS player2Id,
+      gameTypeGender.awayScore AS forPoints,
+      gameTypeGender.homeScore AS againstPoints,
+      CASE
+        WHEN gameTypeGender.awayScore > gameTypeGender.homeScore THEN 1
+        ELSE 0
+      END AS gamesWon,
+      CASE
+        WHEN gameTypeGender.homeScore IS NOT NULL THEN 1
+        ELSE 0
+      END AS gamesPlayed,
+      gameTypeGender.fixture,
+      gameTypeGender.awayTeam AS team,
+      gameTypeGender.homeTeam AS opposition,
+      gameTypeGender.gameType,
+      team.division
+    FROM
+      gameTypeGender
+      JOIN team${ season } team ON homeTeam = team.id
+  )
+SELECT
+  concat(
+    Player1.first_name,
+    ' ',
+    Player1.family_name,
+    ' & ',
+    Player2.first_name,
+    ' ',
+    Player2.family_name
+  ) as Pairing,
+  player1Id,
+  player2Id,
+  (Player1.rating + Player2.rating) / 2 as pairRating,
+  SUM(forPoints) AS forPoints,
+  SUM(againstPoints) AS againstPoints,
+  SUM(gamesWon) AS gamesWon,
+  SUM(gamesPlayed) AS gamesPlayed,
+  SUM(gamesWon) / SUM(gamesPlayed) As winRate,
+  (sum(gamesWon) + sum(gamesPlayed)) - (sum(gamesPlayed) - sum(gamesWon)) as Points,
+  club.name AS clubName,
+  MIN(team.name) AS teamName,
+  gameType
+FROM
+  (
+    SELECT
+      *
+    FROM
+      PairsgameSummary
+  ) AS a
+  JOIN player${ season } Player1 ON Player1.id = a.player1Id
+  JOIN player${ season } Player2 ON Player2.id = a.player2Id
+  JOIN team${ season } team ON team.id = a.team
+  ${ (searchObj.division !== undefined) ? 'AND team.division = '+ searchObj.division : ''}
+  ${ (searchObj.team !== undefined) ? 'AND team.name  like "'+ searchObj.team +'"' : 'AND team.name LIKE "%"'}
+  JOIN club club ON club.id = Player1.club
+  ${ (searchObj.club !== undefined) ? 'AND club.name  like "'+ searchObj.club +'"' : 'AND club.name LIKE "%"'}
+  ${ (searchObj.gameType !== undefined) ? 'AND gameType  like "'+ searchObj.gameType +'"' : 'AND gameType LIKE "%"'}
+GROUP BY
+  Pairing,
+  pairRating,
+  player1Id,
+  player2Id,
+  clubName,
+  gameType
+ORDER BY
+  winRate DESC,
+  Points DESC`
+
     // console.log(sql);
     try {
 		 let [result] = await (await db.otherConnect()).query(sql,whereValue)
