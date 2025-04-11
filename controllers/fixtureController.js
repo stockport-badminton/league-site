@@ -791,7 +791,7 @@ exports.fixture_get_summary = function(req, res,next) {
             else{
               var options = {
                 'method': 'GET',
-                'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2024?max_results=30&context=true',
+                'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2025?max_results=30&context=true',
                 'headers': {
                   'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
                 }
