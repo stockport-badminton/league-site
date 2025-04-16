@@ -103,7 +103,7 @@
       <tr class="<%= rowClass %>">
 
           <td><%= MyDateString %></td>
-          <td data-homeTeam="<%= row['homeClub'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
+          <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
           <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){ %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>

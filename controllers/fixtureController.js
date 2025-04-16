@@ -1984,6 +1984,7 @@ exports.messer_scorecard = function(req,res,next){
     // msg.to = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : req.body.email);
     let localToAdds = []
     localToAdds = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : [req.body.email])
+    params.Destination.BccAddresses = []
     params.Destination.BccAddresses.push('stockport.badders.results@gmail.com')
     params.Destination.BccAddresses.push('bigcoops@outlook.com')
     params.Destination.ToAddresses = localToAdds
