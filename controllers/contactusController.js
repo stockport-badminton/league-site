@@ -797,7 +797,8 @@ exports.contactus_get = function(req, res,next) {
         pageTitle : "Contact Us",
         pageDescription : "Get in touch with your league representatives, or club secretaries",
         recaptcha : process.env.RECAPTCHA,
-        clubs:rows
+        clubs:rows,
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
       });
     }
       
