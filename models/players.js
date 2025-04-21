@@ -332,7 +332,7 @@ let idArray = Array(45).fill(id*1)
 
 
 exports.newGetPlayerStats = async function(searchObj,done){
-  const filterArray = ['season','division','club','team','gameType','gender']
+  const filterArray = ['season','division','club','team','gameType','gender','junior']
   // console.log("passed to getFixtureDetails")
    //console.log(searchObj)
   let fixtureObj = {}
@@ -596,6 +596,7 @@ FROM
   gameSummary
   JOIN player${ season } player ON playerId = player.id
   AND player.gender Like ?
+  ${typeof searchObj.junior !== 'undefined' ? 'AND player.junior = 1' : ''}
   JOIN team${ season } team ON team.id = player.team
   AND team.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND team.division = ?' : ''}
   JOIN club${ season } club ON club.id = player.club
@@ -1113,7 +1114,7 @@ catch (err) {
 exports.getById = async function(playerId,done){
    //console.log(playerId)
   try {
-		 let [result] = await (await db.otherConnect()).query('SELECT id,first_name, family_name, gender,CAST(AES_DECRYPT(playerEmail, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerEmail, CAST(AES_DECRYPT(playerTel, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerTel,teamCaptain, clubSecretary,matchSecrertary,treasurer FROM player WHERE id = ?',playerId)
+		 let [result] = await (await db.otherConnect()).query('SELECT id,first_name, family_name, gender,CAST(AES_DECRYPT(playerEmail, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerEmail, CAST(AES_DECRYPT(playerTel, \''+process.env.DB_PI_KEY+'\') AS CHAR) as playerTel,teamCaptain, clubSecretary,matchSecrertary,treasurer,junior FROM player WHERE id = ?',playerId)
 done(null,result)
 }
 catch (err) {

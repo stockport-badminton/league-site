@@ -566,6 +566,7 @@ exports.all_pair_stats = function (req, res,next){
   
   // console.log(searchObj)
   Player.newGetPairStats(searchObj,function(err,result){
+    // console.log(searchObj)
     if (err){
       return next(err)
     }
@@ -794,9 +795,9 @@ exports.player_update_post = function(req, res) {
   let patchObj = {
     "tablename":"player",
     "fields":[
-        "id","first_name","family_name","gender","playerTel","playerEmail","teamCaptain","clubSecretary","matchSecrertary","treasurer"
+        "id","first_name","family_name","gender","playerTel","playerEmail","teamCaptain","clubSecretary","matchSecrertary","treasurer","junior"
     ],
-    "data":[[req.params.id,req.body.first_name,req.body.family_name,req.body.gender,req.body.playerTel,req.body.playerEmail, req.body.teamCaptain == 1 ? 1 :0, req.body.clubSecretary == 1 ? 1 :0, req.body.matchSecrertary == 1 ? 1 :0, req.body.treasurer == 1 ? 1 : 0]
+    "data":[[req.params.id,req.body.first_name,req.body.family_name,req.body.gender,req.body.playerTel,req.body.playerEmail, req.body.teamCaptain == 1 ? 1 :0, req.body.clubSecretary == 1 ? 1 :0, req.body.matchSecrertary == 1 ? 1 :0, req.body.treasurer == 1 ? 1 : 0, req.body.junior == 1 ? 1 : 0]
   ]
 }
  //console.log(patchObj)
