@@ -559,7 +559,10 @@ exports.fixture_detail_byDivision = function(req,res,next) {
               today.setDate(today.getDate()+1)
               nearestFixture = result
               .map((row) => ({"date":row.date,"diff":new Date(row.date) - today}))
-              .filter(row => (row.diff > -86400000 && row.diff < 86400000))
+              .filter(row => (row.diff > -86400000))
+            }
+            if (nearestFixture.length == 0){
+              nearestFixture.push(result[result.length-1])
             }
             console.log(`nearestFixture: ${nearestFixture[0].date}`)
               var type = '';
@@ -682,7 +685,10 @@ exports.fixture_detail_byDivision = function(req,res,next) {
             today.setDate(today.getDate()+1)
             nearestFixture = result
             .map((row) => ({"date":row.date,"diff":new Date(row.date) - today}))
-            .filter(row => (row.diff > -86400000 && row.diff < 86400000))
+            .filter(row => (row.diff > -86400000))
+          }
+          if (nearestFixture.length == 0){
+            nearestFixture.push(result[result.length-1])
           }
           console.log(`nearestFixture: ${nearestFixture[0].date}`)
           var type = '';
