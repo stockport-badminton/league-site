@@ -371,7 +371,7 @@ exports.contactus = function(req, res,next){
           msg.to = ['sueorwin@btinternet.com']
           break;
         case 'league':
-          msg.to = ['leaguesec.sdbl@gmail.com']
+          msg.to = ['santanareedy@btinternet.com']
           break;
         case 'chair':
           msg.to = ['mel.curwen@ntlworld.com']
@@ -380,10 +380,10 @@ exports.contactus = function(req, res,next){
           msg.to = ['sueorwin@btinternet.com']
           break;
         case 'junior':
-          msg.to = ['stuartscoffins@btinternet.com']
+          msg.to = ['stockport.badders.results+junior@gmail.com']
           break;
         case 'juniortournament':
-          msg.to = ['aim@talktalk.net']
+          msg.to = ['stockport.badders.results+juniortournament@gmail.com']
           break;
         case 'treasurer':
           msg.to = ['rossowen40@hotmail.com']
