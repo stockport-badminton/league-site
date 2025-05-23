@@ -1,4 +1,5 @@
 var Club = require('../models/club.js');
+var League = require('../models/league.js');
 var Player = require('../models/players.js');
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
@@ -7,15 +8,13 @@ const https = require('node:https');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
 const MailComposer = require("nodemailer/lib/mail-composer");
-
-
-
 const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
 const { read } = require('fs');
 const fs = require('fs');
 const { networkInterfaces } = require('node:os');
+const { find } = require('async');
 
 exports.generateContactUsHTML = function(message, email) {
   return `
@@ -437,6 +436,94 @@ exports.contactus = function(req, res,next){
       })
     }
   }
+}
+
+exports.send_invoices = async function(req,res,next){
+  await League.getAnnualInvoices(async function(err,rows){
+    let allData = []
+    let data = {}
+    data.fines = []
+    for (club of rows){
+      data = {}
+      data.fines = []
+      // console.log(club)
+      data.name = club.clubName
+      data.teamsCount = club.teamsCount
+      data.secretary = club.secretary
+      data.email = club.playerEmail
+      let clubTotal = 0;
+      clubTotal += club.teamsCount * 20
+      data.teamsCost = clubTotal
+      let fineRows = await rows.filter(fine => fine.clubId == club.clubId)
+      if (fineRows.length > 0){
+        for (fine of fineRows){
+          if (fine.desc !== null){
+            data.fines.push({"desc":fine.desc, "amount":fine.amount})
+            clubTotal += fine.amount
+          }
+        } 
+      }
+      data.feesTotal = clubTotal
+      // console.log(data)
+      if (allData.filter(row => row.name == data.name).length == 0){
+        allData.push(data)
+      }
+      console.log(allData)
+    }
+    // res.send(allData)
+    const ejs = require('ejs');
+    let outputs = []
+    for (club of allData){
+      console.log(club)
+      ejs.renderFile('views/emails/clubInvoice.ejs', {data:club}, {debug:false}, function(err, str){
+        if (err) console.log(err);
+        //console.log("logged in user email:" + req.body.email);
+        var params = {
+          Destination: { /* required */
+            ToAddresses: [club.email],
+            CcAddresses: [`treasurer.sdbl+${club.name.replaceAll(' ','').replaceAll('.','')}@hotmail.com`],
+            // CcAddresses: [`stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
+            BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com',`stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`]
+          },
+          Message: { /* required */
+            Body: {
+              Html: {
+                Charset: 'UTF-8',
+                Data: str
+              }
+              },
+              Subject: {
+              Charset: 'UTF-8',
+              Data: `Annual Invoice for ${club.name}`,
+              }
+            },
+          Source: 'results@stockport-badminton.co.uk', /* required */
+          ReplyToAddresses: [
+            'stockport.badders.results@gmail.com','treasurer.sdbl@hotmail.com'
+          ],
+        };
+        // console.log(msg)
+        //sgMail.send(msg)
+        var ses = new AWS.SES({apiVersion: '2010-12-01'});
+        const sendPromise = ses.sendEmail(params).promise();
+        sendPromise
+        .then(()=>{    
+          // console.log(`renderFixturePage:${gameObject}`)                            
+          outputs.push(`${club.name} invoice sent successfully`)
+        })
+        .catch(error => {
+          console.log(error.toString());
+          outputs.push(`${club.name} invoice failed: ${error}`)
+          // res.send("Sorry something went wrong sending your email - try sending it manually" + error);
+        })
+      })
+      if (outputs.length == allData.length){
+        res.send(outputs)
+      }
+    }
+    res.send(outputs)
+    // console.log(emailData);
+  })
 }
 
 

@@ -952,6 +952,7 @@ const { getAllLeagueTables } = require('./models/league');
 
     // POST request to update League
     router.patch('/league/:id',checkJwt, league_controller.league_update);
+    router.post('/league/sendInvoices', contact_controller.send_invoices);
 
     /* GET request for one League. */
     router.get('/league/:id', league_controller.league_detail);

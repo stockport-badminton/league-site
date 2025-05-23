@@ -4,9 +4,11 @@ var db = require('../db_connect.js');
 var SEASON = '';
 if (new Date().getMonth() < 6){
   SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
+  PREVSEASON = '' + new Date().getFullYear()-2 +''+ new Date().getFullYear()-1;
 }
 else {
   SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
+  PREVSEASON = '' + new Date().getFullYear()-1 +''+ (new Date().getFullYear());
 }
 
 // POST
@@ -80,6 +82,38 @@ exports.getLeagueTable = async function(division,season,done){
 	}
 	catch (err) {
 		return done (err);
+}
+}
+
+exports.getAnnualInvoices = async function(done){
+	let sql = `select club.id as clubId, 
+		club.name as clubName, 
+        count(team.id) as teamsCount,
+        fines.id as fineId, 
+        fines.desc, 
+        fines.amount,
+        fineTeam.name as fineTeam,
+        fineClub.name as fineClub,
+		fines.season,
+        player.first_name as secretary,
+        CAST(AES_DECRYPT(player.playerEmail, '${process.env.DB_PI_KEY}')
+                AS CHAR) AS playerEmail
+        from
+        club join 
+        team on team.club = club.id left join
+        fines on fines.club = club.id left join
+        team fineTeam on fines.team = fineTeam.id left join
+        club fineClub on fines.club = fineClub.id join
+        player on (player.club = club.id and player.clubSecretary = 1)
+		where (season = ? and fines.desc in ('agm')) OR  (season = ? and fines.desc in ('rearrangement','card')) OR season is null
+        group by clubId, clubName, fineId, fines.desc, fines.amount, secretary, playerEmail`
+	
+  try {	
+	let [result] = await (await db.otherConnect()).query(sql,[SEASON,PREVSEASON])
+	done(null,result)
+  }
+	catch (err) {
+		return done(err);
 }
 }
 
