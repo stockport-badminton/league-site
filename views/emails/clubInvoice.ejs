@@ -138,8 +138,8 @@
       <tr>
         <td height="100%" valign="top" role="module-content">
             Hi <%= data.secretary %>,<Br /><br />
-            Please find the details for your clubs' <%= data.season %> Stockport Badminton League fees:<Br /><br />
-            <%= data.teamsCount %> league team: £<%= data.teamsCost %><br /><br />
+            Please find the details for your club's <%= data.season %> Stockport Badminton League fees:<Br /><br />
+            <%= data.teamsCount %> league team(s): £<%= data.teamsCost %><br /><br />
             Fines:<br />
             <% if (data.fines.length > 0){
                 let fineString = ""
@@ -167,13 +167,14 @@
             <% }
              %> 
              <br />
-             TOTAL DUE: £<%= data.feesTotal %><br />
+             TOTAL: £<%= data.feesTotal %><br />
+             Payment due by October 31st <%= data.firstYear %> (early payment would be appreciated).<br />
              If you can transfer the money into the SDBL bank account that would be great:<br /><br />
              Bank Name: HSBC Bank PLC<br />
              Account Name: STOCKPORT & DISTRICT BADMINTON LEAGUE <br />
              Sort Code: Sort code: 40-32-26<br />
              Acc.No. 91072706<br /><br />
-             If you can confirm via email once you have made this payment, I will the confirm receipt.<br /><br />
+             If you can confirm via email once you have made this payment, I will confirm receipt.<br /><br />
              Thanks,<br /><br />
              Ross<br />
              Stockport & District Badminton League Treasurer

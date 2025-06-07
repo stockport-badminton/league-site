@@ -16,6 +16,17 @@ const fs = require('fs');
 const { networkInterfaces } = require('node:os');
 const { find } = require('async');
 
+let  SEASON = '';
+let FIRSTYEAR = ''
+ if (new Date().getMonth() < 6){
+   SEASON = '' + new Date().getFullYear()-1 +'/'+ new Date().getFullYear();
+   FIRSTYEAR = '' + new Date().getFullYear()-1
+ }
+ else {
+   SEASON = '' + new Date().getFullYear() +'/'+ (new Date().getFullYear()+1);
+   FIRSTYEAR = '' + new Date().getFullYear()
+ }
+
 exports.generateContactUsHTML = function(message, email) {
   return `
   <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -508,93 +519,107 @@ exports.contactus = function(req, res,next){
     }
   }
 }
+let outputs = []
 
-exports.send_invoices = async function(req,res,next){
-  await League.getAnnualInvoices(async function(err,rows){
-    let allData = []
-    let data = {}
-    data.fines = []
-    for (club of rows){
-      data = {}
-      data.fines = []
-      // console.log(club)
-      data.name = club.clubName
-      data.teamsCount = club.teamsCount
-      data.secretary = club.secretary
-      data.email = club.playerEmail
-      let clubTotal = 0;
-      clubTotal += club.teamsCount * 20
-      data.teamsCost = clubTotal
-      let fineRows = await rows.filter(fine => fine.clubId == club.clubId)
-      if (fineRows.length > 0){
-        for (fine of fineRows){
-          if (fine.desc !== null){
-            data.fines.push({"desc":fine.desc, "amount":fine.amount})
-            clubTotal += fine.amount
-          }
-        } 
-      }
-      data.feesTotal = clubTotal
-      // console.log(data)
-      if (allData.filter(row => row.name == data.name).length == 0){
-        allData.push(data)
-      }
-      console.log(allData)
-    }
-    // res.send(allData)
+exports.send_invoices = function(req, res, next) {
+  let outputs = [];
+  League.getAnnualInvoices(async function(err, rows) {
+    let invoiceDate = new Date(`09-01-${FIRSTYEAR}`);
+    // let invoiceDate = new Date(`06-06-2025`);
+    let today = new Date();
+    let dateCheck = today.getMonth() === invoiceDate.getMonth() && today.getFullYear() === invoiceDate.getFullYear() && today.getDate() === invoiceDate.getDate();
+
+    console.log(`today: ${today} invoiceDate: ${invoiceDate} dateCheck:${dateCheck}`);
+
     const ejs = require('ejs');
-    let outputs = []
-    for (club of allData){
-      console.log(club)
-      ejs.renderFile('views/emails/clubInvoice.ejs', {data:club}, {debug:false}, function(err, str){
-        if (err) console.log(err);
-        //console.log("logged in user email:" + req.body.email);
-        var params = {
-          Destination: { /* required */
-            ToAddresses: [club.email],
-            CcAddresses: [`treasurer.sdbl+${club.name.replaceAll(' ','').replaceAll('.','')}@hotmail.com`],
-            // CcAddresses: [`stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
-            BccAddresses:['bigcoops@outlook.com','bigcoops@gmail.com',`stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`]
-          },
-          Message: { /* required */
-            Body: {
-              Html: {
-                Charset: 'UTF-8',
-                Data: str
-              }
+    let allData = [];
+
+    for (let club of rows) {
+      let data = {};
+      data.fines = [];
+      data.season = SEASON;
+      data.firstYear = FIRSTYEAR;
+      data.name = club.clubName;
+      data.teamsCount = club.teamsCount;
+      data.secretary = club.secretary;
+      data.email = club.playerEmail;
+
+      let clubTotal = club.teamsCount * 20;
+
+      // Get fines for the specific club
+      let fineRows = rows.filter(fine => fine.clubId === club.clubId);
+      for (let fine of fineRows) {
+        if (fine.desc !== null) {
+          data.fines.push({ desc: fine.desc, amount: fine.amount });
+          clubTotal += fine.amount;
+        }
+      }
+
+      data.teamsCost = club.teamsCount * 20;
+      data.feesTotal = clubTotal;
+
+      if (!allData.some(row => row.name === data.name)) {
+        allData.push(data);
+
+        if (dateCheck) {
+          const currentData = JSON.parse(JSON.stringify(data)); // capture data by value
+
+          ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false }, async function(err, str) {
+            if (err) {
+              console.log(err);
+              outputs.push(`${currentData.name} invoice failed: ${err}`);
+              if (outputs.length === allData.length) res.send(outputs);
+              return;
+            }
+
+            const params = {
+              Destination: {
+                //ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
+                ToAddresses: [currentData.email],
+                CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
+                // CcAddresses: [stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com],
+                BccAddresses: [
+                  'bigcoops@outlook.com',
+                  'bigcoops@gmail.com',
+                  `stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`
+                ]
               },
-              Subject: {
-              Charset: 'UTF-8',
-              Data: `Annual Invoice for ${club.name}`,
-              }
-            },
-          Source: 'results@stockport-badminton.co.uk', /* required */
-          ReplyToAddresses: [
-            'stockport.badders.results@gmail.com','treasurer.sdbl@hotmail.com'
-          ],
-        };
-        // console.log(msg)
-        //sgMail.send(msg)
-        var ses = new AWS.SES({apiVersion: '2010-12-01'});
-        const sendPromise = ses.sendEmail(params).promise();
-        sendPromise
-        .then(()=>{    
-          // console.log(`renderFixturePage:${gameObject}`)                            
-          outputs.push(`${club.name} invoice sent successfully`)
-        })
-        .catch(error => {
-          console.log(error.toString());
-          outputs.push(`${club.name} invoice failed: ${error}`)
-          // res.send("Sorry something went wrong sending your email - try sending it manually" + error);
-        })
-      })
-      if (outputs.length == allData.length){
-        res.send(outputs)
+              Message: {
+                Body: {
+                  Html: {
+                    Charset: 'UTF-8',
+                    Data: str
+                  }
+                },
+                Subject: {
+                  Charset: 'UTF-8',
+                  Data: `Annual Invoice for ${currentData.name}`
+                }
+              },
+              Source: 'results@stockport-badminton.co.uk',
+              ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
+            };
+
+            const ses = new AWS.SES({ apiVersion: '2010-12-01' });
+            try {
+              await ses.sendEmail(params).promise();
+              outputs.push(`${currentData.name} invoice sent successfully`);
+            } catch (sendErr) {
+              console.log(sendErr.toString());
+              outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
+            }
+
+            if (outputs.length === allData.length) {
+              res.send(outputs);
+            }
+          });
+        } else {
+          res.send(["not the right date for invoices"]);
+          return;
+        }
       }
     }
-    res.send(outputs)
-    // console.log(emailData);
-  })
+  });
 }
 
 
