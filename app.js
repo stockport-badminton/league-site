@@ -1108,6 +1108,7 @@ const { getAllLeagueTables } = require('./models/league');
     
 
     router.get('/', fixture_controller.fixture_get_summary);
+    router.get('/gallery', static_controller.get_gallery);
 
     /* GET request for list of all Fixture items. */
     
