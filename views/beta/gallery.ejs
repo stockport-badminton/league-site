@@ -3,33 +3,48 @@
 
 <h1>Gallery</h1>
 <div class="w-100"></div>
-
-<%  
-                var i = 0 
-                var active = "active"
-                assets.forEach(function(image){ 
-                  if (i > 0){
+<% 
+    for (const [key,value] of Object.entries(assets).reverse()){ %>
+    <div class="w-100"></div>
+        <h2><%= key %></h2>
+    <% for (const [yearKey, yearValue] of Object.entries(value)){
+        if (yearValue.length > 0){ 
+            var i = 0
+            %>
+            <div class="w-100"></div>
+        <h2><%= yearKey %></h2>
+           <%  for (image of yearValue){ 
+                if (i > 0){
                     active = ""
                   }
                   if (i%4 == 0){
                     %>
-                    <div class="w-100 h-25"></div>
+                    <div class="w-100 h-25 d-none d-sm-block"></div>
                     <%
                   }
                   i++
-                  var imageref = image.url.replace("/upload","/upload/f_auto,c_fill/w_auto:breakpoints_200_1920_30_10:300")
+                  var imageref = image.url.replace("/upload","/upload/f_auto,ar_1:1,c_fill/w_auto:breakpoints_200_1920_30_10:300")
                   if (typeof image.context != 'undefined'){
                     var caption = (image.context.custom.caption.length > 0 ? image.context.custom.caption : "")
                   }
+                  else {
+                    var caption = ""
+                  }
                   
               %>
-              <div class="col my-1 <%= active %>">
+              <div class="col my-1">
                     <img class="d-block img-fluid" src="<%= imageref %>" sizes="100vw" width="100%" border=0 alt="" title=""/>
-                <div class="carousel-caption d-none d-md-block">
-                  <h5><%= caption %></h5>
+                <div class="carousel-caption d-none d-md-block py-1 mx-1" style="background:rgba(0,0,0,0.5); left:5%; right:5%">
+                  <h5 style="font-size:0.8rem"><%= caption %></h5>
                 </div>
               </div>
-            <% }) %>
+              <div class="w-100 h-25 d-md-none"></div>
+            <% } 
+            }
+        }
+    }
+ %>
+        
 
 
 <%- include('footer.ejs') %>

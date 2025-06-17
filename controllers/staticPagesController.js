@@ -34,7 +34,7 @@ exports.messer_rules = function(req, res) {
 exports.get_gallery = function(req, res) {
     var options = {
         'method': 'GET',
-        'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=50&context=true&fields=tags,context,url',
+        'url': 'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=100&context=true&fields=tags,context,url',
         'headers': {
             'Authorization': 'Basic '+process.env.CLOUDINARY_AUTH
         }
@@ -48,13 +48,30 @@ exports.get_gallery = function(req, res) {
         }
         else{
             // console.log(JSON.parse(response.body).resources);
+            let justwebsite = JSON.parse(response.body).resources.filter(asset => asset.tags.some(tag => tag == 'website'))
+            let years = [2025,2024,2023,2022,2021]
+            let othertags = ["messer","tournament","presentations","other"]
+            let galleryObj = {}
+            let galleryItem = []
+            let yearObj = {}
+            for (year of years){
+                // console.log(year)
+                galleryItems = []
+                galleryItem = justwebsite.filter(row => row.tags.some(tag => tag == year))
+                for (currTag of othertags){
+                    yearObj[currTag] = galleryItem.filter(row => row.tags.some(tag => tag == currTag))
+                }
+                //console.log(galleryItem)
+                galleryObj[year] = yearObj
+                yearObj = {}
+            }
             res.render('beta/gallery', {
-                assets:JSON.parse(response.body).resources,
+                assets:galleryObj,
                 static_path: '/static',
                 theme: process.env.THEME || 'flatly',
                 flask_debug: process.env.FLASK_DEBUG || 'false',
-                pageTitle : "Messer Tropy Rules",
-                pageDescription : "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition",
+                pageTitle : "Stockport & District Badminton League Gallery",
+                pageDescription : "Photos from the Stockport & District Badminton League presentations, tournaments etc.",
                 canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
             });
         }
