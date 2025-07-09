@@ -1,0 +1,520 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+
+  <% if (typeof errors !== 'undefined')  { %>
+    <p>Something seems to have gone wrong</p>
+    <p><%= error %></p>
+  <% }
+  else { 
+    %> 
+    <h1>Registered Players</h1>
+    <% if (typeof filter !== 'undefined' && filter == true){ %>
+      <%- include('filters.ejs') %>
+    <% } %>
+    
+    <a href="/static/beta/docs/<%= result.teams[0].name.substring(0,result.teams[0].name.length - 2) %>.docx">Download</a>
+    <div class="container row">
+    <% result.teams.forEach(function(team){ %>
+    <div class="team-container col-lg-6 col-md-12 mb-4">
+        <div class="border border-secondary rounded p-3">
+            <h3 class="mb-3" data-teamid="<%= team.id %>"><%= team.name %></h3>
+            
+            <div class="nominated-container border border-secondary rounded p-3 mb-3">
+                <div class="section-header p-2 rounded-top">Nominated</div>
+                <div class="row">
+                    <div class="col-6 men drop-zone" data-section="nominated" data-gender="men">
+                        <h5 class="mt-2">Men</h5>
+                        <% team.nominated.men.forEach(function(player){ %>
+                            <div class="player-box border rounded p-2 mb-2" draggable="true" 
+                                 data-team="<%= player.teamId %>" 
+                                 data-rank="<%= player.rank %>" 
+                                 data-id="<%= player.playerID %>">
+                                <%= player.name %>
+                                <span class="touch-indicator">Hold to move</span>
+                                <!-- dropdown menu here -->
+                                 <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
+                        <% }) %>
+                        <div class="add-player-box border rounded p-2 text-center">
+                            <i class="fa fa-user-plus"></i> Add Player
+                        </div>
+                    </div>
+                    <!-- repeat for ladies -->
+                     <div class="col-6 men drop-zone" data-section="nominated" data-gender="men">
+                        <h5 class="mt-2">Ladies</h5>
+                        <% team.nominated.ladies.forEach(function(player){ %>
+                            <div class="player-box border rounded p-2 mb-2" draggable="true" 
+                                 data-team="<%= player.teamId %>" 
+                                 data-rank="<%= player.rank %>" 
+                                 data-id="<%= player.playerID %>">
+                                <%= player.name %>
+                                <span class="touch-indicator">Hold to move</span>
+                                <!-- dropdown menu here -->
+                                 <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
+                        <% }) %>
+                        <div class="add-player-box border rounded p-2 text-center">
+                            <i class="fa fa-user-plus"></i> Add Player
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- repeat for reserves -->
+             <% if (team.reserves.men.length > 0 || team.reserves.ladies.length > 0 ) { %>
+             <div class="reserves-container border border-secondary rounded p-3 mb-3">
+                <div class="section-header p-2 rounded-top">Reserves</div>
+                <div class="row">
+                    <div class="col-6 men drop-zone" data-section="reserves" data-gender="men">
+                        <h5 class="mt-2">Men</h5>
+                        <% team.reserves.men.forEach(function(player){ %>
+                            <div class="player-box border rounded p-2 mb-2" draggable="true" 
+                                 data-team="<%= player.teamId %>" 
+                                 data-rank="<%= player.rank %>" 
+                                 data-id="<%= player.playerID %>">
+                                <%= player.name %>
+                                <span class="touch-indicator">Hold to move</span>
+                                <!-- dropdown menu here -->
+                                 <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
+                        <% }) %>
+                        <div class="add-player-box border rounded p-2 text-center">
+                            <i class="fa fa-user-plus"></i> Add Player
+                        </div>
+                    </div>
+                    <!-- repeat for ladies -->
+                     <div class="col-6 men drop-zone" data-section="reserves" data-gender="men">
+                        <h5 class="mt-2">Ladies</h5>
+                        <% team.reserves.ladies.forEach(function(player){ %>
+                            <div class="player-box border rounded p-2 mb-2" draggable="true" 
+                                 data-team="<%= player.teamId %>" 
+                                 data-rank="<%= player.rank %>" 
+                                 data-id="<%= player.playerID %>">
+                                <%= player.name %>
+                                <span class="touch-indicator">Hold to move</span>
+                                <!-- dropdown menu here -->
+                                 <i class="fa fa-ellipsis-v dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button">Remove<i class="fa fa-times text-danger"></i></button>
+                                <button class="dropdown-item" type="button">Edit<i class="fa fa-pen text-secondary"></i></button>
+                                <button class="dropdown-item" type="button">Move Up<i class="fa fa-arrow-up text-success"></i></button>
+                                <button class="dropdown-item" type="button">Move Down<i class="fa fa-arrow-down text-danger"></i></button>
+                              </div>
+                            </div>
+                        <% }) %>
+                        <div class="add-player-box border rounded p-2 text-center">
+                            <i class="fa fa-user-plus"></i> Add Player
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div>
+    </div>
+<% }) %>
+    
+    
+    </div>
+    
+   <% } %>
+
+
+<%- include('footer.ejs') %>
+
+<%- include('AddCreatePlayerModal.ejs') %>
+
+<script type="text/javascript">
+
+        class TeamPlayerManager {
+            constructor() {
+                this.draggedElement = null;
+                this.longPressTimer = null;
+                this.longPressDelay = 500; // 500ms for long press
+                this.isTouchDevice = 'ontouchstart' in window;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                console.log('Touch device:', this.isTouchDevice);
+            }
+
+            setupEventListeners() {
+                // Desktop drag and drop
+                if (!this.isTouchDevice) {
+                    this.setupDesktopDragDrop();
+                }
+
+                // Touch events for mobile
+                this.setupTouchEvents();
+
+                // Player action events
+                this.setupPlayerActions();
+            }
+
+            setupDesktopDragDrop() {
+                document.addEventListener('dragstart', (e) => {
+                    if (e.target.classList.contains('player-box')) {
+                        this.handleDragStart(e);
+                    }
+                });
+
+                document.addEventListener('dragend', (e) => {
+                    if (e.target.classList.contains('player-box')) {
+                        this.handleDragEnd(e);
+                    }
+                });
+
+                document.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                document.addEventListener('dragenter', (e) => {
+                    if (e.target.classList.contains('drop-zone')) {
+                        this.handleDragEnter(e);
+                    }
+                });
+
+                document.addEventListener('dragleave', (e) => {
+                    if (e.target.classList.contains('drop-zone')) {
+                        this.handleDragLeave(e);
+                    }
+                });
+
+                document.addEventListener('drop', (e) => {
+                    if (e.target.classList.contains('drop-zone') || e.target.closest('.drop-zone')) {
+                        this.handleDrop(e);
+                    }
+                });
+            }
+
+            setupTouchEvents() {
+                document.addEventListener('touchstart', (e) => {
+                    if (e.target.classList.contains('player-box') || e.target.closest('.player-box')) {
+                        this.handleTouchStart(e);
+                    }
+                });
+
+                document.addEventListener('touchmove', (e) => {
+                    if (this.draggedElement) {
+                        this.handleTouchMove(e);
+                    }
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    if (this.draggedElement) {
+                        this.handleTouchEnd(e);
+                    }
+                });
+            }
+
+            setupPlayerActions() {
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-action]')) {
+                        e.preventDefault();
+                        const action = e.target.closest('[data-action]').dataset.action;
+                        const playerBox = e.target.closest('.player-box');
+                        this.handlePlayerAction(action, playerBox);
+                    }
+                });
+            }
+
+            handleDragStart(e) {
+                this.draggedElement = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.outerHTML);
+            }
+
+            handleDragEnd(e) {
+                e.target.classList.remove('dragging');
+                this.clearDropZoneHighlights();
+                this.draggedElement = null;
+            }
+
+            handleDragEnter(e) {
+                e.target.classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.target.classList.remove('drag-over');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                const dropZone = e.target.classList.contains('drop-zone') ? e.target : e.target.closest('.drop-zone');
+                
+                if (dropZone && this.draggedElement) {
+                    this.movePlayerToZone(this.draggedElement, dropZone);
+                }
+                
+                this.clearDropZoneHighlights();
+            }
+
+            handleTouchStart(e) {
+                const playerBox = e.target.classList.contains('player-box') ? e.target : e.target.closest('.player-box');
+                if (!playerBox) return;
+
+                // Start long press timer
+                this.longPressTimer = setTimeout(() => {
+                    this.startTouchDrag(playerBox);
+                }, this.longPressDelay);
+
+                // Cancel long press if touch moves or ends quickly
+                const cancelLongPress = () => {
+                    clearTimeout(this.longPressTimer);
+                    playerBox.classList.remove('long-press-active');
+                };
+
+                playerBox.addEventListener('touchmove', cancelLongPress, { once: true });
+                playerBox.addEventListener('touchend', cancelLongPress, { once: true });
+                
+                // Visual feedback for long press
+                playerBox.classList.add('long-press-active');
+            }
+
+            startTouchDrag(playerBox) {
+                this.draggedElement = playerBox;
+                playerBox.classList.add('dragging');
+                playerBox.classList.remove('long-press-active');
+                
+                // Provide haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            }
+
+            handleTouchMove(e) {
+                if (!this.draggedElement) return;
+                
+                e.preventDefault();
+                
+                // Get touch position
+                const touch = e.touches[0];
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                // Clear previous highlights
+                this.clearDropZoneHighlights();
+                
+                // Highlight drop zone
+                const dropZone = elementBelow?.closest('.drop-zone');
+                if (dropZone) {
+                    dropZone.classList.add('drag-over');
+                }
+            }
+
+            handleTouchEnd(e) {
+                if (!this.draggedElement) return;
+                
+                const touch = e.changedTouches[0];
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const dropZone = elementBelow?.closest('.drop-zone');
+                
+                if (dropZone && dropZone !== this.draggedElement.closest('.drop-zone')) {
+                    this.movePlayerToZone(this.draggedElement, dropZone);
+                }
+                
+                this.draggedElement.classList.remove('dragging');
+                this.clearDropZoneHighlights();
+                this.draggedElement = null;
+            }
+
+            movePlayerToZone(playerElement, dropZone) {
+                const playerId = playerElement.dataset.id;
+                const playerName = playerElement.textContent.trim();
+                const targetTeamId = dropZone.closest('[data-teamid]').dataset.teamid;
+                const targetSection = dropZone.dataset.section;
+                const targetGender = dropZone.dataset.gender;
+
+                // Remove from current position
+                playerElement.remove();
+
+                // Add to new position (before add-player-box)
+                const addPlayerBox = dropZone.querySelector('.add-player-box');
+                if (addPlayerBox) {
+                    dropZone.insertBefore(playerElement, addPlayerBox);
+                } else {
+                    dropZone.appendChild(playerElement);
+                }
+
+                // Update data attributes
+                playerElement.dataset.team = targetTeamId;
+                
+                // Update rank based on position
+                this.updateRanks(dropZone, targetSection);
+
+                // Log the move
+                console.log(`Moved ${playerName} to team ${targetTeamId}, ${targetSection} ${targetGender}`);
+
+                // Here you would typically make an API call to update the backend
+                this.updatePlayerInBackend(playerId, targetTeamId, targetSection);
+            }
+
+            updateRanks(dropZone, section) {
+                const players = dropZone.querySelectorAll('.player-box');
+                players.forEach((player, index) => {
+                    player.dataset.rank = section === 'reserves' ? 99 : index + 1;
+                });
+            }
+
+            updatePlayerInBackend(playerId, teamId, section) {
+                const updateData = {
+                    tablename: "player",
+                    fields: ["id", "team", "rank"],
+                    data: [[parseInt(playerId), parseInt(teamId), section === 'reserves' ? 99 : 1]]
+                };
+
+                fetch('/player/batch-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+
+            handlePlayerAction(action, playerBox) {
+                const playerId = playerBox.dataset.id;
+                const playerName = playerBox.textContent.trim();
+
+                switch (action) {
+                    case 'remove':
+                        this.removePlayer(playerBox, playerId, playerName);
+                        break;
+                    case 'edit':
+                        this.editPlayer(playerId);
+                        break;
+                    case 'moveup':
+                        this.movePlayerUp(playerBox);
+                        break;
+                    case 'movedown':
+                        this.movePlayerDown(playerBox);
+                        break;
+                }
+            }
+
+            removePlayer(playerBox, playerId, playerName) {
+                if (confirm(`Are you sure you want to remove ${playerName}?`)) {
+                    playerBox.remove();
+                    console.log(`Removed ${playerName} (ID: ${playerId})`);
+                    
+                    // Update backend
+                    this.updatePlayerInBackend(playerId, 52, 99); // Remove from team
+                }
+            }
+
+            editPlayer(playerId) {
+                // This would open an edit modal or navigate to edit page
+                console.log(`Edit player ${playerId}`);
+                // window.open(`/player/${playerId}/update`);
+            }
+
+            movePlayerUp(playerBox) {
+                const prevSibling = playerBox.previousElementSibling;
+                if (prevSibling && prevSibling.classList.contains('player-box')) {
+                    playerBox.parentNode.insertBefore(playerBox, prevSibling);
+                    this.updateRanks(playerBox.parentNode, playerBox.closest('[data-section]').dataset.section);
+                }
+            }
+
+            movePlayerDown(playerBox) {
+                const nextSibling = playerBox.nextElementSibling;
+                if (nextSibling && nextSibling.classList.contains('player-box')) {
+                    playerBox.parentNode.insertBefore(nextSibling, playerBox);
+                    this.updateRanks(playerBox.parentNode, playerBox.closest('[data-section]').dataset.section);
+                }
+            }
+
+            clearDropZoneHighlights() {
+                document.querySelectorAll('.drop-zone').forEach(zone => {
+                    zone.classList.remove('drag-over');
+                });
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new TeamPlayerManager();
+        });
+
+        // Add player function for modal
+        function addPlayer() {
+            const form = document.getElementById('addPlayerForm');
+            const formData = new FormData(form);
+            
+            const name = document.getElementById('playerName').value;
+            const teamId = document.getElementById('playerTeam').value;
+            const gender = document.getElementById('playerGender').value;
+            const section = document.getElementById('playerSection').value;
+            
+            if (!name || !teamId || !gender || !section) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Create new player element
+            const newPlayerId = Date.now(); // Simple ID generation
+            const playerHTML = `
+                <div class="player-box border rounded p-2 mb-2" draggable="true" data-team="${teamId}" data-rank="1" data-id="${newPlayerId}">
+                    ${name}
+                    <span class="touch-indicator">Hold to move</span>
+                    <i class="fa fa-ellipsis-v dropdown-toggle" data-bs-toggle="dropdown"></i>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item text-danger" href="#" data-action="remove"><i class="fa fa-times"></i> Remove</a></li>
+                        <li><a class="dropdown-item text-secondary" href="#" data-action="edit"><i class="fa fa-pen"></i> Edit</a></li>
+                        <li><a class="dropdown-item text-success" href="#" data-action="moveup"><i class="fa fa-arrow-up"></i> Move Up</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" data-action="movedown"><i class="fa fa-arrow-down"></i> Move Down</a></li>
+                    </ul>
+                </div>
+            `;
+            
+            // Find target drop zone
+            const targetZone = document.querySelector(`[data-teamid="${teamId}"] .drop-zone[data-section="${section}"][data-gender="${gender}"]`);
+            const addPlayerBox = targetZone.querySelector('.add-player-box');
+            
+            // Insert before add player box
+            addPlayerBox.insertAdjacentHTML('beforebegin', playerHTML);
+            
+            // Close modal and reset form
+            bootstrap.Modal.getInstance(document.getElementById('addPlayerModal')).hide();
+            form.reset();
+            
+            console.log(`Added ${name} to team ${teamId}, ${section} ${gender}`);
+        }
+
+</script>
+
+
+
+<script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
+
+
+
+</body>
+</html>

@@ -361,7 +361,7 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                   }
                   else {
                     let clubs = clubsRes.map(row => row.name)
-                    res.render('beta/team-admin', {
+                    res.render('beta/team-admin-v2', {
                         static_path: '/static',
                         theme: process.env.THEME || 'flatly',
                         flask_debug: process.env.FLASK_DEBUG || 'false',
