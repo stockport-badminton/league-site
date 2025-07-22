@@ -371,7 +371,7 @@ exports.manage_player_list_clubs_teams = function(req, res,next) {
                         clubId: rows[0].clubId,
                         superadmin:superadmin,
                         filter:true,
-                        hideFilters:["season","gametype","gender","division"],
+                        hideFilters:["season","gametype","gender","division","status"],
                         club:club,
                         clubs:clubs,
                         canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
