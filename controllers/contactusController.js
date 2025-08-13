@@ -325,7 +325,22 @@ function containsDodgyEmail(value,{req}){
     "arachnid@notdot.net",
     "jaronni9o@zohomail.eu",
     "ahmed.abdulla00175@gmail.com",
-    "bassproshops28@gmail.com"
+    "bassproshops28@gmail.com",
+    "mr.bumbaster81@gmail.com",
+    "rayanwmlp@zohomail.eu",
+    "irinademenkova86@gmail.com",
+    "saniaftab464@gmail.com",
+    "chris@schoolconnection.co.uk",
+    "test@gmail.com",
+    "bahmmbi3@aghemfondom.com",
+    "dinanikolskaya99@gmail.com",
+    "cikoliag@yandex.ru",
+    "parmazanov@gmail.com",
+    "jalenb8dd@aol.com",
+    "susan@wikiexpertiinc.com",
+    "w.wojcik1000@gmail.com",
+    "derylcvnq@hotmail.com",
+    "rescueplumbhifi@gmail.com"
 ];
 
   if (substringsArray.some(function(v) { if (value.indexOf(v) >= 0) {console.log(v)}; return value.indexOf(v) >= 0; })) {
