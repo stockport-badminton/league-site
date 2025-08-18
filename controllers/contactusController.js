@@ -212,7 +212,7 @@ exports.generateContactUsHTML = function(message, email) {
   `
 }
 
-function validCaptcha(value,{req}){
+function oldValidCaptcha(value,{req}){
   // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
   axios.post("https://www.google.com/recaptcha/api/siteverify?secret="+ process.env.RECAPTCHA_SECRET +"&response="+value)
     .then(response => {
@@ -233,6 +233,41 @@ function validCaptcha(value,{req}){
       console.log(err)
       return false
     })
+}
+
+async function validCaptcha(value, { req }) {
+  if (!value) {
+    throw new Error('reCAPTCHA response is required');
+  }
+
+  try {
+    const response = await axios.post('https://www.google.com/recaptcha/api/siteverify', null, {
+      params: {
+        secret: process.env.RECAPTCHA_SECRET,
+        response: value,
+        remoteip: req.ip // Optional: include user's IP for additional security
+      }
+    });
+
+    console.log('reCAPTCHA response:', response.data);
+
+    if (!response.data.success) {
+      // Log specific error codes for debugging
+      console.log('reCAPTCHA errors:', response.data['error-codes']);
+      throw new Error('reCAPTCHA verification failed');
+    }
+
+    // For reCAPTCHA v3, you can also check the score
+    if (response.data.score && response.data.score < 0.5) {
+      console.log('Low reCAPTCHA score:', response.data.score);
+      throw new Error('reCAPTCHA score too low');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('reCAPTCHA validation error:', error.message);
+    throw new Error('reCAPTCHA verification failed');
+  }
 }
 
 
@@ -362,7 +397,10 @@ function containsDodgyEmail(value,{req}){
 exports.validateContactUs = [
   body('contactEmail').not().isEmpty().withMessage('please enter an Email address').isEmail().withMessage('Please enter a valid email address').custom(containsDodgyEmail).withMessage("You have been blocked for spamming the contact form"),
   body('contactQuery').not().isEmpty().withMessage('Please enter something in message field.').custom(containsProfanity).withMessage("Please don't use profanity in the message body"),
-  body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
+  // body('g-recaptcha-response').not().custom(validCaptcha).withMessage('your not a human')
+  body('g-recaptcha-response')
+    .custom(validCaptcha)
+    .withMessage('Please complete the reCAPTCHA verification')
 ]
 
 exports.contactus = function(req, res,next){
