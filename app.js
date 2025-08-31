@@ -1231,6 +1231,7 @@ const { getAllLeagueTables } = require('./models/league');
     router.get('/players/gender-:gender?', secured,player_controller.player_list_clubs_teams);
     router.get('/players', secured,player_controller.player_list_clubs_teams);
     router.get('/manage-players/club-:club?', secured,player_controller.manage_player_list_clubs_teams);
+    router.get('/manage-players/:season?/club-:club?', secured,player_controller.manage_player_list_clubs_teams);
 
     /* GET request for creating a Player. NOTE This must come before routes that display Player (uses id) */
     router.get('/player/create', secured,player_controller.player_create_get);
