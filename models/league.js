@@ -85,7 +85,14 @@ exports.getLeagueTable = async function(division,season,done){
 }
 }
 
-exports.getAnnualInvoices = async function(done){
+exports.getAnnualInvoices = async function(clubName,done){
+  let clubString = ''
+  if (typeof clubName !== `undefined`){
+    clubString = ` WHERE club.name = '${clubName}'`
+  }
+  else {
+    clubString = ``
+  }
 	let sql = `select club.id as clubId, 
 		club.name as clubName, 
         count(team.id) as teamsCount,
@@ -101,13 +108,14 @@ exports.getAnnualInvoices = async function(done){
         from
         club join 
         team on team.club = club.id left join
-        fines on fines.club = club.id left join
+        fines on fines.club = club.id AND ((fines.season = ? and fines.desc in ('agm')) OR  (fines.season = ? and fines.desc in ('rearrangement','card')) OR season is null) left join
         team fineTeam on fines.team = fineTeam.id left join
         club fineClub on fines.club = fineClub.id join
         player on (player.club = club.id and player.clubSecretary = 1)
-		where (season = ? and fines.desc in ('agm')) OR  (season = ? and fines.desc in ('rearrangement','card')) OR season is null
+        ${clubString}
         group by clubId, clubName, fineId, fines.desc, fines.amount, secretary, playerEmail`
 	
+  console.log(sql)
   try {	
 	let [result] = await (await db.otherConnect()).query(sql,[SEASON,PREVSEASON])
 	done(null,result)

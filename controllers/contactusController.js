@@ -576,13 +576,14 @@ let outputs = []
 
 exports.send_invoices = function(req, res, next) {
   let outputs = [];
-  League.getAnnualInvoices(async function(err, rows) {
+  League.getAnnualInvoices(req.params.club,async function(err, rows) {
     let invoiceDate = new Date(`09-01-${FIRSTYEAR}`);
     // let invoiceDate = new Date(`06-06-2025`);
     let today = new Date();
     let dateCheck = today.getMonth() === invoiceDate.getMonth() && today.getFullYear() === invoiceDate.getFullYear() && today.getDate() === invoiceDate.getDate();
 
     console.log(`today: ${today} invoiceDate: ${invoiceDate} dateCheck:${dateCheck}`);
+    console.log(JSON.stringify(rows))
 
     const ejs = require('ejs');
     let allData = [];
@@ -627,10 +628,10 @@ exports.send_invoices = function(req, res, next) {
 
             const params = {
               Destination: {
-                //ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
-                ToAddresses: [currentData.email],
-                CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
-                // CcAddresses: [stockport.badders.results+${club.name.replaceAll(' ','').replaceAll('.','')}@gmail.com],
+                ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
+                // ToAddresses: [currentData.email],
+                // CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
+                CcAddresses: [`stockport.badders.results+${currentData.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
                 BccAddresses: [
                   'bigcoops@outlook.com',
                   'bigcoops@gmail.com',
