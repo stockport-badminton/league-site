@@ -628,10 +628,10 @@ exports.send_invoices = function(req, res, next) {
 
             const params = {
               Destination: {
-                ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
-                // ToAddresses: [currentData.email],
-                // CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
-                CcAddresses: [`stockport.badders.results+${currentData.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
+                //ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
+                 ToAddresses: [currentData.email],
+                CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
+                //CcAddresses: [`stockport.badders.results+${currentData.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
                 BccAddresses: [
                   'bigcoops@outlook.com',
                   'bigcoops@gmail.com',
