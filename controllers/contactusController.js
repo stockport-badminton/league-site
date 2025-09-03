@@ -925,12 +925,14 @@ exports.distribution_list = async function(req,res,next) {
       else {
         // console.log(msg)
         // console.log(msg.to)
+        console.log(JSON.stringify(nodemailconfig))
         transporter.sendMail(nodemailconfig,(err,info) => {
           if (err){
             console.error(err)
             next(err)
           }
           else {
+            console.log(JSON.stringify(info))
             console.log(info.envelope);
             console.log(info.messageId);
             res.sendStatus(200)
