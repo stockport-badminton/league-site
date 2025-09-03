@@ -713,7 +713,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Parse the email using mailparser
       const parsedEmail = await simpleParser(buffer);
-      // console.log("Parsed email:", parsedEmail);
+      console.log("Parsed email:", JSON.stringify(parsedEmail));
 
       // Extract email details
       sender = parsedEmail.from.text;
