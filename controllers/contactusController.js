@@ -715,8 +715,8 @@ exports.distribution_list = async function(req,res,next) {
       const parsedEmail = await simpleParser(buffer);
       console.log("Parsed email:", JSON.stringify(parsedEmail));
 
-      let recipients = parsedEmail.to.value.map(row => row.address)
-      let stockportrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
+      let recipients = await parsedEmail.to.value.map(row => row.address)
+      let stockportrecips = await recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
       
       for (row of stockportrecips){
         row = row.substring(0,row.indexOf("@"))
@@ -737,7 +737,7 @@ exports.distribution_list = async function(req,res,next) {
       console.log(JSON.stringify(parsedEmail))
 
       // Extract attachments (if any)
-      const attachments = parsedEmail.attachments.map((attachment) => ({
+      const attachments = await parsedEmail.attachments.map((attachment) => ({
           filename: attachment.filename,
           content: attachment.content,
           encoding: "base64",
