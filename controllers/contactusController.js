@@ -714,6 +714,8 @@ exports.distribution_list = async function(req,res,next) {
       // Parse the email using mailparser
       const parsedEmail = await simpleParser(buffer);
       console.log("Parsed email:", JSON.stringify(parsedEmail));
+      console.log(`parsed email to: ${JSON.stringify(parsedEmail.to.value)}`)
+      console.log(`parsed email to: ${JSON.stringify(parsedEmail.from.value)}`)
 
       let recipients = await parsedEmail.to.value.map(row => row.address)
       let stockportrecips = await recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
