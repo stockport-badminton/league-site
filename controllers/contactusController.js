@@ -721,7 +721,7 @@ exports.distribution_list = async function(req,res,next) {
       let stockportrecips = await recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
       
       for (row of stockportrecips){
-        row = row.substring(0,row.indexOf("@"))
+        // row = row.substring(0,row.indexOf("@"))
         recipient += row.substring(0,row.indexOf("@"))
       }
       let otherrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') < 0)
