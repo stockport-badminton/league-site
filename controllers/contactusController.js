@@ -715,9 +715,22 @@ exports.distribution_list = async function(req,res,next) {
       const parsedEmail = await simpleParser(buffer);
       console.log("Parsed email:", JSON.stringify(parsedEmail));
 
+      let recipients = parsedEmail.to.value.map(row => row.address)
+      let stockportrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
+      
+      for (row of stockportrecips){
+        row = row.substring(0,row.indexOf("@"))
+        recipient += row.substring(0,row.indexOf("@"))
+      }
+      let otherrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') < 0)
+      console.log("recipients: " + JSON.stringify(recipients))
+      console.log("stockportrecipients: " + JSON.stringify(stockportrecips))
+      
+      
+
       // Extract email details
-      sender = parsedEmail.from.text;
-      recipient = parsedEmail.to.text;
+      sender = parsedEmail.from.value[0].address;
+      // recipient = parsedEmail.to.text;
       subject = parsedEmail.subject || "No Subject";
       textBody = parsedEmail.text || "No text content";
       htmlBody = parsedEmail.html || "No HTML content";
@@ -730,8 +743,9 @@ exports.distribution_list = async function(req,res,next) {
           encoding: "base64",
       }));
 
-      recipient = recipient.substring(0,recipient.indexOf("@"));
-      recipient = recipient.replace("\"","")
+      
+      // recipient = recipient.substring(0,recipient.indexOf("@"));
+      // recipient = recipient.replace("\"","")
       console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
 
       var msg = {
@@ -925,7 +939,7 @@ exports.distribution_list = async function(req,res,next) {
       else {
         // console.log(msg)
         // console.log(msg.to)
-        console.log(JSON.stringify(nodemailconfig))
+        console.log("nodeemailconfig" + JSON.stringify(nodemailconfig))
         transporter.sendMail(nodemailconfig,(err,info) => {
           if (err){
             console.error(err)
