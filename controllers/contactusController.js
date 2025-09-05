@@ -735,7 +735,7 @@ exports.distribution_list = async function(req,res,next) {
       // recipient = parsedEmail.to.text;
       subject = parsedEmail.subject || "No Subject";
       textBody = parsedEmail.text || "No text content";
-      htmlBody = parsedEmail.html || "No HTML content";
+      htmlBody = parsedEmail.html || parsedEmail.textAsHtml || parsedEmail.text;
       console.log(JSON.stringify(parsedEmail))
 
       // Extract attachments (if any)
