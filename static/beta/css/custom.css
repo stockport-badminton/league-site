@@ -213,15 +213,18 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 }
 
 .bracket.even-fix{
-  position:relative;top:-25%;
+  position:relative;top:-45%;
 }
 .bracket.odd-fix{
-  position:relative;top:25%;
+  position:relative;
 }
 .bracket-container .row {
   padding:5px 0px;
   text-align: left;
   font-size:1.8vmin;
+}
+.bracket-container .d-flex {
+  align-content: center;
 }
 .other-tooltip {
   position:relative; /* making the .tooltip span a container for the tooltip text */
