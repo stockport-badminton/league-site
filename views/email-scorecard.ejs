@@ -1455,7 +1455,11 @@
               else {
                 let response = await getSignReq.json()
                 console.log(response)
-                uploadFile(file, response.signedUrl);
+                const success = await uploadFile(file, response.signedUrl);
+                if (!success) {
+                    return; // Don't continue if upload failed
+                }
+                // uploadFile(file, response.signedUrl);
                 console.log(response.signedUrl);
                 e.srcElement.nextSibling.nextSibling.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
 
@@ -1509,7 +1513,11 @@
               else {
                 let response = await getSignReq.json()
                 console.log(response)
-                uploadFile(file, response.signedUrl);
+                const success = await uploadFile(file, response.signedUrl);
+                if (!success) {
+                    return; // Don't continue if upload failed
+                }
+                // uploadFile(file, response.signedUrl);
                 console.log(response.signedUrl);
                 // document.getElementById('scoresheet-url').value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
                 let scoresheetUrls = await document.querySelectorAll('#scoresheet-url')
@@ -1531,19 +1539,24 @@
         }
 
         async function uploadFile(file, signedRequest){
-            // const xhr = new XMLHttpRequest();
-            console.log(file)
-            const uploaded = await fetch(signedRequest, {
-              method: "PUT",
-              body: file,
-              headers:{"Content-Type":file.type},
-            });
-            if (uploaded.status == 200) {
-              // Successfully uploaded image
-              alert('Uploaded successfuly to ' + signedRequest)
-            } else {
-              alert('failed to upload')
-            }
+          try {
+              const uploaded = await fetch(signedRequest, {
+                  method: "PUT",
+                  body: file,
+                  headers: {"Content-Type": file.type},
+              });
+              
+              if (!uploaded.ok) {
+                  throw new Error(`Upload failed with status ${uploaded.status}`);
+              }
+              
+              alert('Uploaded successfully to ' + signedRequest);
+              return true;
+          } catch (error) {
+              console.error('Upload error:', error);
+              alert('Upload failed: ' + error.message);
+              return false;
+          }
         }
 
     $(document).ready(function() {
