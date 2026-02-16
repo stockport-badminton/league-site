@@ -291,6 +291,10 @@ function containsProfanity(value,{req}){
 
 function containsDodgyEmail(value,{req}){
   var substringsArray = [
+    "elviemcxa@yahoo.com",
+    "oscar7ctj@mail.com",
+    "bsara5865@gmail.com",
+    "nikitafofanov46@gmail.com",
     "n-dixie@hotmail.com",
     "zekisuquc419@gmail.com",
     "steven.green@m-solv.com",
@@ -438,6 +442,7 @@ exports.contactus = function(req, res,next){
     var clubEmail = '';
     
     if(req.body.contactType == 'Clubs'){
+      console.log(`clubSelect ${req.body.clubSelect}`)
       Club.getContactDetailsById(req.body.clubSelect, function(err,rows){
         if (err){
           console.log(err);
