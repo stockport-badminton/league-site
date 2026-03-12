@@ -152,6 +152,146 @@ catch (err) {
 }
 }
 
+exports.getMissedThreePlayers = async function(done){
+  try {
+    let [result] = await (await db.otherConnect()).query(`WITH team_fixtures AS (
+  SELECT
+    f.id        AS fixture_id,
+    f.date      AS fixture_date,
+    f.homeTeam  AS team_id,
+    f.homeMan1  AS p1, f.homeMan2 AS p2, f.homeMan3 AS p3,
+    f.homeLady1 AS p4, f.homeLady2 AS p5, f.homeLady3 AS p6
+  FROM fixture f
+  WHERE f.status = 'complete'
+
+  UNION ALL
+
+  SELECT
+    f.id,
+    f.date,
+    f.awayTeam,
+    f.awayMan1,  f.awayMan2,  f.awayMan3,
+    f.awayLady1, f.awayLady2, f.awayLady3
+  FROM fixture f
+  WHERE f.status = 'complete'
+),
+ranked AS (
+  SELECT
+    tf.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY tf.team_id
+      ORDER BY tf.fixture_date DESC, tf.fixture_id DESC
+    ) AS rn
+  FROM team_fixtures tf
+),
+last3 AS (
+  SELECT *
+  FROM ranked
+  WHERE rn <= 3
+),
+/* NEW: distinct men used across last 3 fixtures (p1-p3), ignoring 0s */
+men_used AS (
+  SELECT
+    m.team_id,
+    COUNT(DISTINCT m.player_id) AS menDistinctUsed
+  FROM (
+    SELECT team_id, p1 AS player_id FROM last3
+    UNION ALL SELECT team_id, p2 FROM last3
+    UNION ALL SELECT team_id, p3 FROM last3
+  ) m
+  JOIN player p
+    ON p.id = m.player_id
+   AND p.team = m.team_id
+  WHERE m.player_id <> 0
+  GROUP BY m.team_id
+),
+/* NEW: distinct ladies used across last 3 fixtures (p4-p6), ignoring 0s */
+ladies_used AS (
+  SELECT
+    l.team_id,
+    COUNT(DISTINCT l.player_id) AS ladiesDistinctUsed
+  FROM (
+    SELECT team_id, p4 AS player_id FROM last3
+    UNION ALL SELECT team_id, p5 FROM last3
+    UNION ALL SELECT team_id, p6 FROM last3
+  ) l
+  JOIN player p
+    ON p.id = l.player_id
+   AND p.team = l.team_id
+  WHERE l.player_id <> 0
+  GROUP BY l.team_id
+),
+
+fixture_players AS (
+  SELECT team_id, fixture_id, p1 AS player_id FROM last3
+  UNION ALL SELECT team_id, fixture_id, p2 FROM last3
+  UNION ALL SELECT team_id, fixture_id, p3 FROM last3
+  UNION ALL SELECT team_id, fixture_id, p4 FROM last3
+  UNION ALL SELECT team_id, fixture_id, p5 FROM last3
+  UNION ALL SELECT team_id, fixture_id, p6 FROM last3
+),
+appearances AS (
+  SELECT
+    team_id,
+    player_id,
+    COUNT(DISTINCT fixture_id) AS numPlayed
+  FROM fixture_players
+  WHERE player_id <> 0
+  GROUP BY team_id, player_id
+),
+nom_players AS (
+  SELECT
+    p.team AS team_id,
+    p.id   AS player_id,
+    p.first_name,
+    p.family_name,
+    p.gender
+  FROM player p
+  WHERE p.\`rank\` < 99
+),
+team_filtered AS (
+  SELECT
+    t.*,
+    COUNT(*) OVER (PARTITION BY t.club) AS club_team_count,
+    MAX(t.\`rank\`) OVER (PARTITION BY t.club) AS club_lowest_rank
+  FROM team t
+)
+SELECT
+  t.id   AS team_id,
+  t.name AS team_name,
+  t.club AS club,
+  t.\`rank\` AS team_rank,
+  np.player_id,
+  np.first_name,
+  np.family_name,
+  np.gender,
+  COALESCE(a.numPlayed, 0) AS numPlayed
+FROM team_filtered t
+JOIN nom_players np
+  ON np.team_id = t.id
+LEFT JOIN appearances a
+  ON a.team_id = t.id AND a.player_id = np.player_id
+LEFT JOIN men_used mu
+  ON mu.team_id = t.id
+LEFT JOIN ladies_used lu
+  ON lu.team_id = t.id
+WHERE
+  t.club_team_count > 1
+  AND t.\`rank\` < t.club_lowest_rank
+  AND COALESCE(a.numPlayed, 0) = 0
+  -- Exclude teams where both squads have sufficient coverage:
+  AND NOT (
+    COALESCE(mu.menDistinctUsed, 0) >= 3
+    AND COALESCE(lu.ladiesDistinctUsed, 0) >= 3
+  )
+ORDER BY t.club, t.\`rank\`, np.family_name, np.first_name;`)
+done(null,result)
+    }
+    catch (err){
+      return done(err);
+    }
+  }
+
 exports.getMatchStats = async function(fixtureId,done){
   try {
 		 let [result] = await (await db.otherConnect()).query("SET @fixtureId = ?; SELECT concat(player.first_name,' ',player.family_name) AS name ,team.name AS teamName ,b.avgPtsFor ,b.avgPtsAgainst ,gamesWon FROM ( SELECT playerId ,AVG(ptsFor) AS avgPtsFor ,AVG(ptsAgainst) AS avgPtsAgainst ,SUM(won) AS gamesWon FROM ( SELECT homePlayer1 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT homePlayer2 AS playerId ,homeScore AS ptsFor ,awayScore AS ptsAgainst ,CASE WHEN homeScore > awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer1 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) UNION ALL SELECT awayPlayer2 AS playerId ,awayScore AS ptsFor ,homeScore AS ptsAgainst ,CASE WHEN homeScore < awayScore THEN 1 ELSE 0 END AS won FROM game WHERE fixture = @fixtureId AND (awayPlayer1 !=0 AND awayPlayer2 != 0 AND homePlayer2 != 0 AND homePlayer1 !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY teamName, gamesWon desc, avgPtsAgainst asc",fixtureId)
@@ -951,6 +1091,7 @@ exports.getEmails = async function(searchTerms,done){
     sql = sql + conditions
   }
   try {
+    console.log(sql)
 		let [result] = await (await db.otherConnect()).query(sql)
     var emailArray = result.map(row => {const {playerEmail} = row; return playerEmail})
     tempArray = emailArray

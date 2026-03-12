@@ -49,6 +49,22 @@ exports.player_list = function(req, res) {
     })
 };
 
+// Display list of all Players
+exports.players_missed_three = function(req, res) {
+    Player.getMissedThreePlayers(function(err,rows){
+      if (err) return next(err)
+      res.render('beta/missed-three-list', {
+           static_path: '/static',
+           theme: process.env.THEME || 'flatly',
+           flask_debug: process.env.FLASK_DEBUG || 'false',
+           pageTitle : "Players that have missed three matches",
+           pageDescription : "Players that have missed three matches",
+           result : rows,
+           canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+       });
+    })
+};
+
 
 // Display list of all Players
 exports.player_game_data = function(req, res,next) {
