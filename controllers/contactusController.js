@@ -271,22 +271,62 @@ async function validCaptcha(value, { req }) {
 }
 
 
-function containsProfanity(value,{req}){
-  var substringsArray = ["000***","brokerage","pharm","Blockchain","blockchain","@Cryptaxbot","pharma","mail.ru","@FeedbackMessages","messages exploitation","Financial Strategic Firm","Business Financial Team","Christ","God","http://","http","https","wininphone","corta.co","Cryptocurrency","adultdating","forex","ahole","anus","ash0le","ash0les","asholes","ass","Ass Monkey","Assface","assh0le","assh0lez","asshole","assholes","assholz","asswipe","azzhole","bassterds","bastard","bastards","bastardz","basterds","basterdz","Biatch","bitch","bitches","Blow Job","boffing","butthole","buttwipe","c0ck","c0cks","c0k","Carpet Muncher","cawk","cawks","Clit","cnts","cntz"," cock","cockhead","cock-head","cocks","CockSucker","cock-sucker","crap","cum","cunt","cunts","cuntz","dick","dild0","dild0s","dildo","dildos","dilld0","dilld0s","dominatricks","dominatrics","dominatrix","dyke","enema","f u c k","f u c k e r","fag","fag1t","faget","fagg1t","faggit","faggot","fagit","fags","fagz","faig","faigs","fart","flipping the bird","fuck","fucker","fuckin","fucking","fucks","Fudge Packer","fuk","Fukah","Fuken","fuker","Fukin","Fukk","Fukkah","Fukken","Fukker","Fukkin","g00k","gay","gayboy","gaygirl","gays","gayz","God-damned","h00r","h0ar","h0re","hells","hoar","hoor","hoore","jackoff","jap","japs","jerk-off","jisim","jiss","jizm","jizz","knob","knobs","knobz","kunt","kunts","kuntz","Lesbian","Lezzian","Lipshits","Lipshitz","masochist","masokist","massterbait","masstrbait","masstrbate","masterbaiter","masterbate","masterbates","Motha Fucker","Motha Fuker","Motha Fukkah","Motha Fukker","Mother Fucker","Mother Fukah","Mother Fuker","Mother Fukkah","Mother Fukker","mother-fucker","Mutha Fucker","Mutha Fukah","Mutha Fuker","Mutha Fukkah","Mutha Fukker","n1gr","nastt","nigger;","nigur;","niiger;","niigr;","orafis","orgasim;","orgasm","orgasum","oriface","orifice","orifiss","packi","packie","packy","paki","pakie","paky","pecker","peeenus","peeenusss","peenus","peinus","pen1s","penas","penis","penis-breath","penus","penuus","Phuc","Phuck","Phuk","Phuker","Phukker","polac","polack","polak","Poonani","pr1c","pr1ck","pr1k","pusse","pussee","pussy","puuke","puuker","queer","queers","queerz","qweers","qweerz","qweir","recktum","rectum","retard","sadist","scank","schlong","screwing","semen","sex","sexy","Sh!t","sh1t","sh1ter","sh1ts","sh1tter","sh1tz","shit","shits","shitter","Shitty","Shity","shitz","Shyt","Shyte","Shytty","Shyty","skanck","skank","skankee","skankey","skanks","Skanky","slut","sluts","Slutty","slutz","son-of-a-bitch","tit","turd","va1jina","vag1na","vagiina","vagina","vaj1na","vajina","vullva","vulva","w0p","wh00r","wh0re","whore","xrated","xxx","b!+ch","bitch","blowjob","clit","arschloch","fuck","shit","ass","asshole","b!tch","b17ch","b1tch","bastard","bi+ch","boiolas","buceta","c0ck","cawk","chink","cipa","clits","cock","cum","cunt","dildo","dirsa","ejakulate","fatass","fcuk","fuk","fux0r","hoer","hore","jism","kawk","l3itch","l3i+ch","lesbian","masturbate","masterbat*","masterbat3","motherfucker","s.o.b.","mofo","nazi","nigga","nigger","nutsack","phuck","pimpis","pusse","pussy","scrotum","sh!t","shemale","shi+","sh!+","slut","smut","teets","tits","boobs","b00bs","teez","testical","testicle","titt","w00se","jackoff","wank","whoar","whore","*damn","*dyke","*fuck*","*shit*","@$$","amcik","andskota","arse*","assrammer","ayir","bi7ch","bitch*","bollock*","breasts","butt-pirate","cabron","cazzo","chraa","chuj","Cock*","cunt*","d4mn","daygo","dego","dick*","dike*","dupa","dziwka","ejackulate","Ekrem*","Ekto","enculer","faen","fag*","fanculo","fanny","feces","feg","Felcher","ficken","fitt*","Flikker","foreskin","Fotze","Fu(*","fuk*","futkretzn","gay","gook","guiena","h0r","h4x0r"," hell ","helvete","hoer*","honkey","Huevon","hui","injun","jizz","kanker*","kike","klootzak","kraut","knulle","kuk","kuksuger","Kurac","kurwa","kusi*","kyrpa*","lesbo","mamhoon","masturbat*","merd*","mibun","monkleigh","mouliewop","muie","mulkku","muschi","nazis","nepesaurio","nigger*","orospu","paska*","perse","picka","pierdol*","pillu*","pimmel","piss*","pizda","poontsee","poop","porn","p0rn","pr0n","preteen","pula","pule","puta","puto","qahbeh","queef*","rautenberg","schaffer","scheiss*","schlampe","schmuck","screw","sh!t*","sharmuta","sharmute","shipal","shiz","skribz","skurwysyn","sphencter","spic","spierdalaj","splooge","suka","b00b*","testicle*","titt*","twat","vittu","wank*","wetback*","wichser","wop*","zabourah"];
+function containsProfanity(value, { req }) {
+  // Terms that should only match as whole words (using word boundaries)
+  const wholeWordTerms = [
+    "ass", "bitch", "bitches", "bastard", "bastards", "cock", "cocks",
+    "cunt", "cunts", "dick", "fag", "fags", "faggot", "fuck", "fucker",
+    "fucking", "fucks", "gay", "hell", "hore", "whore", "jizz", "kike",
+    "nigger", "nigga", "piss", "porn", "poop", "puta", "puto", "queer",
+    "queers", "sex", "sexy", "shit", "shits", "slut", "sluts", "tit",
+    "tits", "twat", "wank", "crap", "cum", "dyke", "retard", "spic",
+    "nazi", "nazis", "wetback", "chink", "gook", "wop", "jap", "japs",
+    "lesbo", "lesbian", "orgasm", "penis", "vagina", "vulva", "semen",
+    "scrotum", "rectum", "anus", "dildo", "enema", "sadist", "smut",
+    "skank", "boobs", "testicle"
+  ];
 
-  if (substringsArray.some(function(v) { if (value.indexOf(v) >= 0) {console.log(v)}; return value.indexOf(v) >= 0; })) {
-     console.log('containsProfanity fail')
-    // console.log('containsProfanity fail')
-    return false
-  }
-  // if (substringsArray.some(substring=>yourBigString.includes(substring))) {
+  // Terms that are unambiguous enough to match as substrings
+  const substringTerms = [
+    "000***", "brokerage", "pharm", "blockchain", "@Cryptaxbot",
+    "@FeedbackMessages", "messages exploitation", "Financial Strategic Firm",
+    "Business Financial Team", "http://", "https://", "wininphone",
+    "corta.co", "cryptocurrency", "adultdating", "forex",
+    "asshole", "assh0le", "asswipe", "azzhole", "butthole", "buttwipe",
+    "c0ck", "c0k", "cockhead", "cocksucker", "cock-sucker",
+    "clit", "dild0", "dilld0", "dominatrix", "f u c k", "f u c k e r",
+    "fag1t", "fagg1t", "faggit", "fagit", "faig", "blowjob", "blow job",
+    "jackoff", "jerk-off", "jisim", "jizm", "knob", "kunt", "masterbat",
+    "masturbat", "motherfucker", "mother-fucker", "mutha", "motha",
+    "niigr", "n1gr", "orifice", "orgasim", "pecker", "peeenus", "peenus",
+    "pen1s", "phuc", "phuck", "phuk", "poonani", "pr1ck", "pusse",
+    "pussee", "pussy", "recktum", "scank", "schlong", "sh1t", "shitter",
+    "skanck", "son-of-a-bitch", "va1jina", "vag1na", "vagiina",
+    "xrated", "xxx", "b!tch", "b1tch", "b17ch", "bi+ch", "l3itch",
+    "fcuk", "fux0r", "nutsack", "pimpis", "shemale", "w00se",
+    "s.o.b.", "mofo", "polack", "pula", "kurwa", "wichser"
+  ];
 
-  // }
-  else{
-    // console.log('containsProfanity sucess')
-     console.log(value)
-    return value
+  const lowerValue = value.toLowerCase();
+
+  // Check whole-word matches using word boundaries
+  for (const term of wholeWordTerms) {
+    const regex = new RegExp(`\\b${term}\\b`, "i");
+    if (regex.test(value)) {
+      console.log("containsProfanity fail (whole word):", term);
+      return false;
+    }
   }
+
+  // Check substring matches (for leet-speak, deliberate obfuscations, spam keywords)
+  for (const term of substringTerms) {
+    if (lowerValue.includes(term.toLowerCase())) {
+      console.log("containsProfanity fail (substring):", term);
+      return false;
+    }
+  }
+
+  return value;
 }
 
 function containsDodgyEmail(value,{req}){
