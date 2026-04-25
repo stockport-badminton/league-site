@@ -49,7 +49,7 @@ exports.get_gallery = function(req, res) {
         else{
             // console.log(JSON.parse(response.body).resources);
             let justwebsite = JSON.parse(response.body).resources.filter(asset => asset.tags.some(tag => tag == 'website'))
-            let years = [2025,2024,2023,2022,2021]
+            let years = [2026,2025,2024,2023,2022,2021]
             let othertags = ["messer","tournament","presentations","other"]
             let galleryObj = {}
             let galleryItem = []
