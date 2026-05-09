@@ -3,7 +3,7 @@
 
 
 
-<div class="col-md-4">
+<div class="col-md-8">
 <h1>News</h1>
 
       <p class="lead">
@@ -84,27 +84,30 @@
       </div>
     <% }) %>
   </div>
-</div>
-<div class="col-md-4">
-  <h1>Upcoming Fixtures</h1>
-  <% if (typeof row !== 'undefined') { %>
-  <% row.forEach(function(result){ %>
-    <div class="row">
-    <%
-      var MyDate = new Date(result['date']);
-      var MyDateString;
+  <% if (typeof row !== 'undefined' && row.length > 0) { %>
+  <div class="col-12">
+    <h1>Upcoming Fixtures</h1>
+    
+    <% row.forEach(function(result){ %>
+      <div class="row">
+      <%
+        var MyDate = new Date(result['date']);
+        var MyDateString;
 
-      // MyDate.setDate(MyDate.getDate() + 20);
+        // MyDate.setDate(MyDate.getDate() + 20);
 
-      MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
-                   + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
-                   + MyDate.getFullYear();
-    %>
-    <div class="col-3"><%= MyDateString %></div>
-    <div class="col"><a href="<%= '/event/' + result.id + '/' + MyDateString.replaceAll("/","") + '-' + result.homeTeam + '-' + result.awayTeam %>"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></a></div>
+        MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                    + MyDate.getFullYear();
+      %>
+      <div class="col-3"><%= MyDateString %></div>
+      <div class="col"><a href="<%= '/event/' + result.id + '/' + MyDateString.replaceAll("/","") + '-' + result.homeTeam + '-' + result.awayTeam %>"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></a></div>
+    </div>
+    <% })  %>
   </div>
-  <% }) } %>
+  <% } %>
 </div>
+
 
 <%- include('GeneraNoteModal.ejs') %>
 <%- include('BaxterModal.ejs') %>
