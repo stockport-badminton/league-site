@@ -4569,3 +4569,65 @@ static/beta/docs/Parrswood.docx
 logs.log
 My Document.docx
 delete-package-lock.json
+_amplience/convertcsv.js
+_amplience/cskadslist.json
+_amplience/data.json
+_amplience/emptyFolder.json
+_amplience/find-empty-folders.js
+_amplience/find-venue-routes.js
+_amplience/folderResponse.json
+_amplience/fuzzy-match.js
+_amplience/id-label.json
+_amplience/new-empty-folders.js
+_amplience/output/full-matched.json
+_amplience/output/matched.json
+_amplience/output/new-matched.json
+_amplience/output/slack-map.json
+_amplience/output/unmatched_list1.json
+_amplience/output/unmatched_list2.json
+_tameside/controllers/altFixtureGen.js
+_tameside/models/tameside-fixtures.js
+_tools/knockoutFixtures.js
+_tools/controllers/claudeFixGen.js
+_tools/controllers/clean-template-vision.js
+_tools/controllers/find-corner-anchors-old.js
+_tools/controllers/find-corner-anchors.js
+_tools/controllers/region-visualizer.js
+_tools/scorecard-analysis/03-enhanced.jpg
+_tools/scorecard-analysis/20252026-Macclesfield+A-Racketeers+B+corners.jpg
+_tools/scorecard-analysis/20252026-Mellor+C-College+Green+E+corners.jpg
+_tools/scorecard-analysis/20252026-Remnants+A-Syddal+Park+A+corners.jpeg
+_tools/scorecard-analysis/annotated-1764944176442.jpg
+_tools/scorecard-analysis/annotated-1764944681873.jpg
+_tools/scorecard-analysis/original-1764944176442.jpg
+_tools/scorecard-analysis/original-1764944681873.jpg
+_tools/scorecard-analysis/report-1764944176442.html
+_tools/scorecard-analysis/report-1764944681873.html
+_tools/views/claude.ejs
+_tools/views/claudev2.ejs
+static/beta/images/generated/20252026-College+Green+A-Syddal+Park+A.jpg
+static/beta/images/generated/20252026-College+Green+D-Cheadle+Hulme+B (1).jpeg
+static/beta/images/generated/20252026-Macclesfield+A-Racketeers+B.jpg
+static/beta/images/generated/20252026-Macclesfield+A-Racketeers+B+corners.jpg
+static/beta/images/generated/20252026-Mellor+C-College+Green+E.jpg
+static/beta/images/generated/20252026-Mellor+C-College+Green+E+corners.jpg
+static/beta/images/generated/20252026-Remnants+A-Syddal+Park+A.jpeg
+static/beta/images/generated/20252026-Remnants+A-Syddal+Park+A+corners.jpeg
+static/beta/images/generated/Mellor-AMellor-B-Ig.jpg
+static/beta/images/generated/Mellor-AMellor-B.jpg
+static/beta/docs/Canute.docx
+static/beta/docs/Cheadle Hulme.docx
+static/beta/docs/College Green.docx
+static/beta/docs/David Lloyd.docx
+static/beta/docs/Disley.docx
+static/beta/docs/Dome.docx
+static/beta/docs/GHAP.docx
+static/beta/docs/Macclesfield.docx
+static/beta/docs/Manor.docx
+static/beta/docs/Mellor.docx
+static/beta/docs/No Te.docx
+static/beta/docs/Racketeers.docx
+static/beta/docs/Remnants.docx
+static/beta/docs/Shell.docx
+static/beta/docs/Syddal Park.docx
+static/beta/docs/Tatton.docx
