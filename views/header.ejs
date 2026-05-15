@@ -6,13 +6,89 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title><%= title %></title>
+    <title><%= pageTitle %></title>
 
     <!-- Bootstrap core CSS -->
     <link href="<%= static_path + "/bootstrap/css/theme/" + theme + "/bootstrap.css" %>" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="<%= static_path + "/bootstrap/css/jumbotron-narrow.css" %>" rel="stylesheet">
+    
+    <% if (pageTitle.indexOf("Event") >= 0){ 
+
+      var MyDate = new Date(fixtureDetails.date);
+      var MyDateString;
+
+      // MyDate.setDate(MyDate.getDate() + 20);
+
+      MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
+                   + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
+                   + MyDate.getFullYear();
+    %>
+      
+        <script type="application/ld+json">
+          {
+            "@context": "http://schema.org/Event",
+            "@type": "Event",
+            "name": "<%= fixtureDetails.homeTeam %> vs <%= fixtureDetails.homeTeam %>",
+            "startDate": "<%= MyDateString %>",
+            "url": "https://stockport-badminton.co.uk/event/<%= fixtureDetails.id %>/<%= MyDateString %>-<%= fixtureDetails.homeTeam %>-<%= fixtureDetails.awayTeam %>",
+            "location":{
+              "@type":"http://schema.org/Place",
+              "name":"<%= fixtureDetails.venueName %>",
+              "hasMap":"<%= fixtureDetails.gMapUrl %>",
+              "Lat":"<%= fixtureDetails.Lat %>",
+              "Lng":"<%= fixtureDetails.Lng %>",
+              "address":{
+                "type":"http://schema.org/PostalAddress"
+                "streetAddress":"<%= fixtureDetails.venueAddress %>"
+              }
+            }
+            "description":"Badminton match: <%= fixtureDetails.homeTeam %> vs <%= fixtureDetails.awayTeam %>",
+            "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+            "organizer":{
+              "@type":"https://schema.org/Organization",
+              "name":"<%= fixtureDetails.homeClub %>",
+              "url":"<%= typeof fixtureDetails.homeClubWebsite !== 'undefined' ? fixtureDetails.homeClubWebsite : 'https://stockport-badminton.co.uk' %>
+            }
+            "Event":{
+              "@type": "SportsEvent",
+              "name": "<%= fixtureDetails.homeTeam %> vs <%= fixtureDetails.homeTeam %>",
+              "startDate": "<%= MyDateString %>",
+              "url": "https://stockport-badminton.co.uk/event/<%= fixtureDetails.id %>/<%= MyDateString %>-<%= fixtureDetails.homeTeam %>-<%= fixtureDetails.awayTeam %>",
+              "sport":"badminton",
+              "competitor":{
+                "@type":"SportsTeam",
+                "homeTeam":"<%= fixtureDetails.homeTeam %>"
+              }
+              "competitor":{
+                "@type":"SportsTeam",
+                "awayTeam":"<%= fixtureDetails.awayTeam %>"
+              }
+              "location":{
+                "@type":"http://schema.org/Place",
+                "name":"<%= fixtureDetails.venueName %>",
+                "hasMap":"<%= fixtureDetails.gMapUrl %>",
+                "Lat":"<%= fixtureDetails.Lat %>",
+                "Lng":"<%= fixtureDetails.Lng %>",
+                "address":{
+                  "type":"http://schema.org/PostalAddress"
+                  "streetAddress":"<%= fixtureDetails.venueAddress %>"
+                }
+              }
+              "description":"Badminton match: <%= fixtureDetails.homeTeam%> vs <%= fixtureDetails.awayTeam %>",
+              "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+              "organizer":{
+                "@type":"https://schema.org/Organization",
+                "name":"<%= fixtureDetails.homeClub %>",
+                "url":"<%= typeof fixtureDetails.homeClubWebsite !== 'undefined' ? fixtureDetails.homeClubWebsite : 'https://stockport-badminton.co.uk' %>
+              }
+            }
+          </script>
+
+    <%  }
+
+     } %>
 
   </head>
 

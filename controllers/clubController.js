@@ -68,7 +68,8 @@ exports.club_list_detail = function(req, res, next) {
             newClubArray.push(newClubElem)
             newClubArray.shift()
             // console.log(JSON.stringify(newClubArray))
-
+            console.log(newClubArray)
+            console.log(JSON.stringify(venueRows))
             res.status(200);
             res.render('beta/club-v2', {
                  static_path: '/static',

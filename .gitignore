@@ -4538,3 +4538,34 @@ package-lock.json
 rootfiles/sw3.js
 rootfiles/swv2.js
 controllers/Senior Product Owner - Thinkmoney.md
+node_modules
+.DS_Store
+.env
+dev.env
+static/beta/images/generated/B-tournament-social.png
+static/beta/images/generated/c-tournament-social.png
+static/beta/images/generated/College-Green-CCollege-Green-C.jpg
+static/beta/images/generated/College-GreenGHAP.jpg
+static/beta/images/generated/Dome-BManor-A.jpg
+static/beta/images/generated/league-table-\[object Object].png
+static/beta/images/generated/league-table-Division 1 (1).png
+static/beta/images/generated/league-table-Division 1.png
+static/beta/images/generated/league-table-Division 2.png
+static/beta/images/generated/league-table-Division 3.png
+static/beta/images/generated/league-table-merged.png
+static/beta/images/generated/league-table-Premier.png
+static/beta/images/generated/league-table-undefined.png
+static/beta/images/generated/Manor-ADisley-B.jpg
+static/beta/images/generated/open-tournament-social.png
+static/beta/images/generated/Parrswood-BDome-A.jpg
+static/beta/images/generated/supervet-tournament-social.png
+.vscode/launch.json
+.vscode/settings.json
+static/beta/docs/Aerospace.docx
+static/beta/docs/Alderley Park.docx
+static/beta/docs/OpenEntryForm2223.doc
+static/beta/docs/OpenLetter2018.doc
+static/beta/docs/Parrswood.docx
+logs.log
+My Document.docx
+delete-package-lock.json

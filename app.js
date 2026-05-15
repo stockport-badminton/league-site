@@ -206,29 +206,40 @@
 
     const { createCanvas, loadImage } = require('canvas')
     const canvas = createCanvas(1080, 1350)
+    const igStoryCanvas = createCanvas(1080,1920)
     const ctx = canvas.getContext('2d')
+    const igStoryCtX = igStoryCanvas.getContext('2d')
 
     router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division',function(req,res,next){
       loadImage('static/beta/images/bg/social-'+ req.params.division.replace(/([\s]{1,})/g,'-') +'.png').then((image) => {
         ctx.drawImage(image, 0,0,1080, 1350)
+        igStoryCtX.drawImage(image, 0,0,1080, 1920)
         ctx.font = 'bold 60px Arial'
+        igStoryCtX.font = 'bold 60px Arial'
         ctx.fillStyle = 'White'
+        igStoryCtX.fillStyle = 'White'
         ctx.textAlign = 'right'
+        igStoryCtX.textAlign = 'right'
         var text = "Result: "+ req.params.homeTeam +" vs <br> "+ req.params.awayTeam +" <br> "+ req.params.homeScore +"-"+ req.params.awayScore +" <br> #stockport #badminton #sdbl #result https://stockport-badminton.co.uk"
         var words = text.split(' ');
         var line = '';
         var y = canvas.height/2 + canvas.width/4;
         var x = (canvas.width - 100);
+        var Igy = igStoryCanvas.height/2 + igStoryCanvas.width/4;
+        var Igx = (igStoryCanvas.width - 100);
         var lineHeight = 80;
         for(var n = 0; n < words.length; n++) {
           if (line.indexOf('#') > -1 || line.indexOf('http') > -1){
             ctx.font = 'normal 30px Arial';
+            igStoryCtX.font = 'normal 30px Arial';
             lineHeight = 40;
           }
           if (words[n] == '<br>'){
             ctx.fillText(line, x, y);
+            igStoryCtX
             line = '';
             y += lineHeight;
+            Igy += lineHeight
           }
           else {
             var testLine = line + words[n] + ' ';
@@ -236,8 +247,10 @@
             var testWidth = metrics.width;
             if (testWidth > 900 && n > 0) {
               ctx.fillText(line, x, y);
+              igStoryCtX.fillText(line, Igx, Igy);
               line = words[n] + ' ';
               y += lineHeight;
+              Igy += lineHeight
             }
             else {
               line = testLine;
@@ -245,12 +258,18 @@
           }
         }
         ctx.fillText(line, x, y);
+        igStoryCtX.fillText(line, Igx, Igy);
           const buffer = canvas.toBuffer("image/jpeg");
+          const Igbuffer = canvas.toBuffer("image/jpeg");
           const fs = require('fs')
           const out = fs.createWriteStream('static/beta/images/generated/'+ req.params.homeTeam.replace(/([\s]{1,})/g,'-') + req.params.awayTeam.replace(/([\s]{1,})/g,'-') +'.jpg')
+          const Igout = fs.createWriteStream('static/beta/images/generated/'+ req.params.homeTeam.replace(/([\s]{1,})/g,'-') + req.params.awayTeam.replace(/([\s]{1,})/g,'-') +'-Ig.jpg')
           const stream = canvas.createJPEGStream()
+          const Igstream = igStoryCanvas.createJPEGStream()
           stream.pipe(out)
           out.on('finish', () =>  console.log('The Jpg file was created.'))
+          Igstream.pipe(Igout)
+          Igout.on('finish', () =>  console.log('The Ig Jpg file was created.'))
           res.write(buffer)
           res.end();
       })

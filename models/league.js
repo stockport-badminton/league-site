@@ -145,4 +145,132 @@ exports.getAllLeagueTables = async function(season,done){
 }
 
 
+exports.getAllLeagueTablesWithTopBottomDetails = async function(season,done){
+  if (season === undefined){
+    seasonName = ''
+    divisionSeason = ''
+    season = SEASON
+  }
+  else {
+    seasonName = season + ' as team'
+    divisionSeason = season + ' as division'
+  }
+  try {
+		 let [result] = await (await db.otherConnect()).query(`WITH standings AS (
+    SELECT
+        d.name AS divisionName,
+        d.id AS division,
+        t.id AS teamId,
+        t.name AS teamName,
+        t.divRank,
+        s.played,
+        s.remaining,
+        (s.pointsFor - t.penalties) AS pointsFor,
+        s.pointsAgainst,
+        (s.pointsFor - t.penalties) + (18 * s.remaining) AS maxScore
+    FROM (
+        SELECT
+            x.teamId,
+            SUM(x.played) AS played,
+            SUM(x.remaining) AS remaining,
+            SUM(x.pointsFor) AS pointsFor,
+            SUM(x.pointsAgainst) AS pointsAgainst
+        FROM (
+            SELECT
+                f.homeTeam AS teamId,
+                CASE WHEN f.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played,
+                CASE WHEN f.homeScore IS NOT NULL THEN 0 ELSE 1 END AS remaining,
+                f.homeScore AS pointsFor,
+                f.awayScore AS pointsAgainst
+            FROM fixture f
+            JOIN season se
+              ON f.date > se.startDate
+             AND f.date < se.endDate
+            WHERE se.name = ?
+              AND (
+                    f.status IN ('conceded', 'complete', '', 'outstanding')
+                    OR f.status IS NULL
+                  )
+
+            UNION ALL
+
+            SELECT
+                f.awayTeam AS teamId,
+                CASE WHEN f.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played,
+                CASE WHEN f.awayScore IS NOT NULL THEN 0 ELSE 1 END AS remaining,
+                f.awayScore AS pointsFor,
+                f.homeScore AS pointsAgainst
+            FROM fixture f
+            JOIN season se
+              ON f.date > se.startDate
+             AND f.date < se.endDate
+            WHERE se.name = ?
+              AND (
+                    f.status IN ('conceded', 'complete', '', 'outstanding')
+                    OR f.status IS NULL
+                  )
+        ) x
+        GROUP BY x.teamId
+    ) s
+    JOIN team${ seasonName } t
+      ON t.id = s.teamId
+    JOIN division${ divisionSeason } d
+      ON d.id = t.division
+    WHERE d.league = 1
+),
+
+division_comparison AS (
+    SELECT
+        s1.division,
+        s1.teamId,
+        MAX(s2.maxScore) AS maxOtherMaxScore,
+        MIN(s2.pointsFor) AS minOtherCurrentScore
+    FROM standings s1
+    LEFT JOIN standings s2
+      ON s1.division = s2.division
+     AND s1.teamId <> s2.teamId
+    GROUP BY s1.division, s1.teamId
+)
+SELECT
+    s.divisionName,
+    s.division,
+    s.teamName,
+    s.remaining,
+    s.played,
+    s.pointsFor,
+    s.pointsAgainst,
+    s.divRank,
+    s.maxScore,
+
+    CASE
+        WHEN s.pointsFor > dc.maxOtherMaxScore THEN 1
+        ELSE 0
+    END AS alreadyWonDivision,
+
+    CASE
+        WHEN s.maxScore < dc.minOtherCurrentScore THEN 1
+        ELSE 0
+    END AS alreadyBottom,
+
+    CASE
+        WHEN s.pointsFor > dc.maxOtherMaxScore THEN 0
+        WHEN s.pointsFor + (18 * s.remaining) <= dc.maxOtherMaxScore THEN NULL
+        ELSE FLOOR((dc.maxOtherMaxScore - s.pointsFor) / 18) + 1
+    END AS winsNeededToFinishTop
+
+FROM standings s
+JOIN division_comparison dc
+  ON dc.division = s.division
+ AND dc.teamId = s.teamId
+ORDER BY s.division, s.pointsFor DESC, s.divRank
+LIMIT 100
+`,[season,season])
+		done(null,result)
+	}
+	catch (err) {
+		return done (err);
+}
+}
+
+
 
