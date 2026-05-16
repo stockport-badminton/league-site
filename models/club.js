@@ -25,10 +25,10 @@ exports.getAll = async function() {
 
 exports.clubDetail = async function() {
   const [result] = await (await db.otherConnect()).query(`SELECT
-  club.id AS clubId,
+  club.id AS "clubId",
   club.name,
-  team.name AS teamName,
-  team."matchDay" AS matchDay,
+  team.name AS "teamName",
+  team."matchDay" AS "matchDay",
   venue.name AS clubvenue,
   venue."gMapUrl" AS clubgmap,
   venue.address AS clubaddress,
@@ -45,7 +45,7 @@ FROM
   JOIN venue ON venue.id = club.venue
   JOIN venue teamvenue ON teamvenue.id = team.venue
 ORDER BY
-  name, teamName
+  name, "teamName"
 `)
   return result
 }
