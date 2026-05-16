@@ -1,24 +1,26 @@
 var League = require('../models/league.js');
 
 // Display list of all Leagues
-exports.league_list = function(req, res) {
-    League.getAll(function(err,rows){
-      if (err){
-        console.log(err);
-        res.send(err);
-      }
-      // console.log(rows);
-      res.send(rows);
-    })
+exports.league_list = async function(req, res, next) {
+  try {
+    const rows = await League.getAll();
+    // console.log(rows);
+    res.send(rows);
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
 };
 
 // Display detail page for a specific League
-exports.league_detail = function(req, res) {
-    League.getById(req.params.id,function(err,row){
-      // console.log(row);
-      res.send(row);
-    })
-    // res.send('NOT IMPLEMENTED: League detail: ' + req.params.id);
+exports.league_detail = async function(req, res, next) {
+  try {
+    const row = await League.getById(req.params.id);
+    // console.log(row);
+    res.send(row);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Display League create form on GET
@@ -27,25 +29,30 @@ exports.league_create_get = function(req, res) {
 };
 
 // Handle League create on POST
-exports.league_create_post = function(req, res) {
-  League.create(req.body.name, req.body.admin, req.body.url, function(err,row){
+exports.league_create_post = async function(req, res, next) {
+  try {
+    const row = await League.create(req.body.name, req.body.admin, req.body.url);
     // console.log(req.body);
     // console.log(row);
     res.send(row);
-  })
-  res.send('NOT IMPLEMENTED: League create POST');
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Handle League delete on DELETE
-exports.league_delete = function(req, res) {
-    League.deleteById(req.params.id,function(err,row){
-      // console.log(req.params)
-      // console.log(row);
-      res.send(row);
-    })
+exports.league_delete = async function(req, res, next) {
+  try {
+    const row = await League.deleteById(req.params.id);
+    // console.log(req.params)
+    // console.log(row);
+    res.send(row);
+  } catch (err) {
+    next(err);
+  }
 };
 
-// Displey League delete on GET
+// Display League delete on GET
 exports.league_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: League delete GET');
 };
@@ -56,64 +63,58 @@ exports.league_update_get = function(req, res) {
 };
 
 // Handle League update on PATCH
-exports.league_update = function(req, res) {
-    League.updateById(req.body.name, req.body.admin, req.body.url, req.params.id, function(err,row){
-      // console.log(req.body);
-      // console.log(row);
-      res.send(row);
-    })
+exports.league_update = async function(req, res, next) {
+  try {
+    const row = await League.updateById(req.body.name, req.body.admin, req.body.url, req.params.id);
+    // console.log(req.body);
+    // console.log(row);
+    res.send(row);
+  } catch (err) {
+    next(err);
+  }
 };
-
-var League = require('../models/league.js');
 
 // Display list of all Leagues
-exports.league_table = function(req,res,next) {
-
-  
-    League.getLeagueTable(req.params.division,req.params.season,function(err,result){
-      if (err){
-        console.log(err);
-        next(err);
-      }
-      else{
-          // console.log(result)
-          res.status(200);
-         res.render('beta/tables', {
-             static_path: '/static',
-             theme: process.env.THEME || 'flatly',
-             flask_debug: process.env.FLASK_DEBUG || 'false',
-             pageTitle : "League Table: "+ req.params.division.replace('-',' '),
-             pageDescription : "Find out how your teams are peforming this season",
-             division : req.params.division.replace('-',' '),
-             result : result,
-             error : err,
-             season:req.params.season,
-             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-         });
-      }
-    })
+exports.league_table = async function(req, res, next) {
+  try {
+    const result = await League.getLeagueTable(req.params.division, req.params.season);
+    // console.log(result)
+    res.status(200);
+    res.render('beta/tables', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle : "League Table: "+ req.params.division.replace('-',' '),
+        pageDescription : "Find out how your teams are peforming this season",
+        division : req.params.division.replace('-',' '),
+        result : result,
+        error : false,
+        season: req.params.season,
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+    });
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
 };
 
-exports.all_league_tables = function(req,res,next) {
-
-    League.getAllLeagueTables(req.params.season,function(err,result){
-      if (err){
-        console.log(err);
-        next(err);
-      }
-      else{
-          // console.log(result)
-          res.status(200);
-         res.render('beta/all-tables', {
-             static_path: '/static',
-             theme: process.env.THEME || 'flatly',
-             flask_debug: process.env.FLASK_DEBUG || 'false',
-             pageTitle : "League Tables",
-             pageDescription : "Find out how your teams are peforming this season",
-             result : result,
-             season:req.params.season,
-             canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-         });
-      }
-    })
+exports.all_league_tables = async function(req, res, next) {
+  try {
+    const result = await League.getAllLeagueTables(req.params.season);
+    // console.log(result)
+    res.status(200);
+    res.render('beta/all-tables', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle : "League Tables",
+        pageDescription : "Find out how your teams are peforming this season",
+        result : result,
+        season: req.params.season,
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+    });
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
 };

@@ -16,16 +16,11 @@ const fs = require('fs');
 const { networkInterfaces } = require('node:os');
 const { find } = require('async');
 
-let  SEASON = '';
-let FIRSTYEAR = ''
- if (new Date().getMonth() < 6){
-   SEASON = '' + new Date().getFullYear()-1 +'/'+ new Date().getFullYear();
-   FIRSTYEAR = '' + new Date().getFullYear()-1
- }
- else {
-   SEASON = '' + new Date().getFullYear() +'/'+ (new Date().getFullYear()+1);
-   FIRSTYEAR = '' + new Date().getFullYear()
- }
+const year = new Date().getFullYear()
+const SEASON = new Date().getMonth() < 7
+  ? `${year - 1}/${year}`
+  : `${year}/${year + 1}`
+const FIRSTYEAR = new Date().getMonth() < 7 ? `${year - 1}` : `${year}`
 
 exports.generateContactUsHTML = function(message, email) {
   return `
@@ -447,103 +442,79 @@ exports.validateContactUs = [
     .withMessage('Please complete the reCAPTCHA verification')
 ]
 
-exports.contactus = function(req, res,next){
+exports.contactus = async function(req, res, next) {
   var errors = validationResult(req);
   if (!errors.isEmpty()) {
-      console.log("errors array");
-      for (i of errors.array()){
-        console.log(i)
-      }
-      // console.log(errors.array());
-      res.render('beta/contact-us-form-delivered', {
-        pageTitle: 'Contact Us - Error',
-        pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
-        message: 'Sorry something went wrong',
-        static_path:'/static',
-        theme:'flatly',
-        content: errors.array(),
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-      });
-      return;
+    console.log("errors array");
+    for (i of errors.array()) {
+      console.log(i)
+    }
+    res.render('beta/contact-us-form-delivered', {
+      pageTitle: 'Contact Us - Error',
+      pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
+      message: 'Sorry something went wrong',
+      static_path: '/static',
+      theme: 'flatly',
+      content: errors.array(),
+      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+    });
+    return;
   }
-  else {
 
   const msg = {
     to: '',
     cc: 'stockport.badders.results@gmail.com',
     from: 'stockport.badders.results@stockport-badminton.co.uk',
     replyto: req.body.contactEmail,
-    templateId:'d-53fc74c4a6cc4b85bb3126418087cf0b',
-    dynamic_template_data:{
-      "message":req.body.contactQuery,
-      "email":req.body.contactEmail
+    templateId: 'd-53fc74c4a6cc4b85bb3126418087cf0b',
+    dynamic_template_data: {
+      "message": req.body.contactQuery,
+      "email": req.body.contactEmail
     }
   };
-    var clubEmail = '';
-    
-    if(req.body.contactType == 'Clubs'){
+
+  try {
+    if (req.body.contactType == 'Clubs') {
       console.log(`clubSelect ${req.body.clubSelect}`)
-      Club.getContactDetailsById(req.body.clubSelect, function(err,rows){
-        if (err){
-          console.log(err);
-          next(err);
-        }
-        else {
-          // msg.to = rows[0].contactUs;
-          // console.log(JSON.stringify(rows))
-          var params = {
-            Destination: { /* required */
-              ToAddresses: [              
-              ],
-              BccAddresses:['stockport.badders.results@gmail.com','bigcoops@outlook.com']
-              
-            },
-            Message: { /* required */
-              Body: {
-                Html: {
-                  Charset: 'UTF-8',
-                  Data: exports.generateContactUsHTML(req.body.contactQuery,req.body.contactEmail)
-                }
-                },
-                Subject: {
-                Charset: 'UTF-8',
-                Data: 'Somebody is trying to get in touch'
-                }
-              },
-            Source: 'results@stockport-badminton.co.uk', /* required */
-            ReplyToAddresses: [
-              'stockport.badders.results@gmail.com',req.body.contactEmail
-            ],
-          };
-          params.Destination.ToAddresses = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : [rows[0].clubSecEmail]);
-          //sgMail.send(msg)
-          var ses = new AWS.SES({apiVersion: '2010-12-01'});
-          const sendPromise = ses.sendEmail(params).promise();
-          sendPromise
-            .then(()=>{
-              console.log(msg);
-              res.render('beta/contact-us-form-delivered', {
-                  static_path: '/static',
-                  theme: process.env.THEME || 'flatly',
-                  flask_debug: process.env.FLASK_DEBUG || 'false',
-                  pageTitle: 'Contact Us - Success',
-                  pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
-                  message: 'Success - we\'ve sent your email to your chosen contact',
-                  canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-              });
-            })
-            .catch(error => {
-              console.log(error.toString());
-              return next("Sorry something went wrong sending your email.");
-            })
-        }
-      })
-      
+      const rows = await Club.getContactDetailsById(req.body.clubSelect);
+      var params = {
+        Destination: {
+          ToAddresses: [],
+          BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
+        },
+        Message: {
+          Body: {
+            Html: {
+              Charset: 'UTF-8',
+              Data: exports.generateContactUsHTML(req.body.contactQuery, req.body.contactEmail)
+            }
+          },
+          Subject: {
+            Charset: 'UTF-8',
+            Data: 'Somebody is trying to get in touch'
+          }
+        },
+        Source: 'results@stockport-badminton.co.uk',
+        ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
+      };
+      params.Destination.ToAddresses = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : [rows[0].clubSecEmail]);
+      var ses = new AWS.SES({ apiVersion: '2010-12-01' });
+      await ses.sendEmail(params).promise();
+      console.log(msg);
+      res.render('beta/contact-us-form-delivered', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle: 'Contact Us - Success',
+        pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
+        message: 'Success - we\'ve sent your email to your chosen contact',
+        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      });
     }
-    if (req.body.contactType == 'League'){
+    if (req.body.contactType == 'League') {
       switch (req.body.leagueSelect) {
         case 'results':
-          msg.to = ['stockport.badders.results@gmail.com','neil.cooper.241180@gmail.com']
+          msg.to = ['stockport.badders.results@gmail.com', 'neil.cooper.241180@gmail.com']
           msg.cc = null;
           break;
         case 'tournament':
@@ -570,60 +541,48 @@ exports.contactus = function(req, res,next){
         default:
       }
       var params = {
-        Destination: { /* required */
-          ToAddresses: [              
-          ],
-          BccAddresses:['stockport.badders.results@gmail.com','bigcoops@outlook.com']
-          
+        Destination: {
+          ToAddresses: [],
+          BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
         },
-        Message: { /* required */
+        Message: {
           Body: {
             Html: {
               Charset: 'UTF-8',
-              Data: exports.generateContactUsHTML(req.body.contactQuery,req.body.contactEmail)
-            }
-            },
-            Subject: {
-            Charset: 'UTF-8',
-            Data: 'Somebody is trying to get in touch'
+              Data: exports.generateContactUsHTML(req.body.contactQuery, req.body.contactEmail)
             }
           },
-        Source: 'results@stockport-badminton.co.uk', /* required */
-        ReplyToAddresses: [
-          'stockport.badders.results@gmail.com',req.body.contactEmail
-        ],
+          Subject: {
+            Charset: 'UTF-8',
+            Data: 'Somebody is trying to get in touch'
+          }
+        },
+        Source: 'results@stockport-badminton.co.uk',
+        ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
       };
       params.Destination.ToAddresses = msg.to;
-      //sgMail.send(msg)
-      var ses = new AWS.SES({apiVersion: '2010-12-01'});
-      const sendPromise = ses.sendEmail(params).promise();
-      sendPromise
-      .then(()=>{
-        console.log(msg);
-        res.render('beta/contact-us-form-delivered', {
-            static_path: '/static',
-            theme: process.env.THEME || 'flatly',
-            flask_debug: process.env.FLASK_DEBUG || 'false',
-            pageTitle: 'Contact Us - Success',
-            pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
-            message: 'Success - we\'ve sent your email to your chosen contact',
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-        });
-      })
-      .catch(error => {
-        console.log(error.toString());
-        return next("Sorry something went wrong sending your email.");
-      })
+      var ses = new AWS.SES({ apiVersion: '2010-12-01' });
+      await ses.sendEmail(params).promise();
+      console.log(msg);
+      res.render('beta/contact-us-form-delivered', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        flask_debug: process.env.FLASK_DEBUG || 'false',
+        pageTitle: 'Contact Us - Success',
+        pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
+        message: 'Success - we\'ve sent your email to your chosen contact',
+        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      });
     }
+  } catch (error) {
+    console.log(error.toString());
+    return next("Sorry something went wrong sending your email.");
   }
 }
-let outputs = []
-
-exports.send_invoices = function(req, res, next) {
-  let outputs = [];
-  League.getAnnualInvoices(req.params.club,async function(err, rows) {
+exports.send_invoices = async function(req, res, next) {
+  try {
+    const rows = await League.getAnnualInvoices(req.params.club);
     let invoiceDate = new Date(`09-01-${FIRSTYEAR}`);
-    // let invoiceDate = new Date(`06-06-2025`);
     let today = new Date();
     let dateCheck = today.getMonth() === invoiceDate.getMonth() && today.getFullYear() === invoiceDate.getFullYear() && today.getDate() === invoiceDate.getDate();
 
@@ -632,6 +591,7 @@ exports.send_invoices = function(req, res, next) {
 
     const ejs = require('ejs');
     let allData = [];
+    let outputs = [];
 
     for (let club of rows) {
       let data = {};
@@ -645,7 +605,6 @@ exports.send_invoices = function(req, res, next) {
 
       let clubTotal = club.teamsCount * 20;
 
-      // Get fines for the specific club
       let fineRows = rows.filter(fine => fine.clubId === club.clubId);
       for (let fine of fineRows) {
         if (fine.desc !== null) {
@@ -660,65 +619,51 @@ exports.send_invoices = function(req, res, next) {
       if (!allData.some(row => row.name === data.name)) {
         allData.push(data);
 
-        if (dateCheck) {
-          const currentData = JSON.parse(JSON.stringify(data)); // capture data by value
+        if (!dateCheck) {
+          return res.send(["not the right date for invoices"]);
+        }
 
-          ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false }, async function(err, str) {
-            if (err) {
-              console.log(err);
-              outputs.push(`${currentData.name} invoice failed: ${err}`);
-              if (outputs.length === allData.length) res.send(outputs);
-              return;
-            }
-
-            const params = {
-              Destination: {
-                //ToAddresses: [`stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`],
-                 ToAddresses: [currentData.email],
-                CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
-                //CcAddresses: [`stockport.badders.results+${currentData.name.replaceAll(' ','').replaceAll('.','')}@gmail.com`],
-                BccAddresses: [
-                  'bigcoops@outlook.com',
-                  'bigcoops@gmail.com',
-                  `stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`
-                ]
-              },
-              Message: {
-                Body: {
-                  Html: {
-                    Charset: 'UTF-8',
-                    Data: str
-                  }
-                },
-                Subject: {
+        const currentData = JSON.parse(JSON.stringify(data));
+        try {
+          const str = await ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false });
+          const params = {
+            Destination: {
+              ToAddresses: [currentData.email],
+              CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
+              BccAddresses: [
+                'bigcoops@outlook.com',
+                'bigcoops@gmail.com',
+                `stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`
+              ]
+            },
+            Message: {
+              Body: {
+                Html: {
                   Charset: 'UTF-8',
-                  Data: `Annual Invoice for ${currentData.name}`
+                  Data: str
                 }
               },
-              Source: 'results@stockport-badminton.co.uk',
-              ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
-            };
-
-            const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-            try {
-              await ses.sendEmail(params).promise();
-              outputs.push(`${currentData.name} invoice sent successfully`);
-            } catch (sendErr) {
-              console.log(sendErr.toString());
-              outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
-            }
-
-            if (outputs.length === allData.length) {
-              res.send(outputs);
-            }
-          });
-        } else {
-          res.send(["not the right date for invoices"]);
-          return;
+              Subject: {
+                Charset: 'UTF-8',
+                Data: `Annual Invoice for ${currentData.name}`
+              }
+            },
+            Source: 'results@stockport-badminton.co.uk',
+            ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
+          };
+          const ses = new AWS.SES({ apiVersion: '2010-12-01' });
+          await ses.sendEmail(params).promise();
+          outputs.push(`${currentData.name} invoice sent successfully`);
+        } catch (sendErr) {
+          console.log(sendErr.toString());
+          outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
         }
       }
     }
-  });
+    res.send(outputs);
+  } catch (err) {
+    next(err);
+  }
 }
 
 
@@ -931,74 +876,35 @@ exports.distribution_list = async function(req,res,next) {
       })
 
       if (searchObject.role || searchObject.division || searchObject.club) {
-        await Player.getEmails(searchObject, function (err, rows) {
-          if (err) {
-            console.error(err);
-            next(err)
-          }
-          else {
-            //console.log(rows);
-            if (subject.indexOf('test') == -1){
-              var tempArray = msg.to
-              msg.to = tempArray.concat(rows)
-              // params.Destination.ToAddresses = tempArray.concat(rows)
-              params.Destinations = tempArray.concat(rows)
-              nodemailconfig.bcc = tempArray.concat(rows)
-              // console.log(msg.to)
-              transporter.sendMail(nodemailconfig,(err,info) => {
-                if (err){
-                  console.error(err)
-                  next(err)
-                }
-                else {
-                  // console.log(info.envelope);
-                  console.log(info.messageId);
-                  res.sendStatus(200)
-                }     
-              });
-              
-            }
-            else {
-              msg.html = msg.html.replace("<body>","<body><p id=\"emaillist\"></p>")
-              msg.text += rows.join()
-              msg.html = msg.html.replace("<body><p id=\"emaillist\">","<body><p id=\"emaillist\">"+rows.join()+"<br/>")
-
-              nodemailconfig.html = nodemailconfig.html.replace("</body>","<p id=\"emaillist\"></p></body>")
-              nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>","<p id=\"emaillist\">"+rows.join()+"<br/></p></body>")
-              console.log("--- NODEMAIL HTML---- ")
-               console.log(nodemailconfig.html)
-              // console.log(msg.to)
-              transporter.sendMail(nodemailconfig,(err,info) => {
-                if (err){
-                  console.error(err)
-                  next(err)
-                }
-                else {
-                  console.log(info.envelope);
-                  console.log(info.messageId);
-                  res.sendStatus(200)
-                }     
-              });
-            }
-          }
-        })
-      }
-      else {
-        // console.log(msg)
-        // console.log(msg.to)
+        const rows = await Player.getEmails(searchObject);
+        if (subject.indexOf('test') == -1) {
+          var tempArray = msg.to
+          msg.to = tempArray.concat(rows)
+          params.Destinations = tempArray.concat(rows)
+          nodemailconfig.bcc = tempArray.concat(rows)
+          const info = await transporter.sendMail(nodemailconfig);
+          console.log(info.messageId);
+          res.sendStatus(200)
+        } else {
+          msg.html = msg.html.replace("<body>", "<body><p id=\"emaillist\"></p>")
+          msg.text += rows.join()
+          msg.html = msg.html.replace("<body><p id=\"emaillist\">", "<body><p id=\"emaillist\">" + rows.join() + "<br/>")
+          nodemailconfig.html = nodemailconfig.html.replace("</body>", "<p id=\"emaillist\"></p></body>")
+          nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>", "<p id=\"emaillist\">" + rows.join() + "<br/></p></body>")
+          console.log("--- NODEMAIL HTML---- ")
+          console.log(nodemailconfig.html)
+          const info = await transporter.sendMail(nodemailconfig);
+          console.log(info.envelope);
+          console.log(info.messageId);
+          res.sendStatus(200)
+        }
+      } else {
         console.log("nodeemailconfig" + JSON.stringify(nodemailconfig))
-        transporter.sendMail(nodemailconfig,(err,info) => {
-          if (err){
-            console.error(err)
-            next(err)
-          }
-          else {
-            console.log(JSON.stringify(info))
-            console.log(info.envelope);
-            console.log(info.messageId);
-            res.sendStatus(200)
-          }     
-        });
+        const info = await transporter.sendMail(nodemailconfig);
+        console.log(JSON.stringify(info))
+        console.log(info.envelope);
+        console.log(info.messageId);
+        res.sendStatus(200)
       }
       
     } catch (error) {
@@ -1084,27 +990,22 @@ exports.distribution_list = async function(req,res,next) {
   }
 
 
-exports.contactus_get = function(req, res,next) {
-  Club.getAll(function(err,rows){
-    if(err){
-       //console.log(err);
-      next(err);
-    }
-    else {
-      res.render('beta/contact-us-form', {
-        static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
-        pageTitle : "Contact Us",
-        pageDescription : "Get in touch with your league representatives, or club secretaries",
-        recaptcha : process.env.RECAPTCHA,
-        clubs:rows,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-      });
-    }
-      
-  })
-  
+exports.contactus_get = async function(req, res, next) {
+  try {
+    const rows = await Club.getAll();
+    res.render('beta/contact-us-form', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      flask_debug: process.env.FLASK_DEBUG || 'false',
+      pageTitle: "Contact Us",
+      pageDescription: "Get in touch with your league representatives, or club secretaries",
+      recaptcha: process.env.RECAPTCHA,
+      clubs: rows,
+      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 exports.generateScorecardReminderHTML = function (){

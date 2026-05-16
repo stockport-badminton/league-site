@@ -1,168 +1,165 @@
 var db = require('../db_connect.js');
 
+const year = new Date().getFullYear()
+const SEASON = new Date().getMonth() < 7
+  ? `${year - 1}${year}`
+  : `${year}${year + 1}`
+const PREVSEASON = new Date().getMonth() < 7
+  ? `${year - 2}${year - 1}`
+  : `${year - 1}${year}`
 
-var SEASON = '';
-if (new Date().getMonth() < 6){
-  SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
-  PREVSEASON = '' + new Date().getFullYear()-2 +''+ new Date().getFullYear()-1;
-}
-else {
-  SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
-  PREVSEASON = '' + new Date().getFullYear()-1 +''+ (new Date().getFullYear());
-}
-
-// POST
-exports.create = async function(name,admin,url,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('INSERT INTO `league` (`name`,`admin`,`url`) VALUES (?,?,?)',[name,admin,url])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
+exports.create = async function(name, admin, url) {
+  const [result] = await (await db.otherConnect()).query(
+    'INSERT INTO league (name,admin,url) VALUES (?,?,?)',
+    [name, admin, url]
+  )
+  return result
 }
 
+exports.getAll = async function() {
+  const [result] = await (await db.otherConnect()).query('SELECT * FROM league')
+  return result
 }
 
-// GET
-exports.getAll = async function(done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `league`')
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.getById = async function(leagueId) {
+  const [result] = await (await db.otherConnect()).query('SELECT * FROM league WHERE id = ?', leagueId)
+  return result
 }
 
-// GET
-exports.getById = async function(leagueId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `league` WHERE `id` = ?',leagueId)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.deleteById = async function(leagueId) {
+  const [result] = await (await db.otherConnect()).query('DELETE FROM league WHERE id = ?', leagueId)
+  return result
 }
 
-// DELETE
-exports.deleteById = async function(leagueId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('DELETE FROM `league` WHERE `id` = ?',leagueId)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.updateById = async function(name, admin, url, leagueId) {
+  const [result] = await (await db.otherConnect()).query(
+    'UPDATE league SET name = ?, admin = ?, url = ? WHERE id = ?',
+    [name, admin, url, leagueId]
+  )
+  return result
 }
 
-// PATCH
-exports.updateById = async function(name, admin, url, leagueId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('UPDATE `league` SET `name` = ?, `admin` = ?, `url` = ? WHERE `id` = ?',[name, admin, url, leagueId])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
-}
-
-exports.getLeagueTable = async function(division,season,done){
-  if (season === undefined){
-    seasonName = ''
-    season = SEASON;
-  }
-  else {
-    seasonName = season + ' as team'
-  }
-  division = division.replace('-',' ');
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT c.name, c.played, c.pointsFor, c.pointsAgainst FROM (SELECT team.name, b.played, b.pointsFor - team.penalties as pointsFor, b.pointsAgainst, team.division FROM (SELECT a.date, SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId FROM (SELECT fixture.date, CASE WHEN fixture.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.homeScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.homeScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, homeScore AS pointsFor, awayScore AS pointsAgainst, fixture.homeTeam AS teamId FROM fixture join season where season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate UNION ALL SELECT fixture.date, CASE WHEN fixture.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.awayScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.awayScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, awayScore AS pointsFor, homeScore AS pointsAgainst, fixture.awayTeam AS teamId FROM fixture join season where season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate) AS a GROUP BY a.teamid) AS b JOIN team'+seasonName+' WHERE team.id = b.teamId) AS c JOIN division WHERE c.division = division.id AND division.name = ? AND division.league = 1 ORDER BY pointsFor DESC',[season,season,division])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
-}
-
-exports.getAnnualInvoices = async function(clubName,done){
-  let clubString = ''
-  if (typeof clubName !== `undefined`){
-    clubString = ` WHERE club.name = '${clubName}'`
-  }
-  else {
-    clubString = ``
-  }
-	let sql = `select club.id as clubId, 
-		club.name as clubName, 
-        count(team.id) as teamsCount,
-        fines.id as fineId, 
-        fines.desc, 
-        fines.amount,
-        fineTeam.name as fineTeam,
-        fineClub.name as fineClub,
-		fines.season,
-        player.first_name as secretary,
-        CAST(AES_DECRYPT(player.playerEmail, '${process.env.DB_PI_KEY}')
-                AS CHAR) AS playerEmail
-        from
-        club join 
-        team on team.club = club.id left join
-        fines on fines.club = club.id AND ((fines.season = ? and fines.desc in ('agm')) OR  (fines.season = ? and fines.desc in ('rearrangement','card')) OR season is null) left join
-        team fineTeam on fines.team = fineTeam.id left join
-        club fineClub on fines.club = fineClub.id join
-        player on (player.club = club.id and player.clubSecretary = 1)
-        ${clubString}
-        group by clubId, clubName, fineId, fines.desc, fines.amount, secretary, playerEmail`
-	
-  console.log(sql)
-  try {	
-	let [result] = await (await db.otherConnect()).query(sql,[SEASON,PREVSEASON])
-	done(null,result)
-  }
-	catch (err) {
-		return done(err);
-}
+exports.getLeagueTable = async function(division, season) {
+  const resolvedSeason = season || SEASON
+  const teamTable = season ? `team${season} AS team` : 'team'
+  division = division.replace('-', ' ')
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT c.name, c.played, c.pointsFor, c.pointsAgainst
+     FROM (
+       SELECT team.name, b.played, b.pointsFor - team.penalties AS pointsFor, b.pointsAgainst, team.division
+       FROM (
+         SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId
+         FROM (
+           SELECT fixture.date,
+             CASE WHEN fixture."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
+             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
+             "homeScore" AS pointsFor, "awayScore" AS pointsAgainst, fixture."homeTeam" AS teamId
+           FROM fixture, season
+           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+           UNION ALL
+           SELECT fixture.date,
+             CASE WHEN fixture."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
+             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
+             "awayScore" AS pointsFor, "homeScore" AS pointsAgainst, fixture."awayTeam" AS teamId
+           FROM fixture, season
+           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+         ) AS a
+         GROUP BY a.teamId
+       ) AS b
+       JOIN ${teamTable} ON team.id = b.teamId
+     ) AS c
+     JOIN division ON c.division = division.id
+     WHERE division.name = ? AND division.league = 1
+     ORDER BY pointsFor DESC`,
+    [resolvedSeason, resolvedSeason, division]
+  )
+  return result
 }
 
-exports.getAllLeagueTables = async function(season,done){
-  if (season === undefined){
-    seasonName = ''
-    divisionSeason = ''
-    season = SEASON
-  }
-  else {
-    seasonName = season + ' as team'
-    divisionSeason = season + ' as division'
-  }
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT division.name AS divisionName, id AS division, c.name, c.played, c.pointsFor, c.pointsAgainst, c.divRank FROM (SELECT team.name, b.played, b.pointsFor - team.penalties as pointsFor, b.pointsAgainst, team.division, team.divRank FROM (SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId FROM (SELECT fixture.date, CASE WHEN fixture.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.homeScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.homeScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, homeScore AS pointsFor, awayScore AS pointsAgainst, fixture.homeTeam AS teamId FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate AND fixture.status in ("conceded","complete",NULL,"","outstanding") UNION ALL SELECT fixture.date, CASE WHEN fixture.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played, CASE WHEN fixture.awayScore > 9 THEN 1 ELSE 0 END AS gamesWon, CASE WHEN fixture.awayScore = 9 THEN 1 ELSE 0 END AS gamesDrawn, awayScore AS pointsFor, homeScore AS pointsAgainst, fixture.awayTeam AS teamId FROM fixture JOIN season WHERE season.name = ? AND fixture.date > season.startDate AND fixture.date < season.endDate AND fixture.status in ("conceded","complete",NULL,"","outstanding")) AS a GROUP BY a.teamid) AS b JOIN team'+seasonName+' WHERE team.id = b.teamId) AS c JOIN division'+divisionSeason+' WHERE c.division = division.id AND division.league = 1 ORDER BY division , pointsFor DESC , divRank',[season,season])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.getAnnualInvoices = async function(clubName) {
+  const clubFilter = typeof clubName !== 'undefined' ? 'WHERE club.name = ?' : ''
+  const params = [process.env.DB_PI_KEY, SEASON, PREVSEASON]
+  if (typeof clubName !== 'undefined') params.push(clubName)
+
+  const sql = `SELECT club.id AS clubId,
+    club.name AS clubName,
+    count(team.id) AS teamsCount,
+    fines.id AS fineId,
+    fines.desc,
+    fines.amount,
+    fineTeam.name AS fineTeam,
+    fineClub.name AS fineClub,
+    fines.season,
+    player.first_name AS secretary,
+    pgp_sym_decrypt(player."playerEmail", ?)::text AS playerEmail
+    FROM
+    club JOIN
+    team ON team.club = club.id LEFT JOIN
+    fines ON fines.club = club.id AND ((fines.season = ? AND fines.desc IN ('agm')) OR (fines.season = ? AND fines.desc IN ('rearrangement','card')) OR fines.season IS NULL) LEFT JOIN
+    team fineTeam ON fines.team = fineTeam.id LEFT JOIN
+    club fineClub ON fines.club = fineClub.id JOIN
+    player ON (player.club = club.id AND player."clubSecretary" = 1)
+    ${clubFilter}
+    GROUP BY club.id, club.name, fines.id, fines.desc, fines.amount, fineTeam.name, fineClub.name, fines.season, player.first_name, player."playerEmail"`
+
+  const [result] = await (await db.otherConnect()).query(sql, params)
+  return result
 }
 
+exports.getAllLeagueTables = async function(season) {
+  const resolvedSeason = season || SEASON
+  const teamTable = season ? `team${season} AS team` : 'team'
+  const divisionTable = season ? `division${season} AS division` : 'division'
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT division.name AS divisionName, id AS division, c.name, c.played, c.pointsFor, c.pointsAgainst, c."divRank"
+     FROM (
+       SELECT team.name, b.played, b.pointsFor - team.penalties AS pointsFor, b.pointsAgainst, team.division, team."divRank"
+       FROM (
+         SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId
+         FROM (
+           SELECT fixture.date,
+             CASE WHEN fixture."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
+             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
+             "homeScore" AS pointsFor, "awayScore" AS pointsAgainst, fixture."homeTeam" AS teamId
+           FROM fixture, season
+           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+             AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
+           UNION ALL
+           SELECT fixture.date,
+             CASE WHEN fixture."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
+             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
+             "awayScore" AS pointsFor, "homeScore" AS pointsAgainst, fixture."awayTeam" AS teamId
+           FROM fixture, season
+           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+             AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
+         ) AS a
+         GROUP BY a.teamId
+       ) AS b
+       JOIN ${teamTable} ON team.id = b.teamId
+     ) AS c
+     JOIN ${divisionTable} ON c.division = division.id
+     WHERE division.league = 1
+     ORDER BY division, pointsFor DESC, "divRank"`,
+    [resolvedSeason, resolvedSeason]
+  )
+  return result
+}
 
-exports.getAllLeagueTablesWithTopBottomDetails = async function(season,done){
-  if (season === undefined){
-    seasonName = ''
-    divisionSeason = ''
-    season = SEASON
-  }
-  else {
-    seasonName = season + ' as team'
-    divisionSeason = season + ' as division'
-  }
-  try {
-		 let [result] = await (await db.otherConnect()).query(`WITH standings AS (
+exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
+  const resolvedSeason = season || SEASON
+  const teamTable = season ? `team${season}` : 'team'
+  const divisionTable = season ? `division${season}` : 'division'
+  const [result] = await (await db.otherConnect()).query(`WITH standings AS (
     SELECT
         d.name AS divisionName,
         d.id AS division,
         t.id AS teamId,
         t.name AS teamName,
-        t.divRank,
+        t."divRank",
         s.played,
         s.remaining,
         (s.pointsFor - t.penalties) AS pointsFor,
@@ -177,15 +174,15 @@ exports.getAllLeagueTablesWithTopBottomDetails = async function(season,done){
             SUM(x.pointsAgainst) AS pointsAgainst
         FROM (
             SELECT
-                f.homeTeam AS teamId,
-                CASE WHEN f.homeScore IS NOT NULL THEN 1 ELSE 0 END AS played,
-                CASE WHEN f.homeScore IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f.homeScore AS pointsFor,
-                f.awayScore AS pointsAgainst
+                f."homeTeam" AS teamId,
+                CASE WHEN f."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+                CASE WHEN f."homeScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
+                f."homeScore" AS pointsFor,
+                f."awayScore" AS pointsAgainst
             FROM fixture f
             JOIN season se
-              ON f.date > se.startDate
-             AND f.date < se.endDate
+              ON f.date > se."startDate"
+             AND f.date < se."endDate"
             WHERE se.name = ?
               AND (
                     f.status IN ('conceded', 'complete', '', 'outstanding')
@@ -195,15 +192,15 @@ exports.getAllLeagueTablesWithTopBottomDetails = async function(season,done){
             UNION ALL
 
             SELECT
-                f.awayTeam AS teamId,
-                CASE WHEN f.awayScore IS NOT NULL THEN 1 ELSE 0 END AS played,
-                CASE WHEN f.awayScore IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f.awayScore AS pointsFor,
-                f.homeScore AS pointsAgainst
+                f."awayTeam" AS teamId,
+                CASE WHEN f."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+                CASE WHEN f."awayScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
+                f."awayScore" AS pointsFor,
+                f."homeScore" AS pointsAgainst
             FROM fixture f
             JOIN season se
-              ON f.date > se.startDate
-             AND f.date < se.endDate
+              ON f.date > se."startDate"
+             AND f.date < se."endDate"
             WHERE se.name = ?
               AND (
                     f.status IN ('conceded', 'complete', '', 'outstanding')
@@ -212,9 +209,9 @@ exports.getAllLeagueTablesWithTopBottomDetails = async function(season,done){
         ) x
         GROUP BY x.teamId
     ) s
-    JOIN team${ seasonName } t
+    JOIN ${teamTable} t
       ON t.id = s.teamId
-    JOIN division${ divisionSeason } d
+    JOIN ${divisionTable} d
       ON d.id = t.division
     WHERE d.league = 1
 ),
@@ -239,7 +236,7 @@ SELECT
     s.played,
     s.pointsFor,
     s.pointsAgainst,
-    s.divRank,
+    s."divRank",
     s.maxScore,
 
     CASE
@@ -262,15 +259,8 @@ FROM standings s
 JOIN division_comparison dc
   ON dc.division = s.division
  AND dc.teamId = s.teamId
-ORDER BY s.division, s.pointsFor DESC, s.divRank
+ORDER BY s.division, s.pointsFor DESC, s."divRank"
 LIMIT 100
-`,[season,season])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
+`, [resolvedSeason, resolvedSeason])
+  return result
 }
-}
-
-
-

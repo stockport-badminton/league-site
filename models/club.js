@@ -1,148 +1,126 @@
 var db = require('../db_connect.js');
 
-// POST
-exports.create = async function(name,venue,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('INSERT INTO `club` (`name`,`venue`) VALUES (?,?)',[name,venue])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
+exports.create = async function(name, venue) {
+  const [result] = await (await db.otherConnect()).query(
+    'INSERT INTO club (name,venue) VALUES (?,?)',
+    [name, venue]
+  )
+  return result
 }
 
+exports.createBatch = async function(batchObj) {
+  if (!db.isObject(batchObj)) throw new Error('not object')
+  const fields = batchObj.fields.map(f => `"${f}"`).join(',')
+  const rows = Object.values(batchObj.data).map(row => Object.values(row))
+  const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
+  const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
+  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
+  return result
 }
 
-
-exports.createBatch = async function(BatchObj,done){
-  if(db.isObject(BatchObj)){
-    var fields = BatchObj.fields.join("`,`");
-    var sql = 'INSERT INTO `'+BatchObj.tablename+'` (`'+fields+'`) VALUES ';
-    // console.log(sql);
-    var containerArray = [];
-    var updateArray = [];
-    var updateValuesString = '';
-    for (x in BatchObj.data){
-      updateArray = [];
-      for (y in BatchObj.data[x]){
-        updateArray.push(BatchObj.data[x][y]);
-      }
-      updateValuesString = '("'+updateArray.join('","')+'")'
-      containerArray.push(updateValuesString)
-    }
-    // console.log(containerArray);
-    sql = sql + containerArray.join(',')
-    // console.log(sql);
-    try {
-		 let [result] = await (await db.otherConnect()).query(sql)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
-  }
-  else{
-    return done('not object');
-  }
+exports.getAll = async function() {
+  const [result] = await (await db.otherConnect()).query('SELECT * FROM club ORDER BY name ASC')
+  return result
 }
 
-// GET
-exports.getAll = async function(done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `club` order by name asc')
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
-}
-
-exports.clubDetail = async function(done){
-  try {
-		 let [result] = await (await db.otherConnect()).query(`select
-  club.id as clubId,
+exports.clubDetail = async function() {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+  club.id AS clubId,
   club.name,
-  team.name as teamName,
-  team.matchDay as matchDay,
-  venue.name as clubvenue,
-  venue.gMapUrl as clubgmap,
-  venue.address as clubaddress,
-  club.matchNightText,
-  club.clubNightText,
-  club.clubWebsite,
-  club.matchVenue,
-  teamvenue.name as teammatchvenue,
-  teamvenue.gMapUrl as teamgmap,
-  teamvenue.address as teamaddress
-from
+  team.name AS teamName,
+  team."matchDay" AS matchDay,
+  venue.name AS clubvenue,
+  venue."gMapUrl" AS clubgmap,
+  venue.address AS clubaddress,
+  club."matchNightText",
+  club."clubNightText",
+  club."clubWebsite",
+  club."matchVenue",
+  teamvenue.name AS teammatchvenue,
+  teamvenue."gMapUrl" AS teamgmap,
+  teamvenue.address AS teamaddress
+FROM
   club
-  join team on team.club = club.id
-  join venue on venue.id = club.venue
-  join venue teamvenue on teamvenue.id = team.venue
-order by
-  name,teamName
+  JOIN team ON team.club = club.id
+  JOIN venue ON venue.id = club.venue
+  JOIN venue teamvenue ON teamvenue.id = team.venue
+ORDER BY
+  name, teamName
 `)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+  return result
 }
 
-exports.clubDetailbyId = async function(clubId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT a.clubId, a.name, a.venue, a.address, a.gMapURL AS clubVenueURL, a.matchNightText,a.clubNightText, a.clubWebsite, venue.name AS matchVenueName, venue.gMapUrl AS matchVenueURL, venue.Lat, venue.Lng FROM (SELECT club.id as clubId, club.name, venue.name AS venue, venue.gMapUrl,venue.address, club.matchNightText, club.clubNightText, club.clubWebsite,club.matchVenue FROM club JOIN venue WHERE venue.id =club.venue) AS a JOIN venue WHERE (a.matchVenue = venue.id OR a.matchVenue = NULL) ORDER BY a.name')
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.clubDetailbyId = async function(clubId) {
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT a.clubId, a.name, a.venue, a.address, a."gMapUrl" AS clubVenueURL,
+            a."matchNightText", a."clubNightText", a."clubWebsite",
+            venue.name AS matchVenueName, venue."gMapUrl" AS matchVenueURL,
+            venue."Lat", venue."Lng"
+     FROM (
+       SELECT club.id AS clubId, club.name, venue.name AS venue, venue."gMapUrl", venue.address,
+              club."matchNightText", club."clubNightText", club."clubWebsite", club."matchVenue"
+       FROM club JOIN venue ON venue.id = club.venue
+     ) AS a
+     JOIN venue ON a."matchVenue" = venue.id
+     WHERE a.clubId = ?
+     ORDER BY a.name`,
+    clubId
+  )
+  return result
 }
 
-
-exports.getContactDetailsById = async function(clubId,done){
+exports.getContactDetailsById = async function(clubId) {
   console.log(clubId)
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT club.name AS clubName, team.name AS teamName, venue.id AS venueId, venue.name AS venueName, venue.address AS address, matchVenue.id AS matchVenueId, matchVenue.name AS matchVenueName, matchVenue.address AS matchVenueAddress, matchNightText AS matchNight, CONCAT(matchSec.first_name, " ", matchSec.family_name) AS matchSecretary, CAST(AES_DECRYPT(matchSec.playerTel, "euvbdijnyvshmcf") AS CHAR) AS matchSecTel, CAST(AES_DECRYPT(matchSec.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS matchSecEmail, CONCAT(clubSec.first_name, " ", clubSec.family_name) AS clubSecretary, CAST(AES_DECRYPT(clubSec.playerTel, "euvbdijnyvshmcf") AS CHAR) AS clubSecTel, CAST(AES_DECRYPT(clubSec.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS clubSecEmail, CONCAT(teamCaptain.first_name, " ", teamCaptain.family_name) AS teamCaptain, CAST(AES_DECRYPT(teamCaptain.playerTel, "euvbdijnyvshmcf") AS CHAR) AS teamCaptainTel, CAST(AES_DECRYPT(teamCaptain.playerEmail, "euvbdijnyvshmcf") AS CHAR) AS teamCaptainEmail FROM club JOIN team ON team.club = club.id JOIN venue ON club.venue = venue.id JOIN venue matchVenue ON club.matchVenue = matchVenue.id JOIN player matchSec ON club.id = matchSec.club and matchSec.matchSecrertary = 1 JOIN player clubSec ON ((club.id = clubSec.club and clubSec.clubSecretary = 1) OR (club.clubSec = clubSec.id)) JOIN player teamCaptain ON ((team.id = teamCaptain.team and teamCaptain.teamCaptain = 1) OR (team.captain = teamCaptain.id)) WHERE club.id = ? group by teamCaptain order by teamName',clubId)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT club.name AS clubName, team.name AS teamName,
+            venue.id AS venueId, venue.name AS venueName, venue.address AS address,
+            "matchVenue".id AS matchVenueId, "matchVenue".name AS matchVenueName, "matchVenue".address AS matchVenueAddress,
+            "matchNightText" AS matchNight,
+            CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchSecretary,
+            pgp_sym_decrypt(matchSec."playerTel", 'euvbdijnyvshmcf')::text AS matchSecTel,
+            pgp_sym_decrypt(matchSec."playerEmail", 'euvbdijnyvshmcf')::text AS matchSecEmail,
+            CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubSecretary,
+            pgp_sym_decrypt(clubSec."playerTel", 'euvbdijnyvshmcf')::text AS clubSecTel,
+            pgp_sym_decrypt(clubSec."playerEmail", 'euvbdijnyvshmcf')::text AS clubSecEmail,
+            CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamCaptain,
+            pgp_sym_decrypt(teamCaptain."playerTel", 'euvbdijnyvshmcf')::text AS teamCaptainTel,
+            pgp_sym_decrypt(teamCaptain."playerEmail", 'euvbdijnyvshmcf')::text AS teamCaptainEmail
+     FROM club
+     JOIN team ON team.club = club.id
+     JOIN venue ON club.venue = venue.id
+     JOIN venue "matchVenue" ON club."matchVenue" = "matchVenue".id
+     JOIN player matchSec ON club.id = matchSec.club AND matchSec."matchSecrertary" = 1
+     JOIN player clubSec ON ((club.id = clubSec.club AND clubSec."clubSecretary" = 1) OR (club."clubSec" = clubSec.id))
+     JOIN player teamCaptain ON ((team.id = teamCaptain.team AND teamCaptain."teamCaptain" = 1) OR (team.captain = teamCaptain.id))
+     WHERE club.id = ?
+     GROUP BY teamCaptain.id, teamCaptain.first_name, teamCaptain.family_name, teamCaptain."playerTel", teamCaptain."playerEmail",
+              team.name,
+              venue.id, venue.name, venue.address,
+              "matchVenue".id, "matchVenue".name, "matchVenue".address,
+              club."matchNightText",
+              matchSec.first_name, matchSec.family_name, matchSec."playerTel", matchSec."playerEmail",
+              clubSec.first_name, clubSec.family_name, clubSec."playerTel", clubSec."playerEmail",
+              club.name, club.id
+     ORDER BY teamName`,
+    clubId
+  )
+  return result
 }
 
-
-
-
-
-// GET
-exports.getById = async function(clubId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('SELECT * FROM `club` WHERE `id` = ?',clubId)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.getById = async function(clubId) {
+  const [result] = await (await db.otherConnect()).query('SELECT * FROM club WHERE id = ?', clubId)
+  return result
 }
 
-// DELETE
-exports.deleteById = async function(clubId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('DELETE FROM `club` WHERE `id` = ?',clubId)
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.deleteById = async function(clubId) {
+  const [result] = await (await db.otherConnect()).query('DELETE FROM club WHERE id = ?', clubId)
+  return result
 }
 
-// PATCH
-exports.updateById = async function(name, venue, clubId,done){
-  try {
-		 let [result] = await (await db.otherConnect()).query('UPDATE `club` SET `name` = ?, `venue` = ? WHERE `id` = ?',[name, venue, clubId])
-		done(null,result)
-	}
-	catch (err) {
-		return done (err);
-}
+exports.updateById = async function(name, venue, clubId) {
+  const [result] = await (await db.otherConnect()).query(
+    'UPDATE club SET name = ?, venue = ? WHERE id = ?',
+    [name, venue, clubId]
+  )
+  return result
 }

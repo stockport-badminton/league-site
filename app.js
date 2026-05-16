@@ -86,12 +86,16 @@ app.use(require('./routes'));
 var db = require('./db_connect');
 var port = process.env.PORT || 8080;
 
-try {
-  db.connect();
-  app.listen(port, function() {
-    console.log('Server running at http://127.0.0.1:' + port + '/');
-  });
-} catch {
-  console.log('Unable to connect to MySQL.');
-  process.exit(1);
+if (require.main === module) {
+  try {
+    db.connect();
+    app.listen(port, function() {
+      console.log('Server running at http://127.0.0.1:' + port + '/');
+    });
+  } catch {
+    console.log('Unable to connect to MySQL.');
+    process.exit(1);
+  }
 }
+
+module.exports = app;

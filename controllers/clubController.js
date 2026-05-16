@@ -5,134 +5,132 @@ require('dotenv').config()
 
 
 // Display list of all Clubs
-exports.club_list = function(req, res) {
-    Club.getAll(function(err,rows){
-      //console.log(rows);
-      res.send(rows);
-    })
+exports.club_list = async function(req, res, next) {
+  try {
+    const rows = await Club.getAll();
+    //console.log(rows);
+    res.send(rows);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Display list of all Clubs
-exports.club_list_detail = function(req, res, next) {
-   //console.log(req.session)
-    Club.clubDetail(function(err,result){
-      if(err){
-        // console.log(result)
-        res.status(500);
-        next(err);
-      }
-      else{
-        Venue.getVenueClubs(function(err,venueRows){
-          if(err) {res.status(500); next(err);}
-          else {
-            let newClubArray = []
-            let newClubElem = {}
-            let prevRowElem = {}
-            let teamElem = {}
-            for (row of result){
-              if (row.clubId == prevRowElem.id ){
-                teamElem = {}
-                teamElem.name = row.teamName
-                teamElem.venue = row.teammatchvenue
-                teamElem.gMapUrl = row.teamgmap
-                teamElem.address = row.teamaddress
-                teamElem.matchDay = row.matchDay
-                if (prevRowElem.teams[prevRowElem.teams.length -1].venue != row.teammatchvenue){
-                  prevRowElem.teams.push(teamElem)
-                }
-              }
-              else {
-                newClubElem = {}
-                newClubElem.id = row.clubId
-                newClubElem.name = row.name
-                newClubElem.venue = row.clubvenue
-                newClubElem.gMapUrl = row.clubgmap
-                newClubElem.address = row.clubaddress
-                newClubElem.matchNightText = row.matchNightText
-                newClubElem.clubNightText = row.clubNightText
-                newClubElem.clubWebsite = row.clubWebsite
-                newClubElem.teams = []
-                teamElem = {}
-                teamElem.name = row.teamName
-                teamElem.venue = row.teammatchvenue
-                teamElem.gMapUrl = row.teamgmap
-                teamElem.address = row.teamaddress
-                teamElem.matchDay = row.matchDay
-                newClubElem.teams.push(teamElem)
-                if (prevRowElem != {}){
-                  newClubArray.push(prevRowElem)
-                }
-                prevRowElem = newClubElem
-              }             
-            }
-            newClubArray.push(newClubElem)
-            newClubArray.shift()
-            // console.log(JSON.stringify(newClubArray))
-            console.log(newClubArray)
-            console.log(JSON.stringify(venueRows))
-            res.status(200);
-            res.render('beta/club-v2', {
-                 static_path: '/static',
-                 pageTitle : "Local Badminton Club Information",
-                 pageDescription : "Find your local badminton clubs, when they play, where they play.",
-                 result: newClubArray,
-                 error: false,
-                 recaptcha : process.env.RECAPTCHA,
-                 mapsApiKey: process.env.GMAPSAPIKEY,
-                 venues:JSON.stringify(venueRows),
-                 canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-             });
-          }
+exports.club_list_detail = async function(req, res, next) {
+  //console.log(req.session)
+  try {
+    const [result, venueRows] = await Promise.all([
+      Club.clubDetail(),
+      Venue.getVenueClubs()
+    ]);
 
-        })
-        // console.log(result)
-
+    let newClubArray = []
+    let newClubElem = {}
+    let prevRowElem = {}
+    let teamElem = {}
+    for (row of result){
+      if (row.clubId == prevRowElem.id ){
+        teamElem = {}
+        teamElem.name = row.teamName
+        teamElem.venue = row.teammatchvenue
+        teamElem.gMapUrl = row.teamgmap
+        teamElem.address = row.teamaddress
+        teamElem.matchDay = row.matchDay
+        if (prevRowElem.teams[prevRowElem.teams.length -1].venue != row.teammatchvenue){
+          prevRowElem.teams.push(teamElem)
+        }
       }
-    })
+      else {
+        newClubElem = {}
+        newClubElem.id = row.clubId
+        newClubElem.name = row.name
+        newClubElem.venue = row.clubvenue
+        newClubElem.gMapUrl = row.clubgmap
+        newClubElem.address = row.clubaddress
+        newClubElem.matchNightText = row.matchNightText
+        newClubElem.clubNightText = row.clubNightText
+        newClubElem.clubWebsite = row.clubWebsite
+        newClubElem.teams = []
+        teamElem = {}
+        teamElem.name = row.teamName
+        teamElem.venue = row.teammatchvenue
+        teamElem.gMapUrl = row.teamgmap
+        teamElem.address = row.teamaddress
+        teamElem.matchDay = row.matchDay
+        newClubElem.teams.push(teamElem)
+        if (prevRowElem != {}){
+          newClubArray.push(prevRowElem)
+        }
+        prevRowElem = newClubElem
+      }
+    }
+    newClubArray.push(newClubElem)
+    newClubArray.shift()
+    // console.log(JSON.stringify(newClubArray))
+    console.log(newClubArray)
+    console.log(JSON.stringify(venueRows))
+    res.status(200);
+    res.render('beta/club-v2', {
+         static_path: '/static',
+         pageTitle : "Local Badminton Club Information",
+         pageDescription : "Find your local badminton clubs, when they play, where they play.",
+         result: newClubArray,
+         error: false,
+         recaptcha : process.env.RECAPTCHA,
+         mapsApiKey: process.env.GMAPSAPIKEY,
+         venues:JSON.stringify(venueRows),
+         canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+     });
+  } catch (err) {
+    res.status(500);
+    next(err);
+  }
 };
 
-exports.club_detail_api = function(req, res,next) {
-  Club.getContactDetailsById(req.params.id,function(err,clubrow){
-    if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
-       //console.log(err)
+exports.club_detail_api = async function(req, res, next) {
+  try {
+    const clubrow = await Club.getContactDetailsById(req.params.id);
+    if (typeof clubrow == 'undefined' || clubrow.length == 0) {
       res.status(500);
-      next(err);
+      return next(new Error('Club not found'));
     }
-    else{
-      res.send(clubrow)
-    }
-  })
+    res.send(clubrow);
+  } catch (err) {
+    res.status(500);
+    next(err);
+  }
 };
 
 // Display detail page for a specific Club
-exports.club_detail = function(req, res,done) {
-   //console.log(req.session)
-    Club.getContactDetailsById(req.params.id,function(err,clubrow){
-      if(err || typeof clubrow == 'undefined' || clubrow.length == 0){
-         //console.log(err)
-        res.status(500);
-        done(err);
-      }
-      else{
-        console.log("clubrow");
-        for (row of clubrow){
-          console.log(row)
-           //console.log(row)
-        }
-        // console.log(JSON.stringify(clubrow));
-        // console.log(clubrow)
-        res.status(200);
-        res.render('beta/club-contact', {
-            static_path: '/static',
-            pageTitle : clubrow[0].clubName + " Contact information",
-            pageDescription : clubrow[0].clubName + "'s Club / Team Contact information",
-            clubrow: clubrow,
-            error: false,
-            mapsApiKey: process.env.GMAPSAPIKEY,
-            canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
-        });
-      }
-    })
+exports.club_detail = async function(req, res, next) {
+  //console.log(req.session)
+  try {
+    const clubrow = await Club.getContactDetailsById(req.params.id);
+    if (typeof clubrow == 'undefined' || clubrow.length == 0) {
+      res.status(500);
+      return next(new Error('Club not found'));
+    }
+    console.log("clubrow");
+    for (row of clubrow){
+      console.log(row)
+       //console.log(row)
+    }
+    // console.log(JSON.stringify(clubrow));
+    // console.log(clubrow)
+    res.status(200);
+    res.render('beta/club-contact', {
+        static_path: '/static',
+        pageTitle : clubrow[0].clubName + " Contact information",
+        pageDescription : clubrow[0].clubName + "'s Club / Team Contact information",
+        clubrow: clubrow,
+        error: false,
+        mapsApiKey: process.env.GMAPSAPIKEY,
+        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+    });
+  } catch (err) {
+    res.status(500);
+    next(err);
+  }
 };
 
 // Display Club create form on GET
@@ -141,26 +139,27 @@ exports.club_create_get = function(req, res) {
 };
 
 // Handle Club create on POST
-exports.club_create_post = function(req, res) {
-  Club.create(req.body.name, req.body.venue, function(err,row){
+exports.club_create_post = async function(req, res, next) {
+  try {
+    const row = await Club.create(req.body.name, req.body.venue);
     //console.log(req.body);
     //console.log(row);
     res.send(row);
-  })
+  } catch (err) {
+    next(err);
+  }
 };
 
-exports.club_batch_create = function(req, res){
-  Club.createBatch(req.body,function(err,result){
-    if(err){
-      res.send(err);
-      //console.log(err);
-    }
-    else{
-      // console.log(result)
-      res.send(result);
-    }
-  })
-}
+exports.club_batch_create = async function(req, res, next) {
+  try {
+    const result = await Club.createBatch(req.body);
+    // console.log(result)
+    res.send(result);
+  } catch (err) {
+    res.send(err);
+    //console.log(err);
+  }
+};
 
 // Display Club delete form on GET
 exports.club_delete_get = function(req, res) {
@@ -168,12 +167,15 @@ exports.club_delete_get = function(req, res) {
 };
 
 // Handle Club delete on POST
-exports.club_delete_post = function(req, res) {
-    Club.deleteById(req.params.id,function(err,row){
-      //console.log(req.params)
-      //console.log(row);
-      res.send(row);
-    })
+exports.club_delete_post = async function(req, res, next) {
+  try {
+    const row = await Club.deleteById(req.params.id);
+    //console.log(req.params)
+    //console.log(row);
+    res.send(row);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Display Club update form on GET
@@ -182,10 +184,13 @@ exports.club_update_get = function(req, res) {
 };
 
 // Handle Club update on POST
-exports.club_update_post = function(req, res) {
-    Club.updateById(req.body.name, req.body.venue, req.params.id, function(err,row){
-      //console.log(req.body);
-      //console.log(row);
-      res.send(row);
-    })
+exports.club_update_post = async function(req, res, next) {
+  try {
+    const row = await Club.updateById(req.body.name, req.body.venue, req.params.id);
+    //console.log(req.body);
+    //console.log(row);
+    res.send(row);
+  } catch (err) {
+    next(err);
+  }
 };

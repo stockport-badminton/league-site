@@ -1,54 +1,39 @@
-var mysql = require('mysql2/promise')
-  , async = require('async')
+const { Pool } = require('pg');
 
+const state = { pool: null };
 
-var state = {
-  pool: null
+exports.connect = function() {
+  state.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+};
+
+// Converts MySQL ? placeholders to Postgres $N in sequence.
+function pgify(sql) {
+  let idx = 0;
+  return sql.replace(/\?/g, () => `$${++idx}`);
 }
 
-var pool = {}
-
-var hostname = process.env.RDS_HOSTNAME
-var username = process.env.RDS_USERNAME
-var password = process.env.RDS_PASSWORD
-var database = process.env.RDS_DATABASE || 'badminton';
-
-exports.connect = async function() {
-  state.pool =  mysql.createPool({
-    'host'     : hostname,
-    'user'     : username,
-    'password' : password,
-    'database' : database,
-    'multipleStatements':true,
-    'connectionLimit':12
-  });
-}
-
-exports.otherConnect = async function() {
-  /* const conn = await mysql.createConnection({
-    'host'     : hostname,
-    'user'     : username,
-    'password' : password,
-    'database' : database,
-    'multipleStatements':true
-  })
-  return conn */
-  return state.pool;
+// Compatibility wrapper:
+// - Converts ? → $N
+// - Normalises params to array
+// - Returns [rows] to match mysql2's [rows, fields] destructuring shape
+// - Adds affectedRows / changedRows on rows for UPDATE/DELETE compat
+async function pgQuery(sql, params = []) {
+  const normParams = Array.isArray(params) ? params : [params];
+  const result = await state.pool.query(pgify(sql), normParams);
+  const rows = result.rows;
+  rows.affectedRows = result.rowCount;
+  rows.changedRows = result.rowCount;
+  return [rows];
 }
 
 exports.get = function() {
-  return state.pool
-}
+  return { query: pgQuery };
+};
 
-exports.drop = function(tables, done) {
-  var pool = state.pool
-  if (!pool) return done(new Error('Missing database connection.'))
+exports.otherConnect = async function() {
+  return exports.get();
+};
 
-  async.each(tables, function(name, cb) {
-    pool.query('DELETE * FROM ' + name, cb)
-  }, done)
-}
-
-exports.isObject = function(obj){
+exports.isObject = function(obj) {
   return obj === Object(obj);
-}
+};
