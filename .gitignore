@@ -4631,3 +4631,11 @@ static/beta/docs/Remnants.docx
 static/beta/docs/Shell.docx
 static/beta/docs/Syddal Park.docx
 static/beta/docs/Tatton.docx
+__tests__/setup.js
+__tests__/integration/clubs.test.js
+__tests__/integration/fixtures.test.js
+__tests__/unit/game.test.js
+migrations/001_initial.sql
+migrations/data/002_data.sql
+scripts/export-mysql-to-sql.js
+scripts/import-main-tables.js
