@@ -17,29 +17,29 @@ else { %>
 <div class="row">
 <div class="col-md-6">
 <h1>Club Info</h1>
-  <h2><%= clubrow[0].clubName  %></h2>
-  <% if (clubrow[0].venueId == clubrow[0].matchVenueId) { %>
+  <h2><%= clubrow[0].clubname  %></h2>
+  <% if (clubrow[0].venueId == clubrow[0].matchvenueid) { %>
     <h3>Address</h3>
     <p>
-      <%= clubrow[0].venueName %><br />
+      <%= clubrow[0].venuename %><br />
       <%= clubrow[0].address %><br /><br />
     </p>
   <% }
   else { %>
     <h3>Match Address</h3>
     <p>
-      <%= clubrow[0].matchVenueName %><br />
-      <%= clubrow[0].matchVenueAddress %><br /><br />
+      <%= clubrow[0].matchvenuename %><br />
+      <%= clubrow[0].matchvenueaddress %><br /><br />
     </p>
     <h3>Club Address</h3>
     <p>
-      <%= clubrow[0].venueName %><br />
+      <%= clubrow[0].venuename %><br />
       <%= clubrow[0].address %><br /><br />
     </p>
   <% } %>
   
-  <h3>Secretary:</h3> <%= clubrow[0].clubSecretary %>, <%= clubrow[0].clubSecTel %>, <%= clubrow[0].clubSecEmail %> </h3>
-  <h3>Match Secretary:</h3> <%= clubrow[0].matchSecretary %>, <%= clubrow[0].matchSecTel %>, <%= clubrow[0].matchSecEmail %> </h3>
+  <h3>Secretary:</h3> <%= clubrow[0].clubsecretary %>, <%= clubrow[0].clubsectel %>, <%= clubrow[0].clubsecemail %> </h3>
+  <h3>Match Secretary:</h3> <%= clubrow[0].matchsecretary %>, <%= clubrow[0].matchsectel %>, <%= clubrow[0].matchsecemail %> </h3>
   
 </div>
 <div class="col-md-6">
@@ -49,7 +49,7 @@ else { %>
       <thead>
         <tr>
           <th>Name</th>
-          <th>Captain</th>
+          <th>captain</th>
           <th>Email</th>
           <th>Telephone</th>
         </tr>
@@ -57,10 +57,10 @@ else { %>
       <tbody>
   <% clubrow.forEach(function(teamRow){ %>
     <tr>
-      <td><%= teamRow.teamName %></td>
-      <td><%= teamRow.teamCaptain %></td>
-      <td><%= teamRow.teamCaptainEmail %></td>
-      <td><%= teamRow.teamCaptainTel %></td>
+      <td><%= teamRow.teamname %></td>
+      <td><%= teamRow.teamcaptain %></td>
+      <td><%= teamRow.teamcaptainemail %></td>
+      <td><%= teamRow.teamcaptaintel %></td>
     </tr>
   <% }) %>
   </tbody>

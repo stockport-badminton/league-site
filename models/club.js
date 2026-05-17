@@ -73,7 +73,7 @@ exports.getContactDetailsById = async function(clubId) {
   console.log(clubId)
   const [result] = await (await db.otherConnect()).query(
     `SELECT club.name AS clubName, team.name AS teamName,
-            venue.id AS venueId, venue.name AS venueName, venue.address AS address,
+            venue.id AS "venueId", venue.name AS venueName, venue.address AS address,
             "matchVenue".id AS matchVenueId, "matchVenue".name AS matchVenueName, "matchVenue".address AS matchVenueAddress,
             "matchNightText" AS matchNight,
             CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchSecretary,

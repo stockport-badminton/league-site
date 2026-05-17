@@ -120,8 +120,8 @@ exports.club_detail = async function(req, res, next) {
     res.status(200);
     res.render('beta/club-contact', {
         static_path: '/static',
-        pageTitle : clubrow[0].clubName + " Contact information",
-        pageDescription : clubrow[0].clubName + "'s Club / Team Contact information",
+        pageTitle : clubrow[0].clubname + " Contact information",
+        pageDescription : clubrow[0].clubname + "'s Club / Team Contact information",
         clubrow: clubrow,
         error: false,
         mapsApiKey: process.env.GMAPSAPIKEY,
