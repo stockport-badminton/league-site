@@ -66,12 +66,12 @@ passport.serializeUser(function(user, done) { done(null, user); });
 passport.deserializeUser(function(user, done) { done(null, user); });
 
 var sess = {
-  secret: 'ThisisMySecret',
+  secret: process.env.SESSION_SECRET || 'ThisisMySecret',
   cookie: {},
   resave: false,
   saveUninitialized: false
 };
-if (app.get('env') === 'prod') {
+if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
   sess.cookie.secure = true;
   sess.proxy = true;
@@ -93,7 +93,7 @@ if (require.main === module) {
       console.log('Server running at http://127.0.0.1:' + port + '/');
     });
   } catch {
-    console.log('Unable to connect to MySQL.');
+    console.log('Unable to connect to database.');
     process.exit(1);
   }
 }
