@@ -1,307 +1,205 @@
-const { createCanvas, loadImage } = require('canvas');
-const fs = require('fs');
+const sharp = require('sharp');
 const { getAllLeagueTables } = require('../models/league');
 
-exports.resultImage = function(req, res, next) {
-  const canvas = createCanvas(1080, 1350);
-  const igStoryCanvas = createCanvas(1080, 1920);
-  const ctx = canvas.getContext('2d');
-  const igStoryCtX = igStoryCanvas.getContext('2d');
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-  loadImage('static/beta/images/bg/social-' + req.params.division.replace(/([\s]{1,})/g, '-') + '.png').then((image) => {
-    ctx.drawImage(image, 0, 0, 1080, 1350);
-    igStoryCtX.drawImage(image, 0, 0, 1080, 1920);
-    ctx.font = 'bold 60px Arial';
-    igStoryCtX.font = 'bold 60px Arial';
-    ctx.fillStyle = 'White';
-    igStoryCtX.fillStyle = 'White';
-    ctx.textAlign = 'right';
-    igStoryCtX.textAlign = 'right';
-    var text = 'Result: ' + req.params.homeTeam + ' vs <br> ' + req.params.awayTeam + ' <br> ' + req.params.homeScore + '-' + req.params.awayScore + ' <br> #stockport #badminton #sdbl #result https://stockport-badminton.co.uk';
-    var words = text.split(' ');
-    var line = '';
-    var y = canvas.height / 2 + canvas.width / 4;
-    var x = canvas.width - 100;
-    var Igy = igStoryCanvas.height / 2 + igStoryCanvas.width / 4;
-    var Igx = igStoryCanvas.width - 100;
-    var lineHeight = 80;
-    for (var n = 0; n < words.length; n++) {
-      if (line.indexOf('#') > -1 || line.indexOf('http') > -1) {
-        ctx.font = 'normal 30px Arial';
-        igStoryCtX.font = 'normal 30px Arial';
-        lineHeight = 40;
-      }
-      if (words[n] == '<br>') {
-        ctx.fillText(line, x, y);
-        line = '';
-        y += lineHeight;
-        Igy += lineHeight;
-      } else {
-        var testLine = line + words[n] + ' ';
-        var metrics = ctx.measureText(testLine);
-        var testWidth = metrics.width;
-        if (testWidth > 900 && n > 0) {
-          ctx.fillText(line, x, y);
-          igStoryCtX.fillText(line, Igx, Igy);
-          line = words[n] + ' ';
-          y += lineHeight;
-          Igy += lineHeight;
-        } else {
-          line = testLine;
-        }
-      }
-    }
-    ctx.fillText(line, x, y);
-    igStoryCtX.fillText(line, Igx, Igy);
-    const buffer = canvas.toBuffer('image/jpeg');
-    const out = fs.createWriteStream('static/beta/images/generated/' + req.params.homeTeam.replace(/([\s]{1,})/g, '-') + req.params.awayTeam.replace(/([\s]{1,})/g, '-') + '.jpg');
-    const Igout = fs.createWriteStream('static/beta/images/generated/' + req.params.homeTeam.replace(/([\s]{1,})/g, '-') + req.params.awayTeam.replace(/([\s]{1,})/g, '-') + '-Ig.jpg');
-    const stream = canvas.createJPEGStream();
-    const Igstream = igStoryCanvas.createJPEGStream();
-    stream.pipe(out);
-    out.on('finish', () => console.log('The Jpg file was created.'));
-    Igstream.pipe(Igout);
-    Igout.on('finish', () => console.log('The Ig Jpg file was created.'));
-    res.write(buffer);
-    res.end();
-  });
+function svgOverlay(width, height, elements) {
+  const els = elements.map(({ text, x, y, size, weight = 'normal', fill = '#000', anchor = 'middle' }) =>
+    `<text x="${x}" y="${y}" font-family="sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${escapeXml(text)}</text>`
+  ).join('');
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${els}</svg>`);
+}
+
+exports.resultImage = async function(req, res, next) {
+  try {
+    const { homeTeam, awayTeam, homeScore, awayScore, division } = req.params;
+    const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
+    const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
+
+    const makeElements = (width, height) => {
+      const x = width - 100;
+      const y = Math.floor(height / 2);
+      return [
+        { text: homeTeam,                              x, y,       size: 60, weight: 'bold',   fill: 'white', anchor: 'end' },
+        { text: 'vs',                                  x, y: y+80,  size: 50,                  fill: 'white', anchor: 'end' },
+        { text: awayTeam,                              x, y: y+160, size: 60, weight: 'bold',   fill: 'white', anchor: 'end' },
+        { text: `${homeScore} - ${awayScore}`,         x, y: y+260, size: 80, weight: 'bold',   fill: 'white', anchor: 'end' },
+        { text: '#stockport #badminton #sdbl #result', x, y: y+360, size: 30,                  fill: 'white', anchor: 'end' },
+        { text: 'https://stockport-badminton.co.uk',   x, y: y+405, size: 30,                  fill: 'white', anchor: 'end' },
+      ];
+    };
+
+    const postBuffer = await sharp(bgPath)
+      .resize(1080, 1350, { fit: 'cover' })
+      .composite([{ input: svgOverlay(1080, 1350, makeElements(1080, 1350)) }])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    await Promise.all([
+      sharp(postBuffer).toFile(`${fileBase}.jpg`),
+      sharp(bgPath)
+        .resize(1080, 1920, { fit: 'cover' })
+        .composite([{ input: svgOverlay(1080, 1920, makeElements(1080, 1920)) }])
+        .jpeg({ quality: 90 })
+        .toFile(`${fileBase}-Ig.jpg`),
+    ]);
+
+    res.type('image/jpeg');
+    res.send(postBuffer);
+  } catch (err) {
+    next(err);
+  }
 };
 
-exports.tablesSocial = function(req, res, next) {
-  const canvasWidth = 1080;
-  const canvasHeight = 1080;
-  const bigCanvasWidth = 1080;
-  const bigCanvasHeight = 1080 * 4;
-  const bigCanvas = createCanvas(bigCanvasWidth, bigCanvasHeight);
-  const bigCtx = bigCanvas.getContext('2d');
+async function createDivisionTableImage(bgPath, divisionName, rows) {
+  const W = 1080, H = 1080;
+  const elements = [
+    { text: divisionName, x: 230, y: 120, size: 65, weight: 'bold' },
+    { text: 'P',    x: 530, y: 120, size: 65, weight: 'bold' },
+    { text: 'W',    x: 680, y: 120, size: 65, weight: 'bold' },
+    { text: 'L',    x: 830, y: 120, size: 65, weight: 'bold' },
+    { text: 'Avg.', x: 980, y: 120, size: 65, weight: 'bold' },
+  ];
 
-  getAllLeagueTables(req.params.season, async function(err, result) {
-    if (err) {
-      console.log(err);
-      next(err);
-    } else {
-      var newResultsArray = [];
-      var divIds = [7, 8, 9, 10];
-      for (var div of divIds) {
-        var divObject = {};
-        var divArray = await result.filter(row => row.division == div).map(obj => {
-          return {
-            divisionName: obj.divisionName,
-            name: obj.name,
-            points: (obj.pointsFor === null ? 0 : obj.pointsFor),
-            played: obj.played,
-            pointsAgainst: (obj.pointsAgainst === null ? 0 : obj.pointsAgainst),
-          };
-        });
-        divObject[divArray[0].divisionName] = divArray;
-        newResultsArray.push(divObject);
-      }
-      var i = 0;
-      for (var division of newResultsArray) {
-        for (let [key, value] of Object.entries(division)) {
-          let mergedPosY = 1080 * i;
-          i++;
-          const canvas = createCanvas(canvasWidth, canvasHeight);
-          const ctx = canvas.getContext('2d');
-          loadImage('static/beta/images/bg/social.png').then(async (image) => {
-            bigCtx.drawImage(image, 0, mergedPosY);
-            ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-            ctx.font = 'bold 40px Arial';
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            bigCtx.font = 'bold 40px Arial';
-            bigCtx.fillStyle = '#000';
-            bigCtx.textAlign = 'center';
-            let posY = 120;
-            let posX = 230;
-            let teamSpace = 300;
-            let numberSpace = 150;
-            ctx.font = 'bold 65px Arial';
-            bigCtx.font = 'bold 65px Arial';
-            ctx.fillText(key, posX, posY);
-            bigCtx.fillText(key, posX, posY + mergedPosY);
-            posX += teamSpace;
-            ctx.fillText('P', posX, posY);
-            bigCtx.fillText('P', posX, posY + mergedPosY);
-            posX += numberSpace;
-            ctx.fillText('W', posX, posY);
-            bigCtx.fillText('W', posX, posY + mergedPosY);
-            posX += numberSpace;
-            ctx.fillText('L', posX, posY);
-            bigCtx.fillText('L', posX, posY + mergedPosY);
-            posX += numberSpace;
-            ctx.fillText('Avg.', posX, posY);
-            bigCtx.fillText('Avg.', posX, posY + mergedPosY);
-            posY += 100;
-            ctx.font = '55px Arial';
-            bigCtx.font = '55px Arial';
-            for (var i in value) {
-              posX = 230;
-              var avg = (value[i].points / value[i].played).toFixed(1);
-              ctx.fillText(value[i].name, posX, posY);
-              bigCtx.fillText(value[i].name, posX, posY + mergedPosY);
-              posX += teamSpace;
-              ctx.fillText(value[i].played, posX, posY);
-              bigCtx.fillText(value[i].played, posX, posY + mergedPosY);
-              posX += numberSpace;
-              ctx.fillText(value[i].points, posX, posY);
-              bigCtx.fillText(value[i].points, posX, posY + mergedPosY);
-              posX += numberSpace;
-              ctx.fillText(value[i].pointsAgainst, posX, posY);
-              bigCtx.fillText(value[i].pointsAgainst, posX, posY + mergedPosY);
-              posX += numberSpace;
-              ctx.fillText((avg >= 0 ? avg : 0), posX, posY);
-              bigCtx.fillText((avg >= 0 ? avg : 0), posX, posY + mergedPosY);
-              posY += 90;
-            }
-            const out = fs.createWriteStream('static/beta/images/generated/league-table-' + key + '.png');
-            const stream = canvas.createPNGStream();
-            stream.pipe(out);
-            out.on('finish', () => console.log('League table image created!'));
-          });
-        }
-      }
-      const bigOut = fs.createWriteStream('static/beta/images/generated/league-table-merged.png');
-      const stream = bigCanvas.createPNGStream();
-      stream.pipe(bigOut);
-      bigOut.on('finish', () => console.log('League table image created!'));
-      res.render('beta/league-table-social', {
-        static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        pageTitle: 'Table Social Images',
-        pageDescription: 'Table Social Images',
-        query: req.query,
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
-      });
-    }
-  });
-};
-
-exports.tournamentSocial = function(req, res, next) {
-  const canvasWidth = 1080;
-  const canvasHeight = 1080;
-
-  function drawTournamentCanvas(title, lines, filename) {
-    let c = createCanvas(canvasWidth, canvasHeight);
-    let ctx = c.getContext('2d');
-    loadImage('static/beta/images/bg/social.png').then(async (image) => {
-      ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-      ctx.font = 'bold 40px Arial';
-      ctx.fillStyle = '#000';
-      ctx.textAlign = 'center';
-      let posY = 120;
-      let posX = 540;
-      ctx.font = 'bold 65px Arial';
-      ctx.fillText(title, posX, posY);
-      posY += 100;
-      ctx.font = 'normal 40px Arial';
-      ctx.fillText('LifeLeisure Bramhall Recreation', posX, posY);
-      posY += 50;
-      ctx.fillText('Centre, Seal Rd, Bramhall', posX, posY);
-      for (var line of lines) {
-        posY += line.gap || 100;
-        ctx.font = line.bold ? 'bold 40px Arial' : 'normal 40px Arial';
-        ctx.fillText(line.text, posX, posY);
-      }
-      const out = fs.createWriteStream('static/beta/images/generated/' + filename);
-      const stream = c.createPNGStream();
-      stream.pipe(out);
-      out.on('finish', () => console.log('League table image created!'));
-    });
+  let posY = 220;
+  for (const row of rows) {
+    const avg = row.played > 0 ? Math.max(0, row['pointsFor'] / row.played).toFixed(1) : '0';
+    elements.push({ text: row.name,                    x: 230, y: posY, size: 55 });
+    elements.push({ text: String(row.played),          x: 530, y: posY, size: 55 });
+    elements.push({ text: String(row['pointsFor']),    x: 680, y: posY, size: 55 });
+    elements.push({ text: String(row['pointsAgainst']),x: 830, y: posY, size: 55 });
+    elements.push({ text: avg,                         x: 980, y: posY, size: 55 });
+    posY += 90;
   }
 
-  drawTournamentCanvas('Open Tournament', [
-    { text: '11th November', bold: true },
-    { text: 'Mens & Womens Doubles', bold: false },
-    { text: '18th November', bold: true },
-    { text: 'Mens & Womens Singles', bold: false },
-    { text: 'Mixed Doubles', bold: false, gap: 50 },
-    { text: 'Entry form and details on the website', bold: false },
-    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 }
-  ], 'open-tournament-social.png');
+  return sharp(bgPath)
+    .resize(W, H, { fit: 'cover' })
+    .composite([{ input: svgOverlay(W, H, elements) }])
+    .png()
+    .toBuffer();
+}
 
-  drawTournamentCanvas('`B` Tournament', [
-    { text: '11th November', bold: true },
-    { text: 'Mens & Womens Doubles', bold: false },
-    { text: '18th November', bold: true },
-    { text: 'Singles', bold: false },
-    { text: 'Mixed Doubles', bold: false, gap: 50 },
-    { text: 'Entry form and details on the website', bold: false },
-    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 }
-  ], 'B-tournament-social.png');
+exports.tablesSocial = async function(req, res, next) {
+  try {
+    const result = await getAllLeagueTables(req.params.season);
+    const divIds = [7, 8, 9, 10];
+    const bgPath = 'static/beta/images/bg/social.png';
 
-  drawTournamentCanvas('`C` Tournament', [
-    { text: '11th November', bold: true },
-    { text: 'Mens & Womens Doubles', bold: false },
-    { text: '18th November', bold: true },
-    { text: 'Mixed Doubles', bold: false },
-    { text: 'Entry form and details on the website', bold: false },
-    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 }
-  ], 'c-tournament-social.png');
+    const divisionImages = (await Promise.all(
+      divIds.map(async (divId) => {
+        const rows = result.filter(row => row.division == divId);
+        if (!rows.length) return null;
+        const buf = await createDivisionTableImage(bgPath, rows[0]['divisionName'], rows);
+        await sharp(buf).toFile(`static/beta/images/generated/league-table-${rows[0]['divisionName']}.png`);
+        return buf;
+      })
+    )).filter(Boolean);
 
-  drawTournamentCanvas('Supervet Tournament', [
-    { text: '11th November', bold: true },
-    { text: 'Mixed Doubles', bold: false },
-    { text: '18th November', bold: true },
-    { text: 'Mens Doubles', bold: false },
-    { text: 'Womens Doubles', bold: false, gap: 50 },
-    { text: 'Entry form and details on the website', bold: false },
-    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 }
-  ], 'supervet-tournament-social.png');
+    if (divisionImages.length) {
+      await sharp({
+        create: { width: 1080, height: 1080 * divisionImages.length, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
+      })
+        .composite(divisionImages.map((buf, i) => ({ input: buf, top: 1080 * i, left: 0 })))
+        .png()
+        .toFile('static/beta/images/generated/league-table-merged.png');
+    }
 
-  res.sendStatus(200);
+    res.render('beta/league-table-social', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      pageTitle: 'Table Social Images',
+      pageDescription: 'Table Social Images',
+      query: req.query,
+      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
-exports.handicapTournamentSocial = function(req, res, next) {
-  const canvasWidth = 1080;
-  const canvasHeight = 1080;
-  let canvas = createCanvas(canvasWidth, canvasHeight);
-  let ctx = canvas.getContext('2d');
+async function drawTournamentImage(title, lines, filename) {
+  const W = 1080, H = 1080;
+  const elements = [{ text: title, x: 540, y: 120, size: 65, weight: 'bold' }];
+  let posY = 120;
+  for (const line of lines) {
+    posY += line.gap || 100;
+    elements.push({ text: line.text, x: 540, y: posY, size: 40, weight: line.bold ? 'bold' : 'normal' });
+  }
+  await sharp('static/beta/images/bg/social.png')
+    .resize(W, H, { fit: 'cover' })
+    .composite([{ input: svgOverlay(W, H, elements) }])
+    .png()
+    .toFile(`static/beta/images/generated/${filename}`);
+}
 
-  loadImage('static/beta/images/bg/social.png').then(async (image) => {
-    ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-    ctx.font = 'bold 40px Arial';
-    ctx.fillStyle = '#000';
-    ctx.textAlign = 'center';
-    let posY = 120;
-    let posX = 540;
-    ctx.font = 'bold 65px Arial';
-    ctx.fillText('Handicap Tournaments', posX, posY);
-    posY += 100;
-    ctx.font = 'normal 40px Arial';
-    ctx.fillText('Didsbury High School', posX, posY);
-    posY += 50;
-    ctx.fillText('4 The Avenue, Didsbury, M20 2ET', posX, posY);
-    posY += 100;
-    ctx.font = 'bold 50px Arial';
-    ctx.fillText('2nd March', posX, posY);
-    posY += 100;
-    ctx.font = 'normal 40px Arial';
-    ctx.fillText('Handicap Mens & Womens Singles', posX, posY);
-    posY += 50;
-    ctx.fillText('Handicap Mixed Doubles', posX, posY);
-    posY += 50;
-    ctx.fillText('Veteran Mens & Womens Doubles', posX, posY);
-    posY += 50;
-    ctx.fillText('Family Mixed Doubles', posX, posY);
-    posY += 100;
-    ctx.font = 'bold 50px Arial';
-    ctx.fillText('9th March', posX, posY);
-    posY += 100;
-    ctx.font = 'normal 40px Arial';
-    ctx.fillText('Handicap Mens & Womens Doubles', posX, posY);
-    posY += 50;
-    ctx.fillText('Veteran Singles', posX, posY);
-    posY += 50;
-    ctx.fillText('Veteran Mixed Doubles', posX, posY);
-    posY += 100;
-    ctx.fillText('Entry form and details on the website', posX, posY);
-    posY += 50;
-    ctx.fillText('https://stockport-badminton.co.uk', posX, posY);
-    const out = fs.createWriteStream('static/beta/images/generated/handicap-tournament-social.png');
-    const stream = canvas.createPNGStream();
-    stream.pipe(out);
-    out.on('finish', () => console.log('League table image created!'));
-  });
-  res.sendStatus(200);
+exports.tournamentSocial = async function(req, res, next) {
+  try {
+    await Promise.all([
+      drawTournamentImage('Open Tournament', [
+        { text: '11th November', bold: true },
+        { text: 'Mens & Womens Doubles', bold: false },
+        { text: '18th November', bold: true },
+        { text: 'Mens & Womens Singles', bold: false },
+        { text: 'Mixed Doubles', bold: false, gap: 50 },
+        { text: 'Entry form and details on the website', bold: false },
+        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+      ], 'open-tournament-social.png'),
+      drawTournamentImage('`B` Tournament', [
+        { text: '11th November', bold: true },
+        { text: 'Mens & Womens Doubles', bold: false },
+        { text: '18th November', bold: true },
+        { text: 'Singles', bold: false },
+        { text: 'Mixed Doubles', bold: false, gap: 50 },
+        { text: 'Entry form and details on the website', bold: false },
+        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+      ], 'B-tournament-social.png'),
+      drawTournamentImage('`C` Tournament', [
+        { text: '11th November', bold: true },
+        { text: 'Mens & Womens Doubles', bold: false },
+        { text: '18th November', bold: true },
+        { text: 'Mixed Doubles', bold: false },
+        { text: 'Entry form and details on the website', bold: false },
+        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+      ], 'c-tournament-social.png'),
+      drawTournamentImage('Supervet Tournament', [
+        { text: '11th November', bold: true },
+        { text: 'Mixed Doubles', bold: false },
+        { text: '18th November', bold: true },
+        { text: 'Mens Doubles', bold: false },
+        { text: 'Womens Doubles', bold: false, gap: 50 },
+        { text: 'Entry form and details on the website', bold: false },
+        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+      ], 'supervet-tournament-social.png'),
+    ]);
+    res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.handicapTournamentSocial = async function(req, res, next) {
+  try {
+    await drawTournamentImage('Handicap Tournaments', [
+      { text: 'Didsbury High School', bold: false },
+      { text: '4 The Avenue, Didsbury, M20 2ET', bold: false, gap: 50 },
+      { text: '2nd March', bold: true },
+      { text: 'Handicap Mens & Womens Singles', bold: false, gap: 50 },
+      { text: 'Handicap Mixed Doubles', bold: false, gap: 50 },
+      { text: 'Veteran Mens & Womens Doubles', bold: false, gap: 50 },
+      { text: '9th March', bold: true },
+      { text: 'Handicap Mens & Womens Doubles', bold: false, gap: 50 },
+      { text: 'Veteran Singles', bold: false, gap: 50 },
+      { text: 'Entry form and details on the website', bold: false },
+      { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+    ], 'handicap-tournament-social.png');
+    res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
 };

@@ -44,35 +44,35 @@ exports.getLeagueTable = async function(division, season) {
   const teamTable = season ? `team${season} AS team` : 'team'
   division = division.replace('-', ' ')
   const [result] = await (await db.otherConnect()).query(
-    `SELECT c.name, c.played, c.pointsFor, c.pointsAgainst
+    `SELECT c.name, c.played, c.pointsfor AS "pointsFor", c.pointsagainst AS "pointsAgainst"
      FROM (
-       SELECT team.name, b.played, b.pointsFor - team.penalties AS pointsFor, b.pointsAgainst, team.division
+       SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division
        FROM (
-         SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId
+         SELECT SUM(a.played) AS played, SUM(a.pointsfor) AS pointsfor, SUM(a.pointsagainst) AS pointsagainst, a.teamid
          FROM (
            SELECT fixture.date,
              CASE WHEN fixture."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
-             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
-             "homeScore" AS pointsFor, "awayScore" AS pointsAgainst, fixture."homeTeam" AS teamId
+             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gameswon,
+             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
+             "homeScore" AS pointsfor, "awayScore" AS pointsagainst, fixture."homeTeam" AS teamid
            FROM fixture, season
            WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
            UNION ALL
            SELECT fixture.date,
              CASE WHEN fixture."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
-             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
-             "awayScore" AS pointsFor, "homeScore" AS pointsAgainst, fixture."awayTeam" AS teamId
+             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gameswon,
+             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
+             "awayScore" AS pointsfor, "homeScore" AS pointsagainst, fixture."awayTeam" AS teamid
            FROM fixture, season
            WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
          ) AS a
-         GROUP BY a.teamId
+         GROUP BY a.teamid
        ) AS b
-       JOIN ${teamTable} ON team.id = b.teamId
+       JOIN ${teamTable} ON team.id = b.teamid
      ) AS c
      JOIN division ON c.division = division.id
      WHERE division.name = ? AND division.league = 1
-     ORDER BY pointsFor DESC`,
+     ORDER BY "pointsFor" DESC`,
     [resolvedSeason, resolvedSeason, division]
   )
   return result
@@ -113,37 +113,37 @@ exports.getAllLeagueTables = async function(season) {
   const teamTable = season ? `team${season} AS team` : 'team'
   const divisionTable = season ? `division${season} AS division` : 'division'
   const [result] = await (await db.otherConnect()).query(
-    `SELECT division.name AS divisionName, id AS division, c.name, c.played, c.pointsFor, c.pointsAgainst, c."divRank"
+    `SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "pointsFor", c.pointsagainst AS "pointsAgainst", c."divRank"
      FROM (
-       SELECT team.name, b.played, b.pointsFor - team.penalties AS pointsFor, b.pointsAgainst, team.division, team."divRank"
+       SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division, team."divRank"
        FROM (
-         SELECT SUM(a.played) AS played, SUM(a.pointsFor) AS pointsFor, SUM(a.pointsAgainst) AS pointsAgainst, a.teamId
+         SELECT SUM(a.played) AS played, SUM(a.pointsfor) AS pointsfor, SUM(a.pointsagainst) AS pointsagainst, a.teamid
          FROM (
            SELECT fixture.date,
              CASE WHEN fixture."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
-             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
-             "homeScore" AS pointsFor, "awayScore" AS pointsAgainst, fixture."homeTeam" AS teamId
+             CASE WHEN fixture."homeScore" > 9 THEN 1 ELSE 0 END AS gameswon,
+             CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
+             "homeScore" AS pointsfor, "awayScore" AS pointsagainst, fixture."homeTeam" AS teamid
            FROM fixture, season
            WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
              AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
            UNION ALL
            SELECT fixture.date,
              CASE WHEN fixture."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gamesWon,
-             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesDrawn,
-             "awayScore" AS pointsFor, "homeScore" AS pointsAgainst, fixture."awayTeam" AS teamId
+             CASE WHEN fixture."awayScore" > 9 THEN 1 ELSE 0 END AS gameswon,
+             CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
+             "awayScore" AS pointsfor, "homeScore" AS pointsagainst, fixture."awayTeam" AS teamid
            FROM fixture, season
            WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
              AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
          ) AS a
-         GROUP BY a.teamId
+         GROUP BY a.teamid
        ) AS b
-       JOIN ${teamTable} ON team.id = b.teamId
+       JOIN ${teamTable} ON team.id = b.teamid
      ) AS c
      JOIN ${divisionTable} ON c.division = division.id
      WHERE division.league = 1
-     ORDER BY division, pointsFor DESC, "divRank"`,
+     ORDER BY division, "pointsFor" DESC, "divRank"`,
     [resolvedSeason, resolvedSeason]
   )
   return result
