@@ -80,7 +80,7 @@ exports.league_table = async function(req, res, next) {
     const result = await League.getLeagueTable(req.params.division, req.params.season);
     // console.log(result)
     res.status(200);
-    res.render('beta/tables', {
+    res.render('tables', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -103,7 +103,7 @@ exports.all_league_tables = async function(req, res, next) {
     const result = await League.getAllLeagueTables(req.params.season);
     // console.log(result)
     res.status(200);
-    res.render('beta/all-tables', {
+    res.render('all-tables', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',

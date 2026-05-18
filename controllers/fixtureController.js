@@ -276,7 +276,7 @@ exports.get_fixture_players_details = async function(req, res, next) {
     const row = await Fixture.getMatchPlayerOrderDetails(searchObj);
     let clubs = row.map(item => item.name).filter((value, index, self) => self.indexOf(value) === index)
     let teams = row.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index)
-    res.render('beta/fixture-players', {
+    res.render('fixture-players', {
       static_path: '/static',
       pageTitle: "Fixture Player Details",
       pageDescription: "Find out who played which matches and in what order",
@@ -326,7 +326,7 @@ exports.fixture_detail = async function(req, res, next) {
 exports.fixture_event_detail = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureEventById(req.params.id);
-    res.render('beta/viewEventDetails', {
+    res.render('viewEventDetails', {
       static_path: '/static',
       pageTitle: 'Event Details: ' + row[0].homeTeam + " vs " + row[0].awayTeam,
       pageDescription: "View scorecard for this match",
@@ -343,7 +343,7 @@ exports.fixture_event_detail = async function(req, res, next) {
 exports.getScorecard = async function(req, res, next) {
   try {
     const row = await Fixture.getScorecardDataById(req.params.id);
-    res.render('beta/viewScorecard', {
+    res.render('viewScorecard', {
       static_path: '/static',
       pageTitle: "Scorecard Info",
       pageDescription: "View scorecard for this match",
@@ -508,7 +508,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       }
       applyAdminRole(renderObject, req)
       console.log(renderObject)
-      res.render('beta/fixtures-results' + type, renderObject);
+      res.render('fixtures-results' + type, renderObject);
     } else {
       var convertedParams = req.params[0].replace('Premier', 'division-7')
         .replace('Division 1', 'division-8').replace('Division-1', 'division-8')
@@ -571,7 +571,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       } else {
         res.status(200);
         console.log(renderObject.jsonResult)
-        res.render('beta/fixtures-results' + type, renderObject);
+        res.render('fixtures-results' + type, renderObject);
       }
     }
   } catch (err) {
@@ -608,7 +608,7 @@ exports.fixture_get_summary = async function(req, res, next) {
     const response = await axios.get('https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true', {
       headers: { 'Authorization': 'Basic ' + process.env.CLOUDINARY_AUTH }
     });
-    res.render('beta/homepage', {
+    res.render('homepage', {
       static_path: '/static',
       pageTitle: "Homepage",
       pageDescription: "Clubs: Aerospace, Astrazeneca, Altrincham Central, Bramhall Village, CAP, Canute, Carrington, Cheadle Hulme, College Green, David Lloyd, Disley, Dome, GHAP, Macclesfield, Manor, Mellor, New Mills, Parrswood, Poynton, Racketeer, Shell, Syddal Park, Tatton. Social and Competitive badminton in and around Stockport.",
@@ -1097,7 +1097,7 @@ exports.messer_scorecard = async function(req, res, next) {
 }
 
   exports.scorecard_upload = function(req, res) {
-    res.render('beta/scorecard-upload', {
+    res.render('scorecard-upload', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -1108,7 +1108,7 @@ exports.messer_scorecard = async function(req, res, next) {
   };
 
   exports.upload_scoresheet = function(req,res){
-    res.render('beta/file-upload',{
+    res.render('file-upload',{
       static_path:'/static',
       theme:process.env.THEME || 'flatly',
       pageTitle : "Upload Scorecard",

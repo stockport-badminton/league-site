@@ -110,7 +110,7 @@ exports.tablesSocial = async function(req, res, next) {
         .toFile('static/beta/images/generated/league-table-merged.png');
     }
 
-    res.render('beta/league-table-social', {
+    res.render('league-table-social', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       pageTitle: 'Table Social Images',

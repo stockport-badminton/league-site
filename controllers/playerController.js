@@ -44,7 +44,7 @@ exports.player_list = async function(req, res, next) {
 exports.players_missed_three = async function(req, res, next) {
   try {
     const rows = await Player.getMissedThreePlayers();
-    res.render('beta/missed-three-list', {
+    res.render('missed-three-list', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -63,7 +63,7 @@ exports.players_missed_three = async function(req, res, next) {
 exports.player_game_data = async function(req, res, next) {
   try {
     const rows = await Player.getPlayerGameData(req.params.id);
-    res.render('beta/player-game-stats', {
+    res.render('player-game-stats', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -83,7 +83,7 @@ exports.player_game_data = async function(req, res, next) {
 exports.player_list_clubs_teams = async function(req, res, next) {
   try {
     const rows = await Player.getNamesClubsTeams(req.params);
-    res.render('beta/player-list', {
+    res.render('player-list', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -269,7 +269,7 @@ exports.manage_player_list_clubs_teams = async function(req, res, next) {
       const clubsRes = await Club.getAll();
       console.log(clubsRes);
       let clubs = clubsRes.map(row => row.name)
-      res.render('beta/team-admin', {
+      res.render('team-admin', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -374,7 +374,7 @@ exports.all_player_stats = async function(req, res, next) {
     const result = await Player.newGetPlayerStats(searchObj);
     let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index)
     let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index)
-    res.render('beta/player-stats', {
+    res.render('player-stats', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -444,7 +444,7 @@ exports.all_pair_stats = async function(req, res, next) {
     const result = await Player.newGetPairStats(searchObj);
     let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index)
     let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index)
-    res.render('beta/pair-stats', {
+    res.render('pair-stats', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',

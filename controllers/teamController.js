@@ -185,7 +185,7 @@ exports.new_messer_draw = async function(req, res, next) {
     // console.log(otherArray);
     // var totalRounds = Math.ceil(Math.log(rows.length)/Math.log(2))
     //console.log(JSON.stringify(rows));
-    res.render('beta/messer-draw-a-section', {
+    res.render('messer-draw-a-section', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',

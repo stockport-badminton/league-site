@@ -45,7 +45,7 @@ router.get('/callback', function(req, res, next) {
   passport.authenticate('auth0', function(err, user, info) {
     if (err) { return next(err); }
     if (!user) {
-      res.render('beta/failed-login', {
+      res.render('failed-login', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         pageTitle: 'Access Denied',
@@ -118,7 +118,7 @@ router.post('/SESemail', (req, res, next) => {
   const sendPromise = ses.sendEmail(params).promise();
   sendPromise
     .then(data => {
-      res.render('beta/contact-us-form-delivered', {
+      res.render('contact-us-form-delivered', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -334,7 +334,7 @@ router.get('/admin/results/:division/:season', secured, fixture_controller.fixtu
 
 router.get('/user', secured, async function(req, res) {
   const { _raw, _json, userProfile } = req.user;
-  res.render('beta/user', {
+  res.render('user', {
     userProfile: JSON.stringify(userProfile, null, 2),
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
@@ -371,7 +371,7 @@ router.get('/short-results', secured, fixture_controller.fixture_outstanding);
 // Error handlers
 router.use(function(req, res) {
   res.status(404);
-  res.render('beta/404-error', {
+  res.render('404-error', {
     static_path: '/static',
     pageTitle: 'Can\'t find the page your looking for',
     pageDescription: 'HTTP 404 Error',
@@ -381,7 +381,7 @@ router.use(function(req, res) {
 
 router.use(function(error, req, res, next) {
   res.status(500);
-  res.render('beta/500-error', {
+  res.render('500-error', {
     static_path: '/static',
     pageTitle: 'HTTP 500 Error',
     pageDescription: 'HTTP 500 Error',

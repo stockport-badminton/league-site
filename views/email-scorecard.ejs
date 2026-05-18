@@ -1,5 +1,5 @@
-<%- include('beta/header.ejs') %>
-<%- include('beta/nav.ejs') %>
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
 
       <%
       var hasErrors, hasScorecardData, hasResult, hasScorecard = false
@@ -37,7 +37,7 @@
         <% } %>
         <% if (hasScorecardData) { %>
           <p>Some Scorecard Data</p>
-          <%- include('beta/recentPlayerHistory.ejs') %>
+          <%- include('recentPlayerHistory.ejs') %>
         <% } %>
         <% if (hasScorecard && !hasErrors) { %>
             <p>Thanks for entering your result - the Results Secretary has been emailed and will verify your result soon! Thanks!</p>
@@ -1384,7 +1384,7 @@
          </div><!-- /.modal-dialog -->
        </div><!-- /.modal -->
     <% } %>
-    <%- include('beta/footer.ejs') %>
+    <%- include('footer.ejs') %>
     <script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
 
     <script type="text/javascript">

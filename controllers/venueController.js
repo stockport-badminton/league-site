@@ -6,7 +6,7 @@ exports.venue_list = async function(req, res, next) {
     const result = await Venue.getAll();
     // console.log(result)
     res.status(200);
-    res.render('beta/venues', {
+    res.render('venues', {
         static_path: '/static',
         pageTitle : "Venues",
         pageDescription : "Venues",

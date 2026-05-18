@@ -807,7 +807,7 @@ exports.genFixtures = function(req,res){
     }
     // debugArray.sort((a,b) => {return new Date(b.currentDate) - new Date(a.currentDate);})
 
-    res.render('beta/tameside-fixtures', {
+    res.render('tameside-fixtures', {
         static_path: '/static',
         pageTitle : "Scorecard Info",
         pageDescription : "View scorecard for this match",

@@ -70,7 +70,7 @@ exports.club_list_detail = async function(req, res, next) {
     console.log(newClubArray)
     console.log(JSON.stringify(venueRows))
     res.status(200);
-    res.render('beta/club-v2', {
+    res.render('club-v2', {
          static_path: '/static',
          pageTitle : "Local Badminton Club Information",
          pageDescription : "Find your local badminton clubs, when they play, where they play.",
@@ -118,7 +118,7 @@ exports.club_detail = async function(req, res, next) {
     // console.log(JSON.stringify(clubrow));
     // console.log(clubrow)
     res.status(200);
-    res.render('beta/club-contact', {
+    res.render('club-contact', {
         static_path: '/static',
         pageTitle : clubrow[0].clubname + " Contact information",
         pageDescription : clubrow[0].clubname + "'s Club / Team Contact information",

@@ -449,7 +449,7 @@ exports.contactus = async function(req, res, next) {
     for (i of errors.array()) {
       console.log(i)
     }
-    res.render('beta/contact-us-form-delivered', {
+    res.render('contact-us-form-delivered', {
       pageTitle: 'Contact Us - Error',
       pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
       message: 'Sorry something went wrong',
@@ -501,7 +501,7 @@ exports.contactus = async function(req, res, next) {
       var ses = new AWS.SES({ apiVersion: '2010-12-01' });
       await ses.sendEmail(params).promise();
       console.log(msg);
-      res.render('beta/contact-us-form-delivered', {
+      res.render('contact-us-form-delivered', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -564,7 +564,7 @@ exports.contactus = async function(req, res, next) {
       var ses = new AWS.SES({ apiVersion: '2010-12-01' });
       await ses.sendEmail(params).promise();
       console.log(msg);
-      res.render('beta/contact-us-form-delivered', {
+      res.render('contact-us-form-delivered', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -993,7 +993,7 @@ exports.distribution_list = async function(req,res,next) {
 exports.contactus_get = async function(req, res, next) {
   try {
     const rows = await Club.getAll();
-    res.render('beta/contact-us-form', {
+    res.render('contact-us-form', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       flask_debug: process.env.FLASK_DEBUG || 'false',

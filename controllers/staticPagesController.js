@@ -6,7 +6,7 @@ const SEASON = new Date().getMonth() < 7
   : `${year}/${year + 1}`
 
 exports.privacy_policy = function(req, res) {
-  res.render('beta/privacy', {
+  res.render('privacy', {
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
     flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -17,7 +17,7 @@ exports.privacy_policy = function(req, res) {
 }
 
 exports.messer_rules = function(req, res) {
-  res.render('beta/messer-rules', {
+  res.render('messer-rules', {
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
     flask_debug: process.env.FLASK_DEBUG || 'false',
@@ -47,7 +47,7 @@ exports.get_gallery = async function(req, res, next) {
       galleryObj[yr] = yearObj
       yearObj = {}
     }
-    res.render('beta/gallery', {
+    res.render('gallery', {
       assets: galleryObj,
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
@@ -62,7 +62,7 @@ exports.get_gallery = async function(req, res, next) {
 }
 
 exports.rules = function(req, res) {
-  res.render('beta/rules', {
+  res.render('rules', {
     season: SEASON,
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
@@ -74,7 +74,7 @@ exports.rules = function(req, res) {
 }
 
 exports.upload_scoresheet = function(req, res) {
-  res.render('beta/file-upload', {
+  res.render('file-upload', {
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
     pageTitle: 'Upload Scorecard',
