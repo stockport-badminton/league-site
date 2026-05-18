@@ -42,7 +42,9 @@ router.get('/login', function(req, res, next) {
 
 router.get('/callback', function(req, res, next) {
   var passport = require('passport');
+  console.log('[callback] session id:', req.session.id, 'session keys:', Object.keys(req.session));
   passport.authenticate('auth0', function(err, user, info) {
+    console.log('[callback] err:', err && err.message, 'user:', !!user, 'info:', info);
     if (err) { return next(err); }
     if (!user) {
       res.render('beta/failed-login', {
