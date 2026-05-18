@@ -1623,11 +1623,79 @@
         var selectedPlayer = $(this)[0].id
         // console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
       })
-      $(".scoreInput").change(function(){
-        var inputScore = $(this)[0]
-        var inputScore = $(this)[0]
-        // console.log(inputScore.id + '-' + inputScore.value)
-      })
+      // ── Score validation ──────────────────────────────────────────────────────
+      var scoreStepGames = {4:[1,2],5:[3,4],6:[5,6],7:[7,8],8:[9,10],9:[11,12],10:[13,14],11:[15,16],12:[17,18]};
+      var currentWizardStep = 1;
+
+      // Inject inline feedback container after each score pair's inner row
+      for (var _gi = 1; _gi <= 18; _gi++) {
+        (function(n) {
+          var el = document.getElementById('Game' + n + 'homeScore');
+          if (!el) return;
+          var fb = document.createElement('div');
+          fb.id = 'gameFeedback' + n;
+          fb.className = 'score-feedback text-danger small mt-1';
+          fb.style.display = 'none';
+          el.closest('.form-row').insertAdjacentElement('afterend', fb);
+        })(_gi);
+      }
+
+      function validateGamePair(n, requireFilled) {
+        var homeEl = document.getElementById('Game' + n + 'homeScore');
+        var awayEl = document.getElementById('Game' + n + 'awayScore');
+        var fb = document.getElementById('gameFeedback' + n);
+        if (!homeEl || !awayEl || !fb) return null;
+
+        var hv = homeEl.value.trim(), av = awayEl.value.trim();
+        if (hv === '' || av === '') {
+          if (requireFilled) {
+            [homeEl, awayEl].forEach(function(el) { el.classList.remove('is-valid'); el.classList.add('is-invalid'); });
+            fb.textContent = 'Please enter a score for this game.';
+            fb.style.display = 'block';
+            return false;
+          }
+          [homeEl, awayEl].forEach(function(el) { el.classList.remove('is-valid', 'is-invalid'); });
+          fb.style.display = 'none';
+          return null;
+        }
+
+        var h = parseInt(hv, 10), a = parseInt(av, 10), err = null;
+        if (isNaN(h) || h < 0 || h > 30 || isNaN(a) || a < 0 || a > 30) {
+          err = 'Scores must be between 0 and 30.';
+        } else if (h < 21 && a < 21) {
+          err = 'One team must score at least 21.';
+        } else if (Math.abs(h - a) < 2 && h < 30 && a < 30) {
+          err = 'Winning score must be at least 2 greater than losing score.';
+        }
+
+        [homeEl, awayEl].forEach(function(el) {
+          el.classList.toggle('is-invalid', !!err);
+          el.classList.toggle('is-valid', !err);
+        });
+        fb.textContent = err || '';
+        fb.style.display = err ? 'block' : 'none';
+        return !err;
+      }
+
+      // Validate on every keystroke
+      $(".scoreInput").on('input', function() {
+        var match = this.id.match(/Game(\d+)/);
+        if (match) validateGamePair(parseInt(match[1], 10), false);
+      });
+
+      // Gate forward navigation: block "Continue" on score steps until games are valid
+      var _origSendEvent = sendEvent;
+      sendEvent = function(targetStep) {
+        var target = parseInt(targetStep, 10);
+        if (target > currentWizardStep && scoreStepGames[currentWizardStep]) {
+          var gameNums = scoreStepGames[currentWizardStep];
+          var results = gameNums.map(function(n) { return validateGamePair(n, true); });
+          if (results.some(function(r) { return r !== true; })) return;
+        }
+        currentWizardStep = target;
+        _origSendEvent(targetStep);
+      };
+
       $(".playerInput").change(function(){
         var inputPlayerName = $(this)[0].selectedOptions[0].text;
         var inputPlayerId = $(this)[0].selectedOptions[0].value;
