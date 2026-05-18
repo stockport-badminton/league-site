@@ -18,6 +18,7 @@
     "body-parser": "latest",
     "compression": "^1.7.4",
     "connect-ensure-login": "^0.1.1",
+    "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.3",
     "docx": "^8.2.3",
     "dotenv": "^10.0.0",

@@ -1,6 +1,7 @@
 var AWS = require('aws-sdk');
 var express = require('express');
 var session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 var passport = require('passport');
 var Auth0Strategy = require('passport-auth0');
 var bodyParser = require('body-parser');
@@ -66,6 +67,7 @@ passport.serializeUser(function(user, done) { done(null, user); });
 passport.deserializeUser(function(user, done) { done(null, user); });
 
 var sess = {
+  store: new pgSession({ conString: process.env.DATABASE_URL, createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'ThisisMySecret',
   cookie: {},
   resave: false,
