@@ -605,9 +605,15 @@ exports.fixture_get_summary = async function(req, res, next) {
       Fixture.getRecent(),
       Fixture.getupComing()
     ]);
-    const response = await axios.get('https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true', {
-      headers: { 'Authorization': 'Basic ' + process.env.CLOUDINARY_AUTH }
-    });
+    let assets = [];
+    try {
+      const response = await axios.get('https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true', {
+        headers: { 'Authorization': 'Basic ' + process.env.CLOUDINARY_AUTH }
+      });
+      assets = response.data.resources;
+    } catch (cloudinaryErr) {
+      console.error('Cloudinary fetch failed:', cloudinaryErr.message);
+    }
     res.render('homepage', {
       static_path: '/static',
       pageTitle: "Homepage",
@@ -615,7 +621,7 @@ exports.fixture_get_summary = async function(req, res, next) {
       result: recentResults,
       row: upcomingFixtures,
       scorecards,
-      assets: response.data.resources,
+      assets,
       canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
     });
   } catch (err) {
