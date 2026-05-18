@@ -37,15 +37,12 @@ router.use(userInViews());
 // Auth routes
 router.get('/login', function(req, res, next) {
   var passport = require('passport');
-  console.log('[login] session id:', req.session.id, 'host:', req.headers.host, 'x-forwarded-host:', req.headers['x-forwarded-host']);
   passport.authenticate('auth0', { scope: 'openid email profile' })(req, res, next);
 });
 
 router.get('/callback', function(req, res, next) {
   var passport = require('passport');
-  console.log('[callback] session id:', req.session.id, 'session keys:', Object.keys(req.session));
   passport.authenticate('auth0', function(err, user, info) {
-    console.log('[callback] err:', err && err.message, 'user:', !!user, 'info:', info);
     if (err) { return next(err); }
     if (!user) {
       res.render('beta/failed-login', {
