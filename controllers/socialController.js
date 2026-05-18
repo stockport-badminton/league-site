@@ -24,14 +24,14 @@ exports.resultImage = async function(req, res, next) {
 
     const makeElements = (width, height) => {
       const x = width - 100;
-      const y = Math.floor(height / 2);
+      const y = Math.floor(2 * height / 3) + 50;
       return [
-        { text: homeTeam,                              x, y,       size: 60, weight: 'bold',   fill: 'white', anchor: 'end' },
-        { text: 'vs',                                  x, y: y+80,  size: 50,                  fill: 'white', anchor: 'end' },
-        { text: awayTeam,                              x, y: y+160, size: 60, weight: 'bold',   fill: 'white', anchor: 'end' },
-        { text: `${homeScore} - ${awayScore}`,         x, y: y+260, size: 80, weight: 'bold',   fill: 'white', anchor: 'end' },
-        { text: '#stockport #badminton #sdbl #result', x, y: y+360, size: 30,                  fill: 'white', anchor: 'end' },
-        { text: 'https://stockport-badminton.co.uk',   x, y: y+405, size: 30,                  fill: 'white', anchor: 'end' },
+        { text: homeTeam,                              x, y,       size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: 'vs',                                  x, y: y+60,  size: 50,                  fill: 'black', anchor: 'end' },
+        { text: awayTeam,                              x, y: y+140, size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: `${homeScore} - ${awayScore}`,         x, y: y+240, size: 80, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: '#stockport #badminton #sdbl #result', x, y: y+320, size: 30,                  fill: 'black', anchor: 'end' },
+        { text: 'https://stockport-badminton.co.uk',   x, y: y+365, size: 30,                  fill: 'black', anchor: 'end' },
       ];
     };
 

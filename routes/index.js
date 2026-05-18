@@ -42,7 +42,6 @@ router.get('/login', function(req, res, next) {
 
 router.get('/callback', function(req, res, next) {
   var passport = require('passport');
-  var currentURL = req.app.get('currentURL') || '';
   passport.authenticate('auth0', function(err, user, info) {
     if (err) { return next(err); }
     if (!user) {
@@ -55,9 +54,11 @@ router.get('/callback', function(req, res, next) {
         canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
       });
     } else {
+      var returnTo = req.session.returnTo || '/';
+      delete req.session.returnTo;
       req.logIn(user, function(err) {
         if (err) { console.log(err); return next(err); }
-        res.redirect(currentURL);
+        res.redirect(returnTo);
       });
     }
   })(req, res, next);
@@ -321,7 +322,6 @@ router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
 // Secured routes
 function secured(req, res, next) {
   if (req.isAuthenticated()) { return next(); }
-  req.app.set('currentURL', req.originalUrl);
   const returnTo = req.query.state || req.originalUrl;
   req.session.returnTo = returnTo;
   res.redirect('/login?returnTo=' + encodeURIComponent(returnTo));
