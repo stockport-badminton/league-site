@@ -15,6 +15,7 @@ var division_controller = require('../controllers/divisionController');
 var game_controller = require('../controllers/gameController');
 var fixture_controller = require('../controllers/fixtureController');
 var scorecard_controller = require('../controllers/scorecardController');
+var scorecard_analysis_controller = require('../controllers/scorecardAnalysisController');
 var league_controller = require('../controllers/leagueController');
 var fixtureGen_controller = require('../controllers/fixtureGenerator');
 var contact_controller = require('../controllers/contactusController');
@@ -335,6 +336,9 @@ router.get('/user', secured, async function(req, res) {
   });
 });
 
+router.post('/api/analyse-scorecard', secured,
+  scorecard_analysis_controller.uploadMiddleware,
+  scorecard_analysis_controller.analyse_scorecard);
 router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
 router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
 

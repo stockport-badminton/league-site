@@ -92,6 +92,20 @@
              </div>
              <div class="modal-body step step-1">
 
+                 <div class="card bg-light mb-3" id="photoUploadCard">
+                   <div class="card-body py-2 px-3">
+                     <p class="mb-1 small"><strong>Got the scoresheet?</strong> Upload a photo to auto-fill the form.</p>
+                     <div class="custom-file" style="max-width:320px">
+                       <input type="file" class="custom-file-input" id="scorecardPhoto" accept="image/*">
+                       <label class="custom-file-label" for="scorecardPhoto">Choose photo…</label>
+                     </div>
+                     <div id="photoAnalysisStatus" class="mt-2" style="display:none">
+                       <span class="spinner-border spinner-border-sm text-primary mr-1"></span>
+                       <small class="text-muted">Analysing scorecard…</small>
+                     </div>
+                     <div id="photoAnalysisResult" class="mt-2" style="display:none"></div>
+                   </div>
+                 </div>
 
                  <div class="form-row">
                    <div class="col-md-6">
@@ -523,7 +537,8 @@
                  </div>
 
              </div>
-             <div class="modal-body step step-13 ScorecardUpload">            
+             <div class="modal-body step step-13 ScorecardUpload">
+                <div id="scorecardUploadPrompt">
                 <div class="form-row">
                     <div class="form-group step-13 ScorecardUpload col-6">
                         <label for="game17Score">Upload Scorecard</label>
@@ -534,7 +549,12 @@
                         </div>
                     </div>
                 </div>
-
+                </div>
+                <div id="scorecardUploadDone" style="display:none" class="py-2">
+                  <p class="text-success mb-0">&#10003; Scorecard photo uploaded at the start of the form.</p>
+                  <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
+                  <small class="text-muted">You can go back to step 1 to upload a different photo.</small>
+                </div>
             </div>
              <div class="modal-body step step-14">
 
@@ -1568,14 +1588,22 @@
 
         $("[data-player-type=" + $(this).attr("id") + "]").val($(this).val());
       })
+      var _pendingTeamIds = {};
+
+      function applyPendingTeams() {
+        if (_pendingTeamIds.homeTeam) $('#homeTeam').val(_pendingTeamIds.homeTeam).trigger('change');
+        if (_pendingTeamIds.awayTeam) $('#awayTeam').val(_pendingTeamIds.awayTeam).trigger('change');
+        _pendingTeamIds = {};
+      }
+
       $("#division").change(function(){
         var selectedDivision = this.value;
         $.get('/static/beta/formOption.ejs', function (template) {
             $.post('/teams', {'divisionId':selectedDivision}, function (data) {
-               // Generate the html from the given data.
                var html = ejs.render(template,{data:data});
                $('#homeTeam').html(html);
                $('#awayTeam').html(html);
+               applyPendingTeams();
             });
         });
       })
@@ -1583,18 +1611,18 @@
         var selectedTeam = this.value;
         $.get('/static/beta/playerFormOptions.ejs', function (template) {
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
-               // Generate the html from the given data.
                var html = ejs.render(template,{data:data});
                $('#homeMan1').html(html);
                $('#homeMan2').html(html);
                $('#homeMan3').html(html);
+               applyPendingPlayers('home');
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
-               // Generate the html from the given data.
                var html = ejs.render(template,{data:data});
                $('#homeLady1').html(html);
                $('#homeLady2').html(html);
                $('#homeLady3').html(html);
+               applyPendingPlayers('home');
             });
         });
       })
@@ -1602,18 +1630,18 @@
         var selectedTeam = this.value;
         $.get('/static/beta/playerFormOptions.ejs', function (template) {
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
-               // Generate the html from the given data.
                var html = ejs.render(template,{data:data});
                $('#awayMan1').html(html);
                $('#awayMan2').html(html);
                $('#awayMan3').html(html);
+               applyPendingPlayers('away');
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
-               // Generate the html from the given data.
                var html = ejs.render(template,{data:data});
                $('#awayLady1').html(html);
                $('#awayLady2').html(html);
                $('#awayLady3').html(html);
+               applyPendingPlayers('away');
             });
         });
       })
@@ -1623,6 +1651,88 @@
         var selectedPlayer = $(this)[0].id
         // console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
       })
+      // ── Scorecard photo upload → auto-prefill ────────────────────────────────
+      var _pendingPlayerIds = {};
+      var _photoUploaded = false;
+
+      $('#scorecardPhoto').on('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        $('#photoAnalysisStatus').show();
+        $('#photoAnalysisResult').hide();
+        var fd = new FormData();
+        fd.append('scorecard', file);
+        $.ajax({
+          url: '/api/analyse-scorecard',
+          method: 'POST',
+          data: fd,
+          processData: false,
+          contentType: false,
+          success: function(data) {
+            $('#photoAnalysisStatus').hide();
+            _photoUploaded = true;
+            prefillFromAnalysis(data);
+          },
+          error: function(xhr) {
+            $('#photoAnalysisStatus').hide();
+            var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Could not read the scorecard.';
+            $('#photoAnalysisResult').html('<small class="text-danger">' + msg + ' Please fill in manually.</small>').show();
+          }
+        });
+      });
+
+      function prefillFromAnalysis(data) {
+        var filled = 0;
+
+        // Store player IDs for later — applied after team dropdowns load
+        _pendingPlayerIds = data;
+
+        // Date — server already normalised to YYYY-MM-DD
+        if (data.date) { $('#date').val(data.date); filled++; }
+
+        // Division → triggers team list load → applyPendingTeams() → triggers player load → applyPendingPlayers()
+        if (data.division) {
+          _pendingTeamIds = { homeTeam: data.homeTeam, awayTeam: data.awayTeam };
+          $('#division').val(data.division).trigger('change');
+          filled++;
+        } else {
+          // No division matched — try setting teams directly if options already exist
+          if (data.homeTeam) { $('#homeTeam').val(data.homeTeam).trigger('change'); filled++; }
+          if (data.awayTeam) { $('#awayTeam').val(data.awayTeam).trigger('change'); filled++; }
+        }
+
+        // Scores — apply immediately and run inline validation
+        for (var i = 1; i <= 18; i++) {
+          var h = data['Game' + i + 'homeScore'], a = data['Game' + i + 'awayScore'];
+          if (h !== undefined) { $('#Game' + i + 'homeScore').val(h); filled++; }
+          if (a !== undefined) { $('#Game' + i + 'awayScore').val(a); filled++; }
+          if (h !== undefined && a !== undefined) validateGamePair(i, false);
+        }
+
+        // Step 13: suppress the upload prompt since we already have the photo
+        $('#scorecardUploadPrompt').hide();
+        $('#scorecardUploadDone').show();
+
+        var msg = filled > 0
+          ? '<small class="text-success">&#10003; ' + filled + ' fields auto-filled. Please review before submitting.</small>'
+          : '<small class="text-warning">Could not extract data from the photo. Please fill in manually.</small>';
+        $('#photoAnalysisResult').html(msg).show();
+      }
+
+      // Apply player IDs after team dropdowns have loaded
+      // The existing team change handler populates player selects via AJAX;
+      // we wait for those requests to settle before setting player values.
+      function applyPendingPlayers(side) {
+        var ids = _pendingPlayerIds;
+        if (!ids) return;
+        var slots = side === 'home'
+          ? ['homeMan1','homeMan2','homeMan3','homeLady1','homeLady2','homeLady3']
+          : ['awayMan1','awayMan2','awayMan3','awayLady1','awayLady2','awayLady3'];
+        slots.forEach(function(slot) {
+          if (ids[slot]) $('#' + slot).val(ids[slot]);
+        });
+      }
+
       // ── Score validation ──────────────────────────────────────────────────────
       var scoreStepGames = {4:[1,2],5:[3,4],6:[5,6],7:[7,8],8:[9,10],9:[11,12],10:[13,14],11:[15,16],12:[17,18]};
       var currentWizardStep = 1;
