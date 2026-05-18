@@ -14,6 +14,7 @@ var club_controller = require('../controllers/clubController');
 var division_controller = require('../controllers/divisionController');
 var game_controller = require('../controllers/gameController');
 var fixture_controller = require('../controllers/fixtureController');
+var scorecard_controller = require('../controllers/scorecardController');
 var league_controller = require('../controllers/leagueController');
 var fixtureGen_controller = require('../controllers/fixtureGenerator');
 var contact_controller = require('../controllers/contactusController');
@@ -102,7 +103,7 @@ router.get('/sign-s3', async (req, res, next) => {
   }
 });
 
-router.get('/upload-scoresheet', fixture_controller.upload_scoresheet);
+router.get('/upload-scoresheet', scorecard_controller.upload_scoresheet);
 
 router.post('/SESemail', (req, res, next) => {
   var ses = new AWS.SES({ apiVersion: '2010-12-01' });
@@ -137,18 +138,14 @@ router.post('/mail', multer().none(), contact_controller.distribution_list);
 router.post('/mailtest', multer().none(), contact_controller.distribution_list);
 
 // Scorecard routes
-router.post('/scorecard-beta', fixture_controller.validateScorecard, fixture_controller.full_fixture_post);
-router.get('/scorecard-received', fixture_controller.scorecard_received);
-router.post('/email-scorecard', fixture_controller.validateScorecard, fixture_controller.fixture_populate_scorecard_errors);
-router.post('/add-scorecard-photo/:id', fixture_controller.add_scorecard_photo);
+router.post('/scorecard-beta', scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
+router.post('/email-scorecard', scorecard_controller.validateScorecard, scorecard_controller.fixture_populate_scorecard_errors);
+router.post('/add-scorecard-photo/:id', scorecard_controller.add_scorecard_photo);
 router.post('/submit-form', (req, res, next) => {
-  fixture_controller.fixture_populate_scorecard(req.body, req, res, next);
-});
-router.get('/populated-scorecard/:division/:home_team/:away_team/:home_man_1/:home_man_2/:home_man_3/:home_lady_1/:home_lady_2/:home_lady_3/:away_man_1/:away_man_2/:away_man_3/:away_lady_1/:away_lady_2/:away_lady_3/:Game1homeScore/:Game1awayScore/:Game2homeScore/:Game2awayScore/:Game3homeScore/:Game3awayScore/:Game4homeScore/:Game4awayScore/:Game5homeScore/:Game5awayScore/:Game6homeScore/:Game6awayScore/:Game7homeScore/:Game7awayScore/:Game8homeScore/:Game8awayScore/:Game9homeScore/:Game9awayScore/:Game10homeScore/:Game10awayScore/:Game11homeScore/:Game11awayScore/:Game12homeScore/:Game12awayScore/:Game13homeScore/:Game13awayScore/:Game14homeScore/:Game14awayScore/:Game15homeScore/:Game15awayScore/:Game16homeScore/:Game16awayScore/:Game17homeScore/:Game17awayScore/:Game18homeScore/:Game18awayScore', (req, res, next) => {
-  fixture_controller.fixture_populate_scorecard_fromUrl(req, res, next);
+  scorecard_controller.fixture_populate_scorecard(req.body, req, res, next);
 });
 router.get('/populated-scorecard-beta/:id', (req, res, next) => {
-  fixture_controller.fixture_populate_scorecard_fromId(req, res, next);
+  scorecard_controller.fixture_populate_scorecard_fromId(req, res, next);
 });
 
 // Static pages
@@ -260,14 +257,13 @@ router.get('/divisions', checkJwt, division_controller.division_list);
 
 // Fixture routes
 router.get('/fixture/create', fixture_controller.fixture_create_get);
-router.post('/fixture/reminder', fixture_controller.fixture_reminder_post);
+router.post('/fixture/reminder', scorecard_controller.fixture_reminder_post);
 router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
 router.get('/fixture/generate', fixtureGen_controller.genFixtures);
 router.post('/fixture/short-result', fixture_controller.fixture_outstanding_post);
 router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
 router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
 router.post('/fixture/enter-result', checkJwt, fixture_controller.fixture_update_by_team_name);
-router.post('/fixture/enter-full-result', fixture_controller.full_fixture_post);
 router.post('/fixture/rearrangement', fixture_controller.fixture_rearrange_by_team_name);
 router.patch('/fixture/rearrange', checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
@@ -320,12 +316,7 @@ router.get('/calendars/*', fixture_controller.fixture_calendars);
 router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
 
 // Secured routes
-function secured(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
-  const returnTo = req.query.state || req.originalUrl;
-  req.session.returnTo = returnTo;
-  res.redirect('/login?returnTo=' + encodeURIComponent(returnTo));
-}
+const secured = require('../middleware/secured');
 
 router.post('/player/batch-update', secured, player_controller.player_batch_update);
 router.post('/player/:id', secured, player_controller.player_update_post);
@@ -344,9 +335,8 @@ router.get('/user', secured, async function(req, res) {
   });
 });
 
-router.get('/scorecard-beta-nonmodal', secured, fixture_controller.scorecard_nonmodal);
-router.get('/scorecard-beta', secured, fixture_controller.scorecard_beta);
-router.get('/email-scorecard', secured, fixture_controller.email_scorecard);
+router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
+router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
 
 router.get('/players/club-:club?/team-:team?/gender-:gender?', secured, player_controller.player_list_clubs_teams);
 router.get('/players/club-:club?', secured, player_controller.player_list_clubs_teams);
