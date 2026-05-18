@@ -67,6 +67,7 @@ passport.serializeUser(function(user, done) { done(null, user); });
 passport.deserializeUser(function(user, done) { done(null, user); });
 
 var sess = {
+  name: '__session',
   store: new pgSession({ conString: process.env.DATABASE_URL, createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'ThisisMySecret',
   cookie: {},
