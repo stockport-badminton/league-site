@@ -37,6 +37,7 @@ router.use(userInViews());
 // Auth routes
 router.get('/login', function(req, res, next) {
   var passport = require('passport');
+  console.log('[login] session id:', req.session.id, 'host:', req.headers.host, 'x-forwarded-host:', req.headers['x-forwarded-host']);
   passport.authenticate('auth0', { scope: 'openid email profile' })(req, res, next);
 });
 
