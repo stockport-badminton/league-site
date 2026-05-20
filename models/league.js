@@ -80,29 +80,31 @@ exports.getLeagueTable = async function(division, season) {
 
 exports.getAnnualInvoices = async function(clubName) {
   const clubFilter = typeof clubName !== 'undefined' ? 'WHERE club.name = ?' : ''
-  const params = [process.env.DB_PI_KEY, SEASON, PREVSEASON]
+  const params = [process.env.DB_PI_KEY, SEASON, PREVSEASON, SEASON]
   if (typeof clubName !== 'undefined') params.push(clubName)
 
-  const sql = `SELECT club.id AS clubId,
-    club.name AS clubName,
-    count(team.id) AS teamsCount,
-    fines.id AS fineId,
+  const sql = `SELECT club.id AS "clubId",
+    club.name AS "clubName",
+    count(team.id) AS "teamsCount",
+    fines.id AS "fineId",
     fines.desc,
     fines.amount,
-    fineTeam.name AS fineTeam,
-    fineClub.name AS fineClub,
+    "fineTeam".name AS "fineTeam",
+    "fineClub".name AS "fineClub",
     fines.season,
     player.first_name AS secretary,
-    pgp_sym_decrypt(player."playerEmail", ?)::text AS playerEmail
+    pgp_sym_decrypt(player."playerEmail", ?)::text AS "playerEmail",
+    season."clubFee"
     FROM
     club JOIN
     team ON team.club = club.id LEFT JOIN
     fines ON fines.club = club.id AND ((fines.season = ? AND fines.desc IN ('agm')) OR (fines.season = ? AND fines.desc IN ('rearrangement','card')) OR fines.season IS NULL) LEFT JOIN
-    team fineTeam ON fines.team = fineTeam.id LEFT JOIN
-    club fineClub ON fines.club = fineClub.id JOIN
+    team "fineTeam" ON fines.team = "fineTeam".id LEFT JOIN
+    club "fineClub" ON fines.club = "fineClub".id JOIN
+    season on season.name = ? join
     player ON (player.club = club.id AND player."clubSecretary" = 1)
     ${clubFilter}
-    GROUP BY club.id, club.name, fines.id, fines.desc, fines.amount, fineTeam.name, fineClub.name, fines.season, player.first_name, player."playerEmail"`
+    GROUP BY club.id, club.name, fines.id, fines.desc, fines.amount, "fineTeam".name, "fineClub".name, fines.season, player.first_name, player."playerEmail",season."clubFee"`
 
   const [result] = await (await db.otherConnect()).query(sql, params)
   return result

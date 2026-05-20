@@ -603,7 +603,7 @@ exports.send_invoices = async function(req, res, next) {
       data.secretary = club.secretary;
       data.email = club.playerEmail;
 
-      let clubTotal = club.teamsCount * 20;
+      let clubTotal = club.teamsCount * club.teamFee;
 
       let fineRows = rows.filter(fine => fine.clubId === club.clubId);
       for (let fine of fineRows) {
@@ -613,7 +613,7 @@ exports.send_invoices = async function(req, res, next) {
         }
       }
 
-      data.teamsCost = club.teamsCount * 20;
+      data.teamsCost = club.teamsCount * club.teamFee;
       data.feesTotal = clubTotal;
 
       if (!allData.some(row => row.name === data.name)) {
