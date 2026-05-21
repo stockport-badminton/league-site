@@ -58,31 +58,80 @@ exports.validateMesserScorecard = [
   body('Game14awayScore').isInt({ min: 0, max: 30 }).withMessage('must be between 0 and 30').custom(differenceOfTwo).withMessage('Game 14: winning score must be 2 greater than losing').custom(greaterThan21).withMessage('Game 14: one team must score at least 21'),
   body('Game15homeScore').isInt({ min: 0, max: 30 }).withMessage('must be between 0 and 30'),
   body('Game15awayScore').isInt({ min: 0, max: 30 }).withMessage('must be between 0 and 30').custom(differenceOfTwo).withMessage('Game 15: winning score must be 2 greater than losing').custom(greaterThan21).withMessage('Game 15: one team must score at least 21'),
-  // Player uniqueness validation
+  // Player uniqueness validation (3 men and 3 women per side)
   body('homeMan1', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeMan2 || value == req.body.awayMan1 || value == req.body.awayMan2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value;
   }).withMessage("Home Man 1: can't use the same player more than once"),
   body('homeMan2', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value;
   }).withMessage("Home Man 2: can't use the same player more than once"),
+  body('homeMan3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.homeMan2 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value;
+  }).withMessage("Home Man 3: can't use the same player more than once"),
   body('homeLady1', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeLady2 || value == req.body.awayLady1 || value == req.body.awayLady2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value;
   }).withMessage("Home Lady 1: can't use the same player more than once"),
   body('homeLady2', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value;
   }).withMessage("Home Lady 2: can't use the same player more than once"),
+  body('homeLady3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.homeLady2 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value;
+  }).withMessage("Home Lady 3: can't use the same player more than once"),
   body('awayMan1', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeMan1 || value == req.body.homeMan2 || value == req.body.awayMan2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value;
   }).withMessage("Away Man 1: can't use the same player more than once"),
   body('awayMan2', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeMan1 || value == req.body.homeMan2 || value == req.body.awayMan1) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan3 || value == req.body.homeMan1) ? false : value) : value;
   }).withMessage("Away Man 2: can't use the same player more than once"),
+  body('awayMan3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.homeMan1) ? false : value) : value;
+  }).withMessage("Away Man 3: can't use the same player more than once"),
   body('awayLady1', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeLady1 || value == req.body.homeLady2 || value == req.body.awayLady2) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady2) ? false : value) : value;
   }).withMessage("Away Lady 1: can't use the same player more than once"),
   body('awayLady2', 'Please choose a player.').isInt().custom((value, { req }) => {
-    return value != 0 ? (value == req.body.homeLady1 || value == req.body.homeLady2 || value == req.body.awayLady1) ? false : value : value;
+    return value != 0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady1) ? false : value) : value;
   }).withMessage("Away Lady 2: can't use the same player more than once"),
+  body('awayLady3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady1) ? false : value) : value;
+  }).withMessage("Away Lady 3: can't use the same player more than once"),
+  // Mixed game player validation
+  body('FirstMixedhomeMan1', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.SecondMixedhomeMan2 || value == req.body.ThirdMixedhomeMan3) ? false : value) : value;
+  }).withMessage("First Mixed Home Man: can't use the same player more than once"),
+  body('SecondMixedhomeMan2', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedhomeMan1 || value == req.body.ThirdMixedhomeMan3) ? false : value) : value;
+  }).withMessage("Second Mixed Home Man: can't use the same player more than once"),
+  body('ThirdMixedhomeMan3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedhomeMan1 || value == req.body.SecondMixedhomeMan2) ? false : value) : value;
+  }).withMessage("Third Mixed Home Man: can't use the same player more than once"),
+  body('FirstMixedawayMan1', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.SecondMixedawayMan2 || value == req.body.ThirdMixedawayMan3) ? false : value) : value;
+  }).withMessage("First Mixed Away Man: can't use the same player more than once"),
+  body('SecondMixedawayMan2', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedawayMan1 || value == req.body.ThirdMixedawayMan3) ? false : value) : value;
+  }).withMessage("Second Mixed Away Man: can't use the same player more than once"),
+  body('ThirdMixedawayMan3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedawayMan1 || value == req.body.SecondMixedawayMan2) ? false : value) : value;
+  }).withMessage("Third Mixed Away Man: can't use the same player more than once"),
+  body('FirstMixedhomeLady1', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.SecondMixedhomeLady2 || value == req.body.ThirdMixedhomeLady3) ? false : value) : value;
+  }).withMessage("First Mixed Home Lady: can't use the same player more than once"),
+  body('SecondMixedhomeLady2', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedhomeLady1 || value == req.body.ThirdMixedhomeLady3) ? false : value) : value;
+  }).withMessage("Second Mixed Home Lady: can't use the same player more than once"),
+  body('ThirdMixedhomeLady3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedhomeLady1 || value == req.body.SecondMixedhomeLady2) ? false : value) : value;
+  }).withMessage("Third Mixed Home Lady: can't use the same player more than once"),
+  body('FirstMixedawayLady1', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.SecondMixedawayLady2 || value == req.body.ThirdMixedawayLady3) ? false : value) : value;
+  }).withMessage("First Mixed Away Lady: can't use the same player more than once"),
+  body('SecondMixedawayLady2', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedawayLady1 || value == req.body.ThirdMixedawayLady3) ? false : value) : value;
+  }).withMessage("Second Mixed Away Lady: can't use the same player more than once"),
+  body('ThirdMixedawayLady3', 'Please choose a player.').isInt().custom((value, { req }) => {
+    return value != 0 ? ((value == req.body.FirstMixedawayLady1 || value == req.body.SecondMixedawayLady2) ? false : value) : value;
+  }).withMessage("Third Mixed Away Lady: can't use the same player more than once"),
 ];
 
 // GET /messer-scorecard-beta — render form
@@ -91,6 +140,7 @@ exports.messer_scorecard_beta = async function(req, res, next) {
     res.render('messer-scorecard', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
+      result: true, // Signal to view to show the form modal
       pageTitle: 'Enter Messer Result',
       pageDescription: 'Enter Messer Result',
       canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
@@ -108,6 +158,7 @@ exports.full_messer_fixture_post = async function(req, res, next) {
     return res.render('messer-scorecard', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
+      result: true, // Signal to view to show the form modal
       errors: errors.array(),
       pageTitle: 'Enter Messer Result',
       pageDescription: 'Enter Messer Result',
