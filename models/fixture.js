@@ -568,3 +568,78 @@ ${email == 'stockport.badders.results@gmail.com' ? '' : "AND email = ? \nAND sta
   const [result] = await (await db.otherConnect()).query(sql, params)
   return result
 }
+
+// ── Messer scorecard methods ─────────────────────────────────────────────
+
+exports.createMesserScorecard = async function(messerObj) {
+  if (!db.isObject(messerObj)) throw new Error('not object')
+  const fields = Object.keys(messerObj).map(k => `"${k}"`).join(',')
+  const placeholders = Object.keys(messerObj).map(() => '?').join(',')
+  const sql = `INSERT INTO messer_scorecard (${fields}) VALUES (${placeholders}) RETURNING id`
+  const [result] = await (await db.otherConnect()).query(sql, Object.values(messerObj))
+  return result
+}
+
+exports.getMesserScorecardById = async function(scorecardId) {
+  const [result] = await (await db.otherConnect()).query(
+    'SELECT * FROM messer_scorecard WHERE id = ?',
+    scorecardId
+  )
+  return result
+}
+
+exports.listMesserScorecardsForApproval = async function() {
+  const sql = `
+    SELECT
+      ms.id,
+      ms.date,
+      ht.name AS "homeTeam",
+      at.name AS "awayTeam",
+      ht.id AS "homeTeamId",
+      at.id AS "awayTeamId",
+      ms.email,
+      ms.status,
+      ms."created_at"
+    FROM messer_scorecard ms
+    JOIN team ht ON ms."homeTeam" = ht.id
+    JOIN team at ON ms."awayTeam" = at.id
+    WHERE ms.status IN ('submitted')
+    ORDER BY ms."created_at" DESC
+  `
+  const [result] = await (await db.otherConnect()).query(sql)
+  return result
+}
+
+exports.updateMesserScorecardStatus = async function(scorecardId, status) {
+  const sql = `UPDATE messer_scorecard SET status = ?, "updated_at" = NOW() WHERE id = ?`
+  const [result] = await (await db.otherConnect()).query(sql, [status, scorecardId])
+  return result
+}
+
+exports.createMesserResult = async function(resultObj) {
+  if (!db.isObject(resultObj)) throw new Error('not object')
+  const fields = Object.keys(resultObj).map(k => `"${k}"`).join(',')
+  const placeholders = Object.keys(resultObj).map(() => '?').join(',')
+  const sql = `INSERT INTO messer_result (${fields}) VALUES (${placeholders}) RETURNING id`
+  const [result] = await (await db.otherConnect()).query(sql, Object.values(resultObj))
+  return result
+}
+
+exports.getMesserResultByScorecard = async function(scorecardId) {
+  const [result] = await (await db.otherConnect()).query(
+    'SELECT * FROM messer_result WHERE id = ?',
+    scorecardId
+  )
+  return result
+}
+
+exports.updateMesserTable = async function(messerId, scores) {
+  const { homeScore, awayScore, winningTeam } = scores
+  const sql = `
+    UPDATE messer
+    SET "homeScore" = ?, "awayScore" = ?, "winningTeam" = ?
+    WHERE id = ?
+  `
+  const [result] = await (await db.otherConnect()).query(sql, [homeScore, awayScore, winningTeam, messerId])
+  return result
+}

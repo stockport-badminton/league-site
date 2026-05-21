@@ -1,0 +1,46 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<div class="container mt-5">
+  <h1>Messer Results Pending Approval</h1>
+  <p class="text-muted">Review and approve submitted messer match results</p>
+
+  <% if (results && results.length > 0) { %>
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Date</th>
+          <th>Home Team</th>
+          <th>Away Team</th>
+          <th>Captain Email</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% results.forEach(function(result) { %>
+          <tr>
+            <td><%= result.date ? new Date(result.date).toLocaleDateString() : '—' %></td>
+            <td><strong><%= result.homeTeam %></strong></td>
+            <td><strong><%= result.awayTeam %></strong></td>
+            <td><a href="mailto:<%= result.email %>"><%= result.email %></a></td>
+            <td>
+              <span class="badge badge-warning"><%= result.status %></span>
+            </td>
+            <td><small class="text-muted"><%= result.created_at ? new Date(result.created_at).toLocaleString() : '—' %></small></td>
+            <td>
+              <a href="/messer-result/<%= result.id %>" class="btn btn-sm btn-primary">Review</a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div class="alert alert-info" role="alert">
+      <strong>No pending results.</strong> All messer submissions have been processed.
+    </div>
+  <% } %>
+</div>
+
+<%- include('footer.ejs') %>

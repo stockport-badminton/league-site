@@ -113,3 +113,11 @@ exports.updateById = async function(teamObj, teamId) {
   const [result] = await (await db.otherConnect()).query(sql, [...Object.values(teamObj), teamId])
   return result
 }
+
+exports.getTeamsBySection = async function(section) {
+  const [result] = await (await db.otherConnect()).query(
+    'SELECT id, name FROM team WHERE section = ? ORDER BY name',
+    section
+  )
+  return result
+}

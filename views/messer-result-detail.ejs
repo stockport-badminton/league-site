@@ -1,0 +1,153 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<div class="container mt-5 mb-5">
+  <h1>Review Messer Result</h1>
+
+  <% if (scorecard) { %>
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Match Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Date:</strong> <%= scorecard.date ? new Date(scorecard.date).toLocaleDateString() : '—' %></p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Submitted by:</strong> <a href="mailto:<%= scorecard.email %>"><%= scorecard.email %></a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Game Scores (Home vs Away)</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <% for (let i = 1; i <= 15; i++) { %>
+                <div class="col-md-6 mb-3">
+                  <div class="border p-2 rounded">
+                    <strong>Game <%= i %>:</strong>
+                    <span class="badge <%= scorecard[`Game${i}homeScore`] > scorecard[`Game${i}awayScore`] ? 'badge-success' : 'badge-secondary' %>">
+                      <%= scorecard[`Game${i}homeScore`] || 0 %>
+                    </span>
+                    —
+                    <span class="badge <%= scorecard[`Game${i}awayScore`] > scorecard[`Game${i}homeScore`] ? 'badge-success' : 'badge-secondary' %>">
+                      <%= scorecard[`Game${i}awayScore`] || 0 %>
+                    </span>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4 bg-light">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Summary</h5>
+          </div>
+          <div class="card-body">
+            <p class="h4"><strong>Home Wins:</strong> <span class="text-success"><%= homeWins %></span></p>
+            <p class="h4"><strong>Away Wins:</strong> <span class="text-info"><%= awayWins %></span></p>
+            <hr />
+            <p class="mb-0">
+              <strong>Winner:</strong>
+              <% if (homeWins > awayWins) { %>
+                <span class="badge badge-success">Home</span>
+              <% } else if (awayWins > homeWins) { %>
+                <span class="badge badge-info">Away</span>
+              <% } else { %>
+                <span class="badge badge-warning">Draw</span>
+              <% } %>
+            </p>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Actions</h5>
+          </div>
+          <div class="card-body">
+            <button id="approveBtn" class="btn btn-success btn-block mb-2">
+              <i class="fas fa-check"></i> Approve & Update Messer
+            </button>
+            <button id="rejectBtn" class="btn btn-danger btn-block">
+              <i class="fas fa-times"></i> Reject Result
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="alert alert-danger" role="alert">
+      Result not found.
+    </div>
+  <% } %>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const scorecardId = '<%= scorecard?.id %>';
+
+  document.getElementById('approveBtn').addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to approve this result? The messer table will be updated immediately.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/messer-result/${scorecardId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('✓ Result approved and messer table updated!');
+        window.location.href = '/messer-results';
+      } else {
+        alert('Error: ' + (data.error || 'Failed to approve result'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+
+  document.getElementById('rejectBtn').addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to reject this result?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/messer-result/${scorecardId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('✓ Result rejected. Captain will be notified.');
+        window.location.href = '/messer-results';
+      } else {
+        alert('Error: ' + (data.error || 'Failed to reject result'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+});
+</script>
+
+<%- include('footer.ejs') %>

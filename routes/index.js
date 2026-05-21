@@ -21,6 +21,7 @@ var fixtureGen_controller = require('../controllers/fixtureGenerator');
 var contact_controller = require('../controllers/contactusController');
 var static_controller = require('../controllers/staticPagesController');
 var social_controller = require('../controllers/socialController');
+var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -341,6 +342,16 @@ router.post('/api/analyse-scorecard', secured,
   scorecard_analysis_controller.analyse_scorecard);
 router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
 router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
+
+// Messer scorecard routes
+router.get('/messer-scorecard-beta', secured, messer_scorecard_controller.messer_scorecard_beta);
+router.post('/messer-scorecard-beta', secured, messer_scorecard_controller.validateMesserScorecard, messer_scorecard_controller.full_messer_fixture_post);
+router.get('/populated-messer-scorecard/:id', secured, messer_scorecard_controller.messer_fixture_populate_scorecard_fromId);
+router.get('/api/messer-teams-by-section/:section', secured, messer_scorecard_controller.messer_teams_by_section);
+router.get('/messer-results', secured, messer_scorecard_controller.messer_results_list);
+router.get('/messer-result/:id', secured, messer_scorecard_controller.messer_result_detail);
+router.post('/messer-result/:id/approve', secured, messer_scorecard_controller.messer_result_approve);
+router.post('/messer-result/:id/reject', secured, messer_scorecard_controller.messer_result_reject);
 
 router.get('/players/club-:club?/team-:team?/gender-:gender?', secured, player_controller.player_list_clubs_teams);
 router.get('/players/club-:club?', secured, player_controller.player_list_clubs_teams);

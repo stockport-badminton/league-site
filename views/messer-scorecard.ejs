@@ -80,12 +80,11 @@
                  <div class="form-row">
                    <div class="col-md-6">
                      <div class="form-group">
-                       <label for="division">Division</label>
-                       <select class="form-control" name="division" id="division" placeholder="Division">
-                         <option disabled selected>Choose Division</option>
-                         <% result.forEach(function(row){ %>
-                           <option value="<%= row.id %>"><%= row.name %></option>
-                         <% }) %>
+                       <label for="section">Section</label>
+                       <select class="form-control" name="section" id="section" placeholder="Section">
+                         <option disabled selected>Choose Section</option>
+                         <option value="A">A</option>
+                         <option value="B">B</option>
                        </select>
                      </div>
                    </div>
@@ -1399,15 +1398,19 @@
 
         $("[data-player-type=" + $(this).attr("id") + "]").val($(this).val());
       })
-      $("#division").change(function(){
-        var selectedDivision = this.value;
-        $.get('/static/beta/formOption.ejs', function (template) {
-            $.post('/teams', {'divisionId':selectedDivision}, function (data) {
-               // Generate the html from the given data.
-               var html = ejs.render(template,{data:data});
-               $('#homeTeam').html(html);
-               $('#awayTeam').html(html);
-            });
+      $("#section").change(function(){
+        var selectedSection = this.value;
+        $.get('/api/messer-teams-by-section/' + selectedSection, function (data) {
+           // Build options from returned team data
+           var options = '<option disabled selected>Select a team</option>';
+           data.forEach(function(team) {
+             options += '<option value="' + team.id + '">' + team.name + '</option>';
+           });
+           $('#homeTeam').html(options);
+           $('#awayTeam').html(options);
+        }).fail(function(err) {
+           console.error('Failed to load teams:', err);
+           alert('Error loading teams. Please try again.');
         });
       })
       $("#homeTeam").change(function(){
