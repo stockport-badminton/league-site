@@ -55,7 +55,7 @@
       <% if (hasResult) { %>
        <div class="modal fade multi-step" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModal" aria-hidden="true">
          <div class="modal-dialog">
-         <form id="signupForm" role="form" action="/email-scorecard" method="post">
+         <form id="signupForm" role="form" action="/messer-scorecard-beta" method="post">
            <div class="modal-content">
              <div class="modal-header">
                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -600,7 +600,7 @@
     <% if (hasScorecard && hasErrors) { %>
        <div class="modal fade multi-step" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModal" aria-hidden="true">
          <div class="modal-dialog">
-         <form id="signupForm" role="form" action="/email-scorecard" method="post">
+         <form id="signupForm" role="form" action="/messer-scorecard-beta" method="post">
            <div class="modal-content">
              <div class="modal-header">
                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -1457,6 +1457,64 @@
         var selectedPlayer = $(this)[0].id
         // console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
       })
+      // Real-time score validation
+      function createGameFeedback(n) {
+        var homeEl = document.getElementById('Game' + n + 'homeScore');
+        if (!homeEl) return;
+        var fb = document.createElement('div');
+        fb.id = 'gameFeedback' + n;
+        fb.className = 'score-feedback text-danger small mt-1';
+        fb.style.display = 'none';
+        homeEl.closest('.form-row') && homeEl.closest('.form-row').insertAdjacentElement('afterend', fb);
+      }
+
+      for (let i = 1; i <= 15; i++) {
+        createGameFeedback(i);
+      }
+
+      function validateGamePair(n, requireFilled) {
+        var homeEl = document.getElementById('Game' + n + 'homeScore');
+        var awayEl = document.getElementById('Game' + n + 'awayScore');
+        var fb = document.getElementById('gameFeedback' + n);
+        if (!homeEl || !awayEl || !fb) return null;
+
+        var hv = homeEl.value.trim(), av = awayEl.value.trim();
+        if (hv === '' || av === '') {
+          if (requireFilled) {
+            [homeEl, awayEl].forEach(function(el) { el.classList.remove('is-valid'); el.classList.add('is-invalid'); });
+            fb.textContent = 'Please enter a score for this game.';
+            fb.style.display = 'block';
+            return false;
+          }
+          [homeEl, awayEl].forEach(function(el) { el.classList.remove('is-valid', 'is-invalid'); });
+          fb.style.display = 'none';
+          return null;
+        }
+
+        var h = parseInt(hv, 10), a = parseInt(av, 10), err = null;
+        if (isNaN(h) || h < 0 || h > 30 || isNaN(a) || a < 0 || a > 30) {
+          err = 'Scores must be between 0 and 30.';
+        } else if (h < 21 && a < 21) {
+          err = 'One team must score at least 21.';
+        } else if (Math.abs(h - a) < 2 && h < 30 && a < 30) {
+          err = 'Winning score must be at least 2 greater than losing score.';
+        }
+
+        [homeEl, awayEl].forEach(function(el) {
+          el.classList.toggle('is-invalid', !!err);
+          el.classList.toggle('is-valid', !err);
+        });
+        fb.textContent = err || '';
+        fb.style.display = err ? 'block' : 'none';
+        return !err;
+      }
+
+      // Validate on every keystroke
+      $(".scoreInput").on('input', function() {
+        var match = this.id.match(/Game(\d+)/);
+        if (match) validateGamePair(parseInt(match[1], 10), false);
+      });
+
       $(".scoreInput").change(function(){
         var inputScore = $(this)[0]
         var inputScore = $(this)[0]
