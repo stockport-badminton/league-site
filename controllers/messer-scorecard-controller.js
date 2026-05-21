@@ -202,6 +202,7 @@ exports.full_messer_fixture_post = async function(req, res, next) {
           .map(([k, v]) => [k, parseInt(v) || null])
       ),
       email: req.user?.email || req.body.email,
+      'scoresheet-url': req.body['scoresheet-url'] || null,
       status: 'submitted',
     };
 
@@ -234,11 +235,10 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
       });
     }
 
-    const divisions = await Division.getAll();
     res.render('messer-scorecard', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
-      result: divisions,
+      result: true,
       scorecard: scorecard[0],
       pageTitle: 'Messer Result Submitted',
       pageDescription: 'Your messer result has been submitted',
@@ -270,7 +270,7 @@ exports.messer_teams_by_section = async function(req, res, next) {
 exports.messer_results_list = async function(req, res, next) {
   try {
     // Verify only Neil can access this
-    if (req.user?.email !== 'ncooper@amplience.com') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
       return res.status(403).render('403-error', {
         static_path: '/static',
         pageTitle: 'Access Denied',
@@ -298,7 +298,7 @@ exports.messer_results_list = async function(req, res, next) {
 exports.messer_result_detail = async function(req, res, next) {
   try {
     // Verify only Neil can access this
-    if (req.user?.email !== 'ncooper@amplience.com') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
       return res.status(403).render('403-error', {
         static_path: '/static',
         pageTitle: 'Access Denied',
@@ -351,7 +351,7 @@ exports.messer_result_detail = async function(req, res, next) {
 exports.messer_result_approve = async function(req, res, next) {
   try {
     // Verify only Neil can approve
-    if (req.user?.email !== 'ncooper@amplience.com') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -422,8 +422,8 @@ exports.messer_result_approve = async function(req, res, next) {
 exports.messer_result_reject = async function(req, res, next) {
   try {
     // Verify only Neil can reject
-    if (req.user?.email !== 'ncooper@amplience.com') {
-      return res.status(403).json({ error: 'Access denied' });
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });  
     }
 
     const scorecardId = req.params.id;
@@ -439,8 +439,8 @@ exports.messer_result_reject = async function(req, res, next) {
 // Helper: Send submission email to results secretary
 async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
   try {
-    const homeTeam = await Team.getTeamById(scorecardData.homeTeam);
-    const awayTeam = await Team.getTeamById(scorecardData.awayTeam);
+    const homeTeam = await Team.getById(scorecardData.homeTeam);
+    const awayTeam = await Team.getById(scorecardData.awayTeam);
 
     const params = {
       Destination: {
@@ -478,8 +478,8 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
 // Helper: Send approval email to captain
 async function sendMesserApprovalEmail(scorecardData) {
   try {
-    const homeTeam = await Team.getTeamById(scorecardData.homeTeam);
-    const awayTeam = await Team.getTeamById(scorecardData.awayTeam);
+    const homeTeam = await Team.getById(scorecardData.homeTeam);
+    const awayTeam = await Team.getById(scorecardData.awayTeam);
 
     const params = {
       Destination: {

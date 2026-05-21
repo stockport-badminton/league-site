@@ -1361,8 +1361,10 @@
                 if(xhr.readyState === 4){
                 if(xhr.status === 200){
                     const response = JSON.parse(xhr.responseText);
-                    uploadFile(file, response.signedRequest, response.url);
-                    console.log(response.url);
+                    const signedUrl = response.signedUrl;
+                    const baseUrl = signedUrl.substr(0, signedUrl.indexOf("?X-Amz"));
+                    uploadFile(file, signedUrl, baseUrl);
+                    console.log(baseUrl);
                 }
                 else{
                     alert('Could not get signed URL.');
@@ -1372,14 +1374,14 @@
             xhr.send();
         }
 
-        function uploadFile(file, signedRequest, url){
+        function uploadFile(file, signedUrl, baseUrl){
             const xhr = new XMLHttpRequest();
-            xhr.open('PUT', signedRequest);
+            xhr.open('PUT', signedUrl);
             xhr.onreadystatechange = () => {
                 if(xhr.readyState === 4){
                 if(xhr.status === 200){
-                    document.getElementById('scoresheet-url').value = url;
-                    document.getElementById('scoresheet-img').src = url;
+                    document.getElementById('scoresheet-url').value = baseUrl;
+                    document.getElementById('scoresheet-img').src = baseUrl;
 
                 }
                 else{

@@ -581,10 +581,36 @@ exports.createMesserScorecard = async function(messerObj) {
 }
 
 exports.getMesserScorecardById = async function(scorecardId) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT * FROM messer_scorecard WHERE id = ?',
-    scorecardId
-  )
+  const [result] = await (await db.otherConnect()).query(`
+    SELECT
+      ms.*,
+      CONCAT(hm1.first_name, ' ', hm1.family_name) AS "homeMan1Name",
+      CONCAT(hm2.first_name, ' ', hm2.family_name) AS "homeMan2Name",
+      CONCAT(hm3.first_name, ' ', hm3.family_name) AS "homeMan3Name",
+      CONCAT(hl1.first_name, ' ', hl1.family_name) AS "homeLady1Name",
+      CONCAT(hl2.first_name, ' ', hl2.family_name) AS "homeLady2Name",
+      CONCAT(hl3.first_name, ' ', hl3.family_name) AS "homeLady3Name",
+      CONCAT(am1.first_name, ' ', am1.family_name) AS "awayMan1Name",
+      CONCAT(am2.first_name, ' ', am2.family_name) AS "awayMan2Name",
+      CONCAT(am3.first_name, ' ', am3.family_name) AS "awayMan3Name",
+      CONCAT(al1.first_name, ' ', al1.family_name) AS "awayLady1Name",
+      CONCAT(al2.first_name, ' ', al2.family_name) AS "awayLady2Name",
+      CONCAT(al3.first_name, ' ', al3.family_name) AS "awayLady3Name"
+    FROM messer_scorecard ms
+    LEFT JOIN player hm1 ON ms."homeMan1" = hm1.id
+    LEFT JOIN player hm2 ON ms."homeMan2" = hm2.id
+    LEFT JOIN player hm3 ON ms."homeMan3" = hm3.id
+    LEFT JOIN player hl1 ON ms."homeLady1" = hl1.id
+    LEFT JOIN player hl2 ON ms."homeLady2" = hl2.id
+    LEFT JOIN player hl3 ON ms."homeLady3" = hl3.id
+    LEFT JOIN player am1 ON ms."awayMan1" = am1.id
+    LEFT JOIN player am2 ON ms."awayMan2" = am2.id
+    LEFT JOIN player am3 ON ms."awayMan3" = am3.id
+    LEFT JOIN player al1 ON ms."awayLady1" = al1.id
+    LEFT JOIN player al2 ON ms."awayLady2" = al2.id
+    LEFT JOIN player al3 ON ms."awayLady3" = al3.id
+    WHERE ms.id = ?
+  `, scorecardId)
   return result
 }
 
