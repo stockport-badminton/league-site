@@ -270,7 +270,7 @@ exports.messer_teams_by_section = async function(req, res, next) {
 exports.messer_results_list = async function(req, res, next) {
   try {
     // Verify only Neil can access this
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
       return res.status(403).render('403-error', {
         static_path: '/static',
         pageTitle: 'Access Denied',
@@ -298,7 +298,7 @@ exports.messer_results_list = async function(req, res, next) {
 exports.messer_result_detail = async function(req, res, next) {
   try {
     // Verify only Neil can access this
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
       return res.status(403).render('403-error', {
         static_path: '/static',
         pageTitle: 'Access Denied',
@@ -351,7 +351,7 @@ exports.messer_result_detail = async function(req, res, next) {
 exports.messer_result_approve = async function(req, res, next) {
   try {
     // Verify only Neil can approve
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -390,7 +390,7 @@ exports.messer_result_approve = async function(req, res, next) {
     };
 
     // Get the messer match to get its ID
-    const messerMatch = await getMesserMatchId(data.homeTeam, data.awayTeam, data.date);
+    const messerMatch = await getMesserMatchId(data.homeTeam, data.awayTeam);
 
     if (messerMatch) {
       resultData.messer_id = messerMatch.id;
@@ -422,7 +422,7 @@ exports.messer_result_approve = async function(req, res, next) {
 exports.messer_result_reject = async function(req, res, next) {
   try {
     // Verify only Neil can reject
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin') {
+    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
       return res.status(403).json({ error: 'Access denied' });  
     }
 
@@ -513,12 +513,12 @@ async function sendMesserApprovalEmail(scorecardData) {
 }
 
 // Helper: Get messer match ID by teams and date
-async function getMesserMatchId(homeTeamId, awayTeamId, date) {
+async function getMesserMatchId(homeTeamId, awayTeamId) {
   try {
     const db = require('../db_connect');
     const [result] = await (await db.otherConnect()).query(
-      'SELECT id FROM messer WHERE "homeTeam" = ? AND "awayTeam" = ? AND date = ?',
-      [homeTeamId, awayTeamId, date]
+      'SELECT id FROM messer WHERE "homeTeam" = ? AND "awayTeam" = ?',
+      [homeTeamId, awayTeamId]
     );
     return result && result.length > 0 ? result[0] : null;
   } catch (err) {
