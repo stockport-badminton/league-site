@@ -1,4 +1,6 @@
 const sharp = require('sharp');
+const fs = require('fs').promises;
+const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 
 function escapeXml(str) {
@@ -18,6 +20,9 @@ function svgOverlay(width, height, elements) {
 
 exports.resultImage = async function(req, res, next) {
   try {
+    const generatedDir = 'static/beta/images/generated';
+    await fs.mkdir(generatedDir, { recursive: true });
+
     const { homeTeam, awayTeam, homeScore, awayScore, division } = req.params;
     const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
     const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
@@ -87,6 +92,9 @@ async function createDivisionTableImage(bgPath, divisionName, rows) {
 
 exports.tablesSocial = async function(req, res, next) {
   try {
+    const generatedDir = 'static/beta/images/generated';
+    await fs.mkdir(generatedDir, { recursive: true });
+
     const result = await getAllLeagueTables(req.params.season);
     const divIds = [7, 8, 9, 10];
     const bgPath = 'static/beta/images/bg/social.png';
@@ -124,6 +132,9 @@ exports.tablesSocial = async function(req, res, next) {
 };
 
 async function drawTournamentImage(title, lines, filename) {
+  const generatedDir = 'static/beta/images/generated';
+  await fs.mkdir(generatedDir, { recursive: true });
+
   const W = 1080, H = 1080;
   const elements = [{ text: title, x: 540, y: 120, size: 65, weight: 'bold' }];
   let posY = 120;
