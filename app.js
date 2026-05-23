@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 var AWS = require('aws-sdk');
 var express = require('express');
 var session = require('express-session');
