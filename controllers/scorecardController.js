@@ -153,14 +153,25 @@ const { body, validationResult } = require("express-validator");
 exports.full_fixture_post = async function(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    const data = req.body;
     try {
-      const rows = await Division.getAllByLeague(1);
+      const [divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
+        Division.getAllAndSelectedById(1, data.division),
+        Team.getAllAndSelectedById(data.homeTeam, data.division),
+        Team.getAllAndSelectedById(data.awayTeam, data.division),
+        Player.getEligiblePlayersAndSelectedById(data.homeMan1, data.homeMan2, data.homeMan3, data.homeTeam, 'Male'),
+        Player.getEligiblePlayersAndSelectedById(data.homeLady1, data.homeLady2, data.homeLady3, data.homeTeam, 'Female'),
+        Player.getEligiblePlayersAndSelectedById(data.awayMan1, data.awayMan2, data.awayMan3, data.awayTeam, 'Male'),
+        Player.getEligiblePlayersAndSelectedById(data.awayLady1, data.awayLady2, data.awayLady3, data.awayTeam, 'Female'),
+      ]);
+      const scorecard = { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
       res.render('index-scorecard', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
         pageTitle: "Scorecard Received - Errors",
         pageDescription: "Something went wrong",
-        result: rows,
+        scorecard,
+        data,
         errors: errors.array(),
         canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
       });

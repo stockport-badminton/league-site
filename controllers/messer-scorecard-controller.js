@@ -155,15 +155,31 @@ exports.messer_scorecard_beta = async function(req, res, next) {
 exports.full_messer_fixture_post = async function(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.render('messer-scorecard', {
-      static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      result: true, // Signal to view to show the form modal
-      errors: errors.array(),
-      pageTitle: 'Enter Messer Result',
-      pageDescription: 'Enter Messer Result',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
-    });
+    const data = req.body;
+    try {
+      const [homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
+        Team.getAllAndSelectedBySection(data.homeTeam, data.section),
+        Team.getAllAndSelectedBySection(data.awayTeam, data.section),
+        Player.getEligiblePlayersAndSelectedById(data.homeMan1, data.homeMan2, data.homeMan3, data.homeTeam, 'Male'),
+        Player.getEligiblePlayersAndSelectedById(data.homeLady1, data.homeLady2, data.homeLady3, data.homeTeam, 'Female'),
+        Player.getEligiblePlayersAndSelectedById(data.awayMan1, data.awayMan2, data.awayMan3, data.awayTeam, 'Male'),
+        Player.getEligiblePlayersAndSelectedById(data.awayLady1, data.awayLady2, data.awayLady3, data.awayTeam, 'Female'),
+      ]);
+      const scorecard = { homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+      return res.render('messer-scorecard', {
+        static_path: '/static',
+        theme: process.env.THEME || 'flatly',
+        result: true,
+        scorecard,
+        data,
+        errors: errors.array(),
+        pageTitle: 'Enter Messer Result',
+        pageDescription: 'Enter Messer Result',
+        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      });
+    } catch (err) {
+      return next(err);
+    }
   }
 
   try {

@@ -121,3 +121,11 @@ exports.getTeamsBySection = async function(section) {
   )
   return result
 }
+
+exports.getAllAndSelectedBySection = async function(teamId, section) {
+  const [result] = await (await db.otherConnect()).query(
+    'SELECT *, CASE WHEN team.id = ? THEN true ELSE false END as selected FROM team WHERE section = ? ORDER BY name',
+    [teamId, section]
+  )
+  return result
+}

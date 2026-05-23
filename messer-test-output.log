@@ -1,0 +1,409 @@
+
+> Elastic-Beanstalk-Sample-App@0.0.1 test
+> jest __tests__/integration/messer-scorecard.test.js
+
+  console.error
+    messer_teams_by_section error: Error: DB connection lost
+        at Object.<anonymous> (/Users/ncooper/league-site/__tests__/integration/messer-scorecard.test.js:134:46)
+        at Promise.finally.completed (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:1501:10)
+        at _callCircusTest (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:1011:40)
+        at processTicksAndRejections (node:internal/process/task_queues:95:5)
+        at _runTest (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:951:3)
+        at /Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:861:11)
+        at run (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (/Users/ncooper/league-site/node_modules/jest-circus/build/jestAdapterInit.js:1993:21)
+        at jestAdapter (/Users/ncooper/league-site/node_modules/jest-circus/build/runner.js:111:19)
+        at runTestInternal (/Users/ncooper/league-site/node_modules/jest-runner/build/index.js:276:16)
+        at runTest (/Users/ncooper/league-site/node_modules/jest-runner/build/index.js:344:7)
+
+      262 |     res.json(teams);
+      263 |   } catch (err) {
+    > 264 |     console.error('messer_teams_by_section error:', err);
+          |             ^
+      265 |     res.status(500).json({ error: err.message });
+      266 |   }
+      267 | };
+
+      at error (controllers/messer-scorecard-controller.js:264:13)
+
+  console.error
+    messer_fixture_populate_scorecard_fromId error: TypeError: Cannot read properties of null (reading 'query')
+        at Object.query (/Users/ncooper/league-site/db_connect.js:22:35)
+        at Object.query [as getAll] (/Users/ncooper/league-site/models/division.js:22:52)
+        at exports.messer_fixture_populate_scorecard_fromId (/Users/ncooper/league-site/controllers/messer-scorecard-controller.js:237:23)
+
+      246 |     });
+      247 |   } catch (err) {
+    > 248 |     console.error('messer_fixture_populate_scorecard_fromId error:', err);
+          |             ^
+      249 |     next(err);
+      250 |   }
+      251 | };
+
+      at error (controllers/messer-scorecard-controller.js:248:13)
+
+FAIL __tests__/integration/messer-scorecard.test.js
+  ● GET /messer-scorecard-beta › should render the messer scorecard form
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      94 |   it('should render the messer scorecard form', async () => {
+      95 |     const res = await request(app).get('/messer-scorecard-beta');
+    > 96 |     expect(res.status).toBe(200);
+         |                        ^
+      97 |     expect(res.text).toContain('messer');
+      98 |     expect(res.text).toContain('Game1');
+      99 |     expect(res.text).toContain('Game15');
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:96:24)
+
+  ● GET /messer-scorecard-beta › should render modal when accessing with result query param
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      102 |   it('should render modal when accessing with result query param', async () => {
+      103 |     const res = await request(app).get('/messer-scorecard-beta?result=true');
+    > 104 |     expect(res.status).toBe(200);
+          |                        ^
+      105 |   });
+      106 | });
+      107 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:104:24)
+
+  ● POST /messer-scorecard-beta › should accept valid messer scorecard submission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      147 |     const body = validMesserScorecard();
+      148 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 149 |     expect(res.status).toBe(302);
+          |                        ^
+      150 |     expect(res.header.location).toContain('/populated-messer-scorecard/123');
+      151 |   });
+      152 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:149:24)
+
+  ● POST /messer-scorecard-beta › should validate that all game scores are filled
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      155 |     delete body.Game1homeScore;
+      156 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 157 |     expect(res.status).toBe(302);
+          |                        ^
+      158 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      159 |   });
+      160 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:157:24)
+
+  ● POST /messer-scorecard-beta › should validate that scores are 0–30
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      162 |     const body = validMesserScorecard({ Game1homeScore: 35 });
+      163 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 164 |     expect(res.status).toBe(302);
+          |                        ^
+      165 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      166 |   });
+      167 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:164:24)
+
+  ● POST /messer-scorecard-beta › should validate that winning score is ≥21
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      169 |     const body = validMesserScorecard({ Game1homeScore: 20, Game1awayScore: 19 });
+      170 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 171 |     expect(res.status).toBe(302);
+          |                        ^
+      172 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      173 |   });
+      174 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:171:24)
+
+  ● POST /messer-scorecard-beta › should validate that winning margin is ≥2
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      176 |     const body = validMesserScorecard({ Game1homeScore: 21, Game1awayScore: 20 });
+      177 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 178 |     expect(res.status).toBe(302);
+          |                        ^
+      179 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      180 |   });
+      181 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:178:24)
+
+  ● POST /messer-scorecard-beta › should validate that home team has 3 distinct men
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      183 |     const body = validMesserScorecard({ homeMan2: '1' }); // duplicate
+      184 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 185 |     expect(res.status).toBe(302);
+          |                        ^
+      186 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      187 |   });
+      188 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:185:24)
+
+  ● POST /messer-scorecard-beta › should validate that home team has 3 distinct women
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      190 |     const body = validMesserScorecard({ homeLady2: '4' }); // duplicate
+      191 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 192 |     expect(res.status).toBe(302);
+          |                        ^
+      193 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      194 |   });
+      195 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:192:24)
+
+  ● POST /messer-scorecard-beta › should validate that away team has 3 distinct men
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      197 |     const body = validMesserScorecard({ awayMan2: '7' }); // duplicate
+      198 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 199 |     expect(res.status).toBe(302);
+          |                        ^
+      200 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      201 |   });
+      202 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:199:24)
+
+  ● POST /messer-scorecard-beta › should validate that away team has 3 distinct women
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 500
+
+      204 |     const body = validMesserScorecard({ awayLady2: '10' }); // duplicate
+      205 |     const res = await request(app).post('/messer-scorecard-beta').send(body);
+    > 206 |     expect(res.status).toBe(302);
+          |                        ^
+      207 |     expect(res.header.location).toContain('/messer-scorecard-beta');
+      208 |   });
+      209 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:206:24)
+
+  ● POST /messer-scorecard-beta › should call createMesserScorecard with all game scores and player IDs
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"awayTeam": 2, "date": "2026-01-15", "email": "captain@example.com", "homeTeam": 1}
+
+    Number of calls: 0
+
+      211 |     const body = validMesserScorecard();
+      212 |     await request(app).post('/messer-scorecard-beta').send(body);
+    > 213 |     expect(Fixture.createMesserScorecard).toHaveBeenCalledWith(
+          |                                           ^
+      214 |       expect.objectContaining({
+      215 |         date: '2026-01-15',
+      216 |         homeTeam: 1, // should be parsed to int
+
+      at Object.toHaveBeenCalledWith (__tests__/integration/messer-scorecard.test.js:213:43)
+
+  ● POST /messer-scorecard-beta › should convert string numeric fields to integers
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+      224 |     const body = validMesserScorecard();
+      225 |     await request(app).post('/messer-scorecard-beta').send(body);
+    > 226 |     const call = Fixture.createMesserScorecard.mock.calls[0][0];
+          |                                                             ^
+      227 |     expect(typeof call.homeTeam).toBe('number');
+      228 |     expect(typeof call.awayTeam).toBe('number');
+      229 |     expect(typeof call.Game1homeScore).toBe('number');
+
+      at Object.<anonymous> (__tests__/integration/messer-scorecard.test.js:226:61)
+
+  ● GET /populated-messer-scorecard/:id › should load a draft scorecard by ID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      247 |     Fixture.getMesserScorecardById.mockResolvedValue([mockScorecard]);
+      248 |     const res = await request(app).get('/populated-messer-scorecard/123');
+    > 249 |     expect(res.status).toBe(200);
+          |                        ^
+      250 |     expect(Fixture.getMesserScorecardById).toHaveBeenCalledWith(123);
+      251 |   });
+      252 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:249:24)
+
+  ● GET /messer-results (admin approval queue) › should return 401 if user is not Neil
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      268 |     // the mocked user IS Neil, so this endpoint should be accessible
+      269 |     const res = await request(app).get('/messer-results');
+    > 270 |     expect(res.status).toBe(200);
+          |                        ^
+      271 |   });
+      272 |
+      273 |   it('should list pending messer scorecards', async () => {
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:270:24)
+
+  ● GET /messer-results (admin approval queue) › should list pending messer scorecards
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      284 |     Fixture.listMesserScorecardsForApproval.mockResolvedValue(mockQueue);
+      285 |     const res = await request(app).get('/messer-results');
+    > 286 |     expect(res.status).toBe(200);
+          |                        ^
+      287 |     expect(Fixture.listMesserScorecardsForApproval).toHaveBeenCalled();
+      288 |   });
+      289 | });
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:286:24)
+
+  ● GET /messer-result/:id (admin review detail) › should display scorecard detail for approval
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      305 |     Fixture.getMesserScorecardById.mockResolvedValue([mockScorecard]);
+      306 |     const res = await request(app).get('/messer-result/1');
+    > 307 |     expect(res.status).toBe(200);
+          |                        ^
+      308 |     expect(Fixture.getMesserScorecardById).toHaveBeenCalledWith(1);
+      309 |   });
+      310 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:307:24)
+
+  ● GET /messer-result/:id (admin review detail) › should return 404 if scorecard not found
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 500
+
+      312 |     Fixture.getMesserScorecardById.mockResolvedValue([]);
+      313 |     const res = await request(app).get('/messer-result/999');
+    > 314 |     expect(res.status).toBe(404);
+          |                        ^
+      315 |   });
+      316 | });
+      317 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:314:24)
+
+  ● POST /messer-result/:id/approve (admin approval) › should approve and write scorecard to messer table
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 403
+
+      364 |
+      365 |     const res = await request(app).post('/messer-result/1/approve');
+    > 366 |     expect(res.status).toBe(302);
+          |                        ^
+      367 |     expect(Fixture.updateMesserTable).toHaveBeenCalled();
+      368 |     expect(Fixture.updateMesserScorecardStatus).toHaveBeenCalledWith(1, 'approved');
+      369 |   });
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:366:24)
+
+  ● POST /messer-result/:id/approve (admin approval) › should return 404 if scorecard not found
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 403
+
+      372 |     Fixture.getMesserScorecardById.mockResolvedValue([]);
+      373 |     const res = await request(app).post('/messer-result/999/approve');
+    > 374 |     expect(res.status).toBe(404);
+          |                        ^
+      375 |   });
+      376 | });
+      377 |
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:374:24)
+
+  ● POST /messer-result/:id/reject (admin rejection) › should mark scorecard as rejected
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: 403
+
+      385 |     Fixture.updateMesserScorecardStatus.mockResolvedValue({});
+      386 |     const res = await request(app).post('/messer-result/1/reject');
+    > 387 |     expect(res.status).toBe(302);
+          |                        ^
+      388 |     expect(Fixture.updateMesserScorecardStatus).toHaveBeenCalledWith(1, 'rejected');
+      389 |   });
+      390 | });
+
+      at Object.toBe (__tests__/integration/messer-scorecard.test.js:387:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       21 failed, 5 passed, 26 total
+Snapshots:   0 total
+Time:        2.093 s
+Ran all test suites matching __tests__/integration/messer-scorecard.test.js.
