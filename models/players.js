@@ -794,7 +794,7 @@ exports.findElgiblePlayersFromTeamIdAndSelected = async function(teamName, gende
 
 exports.getEligiblePlayersAndSelectedById = async function(first, second, third, teamId, gender) {
   const [result] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND team.id LIKE ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
+    'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
     [first, second, third, teamId, gender]
   )
   return result
