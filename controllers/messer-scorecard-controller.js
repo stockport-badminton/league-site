@@ -137,16 +137,90 @@ exports.validateMesserScorecard = [
 // GET /messer-scorecard-beta — render form
 exports.messer_scorecard_beta = async function(req, res, next) {
   try {
+    // Get section A teams (default sections for messer)
+    const [homeTeamRows, awayTeamRows] = await Promise.all([
+      Team.getAllAndSelectedBySection(0, 'A'),
+      Team.getAllAndSelectedBySection(0, 'A'),
+    ]);
+
+    const scorecard = {
+      homeTeamRows,
+      awayTeamRows,
+      homeMenRows: [],
+      homeLadiesRows: [],
+      awayMenRows: [],
+      awayLadiesRows: [],
+    };
+
+    const data = {
+      section: '',
+      date: '',
+      homeTeam: '',
+      awayTeam: '',
+    };
+
     res.render('messer-scorecard', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       result: true, // Signal to view to show the form modal
+      scorecard,
+      data,
       pageTitle: 'Enter Messer Result',
       pageDescription: 'Enter Messer Result',
+      devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
       canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
     });
   } catch (err) {
     console.error('messer_scorecard_beta error:', err);
+    next(err);
+  }
+};
+
+// GET /messer-scorecard-beta/test — render form pre-filled with test data (dev only)
+exports.messer_scorecard_beta_test = async function(req, res, next) {
+  try {
+    const [homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
+      Team.getAllAndSelectedBySection(1, 'A'),
+      Team.getAllAndSelectedBySection(2, 'A'),
+      Player.getEligiblePlayersAndSelectedById(1, 2, 3, 1, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(4, 5, 6, 1, 'Female'),
+      Player.getEligiblePlayersAndSelectedById(7, 8, 9, 2, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(10, 11, 12, 2, 'Female'),
+    ]);
+
+    // Pre-fill with test data
+    const testData = {
+      section: 'A',
+      date: new Date().toISOString().split('T')[0],
+      homeTeam: '1',
+      awayTeam: '2',
+      homeMan1: '1', homeMan2: '2', homeMan3: '3',
+      homeLady1: '4', homeLady2: '5', homeLady3: '6',
+      awayMan1: '7', awayMan2: '8', awayMan3: '9',
+      awayLady1: '10', awayLady2: '11', awayLady3: '12',
+    };
+
+    // Add game scores (21-19 for all games - valid)
+    for (let i = 1; i <= 15; i++) {
+      testData[`Game${i}homeScore`] = '21';
+      testData[`Game${i}awayScore`] = '19';
+    }
+
+    const scorecard = { homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+
+    res.render('messer-scorecard', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      result: true,
+      scorecard,
+      data: testData,
+      devMode: true,
+      pageTitle: 'Enter Messer Result (Test Data)',
+      pageDescription: 'Enter Messer Result',
+      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+    });
+  } catch (err) {
+    console.error('messer_scorecard_beta_test error:', err);
     next(err);
   }
 };

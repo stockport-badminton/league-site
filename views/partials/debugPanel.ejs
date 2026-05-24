@@ -1,0 +1,91 @@
+<% if (typeof devMode !== 'undefined' && devMode) { %>
+<div id="devDebugPanel" style="position: fixed; bottom: 10px; right: 10px; z-index: 10000; width: 400px; max-height: 600px; background: #1e1e1e; color: #d4d4d4; border: 2px solid #0e639c; border-radius: 4px; font-family: monospace; font-size: 11px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+  <div style="padding: 8px; background: #0e639c; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;" onclick="document.getElementById('devDebugContent').style.display = document.getElementById('devDebugContent').style.display === 'none' ? 'block' : 'none'">
+    <strong>🔧 Dev Debug Panel</strong>
+    <span style="font-size: 12px;">▼</span>
+  </div>
+  <div id="devDebugContent" style="max-height: 550px; overflow-y: auto; padding: 8px;">
+    <div style="margin-bottom: 10px;">
+      <strong>Form State:</strong>
+      <pre id="formState" style="background: #252526; padding: 8px; margin: 5px 0; border-radius: 2px; overflow-x: auto;">Loading...</pre>
+    </div>
+    <div style="margin-bottom: 10px;">
+      <strong>Recent Logs:</strong>
+      <div id="logsList" style="background: #252526; padding: 8px; margin: 5px 0; border-radius: 2px; max-height: 300px; overflow-y: auto;">
+        <div style="color: #858585;">Waiting for logs...</div>
+      </div>
+      <button onclick="clearDevLogs()" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px;">Clear Logs</button>
+      <button onclick="exportDevLogs()" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px; margin-left: 5px;">Export</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dev debug utilities
+window.devLogs = [];
+
+function logToPanel(category, message, data) {
+  window.devLogs.push({ timestamp: new Date().toLocaleTimeString(), category, message, data });
+  updateLogsList();
+}
+
+function updateLogsList() {
+  const list = document.getElementById('logsList');
+  const recent = window.devLogs.slice(-20);
+  if (recent.length === 0) {
+    list.innerHTML = '<div style="color: #858585;">No logs yet</div>';
+    return;
+  }
+  list.innerHTML = recent.map(log =>
+    `<div style="padding: 4px 0; border-bottom: 1px solid #3e3e42;">
+      <span style="color: #4ec9b0;">${log.timestamp}</span>
+      <span style="color: #569cd6;">[${log.category}]</span>
+      ${log.message}
+      ${log.data ? `<div style="color: #858585; margin-top: 2px;">${JSON.stringify(log.data).substring(0, 100)}</div>` : ''}
+    </div>`
+  ).join('');
+}
+
+function updateFormState() {
+  const form = document.getElementById('signupForm') || document.querySelector('form');
+  if (!form) return;
+
+  const formData = {};
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => {
+    if (input.name && input.value) {
+      formData[input.name] = input.value;
+    }
+  });
+
+  const stateDiv = document.getElementById('formState');
+  stateDiv.textContent = JSON.stringify(formData, null, 2) || '{}';
+}
+
+function clearDevLogs() {
+  window.devLogs = [];
+  updateLogsList();
+}
+
+function exportDevLogs() {
+  const data = JSON.stringify(window.devLogs, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dev-logs-${new Date().getTime()}.json`;
+  a.click();
+}
+
+// Update form state every 500ms
+setInterval(updateFormState, 500);
+updateFormState();
+
+// Hook into form changes
+document.addEventListener('change', (e) => {
+  if (e.target.name) {
+    logToPanel('FORM', `Changed: ${e.target.name}`, { value: e.target.value });
+  }
+});
+</script>
+<% } %>

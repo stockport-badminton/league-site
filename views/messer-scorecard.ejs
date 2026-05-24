@@ -629,7 +629,7 @@
                    <div id="finalScore"></div>
                    <input type="hidden" id="homeScore" name="homeScore" value="">
                    <input type="hidden" id="awayScore" name="awayScore" value="">
-                   <input type="hidden" id="email" name="email" value="<%= user.emails[0].value %>">
+                   <input type="hidden" id="email" name="email" value="<%= user && user.emails && user.emails[0] ? user.emails[0].value : (user && user.email ? user.email : '') %>">
                  </div>
 
              </div>
@@ -1793,6 +1793,8 @@
     }
     <% } %>
     </script>
+
+    <%- include('partials/debugPanel.ejs', { devMode: devMode }) %>
 
     </body>
     </html>

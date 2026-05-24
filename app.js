@@ -83,6 +83,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sess));
+app.use(require('./middleware/devMode'));
 app.use(passport.initialize());
 app.use(passport.session());
 
