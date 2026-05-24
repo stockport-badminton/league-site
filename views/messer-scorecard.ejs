@@ -83,23 +83,23 @@
                      <div class="form-group">
                        <label for="section">Section</label>
                        <select class="form-control" name="section" id="section" placeholder="Section">
-                         <option disabled <% if (!data || !data.section) { %>selected<% } %>>Choose Section</option>
-                         <option value="A" <% if (data && data.section === "A") { %>selected<% } %>>A</option>
-                         <option value="B" <% if (data && data.section === "B") { %>selected<% } %>>B</option>
+                         <option disabled <% if (typeof data === "undefined" || !data.section) { %>selected<% } %>>Choose Section</option>
+                         <option value="A" <% if (typeof data !== "undefined" && data.section === "A") { %>selected<% } %>>A</option>
+                         <option value="B" <% if (typeof data !== "undefined" && data.section === "B") { %>selected<% } %>>B</option>
                        </select>
                      </div>
                    </div>
                    <div class="col-md-6">
                      <div class="form-group">
                        <label for="date">Date</label>
-                       <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY" value="<%= data && data.date ? data.date : "" %>">
+                       <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY" value="<%= (typeof data !== "undefined" && data.date) ? data.date : "" %>">
                      </div>
                    </div>
                  </div>
                  <div class="form-group">
                    <label for="homeTeam">Home Team</label>
                    <select class="form-control" id="homeTeam" name="homeTeam" placeholder="Home Team">
-                     <option disabled <% if (typeof data === 'undefined' || !data.homeTeam) { %>selected<% } %>>Select a team</option>
+                     <option disabled <% if (typeof data === "undefined" || !data.homeTeam) { %>selected<% } %>>Select a team</option>
                      <% if (typeof scorecard !== 'undefined' && scorecard.homeTeamRows) { %>
                        <% scorecard.homeTeamRows.forEach(function(row) { %>
                          <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
@@ -110,7 +110,7 @@
                  <div class="form-group">
                    <label for="awayTeam">Away Team</label>
                    <select class="form-control" id="awayTeam" name="awayTeam" placeholder="Away Team">
-                     <option disabled <% if (typeof data === 'undefined' || !data.awayTeam) { %>selected<% } %>>Select a team</option>
+                     <option disabled <% if (typeof data === "undefined" || !data.awayTeam) { %>selected<% } %>>Select a team</option>
                      <% if (typeof scorecard !== 'undefined' && scorecard.awayTeamRows) { %>
                        <% scorecard.awayTeamRows.forEach(function(row) { %>
                          <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
@@ -295,8 +295,8 @@
                    </div>
                    <div class="form-group step-4 FirstMens col-6">
                      <label for="game2Score">Game 2</label>
-                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game2 home" id="Game2homeScore" name="Game2homeScore" value="<%= data && data.Game2homeScore ? data.Game2homeScore : "" %>"></div>
-                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game2 away" id="Game2awayScore" name="Game2awayScore" value="<%= data && data.Game2awayScore ? data.Game2awayScore : "" %>"></div></div>
+                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game2 home" id="Game2homeScore" name="Game2homeScore" value="<%= (typeof data !== "undefined" && data.Game2homeScore) ? data.Game2homeScore : "" %>"></div>
+                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game2 away" id="Game2awayScore" name="Game2awayScore" value="<%= (typeof data !== "undefined" && data.Game2awayScore) ? data.Game2awayScore : "" %>"></div></div>
                    </div>
                  </div>
 
@@ -320,13 +320,13 @@
                  <div class="form-row">
                    <div class="form-group step-5 FirstLadies col-6">
                      <label for="game3Score">Game 3</label>
-                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game3 home" id="Game3homeScore" name="Game3homeScore" value="<%= data && data.Game3homeScore ? data.Game3homeScore : "" %>"></div>
-                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game3 away" id="Game3awayScore" name="Game3awayScore" value="<%= data && data.Game3awayScore ? data.Game3awayScore : "" %>"></div></div>
+                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game3 home" id="Game3homeScore" name="Game3homeScore" value="<%= (typeof data !== "undefined" && data.Game3homeScore) ? data.Game3homeScore : "" %>"></div>
+                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game3 away" id="Game3awayScore" name="Game3awayScore" value="<%= (typeof data !== "undefined" && data.Game3awayScore) ? data.Game3awayScore : "" %>"></div></div>
                    </div>
                    <div class="form-group step-5 FirstLadies col-6">
                      <label for="game4Score">Game 4</label>
-                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game4 home" id="Game4homeScore" name="Game4homeScore" value="<%= data && data.Game4homeScore ? data.Game4homeScore : "" %>"></div>
-                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game4 away" id="Game4awayScore" name="Game4awayScore" value="<%= data && data.Game4awayScore ? data.Game4awayScore : "" %>"></div></div>
+                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game4 home" id="Game4homeScore" name="Game4homeScore" value="<%= (typeof data !== "undefined" && data.Game4homeScore) ? data.Game4homeScore : "" %>"></div>
+                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game4 away" id="Game4awayScore" name="Game4awayScore" value="<%= (typeof data !== "undefined" && data.Game4awayScore) ? data.Game4awayScore : "" %>"></div></div>
                    </div>
                  </div>
 
@@ -352,10 +352,10 @@
                      <label for="game5Score">Game 5</label>
                      <div class="form-row">
                        <div class="col-6">
-                         <input type="number" min="-10" max="30" class="form-control scoreInput Game5 home" id="Game5homeScore" name="Game5homeScore" value="<%= data && data.Game5homeScore ? data.Game5homeScore : "" %>">
+                         <input type="number" min="-10" max="30" class="form-control scoreInput Game5 home" id="Game5homeScore" name="Game5homeScore" value="<%= (typeof data !== "undefined" && data.Game5homeScore) ? data.Game5homeScore : "" %>">
                        </div>
                        <div class="col-6">
-                         <input type="number" min="-10" max="30" class="form-control scoreInput Game5 away" id="Game5awayScore" name="Game5awayScore" value="<%= data && data.Game5awayScore ? data.Game5awayScore : "" %>">
+                         <input type="number" min="-10" max="30" class="form-control scoreInput Game5 away" id="Game5awayScore" name="Game5awayScore" value="<%= (typeof data !== "undefined" && data.Game5awayScore) ? data.Game5awayScore : "" %>">
                        </div>
                      </div>
                    </div>
@@ -363,10 +363,10 @@
                      <label for="game6Score">Game 6</label>
                      <div class="form-row">
                        <div class="col-6">
-                         <input type="number" min="-10" max="30" class="form-control scoreInput Game6 home" id="Game6homeScore" name="Game6homeScore" value="<%= data && data.Game6homeScore ? data.Game6homeScore : "" %>">
+                         <input type="number" min="-10" max="30" class="form-control scoreInput Game6 home" id="Game6homeScore" name="Game6homeScore" value="<%= (typeof data !== "undefined" && data.Game6homeScore) ? data.Game6homeScore : "" %>">
                        </div>
                        <div class="col-6">
-                         <input type="number" min="-10" max="30" class="form-control scoreInput Game6 away" id="Game6awayScore" name="Game6awayScore" value="<%= data && data.Game6awayScore ? data.Game6awayScore : "" %>">
+                         <input type="number" min="-10" max="30" class="form-control scoreInput Game6 away" id="Game6awayScore" name="Game6awayScore" value="<%= (typeof data !== "undefined" && data.Game6awayScore) ? data.Game6awayScore : "" %>">
                        </div>
                      </div>
                    </div>
@@ -393,15 +393,15 @@
                    <div class="form-group step-7 SecondLadies col-6">
                      <label for="game7Score">Game 7</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game7 home" id="Game7homeScore" name="Game7homeScore" value="<%= data && data.Game7homeScore ? data.Game7homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game7 away" id="Game7awayScore" name="Game7awayScore" value="<%= data && data.Game7awayScore ? data.Game7awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game7 home" id="Game7homeScore" name="Game7homeScore" value="<%= (typeof data !== "undefined" && data.Game7homeScore) ? data.Game7homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game7 away" id="Game7awayScore" name="Game7awayScore" value="<%= (typeof data !== "undefined" && data.Game7awayScore) ? data.Game7awayScore : "" %>"></div>
                      </div>
                    </div>
                    <div class="form-group step-7 SecondLadies col-6">
                      <label for="game8Score">Game 8</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game8 home" id="Game8homeScore" name="Game8homeScore" value="<%= data && data.Game8homeScore ? data.Game8homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game8 away" id="Game8awayScore" name="Game8awayScore" value="<%= data && data.Game8awayScore ? data.Game8awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game8 home" id="Game8homeScore" name="Game8homeScore" value="<%= (typeof data !== "undefined" && data.Game8homeScore) ? data.Game8homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game8 away" id="Game8awayScore" name="Game8awayScore" value="<%= (typeof data !== "undefined" && data.Game8awayScore) ? data.Game8awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
@@ -427,15 +427,15 @@
                    <div class="form-group step-8 ThirdMens col-6">
                      <label for="game9Score">Game 9</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game9 home" id="Game9homeScore" name="Game9homeScore" value="<%= data && data.Game9homeScore ? data.Game9homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game9 away" id="Game9awayScore" name="Game9awayScore" value="<%= data && data.Game9awayScore ? data.Game9awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game9 home" id="Game9homeScore" name="Game9homeScore" value="<%= (typeof data !== "undefined" && data.Game9homeScore) ? data.Game9homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game9 away" id="Game9awayScore" name="Game9awayScore" value="<%= (typeof data !== "undefined" && data.Game9awayScore) ? data.Game9awayScore : "" %>"></div>
                      </div>
                    </div>
                    <div class="form-group step-8 ThirdMens col-6">
                      <label for="game10Score">Game 10</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game10 home" id="Game10homeScore" name="Game10homeScore" value="<%= data && data.Game10homeScore ? data.Game10homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game10 away" id="Game10awayScore" name="Game10awayScore" value="<%= data && data.Game10awayScore ? data.Game10awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game10 home" id="Game10homeScore" name="Game10homeScore" value="<%= (typeof data !== "undefined" && data.Game10homeScore) ? data.Game10homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game10 away" id="Game10awayScore" name="Game10awayScore" value="<%= (typeof data !== "undefined" && data.Game10awayScore) ? data.Game10awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
@@ -461,15 +461,15 @@
                    <div class="form-group step-9 ThirdLadies col-6">
                      <label for="game11Score">Game 11</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game11 home" id="Game11homeScore" name="Game11homeScore" value="<%= data && data.Game11homeScore ? data.Game11homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game11 away" id="Game11awayScore" name="Game11awayScore" value="<%= data && data.Game11awayScore ? data.Game11awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game11 home" id="Game11homeScore" name="Game11homeScore" value="<%= (typeof data !== "undefined" && data.Game11homeScore) ? data.Game11homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game11 away" id="Game11awayScore" name="Game11awayScore" value="<%= (typeof data !== "undefined" && data.Game11awayScore) ? data.Game11awayScore : "" %>"></div>
                      </div>
                    </div>
                    <div class="form-group step-9 ThirdLadies col-6">
                      <label for="game12Score">Game 12</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game12 home" id="Game12homeScore" name="Game12homeScore" value="<%= data && data.Game12homeScore ? data.Game12homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game12 away" id="Game12awayScore" name="Game12awayScore" value="<%= data && data.Game12awayScore ? data.Game12awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game12 home" id="Game12homeScore" name="Game12homeScore" value="<%= (typeof data !== "undefined" && data.Game12homeScore) ? data.Game12homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game12 away" id="Game12awayScore" name="Game12awayScore" value="<%= (typeof data !== "undefined" && data.Game12awayScore) ? data.Game12awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
@@ -495,8 +495,8 @@
                    <div class="form-group step-10 FirstMixed col-6">
                      <label for="game13Score">Game 13</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game13 home" id="Game13homeScore" name="Game13homeScore" value="<%= data && data.Game13homeScore ? data.Game13homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game13 away" id="Game13awayScore" name="Game13awayScore" value="<%= data && data.Game13awayScore ? data.Game13awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game13 home" id="Game13homeScore" name="Game13homeScore" value="<%= (typeof data !== "undefined" && data.Game13homeScore) ? data.Game13homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game13 away" id="Game13awayScore" name="Game13awayScore" value="<%= (typeof data !== "undefined" && data.Game13awayScore) ? data.Game13awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
@@ -522,8 +522,8 @@
                    <div class="form-group step-11 SecondMixed col-6">
                      <label for="game14Score">Game 14</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game14 home" id="Game14homeScore" name="Game14homeScore" value="<%= data && data.Game14homeScore ? data.Game14homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game14 away" id="Game14awayScore" name="Game14awayScore" value="<%= data && data.Game14awayScore ? data.Game14awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game14 home" id="Game14homeScore" name="Game14homeScore" value="<%= (typeof data !== "undefined" && data.Game14homeScore) ? data.Game14homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game14 away" id="Game14awayScore" name="Game14awayScore" value="<%= (typeof data !== "undefined" && data.Game14awayScore) ? data.Game14awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
@@ -549,8 +549,8 @@
                    <div class="form-group step-12 ThirdMixed col-6">
                      <label for="game15Score">Game 17</label>
                      <div class="form-row">
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game15 home" id="Game15homeScore" name="Game15homeScore" value="<%= data && data.Game15homeScore ? data.Game15homeScore : "" %>"></div>
-                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game15 away" id="Game15awayScore" name="Game15awayScore" value="<%= data && data.Game15awayScore ? data.Game15awayScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game15 home" id="Game15homeScore" name="Game15homeScore" value="<%= (typeof data !== "undefined" && data.Game15homeScore) ? data.Game15homeScore : "" %>"></div>
+                       <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game15 away" id="Game15awayScore" name="Game15awayScore" value="<%= (typeof data !== "undefined" && data.Game15awayScore) ? data.Game15awayScore : "" %>"></div>
                      </div>
                    </div>
                  </div>
