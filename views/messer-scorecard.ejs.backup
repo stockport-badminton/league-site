@@ -140,7 +140,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.homeMan2) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.homeMenRows) { %>
                            <% scorecard.homeMenRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.homeMan2 && row.id == data.homeMan2) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -151,7 +151,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.homeMan3) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.homeMenRows) { %>
                            <% scorecard.homeMenRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.homeMan3 && row.id == data.homeMan3) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -164,7 +164,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.homeLady1) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.homeLadiesRows) { %>
                            <% scorecard.homeLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.homeLady1 && row.id == data.homeLady1) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -175,7 +175,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.homeLady2) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.homeLadiesRows) { %>
                            <% scorecard.homeLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.homeLady2 && row.id == data.homeLady2) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -186,7 +186,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.homeLady3) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.homeLadiesRows) { %>
                            <% scorecard.homeLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.homeLady3 && row.id == data.homeLady3) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -205,7 +205,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayMan1) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayMenRows) { %>
                            <% scorecard.awayMenRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayMan1 && row.id == data.awayMan1) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -216,7 +216,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayMan2) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayMenRows) { %>
                            <% scorecard.awayMenRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayMan2 && row.id == data.awayMan2) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -227,7 +227,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayMan3) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayMenRows) { %>
                            <% scorecard.awayMenRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayMan3 && row.id == data.awayMan3) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -240,7 +240,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayLady1) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayLadiesRows) { %>
                            <% scorecard.awayLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayLady1 && row.id == data.awayLady1) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -251,7 +251,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayLady2) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayLadiesRows) { %>
                            <% scorecard.awayLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayLady2 && row.id == data.awayLady2) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
@@ -262,7 +262,7 @@
                          <option disabled <% if (typeof data === "undefined" || !data.awayLady3) { %>selected<% } %>>Select a player</option>
                          <% if (typeof scorecard !== "undefined" && scorecard.awayLadiesRows) { %>
                            <% scorecard.awayLadiesRows.forEach(function(row) { %>
-                             <option value="<%= row.id %>" <% if (typeof data !== "undefined" && data.awayLady3 && row.id == data.awayLady3) { %>selected<% } %>><%= row.name %></option>
+                             <option value="<%= row.id %>" <% if (row.selected) { %>selected<% } %>><%= row.name %></option>
                            <% }) %>
                          <% } %>
                        </select>
