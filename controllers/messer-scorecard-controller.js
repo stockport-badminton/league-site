@@ -515,6 +515,7 @@ exports.messer_result_approve = async function(req, res, next) {
 
     // Create messer_result record
     const resultData = {
+      messer_scorecard_id: scorecardId,
       date: data.date,
       homeTeam: data.homeTeam,
       awayTeam: data.awayTeam,
@@ -572,6 +573,7 @@ exports.messer_result_reject = async function(req, res, next) {
 
     // Create messer_result record with 'rejected' status
     const resultData = {
+      messer_scorecard_id: scorecardId,
       messer_id: null, // Not linked to a messer record since it's rejected
       date: data.date,
       homeTeam: data.homeTeam,
@@ -612,6 +614,9 @@ exports.messer_result_reject = async function(req, res, next) {
     };
 
     await Fixture.createMesserResult(resultData);
+
+    // Send rejection email to captain
+    await sendMesserRejectionEmail(data);
 
     res.json({ success: true, message: 'Result rejected' });
   } catch (err) {
@@ -693,6 +698,42 @@ async function sendMesserApprovalEmail(scorecardData) {
     await ses.sendEmail(params).promise();
   } catch (err) {
     console.error('sendMesserApprovalEmail error:', err);
+  }
+}
+
+async function sendMesserRejectionEmail(scorecardData) {
+  try {
+    const homeTeam = await Team.getById(scorecardData.homeTeam);
+    const awayTeam = await Team.getById(scorecardData.awayTeam);
+
+    const params = {
+      Destination: {
+        ToAddresses: [scorecardData.email],
+      },
+      Message: {
+        Body: {
+          Html: {
+            Charset: 'UTF-8',
+            Data: `
+              <p>Your messer result submission has been rejected and was not entered into the system.</p>
+              <p><strong>Match:</strong> ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}</p>
+              <p>Please review the scores and submit again if needed.</p>
+            `,
+          },
+        },
+        Subject: {
+          Charset: 'UTF-8',
+          Data: `Messer Result Rejected: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+        },
+      },
+      Source: 'results@stockport-badminton.co.uk',
+      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
+    };
+
+    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
+    await ses.sendEmail(params).promise();
+  } catch (err) {
+    console.error('sendMesserRejectionEmail error:', err);
   }
 }
 

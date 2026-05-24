@@ -629,7 +629,9 @@ exports.listMesserScorecardsForApproval = async function() {
     FROM messer_scorecard ms
     JOIN team ht ON ms."homeTeam" = ht.id
     JOIN team at ON ms."awayTeam" = at.id
+    LEFT JOIN messer_result mr ON ms.id = mr."messer_scorecard_id"
     WHERE ms.status IN ('submitted')
+      AND (mr.id IS NULL OR mr.status NOT IN ('rejected'))
     ORDER BY ms."created_at" DESC
   `
   const [result] = await (await db.otherConnect()).query(sql)
