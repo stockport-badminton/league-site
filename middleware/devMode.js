@@ -1,4 +1,4 @@
-// Development mode middleware - bypasses auth gates locally
+// Development mode middleware - injects mock user locally
 // SAFE: Only works if NODE_ENV is NOT production
 module.exports = function devMode(req, res, next) {
   const isDevMode = process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';

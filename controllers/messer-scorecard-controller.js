@@ -339,12 +339,11 @@ exports.full_messer_fixture_post = async function(req, res, next) {
           .map(([k, v]) => [k, parseInt(v) || null])
       ),
       email: req.user?.email || req.body.email,
-      'scoresheet-url': req.body['scoresheet-url'] || null,
       status: 'submitted',
     };
 
     const result = await Fixture.createMesserScorecard(scorecardData);
-    const scorecardId = result.insertId || result[0]?.id;
+    const scorecardId = result[0]?.id;
 
     // Send email to results secretary
     await sendMesserSubmissionEmail(req, scorecardData, scorecardId);
