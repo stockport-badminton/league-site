@@ -539,11 +539,8 @@ exports.messer_result_approve = async function(req, res, next) {
       });
     }
 
-    // Create result record
+    // Create result record with 'approved' status
     await Fixture.createMesserResult(resultData);
-
-    // Update scorecard status
-    await Fixture.updateMesserScorecardStatus(scorecardId, 'approved');
 
     // Send approval email to captain
     await sendMesserApprovalEmail(data);
@@ -560,11 +557,61 @@ exports.messer_result_reject = async function(req, res, next) {
   try {
     // Verify only Neil can reject
     if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
-      return res.status(403).json({ error: 'Access denied' });  
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     const scorecardId = req.params.id;
-    await Fixture.updateMesserScorecardStatus(scorecardId, 'rejected');
+
+    // Fetch the scorecard to get details
+    const scorecard = await Fixture.getMesserScorecardById(scorecardId);
+    if (!scorecard || scorecard.length === 0) {
+      return res.status(404).json({ error: 'Scorecard not found' });
+    }
+
+    const data = scorecard[0];
+
+    // Create messer_result record with 'rejected' status
+    const resultData = {
+      messer_id: null, // Not linked to a messer record since it's rejected
+      date: data.date,
+      homeTeam: data.homeTeam,
+      awayTeam: data.awayTeam,
+      Game1homeScore: data.Game1homeScore,
+      Game1awayScore: data.Game1awayScore,
+      Game2homeScore: data.Game2homeScore,
+      Game2awayScore: data.Game2awayScore,
+      Game3homeScore: data.Game3homeScore,
+      Game3awayScore: data.Game3awayScore,
+      Game4homeScore: data.Game4homeScore,
+      Game4awayScore: data.Game4awayScore,
+      Game5homeScore: data.Game5homeScore,
+      Game5awayScore: data.Game5awayScore,
+      Game6homeScore: data.Game6homeScore,
+      Game6awayScore: data.Game6awayScore,
+      Game7homeScore: data.Game7homeScore,
+      Game7awayScore: data.Game7awayScore,
+      Game8homeScore: data.Game8homeScore,
+      Game8awayScore: data.Game8awayScore,
+      Game9homeScore: data.Game9homeScore,
+      Game9awayScore: data.Game9awayScore,
+      Game10homeScore: data.Game10homeScore,
+      Game10awayScore: data.Game10awayScore,
+      Game11homeScore: data.Game11homeScore,
+      Game11awayScore: data.Game11awayScore,
+      Game12homeScore: data.Game12homeScore,
+      Game12awayScore: data.Game12awayScore,
+      Game13homeScore: data.Game13homeScore,
+      Game13awayScore: data.Game13awayScore,
+      Game14homeScore: data.Game14homeScore,
+      Game14awayScore: data.Game14awayScore,
+      Game15homeScore: data.Game15homeScore,
+      Game15awayScore: data.Game15awayScore,
+      homeWins: 0,
+      awayWins: 0,
+      status: 'rejected',
+    };
+
+    await Fixture.createMesserResult(resultData);
 
     res.json({ success: true, message: 'Result rejected' });
   } catch (err) {
