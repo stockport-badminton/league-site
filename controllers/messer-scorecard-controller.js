@@ -190,8 +190,8 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
     const homeTeamId = allSectionATeams[0].id;
     const awayTeamId = allSectionATeams[1].id;
 
-    // Fetch teams with selection flags and get eligible players
-    const [homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
+    // Fetch teams with selection flags and get all eligible players (first pass)
+    const [homeTeamRows, awayTeamRows, homeMenRowsTemp, homeLadiesRowsTemp, awayMenRowsTemp, awayLadiesRowsTemp] = await Promise.all([
       Team.getAllAndSelectedBySection(homeTeamId, 'A'),
       Team.getAllAndSelectedBySection(awayTeamId, 'A'),
       Player.getEligiblePlayersAndSelectedById(0, 0, 0, homeTeamId, 'Male'),
@@ -201,15 +201,30 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
     ]);
 
     // Find first 3 eligible men and women for each team
-    const homeMen = homeMenRows && homeMenRows.length >= 3 ? homeMenRows.slice(0, 3) : [];
-    const homeWomen = homeLadiesRows && homeLadiesRows.length >= 3 ? homeLadiesRows.slice(0, 3) : [];
-    const awayMen = awayMenRows && awayMenRows.length >= 3 ? awayMenRows.slice(0, 3) : [];
-    const awayWomen = awayLadiesRows && awayLadiesRows.length >= 3 ? awayLadiesRows.slice(0, 3) : [];
+    const homeMen = homeMenRowsTemp && homeMenRowsTemp.length >= 3 ? homeMenRowsTemp.slice(0, 3) : [];
+    const homeWomen = homeLadiesRowsTemp && homeLadiesRowsTemp.length >= 3 ? homeLadiesRowsTemp.slice(0, 3) : [];
+    const awayMen = awayMenRowsTemp && awayMenRowsTemp.length >= 3 ? awayMenRowsTemp.slice(0, 3) : [];
+    const awayWomen = awayLadiesRowsTemp && awayLadiesRowsTemp.length >= 3 ? awayLadiesRowsTemp.slice(0, 3) : [];
 
     // Verify we have enough players
     if (homeMen.length < 3 || homeWomen.length < 3 || awayMen.length < 3 || awayWomen.length < 3) {
       throw new Error(`Insufficient players for test data. Home: ${homeMen.length}M/${homeWomen.length}W, Away: ${awayMen.length}M/${awayWomen.length}W`);
     }
+
+    // Now fetch players again with the correct selected IDs so they get marked with selected=true
+    const [homeMenRaw, homeLadiesRaw, awayMenRaw, awayLadiesRaw] = await Promise.all([
+      Player.getEligiblePlayersAndSelectedById(homeMen[0].id, homeMen[1].id, homeMen[2].id, homeTeamId, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(homeWomen[0].id, homeWomen[1].id, homeWomen[2].id, homeTeamId, 'Female'),
+      Player.getEligiblePlayersAndSelectedById(awayMen[0].id, awayMen[1].id, awayMen[2].id, awayTeamId, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(awayWomen[0].id, awayWomen[1].id, awayWomen[2].id, awayTeamId, 'Female'),
+    ]);
+
+    // Transform to add selected field (function returns first/second/third flags, view expects selected)
+    const transformPlayers = (players) => players.map(p => ({ ...p, selected: p.first || p.second || p.third ? 1 : 0, name: p.first_name + ' ' + p.family_name }));
+    const homeMenRows = transformPlayers(homeMenRaw);
+    const homeLadiesRows = transformPlayers(homeLadiesRaw);
+    const awayMenRows = transformPlayers(awayMenRaw);
+    const awayLadiesRows = transformPlayers(awayLadiesRaw);
 
     // Pre-fill with actual database IDs
     const testData = {
