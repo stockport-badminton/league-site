@@ -290,8 +290,8 @@
                  <div class="form-row">
                    <div class="form-group step-4 FirstMens col-6">
                      <label for="game1Score">Game 1</label>
-                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game1 home" id="Game1homeScore" name="Game1homeScore" placeholder=""></div>
-                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game1 away" id="Game1awayScore" name="Game1awayScore" placeholder=""></div></div>
+                     <div class="form-row"><div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game1 home" id="Game1homeScore" name="Game1homeScore" value="<%= (typeof data !== "undefined" && data.Game1homeScore) ? data.Game1homeScore : "" %>"></div>
+                     <div class="col-6"><input type="number" min="-10" max="30" class="form-control scoreInput Game1 away" id="Game1awayScore" name="Game1awayScore" value="<%= (typeof data !== "undefined" && data.Game1awayScore) ? data.Game1awayScore : "" %>"></div></div>
                    </div>
                    <div class="form-group step-4 FirstMens col-6">
                      <label for="game2Score">Game 2</label>
@@ -1525,6 +1525,13 @@
         var selectedPlayer = $(this)[0].id
         // console.log(selectedPlayerName+'-'+selectedPlayerId+'-'+selectedPlayer);
       })
+      // Trigger team change on load if teams are pre-filled (e.g., test data, error correction)
+      if ($('#homeTeam').val()) {
+        $('#homeTeam').trigger('change');
+      }
+      if ($('#awayTeam').val()) {
+        $('#awayTeam').trigger('change');
+      }
       // Real-time score validation
       function createGameFeedback(n) {
         var homeEl = document.getElementById('Game' + n + 'homeScore');

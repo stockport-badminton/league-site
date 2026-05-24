@@ -179,25 +179,56 @@ exports.messer_scorecard_beta = async function(req, res, next) {
 // GET /messer-scorecard-beta/test — render form pre-filled with test data (dev only)
 exports.messer_scorecard_beta_test = async function(req, res, next) {
   try {
+    // Get all Section A teams
+    const allSectionATeams = await Team.getTeamsBySection('A');
+
+    if (!allSectionATeams || allSectionATeams.length < 2) {
+      throw new Error('Not enough teams in Section A for test data (need at least 2)');
+    }
+
+    // Use first two teams as home and away
+    const homeTeamId = allSectionATeams[0].id;
+    const awayTeamId = allSectionATeams[1].id;
+
+    // Fetch teams with selection flags and get eligible players
     const [homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
-      Team.getAllAndSelectedBySection(1, 'A'),
-      Team.getAllAndSelectedBySection(2, 'A'),
-      Player.getEligiblePlayersAndSelectedById(1, 2, 3, 1, 'Male'),
-      Player.getEligiblePlayersAndSelectedById(4, 5, 6, 1, 'Female'),
-      Player.getEligiblePlayersAndSelectedById(7, 8, 9, 2, 'Male'),
-      Player.getEligiblePlayersAndSelectedById(10, 11, 12, 2, 'Female'),
+      Team.getAllAndSelectedBySection(homeTeamId, 'A'),
+      Team.getAllAndSelectedBySection(awayTeamId, 'A'),
+      Player.getEligiblePlayersAndSelectedById(0, 0, 0, homeTeamId, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(0, 0, 0, homeTeamId, 'Female'),
+      Player.getEligiblePlayersAndSelectedById(0, 0, 0, awayTeamId, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(0, 0, 0, awayTeamId, 'Female'),
     ]);
 
-    // Pre-fill with test data
+    // Find first 3 eligible men and women for each team
+    const homeMen = homeMenRows && homeMenRows.length >= 3 ? homeMenRows.slice(0, 3) : [];
+    const homeWomen = homeLadiesRows && homeLadiesRows.length >= 3 ? homeLadiesRows.slice(0, 3) : [];
+    const awayMen = awayMenRows && awayMenRows.length >= 3 ? awayMenRows.slice(0, 3) : [];
+    const awayWomen = awayLadiesRows && awayLadiesRows.length >= 3 ? awayLadiesRows.slice(0, 3) : [];
+
+    // Verify we have enough players
+    if (homeMen.length < 3 || homeWomen.length < 3 || awayMen.length < 3 || awayWomen.length < 3) {
+      throw new Error(`Insufficient players for test data. Home: ${homeMen.length}M/${homeWomen.length}W, Away: ${awayMen.length}M/${awayWomen.length}W`);
+    }
+
+    // Pre-fill with actual database IDs
     const testData = {
       section: 'A',
       date: new Date().toISOString().split('T')[0],
-      homeTeam: '1',
-      awayTeam: '2',
-      homeMan1: '1', homeMan2: '2', homeMan3: '3',
-      homeLady1: '4', homeLady2: '5', homeLady3: '6',
-      awayMan1: '7', awayMan2: '8', awayMan3: '9',
-      awayLady1: '10', awayLady2: '11', awayLady3: '12',
+      homeTeam: homeTeamId.toString(),
+      awayTeam: awayTeamId.toString(),
+      homeMan1: homeMen[0].id.toString(),
+      homeMan2: homeMen[1].id.toString(),
+      homeMan3: homeMen[2].id.toString(),
+      homeLady1: homeWomen[0].id.toString(),
+      homeLady2: homeWomen[1].id.toString(),
+      homeLady3: homeWomen[2].id.toString(),
+      awayMan1: awayMen[0].id.toString(),
+      awayMan2: awayMen[1].id.toString(),
+      awayMan3: awayMen[2].id.toString(),
+      awayLady1: awayWomen[0].id.toString(),
+      awayLady2: awayWomen[1].id.toString(),
+      awayLady3: awayWomen[2].id.toString(),
     };
 
     // Add game scores (21-19 for all games - valid)
