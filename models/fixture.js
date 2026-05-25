@@ -471,11 +471,18 @@ exports.sendResultZap = async function(zapObject) {
     return 'test env'
   }
 
-  const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', {
+  const webhookBody = {
     imgGen: `https://stockport-badminton.co.uk/resultImage/${zapObject.homeTeam}/${zapObject.awayTeam}/${zapObject.homeScore}/${zapObject.awayScore}/${zapObject.division}`,
     message: `Result: ${zapObject.homeTeam} vs ${zapObject.awayTeam} : ${zapObject.homeScore}-${zapObject.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`,
     imgUrl: `http://stockport-badminton.co.uk/static/beta/images/generated/${zapObject.homeTeam.replace(/([\s]{1,})/g, '-')}${zapObject.awayTeam.replace(/([\s]{1,})/g, '-')}.jpg`
-  })
+  }
+
+  // Include social media mentions if available
+  if (zapObject.mentions) {
+    webhookBody.mentions = zapObject.mentions
+  }
+
+  const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
 
   // canvas image generation is fire-and-forget
   const { createCanvas, loadImage } = require('canvas')
@@ -697,4 +704,17 @@ exports.getAllClubsWithSocialHandles = async function() {
   const client = await db.otherConnect()
   const result = await client.query(sql)
   return result.rows
+}
+
+// Get formatted mentions for a result (given two team names)
+exports.getResultMentions = async function(homeTeamName, awayTeamName) {
+  const { formatMentionsForPlatforms } = require('../utils/socialMediaMentions')
+
+  const [homeClub, awayClub] = await Promise.all([
+    this.getClubSocialHandlesByTeamName(homeTeamName),
+    this.getClubSocialHandlesByTeamName(awayTeamName),
+  ])
+
+  const clubsWithHandles = [homeClub, awayClub].filter(Boolean)
+  return formatMentionsForPlatforms(clubsWithHandles)
 }

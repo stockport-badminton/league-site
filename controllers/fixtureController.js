@@ -99,6 +99,8 @@ exports.fixture_outstanding_post = async function(req, res, next) {
       "awayScore": 1 * (req.body.awayTeamScore),
       "division": "Premier"
     }
+    // Get social media mentions for the result
+    zapObject.mentions = await Fixture.getResultMentions(zapObject.homeTeam, zapObject.awayTeam);
     const zapRes = await Fixture.sendResultZap(zapObject);
     const result = await Fixture.getOutstandingResults();
     res.render('results-short', {
