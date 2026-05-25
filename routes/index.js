@@ -77,6 +77,10 @@ router.get('/tables-social', social_controller.tablesSocial);
 router.get('/tournament-social', social_controller.tournamentSocial);
 router.get('/handicap-tournament-social', social_controller.handicapTournamentSocial);
 
+// Social API endpoints with mentions for Make.com integration
+router.post('/api/social/result-webhook', social_controller.resultWebhookWithMentions);
+router.get('/api/social/tables-with-mentions/:season?', social_controller.tablesSocialWithMentions);
+
 router.get('/logout', function(req, res, next) {
   req.logout(function(err) {
     if (err) { return next(err); }

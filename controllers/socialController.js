@@ -2,6 +2,8 @@ const sharp = require('sharp');
 const fs = require('fs').promises;
 const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
+const Fixture = require('../models/fixture');
+const { formatMentionsForPlatforms } = require('../utils/socialMediaMentions');
 
 function escapeXml(str) {
   return String(str)
@@ -212,5 +214,123 @@ exports.handicapTournamentSocial = async function(req, res, next) {
     res.sendStatus(200);
   } catch (err) {
     next(err);
+  }
+};
+
+// POST /api/social/result-webhook - webhook endpoint for result posting with mentions
+exports.resultWebhookWithMentions = async function(req, res, next) {
+  try {
+    const { homeTeam, awayTeam, homeScore, awayScore, division } = req.body;
+
+    if (!homeTeam || !awayTeam || homeScore === undefined || awayScore === undefined || !division) {
+      return res.status(400).json({ error: 'Missing required fields: homeTeam, awayTeam, homeScore, awayScore, division' });
+    }
+
+    const generatedDir = 'static/beta/images/generated';
+    await fs.mkdir(generatedDir, { recursive: true });
+
+    // Generate the result image (same logic as resultImage endpoint)
+    const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
+    const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
+
+    const makeElements = (width, height) => {
+      const x = width - 100;
+      const y = Math.floor(2 * height / 3) + 50;
+      return [
+        { text: homeTeam,                              x, y,       size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: 'vs',                                  x, y: y+60,  size: 50,                  fill: 'black', anchor: 'end' },
+        { text: awayTeam,                              x, y: y+140, size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: `${homeScore} - ${awayScore}`,         x, y: y+240, size: 80, weight: 'bold',   fill: 'black', anchor: 'end' },
+        { text: '#stockport #badminton #sdbl #result', x, y: y+320, size: 30,                  fill: 'black', anchor: 'end' },
+        { text: 'https://stockport-badminton.co.uk',   x, y: y+365, size: 30,                  fill: 'black', anchor: 'end' },
+      ];
+    };
+
+    const postBuffer = await sharp(bgPath)
+      .resize(1080, 1350, { fit: 'cover' })
+      .composite([{ input: svgOverlay(1080, 1350, makeElements(1080, 1350)) }])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    // Save both aspect ratios
+    await Promise.all([
+      sharp(postBuffer).toFile(`${fileBase}.jpg`),
+      sharp(bgPath)
+        .resize(1080, 1920, { fit: 'cover' })
+        .composite([{ input: svgOverlay(1080, 1920, makeElements(1080, 1920)) }])
+        .jpeg({ quality: 90 })
+        .toFile(`${fileBase}-Ig.jpg`),
+    ]);
+
+    // Get club social handles for both teams
+    const [homeClub, awayClub] = await Promise.all([
+      Fixture.getClubSocialHandlesByTeamName(homeTeam),
+      Fixture.getClubSocialHandlesByTeamName(awayTeam),
+    ]);
+
+    const clubsWithHandles = [homeClub, awayClub].filter(Boolean);
+    const mentions = formatMentionsForPlatforms(clubsWithHandles);
+
+    res.json({
+      success: true,
+      imageUrl: `${fileBase}.jpg`,
+      imageUrlIg: `${fileBase}-Ig.jpg`,
+      clubMentions: clubsWithHandles,
+      comments: {
+        instagram: mentions.instagram,
+        facebook: mentions.facebook,
+      },
+    });
+  } catch (err) {
+    console.error('resultWebhookWithMentions error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/social/tables-with-mentions - tables endpoint that returns mentions
+exports.tablesSocialWithMentions = async function(req, res, next) {
+  try {
+    const generatedDir = 'static/beta/images/generated';
+    await fs.mkdir(generatedDir, { recursive: true });
+
+    const result = await getAllLeagueTables(req.params.season || new Date().getFullYear().toString());
+    const divIds = [7, 8, 9, 10];
+    const bgPath = 'static/beta/images/bg/social.png';
+
+    const divisionImages = (await Promise.all(
+      divIds.map(async (divId) => {
+        const rows = result.filter(row => row.division == divId);
+        if (!rows.length) return null;
+        const buf = await createDivisionTableImage(bgPath, rows[0]['divisionName'], rows);
+        await sharp(buf).toFile(`static/beta/images/generated/league-table-${rows[0]['divisionName']}.png`);
+        return buf;
+      })
+    )).filter(Boolean);
+
+    if (divisionImages.length) {
+      await sharp({
+        create: { width: 1080, height: 1080 * divisionImages.length, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
+      })
+        .composite(divisionImages.map((buf, i) => ({ input: buf, top: 1080 * i, left: 0 })))
+        .png()
+        .toFile('static/beta/images/generated/league-table-merged.png');
+    }
+
+    // Get all clubs with social handles
+    const allClubs = await Fixture.getAllClubsWithSocialHandles();
+    const mentions = formatMentionsForPlatforms(allClubs);
+
+    res.json({
+      success: true,
+      imageUrl: 'static/beta/images/generated/league-table-merged.png',
+      clubMentions: allClubs,
+      comments: {
+        instagram: mentions.instagram,
+        facebook: mentions.facebook,
+      },
+    });
+  } catch (err) {
+    console.error('tablesSocialWithMentions error:', err);
+    res.status(500).json({ error: err.message });
   }
 };

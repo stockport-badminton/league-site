@@ -671,3 +671,30 @@ exports.updateMesserTable = async function(messerId, scores) {
   const [result] = await (await db.otherConnect()).query(sql, [homeScore, awayScore, winningTeam, messerId])
   return result
 }
+
+// Get social media handles for a club by team name
+exports.getClubSocialHandlesByTeamName = async function(teamName) {
+  const sql = `
+    SELECT c.id, c.name, c.facebook, c.instagram
+    FROM club c
+    INNER JOIN team t ON t.club = c.id
+    WHERE t.name = $1
+    LIMIT 1
+  `
+  const client = await db.otherConnect()
+  const result = await client.query(sql, [teamName])
+  return result.rows[0] || null
+}
+
+// Get all clubs with social media handles
+exports.getAllClubsWithSocialHandles = async function() {
+  const sql = `
+    SELECT id, name, facebook, instagram
+    FROM club
+    WHERE facebook IS NOT NULL OR instagram IS NOT NULL
+    ORDER BY name
+  `
+  const client = await db.otherConnect()
+  const result = await client.query(sql)
+  return result.rows
+}
