@@ -287,6 +287,22 @@ exports.resultWebhookWithMentions = async function(req, res, next) {
   }
 };
 
+// GET /api/social/tables-mentions - lightweight endpoint that returns formatted mentions only
+exports.tablesMentions = async function(req, res, next) {
+  try {
+    const allClubs = await Fixture.getAllClubsWithSocialHandles();
+    const mentions = formatMentionsForPlatforms(allClubs);
+
+    res.json({
+      success: true,
+      comments: mentions,
+    });
+  } catch (err) {
+    console.error('tablesMentions error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // GET /api/social/tables-with-mentions - tables endpoint that returns mentions
 exports.tablesSocialWithMentions = async function(req, res, next) {
   try {
