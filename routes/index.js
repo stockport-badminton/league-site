@@ -21,6 +21,7 @@ var fixtureGen_controller = require('../controllers/fixtureGenerator');
 var contact_controller = require('../controllers/contactusController');
 var static_controller = require('../controllers/staticPagesController');
 var social_controller = require('../controllers/socialController');
+var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
@@ -79,6 +80,9 @@ router.get('/handicap-tournament-social', social_controller.handicapTournamentSo
 
 // Social API endpoints with mentions for Make.com integration
 router.get('/api/social/tables-mentions', social_controller.tablesMentions);
+
+// Social video generation
+router.get('/api/social/generate-weekly-video', social_video_controller.generateWeeklyVideo);
 
 router.get('/logout', function(req, res, next) {
   req.logout(function(err) {
