@@ -293,7 +293,8 @@ exports.tablesSocialWithMentions = async function(req, res, next) {
     const generatedDir = 'static/beta/images/generated';
     await fs.mkdir(generatedDir, { recursive: true });
 
-    const result = await getAllLeagueTables(req.params.season || new Date().getFullYear().toString());
+    // Always use current season for social media
+    const result = await getAllLeagueTables();
     const divIds = [7, 8, 9, 10];
     const bgPath = 'static/beta/images/bg/social.png';
 
