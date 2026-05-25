@@ -19,17 +19,16 @@ function formatInstagramMentions(clubs) {
 
 /**
  * Format Facebook mention text
- * Facebook doesn't support @mentions in comments the same way Instagram does,
- * but we can include page names/links. We'll use page names where available.
+ * Uses the actual Facebook handles/IDs from the database
  * @param {Array} clubs - Array of club objects with { name, facebook }
- * @returns {string} Facebook mention text like "Club Name, Club Name2"
+ * @returns {string} Facebook mention text like "handle1, handle2, 123456789"
  */
 function formatFacebookMentions(clubs) {
   if (!clubs || clubs.length === 0) return '';
 
   return clubs
     .filter(club => club.facebook)
-    .map(club => club.name)
+    .map(club => club.facebook)
     .join(', ');
 }
 
