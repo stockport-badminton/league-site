@@ -685,12 +685,11 @@ exports.getClubSocialHandlesByTeamName = async function(teamName) {
     SELECT c.id, c.name, c.facebook, c.instagram
     FROM club c
     INNER JOIN team t ON t.club = c.id
-    WHERE t.name = $1
+    WHERE t.name = ?
     LIMIT 1
   `
-  const client = await db.otherConnect()
-  const result = await client.query(sql, [teamName])
-  return result.rows[0] || null
+  const [result] = await (await db.otherConnect()).query(sql, [teamName])
+  return result?.[0] || null
 }
 
 // Get all clubs with social media handles
@@ -701,9 +700,8 @@ exports.getAllClubsWithSocialHandles = async function() {
     WHERE facebook IS NOT NULL OR instagram IS NOT NULL
     ORDER BY name
   `
-  const client = await db.otherConnect()
-  const result = await client.query(sql)
-  return result.rows
+  const [result] = await (await db.otherConnect()).query(sql)
+  return result
 }
 
 // Get formatted mentions for a result (given two team names)
