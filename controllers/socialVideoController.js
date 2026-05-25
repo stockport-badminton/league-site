@@ -85,10 +85,13 @@ async function queryFixturesWithResults() {
 
     const [results] = await (await require('../db_connect').otherConnect()).query(`
       SELECT
-        id, date, homeTeam, awayTeam, homeScore, awayScore, division
-      FROM fixture
-      WHERE date >= ? AND date <= ? AND status IN ('complete', 'conceded')
-      ORDER BY date
+        f.id, f.date, ht.name as homeTeam, at.name as awayTeam, f."homeScore", f."awayScore", d.name as division
+      FROM fixture f
+      LEFT JOIN team ht ON f."homeTeam" = ht.id
+      LEFT JOIN team at ON f."awayTeam" = at.id
+      LEFT JOIN division d ON ht."division" = d.id
+      WHERE f.date >= ? AND f.date <= ? AND f.status IN ('complete', 'conceded')
+      ORDER BY f.date
     `, [startDate, endDate]);
     return results || [];
   } catch (err) {
