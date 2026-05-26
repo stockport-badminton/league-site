@@ -212,10 +212,11 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
       console.log(`  Resized image ${i + 1}/${imageFiles.length}`);
     }
 
-    // Step 1b: Duplicate resized frames (no subprocess needed)
-    console.log('Creating slide frames...');
+    // Step 1b: Interleave slide frames and transitions
+    console.log('Creating slide frames and transitions...');
     for (let slideIdx = 0; slideIdx < resizedImages.length; slideIdx++) {
-      console.log(`  Duplicating frames for slide ${slideIdx + 1}/${resizedImages.length} (${framesPerSlide} frames)...`);
+      // Create slide frames
+      console.log(`  Slide ${slideIdx + 1}/${resizedImages.length} (${framesPerSlide} frames)...`);
       const resizedImg = resizedImages[slideIdx];
       const imgBuffer = await fs.readFile(resizedImg);
 
@@ -224,29 +225,28 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
         await fs.writeFile(outputFrame, imgBuffer);
         frameNum++;
       }
-    }
 
-    // Step 1c: Create fade transition frames (one convert call per transition)
-    console.log('Creating transition frames...');
-    for (let slideIdx = 0; slideIdx < resizedImages.length - 1; slideIdx++) {
-      console.log(`  Blending transition ${slideIdx + 1}->${slideIdx + 2} (${transitionFrames} frames)...`);
-      const currentImg = resizedImages[slideIdx];
-      const nextImg = resizedImages[slideIdx + 1];
+      // Create transition frames to next slide (if not last slide)
+      if (slideIdx < resizedImages.length - 1) {
+        console.log(`    Transition ${slideIdx + 1}->${slideIdx + 2} (${transitionFrames} frames)...`);
+        const currentImg = resizedImages[slideIdx];
+        const nextImg = resizedImages[slideIdx + 1];
 
-      for (let t = 1; t <= transitionFrames; t++) {
-        const blendPercent = (t / transitionFrames) * 100;
-        const outputFrame = path.join(tempSeqDir, `frame-${String(frameNum).padStart(6, '0')}.jpg`);
+        for (let t = transitionFrames; t >= 1; t--) {
+          const blendPercent = (t / transitionFrames) * 100;
+          const outputFrame = path.join(tempSeqDir, `frame-${String(frameNum).padStart(6, '0')}.jpg`);
 
-        // Use ImageMagick to blend between current and next image
-        await execFileAsync('convert', [
-          currentImg,
-          nextImg,
-          '-compose', 'blend',
-          '-define', `compose:args=${100 - blendPercent}x${blendPercent}`,
-          '-composite',
-          outputFrame
-        ]);
-        frameNum++;
+          // Use ImageMagick to blend between current and next image
+          await execFileAsync('convert', [
+            currentImg,
+            nextImg,
+            '-compose', 'blend',
+            '-define', `compose:args=${100 - blendPercent}x${blendPercent}`,
+            '-composite',
+            outputFrame
+          ]);
+          frameNum++;
+        }
       }
     }
 
