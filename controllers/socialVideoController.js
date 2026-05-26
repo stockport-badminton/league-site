@@ -31,6 +31,35 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       return res.status(400).json({ error: 'For MVP, only fade transition is supported' });
     }
 
+    // Deduplication: if videos were generated in last 60 seconds, return them
+    // This prevents multiple Cloud Run instances from all regenerating on retries
+    const outputDir = 'static/beta/videos/generated';
+    const video16_9Path = path.join(outputDir, 'weekly-video-16_9.mp4');
+    const video1_1Path = path.join(outputDir, 'weekly-video-1_1.mp4');
+    const dedupeWindow = 60000; // 60 seconds in milliseconds
+
+    try {
+      const stat16_9 = await fs.stat(video16_9Path);
+      const stat1_1 = await fs.stat(video1_1Path);
+      const now = Date.now();
+
+      // If both videos exist and are recent, return them without regenerating
+      if (now - stat16_9.mtimeMs < dedupeWindow && now - stat1_1.mtimeMs < dedupeWindow) {
+        console.log('Videos generated recently, returning cached versions');
+        return res.json({
+          success: true,
+          week: 'Nov 1-8, 2025',
+          cached: true,
+          videos: {
+            '16-9': `static/beta/videos/generated/${path.basename(video16_9Path)}`,
+            '1-1': `static/beta/videos/generated/${path.basename(video1_1Path)}`
+          }
+        });
+      }
+    } catch {
+      // Files don't exist yet, proceed with generation
+    }
+
     // Query fixtures from Nov 1-8, 2025
     const fixtures = await queryFixturesWithResults();
     console.log(`Found ${fixtures.length} fixtures with results`);
@@ -47,8 +76,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       return res.status(500).json({ error: 'Failed to generate any result images' });
     }
 
-    // Create output directory
-    const outputDir = 'static/beta/videos/generated';
+    // Create output directory (already declared in dedup check above)
     await fs.mkdir(outputDir, { recursive: true });
 
     // Generate videos for each aspect ratio
