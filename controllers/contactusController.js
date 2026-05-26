@@ -1,7 +1,6 @@
 var Club = require('../models/club.js');
 var League = require('../models/league.js');
 var Player = require('../models/players.js');
-const sgMail = require('@sendgrid/mail');
 require('dotenv').config()
 var AWS = require('aws-sdk');
 const https = require('node:https');

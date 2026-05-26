@@ -6,8 +6,6 @@ var Game = require('../models/game');
 const axios = require('axios');
 var AWS = require('aws-sdk');
 var Auth = require('../models/auth.js');
-const sgMail = require('@sendgrid/mail');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
 

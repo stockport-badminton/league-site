@@ -68,10 +68,6 @@ router.get('/callback', function(req, res, next) {
   })(req, res, next);
 });
 
-router.post('/sendgrid', function(req, res, next) {
-  res.sendStatus(200);
-});
-
 // Social image generation
 router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division', social_controller.resultImage);
 router.get('/tables-social', social_controller.tablesSocial);

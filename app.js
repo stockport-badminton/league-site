@@ -9,14 +9,11 @@ var Auth0Strategy = require('passport-auth0');
 var bodyParser = require('body-parser');
 var path = require('path');
 const fs = require('fs');
-const sgMail = require('@sendgrid/mail');
 const compression = require('compression');
 
 if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
   throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
 }
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const BLACKLIST = ['136.243.212.110', '165.231.182.103', '65.0.96.6'];
 
