@@ -1,6 +1,6 @@
 FROM node:18-alpine
 
-RUN apk add --no-cache fontconfig ttf-liberation ffmpeg
+RUN apk add --no-cache fontconfig ttf-liberation ffmpeg imagemagick
 
 WORKDIR /app
 
