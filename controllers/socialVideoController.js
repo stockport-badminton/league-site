@@ -35,43 +35,78 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       return res.status(400).json({ error: 'For MVP, only fade transition is supported' });
     }
 
-    // Deduplication: check S3 for recently generated videos (shared across instances)
+    // Deduplication: use S3 lock file + video timestamps to prevent concurrent generation
     const dedupeWindow = 65000; // 65 seconds (slightly longer than generation time)
+    const lockTimeout = 120000; // 120 seconds (timeout for stale locks)
     const s3Keys = {
       '16-9': `${S3_PREFIX}/weekly-video-16_9.mp4`,
-      '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`
+      '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`,
+      'lock': `${S3_PREFIX}/.generating`
     };
 
-    try {
-      // Check if videos exist in S3 and are recent
-      const head16_9 = await s3.send(new HeadObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: s3Keys['16-9']
-      }));
-      const head1_1 = await s3.send(new HeadObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: s3Keys['1-1']
-      }));
+    // Try to acquire lock and check for recent videos (retry once if lock is active)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        // Check if videos exist and are recent
+        const head16_9 = await s3.send(new HeadObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: s3Keys['16-9']
+        }));
+        const head1_1 = await s3.send(new HeadObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: s3Keys['1-1']
+        }));
 
-      const now = Date.now();
-      const age16_9 = now - head16_9.LastModified.getTime();
-      const age1_1 = now - head1_1.LastModified.getTime();
+        const now = Date.now();
+        const age16_9 = now - head16_9.LastModified.getTime();
+        const age1_1 = now - head1_1.LastModified.getTime();
 
-      if (age16_9 < dedupeWindow && age1_1 < dedupeWindow) {
-        console.log(`Videos in S3 are recent (${Math.round(Math.max(age16_9, age1_1) / 1000)}s old), returning S3 URLs`);
-        return res.json({
-          success: true,
-          week: 'Nov 1-8, 2025',
-          cached: true,
-          videos: {
-            '16-9': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`,
-            '1-1': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`
-          }
-        });
+        if (age16_9 < dedupeWindow && age1_1 < dedupeWindow) {
+          console.log(`Videos in S3 are recent (${Math.round(Math.max(age16_9, age1_1) / 1000)}s old), returning cached`);
+          return res.json({
+            success: true,
+            week: 'Nov 1-8, 2025',
+            cached: true,
+            videos: {
+              '16-9': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`,
+              '1-1': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`
+            }
+          });
+        }
+      } catch {
+        // Videos don't exist yet (ok, proceed to check lock)
       }
-    } catch (err) {
-      // Videos don't exist in S3 yet, proceed with generation
-      console.log('Videos not found in S3 or error checking S3, proceeding with generation');
+
+      // Check if another instance is generating
+      try {
+        const lockStat = await s3.send(new HeadObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: s3Keys['lock']
+        }));
+
+        const now = Date.now();
+        const lockAge = now - lockStat.LastModified.getTime();
+
+        if (lockAge < lockTimeout) {
+          // Lock is active - another instance is generating
+          if (attempt === 0) {
+            console.log(`Generation in progress (lock ${Math.round(lockAge / 1000)}s old), waiting 30s...`);
+            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30s and retry
+            continue; // Retry from top (check for videos again)
+          } else {
+            // Second attempt, lock still active - return error
+            return res.status(202).json({
+              success: false,
+              message: 'Video generation in progress, please retry in 30 seconds'
+            });
+          }
+        }
+      } catch {
+        // Lock doesn't exist (ok, we can proceed)
+      }
+
+      // No recent videos, lock not active → we can generate
+      break;
     }
 
     const outputDir = 'static/beta/videos/generated';
