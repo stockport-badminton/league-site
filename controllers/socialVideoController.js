@@ -2,8 +2,12 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
 const path = require('path');
+const { S3Client, HeadObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 const execFileAsync = promisify(execFile);
+
+const s3 = new S3Client({ region: 'eu-west-1' });
+const S3_PREFIX = 'social-videos';
 
 /**
  * Generate weekly video from fixture results
@@ -31,34 +35,46 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       return res.status(400).json({ error: 'For MVP, only fade transition is supported' });
     }
 
-    // Deduplication: if videos were generated in last 60 seconds, return them
-    // This prevents multiple Cloud Run instances from all regenerating on retries
-    const outputDir = 'static/beta/videos/generated';
-    const video16_9Path = path.join(outputDir, 'weekly-video-16_9.mp4');
-    const video1_1Path = path.join(outputDir, 'weekly-video-1_1.mp4');
-    const dedupeWindow = 60000; // 60 seconds in milliseconds
+    // Deduplication: check S3 for recently generated videos (shared across instances)
+    const dedupeWindow = 65000; // 65 seconds (slightly longer than generation time)
+    const s3Keys = {
+      '16-9': `${S3_PREFIX}/weekly-video-16_9.mp4`,
+      '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`
+    };
 
     try {
-      const stat16_9 = await fs.stat(video16_9Path);
-      const stat1_1 = await fs.stat(video1_1Path);
-      const now = Date.now();
+      // Check if videos exist in S3 and are recent
+      const head16_9 = await s3.send(new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Keys['16-9']
+      }));
+      const head1_1 = await s3.send(new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Keys['1-1']
+      }));
 
-      // If both videos exist and are recent, return them without regenerating
-      if (now - stat16_9.mtimeMs < dedupeWindow && now - stat1_1.mtimeMs < dedupeWindow) {
-        console.log('Videos generated recently, returning cached versions');
+      const now = Date.now();
+      const age16_9 = now - head16_9.LastModified.getTime();
+      const age1_1 = now - head1_1.LastModified.getTime();
+
+      if (age16_9 < dedupeWindow && age1_1 < dedupeWindow) {
+        console.log(`Videos in S3 are recent (${Math.round(Math.max(age16_9, age1_1) / 1000)}s old), returning S3 URLs`);
         return res.json({
           success: true,
           week: 'Nov 1-8, 2025',
           cached: true,
           videos: {
-            '16-9': `static/beta/videos/generated/${path.basename(video16_9Path)}`,
-            '1-1': `static/beta/videos/generated/${path.basename(video1_1Path)}`
+            '16-9': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`,
+            '1-1': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`
           }
         });
       }
-    } catch {
-      // Files don't exist yet, proceed with generation
+    } catch (err) {
+      // Videos don't exist in S3 yet, proceed with generation
+      console.log('Videos not found in S3 or error checking S3, proceeding with generation');
     }
+
+    const outputDir = 'static/beta/videos/generated';
 
     // Query fixtures from Nov 1-8, 2025
     const fixtures = await queryFixturesWithResults();
@@ -88,7 +104,9 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       const video16_9 = await createVideoFromImageSequence(
         resultImages, duration, transitionDuration, framerate, '1920:1080', outputDir, '16-9'
       );
-      videos['16-9'] = `static/beta/videos/generated/${path.basename(video16_9)}`;
+      // Upload to S3
+      await uploadVideoToS3(video16_9, s3Keys['16-9']);
+      videos['16-9'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`;
     }
 
     if (['1-1', 'both'].includes(aspect)) {
@@ -96,7 +114,9 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       const video1_1 = await createVideoFromImageSequence(
         resultImages, duration, transitionDuration, framerate, '1080:1080', outputDir, '1-1'
       );
-      videos['1-1'] = `static/beta/videos/generated/${path.basename(video1_1)}`;
+      // Upload to S3
+      await uploadVideoToS3(video1_1, s3Keys['1-1']);
+      videos['1-1'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`;
     }
 
     res.json({
@@ -318,4 +338,23 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
  */
 function calculateTotalDuration(numSlides, slideDuration, transitionDuration) {
   return numSlides * slideDuration + (numSlides - 1) * transitionDuration;
+}
+
+/**
+ * Upload video to S3
+ */
+async function uploadVideoToS3(localFilePath, s3Key) {
+  try {
+    const fileContent = await fs.readFile(localFilePath);
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileContent,
+      ContentType: 'video/mp4'
+    }));
+    console.log(`Uploaded ${s3Key} to S3`);
+  } catch (err) {
+    console.error(`Error uploading ${s3Key} to S3:`, err);
+    throw err;
+  }
 }
