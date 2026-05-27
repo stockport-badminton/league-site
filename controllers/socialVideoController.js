@@ -122,17 +122,29 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       break;
     }
 
-    // Create lock file before starting generation
+    // Create lock file atomically before starting generation
+    // IfNoneMatch: '*' ensures only we create it if it doesn't exist (prevents race condition)
     console.log(`[DEDUP] Creating lock file to signal other instances...`);
     try {
       await s3.send(new PutObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: s3Keys['lock'],
         Body: Buffer.from(''),
-        ContentType: 'text/plain'
+        ContentType: 'text/plain',
+        IfNoneMatch: '*'  // Only create if lock doesn't exist
       }));
-      console.log(`[DEDUP] Lock file created successfully`);
+      console.log(`[DEDUP] Lock file created successfully (atomic)`);
     } catch (err) {
+      // If PreconditionFailed, another instance created the lock - check for new videos
+      if (err.Code === 'PreconditionFailed' || err.name === 'PreconditionFailed') {
+        console.log(`[DEDUP] Lock file already created by another instance, checking for new videos...`);
+        // Re-check from the top (another instance might have finished by now)
+        return res.status(202).json({
+          success: false,
+          message: 'Video generation in progress by another instance, please retry in 30 seconds'
+        });
+      }
+      // Other errors are real failures
       console.error(`[DEDUP] Failed to create lock file: ${err.message}`);
       return res.status(500).json({ error: `Failed to create lock file: ${err.message}` });
     }
