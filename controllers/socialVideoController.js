@@ -2,7 +2,7 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
 const path = require('path');
-const { S3Client, HeadObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const execFileAsync = promisify(execFile);
 
@@ -45,9 +45,12 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     };
 
     // Try to acquire lock and check for recent videos (retry once if lock is active)
+    console.log(`[DEDUP] Attempt 0: checking for recent videos and lock...`);
     for (let attempt = 0; attempt < 2; attempt++) {
+      console.log(`[DEDUP] Attempt ${attempt}: starting dedup check`);
       try {
         // Check if videos exist and are recent
+        console.log(`[DEDUP] Checking if videos exist in S3...`);
         const head16_9 = await s3.send(new HeadObjectCommand({
           Bucket: process.env.S3_BUCKET_NAME,
           Key: s3Keys['16-9']
@@ -61,8 +64,10 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         const age16_9 = now - head16_9.LastModified.getTime();
         const age1_1 = now - head1_1.LastModified.getTime();
 
+        console.log(`[DEDUP] Videos exist: 16-9 age=${Math.round(age16_9 / 1000)}s, 1-1 age=${Math.round(age1_1 / 1000)}s (dedupeWindow=${dedupeWindow / 1000}s)`);
+
         if (age16_9 < dedupeWindow && age1_1 < dedupeWindow) {
-          console.log(`Videos in S3 are recent (${Math.round(Math.max(age16_9, age1_1) / 1000)}s old), returning cached`);
+          console.log(`[DEDUP] Videos are recent! Returning cached URLs.`);
           return res.json({
             success: true,
             week: 'Nov 1-8, 2025',
@@ -73,12 +78,14 @@ exports.generateWeeklyVideo = async function(req, res, next) {
             }
           });
         }
-      } catch {
-        // Videos don't exist yet (ok, proceed to check lock)
+        console.log(`[DEDUP] Videos exist but are stale (older than ${dedupeWindow / 1000}s), proceeding to check lock...`);
+      } catch (err) {
+        console.log(`[DEDUP] Videos don't exist yet (${err.Code || err.message}), proceeding to check lock...`);
       }
 
       // Check if another instance is generating
       try {
+        console.log(`[DEDUP] Checking if lock file exists...`);
         const lockStat = await s3.send(new HeadObjectCommand({
           Bucket: process.env.S3_BUCKET_NAME,
           Key: s3Keys['lock']
@@ -87,26 +94,47 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         const now = Date.now();
         const lockAge = now - lockStat.LastModified.getTime();
 
+        console.log(`[DEDUP] Lock file exists! Age=${Math.round(lockAge / 1000)}s (lockTimeout=${lockTimeout / 1000}s)`);
+
         if (lockAge < lockTimeout) {
           // Lock is active - another instance is generating
           if (attempt === 0) {
-            console.log(`Generation in progress (lock ${Math.round(lockAge / 1000)}s old), waiting 30s...`);
+            console.log(`[DEDUP] Lock is active, waiting 30s before retry...`);
             await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30s and retry
             continue; // Retry from top (check for videos again)
           } else {
             // Second attempt, lock still active - return error
+            console.log(`[DEDUP] Second attempt and lock still active, returning 202 Accepted`);
             return res.status(202).json({
               success: false,
               message: 'Video generation in progress, please retry in 30 seconds'
             });
           }
+        } else {
+          console.log(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), proceeding with generation`);
         }
-      } catch {
-        // Lock doesn't exist (ok, we can proceed)
+      } catch (err) {
+        console.log(`[DEDUP] No lock file found (${err.Code || err.message}), safe to proceed with generation`);
       }
 
       // No recent videos, lock not active → we can generate
+      console.log(`[DEDUP] Proceeding with generation (breaking loop)`);
       break;
+    }
+
+    // Create lock file before starting generation
+    console.log(`[DEDUP] Creating lock file to signal other instances...`);
+    try {
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Keys['lock'],
+        Body: Buffer.from(''),
+        ContentType: 'text/plain'
+      }));
+      console.log(`[DEDUP] Lock file created successfully`);
+    } catch (err) {
+      console.error(`[DEDUP] Failed to create lock file: ${err.message}`);
+      return res.status(500).json({ error: `Failed to create lock file: ${err.message}` });
     }
 
     const outputDir = 'static/beta/videos/generated';
@@ -154,6 +182,19 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       videos['1-1'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`;
     }
 
+    // Delete lock file to signal other instances
+    console.log(`[DEDUP] Videos uploaded, deleting lock file...`);
+    try {
+      await s3.send(new DeleteObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Keys['lock']
+      }));
+      console.log(`[DEDUP] Lock file deleted successfully`);
+    } catch (err) {
+      console.warn(`[DEDUP] Warning: failed to delete lock file: ${err.message}`);
+      // Don't fail the response if cleanup fails
+    }
+
     res.json({
       success: true,
       week: 'Nov 1-8, 2025',
@@ -165,6 +206,18 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     });
   } catch (err) {
     console.error('generateWeeklyVideo error:', err);
+
+    // Try to clean up lock file on error too
+    try {
+      await s3.send(new DeleteObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: `${S3_PREFIX}/.generating`
+      }));
+      console.log(`[DEDUP] Lock file cleaned up after error`);
+    } catch (cleanupErr) {
+      console.warn(`[DEDUP] Could not clean lock file after error: ${cleanupErr.message}`);
+    }
+
     res.status(500).json({ error: err.message });
   }
 };
