@@ -27,6 +27,13 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     const transitionDuration = 0.5; // Fade transition duration in seconds
     const framerate = 25;
 
+    // Calculate date range: last 7 days from today
+    const today = new Date();
+    const endDate = new Date(today);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 7);
+    const weekLabel = `${startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
     // Validate inputs
     if (!['16-9', '1-1', 'both'].includes(aspect)) {
       return res.status(400).json({ error: 'aspect must be 16-9, 1-1, or both' });
@@ -70,7 +77,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
           console.log(`[DEDUP] Videos are recent! Returning cached URLs.`);
           return res.json({
             success: true,
-            week: 'Nov 1-8, 2025',
+            week: weekLabel,
             cached: true,
             videos: {
               '16-9': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`,
@@ -151,12 +158,12 @@ exports.generateWeeklyVideo = async function(req, res, next) {
 
     const outputDir = 'static/beta/videos/generated';
 
-    // Query fixtures from Nov 1-8, 2025
-    const fixtures = await queryFixturesWithResults();
-    console.log(`Found ${fixtures.length} fixtures with results`);
+    // Query fixtures from last 7 days
+    const fixtures = await queryFixturesWithResults(startDate, endDate);
+    console.log(`Found ${fixtures.length} fixtures with results for week: ${weekLabel}`);
 
     if (fixtures.length === 0) {
-      return res.status(404).json({ error: 'No fixtures with results found for Nov 1-8, 2025' });
+      return res.status(404).json({ error: `No fixtures with results found for ${weekLabel}` });
     }
 
     // Generate result images for each fixture
@@ -209,7 +216,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
 
     res.json({
       success: true,
-      week: 'Nov 1-8, 2025',
+      week: weekLabel,
       fixturesCount: fixtures.length,
       slidesCount: resultImages.length,
       totalDuration: totalDuration.toFixed(1) + ' seconds',
@@ -235,13 +242,10 @@ exports.generateWeeklyVideo = async function(req, res, next) {
 };
 
 /**
- * Query fixtures from database with results (Nov 1-8, 2025)
+ * Query fixtures from database with results for a date range
  */
-async function queryFixturesWithResults() {
+async function queryFixturesWithResults(startDate, endDate) {
   try {
-    const startDate = new Date('2025-11-01');
-    const endDate = new Date('2025-11-08');
-
     const [results] = await (await require('../db_connect').otherConnect()).query(`
       SELECT
         f.id, f.date, ht.name as "homeTeam", at.name as "awayTeam", f."homeScore", f."awayScore", d.name as "division"
