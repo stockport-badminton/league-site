@@ -467,9 +467,7 @@ exports.fixture_get_summary = async function(req, res, next) {
     ]);
     let assets = [];
     try {
-      const response = await axios.get('https://api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true', {
-        headers: { 'Authorization': 'Basic ' + process.env.CLOUDINARY_AUTH }
-      });
+      const response = await axios.get('https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true');
       assets = response.data.resources;
     } catch (cloudinaryErr) {
       console.error('Cloudinary fetch failed:', cloudinaryErr.message);

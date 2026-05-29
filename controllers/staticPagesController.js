@@ -30,8 +30,7 @@ exports.messer_rules = function(req, res) {
 exports.get_gallery = async function(req, res, next) {
   try {
     const response = await axios.get(
-      'https://api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=100&context=true&fields=tags,context,url',
-      { headers: { Authorization: 'Basic ' + process.env.CLOUDINARY_AUTH } }
+      'https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=100&context=true&fields=tags,context,url'
     )
     const assets = response.data
     const justwebsite = assets.resources.filter(asset => asset.tags.some(tag => tag == 'website'))
