@@ -263,7 +263,9 @@ exports.manage_player_list_clubs_teams = async function(req, res, next) {
       });
 
       docx.Packer.toBuffer(doc).then((buffer) => {
-        fs.writeFileSync('static/beta/docs/' + teamNames[0].substring(0, teamNames[0].length - 2) + '.docx', buffer);
+        const docDir = 'static/beta/docs/generated';
+        fs.mkdirSync(docDir, { recursive: true });
+        fs.writeFileSync(docDir + '/' + teamNames[0].substring(0, teamNames[0].length - 2) + '.docx', buffer);
       });
 
       const clubsRes = await Club.getAll();

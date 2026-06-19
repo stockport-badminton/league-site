@@ -15,7 +15,7 @@
     <% } %>
     <% } %>
     
-    <a href="/static/beta/docs/<%= result.teams[0].name.substring(0,result.teams[0].name.length - 2) %>.docx">Download</a>
+    <a href="/static/beta/docs/generated/<%= result.teams[0].name.substring(0,result.teams[0].name.length - 2) %>.docx">Download</a>
     <div class="container row">
     <% result.teams.forEach(function(team){ %>
         <div class="team-container border border-secondary rounded col p-3">
