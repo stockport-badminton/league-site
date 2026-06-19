@@ -23,6 +23,7 @@ var static_controller = require('../controllers/staticPagesController');
 var social_controller = require('../controllers/socialController');
 var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
+var tameside_fixture_controller = require('../_tameside/controllers/fixtureGen');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -376,6 +377,9 @@ router.get('/club/:id', secured, club_controller.club_detail);
 router.get('/club-api/:id', secured, club_controller.club_detail_api);
 router.get('/admin/info/clubs', secured, club_controller.club_list_detail);
 router.get('/short-results', secured, fixture_controller.fixture_outstanding);
+
+// Tameside fixture generator (local use only, not committed to prod)
+router.get('/tameside-fixtures', secured, tameside_fixture_controller.renderFixtures);
 
 // Error handlers
 router.use(function(req, res) {
