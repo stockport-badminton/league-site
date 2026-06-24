@@ -23,6 +23,7 @@ var static_controller = require('../controllers/staticPagesController');
 var social_controller = require('../controllers/socialController');
 var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
+var shuttle_controller = require('../controllers/shuttleController');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -376,6 +377,11 @@ router.get('/club/:id', secured, club_controller.club_detail);
 router.get('/club-api/:id', secured, club_controller.club_detail_api);
 router.get('/admin/info/clubs', secured, club_controller.club_list_detail);
 router.get('/short-results', secured, fixture_controller.fixture_outstanding);
+
+// Shuttle price comparison (superadmin only — role check in controller)
+router.get('/shuttle-prices', secured, shuttle_controller.shuttlePrices);
+router.get('/shuttle-prices/export', secured, shuttle_controller.exportPrices);
+router.post('/shuttle-prices/refresh', secured, shuttle_controller.refreshPrices);
 
 // Error handlers
 router.use(function(req, res) {

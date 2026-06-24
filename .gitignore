@@ -11,6 +11,7 @@ client_id.json
 static/beta/images/generated/
 static/beta/videos/generated/
 static/beta/docs/generated/
+static/generated/
 output/
 scorecard-analysis/
 

@@ -1,0 +1,284 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<style>
+  .source-badge-cs  { background:#1a8a4a; color:#fff; }
+  .source-badge-db  { background:#1a5fa8; color:#fff; }
+  .tier-table td    { padding:2px 8px; white-space:nowrap; font-size:0.82rem; }
+  .tier-table .best { font-weight:700; color:#1a8a4a; }
+  .price-cell       { font-size:1.05rem; font-weight:600; }
+  #shuttle-table th { cursor:pointer; user-select:none; white-space:nowrap; }
+  #shuttle-table th:hover { background:#e9ecef; }
+  .sort-arrow       { font-size:0.7rem; margin-left:3px; opacity:0.5; }
+  .sort-active .sort-arrow { opacity:1; }
+  .filter-row select, .filter-row input { font-size:0.9rem; }
+  .no-data-prompt   { border:2px dashed #dee2e6; border-radius:8px; padding:3rem; text-align:center; }
+</style>
+
+<div class="container-fluid mt-4">
+  <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0 mr-3">Feather Shuttle Prices</h2>
+    <form method="POST" action="/shuttle-prices/refresh" class="mb-0 mr-2">
+      <button type="submit" class="btn btn-sm btn-primary" id="refreshBtn">
+        <i class="fas fa-sync-alt mr-1"></i>Refresh prices
+      </button>
+    </form>
+    <% if (data) { %>
+      <a href="/shuttle-prices/export" class="btn btn-sm btn-success mr-2">
+        <i class="fas fa-file-excel mr-1"></i>Export xlsx
+      </a>
+    <% } %>
+    <% if (data) { %>
+      <small class="text-muted">
+        Last scraped: <%= new Date(data.scraped_at).toLocaleString('en-GB', {dateStyle:'medium', timeStyle:'short'}) %>
+        &mdash; <%= data.products.length %> products
+      </small>
+    <% } %>
+  </div>
+
+  <% if (!data) { %>
+    <div class="no-data-prompt">
+      <i class="fas fa-shuttle-space fa-2x text-muted mb-3 d-block"></i>
+      <h5>No price data yet</h5>
+      <p class="text-muted mb-3">Click <strong>Refresh prices</strong> to scrape both sites.<br>
+      This takes about 20–30 seconds.</p>
+    </div>
+  <% } else { %>
+
+    <%
+      // Precompute key-quantity prices for each product
+      const KEY_QTYS = [1, 5, 14, 25, 50];
+
+      function priceAtQty(product, qty) {
+        if (!product.price_tiers || product.price_tiers.length === 0) return null;
+        // Pick the tier with the highest min_qty that is still <= qty (handles overlapping "50+" tiers)
+        let best = null;
+        for (const t of product.price_tiers) {
+          if (t.min_qty <= qty) {
+            if (!best || t.min_qty > best.min_qty) best = t;
+          }
+        }
+        return best ? best.price_per_tube : product.single_tube_price;
+      }
+
+      function fmt(n) {
+        if (n === null || n === undefined) return '—';
+        return '£' + n.toFixed(2);
+      }
+
+      // Collect all brands for filter
+      const brands = [...new Set(data.products.map(p => p.brand))].sort();
+    %>
+
+    <!-- Filters -->
+    <div class="filter-row d-flex flex-wrap mb-3" style="gap:0.5rem">
+      <select id="filterBrand" class="form-control form-control-sm" style="width:auto">
+        <option value="">All brands</option>
+        <% for (const b of brands) { %>
+          <option value="<%= b %>"><%= b %></option>
+        <% } %>
+      </select>
+      <select id="filterSource" class="form-control form-control-sm" style="width:auto">
+        <option value="">Both sites</option>
+        <option value="centralsports">Central Sports</option>
+        <option value="directbadminton">Direct Badminton</option>
+      </select>
+      <input type="text" id="filterName" class="form-control form-control-sm" placeholder="Search name…" style="width:200px">
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-hover table-bordered" id="shuttle-table">
+        <thead class="thead-light">
+          <tr>
+            <th data-col="name">Product <span class="sort-arrow">▲</span></th>
+            <th data-col="brand">Brand <span class="sort-arrow">▲</span></th>
+            <th data-col="source">Source <span class="sort-arrow">▲</span></th>
+            <th data-col="p1" class="text-right">1 tube <span class="sort-arrow">▲</span></th>
+            <th data-col="p5" class="text-right">5 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p14" class="text-right">14 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p25" class="text-right">25 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p50" class="text-right">50+ tubes <span class="sort-arrow">▲</span></th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="shuttle-tbody">
+          <% for (const p of data.products) { %>
+            <%
+              const p1  = priceAtQty(p, 1);
+              const p5  = priceAtQty(p, 5);
+              const p14 = priceAtQty(p, 14);
+              const p25 = priceAtQty(p, 25);
+              const p50 = priceAtQty(p, 50);
+            %>
+            <tr
+              data-name="<%= p.name.toLowerCase() %>"
+              data-brand="<%= p.brand %>"
+              data-source="<%= p.source %>"
+              data-p1="<%= p1 || 9999 %>"
+            >
+              <td>
+                <% if (p.source === 'centralsports') { %>
+                  <span class="badge source-badge-cs mr-1">CS</span>
+                <% } else { %>
+                  <span class="badge source-badge-db mr-1">DB</span>
+                <% } %>
+                <%= p.name %>
+                <% if (p.out_of_stock) { %>
+                  <span class="badge badge-secondary ml-1" style="font-size:0.65rem">out of stock</span>
+                <% } %>
+                <% if (p.speed_variants && p.speed_variants.length > 1) { %>
+                  <small class="text-muted d-block">
+                    Speeds: <%= p.speed_variants.map(v => v.label + (v.available ? '' : ' ✗')).join(', ') %>
+                  </small>
+                <% } %>
+              </td>
+              <td><%= p.brand %></td>
+              <td style="white-space:nowrap">
+                <% if (p.source === 'centralsports') { %>
+                  <span class="text-success">Central Sports</span>
+                <% } else { %>
+                  <span class="text-primary">Direct Badminton</span>
+                <% } %>
+              </td>
+              <td class="text-right price-cell"><%= fmt(p1) %></td>
+              <td class="text-right price-cell">
+                <% if (p.has_volume_pricing) { %>
+                  <%= fmt(p5) %>
+                  <% if (p5 && p1 && p5 < p1) { %>
+                    <small class="text-success">(-<%= ((1 - p5/p1)*100).toFixed(0) %>%)</small>
+                  <% } %>
+                <% } else { %>
+                  <span class="text-muted"><%= fmt(p1) %></span>
+                <% } %>
+              </td>
+              <td class="text-right price-cell">
+                <% if (p.has_volume_pricing) { %>
+                  <%= fmt(p14) %>
+                  <% if (p14 && p1 && p14 < p1) { %>
+                    <small class="text-success">(-<%= ((1 - p14/p1)*100).toFixed(0) %>%)</small>
+                  <% } %>
+                <% } else { %>
+                  <span class="text-muted"><%= fmt(p1) %></span>
+                <% } %>
+              </td>
+              <td class="text-right price-cell">
+                <% if (p.has_volume_pricing) { %>
+                  <%= fmt(p25) %>
+                  <% if (p25 && p1 && p25 < p1) { %>
+                    <small class="text-success">(-<%= ((1 - p25/p1)*100).toFixed(0) %>%)</small>
+                  <% } %>
+                <% } else { %>
+                  <span class="text-muted"><%= fmt(p1) %></span>
+                <% } %>
+              </td>
+              <td class="text-right price-cell">
+                <% if (p.has_volume_pricing) { %>
+                  <%= fmt(p50) %>
+                  <% if (p50 && p1 && p50 < p1) { %>
+                    <small class="text-success">(-<%= ((1 - p50/p1)*100).toFixed(0) %>%)</small>
+                  <% } %>
+                <% } else { %>
+                  <% if (p.bulk_note) { %>
+                    <small class="text-muted">contact for bulk</small>
+                  <% } else { %>
+                    <span class="text-muted"><%= fmt(p1) %></span>
+                  <% } %>
+                <% } %>
+              </td>
+              <td>
+                <a href="<%= p.url %>" target="_blank" rel="noopener" class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem;padding:2px 6px">
+                  View <i class="fas fa-external-link-alt ml-1" style="font-size:0.65rem"></i>
+                </a>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-2 mb-4">
+      <small class="text-muted">
+        <span class="badge source-badge-cs">CS</span> Central Sports — volume tiers from site where available.
+        &nbsp;
+        <span class="badge source-badge-db">DB</span> Direct Badminton — volume tiers shown.
+        Discount % shown relative to single-tube price.
+        DB catalog shows featured products per brand only (JS-rendered full catalog not scrapeable).
+      </small>
+    </div>
+
+  <% } %>
+</div>
+
+<script>
+(function() {
+  const filterBrand  = document.getElementById('filterBrand');
+  const filterSource = document.getElementById('filterSource');
+  const filterName   = document.getElementById('filterName');
+  const tbody        = document.getElementById('shuttle-tbody');
+
+  function applyFilters() {
+    if (!tbody) return;
+    const brand  = filterBrand  ? filterBrand.value  : '';
+    const source = filterSource ? filterSource.value : '';
+    const name   = filterName   ? filterName.value.toLowerCase() : '';
+    Array.from(tbody.rows).forEach(row => {
+      const show =
+        (!brand  || row.dataset.brand  === brand)  &&
+        (!source || row.dataset.source === source) &&
+        (!name   || row.dataset.name.includes(name));
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  if (filterBrand)  filterBrand.addEventListener('change', applyFilters);
+  if (filterSource) filterSource.addEventListener('change', applyFilters);
+  if (filterName)   filterName.addEventListener('input', applyFilters);
+
+  // Column sort
+  let sortCol = null, sortAsc = true;
+  const table = document.getElementById('shuttle-table');
+  if (table) {
+    table.querySelectorAll('th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+
+        table.querySelectorAll('th[data-col]').forEach(t => {
+          t.classList.remove('sort-active');
+          const arrow = t.querySelector('.sort-arrow');
+          if (arrow) arrow.textContent = '▲';
+        });
+        th.classList.add('sort-active');
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
+
+        const rows = Array.from(tbody.rows);
+        rows.sort((a, b) => {
+          let va = a.dataset[col] || a.cells[colIndex(col)].textContent.trim();
+          let vb = b.dataset[col] || b.cells[colIndex(col)].textContent.trim();
+          const na = parseFloat(va), nb = parseFloat(vb);
+          if (!isNaN(na) && !isNaN(nb)) return sortAsc ? na - nb : nb - na;
+          return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  }
+
+  function colIndex(col) {
+    const map = { name:0, brand:1, source:2, p1:3, p5:4, p14:5, p25:6, p50:7 };
+    return map[col] ?? 0;
+  }
+
+  // Spinner on refresh
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.closest('form').addEventListener('submit', () => {
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Scraping…';
+      refreshBtn.disabled = true;
+    });
+  }
+})();
+</script>
+
+<%- include('footer.ejs') %>
