@@ -2,12 +2,23 @@
 <%- include('nav.ejs') %>
 
 
+<div class="col-12">
+
   <% if (typeof errors !== 'undefined') { %>
     <p>Something seems to have gone wrong</p>
     <p><%= error %></p>
   <% }
   else { %>
     <h1><%= fullName %></h1>
+
+    <% if (result && result.length > 0) { %>
+    <div class="card mb-4">
+      <div class="card-body p-2" style="position:relative;height:400px;">
+        <canvas id="elo-chart"></canvas>
+      </div>
+    </div>
+    <% } %>
+
     <div class="table-responsive">
     <table class="table" id="results-table">
       <thead>
@@ -66,11 +77,105 @@
   </div>
    <% } %>
 
-
-
+</div><!-- /col-12 -->
 
 <%- include('footer.ejs') %>
-<%- include('datatables.ejs') %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<% if (result && result.length > 0) { %>
+<script>
+  (function() {
+    var allPoints = <%- JSON.stringify(
+      result.slice().reverse()
+        .filter(function(r){ return r.after && r.after > 0 })
+        .map(function(r){
+          return {
+            x: new Date(r.date).toISOString().slice(0,10),
+            y: r.after,
+            tip: (r.partnerName || '') + ' vs ' + (r.oppName1 || '') + ' / ' + (r.oppName2 || '') +
+                 '  (' + r.score + '–' + r.vsScore + ')  ' +
+                 (r.adjustment > 0 ? '+' : '') + r.adjustment
+          }
+        })
+    ) %>;
+
+    // One point per fixture date: keep the last game played that night so the
+    // chart shows a clean "end-of-fixture rating" trend rather than per-game zigzags.
+    var byDate = {};
+    allPoints.forEach(function(pt) { byDate[pt.x] = pt; });
+    var raw = Object.keys(byDate).sort().map(function(k) { return byDate[k]; });
+
+    new Chart(document.getElementById('elo-chart'), {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: '<%- fullName %> ELO',
+          data: raw,
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0,123,255,0.08)',
+          fill: true,
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
+            title: { display: false }
+          },
+          y: {
+            title: { display: true, text: 'ELO Rating' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return 'Rating: ' + ctx.raw.y + '  |  ' + ctx.raw.tip;
+              }
+            }
+          }
+        }
+      }
+    });
+  })();
+</script>
+<% } %>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jq-3.3.1/dt-1.10.20/b-1.6.1/b-html5-1.6.1/b-colvis-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/date-euro.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.12.0/api/page.jumpToData().js"></script>
+
+<script type="text/javascript">
+  $(document).ready( function () {
+      var table = $('#results-table').DataTable( {
+        dom: 'Blfrtip',
+        buttons: [{ extend: 'csv', text: 'Download CSV' }],
+        "columnDefs": [
+          { "type": "date-euro", "targets": 0 }
+        ],
+        pageLength: 20
+      });
+      var data = table.data().toArray();
+
+      <%
+      if (typeof nearestDate === 'undefined'){
+        nearestDate = new Date()
+      }
+      %>
+      var today = new Date("<%= nearestDate %>")
+
+      currentDateString = ('0' + today.getDate()).slice(-2) + '/'
+             + ('0' + (today.getMonth()+1)).slice(-2) + '/'
+             + today.getFullYear();
+      table.page.jumpToData(currentDateString, 0);
+  } );
+</script>
 
 </body>
 </html>

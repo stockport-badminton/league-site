@@ -368,6 +368,16 @@ router.get('/manage-players/club-:club?', secured, player_controller.manage_play
 router.get('/manage-players/:season?/club-:club?', secured, player_controller.manage_player_list_clubs_teams);
 router.get('/player/create', secured, player_controller.player_create_get);
 router.get('/players/eloPop', player_controller.player_elo_populate);
+router.get('/dev/player-stats-debug', player_controller.player_stats_debug);
+router.get('/dev/elo-audit', player_controller.player_elo_audit);
+router.get('/dev/elo-raw/:playerId', player_controller.player_elo_raw);
+router.get('/players/eloFullRecalc', secured, player_controller.player_elo_full_recalc);
+router.get('/players/eloBackfillAll', secured, player_controller.player_elo_backfill_all);
+router.get('/players/eloBackfillAdmin', secured, player_controller.player_elo_backfill_admin);
+router.get('/api/player-elo', player_controller.player_elo_history_api);
+router.get('/api/players/search', player_controller.player_search_api);
+router.get('/api/seasons', player_controller.get_seasons_api);
+router.get('/elo-chart', secured, player_controller.player_elo_chart);
 router.get('/player-stats/*', secured, player_controller.all_player_stats);
 router.get('/player-stats', secured, player_controller.all_player_stats);
 router.get('/pair-stats/*', secured, player_controller.all_pair_stats);

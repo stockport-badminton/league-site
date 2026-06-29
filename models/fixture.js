@@ -328,6 +328,13 @@ exports.getFixtureDetails = async function(searchObj) {
   return result
 }
 
+exports.getAllSeasons = async function() {
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT name, "startDate", "endDate" FROM season ORDER BY "startDate" ASC`
+  )
+  return rows
+}
+
 exports.getFixtureDetailsById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT a.fixtureId, a.date, a."homeTeam", team.name AS "awayTeam", a.status, a."homeScore", a."awayScore" FROM (SELECT team.name AS "homeTeam", fixture.id AS fixtureId, fixture.date AS date, fixture."awayTeam", fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN team ON team.id = fixture."homeTeam") AS a JOIN team ON team.id = a."awayTeam" AND fixtureId = ?',

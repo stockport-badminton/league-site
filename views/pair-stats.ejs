@@ -95,7 +95,7 @@
 
 
 <%- include('footer.ejs') %>
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jq-3.3.1/dt-1.10.20/b-1.6.1/b-colvis-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jq-3.3.1/dt-1.10.20/b-1.6.1/b-html5-1.6.1/b-colvis-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
 <script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/date-euro.js"></script>
 
 <script type="text/javascript">
@@ -104,7 +104,7 @@
     $('#results-table thead tr:eq(1) th').each( function (i) {
         var title = $(this).text();
         $(this).html( '<input type="text" placeholder="Search '+title+'" />' );
- 
+
         $( 'input', this ).on( 'keyup change', function () {
             if ( table.column(i).search() !== this.value ) {
                 table
@@ -114,10 +114,12 @@
             }
         } );
     } );
- 
+
     var table = $('#results-table').DataTable( {
         orderCellsTop: true,
-        fixedHeader: true
+        fixedHeader: true,
+        dom: 'Blfrtip',
+        buttons: [{ extend: 'csv', text: 'Download CSV' }]
     } );
   } );
   <% if (typeof filter !== 'undefined' && filter == true){ %>

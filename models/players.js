@@ -349,16 +349,16 @@ allGames AS (
 SELECT
 allGames.id,
 date,
-teamName,
-team.rank - teamRank AS teamAdjustment,
-CONCAT(player.first_name,' ',player.family_name) AS playerName,
-CONCAT(partner.first_name,' ',partner.family_name) AS partnerName,
-CONCAT(oppo1.first_name,' ',oppo1.family_name) AS oppName1,
-CONCAT(oppo2.first_name,' ',oppo2.family_name) AS oppName2,
+teamname AS "teamName",
+team.rank - teamrank AS "teamAdjustment",
+CONCAT(player.first_name,' ',player.family_name) AS "playerName",
+CONCAT(partner.first_name,' ',partner.family_name) AS "partnerName",
+CONCAT(oppo1.first_name,' ',oppo1.family_name) AS "oppName1",
+CONCAT(oppo2.first_name,' ',oppo2.family_name) AS "oppName2",
 score,
-vsScore,
+vsscore AS "vsScore",
 "gameType",
-beforeVal,
+beforeval AS "beforeVal",
 after,
 adjustment
 FROM allGames JOIN
@@ -469,11 +469,9 @@ exports.newGetPlayerStats = async function(searchObj) {
       gameTypeGender.fixture,
       gameTypeGender."homeTeam" AS team,
       gameTypeGender."awayTeam" AS opposition,
-      gameTypeGender."gameType",
-      team.division
+      gameTypeGender."gameType"
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
     UNION ALL
     SELECT
       gameTypeGender.id,
@@ -491,11 +489,9 @@ exports.newGetPlayerStats = async function(searchObj) {
       gameTypeGender.fixture,
       gameTypeGender."homeTeam" AS team,
       gameTypeGender."awayTeam" AS opposition,
-      gameTypeGender."gameType",
-      team.division
+      gameTypeGender."gameType"
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
     UNION ALL
     SELECT
       gameTypeGender.id,
@@ -513,11 +509,9 @@ exports.newGetPlayerStats = async function(searchObj) {
       gameTypeGender.fixture,
       gameTypeGender."awayTeam" AS team,
       gameTypeGender."homeTeam" AS opposition,
-      gameTypeGender."gameType",
-      team.division
+      gameTypeGender."gameType"
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
     UNION ALL
     SELECT
       gameTypeGender.id,
@@ -535,33 +529,31 @@ exports.newGetPlayerStats = async function(searchObj) {
       gameTypeGender.fixture,
       gameTypeGender."awayTeam" AS team,
       gameTypeGender."homeTeam" AS opposition,
-      gameTypeGender."gameType",
-      team.division
+      gameTypeGender."gameType"
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
   )
 SELECT
   CONCAT(player.first_name,' ',player.family_name) AS playername,
   "playerId",
   player.gender AS playergender,
   STRING_AGG("gameType", ','),
-  gameSummary.division,
+  gameSummary.team AS "teamId",
   SUM(forPoints) AS "forPoints",
   SUM(againstPoints) AS "againstPoints",
   SUM(gamesWon) AS "gamesWon",
   SUM(gamesPlayed) AS "gamesPlayed",
   (SUM(gamesPlayed) + SUM(gamesWon)) - (SUM(gamesPlayed) - SUM(gamesWon)) AS "Points",
   club.name AS "clubName",
-  team.name AS "teamName"
+  gameTeam.name AS "teamName"
   ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
 FROM
   gameSummary
   JOIN player${ season } player ON "playerId" = player.id
   AND player.gender LIKE ?
   ${typeof searchObj.junior !== 'undefined' ? 'AND player.junior = 1' : ''}
-  JOIN team${ season } team ON team.id = player.team
-  AND team.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND team.division = ?' : ''}
+  JOIN team${ season } gameTeam ON gameTeam.id = gameSummary.team
+  AND gameTeam.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND gameTeam.division = ?' : ''}
   JOIN club${ season } club ON club.id = player.club
   AND club.name LIKE ?
 WHERE
@@ -571,7 +563,7 @@ GROUP BY
   "playerId",
   playername,
   playergender,
-  gameSummary.division,
+  gameSummary.team,
   "clubName",
   "teamName"
   ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
@@ -934,7 +926,6 @@ fixture.date,
 division.rank
 FROM game
     JOIN fixture ON game.fixture = fixture.id
-    JOIN season ON (fixture.date > season."startDate" AND fixture.date < season."endDate" AND season.name = ?)
     JOIN player ON (game."homePlayer1" = player.id OR game."homePlayer2" = player.id OR game."awayPlayer1" = player.id OR game."awayPlayer2" = player.id)
     JOIN team ON player.team = team.id
     JOIN division ON team.division = division.id
@@ -959,7 +950,7 @@ WHERE player.id = ?) AS b
 WHERE rating > 0
 LIMIT 1)`
     sqlArray.push(sql)
-    sqlValsArray = [...sqlValsArray, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, SEASON, i * 1, i * 1, i * 1, i * 1, endDate, endDate, i * 1]
+    sqlValsArray = [...sqlValsArray, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, endDate, endDate, i * 1]
   }
 
   let rows = await (await db.otherConnect()).query(sqlArray.join(' UNION ALL '), sqlValsArray)
@@ -986,4 +977,67 @@ LIMIT 1)`
   }
   fixturePlayers = Object.fromEntries(playerArray)
   return fixturePlayers
+}
+
+// Returns ELO rating time-series for one or more player IDs.
+// Crosses season boundaries — used by the ELO chart pages.
+exports.getPlayerEloTimeSeries = async function(playerIds) {
+  if (!playerIds || playerIds.length === 0) return []
+
+  const playerData = await Promise.all(playerIds.map(async id => {
+    const numId = id * 1
+    const params = Array(8).fill(numId)
+    const [rows] = await (await db.otherConnect()).query(`
+      SELECT
+        fixture.date,
+        CASE
+          WHEN game."homePlayer1" = ? THEN game."homePlayer1End"
+          WHEN game."homePlayer2" = ? THEN game."homePlayer2End"
+          WHEN game."awayPlayer1" = ? THEN game."awayPlayer1End"
+          WHEN game."awayPlayer2" = ? THEN game."awayPlayer2End"
+        END AS rating
+      FROM game
+      JOIN fixture ON game.fixture = fixture.id
+      WHERE (game."homePlayer1" = ? OR game."homePlayer2" = ? OR game."awayPlayer1" = ? OR game."awayPlayer2" = ?)
+        AND game."homePlayer1End" IS NOT NULL AND game."homePlayer1End" != 0
+        AND game."homePlayer2End" IS NOT NULL AND game."homePlayer2End" != 0
+        AND game."awayPlayer1End" IS NOT NULL AND game."awayPlayer1End" != 0
+        AND game."awayPlayer2End" IS NOT NULL AND game."awayPlayer2End" != 0
+      ORDER BY fixture.date ASC, game.id ASC
+    `, params)
+
+    const [nameRows] = await (await db.otherConnect()).query(
+      `SELECT CONCAT(first_name, ' ', family_name) AS name FROM player WHERE id = ?`, [numId]
+    )
+
+    // One point per fixture date (rows ordered ASC by date, id — last game wins)
+    const byDate = {}
+    rows
+      .filter(r => r.rating != null && r.rating > 0)
+      .forEach(r => { byDate[new Date(r.date).toISOString().slice(0, 10)] = parseInt(r.rating) })
+
+    return {
+      id: numId,
+      name: nameRows[0]?.name || `Player ${numId}`,
+      data: Object.entries(byDate).map(([x, y]) => ({ x, y }))
+    }
+  }))
+
+  return playerData
+}
+
+// Simple name-fragment search — used by the ELO comparison page.
+exports.searchPlayers = async function(query) {
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT player.id,
+            CONCAT(player.first_name, ' ', player.family_name) AS name,
+            team.name AS "teamName"
+     FROM player
+     JOIN team ON team.id = player.team
+     WHERE LOWER(CONCAT(player.first_name, ' ', player.family_name)) LIKE LOWER(?)
+     ORDER BY player.family_name, player.first_name
+     LIMIT 20`,
+    [`%${query}%`]
+  )
+  return result
 }
