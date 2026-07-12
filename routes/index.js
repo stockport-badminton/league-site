@@ -393,6 +393,9 @@ router.get('/shuttle-prices', secured, shuttle_controller.shuttlePrices);
 router.get('/shuttle-prices/export', secured, shuttle_controller.exportPrices);
 router.post('/shuttle-prices/refresh', secured, shuttle_controller.refreshPrices);
 
+// Manual venues-map regeneration (superadmin only — role check in controller)
+router.post('/venues-map/refresh', secured, venue_controller.venues_map_refresh);
+
 // Error handlers
 router.use(function(req, res) {
   res.status(404);

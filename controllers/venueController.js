@@ -1,4 +1,18 @@
 var Venue = require('../models/venue');
+var { generateVenuesMap } = require('../utils/venues-map-generator');
+
+function isSuperadmin(req) {
+  return req.user?._json?.['https://my-app.example.com/role'] === 'superadmin';
+}
+
+// Fire-and-forget: never awaited by callers, never blocks/fails the CRUD
+// response. Logged rather than thrown so a Google Static Maps hiccup can't
+// break venue create/update/delete.
+function regenerateVenuesMap() {
+  generateVenuesMap().catch(function(err) {
+    console.error('[venues-map] regen failed:', err);
+  });
+}
 
 // Display list of all Venues
 exports.venue_list = async function(req, res, next) {
@@ -42,6 +56,7 @@ exports.venue_create_post = async function(req, res, next) {
     const row = await Venue.create(req.body.name, req.body.address, req.body.gMapUrl);
     // console.log(req.body);
     // console.log(row);
+    regenerateVenuesMap();
     res.send(row);
   } catch (err) {
     next(err);
@@ -70,6 +85,7 @@ exports.venue_delete_post = async function(req, res, next) {
     const row = await Venue.deleteById(req.params.id);
     // console.log(req.params)
     // console.log(row);
+    regenerateVenuesMap();
     res.send(row);
   } catch (err) {
     next(err);
@@ -87,8 +103,23 @@ exports.venue_update_post = async function(req, res, next) {
     const row = await Venue.updateById(req.body.name, req.body.address, req.body.gMapUrl, req.params.id);
     // console.log(req.body);
     // console.log(row);
+    regenerateVenuesMap();
     res.send(row);
   } catch (err) {
     next(err);
   }
+};
+
+// Manual override: mirrors the existing /shuttle-prices/refresh gating -
+// covers the case where the fire-and-forget regen above failed, or an
+// admin wants to force a rebuild without a data change.
+exports.venues_map_refresh = async function(req, res, next) {
+  if (!isSuperadmin(req)) return res.status(403).send('Access denied');
+
+  try {
+    await generateVenuesMap();
+  } catch (err) {
+    return next(err);
+  }
+  res.redirect('/info/clubs');
 };

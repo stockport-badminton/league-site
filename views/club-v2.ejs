@@ -8,6 +8,7 @@
   <% }
   else { %>
     <div id="map"></div>
+    <img id="map-fallback" src="/static/generated/venues-map.png" alt="Map of club venues" style="display:none; width:100%;">
 
     <div class="table-responsive">
     <table class="table">
@@ -120,13 +121,57 @@
 
 
 <script>
+  var mapFallbackShown = false;
+
+  function showMapFallback() {
+    if (mapFallbackShown) { return; }
+    mapFallbackShown = true;
+    var mapDiv = document.getElementById('map');
+    var fallbackImg = document.getElementById('map-fallback');
+    if (mapDiv) { mapDiv.style.display = 'none'; }
+    if (fallbackImg) { fallbackImg.style.display = 'block'; }
+  }
+
+  function showLiveMap() {
+    if (!mapFallbackShown) { return; }
+    mapFallbackShown = false;
+    var mapDiv = document.getElementById('map');
+    var fallbackImg = document.getElementById('map-fallback');
+    if (mapDiv) { mapDiv.style.display = ''; }
+    if (fallbackImg) { fallbackImg.style.display = 'none'; }
+  }
+
+  // Google Maps JS API's documented callback for key/billing/auth
+  // rejection - the script can load fine (HTTP 200) while the key gets
+  // rejected afterwards, so a plain script onerror won't catch this case.
+  window.gm_authFailure = function() {
+    showMapFallback();
+  };
+
+  // If initMap hasn't run a few seconds after the script load attempt,
+  // assume it's not coming (blocked/stalled network, silently-failing
+  // ad-blocker, etc.) and show the fallback.
+  var mapInitTimeout = setTimeout(showMapFallback, 4000);
+</script>
+<script>
 // Initialize and add the map
 function initMap() {
+  clearTimeout(mapInitTimeout);
 
   // The location of Uluru
   var StockportTownHall = {lat:53.4060787,lng:-2.1606755};
   var map = new google.maps.Map(
       document.getElementById('map'), {zoom: 10, center: StockportTownHall, mapId: '28eeb908f19e8aab',});
+
+  // A constructed Map object doesn't guarantee tiles actually rendered - a
+  // connection drop right after script load can leave a blank/grey div
+  // even though this callback ran. Give tiles a few seconds to load.
+  var tilesTimeout = setTimeout(showMapFallback, 3000);
+  google.maps.event.addListenerOnce(map, 'tilesloaded', function() {
+    clearTimeout(tilesTimeout);
+    showLiveMap();
+  });
+
   var data = <%- venues %>
   console.log(data)
   console.log(<%- venues %>)
@@ -164,7 +209,7 @@ function initMap() {
   center:StockportTownHall})
 }
 </script>
-<script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&libraries=marker&callback=initMap&loading=async" async defer></script>
+<script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&libraries=marker&callback=initMap&loading=async" async defer onerror="showMapFallback()"></script>
 
 <script src="//www.google.com/recaptcha/api.js" async defer></script>
 

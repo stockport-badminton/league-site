@@ -5,7 +5,22 @@ var PRECACHE_URLS = [
   OFFLINE_URL,
   '/static/beta/css/custom.css',
   '/touch-icon-192x192.png',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/static/generated/venues-map.png'
+];
+
+// Static-content pages precached as an anonymous (logged-out) snapshot, so a
+// failed navigation to one of these can show real content instead of the
+// generic offline page. Fetched with credentials: 'omit' below so the
+// cached copy is always the logged-out render, regardless of whether the
+// installing browser happens to be logged in - never a personalized page.
+var OFFLINE_SNAPSHOT_PATHS = [
+  '/rules',
+  '/messer-rules',
+  '/privacy-policy',
+  '/contact-us',
+  '/info/clubs',
+  '/venues'
 ];
 
 // Anything under these prefixes is never handled by this service worker at
@@ -31,7 +46,14 @@ self.addEventListener('install', function(event) {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_VERSION).then(function(cache) {
-      return cache.addAll(PRECACHE_URLS);
+      return Promise.all([
+        cache.addAll(PRECACHE_URLS),
+        Promise.all(OFFLINE_SNAPSHOT_PATHS.map(function(path) {
+          return fetch(path, { credentials: 'omit' }).then(function(response) {
+            return cache.put(path, response);
+          });
+        }))
+      ]);
     })
   );
 });
@@ -85,6 +107,11 @@ self.addEventListener('fetch', function(event) {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(function() {
+        if (OFFLINE_SNAPSHOT_PATHS.indexOf(url.pathname) !== -1) {
+          return caches.match(url.pathname).then(function(cached) {
+            return cached || caches.match(OFFLINE_URL);
+          });
+        }
         return caches.match(OFFLINE_URL);
       })
     );

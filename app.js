@@ -10,6 +10,8 @@ var bodyParser = require('body-parser');
 var path = require('path');
 const fs = require('fs');
 const compression = require('compression');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3_KEY: VENUES_MAP_S3_KEY } = require('./utils/venues-map-generator');
 
 if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
   throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
@@ -49,6 +51,26 @@ app.get('/sw.js', function(req, res) {
   res.set('Content-Type', 'application/javascript');
   res.set('Cache-Control', 'no-cache');
   res.render('sw', { cacheVersion: process.env.K_REVISION || 'dev-local' });
+});
+
+// Same reasoning/ordering as /sw.js above: registered before the /static
+// mount so it isn't shadowed. Proxies from S3 (not local disk, which is
+// ephemeral/per-instance on Cloud Run) but keeps the same site-relative
+// path so the service worker's existing /static/generated/* caching rule
+// applies with no changes.
+var venuesMapS3 = new S3Client({ region: 'eu-west-1' });
+app.get('/static/generated/venues-map.png', async function(req, res) {
+  try {
+    var obj = await venuesMapS3.send(new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: VENUES_MAP_S3_KEY
+    }));
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=300');
+    obj.Body.pipe(res);
+  } catch (err) {
+    res.status(404).end();
+  }
 });
 
 app.use('/static', express.static(path.join(__dirname, '/static')));
