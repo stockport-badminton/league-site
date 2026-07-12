@@ -24,5 +24,22 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tables",
+      "url": "/tables/All",
+      "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Results",
+      "url": "/results/All",
+      "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Enter Result",
+      "url": "/email-scorecard",
+      "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
+    }
   ]
 }

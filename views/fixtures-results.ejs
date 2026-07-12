@@ -105,9 +105,13 @@
           <td><%= MyDateString %></td>
           <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
           <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
-          <% if(row['homeScore'] != null){ %>
+          <% if(row['homeScore'] != null){
+               var resultImgUrl = '/resultImage/' + row['homeTeam'] + '/' + row['awayTeam'] + '/' + row['homeScore'] + '/' + row['awayScore'] + '/' + row['divisionName'];
+             %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
-            <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="/resultImage/<%= row['homeTeam'] %>/<%= row['awayTeam'] %>/<%= row['homeScore'] %>/<%= row['awayScore'] %>/<%= row['divisionName'] %>">Social Image</a><% } %></td>
+            <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="<%= resultImgUrl %>">Social Image</a><% } %>
+            <br /><a href="#" class="share-result-btn" data-img-url="<%= resultImgUrl %>" data-title="<%= row['homeTeam'] %> vs <%= row['awayTeam'] %>">Share</a>
+          </td>
             <% if (typeof admin !== 'undefined') { %>
             <td><a href="/scorecard/fixture/<%= row['id'] %>">Details</a></td>
             <% } %>
@@ -214,6 +218,34 @@
 
 <%- include('footer.ejs') %>
 <%- include('datatables.ejs') %>
+<script type="text/javascript">
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.share-result-btn');
+    if (!btn) { return; }
+    e.preventDefault();
+
+    var imgUrl = btn.getAttribute('data-img-url');
+    var title = btn.getAttribute('data-title');
+
+    if (!navigator.share) {
+      window.open(imgUrl, '_blank');
+      return;
+    }
+
+    fetch(imgUrl)
+      .then(function(resp) { return resp.blob(); })
+      .then(function(blob) {
+        var file = new File([blob], 'result.jpg', { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], title: title, text: title });
+        }
+        return navigator.share({ title: title, text: title, url: location.origin + imgUrl });
+      })
+      .catch(function(err) {
+        if (err.name !== 'AbortError') { console.warn('Share failed:', err); }
+      });
+  });
+</script>
 <% if (typeof filter !== 'undefined' && filter == true){ %>
 <script type="text/javascript">
       <%- include('filtersJs.ejs') %>

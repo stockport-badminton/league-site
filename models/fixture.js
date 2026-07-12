@@ -213,7 +213,7 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
   const conditions = searchTerms.length > 0 ? ' WHERE ' + searchTerms.join(' AND ') : ''
 
   const [result] = await (await db.otherConnect()).query(
-    `SELECT e.* FROM ( SELECT d.*, division.name AS divisionName FROM ( SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS "awayTeam", team.club AS "awayClub", team.division FROM (SELECT team.name AS "homeTeam", team.id AS "homeTeamId", team.club AS "homeClub", fixture.id AS fixtureId, fixture.date AS date, fixture."awayTeam" AS awayTeamId, fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN ${teamTable} ON team.id = fixture."homeTeam") AS a JOIN ${teamTable} ON team.id = a.awayTeamId) AS b JOIN ${clubTable} ON club.id = b."homeClub") AS c JOIN ${clubTable} ON club.id = c."awayClub") AS d JOIN division ON division.id = d.division) AS e, season${conditions} ORDER BY e.date`,
+    `SELECT e.* FROM ( SELECT d.*, division.name AS "divisionName" FROM ( SELECT c.*, club.name AS awayClubName FROM (SELECT b.*, club.name AS homeClubName FROM (SELECT a.*, team.name AS "awayTeam", team.club AS "awayClub", team.division FROM (SELECT team.name AS "homeTeam", team.id AS "homeTeamId", team.club AS "homeClub", fixture.id AS fixtureId, fixture.date AS date, fixture."awayTeam" AS awayTeamId, fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN ${teamTable} ON team.id = fixture."homeTeam") AS a JOIN ${teamTable} ON team.id = a.awayTeamId) AS b JOIN ${clubTable} ON club.id = b."homeClub") AS c JOIN ${clubTable} ON club.id = c."awayClub") AS d JOIN division ON division.id = d.division) AS e, season${conditions} ORDER BY e.date`,
     sqlArray
   )
   return result
@@ -278,6 +278,7 @@ exports.getFixtureDetails = async function(searchObj) {
     awayClub.name AS "awayClub",
     homeTeam.division AS division,
     division.rank,
+    division.name AS "divisionName",
     venue.address AS "venueName",
     venue."gMapUrl" AS "venueLink",
     fixture.status,
