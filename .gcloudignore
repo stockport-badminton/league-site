@@ -1,0 +1,15 @@
+node_modules/
+.env
+dev.env
+*.pem
+client_id.json
+*.log
+.git/
+.claude/
+__tests__/
+__fordeletion__/
+static/beta/images/generated/
+static/beta/videos/generated/
+static/generated/
+output/
+scorecard-analysis/

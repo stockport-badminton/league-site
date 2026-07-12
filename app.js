@@ -39,11 +39,21 @@ app.use(function(req, res, next) {
 });
 
 app.use(compression());
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
+
+// Must be registered before the `rootfiles` static mount below, or that
+// mount shadows this route and the service worker never gets a fresh
+// per-deploy cache version.
+app.get('/sw.js', function(req, res) {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'no-cache');
+  res.render('sw', { cacheVersion: process.env.K_REVISION || 'dev-local' });
+});
+
 app.use('/static', express.static(path.join(__dirname, '/static')));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
 app.use(express.static('rootfiles'));
-app.set('view engine', 'ejs');
-app.set('views', __dirname + '/views');
 app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: false }));
