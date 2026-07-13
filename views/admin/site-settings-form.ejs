@@ -1,0 +1,23 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<%
+  var galleryTag = '';
+  settings.forEach(function(s){ if (s.key === 'homepage_gallery_tag') galleryTag = s.value; });
+%>
+
+<div class="col-12">
+  <h1>Site Settings</h1>
+  <p><a href="/admin/homepage-content">Homepage Content</a></p>
+
+  <form method="post" action="/admin/site-settings">
+    <div class="form-group">
+      <label for="homepage_gallery_tag">Messer Gallery Cloudinary Tag</label>
+      <input type="text" class="form-control" id="homepage_gallery_tag" name="homepage_gallery_tag" value="<%= galleryTag %>">
+      <small class="form-text text-muted">The Cloudinary asset tag used to populate the homepage tournament gallery carousel (e.g. "messer2026"). Change this each season instead of editing code.</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>

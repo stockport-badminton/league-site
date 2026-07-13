@@ -1,17 +1,19 @@
-<div class="modal" id="BaxterModal">
+<div class="modal" id="announcementModal<%= a.id %>">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
 
       <!-- Modal Header -->
       <div class="modal-header">
-        <h4 class="modal-title">Baxter Trophy Champions!</h4>
+        <h4 class="modal-title"><%= a.title %></h4>
         <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
 
       <!-- Modal body -->
       <div class="modal-body text-left">
-        <img class="d-block img-fluid" src="https://res.cloudinary.com/hvunsveuh/image/upload/ar_3:2,c_fill,f_auto/c_scale,w_auto:breakpoints_200_1920_30_5:300/2026/baxter-trophy-2026.jpg" sizes="100vw" width="100%" border=0 alt="" title=""/>
-        <p>Photo L-R: Tom Huggon, Cat Golds, Chris Bellis, James Kee, Greg Mooney, Hannah Hernon, Rachel Flood, Anna Bellis</p>
+        <% if (a.image_url) { %>
+          <img class="d-block img-fluid" src="<%= a.image_url %>" sizes="100vw" width="100%" border="0" alt="" title=""/>
+        <% } %>
+        <%- a.modal_body_html %>
       </div>
 
       <!-- Modal footer -->

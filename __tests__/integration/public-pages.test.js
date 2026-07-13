@@ -5,11 +5,15 @@ jest.mock('../../models/venue');
 jest.mock('../../models/club');
 jest.mock('../../models/division');
 jest.mock('../../models/auth.js');
+jest.mock('../../models/homepageContent');
+jest.mock('../../models/siteSettings');
 jest.mock('axios');
 
 const Fixture = require('../../models/fixture');
 const Venue = require('../../models/venue');
 const Club = require('../../models/club');
+const HomepageContent = require('../../models/homepageContent');
+const SiteSettings = require('../../models/siteSettings');
 const axios = require('axios');
 const app = require('../../app');
 
@@ -23,6 +27,8 @@ describe('GET /', () => {
     Fixture.getOutstandingScorecards.mockResolvedValue([]);
     Fixture.getRecent.mockResolvedValue([]);
     Fixture.getupComing.mockResolvedValue([]);
+    HomepageContent.getActive.mockResolvedValue([]);
+    SiteSettings.get.mockResolvedValue('messer2026');
     axios.get.mockResolvedValue({ data: { resources: [] } });
   };
 
@@ -44,6 +50,8 @@ describe('GET /', () => {
     Fixture.getOutstandingScorecards.mockRejectedValue(new Error('DB error'));
     Fixture.getRecent.mockResolvedValue([]);
     Fixture.getupComing.mockResolvedValue([]);
+    HomepageContent.getActive.mockResolvedValue([]);
+    SiteSettings.get.mockResolvedValue('messer2026');
     axios.get.mockResolvedValue({ data: { resources: [] } });
     const res = await request(app).get('/');
     expect(res.status).toBe(500);

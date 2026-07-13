@@ -3,6 +3,8 @@ var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
+var HomepageContent = require('../models/homepageContent');
+var SiteSettings = require('../models/siteSettings');
 const axios = require('axios');
 var AWS = require('aws-sdk');
 const ICAL = require('ical.js');
@@ -460,14 +462,16 @@ exports.fixture_create_post = async function(req, res, next) {
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = async function(req, res, next) {
   try {
-    const [scorecards, recentResults, upcomingFixtures] = await Promise.all([
+    const [scorecards, recentResults, upcomingFixtures, announcements, galleryTag] = await Promise.all([
       Fixture.getOutstandingScorecards(),
       Fixture.getRecent(),
-      Fixture.getupComing()
+      Fixture.getupComing(),
+      HomepageContent.getActive(),
+      SiteSettings.get('homepage_gallery_tag')
     ]);
     let assets = [];
     try {
-      const response = await axios.get('https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/messer2026?max_results=30&context=true');
+      const response = await axios.get('https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/'+(galleryTag || 'messer2026')+'?max_results=30&context=true');
       assets = response.data.resources;
     } catch (cloudinaryErr) {
       console.error('Cloudinary fetch failed:', cloudinaryErr.message);
@@ -480,6 +484,7 @@ exports.fixture_get_summary = async function(req, res, next) {
       row: upcomingFixtures,
       scorecards,
       assets,
+      announcements,
       canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
     });
   } catch (err) {

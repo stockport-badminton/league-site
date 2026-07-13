@@ -24,6 +24,8 @@ var social_controller = require('../controllers/socialController');
 var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
 var shuttle_controller = require('../controllers/shuttleController');
+var homepage_content_controller = require('../controllers/homepageContentController');
+var site_settings_controller = require('../controllers/siteSettingsController');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -373,6 +375,16 @@ router.get('/dev/elo-audit', player_controller.player_elo_audit);
 router.get('/dev/elo-raw/:playerId', player_controller.player_elo_raw);
 router.get('/players/eloFullRecalc', secured, player_controller.player_elo_full_recalc);
 router.get('/players/eloBackfillAll', secured, player_controller.player_elo_backfill_all);
+
+router.get('/admin/homepage-content', secured, homepage_content_controller.list);
+router.get('/admin/homepage-content/create', secured, homepage_content_controller.createForm);
+router.post('/admin/homepage-content', secured, homepage_content_controller.create);
+router.get('/admin/homepage-content/:id', secured, homepage_content_controller.editForm);
+router.post('/admin/homepage-content/:id', secured, homepage_content_controller.update);
+router.post('/admin/homepage-content/:id/delete', secured, homepage_content_controller.remove);
+
+router.get('/admin/site-settings', secured, site_settings_controller.form);
+router.post('/admin/site-settings', secured, site_settings_controller.update);
 router.get('/players/eloBackfillAdmin', secured, player_controller.player_elo_backfill_admin);
 router.get('/api/player-elo', player_controller.player_elo_history_api);
 router.get('/api/players/search', player_controller.player_search_api);
