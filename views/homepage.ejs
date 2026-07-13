@@ -7,13 +7,12 @@
 <h1>News</h1>
 
   <% announcements.forEach(function(a){ %>
-    <p class="lead">
+    <div class="lead">
       <strong><%= a.title %></strong><br />
       <%- a.teaser_html %>
       <% if (a.modal_body_html) { %> <a href="#" data-toggle="modal" data-target="#announcementModal<%= a.id %>">Read more</a><% } %>
       <% if (a.show_gallery_link) { %> <a href="#" data-toggle="modal" data-target="#generatedTournamentGalleryModal">Gallery</a><% } %>
-      <br /><br />
-    </p>
+    </div>
   <% }) %>
 </div>
 <div class="col-md-4">
