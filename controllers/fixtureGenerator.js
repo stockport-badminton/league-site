@@ -40,10 +40,8 @@ Extra notes on the logic
 * similarly as we hit 3x, 4x and 5x of the dates reduce the near-fixtures window further
 * after 5x halt the fixture generation and tell me what's left so that i can fit them in manually. 
 
-*/ 
+*/
 
-var request = require('request');
- 
 const xmasDate = new Date(2025,11,25)
 const easterDate = new Date(2026,3,5)
 const seasonStartDate = new Date(2025,8,1)
