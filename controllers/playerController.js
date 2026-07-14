@@ -866,8 +866,13 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
     if (Object.keys(newPlayers).length > 0) {
       const loaded = await Player.getPrevRating(fixture.date, newPlayers)
       for (const [pid, val] of Object.entries(loaded)) {
-        fixturePlayers[pid] = val
-        knownRatings[pid] = val
+        // gamesCount isn't tracked in the DB — a player loaded here is treated as
+        // starting fresh for provisional-K purposes. Full accuracy (a true
+        // lifetime games-played count) requires running eloBackfillAll from the
+        // start of records rather than a single isolated season recalc, same
+        // caveat as the existing rating carryover above.
+        fixturePlayers[pid] = { ...val, gamesCount: 0 }
+        knownRatings[pid] = fixturePlayers[pid]
       }
     }
 
@@ -883,6 +888,7 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
           if (slot != null && slot !== 0) {
             fixturePlayers[slot].rating = rateResult.updateObj[endKey]
             fixturePlayers[slot].date   = fixture.date
+            fixturePlayers[slot].gamesCount = (fixturePlayers[slot].gamesCount || 0) + 1
             knownRatings[slot] = { ...fixturePlayers[slot] }
           }
         }

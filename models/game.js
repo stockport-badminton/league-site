@@ -5,6 +5,55 @@ const SEASON = new Date().getMonth() < 7
   ? `${year - 1}${year}`
   : `${year}${year + 1}`
 
+// ── ELO tuning constants ──────────────────────────────────────────────────
+// Points added per division-rank of gap between a player's registered
+// division and the division this fixture is actually being played in
+// (i.e. how much a reserve-up/down player shifts their opponent's effective
+// rating). Calibrated against the real rating stddev (~186) rather than the
+// original 500, which was ~2.7x that spread and swamped genuine skill signal
+// for any reserve spanning more than one division.
+const DIVISION_RANK_POINTS = 150
+
+// K-factor: higher while a player's rating is still converging, standard
+// once established. gamesCount reflects games played BEFORE this one.
+const PROVISIONAL_K = 40
+const PROVISIONAL_GAMES_THRESHOLD = 15
+const ESTABLISHED_K = 32
+
+// Margin-of-victory scaling: a 21-2 blowout should move rating a bit more
+// than a 22-20 nail-biter. Bounded so no single game swings wildly.
+const MARGIN_MULTIPLIER_MIN = 0.85
+const MARGIN_MULTIPLIER_MAX = 1.15
+const MAX_GAME_MARGIN = 21
+
+// Smooths how a pair's total rating change is split between two partners
+// with different ratings — a gap of one stddev meaningfully skews the
+// split toward the weaker partner; a near-zero gap barely skews it at all.
+const PARTNER_SKEW_SCALE = 186
+
+function perPlayerK(gamesCount) {
+  const played = typeof gamesCount === 'number' ? gamesCount : Infinity
+  return played < PROVISIONAL_GAMES_THRESHOLD ? PROVISIONAL_K : ESTABLISHED_K
+}
+
+// Splits a pair's rating change between two partners based on the rating
+// gap between them. Both partners' baseline is pairDelta itself (matching
+// the old behaviour where both got the identical full delta) — the weaker
+// partner gets a bonus on top for a win (and a smaller loss), the stronger
+// partner the reverse, bounded so neither share can flip past 0/2x pairDelta.
+// Equal-rated partners (gapA = 0) still get the identical pairDelta each,
+// exactly like before. deltaB is the exact complement of the rounded deltaA
+// against a 2×pairDelta total, so nothing leaks.
+function splitPairDelta(pairDelta, ratingA, ratingB) {
+  const pairAvg = (ratingA + ratingB) / 2
+  const gapA = pairAvg - ratingA
+  const skewMagnitude = (Math.abs(pairDelta) / 2) * Math.tanh(Math.abs(gapA) / PARTNER_SKEW_SCALE)
+  const skewA = Math.sign(gapA) * skewMagnitude
+  const deltaA = Math.round(pairDelta + skewA)
+  const deltaB = (2 * pairDelta) - deltaA
+  return [deltaA, deltaB]
+}
+
 exports.create = async function(gameObj) {
   if (!db.isObject(gameObj)) throw new Error('not game object')
   const fields = Object.keys(gameObj).map(k => `"${k}"`).join(',')
@@ -77,36 +126,46 @@ exports.calculateRating = function(game, fixturePlayers, endDate, division) {
       awayPlayer2Start: (typeof fixturePlayers[game.awayPlayer2] !== 'undefined' ? fixturePlayers[game.awayPlayer2].date : '2020-01-01T00:00:00.000Z'),
     }
   } else {
-    const homePairStart = ((1 * fixturePlayers[game.homePlayer1].rating + ((1 * fixturePlayers[game.awayPlayer1].rank - division) * 500)) + (1 * fixturePlayers[game.homePlayer2].rating + ((1 * fixturePlayers[game.awayPlayer2].rank - division) * 500))) / 2
-    const awayPairStart = ((1 * fixturePlayers[game.awayPlayer1].rating + ((1 * fixturePlayers[game.homePlayer1].rank - division) * 500)) + (1 * fixturePlayers[game.awayPlayer2].rating + ((1 * fixturePlayers[game.homePlayer2].rank - division) * 500))) / 2
+    const homeP1 = fixturePlayers[game.homePlayer1]
+    const homeP2 = fixturePlayers[game.homePlayer2]
+    const awayP1 = fixturePlayers[game.awayPlayer1]
+    const awayP2 = fixturePlayers[game.awayPlayer2]
+
+    const homePairStart = ((1 * homeP1.rating + ((1 * awayP1.rank - division) * DIVISION_RANK_POINTS)) + (1 * homeP2.rating + ((1 * awayP2.rank - division) * DIVISION_RANK_POINTS))) / 2
+    const awayPairStart = ((1 * awayP1.rating + ((1 * homeP1.rank - division) * DIVISION_RANK_POINTS)) + (1 * awayP2.rating + ((1 * homeP2.rank - division) * DIVISION_RANK_POINTS))) / 2
     const homeExpectOutcome = 1 / (1 + Math.pow(10, ((awayPairStart - homePairStart) / 400)))
-    const awayExpectOutcome = 1 / (1 + Math.pow(10, ((homePairStart - awayPairStart) / 400)))
+
+    const avgK = (perPlayerK(homeP1.gamesCount) + perPlayerK(homeP2.gamesCount) + perPlayerK(awayP1.gamesCount) + perPlayerK(awayP2.gamesCount)) / 4
+    const marginRatio = Math.min(Math.abs((1 * game.homeScore) - (1 * game.awayScore)) / MAX_GAME_MARGIN, 1)
+    const marginMultiplier = MARGIN_MULTIPLIER_MIN + (MARGIN_MULTIPLIER_MAX - MARGIN_MULTIPLIER_MIN) * marginRatio
+    const effectiveK = avgK * marginMultiplier
 
     let homeAdjustment = 0
-    let awayAdjustment = 0
     if (1 * game.homeScore > 1 * game.awayScore) {
-      homeAdjustment = Math.round(32 * (1 - homeExpectOutcome))
-      awayAdjustment = Math.round(32 * (0 - awayExpectOutcome))
+      homeAdjustment = Math.round(effectiveK * (1 - homeExpectOutcome))
     } else {
-      homeAdjustment = Math.round(32 * (0 - homeExpectOutcome))
-      awayAdjustment = Math.round(32 * (1 - awayExpectOutcome))
+      homeAdjustment = Math.round(effectiveK * (0 - homeExpectOutcome))
     }
+    const awayAdjustment = -homeAdjustment
+
+    const [homeP1Delta, homeP2Delta] = splitPairDelta(homeAdjustment, homeP1.rating, homeP2.rating)
+    const [awayP1Delta, awayP2Delta] = splitPairDelta(awayAdjustment, awayP1.rating, awayP2.rating)
 
     updateObj = {
-      homePlayer1Start: fixturePlayers[game.homePlayer1].rating,
-      homePlayer2Start: fixturePlayers[game.homePlayer2].rating,
-      awayPlayer1Start: fixturePlayers[game.awayPlayer1].rating,
-      awayPlayer2Start: fixturePlayers[game.awayPlayer2].rating,
-      homePlayer1End: 1 * fixturePlayers[game.homePlayer1].rating + 1 * homeAdjustment,
-      homePlayer2End: 1 * fixturePlayers[game.homePlayer2].rating + 1 * homeAdjustment,
-      awayPlayer1End: 1 * fixturePlayers[game.awayPlayer1].rating + 1 * awayAdjustment,
-      awayPlayer2End: 1 * fixturePlayers[game.awayPlayer2].rating + 1 * awayAdjustment,
+      homePlayer1Start: homeP1.rating,
+      homePlayer2Start: homeP2.rating,
+      awayPlayer1Start: awayP1.rating,
+      awayPlayer2Start: awayP2.rating,
+      homePlayer1End: 1 * homeP1.rating + homeP1Delta,
+      homePlayer2End: 1 * homeP2.rating + homeP2Delta,
+      awayPlayer1End: 1 * awayP1.rating + awayP1Delta,
+      awayPlayer2End: 1 * awayP2.rating + awayP2Delta,
     }
     prevRatingDates = {
-      homePlayer1Start: fixturePlayers[game.homePlayer1].date,
-      homePlayer2Start: fixturePlayers[game.homePlayer2].date,
-      awayPlayer1Start: fixturePlayers[game.awayPlayer1].date,
-      awayPlayer2Start: fixturePlayers[game.awayPlayer2].date,
+      homePlayer1Start: homeP1.date,
+      homePlayer2Start: homeP2.date,
+      awayPlayer1Start: awayP1.date,
+      awayPlayer2Start: awayP2.date,
     }
   }
 
