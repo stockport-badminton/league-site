@@ -1,4 +1,5 @@
 var Club = require('../models/club');
+var Division = require('../models/division');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var Player = require('../models/players');
@@ -1014,9 +1015,11 @@ exports.player_elo_backfill_admin = async function(req, res, next) {
 
 // GET /api/player-elo?players=1,2,3
 // Returns ELO time-series JSON for use by the chart pages.
+const ELO_CHART_MAX_PLAYERS = 20
+
 exports.player_elo_history_api = async function(req, res, next) {
   try {
-    const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, 4)
+    const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, ELO_CHART_MAX_PLAYERS)
     if (rawIds.length === 0) return res.json([])
     const data = await Player.getPlayerEloTimeSeries(rawIds)
     res.json(data)
@@ -1025,13 +1028,21 @@ exports.player_elo_history_api = async function(req, res, next) {
   }
 }
 
-// GET /api/players/search?q=Smith
-// Returns player name/id matches for the comparison page search.
+// GET /api/players/search?q=Smith&division=Premier&club=Dome&team=Dome+A&gender=Male
+// Returns player name/id matches for the comparison page search, optionally
+// narrowed by the same division/club/team/gender filters used on /player-stats.
 exports.player_search_api = async function(req, res, next) {
   try {
     const q = (req.query.q || '').trim()
-    if (q.length < 2) return res.json([])
-    const results = await Player.searchPlayers(q)
+    const filters = {
+      division: (req.query.division || '').trim(),
+      club: (req.query.club || '').trim(),
+      team: (req.query.team || '').trim(),
+      gender: (req.query.gender || '').trim(),
+    }
+    const hasFilter = Object.values(filters).some(v => v.length > 0)
+    if (q.length < 2 && !hasFilter) return res.json([])
+    const results = await Player.searchPlayers(q, filters)
     res.json(results)
   } catch (err) {
     next(err)
@@ -1042,8 +1053,13 @@ exports.player_search_api = async function(req, res, next) {
 // Renders the multi-player ELO comparison page.
 exports.player_elo_chart = async function(req, res, next) {
   try {
-    const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, 4)
-    const seriesData = rawIds.length > 0 ? await Player.getPlayerEloTimeSeries(rawIds) : []
+    const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, ELO_CHART_MAX_PLAYERS)
+    const [seriesData, divisions, clubs, teams] = await Promise.all([
+      rawIds.length > 0 ? Player.getPlayerEloTimeSeries(rawIds) : [],
+      Division.getAll(),
+      Club.getAll(),
+      Team.getAll(),
+    ])
     res.render('elo-chart', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
@@ -1051,6 +1067,10 @@ exports.player_elo_chart = async function(req, res, next) {
       pageDescription: 'Compare player ELO ratings over time',
       seriesData: JSON.stringify(seriesData),
       selectedIds: rawIds.join(','),
+      maxPlayers: ELO_CHART_MAX_PLAYERS,
+      divisions,
+      clubs,
+      teams,
       canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk')
     })
   } catch (err) {

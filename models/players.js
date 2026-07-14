@@ -984,60 +984,80 @@ LIMIT 1)`
 exports.getPlayerEloTimeSeries = async function(playerIds) {
   if (!playerIds || playerIds.length === 0) return []
 
-  const playerData = await Promise.all(playerIds.map(async id => {
-    const numId = id * 1
-    const params = Array(8).fill(numId)
-    const [rows] = await (await db.otherConnect()).query(`
-      SELECT
-        fixture.date,
-        CASE
-          WHEN game."homePlayer1" = ? THEN game."homePlayer1End"
-          WHEN game."homePlayer2" = ? THEN game."homePlayer2End"
-          WHEN game."awayPlayer1" = ? THEN game."awayPlayer1End"
-          WHEN game."awayPlayer2" = ? THEN game."awayPlayer2End"
-        END AS rating
-      FROM game
-      JOIN fixture ON game.fixture = fixture.id
-      WHERE (game."homePlayer1" = ? OR game."homePlayer2" = ? OR game."awayPlayer1" = ? OR game."awayPlayer2" = ?)
-        AND game."homePlayer1End" IS NOT NULL AND game."homePlayer1End" != 0
-        AND game."homePlayer2End" IS NOT NULL AND game."homePlayer2End" != 0
-        AND game."awayPlayer1End" IS NOT NULL AND game."awayPlayer1End" != 0
-        AND game."awayPlayer2End" IS NOT NULL AND game."awayPlayer2End" != 0
-      ORDER BY fixture.date ASC, game.id ASC
-    `, params)
+  const numIds = playerIds.map(id => id * 1)
 
-    const [nameRows] = await (await db.otherConnect()).query(
-      `SELECT CONCAT(first_name, ' ', family_name) AS name FROM player WHERE id = ?`, [numId]
-    )
+  // One batched query for every requested player instead of one query each —
+  // the game table has no index on the player-id columns, so per-player
+  // queries scale linearly with player count; a single ANY(?) scan doesn't.
+  const [rows] = await (await db.otherConnect()).query(`
+    SELECT
+      fixture.date,
+      game."homePlayer1", game."homePlayer2", game."awayPlayer1", game."awayPlayer2",
+      game."homePlayer1End", game."homePlayer2End", game."awayPlayer1End", game."awayPlayer2End"
+    FROM game
+    JOIN fixture ON game.fixture = fixture.id
+    WHERE (game."homePlayer1" = ANY(?) OR game."homePlayer2" = ANY(?) OR game."awayPlayer1" = ANY(?) OR game."awayPlayer2" = ANY(?))
+      AND game."homePlayer1End" IS NOT NULL AND game."homePlayer1End" != 0
+      AND game."homePlayer2End" IS NOT NULL AND game."homePlayer2End" != 0
+      AND game."awayPlayer1End" IS NOT NULL AND game."awayPlayer1End" != 0
+      AND game."awayPlayer2End" IS NOT NULL AND game."awayPlayer2End" != 0
+    ORDER BY fixture.date ASC, game.id ASC
+  `, [numIds, numIds, numIds, numIds])
 
-    // One point per fixture date (rows ordered ASC by date, id — last game wins)
-    const byDate = {}
-    rows
-      .filter(r => r.rating != null && r.rating > 0)
-      .forEach(r => { byDate[new Date(r.date).toISOString().slice(0, 10)] = parseInt(r.rating) })
+  const [nameRows] = await (await db.otherConnect()).query(
+    `SELECT id, CONCAT(first_name, ' ', family_name) AS name FROM player WHERE id = ANY(?)`, [numIds]
+  )
+  const nameById = {}
+  nameRows.forEach(r => { nameById[r.id] = r.name })
 
-    return {
-      id: numId,
-      name: nameRows[0]?.name || `Player ${numId}`,
-      data: Object.entries(byDate).map(([x, y]) => ({ x, y }))
-    }
+  // One point per fixture date per player (rows ordered ASC by date, id — last game wins)
+  const byDateByPlayer = {}
+  numIds.forEach(id => { byDateByPlayer[id] = {} })
+  const slots = [
+    ['homePlayer1', 'homePlayer1End'],
+    ['homePlayer2', 'homePlayer2End'],
+    ['awayPlayer1', 'awayPlayer1End'],
+    ['awayPlayer2', 'awayPlayer2End'],
+  ]
+  rows.forEach(row => {
+    slots.forEach(([idKey, endKey]) => {
+      const pid = row[idKey]
+      if (pid != null && byDateByPlayer[pid] !== undefined && row[endKey] != null && row[endKey] > 0) {
+        byDateByPlayer[pid][new Date(row.date).toISOString().slice(0, 10)] = parseInt(row[endKey])
+      }
+    })
+  })
+
+  return numIds.map(id => ({
+    id,
+    name: nameById[id] || `Player ${id}`,
+    data: Object.entries(byDateByPlayer[id]).map(([x, y]) => ({ x, y }))
   }))
-
-  return playerData
 }
 
-// Simple name-fragment search — used by the ELO comparison page.
-exports.searchPlayers = async function(query) {
+// Name-fragment search, optionally narrowed by the same division/club/team/
+// gender filters used on /player-stats — used by the ELO comparison page.
+exports.searchPlayers = async function(query, filters = {}) {
+  const whereClauses = ['LOWER(CONCAT(player.first_name, \' \', player.family_name)) LIKE LOWER(?)']
+  const params = [`%${query || ''}%`]
+
+  if (filters.division) { whereClauses.push('division.name = ?'); params.push(filters.division) }
+  if (filters.club) { whereClauses.push('club.name = ?'); params.push(filters.club) }
+  if (filters.team) { whereClauses.push('team.name = ?'); params.push(filters.team) }
+  if (filters.gender) { whereClauses.push('player.gender = ?'); params.push(filters.gender) }
+
   const [result] = await (await db.otherConnect()).query(
     `SELECT player.id,
             CONCAT(player.first_name, ' ', player.family_name) AS name,
             team.name AS "teamName"
      FROM player
      JOIN team ON team.id = player.team
-     WHERE LOWER(CONCAT(player.first_name, ' ', player.family_name)) LIKE LOWER(?)
+     JOIN club ON club.id = team.club
+     JOIN division ON division.id = team.division
+     WHERE ${whereClauses.join(' AND ')}
      ORDER BY player.family_name, player.first_name
      LIMIT 20`,
-    [`%${query}%`]
+    params
   )
   return result
 }
