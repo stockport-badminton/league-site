@@ -696,9 +696,25 @@ exports.distribution_list = async function(req,res,next) {
   else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
     try {
       let message = JSON.parse(req.body);
-      // Extract the raw email data from SES notification
-      const rawEmail = JSON.parse(message["Message"]).content;
-      const buffer = Buffer.from(rawEmail, "base64");
+      const notification = JSON.parse(message["Message"]);
+
+      // Obtain the raw MIME message. Small emails may arrive inline via the SES
+      // SNS action (notification.content). Anything with attachments exceeds the
+      // ~256KB SNS limit and is instead stored in S3 by the SES S3 action, with
+      // only a pointer delivered here (receipt.action). Handle both so deploy
+      // order vs. the receipt-rule change doesn't matter.
+      let buffer;
+      if (notification.content) {
+        buffer = Buffer.from(notification.content, "base64");
+      } else if (notification.receipt && notification.receipt.action && notification.receipt.action.type === "S3") {
+        const { bucketName, objectKey } = notification.receipt.action;
+        console.log(`fetching raw email from s3://${bucketName}/${objectKey}`);
+        const s3 = new AWS.S3({ region: 'eu-west-1' });
+        const obj = await s3.getObject({ Bucket: bucketName, Key: objectKey }).promise();
+        buffer = obj.Body;
+      } else {
+        throw new Error("SNS notification had neither inline content nor an S3 action");
+      }
 
       // Parse the email using mailparser
       const parsedEmail = await simpleParser(buffer);
@@ -706,8 +722,11 @@ exports.distribution_list = async function(req,res,next) {
       console.log(`parsed email to: ${JSON.stringify(parsedEmail.to.value)}`)
       console.log(`parsed email to: ${JSON.stringify(parsedEmail.from.value)}`)
 
-      let recipients = await parsedEmail.to.value.map(row => row.address)
-      let stockportrecips = await recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
+      // Use the envelope recipients SES actually matched, not the To header.
+      // A BCC'd list address (common for distribution lists) never appears in
+      // To, so header-based extraction would silently miss it.
+      let recipients = notification.receipt.recipients
+      let stockportrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
       
       for (row of stockportrecips){
         // row = row.substring(0,row.indexOf("@"))
