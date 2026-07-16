@@ -1,4 +1,8 @@
 var Team = require('../models/teams');
+var Club = require('../models/club');
+var Division = require('../models/division');
+var Venue = require('../models/venue');
+var League = require('../models/league');
 
 // Display list of all Teams
 exports.team_list = async function(req, res, next) {
@@ -197,6 +201,227 @@ exports.new_messer_draw = async function(req, res, next) {
     });
   } catch (err) {
     console.log(err);
+    next(err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Superadmin admin UI — add / edit teams, copy a team, promote / relegate
+// (mirrors the homepage-content pattern; role enforced in-controller)
+// ---------------------------------------------------------------------------
+
+function isSuperAdmin(req) {
+  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
+}
+
+function canonicalFor(req) {
+  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
+}
+
+// Editable team fields from the form. name/club/division/venue are required;
+// rank/divRank are NOT NULL in the DB and managed by the controller (defaulted
+// on create, recomputed on division change), so they are not in this object.
+function buildTeamObj(body) {
+  const obj = { name: (body.name || '').trim() };
+  ['starttime', 'endtime', 'matchDay', 'section', 'handicap'].forEach(k => {
+    const v = (body[k] || '').trim();
+    obj[k] = v === '' ? null : v;
+  });
+  ['club', 'division', 'venue'].forEach(k => {
+    const n = parseInt(body[k], 10);
+    obj[k] = isNaN(n) ? null : n;
+  });
+  const courts = parseInt(body.courtspace, 10);
+  obj.courtspace = isNaN(courts) ? null : courts;
+  return obj;
+}
+
+exports.admin_team_list = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [teams, divisionRows, clubs, tableRows] = await Promise.all([
+      Team.getAll(), Division.getAll(), Club.getAll(), League.getAllLeagueTables()
+    ]);
+    const clubName = {};
+    clubs.forEach(c => { clubName[c.id] = c.name; });
+
+    // Current standings order per division (division id -> { teamName: position }),
+    // so the list matches the league table — easier to spot who to promote/relegate.
+    // Teams with no fixtures yet aren't in the table and sort to the bottom.
+    const tableOrder = {};
+    tableRows.forEach(r => {
+      if (!tableOrder[r.division]) tableOrder[r.division] = {};
+      if (tableOrder[r.division][r.name] === undefined) {
+        tableOrder[r.division][r.name] = Object.keys(tableOrder[r.division]).length;
+      }
+    });
+
+    // Divisions sorted by rank (Premier first); each carries its teams. First =
+    // top (can't promote), last = bottom (can't relegate).
+    const divisions = divisionRows
+      .slice()
+      .sort((a, b) => a.rank - b.rank)
+      .map(d => ({ id: d.id, name: d.name, rank: d.rank, teams: [] }));
+    const divById = {};
+    divisions.forEach(d => { divById[d.id] = d; });
+
+    const unassigned = [];
+    teams.forEach(t => {
+      const row = { id: t.id, name: t.name, clubName: clubName[t.club] || '' };
+      if (divById[t.division]) divById[t.division].teams.push(row);
+      else unassigned.push(row);
+    });
+    divisions.forEach(d => {
+      const order = tableOrder[d.id] || {};
+      d.teams.sort((a, b) => {
+        const ai = order[a.name] !== undefined ? order[a.name] : Infinity;
+        const bi = order[b.name] !== undefined ? order[b.name] : Infinity;
+        if (ai !== bi) return ai - bi;
+        return a.name.localeCompare(b.name);
+      });
+    });
+
+    res.render('admin/team-list', {
+      static_path: '/static',
+      pageTitle: 'Team Admin',
+      pageDescription: 'Add, edit, promote and relegate teams',
+      user: req.user,
+      divisions,
+      unassigned,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_createForm = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [clubs, divisions, venues, teams] = await Promise.all([
+      Club.getAll(), Division.getAll(), Venue.getAll(), Team.getAll()
+    ]);
+    clubs.sort((a, b) => a.name.localeCompare(b.name));
+    divisions.sort((a, b) => a.rank - b.rank);
+    teams.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Copy-an-existing-team: pre-fill attributes only (no name/captain/players).
+    let team = null;
+    if (req.query.copyFrom) {
+      const [source] = await Team.getById(req.query.copyFrom);
+      if (source) {
+        team = {
+          name: '',
+          club: source.club,
+          division: source.division,
+          venue: source.venue,
+          matchDay: source.matchDay,
+          starttime: source.starttime,
+          endtime: source.endtime,
+          courtspace: source.courtspace,
+          section: source.section,
+          handicap: source.handicap
+        };
+      }
+    }
+
+    res.render('admin/team-form', {
+      static_path: '/static',
+      pageTitle: 'New Team',
+      pageDescription: 'Create a team',
+      user: req.user,
+      team,
+      clubs, divisions, venues, teams,
+      copyFrom: req.query.copyFrom || '',
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_create = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const teamObj = buildTeamObj(req.body);
+    if (!teamObj.name) return res.status(400).send('Team name is required');
+    if (teamObj.club == null || teamObj.division == null || teamObj.venue == null) {
+      return res.status(400).send('Club, division and venue are required');
+    }
+    teamObj.rank = parseInt(req.body.rank, 10) || 0;
+    teamObj.divRank = await Team.getNextDivRank(teamObj.division);
+    await Team.createFull(teamObj);
+    res.redirect('/admin/teams');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_editForm = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [team] = await Team.getById(req.params.id);
+    if (!team) return res.status(404).send('Not found');
+    const [clubs, divisions, venues] = await Promise.all([Club.getAll(), Division.getAll(), Venue.getAll()]);
+    clubs.sort((a, b) => a.name.localeCompare(b.name));
+    divisions.sort((a, b) => a.rank - b.rank);
+    res.render('admin/team-form', {
+      static_path: '/static',
+      pageTitle: 'Edit Team',
+      pageDescription: 'Edit a team',
+      user: req.user,
+      team,
+      clubs, divisions, venues, teams: [],
+      copyFrom: '',
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_update = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [existing] = await Team.getById(req.params.id);
+    if (!existing) return res.status(404).send('Not found');
+    const teamObj = buildTeamObj(req.body);
+    if (!teamObj.name) return res.status(400).send('Team name is required');
+    if (teamObj.club == null || teamObj.division == null || teamObj.venue == null) {
+      return res.status(400).send('Club, division and venue are required');
+    }
+    teamObj.rank = parseInt(req.body.rank, 10) || existing.rank || 0;
+    // Direct division change from the edit form counts as a move — reset divRank
+    // so the team sorts to the bottom of the new division until finalised.
+    if (teamObj.division !== existing.division) {
+      teamObj.divRank = await Team.getNextDivRank(teamObj.division);
+    }
+    await Team.updateById(teamObj, req.params.id);
+    res.redirect('/admin/teams');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// One-click promote (up) / relegate (down): move a team to the adjacent
+// division by rank within its own league.
+exports.admin_team_move = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [team] = await Team.getById(req.params.id);
+    if (!team) return res.status(404).send('Not found');
+    const [currentDivision] = await Division.getById(team.division);
+    if (!currentDivision) return res.status(400).send('Team has no division');
+
+    const leagueDivisions = (await Division.getAllByLeague(currentDivision.league)).sort((a, b) => a.rank - b.rank);
+    const targetRank = req.body.direction === 'up' ? currentDivision.rank - 1 : currentDivision.rank + 1;
+    const target = leagueDivisions.find(d => d.rank === targetRank);
+    if (!target) return res.redirect('/admin/teams'); // already top/bottom — no-op
+
+    const divRank = await Team.getNextDivRank(target.id);
+    await Team.updateById({ division: target.id, divRank }, req.params.id);
+    res.redirect('/admin/teams');
+  } catch (err) {
     next(err);
   }
 };

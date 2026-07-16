@@ -1,0 +1,83 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1><%= club ? 'Edit' : 'New' %> Club</h1>
+
+  <form method="post" action="<%= club ? '/admin/clubs/' + club.id : '/admin/clubs' %>">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" class="form-control" id="name" name="name" value="<%= club ? club.name : '' %>" required>
+    </div>
+
+    <div class="form-group">
+      <label for="venue">Club (practice) venue</label>
+      <select class="form-control" id="venue" name="venue">
+        <option value="">— none —</option>
+        <% venues.forEach(function(v){ %>
+          <option value="<%= v.id %>" <%= club && club.venue == v.id ? 'selected' : '' %>><%= v.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="matchVenue">Match venue</label>
+      <select class="form-control" id="matchVenue" name="matchVenue">
+        <option value="">— none —</option>
+        <% venues.forEach(function(v){ %>
+          <option value="<%= v.id %>" <%= club && club.matchVenue == v.id ? 'selected' : '' %>><%= v.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="matchNightText">Match night text</label>
+      <input type="text" class="form-control" id="matchNightText" name="matchNightText" value="<%= club && club.matchNightText ? club.matchNightText : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="clubNightText">Club night text</label>
+      <input type="text" class="form-control" id="clubNightText" name="clubNightText" value="<%= club && club.clubNightText ? club.clubNightText : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="clubNight">Club night</label>
+      <input type="text" class="form-control" id="clubNight" name="clubNight" value="<%= club && club.clubNight ? club.clubNight : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="clubNightCourts">Club night courts</label>
+      <input type="number" class="form-control" id="clubNightCourts" name="clubNightCourts" value="<%= club && club.clubNightCourts != null ? club.clubNightCourts : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="clubWebsite">Website</label>
+      <input type="text" class="form-control" id="clubWebsite" name="clubWebsite" value="<%= club && club.clubWebsite ? club.clubWebsite : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="contactUs">Contact us</label>
+      <input type="text" class="form-control" id="contactUs" name="contactUs" value="<%= club && club.contactUs ? club.contactUs : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="facebook">Facebook</label>
+      <input type="text" class="form-control" id="facebook" name="facebook" value="<%= club && club.facebook ? club.facebook : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="instagram">Instagram</label>
+      <input type="text" class="form-control" id="instagram" name="instagram" value="<%= club && club.instagram ? club.instagram : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="twitter">Twitter</label>
+      <input type="text" class="form-control" id="twitter" name="twitter" value="<%= club && club.twitter ? club.twitter : '' %>">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/admin/clubs" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>

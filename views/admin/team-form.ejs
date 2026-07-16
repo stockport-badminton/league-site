@@ -1,0 +1,100 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<% var isEdit = team && team.id; %>
+
+<div class="col-12">
+  <h1><%= isEdit ? 'Edit' : 'New' %> Team</h1>
+
+  <% if (!isEdit && teams && teams.length) { %>
+    <div class="form-group">
+      <label for="copyFrom">Copy attributes from an existing team (optional)</label>
+      <select class="form-control" id="copyFrom" onchange="if(this.value){window.location.href='/admin/teams/create?copyFrom='+this.value}">
+        <option value="">— start blank —</option>
+        <% teams.forEach(function(t){ %>
+          <option value="<%= t.id %>" <%= copyFrom == t.id ? 'selected' : '' %>><%= t.name %></option>
+        <% }) %>
+      </select>
+      <small class="form-text text-muted">Copies match day/time, venue, courtspace, club, division, section and handicap. No players or captain are carried over.</small>
+    </div>
+    <hr>
+  <% } %>
+
+  <form method="post" action="<%= isEdit ? '/admin/teams/' + team.id : '/admin/teams' %>">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" class="form-control" id="name" name="name" value="<%= team && team.name ? team.name : '' %>" required>
+    </div>
+
+    <div class="form-group">
+      <label for="club">Club</label>
+      <select class="form-control" id="club" name="club" required>
+        <option value="">— select —</option>
+        <% clubs.forEach(function(c){ %>
+          <option value="<%= c.id %>" <%= team && team.club == c.id ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="division">Division</label>
+      <select class="form-control" id="division" name="division" required>
+        <option value="">— select —</option>
+        <% divisions.forEach(function(dv){ %>
+          <option value="<%= dv.id %>" <%= team && team.division == dv.id ? 'selected' : '' %>><%= dv.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="venue">Venue</label>
+      <select class="form-control" id="venue" name="venue" required>
+        <option value="">— select —</option>
+        <% venues.forEach(function(v){ %>
+          <option value="<%= v.id %>" <%= team && team.venue == v.id ? 'selected' : '' %>><%= v.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="matchDay">Match day</label>
+      <input type="text" class="form-control" id="matchDay" name="matchDay" value="<%= team && team.matchDay ? team.matchDay : '' %>">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label for="starttime">Start time</label>
+        <input type="text" class="form-control" id="starttime" name="starttime" value="<%= team && team.starttime ? team.starttime : '' %>">
+      </div>
+      <div class="form-group col-md-6">
+        <label for="endtime">End time</label>
+        <input type="text" class="form-control" id="endtime" name="endtime" value="<%= team && team.endtime ? team.endtime : '' %>">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="courtspace">Court space</label>
+      <input type="number" class="form-control" id="courtspace" name="courtspace" value="<%= team && team.courtspace != null ? team.courtspace : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="section">Section (Messer)</label>
+      <input type="text" class="form-control" id="section" name="section" value="<%= team && team.section ? team.section : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="handicap">Handicap (Messer)</label>
+      <input type="text" class="form-control" id="handicap" name="handicap" value="<%= team && team.handicap ? team.handicap : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="rank">Rank (seed order)</label>
+      <input type="number" class="form-control" id="rank" name="rank" value="<%= team && team.rank != null ? team.rank : 0 %>">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/admin/teams" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>

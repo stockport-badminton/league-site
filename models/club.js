@@ -124,3 +124,25 @@ exports.updateById = async function(name, venue, clubId) {
   )
   return result
 }
+
+// Insert a club from an object of {column: value} pairs. Only the provided
+// keys are written, so optional columns can be omitted entirely. camelCase
+// columns are double-quoted (Postgres folds unquoted identifiers to lowercase).
+exports.createFull = async function(clubObj) {
+  if (!db.isObject(clubObj)) throw new Error('not valid object')
+  const keys = Object.keys(clubObj)
+  const cols = keys.map(k => `"${k}"`).join(',')
+  const placeholders = keys.map(() => '?').join(',')
+  const sql = `INSERT INTO club (${cols}) VALUES (${placeholders})`
+  const [result] = await (await db.otherConnect()).query(sql, Object.values(clubObj))
+  return result
+}
+
+// Update a club from an object of {column: value} pairs (only provided keys).
+exports.updateFull = async function(clubObj, clubId) {
+  if (!db.isObject(clubObj)) throw new Error('not valid object')
+  const setClauses = Object.keys(clubObj).map(k => `"${k}" = ?`).join(', ')
+  const sql = `UPDATE club SET ${setClauses} WHERE id = ?`
+  const [result] = await (await db.otherConnect()).query(sql, [...Object.values(clubObj), clubId])
+  return result
+}

@@ -194,3 +194,111 @@ exports.club_update_post = async function(req, res, next) {
     next(err);
   }
 };
+
+// ---------------------------------------------------------------------------
+// Superadmin admin UI — add / edit clubs (mirrors the homepage-content pattern)
+// ---------------------------------------------------------------------------
+
+function isSuperAdmin(req) {
+  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
+}
+
+function canonicalFor(req) {
+  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
+}
+
+// Build a {column: value} object from the club form. name is required; every
+// other field becomes null when left blank so edits can clear values. FK/int
+// columns are coerced to integers. matchSec/clubSec are intentionally excluded
+// (player references — assignable later once the club has a roster).
+function buildClubObj(body) {
+  const obj = { name: (body.name || '').trim() };
+  ['matchNightText', 'clubNightText', 'clubNight', 'clubWebsite', 'contactUs', 'facebook', 'instagram', 'twitter'].forEach(k => {
+    const v = (body[k] || '').trim();
+    obj[k] = v === '' ? null : v;
+  });
+  ['venue', 'matchVenue', 'clubNightCourts'].forEach(k => {
+    const n = parseInt(body[k], 10);
+    obj[k] = (body[k] == null || body[k] === '' || isNaN(n)) ? null : n;
+  });
+  return obj;
+}
+
+exports.admin_club_list = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const clubs = await Club.getAll();
+    res.render('admin/club-list', {
+      static_path: '/static',
+      pageTitle: 'Club Admin',
+      pageDescription: 'Add and edit clubs',
+      user: req.user,
+      clubs,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_club_createForm = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const venues = await Venue.getAll();
+    res.render('admin/club-form', {
+      static_path: '/static',
+      pageTitle: 'New Club',
+      pageDescription: 'Create a club',
+      user: req.user,
+      club: null,
+      venues,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_club_create = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const clubObj = buildClubObj(req.body);
+    if (!clubObj.name) return res.status(400).send('Club name is required');
+    await Club.createFull(clubObj);
+    res.redirect('/admin/clubs');
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_club_editForm = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const [club] = await Club.getById(req.params.id);
+    if (!club) return res.status(404).send('Not found');
+    const venues = await Venue.getAll();
+    res.render('admin/club-form', {
+      static_path: '/static',
+      pageTitle: 'Edit Club',
+      pageDescription: 'Edit a club',
+      user: req.user,
+      club,
+      venues,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_club_update = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const clubObj = buildClubObj(req.body);
+    if (!clubObj.name) return res.status(400).send('Club name is required');
+    await Club.updateFull(clubObj, req.params.id);
+    res.redirect('/admin/clubs');
+  } catch (err) {
+    next(err);
+  }
+};

@@ -385,6 +385,20 @@ router.post('/admin/homepage-content/:id/delete', secured, homepage_content_cont
 
 router.get('/admin/site-settings', secured, site_settings_controller.form);
 router.post('/admin/site-settings', secured, site_settings_controller.update);
+
+// League structure admin (superadmin only — role check in controller)
+router.get('/admin/clubs', secured, club_controller.admin_club_list);
+router.get('/admin/clubs/create', secured, club_controller.admin_club_createForm);
+router.post('/admin/clubs', secured, club_controller.admin_club_create);
+router.get('/admin/clubs/:id', secured, club_controller.admin_club_editForm);
+router.post('/admin/clubs/:id', secured, club_controller.admin_club_update);
+
+router.get('/admin/teams', secured, team_controller.admin_team_list);
+router.get('/admin/teams/create', secured, team_controller.admin_team_createForm);
+router.post('/admin/teams', secured, team_controller.admin_team_create);
+router.post('/admin/teams/:id/move', secured, team_controller.admin_team_move);
+router.get('/admin/teams/:id', secured, team_controller.admin_team_editForm);
+router.post('/admin/teams/:id', secured, team_controller.admin_team_update);
 router.get('/players/eloBackfillAdmin', secured, player_controller.player_elo_backfill_admin);
 router.get('/api/player-elo', player_controller.player_elo_history_api);
 router.get('/api/players/search', player_controller.player_search_api);

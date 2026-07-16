@@ -1,0 +1,67 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Team Admin</h1>
+  <p><a href="/admin/clubs">Club Admin</a></p>
+  <a class="btn btn-primary mb-3" href="/admin/teams/create">+ New Team</a>
+
+  <% divisions.forEach(function(d, dIndex){ %>
+    <h3 class="mt-4"><%= d.name %> <span class="text-muted" style="font-size:0.7em;">(<%= d.teams.length %> team<%= d.teams.length === 1 ? '' : 's' %>)</span></h3>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Club</th>
+          <th style="width:1%">Division</th>
+          <th style="width:1%">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (d.teams.length === 0) { %>
+          <tr><td colspan="4" class="text-muted"><em>No teams</em></td></tr>
+        <% } %>
+        <% d.teams.forEach(function(t){ %>
+          <tr>
+            <td><%= t.name %></td>
+            <td><%= t.clubName %></td>
+            <td class="text-nowrap">
+              <form style="display:inline" method="post" action="/admin/teams/<%= t.id %>/move">
+                <input type="hidden" name="direction" value="up">
+                <button type="submit" class="btn btn-sm btn-outline-success py-0" title="Promote"
+                  <%= dIndex === 0 ? 'disabled' : '' %>>&#9650;</button>
+              </form>
+              <form style="display:inline" method="post" action="/admin/teams/<%= t.id %>/move">
+                <input type="hidden" name="direction" value="down">
+                <button type="submit" class="btn btn-sm btn-outline-warning py-0" title="Relegate"
+                  <%= dIndex === divisions.length - 1 ? 'disabled' : '' %>>&#9660;</button>
+              </form>
+            </td>
+            <td class="text-nowrap">
+              <a href="/admin/teams/<%= t.id %>">Edit</a>
+              &nbsp;|&nbsp;
+              <a href="/admin/teams/create?copyFrom=<%= t.id %>">Copy</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% }) %>
+
+  <% if (unassigned && unassigned.length) { %>
+    <h3 class="mt-4 text-danger">Unassigned (no matching division)</h3>
+    <table class="table table-bordered table-sm">
+      <tbody>
+        <% unassigned.forEach(function(t){ %>
+          <tr>
+            <td><%= t.name %></td>
+            <td><%= t.clubName %></td>
+            <td><a href="/admin/teams/<%= t.id %>">Edit</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('../footer.ejs') %>

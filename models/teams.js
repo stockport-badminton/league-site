@@ -114,6 +114,29 @@ exports.updateById = async function(teamObj, teamId) {
   return result
 }
 
+// Insert a team from an object of {column: value} pairs. Only the provided
+// keys are written; camelCase columns (e.g. "matchDay") are double-quoted.
+exports.createFull = async function(teamObj) {
+  if (!db.isObject(teamObj)) throw new Error('not valid object')
+  const keys = Object.keys(teamObj)
+  const cols = keys.map(k => `"${k}"`).join(',')
+  const placeholders = keys.map(() => '?').join(',')
+  const sql = `INSERT INTO team (${cols}) VALUES (${placeholders})`
+  const [result] = await (await db.otherConnect()).query(sql, Object.values(teamObj))
+  return result
+}
+
+// Next divRank (max+1) within a division — used when moving a team into a
+// division so it sorts to the bottom until standings are finalised. divRank
+// is NOT NULL, so a moved team always needs a concrete value.
+exports.getNextDivRank = async function(divisionId) {
+  const [rows] = await (await db.otherConnect()).query(
+    'SELECT COALESCE(MAX("divRank"), 0) + 1 AS next FROM team WHERE division = ?',
+    divisionId
+  )
+  return rows[0].next
+}
+
 exports.getTeamsBySection = async function(section) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT id, name FROM team WHERE section = ? ORDER BY name',

@@ -1,0 +1,29 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Club Admin</h1>
+  <p><a href="/admin/teams">Team Admin</a></p>
+  <a class="btn btn-primary mb-3" href="/admin/clubs/create">+ New Club</a>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Website</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% clubs.forEach(function(c){ %>
+        <tr>
+          <td><%= c.name %></td>
+          <td><%= c.clubWebsite || '' %></td>
+          <td><a href="/admin/clubs/<%= c.id %>">Edit</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../footer.ejs') %>
