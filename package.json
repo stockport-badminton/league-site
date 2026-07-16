@@ -2,7 +2,7 @@
   "name": "Elastic-Beanstalk-Sample-App",
   "version": "0.0.1",
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "private": true,
   "dependencies": {

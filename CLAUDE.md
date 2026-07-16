@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Overview
 
 **Stockport Badminton League Website** — A full-stack Node.js app using:
-- **Backend**: Express.js server (Node 18.x)
+- **Backend**: Express.js server (Node 22.x)
 - **Database**: PostgreSQL (Supabase) — uses `DATABASE_URL` connection string
 - **Authentication**: Auth0 (OAuth 2.0 with Auth0 hosted login)
 - **Session Store**: PostgreSQL (via `connect-pg-simple`)
@@ -195,7 +195,7 @@ Messer is a 15-game knockout (vs. 18-game regular fixtures):
 
 ## Docker & Deployment
 
-- **Dockerfile**: Alpine Node 18 + ffmpeg + fontconfig + ttf-liberation
+- **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation
 - **Target**: Google Cloud Run (requires `__session` cookie name, `PORT` env var)
 - **Build**: `npm ci --omit=dev` (clean install, no dev dependencies)
 - **Entry**: `node app.js`
