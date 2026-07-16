@@ -124,8 +124,12 @@ var port = process.env.PORT || 8080;
 if (require.main === module) {
   try {
     db.connect();
-    app.listen(port, function() {
-      console.log('Server running at http://127.0.0.1:' + port + '/');
+    // Resolve the current/previous season from the DB (cached) before serving,
+    // so all season-scoped queries agree on which season is "current".
+    require('./models/season').init().finally(function() {
+      app.listen(port, function() {
+        console.log('Server running at http://127.0.0.1:' + port + '/');
+      });
     });
   } catch {
     console.log('Unable to connect to database.');

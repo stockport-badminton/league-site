@@ -1,9 +1,5 @@
 var db = require('../db_connect.js');
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
 
 exports.create = async function(name, starttime, endtime, matchDay, venue, courtspace, club, division, rank) {
   const [result] = await (await db.otherConnect()).query(

@@ -1,10 +1,7 @@
 var db = require('../db_connect.js');
+var seasonModel = require("./season");
 const levenshtein = require('js-levenshtein');
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
 
 // POST
 exports.create = async function(first_name, family_name, team, club, gender) {
@@ -231,7 +228,7 @@ exports.getNamesClubsTeams = async function(searchTerms) {
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
-    if (firstYear < 2018 || season == SEASON) return false
+    if (firstYear < 2018 || season == seasonModel.current()) return false
     return true
   }
 
@@ -376,14 +373,14 @@ JOIN team ON player.team = team.id`
 
 exports.newGetPlayerStats = async function(searchObj) {
   let season = ""
-  let seasonString = SEASON
+  let seasonString = seasonModel.current()
   let whereValue = []
 
   function checkSeason(season) {
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
-    if (firstYear < 2012 || season == SEASON) return false
+    if (firstYear < 2012 || season == seasonModel.current()) return false
     return true
   }
 
@@ -577,7 +574,7 @@ ORDER BY
 
 exports.newGetPairStats = async function(searchObj) {
   let season = ""
-  let seasonString = SEASON
+  let seasonString = seasonModel.current()
   let divisionSql = ""
   let whereValue = []
 
@@ -585,7 +582,7 @@ exports.newGetPairStats = async function(searchObj) {
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
-    if (firstYear < 2012 || season == SEASON) return false
+    if (firstYear < 2012 || season == seasonModel.current()) return false
     return true
   }
 

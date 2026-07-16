@@ -1,12 +1,5 @@
 var db = require('../db_connect.js');
-
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
-const PREVSEASON = new Date().getMonth() < 7
-  ? `${year - 2}${year - 1}`
-  : `${year - 1}${year}`
+var seasonModel = require('./season');
 
 exports.create = async function(name, admin, url) {
   const [result] = await (await db.otherConnect()).query(
@@ -40,7 +33,7 @@ exports.updateById = async function(name, admin, url, leagueId) {
 }
 
 exports.getLeagueTable = async function(division, season) {
-  const resolvedSeason = season || SEASON
+  const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season} AS team` : 'team'
   division = division.replace('-', ' ')
   const [result] = await (await db.otherConnect()).query(
@@ -80,7 +73,7 @@ exports.getLeagueTable = async function(division, season) {
 
 exports.getAnnualInvoices = async function(clubName) {
   const clubFilter = typeof clubName !== 'undefined' ? 'WHERE club.name = ?' : ''
-  const params = [process.env.DB_PI_KEY, SEASON, PREVSEASON, SEASON]
+  const params = [process.env.DB_PI_KEY, seasonModel.current(), seasonModel.previous(), seasonModel.current()]
   if (typeof clubName !== 'undefined') params.push(clubName)
 
   const sql = `SELECT club.id AS "clubId",
@@ -111,7 +104,7 @@ exports.getAnnualInvoices = async function(clubName) {
 }
 
 exports.getAllLeagueTables = async function(season) {
-  const resolvedSeason = season || SEASON
+  const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season} AS team` : 'team'
   const divisionTable = season ? `division${season} AS division` : 'division'
   const [result] = await (await db.otherConnect()).query(
@@ -152,7 +145,7 @@ exports.getAllLeagueTables = async function(season) {
 }
 
 exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
-  const resolvedSeason = season || SEASON
+  const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season}` : 'team'
   const divisionTable = season ? `division${season}` : 'division'
   const [result] = await (await db.otherConnect()).query(`WITH standings AS (

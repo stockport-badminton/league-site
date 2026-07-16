@@ -1,4 +1,5 @@
 var Club = require('../models/club.js');
+var seasonModel = require("../models/season");
 var League = require('../models/league.js');
 var Player = require('../models/players.js');
 require('dotenv').config()
@@ -15,11 +16,7 @@ const fs = require('fs');
 const { networkInterfaces } = require('node:os');
 const { find } = require('async');
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}/${year}`
-  : `${year}/${year + 1}`
-const FIRSTYEAR = new Date().getMonth() < 7 ? `${year - 1}` : `${year}`
+const FIRSTYEAR = new Date().getMonth() < 7 ? `${new Date().getFullYear() - 1}` : `${new Date().getFullYear()}`
 
 exports.generateContactUsHTML = function(message, email) {
   return `
@@ -595,7 +592,7 @@ exports.send_invoices = async function(req, res, next) {
     for (let club of rows) {
       let data = {};
       data.fines = [];
-      data.season = SEASON;
+      data.season = seasonModel.current();
       data.firstYear = FIRSTYEAR;
       data.name = club.clubName;
       data.teamsCount = club.teamsCount;

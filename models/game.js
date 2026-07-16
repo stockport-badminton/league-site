@@ -1,9 +1,6 @@
 var db = require('../db_connect.js');
+var seasonModel = require("./season");
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
 
 // ── ELO tuning constants ──────────────────────────────────────────────────
 // Points added per division-rank of gap between a player's registered
@@ -175,7 +172,7 @@ exports.calculateRating = function(game, fixturePlayers, endDate, division) {
 // Returns all ELO-processed games for a season in chronological order.
 // Used by the audit tool to check rating chain consistency.
 exports.getSeasonGamesOrdered = async function(seasonName) {
-  const sName = seasonName || SEASON
+  const sName = seasonName || seasonModel.current()
   const [result] = await (await db.otherConnect()).query(`
     SELECT
       game.id,
@@ -214,7 +211,7 @@ exports.resetAllElo = async function() {
 // Zeros out all ELO start/end values for a season so it can be recalculated
 // from scratch in date order.  Defaults to the current season.
 exports.resetSeasonElo = async function(seasonName) {
-  const sName = seasonName || SEASON
+  const sName = seasonName || seasonModel.current()
   await (await db.otherConnect()).query(`
     UPDATE game SET
       "homePlayer1Start" = 0, "homePlayer2Start" = 0,

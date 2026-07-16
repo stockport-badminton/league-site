@@ -1,4 +1,5 @@
 var Division = require('../models/division');
+var seasonModel = require("../models/season");
 var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
@@ -10,10 +11,6 @@ var AWS = require('aws-sdk');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
 
 
 
@@ -255,10 +252,10 @@ exports.fixture_calendars = async function(req,res,next){
       let result = await Fixture.getFixtureDetails(searchObj);
       {
           result = result.filter(row => row.homeClub.indexOf('No Club') == -1)
-          let id = (searchObj.season != undefined ? searchObj.season:SEASON) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
+          let id = (searchObj.season != undefined ? searchObj.season:seasonModel.current()) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
 
           const jcal = new ICAL.Component('vcalendar');
-          jcal.addPropertyWithValue('prodid', (searchObj.season != undefined ? searchObj.season:SEASON) +"/"+ (searchObj.division != undefined ? searchObj.division:"") +"/"+ (searchObj.club != undefined ? searchObj.club:"") +"/"+ (searchObj.team != undefined ? searchObj.team:""));
+          jcal.addPropertyWithValue('prodid', (searchObj.season != undefined ? searchObj.season:seasonModel.current()) +"/"+ (searchObj.division != undefined ? searchObj.division:"") +"/"+ (searchObj.club != undefined ? searchObj.club:"") +"/"+ (searchObj.team != undefined ? searchObj.team:""));
           jcal.addPropertyWithValue('version', '2.0');
           const vcalendar = jcal
 

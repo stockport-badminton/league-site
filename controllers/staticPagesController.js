@@ -1,9 +1,6 @@
 const axios = require('axios');
+var seasonModel = require("../models/season");
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}/${year}`
-  : `${year}/${year + 1}`
 
 exports.privacy_policy = function(req, res) {
   res.render('privacy', {
@@ -62,7 +59,7 @@ exports.get_gallery = async function(req, res, next) {
 
 exports.rules = function(req, res) {
   res.render('rules', {
-    season: SEASON,
+    season: seasonModel.current(),
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
     flask_debug: process.env.FLASK_DEBUG || 'false',

@@ -1,10 +1,7 @@
 var db = require('../db_connect.js');
+var seasonModel = require("./season");
 const axios = require('axios');
 
-const year = new Date().getFullYear()
-const SEASON = new Date().getMonth() < 7
-  ? `${year - 1}${year}`
-  : `${year}${year + 1}`
 
 exports.create = async function(fixtureObj) {
   if (!db.isObject(fixtureObj)) throw new Error('not object')
@@ -63,9 +60,9 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
     searchTerms.push('c.teamName = ?')
     sqlArray.push(fixtureObj.team)
   }
-  if (!fixtureObj.season || fixtureObj.season == SEASON) {
+  if (!fixtureObj.season || fixtureObj.season == seasonModel.current()) {
     searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
-    sqlArray.push(SEASON)
+    sqlArray.push(seasonModel.current())
   } else {
     searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
     sqlArray.push(fixtureObj.season)
@@ -115,7 +112,7 @@ team awayTeam ON fixture."awayTeam" = awayTeam.id LEFT JOIN
 scorecardstore ON (fixture.date = scorecardstore.date AND fixture."homeTeam" = scorecardstore."homeTeam" AND fixture."awayTeam" = scorecardstore."awayTeam")
 WHERE season.name = ? AND fixture.status NOT IN ('rearranged','rearranging','conceded','void')
 ORDER BY date) AS a
-WHERE date < NOW() AND "scoreCardId" IS NULL`, [SEASON])
+WHERE date < NOW() AND "scoreCardId" IS NULL`, [seasonModel.current()])
   return result
 }
 
@@ -202,7 +199,7 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
   }
   if (!fixtureObj.season) {
     searchTerms.push('season.name = ? AND e.date > season."startDate" AND e.date < season."endDate"')
-    sqlArray.push(SEASON)
+    sqlArray.push(seasonModel.current())
   } else {
     searchTerms.push('season.name = ? AND e.date > season."startDate" AND e.date < season."endDate"')
     sqlArray.push(fixtureObj.season)
@@ -236,7 +233,7 @@ exports.getFixtureDetails = async function(searchObj) {
     const firstYear = parseInt(season.slice(0, 4))
     const secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
-    if (firstYear < 2012 || season == SEASON) return false
+    if (firstYear < 2012 || season == seasonModel.current()) return false
     return true
   }
 
@@ -244,7 +241,7 @@ exports.getFixtureDetails = async function(searchObj) {
   const sqlArray = []
 
   if (fixtureObj.season === undefined || !checkSeason(fixtureObj.season)) {
-    sqlArray.push(SEASON)
+    sqlArray.push(seasonModel.current())
   } else {
     season = fixtureObj.season
     sqlArray.push(fixtureObj.season)
@@ -423,7 +420,7 @@ exports.getFixtureId = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
   const [result] = await (await db.otherConnect()).query(
     'SELECT id FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name=? AND fixture.date > season."startDate") AS a WHERE a."awayTeam" = ? AND a."homeTeam" = ?',
-    [SEASON, obj.awayTeam, obj.homeTeam]
+    [seasonModel.current(), obj.awayTeam, obj.homeTeam]
   )
   return result
 }
@@ -432,7 +429,7 @@ exports.getOutstandingFixtureId = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
   const [result] = await (await db.otherConnect()).query(
     `SELECT a.id, division.name, division.rank FROM (SELECT id, "homeTeam" FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam", status FROM fixture, season WHERE season.name = ? AND fixture.date > season."startDate") AS a WHERE a."awayTeam" = ? AND a."homeTeam" = ? AND status = 'outstanding') AS a JOIN team ON a."homeTeam" = team.id JOIN division ON team.division = division.id`,
-    [SEASON, obj.awayTeam, obj.homeTeam]
+    [seasonModel.current(), obj.awayTeam, obj.homeTeam]
   )
   if (!result.length || !result[0].id) throw new Error('no matching fixtures')
   return result
@@ -444,11 +441,11 @@ exports.rearrangeByTeamNames = async function(updateObj) {
   const conn = await db.otherConnect()
 
   if (updateObj.date == null || updateObj.date == '') {
-    const sql = `UPDATE fixture SET status = 'rearranging' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${SEASON}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
+    const sql = `UPDATE fixture SET status = 'rearranging' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${seasonModel.current()}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
     const [result] = await conn.query(sql, [updateObj.awayTeam, updateObj.homeTeam])
     return result
   } else {
-    const updateSql = `UPDATE fixture SET status = 'rearranged' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${SEASON}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
+    const updateSql = `UPDATE fixture SET status = 'rearranged' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${seasonModel.current()}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
     await conn.query(updateSql, [updateObj.awayTeam, updateObj.homeTeam])
 
     const insertSql = `INSERT INTO fixture ("homeTeam", "awayTeam", date, status) VALUES ((SELECT id FROM team WHERE name = ?), (SELECT id FROM team WHERE name = ?), ?, 'outstanding')`
@@ -579,7 +576,7 @@ season.name = ?
 AND "scoresheet-url" = ''
 ${email == 'stockport.badders.results@gmail.com' ? '' : "AND email = ? \nAND status NOT LIKE 'complete'"}`
 
-  const params = email == 'stockport.badders.results@gmail.com' ? [SEASON] : [SEASON, email]
+  const params = email == 'stockport.badders.results@gmail.com' ? [seasonModel.current()] : [seasonModel.current(), email]
   const [result] = await (await db.otherConnect()).query(sql, params)
   return result
 }
