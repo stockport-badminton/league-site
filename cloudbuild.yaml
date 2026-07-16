@@ -1,7 +1,21 @@
 steps:
+  # Pull the previous image so its layers seed the build cache below.
+  # First ever build (no :latest yet) is a harmless no-op thanks to `|| true`.
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull europe-west2-docker.pkg.dev/stockport-badminton-map/league-site/app:latest || true
+
+  # --cache-from reuses the pulled image's layers. Because the Dockerfile copies
+  # package*.json + runs `npm ci` before copying source, the (slow) dependency
+  # layer is skipped whenever package*.json is unchanged.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--cache-from'
+      - 'europe-west2-docker.pkg.dev/stockport-badminton-map/league-site/app:latest'
       - '-t'
       - 'europe-west2-docker.pkg.dev/stockport-badminton-map/league-site/app:$COMMIT_SHA'
       - '-t'

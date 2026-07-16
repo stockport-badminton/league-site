@@ -6,7 +6,12 @@ var PRECACHE_URLS = [
   '/static/beta/css/custom.css',
   '/touch-icon-192x192.png',
   '/favicon.ico',
-  '/static/generated/venues-map.png'
+  '/static/generated/venues-map.png',
+  // Self-hosted vendor CSS/JS so offline pages keep Bootstrap layout + working nav.
+  '/scripts/bootstrap/dist/css/bootstrap.min.css',
+  '/scripts/jquery/dist/jquery.min.js',
+  '/scripts/popper.js/dist/umd/popper.min.js',
+  '/scripts/bootstrap/dist/js/bootstrap.min.js'
 ];
 
 // Static-content pages precached as an anonymous (logged-out) snapshot, so a
@@ -15,6 +20,7 @@ var PRECACHE_URLS = [
 // cached copy is always the logged-out render, regardless of whether the
 // installing browser happens to be logged in - never a personalized page.
 var OFFLINE_SNAPSHOT_PATHS = [
+  '/offline-home',
   '/rules',
   '/messer-rules',
   '/privacy-policy',
@@ -107,6 +113,13 @@ self.addEventListener('fetch', function(event) {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(function() {
+        // Homepage: serve the stripped, anonymous /offline-home snapshot so an
+        // offline landing still shows nav + branding + news, not the bare page.
+        if (url.pathname === '/') {
+          return caches.match('/offline-home').then(function(cached) {
+            return cached || caches.match(OFFLINE_URL);
+          });
+        }
         if (OFFLINE_SNAPSHOT_PATHS.indexOf(url.pathname) !== -1) {
           return caches.match(url.pathname).then(function(cached) {
             return cached || caches.match(OFFLINE_URL);

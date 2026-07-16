@@ -1,9 +1,33 @@
+# Dependencies (reinstalled via npm ci in the image)
 node_modules
-.env
-*.log
 .git
+
+# Secrets / env — must NEVER be baked into the image
+.env
+dev.env
+*.pem
+client_id.json
+
+# Logs / OS / editor / tooling cruft
+*.log
+.DS_Store
+.claude/
+.vscode/
+
+# Tests
 __tests__
 __fordeletion__
+
+# Scratch / legacy / manual-only dirs (not needed at runtime)
+_amplience/
+_tools/
+migrations/
+scripts/
+
+# Runtime-generated assets (rebuilt at runtime / served from S3)
+# NOTE: static/beta/docs is intentionally NOT ignored — nav links serve those files.
 static/beta/images/generated
+static/beta/videos/generated/
+static/generated/
 output/
 scorecard-analysis/

@@ -315,6 +315,7 @@ router.get('/venues', venue_controller.venue_list);
 
 // Homepage and gallery
 router.get('/', fixture_controller.fixture_get_summary);
+router.get('/offline-home', fixture_controller.fixture_get_offline_home);
 router.get('/gallery', static_controller.get_gallery);
 
 // Wildcard fixture/result routes

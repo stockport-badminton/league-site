@@ -492,6 +492,30 @@ exports.fixture_get_summary = async function(req, res, next) {
   }
 };
 
+// Static-friendly homepage used as the offline fallback for `/`. Omits the
+// dynamic fixture sections (upcoming/recent/outstanding) and the Cloudinary
+// gallery — just nav, branding and the CMS announcements — so the service
+// worker can snapshot an anonymous copy at install time and serve it offline.
+exports.fixture_get_offline_home = async function(req, res, next) {
+  try {
+    const announcements = await HomepageContent.getActive();
+    res.render('homepage', {
+      static_path: '/static',
+      pageTitle: "Homepage",
+      pageDescription: "Stockport & District Badminton League — social and competitive badminton in and around Stockport.",
+      offline: true,
+      result: [],
+      row: [],
+      scorecards: [],
+      assets: [],
+      announcements,
+      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.fixture_batch_create = async function(req, res, next) {
   try {
     const result = await Fixture.createBatch(req.body);
