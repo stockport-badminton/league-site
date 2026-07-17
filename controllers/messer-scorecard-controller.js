@@ -661,7 +661,7 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
 
     const params = {
       Destination: {
-        ToAddresses: ['stockport.badders.results@gmail.com'],
+        ToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
       },
       Message: {
         Body: {
@@ -682,7 +682,7 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
         },
       },
       Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
+      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
     const ses = new AWS.SES({ apiVersion: '2010-12-01' });
@@ -719,7 +719,7 @@ async function sendMesserApprovalEmail(scorecardData) {
         },
       },
       Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
+      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
     const ses = new AWS.SES({ apiVersion: '2010-12-01' });
@@ -755,7 +755,7 @@ async function sendMesserRejectionEmail(scorecardData) {
         },
       },
       Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
+      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
     const ses = new AWS.SES({ apiVersion: '2010-12-01' });

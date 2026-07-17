@@ -37,6 +37,11 @@
       "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
     },
     {
+      "name": "Rules",
+      "url": "/rules",
+      "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Enter Result",
       "url": "/email-scorecard",
       "icons": [{ "src": "touch-icon-192x192.png", "sizes": "192x192" }]
