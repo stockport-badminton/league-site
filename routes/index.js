@@ -400,6 +400,7 @@ router.post('/admin/teams', secured, team_controller.admin_team_create);
 router.post('/admin/teams/:id/move', secured, team_controller.admin_team_move);
 router.get('/admin/teams/:id', secured, team_controller.admin_team_editForm);
 router.post('/admin/teams/:id', secured, team_controller.admin_team_update);
+router.post('/admin/fixture/:id/date', secured, fixture_controller.admin_fixture_date_update);
 router.get('/players/eloBackfillAdmin', secured, player_controller.player_elo_backfill_admin);
 router.get('/api/player-elo', player_controller.player_elo_history_api);
 router.get('/api/players/search', player_controller.player_search_api);

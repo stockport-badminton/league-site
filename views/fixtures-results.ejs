@@ -65,6 +65,10 @@
         MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
                      + ('0' + (MyDate.getMonth()+1)).slice(-2) + '/'
                      + MyDate.getFullYear();
+
+        var isoDate = MyDate.getFullYear() + '-'
+                    + ('0' + (MyDate.getMonth()+1)).slice(-2) + '-'
+                    + ('0' + MyDate.getDate()).slice(-2);
       %>
 
       <% if (row['status'] == 'rearranging'){
@@ -102,7 +106,14 @@
 
       <tr class="<%= rowClass %>">
 
+          <% if (typeof superadmin !== 'undefined' && superadmin) { %>
+          <td class="fixture-date" data-fixture-id="<%= row['id'] %>" data-iso="<%= isoDate %>">
+            <span class="fd-text"><%= MyDateString %></span>
+            <a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><i class="fa fa-pencil"></i></a>
+          </td>
+          <% } else { %>
           <td><%= MyDateString %></td>
+          <% } %>
           <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
           <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){
@@ -310,7 +321,48 @@
             });
       })
 
-      
+      // Inline fixture date edit (superadmin): edits the existing date in place.
+      $('#results-table').on('click', '.fd-edit', function(e){
+        e.preventDefault();
+        var $cell = $(this).closest('.fixture-date');
+        if ($cell.find('input.fd-input').length) return; // already editing
+        $cell.data('prev', $cell.html());
+        $cell.html(
+          '<input type="date" class="fd-input" value="' + $cell.attr('data-iso') + '" style="width:150px;"> '
+          + '<a href="#" class="fd-save" title="Save">✓</a> '
+          + '<a href="#" class="fd-cancel" title="Cancel">✕</a> '
+          + '<div class="fd-msg" style="color:#a5342b;font-size:12px;"></div>'
+        );
+        $cell.find('input.fd-input').focus();
+      });
+      $('#results-table').on('click', '.fd-cancel', function(e){
+        e.preventDefault();
+        var $cell = $(this).closest('.fixture-date');
+        $cell.html($cell.data('prev'));
+      });
+      $('#results-table').on('click', '.fd-save', function(e){
+        e.preventDefault();
+        var $cell = $(this).closest('.fixture-date');
+        var id = $cell.attr('data-fixture-id');
+        var val = $cell.find('input.fd-input').val();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) { $cell.find('.fd-msg').text('Pick a valid date'); return; }
+        $cell.find('.fd-save, .fd-cancel').hide();
+        $.ajax({ url: '/admin/fixture/' + id + '/date', method: 'POST', data: { date: val } })
+          .done(function(){
+            var p = val.split('-');
+            $cell.attr('data-iso', val);
+            $cell.html('<span class="fd-text">' + p[2] + '/' + p[1] + '/' + p[0] + '</span> '
+              + '<a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><i class="fa fa-pencil"></i></a>');
+          })
+          .fail(function(xhr){
+            $cell.find('.fd-msg').text((xhr.responseJSON && xhr.responseJSON.error) || 'Save failed');
+            $cell.find('.fd-save, .fd-cancel').show();
+          });
+      });
+      $('#results-table').on('keydown', 'input.fd-input', function(e){
+        if (e.key === 'Enter') { e.preventDefault(); $(this).closest('.fixture-date').find('.fd-save').click(); }
+        else if (e.key === 'Escape') { $(this).closest('.fixture-date').find('.fd-cancel').click(); }
+      });
   </script>
 <% } %>
 

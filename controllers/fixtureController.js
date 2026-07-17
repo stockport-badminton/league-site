@@ -571,3 +571,26 @@ exports.fixture_update_post = async function(req, res, next) {
     res.send(err);
   }
 };
+
+function isSuperAdmin(req) {
+  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
+}
+
+// Inline date edit from the admin results grid (session-secured, superadmin only).
+// Edits the existing fixture's date in place — distinct from the rearrangement flow,
+// which archives the old fixture and inserts a new one.
+exports.admin_fixture_date_update = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const date = (req.body.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Invalid date — expected YYYY-MM-DD' });
+  }
+  try {
+    // Store as a wall-clock string to avoid the TIMESTAMP -> JS Date off-by-one.
+    const result = await Fixture.updateById({ date: date + ' 00:00:00' }, req.params.id);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Fixture not found' });
+    res.json({ ok: true, id: req.params.id, date });
+  } catch (err) {
+    next(err);
+  }
+};
