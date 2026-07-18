@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+const Sentry = require('@sentry/node');
 var AWS = require('aws-sdk');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
@@ -439,13 +440,20 @@ router.use(function(req, res) {
 });
 
 router.use(function(error, req, res, next) {
-  res.status(500);
-  res.render('500-error', {
-    static_path: '/static',
-    pageTitle: 'HTTP 500 Error',
-    pageDescription: 'HTTP 500 Error',
-    error: error,
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+  // Report to Sentry before rendering. Flush first so the event is sent while
+  // Cloud Run still has CPU allocated — post-response CPU is throttled, which
+  // can drop a fire-and-forget send. Flush is capped so the error page isn't
+  // held up if Sentry is slow/unreachable.
+  Sentry.captureException(error);
+  Sentry.flush(2000).catch(() => {}).finally(function() {
+    res.status(500);
+    res.render('500-error', {
+      static_path: '/static',
+      pageTitle: 'HTTP 500 Error',
+      pageDescription: 'HTTP 500 Error',
+      error: error,
+      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    });
   });
 });
 
