@@ -1,3 +1,7 @@
+// Sentry instrumentation — must load before express and other modules.
+require('./instrument');
+const Sentry = require('@sentry/node');
+
 require('dotenv').config();
 
 var AWS = require('aws-sdk');
@@ -117,6 +121,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use(require('./routes'));
+
+// Sentry error handler — must be after all routes, before any other error middleware.
+Sentry.setupExpressErrorHandler(app);
 
 var db = require('./db_connect');
 var port = process.env.PORT || 8080;

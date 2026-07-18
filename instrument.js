@@ -1,0 +1,14 @@
+// Sentry server-side instrumentation.
+// MUST be required first in app.js (before express and other modules) so Sentry
+// can auto-instrument them. If SENTRY_DSN is unset, Sentry.init is a no-op — so
+// this is safe to run locally / in any environment without extra config.
+require('dotenv').config();
+const Sentry = require('@sentry/node');
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV || 'development',
+  // Errors only — no performance tracing spans (keeps free-tier quota for real errors).
+  tracesSampleRate: 0,
+  sendDefaultPii: false,
+});
