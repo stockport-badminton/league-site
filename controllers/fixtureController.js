@@ -350,7 +350,6 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       }
       const result = await Fixture.getFixtureDetails(searchObj);
       const nearestFixture = getNearestFixture(result)
-      console.log(`nearestFixture: ${nearestFixture[0].date}`)
       var type = '';
       if (req.path.indexOf('results-grid') > -1) type = '-grid'
       const griddedData = buildGridData(result)
@@ -366,7 +365,6 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
       }
       applyAdminRole(renderObject, req)
-      console.log(renderObject)
       res.render('fixtures-results' + type, renderObject);
     } else {
       var convertedParams = req.params[0].replace('Premier', 'division-7')
@@ -393,7 +391,6 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       }
       const result = await Fixture.getFixtureDetails(searchObj);
       const nearestFixture = getNearestFixture(result)
-      console.log(`nearestFixture: ${nearestFixture[0].date}`)
       var type = '';
       if (req.path.indexOf('results-grid') > -1) type = '-grid'
       const griddedData = buildGridData(result)
@@ -429,7 +426,6 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         res.send(result);
       } else {
         res.status(200);
-        console.log(renderObject.jsonResult)
         res.render('fixtures-results' + type, renderObject);
       }
     }
