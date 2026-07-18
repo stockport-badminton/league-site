@@ -38,10 +38,19 @@ exports.init = async function() {
 exports.current = function() { return _current || dateBasedSeason(0); };
 exports.previous = function() { return _previous || dateBasedSeason(1); };
 
-// All seasons, newest first — used to build the History nav / archive page.
+// Seasons that have an archived data snapshot (a team<season> table), newest
+// first — used to build the History nav / archive. Seasons in the season table
+// without a snapshot (e.g. 2020-21 COVID, or the current season) are excluded,
+// since /results and /tables would 500 on a missing table.
 exports.getAll = async function() {
   const [rows] = await (await db.otherConnect()).query(
-    'SELECT name, label FROM season ORDER BY "startDate" DESC'
+    `SELECT s.name, s.label
+     FROM season s
+     WHERE EXISTS (
+       SELECT 1 FROM information_schema.tables t
+       WHERE t.table_name = 'team' || s.name
+     )
+     ORDER BY s."startDate" DESC`
   );
   return rows;
 };
