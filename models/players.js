@@ -869,7 +869,7 @@ exports.getByNameAndTeam = async function(playerName, teamId, distance) {
 
 exports.getById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS playerEmail, pgp_sym_decrypt(\"playerTel\", '" + process.env.DB_PI_KEY + "')::text AS playerTel, \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, junior FROM player WHERE id = ?",
+    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", '" + process.env.DB_PI_KEY + "')::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, junior FROM player WHERE id = ?",
     playerId
   )
   return result
@@ -877,7 +877,7 @@ exports.getById = async function(playerId) {
 
 exports.getPlayerClubandTeamById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT playerId, playerName, clubName, team.name AS teamName, date_of_registration FROM (SELECT playerId, playerName, club.name AS clubName, teamId, date_of_registration FROM (SELECT player.id AS playerId, CONCAT(player.first_name,' ',player.family_name) AS playerName, player.club AS clubID, player.team AS teamId, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
+    "SELECT playerId AS \"playerId\", playerName AS \"playerName\", clubName AS \"clubName\", team.name AS \"teamName\", date_of_registration FROM (SELECT playerId, playerName, club.name AS clubName, teamId, date_of_registration FROM (SELECT player.id AS playerId, CONCAT(player.first_name,' ',player.family_name) AS playerName, player.club AS clubID, player.team AS teamId, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
     [playerId]
   )
   return result
@@ -912,7 +912,7 @@ CASE
     WHEN "homePlayer2" = ? THEN "homePlayer2"
     WHEN "awayPlayer1" = ? THEN "awayPlayer1"
     WHEN "awayPlayer2" = ? THEN "awayPlayer2"
-    END AS playerId,
+    END AS "playerId",
 CASE
     WHEN "homePlayer1" = ? THEN "homePlayer1End"
     WHEN "homePlayer2" = ? THEN "homePlayer2End"
@@ -940,7 +940,7 @@ FROM game
     ORDER BY date DESC, game.id DESC
     LIMIT 1) AS a
     UNION ALL
-SELECT player.id AS playerId, 1500 AS rating, ? AS date, division.rank FROM player JOIN
+SELECT player.id AS "playerId", 1500 AS rating, ? AS date, division.rank FROM player JOIN
 team ON player.team = team.id JOIN
 division ON team.division = division.id
 WHERE player.id = ?) AS b

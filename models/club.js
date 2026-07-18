@@ -81,7 +81,7 @@ exports.getContactDetailsById = async function(clubId) {
             pgp_sym_decrypt(matchSec."playerEmail", 'euvbdijnyvshmcf')::text AS matchSecEmail,
             CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubSecretary,
             pgp_sym_decrypt(clubSec."playerTel", 'euvbdijnyvshmcf')::text AS clubSecTel,
-            pgp_sym_decrypt(clubSec."playerEmail", 'euvbdijnyvshmcf')::text AS clubSecEmail,
+            pgp_sym_decrypt(clubSec."playerEmail", 'euvbdijnyvshmcf')::text AS "clubSecEmail",
             CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamCaptain,
             pgp_sym_decrypt(teamCaptain."playerTel", 'euvbdijnyvshmcf')::text AS teamCaptainTel,
             pgp_sym_decrypt(teamCaptain."playerEmail", 'euvbdijnyvshmcf')::text AS teamCaptainEmail

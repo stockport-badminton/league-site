@@ -25,7 +25,7 @@ exports.getAll = async function() {
 
 exports.getVenueClubs = async function() {
   const [result] = await (await db.otherConnect()).query(
-    `SELECT venueName, "Lat", "Lng", STRING_AGG(venueClubsHTML, '<br />') AS venueInfoBox
+    `SELECT venueName, "Lat", "Lng", STRING_AGG(venueClubsHTML, '<br />') AS "venueInfoBox"
      FROM (
        SELECT venueName, "Lat", "Lng",
          concat('<strong id="firstHeading" class="firstHeading"><a href="',"clubWebsite",'">',clubName,'</a></strong><div id="bodyContent"><p>Match Night:',"matchNightText",'<br />Club Night:',"clubNightText",'<br />Address:<a href="',"gMapUrl",'">',address,'</a></p></div>') AS venueClubsHTML
