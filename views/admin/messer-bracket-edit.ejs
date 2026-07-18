@@ -1,0 +1,82 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Messer Bracket — <%= section %> Section</h1>
+  <p><a href="/admin/messer-bracket">← Both sections</a></p>
+
+  <% if (saved) { %>
+    <div class="alert alert-success">Bracket wiring saved.</div>
+  <% } %>
+
+  <% if (warnings && warnings.length) { %>
+    <div class="alert alert-warning">
+      <strong>Check these before relying on auto-advance:</strong>
+      <ul class="mb-0">
+        <% warnings.forEach(function(w){ %><li><%= w %></li><% }) %>
+      </ul>
+    </div>
+  <% } %>
+
+  <p class="text-muted">
+    <strong>Round</strong> orders the draw (1 = first round). <strong>Next slot</strong> is the
+    draw position the winner advances to; <strong>side</strong> is which half of that match they
+    fill. Leave next slot &amp; side blank for a section final.
+  </p>
+
+  <form method="POST" action="/admin/messer-bracket/<%= section %>-section">
+    <table class="table table-bordered table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Slot</th>
+          <th>Current matchup</th>
+          <th>Score</th>
+          <th style="width:6rem">Round</th>
+          <th style="width:9rem">Next slot</th>
+          <th style="width:8rem">Side</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function(r){ %>
+          <tr>
+            <td>
+              <strong><%= r.drawPos %></strong>
+              <input type="hidden" name="id" value="<%= r.id %>">
+            </td>
+            <td>
+              <%= (r.homeTeamName || 'TBC') + ' vs ' + (r.awayTeamName || 'TBC') %>
+            </td>
+            <td>
+              <% if (r.homeScore != null) { %><%= r.homeScore + '-' + r.awayScore %><% } %>
+            </td>
+            <td>
+              <input type="number" class="form-control form-control-sm" name="round"
+                     value="<%= r.round != null ? r.round : '' %>" min="1" step="1">
+            </td>
+            <td>
+              <select class="form-select form-select-sm" name="nextDrawPos">
+                <option value="">— (final)</option>
+                <% rows.forEach(function(o){ if (o.drawPos !== r.drawPos) { %>
+                  <option value="<%= o.drawPos %>" <%= r.nextDrawPos === o.drawPos ? 'selected' : '' %>>
+                    Slot <%= o.drawPos %>
+                  </option>
+                <% } }) %>
+              </select>
+            </td>
+            <td>
+              <select class="form-select form-select-sm" name="nextSlot">
+                <option value="">—</option>
+                <option value="H" <%= r.nextSlot === 'H' ? 'selected' : '' %>>Home</option>
+                <option value="A" <%= r.nextSlot === 'A' ? 'selected' : '' %>>Away</option>
+              </select>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Save wiring</button>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>

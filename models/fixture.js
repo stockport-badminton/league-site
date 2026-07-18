@@ -682,6 +682,69 @@ exports.updateMesserTable = async function(messerId, scores) {
   return result
 }
 
+// ── Messer bracket wiring & auto-advance ─────────────────────────────────
+
+// All draw slots for a section, with team names, ordered by drawPos.
+// Used by the admin wire-up screen and to validate the bracket.
+exports.getMesserBracket = async function(section) {
+  const [result] = await (await db.otherConnect()).query(`
+    SELECT
+      m.id, m.section, m."drawPos", m.round, m."nextDrawPos", m."nextSlot",
+      m."homeTeam", m."awayTeam", m."homeScore", m."awayScore", m."winningTeam",
+      ht.name AS "homeTeamName",
+      at.name AS "awayTeamName"
+    FROM messer m
+    LEFT JOIN team ht ON m."homeTeam" = ht.id
+    LEFT JOIN team at ON m."awayTeam" = at.id
+    WHERE m.section = ?
+    ORDER BY m."drawPos"
+  `, [section])
+  return result
+}
+
+// Bulk-save the bracket links entered on the admin screen.
+// `links` is an array of { id, round, nextDrawPos, nextSlot }; blank values
+// become NULL (e.g. a section final has no nextDrawPos/nextSlot).
+exports.saveMesserBracketLinks = async function(links) {
+  const conn = await db.otherConnect()
+  for (const l of links) {
+    await conn.query(
+      `UPDATE messer SET "round" = ?, "nextDrawPos" = ?, "nextSlot" = ? WHERE id = ?`,
+      [l.round, l.nextDrawPos, l.nextSlot, l.id]
+    )
+  }
+  return links.length
+}
+
+// Advance a winning team into its next-round slot.
+// `match` is a messer row that has just been decided (needs section,
+// nextDrawPos, nextSlot). Returns a small status object describing what happened
+// so the caller can surface a warning without failing the approval.
+exports.advanceMesserWinner = async function(match, winningTeam) {
+  if (match.nextDrawPos == null || !match.nextSlot) {
+    return { advanced: false, reason: 'no-next-slot' } // section final, nothing to do
+  }
+  const conn = await db.otherConnect()
+  const [targetRows] = await conn.query(
+    `SELECT id, "homeScore", "awayScore" FROM messer WHERE section = ? AND "drawPos" = ?`,
+    [match.section, match.nextDrawPos]
+  )
+  const target = targetRows && targetRows[0]
+  if (!target) {
+    return { advanced: false, reason: 'target-missing' }
+  }
+  // Guard: don't clobber a next-round match that has already been played.
+  if (target.homeScore != null || target.awayScore != null) {
+    return { advanced: false, reason: 'target-already-played', targetId: target.id }
+  }
+  const slotCol = match.nextSlot === 'H' ? 'homeTeam' : 'awayTeam'
+  await conn.query(
+    `UPDATE messer SET "${slotCol}" = ? WHERE id = ?`,
+    [winningTeam, target.id]
+  )
+  return { advanced: true, targetId: target.id, slot: match.nextSlot }
+}
+
 // Get social media handles for a club by team name
 exports.getClubSocialHandlesByTeamName = async function(teamName) {
   const sql = `

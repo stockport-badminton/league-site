@@ -565,6 +565,7 @@ exports.messer_result_approve = async function(req, res, next) {
     // Get the messer match to get its ID
     const messerMatch = await getMesserMatchId(data.homeTeam, data.awayTeam);
 
+    let advanceResult = null;
     if (messerMatch) {
       resultData.messer_id = messerMatch.id;
       // Update messer table with final results
@@ -573,6 +574,12 @@ exports.messer_result_approve = async function(req, res, next) {
         awayScore: awayWins,
         winningTeam,
       });
+
+      // Auto-advance the winner into its next-round slot (if the bracket is wired up).
+      advanceResult = await Fixture.advanceMesserWinner(messerMatch, winningTeam);
+      if (advanceResult && !advanceResult.advanced && advanceResult.reason === 'target-already-played') {
+        console.warn(`Messer auto-advance skipped: next slot (drawPos ${messerMatch.nextDrawPos}) already has a result.`);
+      }
     }
 
     // Create result record with 'approved' status
@@ -586,7 +593,13 @@ exports.messer_result_approve = async function(req, res, next) {
     // Send approval email to captain
     await sendMesserApprovalEmail(data);
 
-    res.json({ success: true, message: 'Result approved and messer table updated' });
+    let message = 'Result approved and messer table updated';
+    if (advanceResult && advanceResult.advanced) {
+      message += `; winner advanced to slot ${messerMatch.nextDrawPos} (${advanceResult.slot === 'H' ? 'home' : 'away'})`;
+    } else if (advanceResult && advanceResult.reason === 'target-already-played') {
+      message += '; next round already has a result, winner NOT auto-advanced';
+    }
+    res.json({ success: true, message, advance: advanceResult });
   } catch (err) {
     console.error('messer_result_approve error:', err);
     res.status(500).json({ error: err.message });
@@ -671,6 +684,123 @@ exports.messer_result_reject = async function(req, res, next) {
   } catch (err) {
     console.error('messer_result_reject error:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// ── Admin: wire up the messer bracket ────────────────────────────────────
+
+function isMesserAdmin(req) {
+  return req.user && req.user._json &&
+    (req.user._json['https://my-app.example.com/role'] === 'superadmin' ||
+     req.user._json['https://my-app.example.com/messeradmin']);
+}
+
+const messerCanonical = (req) =>
+  ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton');
+
+// Sanity-check a section's wiring; returns an array of human-readable warnings.
+function validateBracket(rows) {
+  const warnings = [];
+  const byDrawPos = new Map(rows.map(r => [r.drawPos, r]));
+  const feeders = new Map(); // "drawPos:slot" -> [sourceDrawPos, ...]
+
+  for (const r of rows) {
+    const hasNext = r.nextDrawPos != null;
+    const hasSlot = r.nextSlot === 'H' || r.nextSlot === 'A';
+    if (hasNext !== hasSlot) {
+      warnings.push(`Slot ${r.drawPos}: set both "next slot" and side (H/A), or leave both blank.`);
+      continue;
+    }
+    if (!hasNext) continue; // section final — fine
+    if (r.nextDrawPos === r.drawPos) {
+      warnings.push(`Slot ${r.drawPos} points to itself.`);
+      continue;
+    }
+    if (!byDrawPos.has(r.nextDrawPos)) {
+      warnings.push(`Slot ${r.drawPos} points to slot ${r.nextDrawPos}, which doesn't exist in this section.`);
+      continue;
+    }
+    const key = `${r.nextDrawPos}:${r.nextSlot}`;
+    feeders.set(key, (feeders.get(key) || []).concat(r.drawPos));
+  }
+
+  for (const [key, sources] of feeders) {
+    if (sources.length > 1) {
+      const [pos, slot] = key.split(':');
+      warnings.push(`Slot ${pos} (${slot === 'H' ? 'home' : 'away'} side) is fed by more than one match: ${sources.join(', ')}.`);
+    }
+  }
+  return warnings;
+}
+
+// GET /admin/messer-bracket — pick a section
+exports.messer_bracket_landing = async function(req, res, next) {
+  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    res.render('admin/messer-bracket-landing', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      user: req.user,
+      pageTitle: 'Messer Bracket Setup',
+      pageDescription: 'Wire up the messer draw for auto-advance',
+      canonical: messerCanonical(req),
+    });
+  } catch (err) { next(err); }
+};
+
+// GET /admin/messer-bracket/:section — edit the wiring for a section
+exports.messer_bracket_edit = async function(req, res, next) {
+  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const section = (req.params.section || '').toUpperCase().charAt(0);
+    if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
+
+    const rows = await Fixture.getMesserBracket(section);
+    res.render('admin/messer-bracket-edit', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      user: req.user,
+      section,
+      rows,
+      warnings: validateBracket(rows),
+      saved: req.query.saved === '1',
+      pageTitle: `Messer Bracket — ${section} Section`,
+      pageDescription: 'Wire up the messer draw for auto-advance',
+      canonical: messerCanonical(req),
+    });
+  } catch (err) { next(err); }
+};
+
+// POST /admin/messer-bracket/:section — save the wiring
+exports.messer_bracket_save = async function(req, res, next) {
+  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const section = (req.params.section || '').toUpperCase().charAt(0);
+    if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
+
+    // Form posts parallel arrays keyed by row id: id[], round[], nextDrawPos[], nextSlot[]
+    const ids = [].concat(req.body.id || []);
+    const rounds = [].concat(req.body.round || []);
+    const nextPositions = [].concat(req.body.nextDrawPos || []);
+    const nextSlots = [].concat(req.body.nextSlot || []);
+
+    const toIntOrNull = (v) => {
+      const n = parseInt(v, 10);
+      return (v == null || v === '' || isNaN(n)) ? null : n;
+    };
+
+    const links = ids.map((id, i) => ({
+      id: parseInt(id, 10),
+      round: toIntOrNull(rounds[i]),
+      nextDrawPos: toIntOrNull(nextPositions[i]),
+      nextSlot: (nextSlots[i] === 'H' || nextSlots[i] === 'A') ? nextSlots[i] : null,
+    }));
+
+    await Fixture.saveMesserBracketLinks(links);
+    res.redirect(`/admin/messer-bracket/${section}-section?saved=1`);
+  } catch (err) {
+    console.error('messer_bracket_save error:', err);
+    next(err);
   }
 };
 
@@ -791,7 +921,7 @@ async function getMesserMatchId(homeTeamId, awayTeamId) {
   try {
     const db = require('../db_connect');
     const [result] = await (await db.otherConnect()).query(
-      'SELECT id FROM messer WHERE "homeTeam" = ? AND "awayTeam" = ?',
+      'SELECT id, section, "drawPos", "nextDrawPos", "nextSlot" FROM messer WHERE "homeTeam" = ? AND "awayTeam" = ?',
       [homeTeamId, awayTeamId]
     );
     return result && result.length > 0 ? result[0] : null;

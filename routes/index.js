@@ -361,6 +361,11 @@ router.get('/messer-result/:id', secured, messer_scorecard_controller.messer_res
 router.post('/messer-result/:id/approve', secured, messer_scorecard_controller.messer_result_approve);
 router.post('/messer-result/:id/reject', secured, messer_scorecard_controller.messer_result_reject);
 
+// Messer bracket wire-up (admin) — set up auto-advance links once per season
+router.get('/admin/messer-bracket', secured, messer_scorecard_controller.messer_bracket_landing);
+router.get('/admin/messer-bracket/:section', secured, messer_scorecard_controller.messer_bracket_edit);
+router.post('/admin/messer-bracket/:section', secured, messer_scorecard_controller.messer_bracket_save);
+
 router.get('/players/club-:club?/team-:team?/gender-:gender?', secured, player_controller.player_list_clubs_teams);
 router.get('/players/club-:club?', secured, player_controller.player_list_clubs_teams);
 router.get('/players/team-:team?', secured, player_controller.player_list_clubs_teams);

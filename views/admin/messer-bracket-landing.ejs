@@ -1,0 +1,23 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Messer Bracket Setup</h1>
+  <p>
+    Wire up each draw slot so that approving a result automatically advances the
+    winning team into its next-round slot. This is a once-a-season job — set it up
+    when the new draw is created.
+  </p>
+  <p>
+    For each slot you set which slot the winner feeds into (<strong>next slot</strong>)
+    and which side of that match they take (<strong>H</strong>ome or <strong>A</strong>way).
+    Leave both blank for a section final.
+  </p>
+
+  <a class="btn btn-primary mb-2 me-2" href="/admin/messer-bracket/a-section">Wire up A Section</a>
+  <a class="btn btn-primary mb-2" href="/admin/messer-bracket/b-section">Wire up B Section</a>
+
+  <p class="mt-3"><a href="/messer-results">← Back to Messer Results</a></p>
+</div>
+
+<%- include('../footer.ejs') %>
