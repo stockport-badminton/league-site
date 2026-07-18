@@ -501,6 +501,13 @@ exports.messer_result_approve = async function(req, res, next) {
 
     const data = scorecard[0];
 
+    // Idempotency guard: don't re-approve an already-processed scorecard.
+    // Without this, a second click creates a duplicate messer_result row
+    // (the pending list LEFT JOINs messer_result and fans out).
+    if (data.status === 'approved') {
+      return res.json({ success: true, message: 'Result already approved' });
+    }
+
     // Calculate home wins
     let homeWins = 0;
     for (let i = 1; i <= 15; i++) {
@@ -571,6 +578,11 @@ exports.messer_result_approve = async function(req, res, next) {
     // Create result record with 'approved' status
     await Fixture.createMesserResult(resultData);
 
+    // Mark the draft as approved so it drops out of the pending list.
+    // (This is what was missing before — the scorecard stayed 'submitted'
+    // and kept reappearing for approval.)
+    await Fixture.updateMesserScorecardStatus(scorecardId, 'approved');
+
     // Send approval email to captain
     await sendMesserApprovalEmail(data);
 
@@ -598,6 +610,11 @@ exports.messer_result_reject = async function(req, res, next) {
     }
 
     const data = scorecard[0];
+
+    // Idempotency guard: don't reject something already approved/rejected.
+    if (data.status === 'approved' || data.status === 'rejected') {
+      return res.json({ success: true, message: `Result already ${data.status}` });
+    }
 
     // Create messer_result record with 'rejected' status
     const resultData = {
@@ -642,6 +659,10 @@ exports.messer_result_reject = async function(req, res, next) {
     };
 
     await Fixture.createMesserResult(resultData);
+
+    // Mark the draft as rejected so it drops out of the pending list
+    // (single source of truth: ms.status, same as the approve path).
+    await Fixture.updateMesserScorecardStatus(scorecardId, 'rejected');
 
     // Send rejection email to captain
     await sendMesserRejectionEmail(data);
