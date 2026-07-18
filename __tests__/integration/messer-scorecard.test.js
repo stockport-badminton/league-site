@@ -6,6 +6,11 @@ jest.mock('../../middleware/secured', () => (req, res, next) => {
     id: 'auth0|test',
     displayName: 'Test User',
     email: 'ncooper@amplience.com',
+    // Admin messer routes gate on _json role/flag (not email); mirror a superadmin.
+    _json: {
+      'https://my-app.example.com/role': 'superadmin',
+      'https://my-app.example.com/messeradmin': true,
+    },
   };
   next();
 });
