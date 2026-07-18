@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       e.preventDefault()
       let queryString = ""
       for (row of document.forms[0]){
-          console.log(row.name)
-          console.log(row.value)
           if (row.name.indexOf('division') >= 0 && row.value != 0) {
               queryString+= '/'+row.value 
           }
@@ -33,8 +31,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
               queryString+= '/status-'+row.value 
           }
       }
-      console.log(queryString)
-      console.log(window.location.pathname)
       var admin = window.location.pathname.indexOf('admin') > -1 ? 'admin/' : ''
       var pathIndex = window.location.pathname.indexOf('admin') > -1 ? 2 : 1
 
@@ -45,14 +41,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
         e.preventDefault()
         
         let element = document.querySelector("#statsFilter").style.display
-        console.log(element)
         if (element.indexOf('none') > -1){
-            console.log("fired")
             document.querySelector("#statsFilter").style.display = "block"
             element = "block"
         }
         else {
-            console.log("fired none")
             document.querySelector("#statsFilter").style.display = "none"
             element = "none"
         }

@@ -301,7 +301,6 @@
 
       $('#fixtureRearange').click(function(){
         $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
-          console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
           $('#rearrangementModal > .formMessage').show();
           $('#rearrangementForm > label').hide()
           $('#rearrangementForm > #date').hide()
@@ -314,8 +313,6 @@
 
       $('#remindFixture').click(function(){
         $.post('/fixture/reminder', {'email':$('#email')[0].value,'homeTeam':$('#reminderHomeTeam')[0].value,'awayTeam':$('#reminderAwayTeam')[0].value }, function (data) {
-               // console.log({'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value });
-               console.log(data);
                $('#reminderModalBody').html('<p>Reminder sent!</p>');
                $('#remindFixture').remove();
             });

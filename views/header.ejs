@@ -37,7 +37,9 @@
 
       Sentry.lazyLoadIntegration("captureConsoleIntegration").then(
         (integration) => {
-          Sentry.addIntegration(integration());
+          // Only forward real errors — not console.log/info/debug/warn — so
+          // stray dev logging doesn't flood Sentry (and the free-tier quota).
+          Sentry.addIntegration(integration({ levels: ['error'] }));
         },
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });

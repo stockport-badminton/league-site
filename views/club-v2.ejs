@@ -173,13 +173,9 @@ function initMap() {
   });
 
   var data = <%- venues %>
-  console.log(data)
-  console.log(<%- venues %>)
   data.forEach(function(i){
     if (i.Lat != null){
         var point = {lat:i.Lat, lng:i.Lng}
-    console.log(i)
-    console.log(point)
 
     var contentString = '<div id="content">'+
       '<div id="siteNotice">'+
@@ -219,8 +215,6 @@ function initMap() {
   $(document).ready(function(){
     $('.openForm').click(function(){
       var clubName = $(this).attr('data-club')
-      console.log(clubName)
-      console.log($(this).attr)
       var nameElem = this.parentNode.previousSibling.previousElementSibling.childNodes[0]
       if (nameElem.nodeType == 3){
         clubDesc = nameElem.textContent
@@ -228,8 +222,6 @@ function initMap() {
       else {
         clubDesc = nameElem.childNodes[0].textContent
       }
-      console.log(nameElem.childNodes[0])
-      console.log($(this).attr('data-club'))
       $('#exampleModalLabel').html("Get in touch with " + clubDesc)
       $('#clubSelect').val(clubName)
     })
