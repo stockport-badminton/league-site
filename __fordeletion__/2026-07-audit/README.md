@@ -34,6 +34,7 @@ To restore any file, `git mv` it back to its original path (shown below).
 |---|---|---|
 | models-secured.js | models/secured.js | dead duplicate — whole body is commented out; the live middleware is `middleware/secured.js` |
 | utils-devDebug.js | utils/devDebug.js | never `require`d anywhere |
+| controllers-fixtureGenerator.js | controllers/fixtureGenerator.js | Tameside remnant — its only route `/fixture/generate` rendered the removed `tameside-fixtures` view (500). Tool moved to its own repo. Require + route also removed from `routes/index.js`. |
 
 ## Loose dead files  (`2026-07-audit/`)
 
@@ -44,10 +45,6 @@ To restore any file, `git mv` it back to its original path (shown below).
 
 ## NOT moved (needs your decision — see chat)
 
-- **Tameside remnant**: `controllers/fixtureGenerator.js` + the `/fixture/generate` route
-  render a `tameside-fixtures` view that no longer exists → that route currently 500s.
-  Likely dead since the Tameside tool moved to its own repo, but removing it touches a
-  live route, so left for you to confirm.
 - **Function-level dead code** (uncalled model fns, unrouted controller fns) — listed in
   chat. Left in place because extracting individual functions from otherwise-live files
   is riskier than moving whole files.
