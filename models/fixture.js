@@ -246,12 +246,16 @@ exports.getFixtureDetails = async function(searchObj) {
     season = fixtureObj.season
     sqlArray.push(fixtureObj.season)
   }
-  if (fixtureObj.division !== undefined) sqlArray.push(fixtureObj.division)
+  // Push params in the SAME order the ? placeholders appear in the WHERE clause
+  // below (club, team, division, status, endDate, startDate). A mismatch here
+  // sent e.g. a club name into the integer division placeholder -> 500 when
+  // filtering by division AND club together.
   if (fixtureObj.club !== undefined) { sqlArray.push(fixtureObj.club); sqlArray.push(fixtureObj.club) }
   if (fixtureObj.team !== undefined) { sqlArray.push(fixtureObj.team); sqlArray.push(fixtureObj.team) }
+  if (fixtureObj.division !== undefined) sqlArray.push(fixtureObj.division)
   if (fixtureObj.status !== undefined) sqlArray.push(fixtureObj.status)
-  if (fixtureObj.startDate !== undefined) sqlArray.push(fixtureObj.startDate.replaceAll('|', '-') + ' 00:00:00')
   if (fixtureObj.endDate !== undefined) sqlArray.push(fixtureObj.endDate.replaceAll('|', '-') + ' 00:00:00')
+  if (fixtureObj.startDate !== undefined) sqlArray.push(fixtureObj.startDate.replaceAll('|', '-') + ' 00:00:00')
 
   const sql = `SELECT
     fixture.id,
