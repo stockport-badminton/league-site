@@ -158,6 +158,7 @@ router.get('/populated-scorecard-beta/:id', (req, res, next) => {
 
 // Static pages
 router.get('/privacy-policy', static_controller.privacy_policy);
+router.get('/history', static_controller.history);
 router.get('/messer-rules', static_controller.messer_rules);
 router.get('/messer-draw/:section', team_controller.new_messer_draw);
 router.get('/messer-draw/:season/:section', team_controller.new_messer_draw);

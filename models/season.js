@@ -37,3 +37,11 @@ exports.init = async function() {
 
 exports.current = function() { return _current || dateBasedSeason(0); };
 exports.previous = function() { return _previous || dateBasedSeason(1); };
+
+// All seasons, newest first — used to build the History nav / archive page.
+exports.getAll = async function() {
+  const [rows] = await (await db.otherConnect()).query(
+    'SELECT name, label FROM season ORDER BY "startDate" DESC'
+  );
+  return rows;
+};

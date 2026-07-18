@@ -34,6 +34,10 @@ AWS.config.update({ region: 'eu-west-1' });
 
 var app = express();
 
+// Past seasons for the History nav / archive, loaded from the DB at startup
+// (below). Default to empty so views always have an array to iterate.
+app.locals.pastSeasons = [];
+
 app.use(function(req, res, next) {
   var ipAddress = getClientIp(req);
   if (BLACKLIST.indexOf(ipAddress) === -1) {
@@ -133,7 +137,17 @@ if (require.main === module) {
     db.connect();
     // Resolve the current/previous season from the DB (cached) before serving,
     // so all season-scoped queries agree on which season is "current".
-    require('./models/season').init().finally(function() {
+    const seasonModel = require('./models/season');
+    seasonModel.init().then(async function() {
+      // Cache past seasons (all but the current) for the History nav / archive.
+      try {
+        const all = await seasonModel.getAll();
+        const current = seasonModel.current();
+        app.locals.pastSeasons = all.filter(function(s) { return s.name !== current; });
+      } catch (err) {
+        console.error('pastSeasons load failed:', err.message);
+      }
+    }).finally(function() {
       app.listen(port, function() {
         console.log('Server running at http://127.0.0.1:' + port + '/');
       });

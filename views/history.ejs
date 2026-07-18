@@ -1,0 +1,42 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<div class="col-12">
+  <h1 class="mh-100">History &amp; Archive</h1>
+  <p class="text-muted">Results and tables from every past season, plus historic documents.</p>
+
+  <h2 class="h4 mt-4">Past Seasons</h2>
+  <% if (!locals.pastSeasons || locals.pastSeasons.length === 0) { %>
+    <p>No past seasons to show yet.</p>
+  <% } else { %>
+    <table class="table table-striped table-sm" style="max-width: 32rem;">
+      <thead>
+        <tr><th>Season</th><th>Results</th><th>Tables</th></tr>
+      </thead>
+      <tbody>
+        <% locals.pastSeasons.forEach(function(s){ %>
+          <tr>
+            <td><%= s.label %></td>
+            <td><a href="/results/All/<%= s.name %>">Results</a></td>
+            <td><a href="/tables/All/<%= s.name %>">Tables</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <h2 class="h4 mt-4">Documents</h2>
+  <ul>
+    <li><a href="<%= static_path %>/beta/docs/OpenResults2019.xlsx" target="_blank" rel="noopener">2018 Open Results</a></li>
+    <li><a href="<%= static_path %>/beta/docs/OpenRoundRobinResults2019.docx" target="_blank" rel="noopener">2018 Open Round Robins Results</a></li>
+  </ul>
+
+  <h2 class="h4 mt-4">Nostalgia</h2>
+  <p><a href="//sdblhistory.wikidot.com/" target="_blank" rel="noopener">SDBL history archive (wikidot)</a></p>
+</div>
+
+<%- include('footer.ejs') %>
+
+
+</body>
+</html>

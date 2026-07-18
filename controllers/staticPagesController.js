@@ -13,6 +13,19 @@ exports.privacy_policy = function(req, res) {
   })
 }
 
+// Archive of past seasons + historic documents. pastSeasons is provided via
+// app.locals (loaded from the DB at startup), so nothing to fetch here.
+exports.history = function(req, res) {
+  res.render('history', {
+    static_path: '/static',
+    theme: process.env.THEME || 'flatly',
+    flask_debug: process.env.FLASK_DEBUG || 'false',
+    pageTitle: 'History — Past Seasons & Archive',
+    pageDescription: 'Results, tables and documents from past Stockport & District Badminton League seasons',
+    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+  })
+}
+
 exports.messer_rules = function(req, res) {
   res.render('messer-rules', {
     static_path: '/static',
