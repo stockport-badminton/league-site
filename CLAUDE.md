@@ -211,6 +211,7 @@ Key vars (see `.env` for examples):
 - `DEV_MODE` — `'true'` for local auth bypass (dev/test only)
 - `PORT` — Server port (default 8080)
 - `SESSION_SECRET` — Session encryption key
+- `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
 
