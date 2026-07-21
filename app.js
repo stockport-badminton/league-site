@@ -4,7 +4,6 @@ const Sentry = require('@sentry/node');
 
 require('dotenv').config();
 
-var AWS = require('aws-sdk');
 var express = require('express');
 var session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
@@ -29,8 +28,6 @@ var getClientIp = function(req) {
   if (ipAddress.substr(0, 7) == '::ffff:') { ipAddress = ipAddress.substr(7); }
   return ipAddress;
 };
-
-AWS.config.update({ region: 'eu-west-1' });
 
 var app = express();
 

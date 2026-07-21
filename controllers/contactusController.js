@@ -3,7 +3,8 @@ var seasonModel = require("../models/season");
 var League = require('../models/league.js');
 var Player = require('../models/players.js');
 require('dotenv').config()
-var AWS = require('aws-sdk');
+const sesUtil = require('../utils/ses');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const https = require('node:https');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
@@ -494,8 +495,7 @@ exports.contactus = async function(req, res, next) {
         ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
       };
       params.Destination.ToAddresses = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : [rows[0].clubSecEmail]);
-      var ses = new AWS.SES({ apiVersion: '2010-12-01' });
-      await ses.sendEmail(params).promise();
+      await sesUtil.sendEmail(params);
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
@@ -557,8 +557,7 @@ exports.contactus = async function(req, res, next) {
         ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
       };
       params.Destination.ToAddresses = msg.to;
-      var ses = new AWS.SES({ apiVersion: '2010-12-01' });
-      await ses.sendEmail(params).promise();
+      await sesUtil.sendEmail(params);
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
@@ -647,8 +646,7 @@ exports.send_invoices = async function(req, res, next) {
             Source: 'results@stockport-badminton.co.uk',
             ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
           };
-          const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-          await ses.sendEmail(params).promise();
+          await sesUtil.sendEmail(params);
           outputs.push(`${currentData.name} invoice sent successfully`);
         } catch (sendErr) {
           console.log(sendErr.toString());
@@ -706,9 +704,9 @@ exports.distribution_list = async function(req,res,next) {
       } else if (notification.receipt && notification.receipt.action && notification.receipt.action.type === "S3") {
         const { bucketName, objectKey } = notification.receipt.action;
         console.log(`fetching raw email from s3://${bucketName}/${objectKey}`);
-        const s3 = new AWS.S3({ region: 'eu-west-1' });
-        const obj = await s3.getObject({ Bucket: bucketName, Key: objectKey }).promise();
-        buffer = obj.Body;
+        const s3 = new S3Client({ region: 'eu-west-1' });
+        const obj = await s3.send(new GetObjectCommand({ Bucket: bucketName, Key: objectKey }));
+        buffer = Buffer.from(await obj.Body.transformToByteArray());
       } else {
         throw new Error("SNS notification had neither inline content nor an S3 action");
       }
@@ -777,19 +775,8 @@ exports.distribution_list = async function(req,res,next) {
       
       
 
-      // Prepare SES parameters
-      var params = {
-          // Destinations: ["stockport.badders.results@gmail.com","bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
-          Destinations: ["stockport.badders.results@gmail.com","bigcoops@outlook.com","ncooper@amplience.com","bigcoops+testbcc@amplience.com"], // Change to your forwarding address
-          Source: "results@stockport-badminton.co.uk",  // Verified SES email address
-          RawMessage: {
-              Data: buffer,
-          },
-      };
-      // console.log(params);
-
       let transporter = nodemailer.createTransport({
-        SES: new AWS.SES({ region: 'eu-west-1', apiVersion: "2010-12-01" })
+        SES: { ses: sesUtil.client, aws: { SendRawEmailCommand: sesUtil.SendRawEmailCommand } }
       });
       
       
@@ -895,7 +882,6 @@ exports.distribution_list = async function(req,res,next) {
         if (subject.indexOf('test') == -1) {
           var tempArray = msg.to
           msg.to = tempArray.concat(rows)
-          params.Destinations = tempArray.concat(rows)
           nodemailconfig.bcc = tempArray.concat(rows)
           const info = await transporter.sendMail(nodemailconfig);
           console.log(info.messageId);

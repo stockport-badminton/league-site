@@ -3,7 +3,7 @@ const Team = require('../models/teams');
 const Player = require('../models/players');
 const Fixture = require('../models/fixture');
 const axios = require('axios');
-var AWS = require('aws-sdk');
+const ses = require('../utils/ses');
 const { body, validationResult } = require('express-validator');
 
 // Validation rules for 15-game messer format
@@ -836,8 +836,7 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
       ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
   } catch (err) {
     console.error('sendMesserSubmissionEmail error:', err);
   }
@@ -873,8 +872,7 @@ async function sendMesserApprovalEmail(scorecardData) {
       ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
   } catch (err) {
     console.error('sendMesserApprovalEmail error:', err);
   }
@@ -909,8 +907,7 @@ async function sendMesserRejectionEmail(scorecardData) {
       ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
     };
 
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
   } catch (err) {
     console.error('sendMesserRejectionEmail error:', err);
   }

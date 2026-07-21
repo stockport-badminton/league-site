@@ -4,7 +4,7 @@ var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 const axios = require('axios');
-var AWS = require('aws-sdk');
+const ses = require('../utils/ses');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
@@ -318,8 +318,7 @@ exports.full_fixture_post = async function(req, res, next) {
       Source: 'results@stockport-badminton.co.uk',
       ReplyToAddresses: ['stockport.badders.results@gmail.com'],
     };
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
 
     res.render('index-scorecard', {
       static_path: '/static',
@@ -417,8 +416,7 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         Source: 'results@stockport-badminton.co.uk',
         ReplyToAddresses: ['stockport.badders.results@gmail.com'],
       };
-      const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-      await ses.sendEmail(params).promise();
+      await ses.sendEmail(params);
       res.redirect('/populated-scorecard-beta/' + rows.insertId);
     } catch (err) { next(err); }
   }
@@ -554,8 +552,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       ReplyToAddresses: ['stockport.badders.results@gmail.com'],
     };
     try {
-      const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-      await ses.sendEmail(params).promise();
+      await ses.sendEmail(params);
       res.send("Message Sent");
     } catch (err) {
       console.log(err.toString());
@@ -583,8 +580,7 @@ exports.add_scorecard_photo = async function(req, res, next) {
       Source: 'results@stockport-badminton.co.uk',
       ReplyToAddresses: ['stockport.badders.results@gmail.com'],
     };
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    await ses.sendEmail(params).promise();
+    await ses.sendEmail(params);
     res.sendStatus(200);
   } catch (err) {
     console.log(err.toString());

@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const Sentry = require('@sentry/node');
-var AWS = require('aws-sdk');
+const sesUtil = require('../utils/ses');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
 const multer = require('multer');
@@ -115,7 +115,6 @@ router.get('/sign-s3', async (req, res, next) => {
 router.get('/upload-scoresheet', scorecard_controller.upload_scoresheet);
 
 router.post('/SESemail', (req, res, next) => {
-  var ses = new AWS.SES({ apiVersion: '2010-12-01' });
   var params = {
     Destination: { ToAddresses: ['bigcoops@gmail.com', 'stockport.badders.results@gmail.com', 'bigcoops@outlook.com'] },
     Message: {
@@ -125,7 +124,7 @@ router.post('/SESemail', (req, res, next) => {
     Source: 'results@stockport-badminton.co.uk',
     ReplyToAddresses: ['stockport.badders.results@gmail.com'],
   };
-  const sendPromise = ses.sendEmail(params).promise();
+  const sendPromise = sesUtil.sendEmail(params);
   sendPromise
     .then(data => {
       res.render('contact-us-form-delivered', {
@@ -188,8 +187,7 @@ router.post('/new-users-v2', (req, res, next) => {
       Source: 'results@stockport-badminton.co.uk',
       ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
     };
-    var ses = new AWS.SES({ apiVersion: '2010-12-01' });
-    const sendPromise = ses.sendEmail(params).promise();
+    const sendPromise = sesUtil.sendEmail(params);
     sendPromise
       .then(() => { res.sendStatus(200); })
       .catch(error => { console.log(error.toString()); next('Sorry something went wrong sending your email.'); });

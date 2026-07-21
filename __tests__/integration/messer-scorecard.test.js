@@ -39,11 +39,8 @@ jest.mock('ejs', () => {
 });
 
 // AWS SES mock
-jest.mock('aws-sdk', () => ({
-  SES: jest.fn().mockImplementation(() => ({
-    sendEmail: jest.fn().mockReturnValue({ promise: jest.fn().mockResolvedValue({}) })
-  })),
-  config: { update: jest.fn() }
+jest.mock('../../utils/ses', () => ({
+  sendEmail: jest.fn().mockResolvedValue({})
 }));
 
 const Division = require('../../models/division');

@@ -7,7 +7,7 @@ var Game = require('../models/game');
 var HomepageContent = require('../models/homepageContent');
 var SiteSettings = require('../models/siteSettings');
 const axios = require('axios');
-var AWS = require('aws-sdk');
+const ses = require('../utils/ses');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
 
@@ -50,8 +50,7 @@ exports.getLateScorecards = async function(req, res) {
 
     let today = new Date()
     if (today.getMonth() <= 4 || today.getMonth() >= 7) {
-      var ses = new AWS.SES({ apiVersion: '2010-12-01' });
-      await ses.sendEmail(params).promise();
+      await ses.sendEmail(params);
       res.send("Message Sent");
     } else {
       res.sendStatus(200);

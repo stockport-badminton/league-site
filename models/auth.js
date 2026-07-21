@@ -1,5 +1,5 @@
 const axios = require('axios');
-var AWS = require('aws-sdk');
+const ses = require('../utils/ses');
 
 exports.getManagementAPIKey = async function() {
   const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
@@ -33,7 +33,6 @@ exports.grantResultsAccess = async function(req, res, next) {
     )
     const userBody = userResponse.data
 
-    const ses = new AWS.SES({ apiVersion: '2010-12-01' })
     await ses.sendEmail({
       Destination: {
         ToAddresses: [userBody.email],
@@ -53,7 +52,7 @@ exports.grantResultsAccess = async function(req, res, next) {
       },
       Source: 'results@stockport-badminton.co.uk',
       ReplyToAddresses: ['stockport.badders.results@gmail.com']
-    }).promise()
+    })
 
     res.render('beta/userapproved', {
       static_path: '/static',
