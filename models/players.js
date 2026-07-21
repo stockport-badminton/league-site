@@ -77,6 +77,25 @@ exports.getNominatedPlayers = async function(teamName) {
   return result
 }
 
+// All players registered to any team at a club, for the team-registration-form
+// PDF. rank == 99 marks a reserve (see manage_player_list_clubs_teams); everything
+// else is a nominated player. player.rank is only a within-team strength order,
+// so team.rank (the team's own pecking order at the club) has to sort first, or
+// e.g. every team's #1 player clusters together ahead of any team's #2.
+exports.getClubRoster = async function(clubName) {
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT player.id, CONCAT(player.first_name,' ',player.family_name) AS name,
+            player.gender, player.rank, player.junior, team.name AS "teamName"
+     FROM player
+     JOIN team ON team.id = player.team
+     JOIN club ON club.id = team.club
+     WHERE club.name = ?
+     ORDER BY player.gender, team.rank, player.rank, player.family_name`,
+    clubName
+  )
+  return result
+}
+
 exports.getMissedThreePlayers = async function() {
   const [result] = await (await db.otherConnect()).query(`WITH team_fixtures AS (
   SELECT

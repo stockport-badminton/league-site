@@ -24,6 +24,7 @@ var social_controller = require('../controllers/socialController');
 var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
 var shuttle_controller = require('../controllers/shuttleController');
+var documents_controller = require('../controllers/documentsController');
 var homepage_content_controller = require('../controllers/homepageContentController');
 var site_settings_controller = require('../controllers/siteSettingsController');
 var userInViews = require('../models/userInViews');
@@ -425,6 +426,11 @@ router.get('/short-results', secured, fixture_controller.fixture_outstanding);
 router.get('/shuttle-prices', secured, shuttle_controller.shuttlePrices);
 router.get('/shuttle-prices/export', secured, shuttle_controller.exportPrices);
 router.post('/shuttle-prices/refresh', secured, shuttle_controller.refreshPrices);
+
+// Team registration form, generated with the current season filled in
+router.get('/forms/team-registration', documents_controller.teamRegistrationForm);
+// Same form, prefilled with a club's current player registrations (auth check in controller)
+router.get('/forms/team-registration/:club/prefilled', secured, documents_controller.teamRegistrationFormPrefilled);
 
 // Manual venues-map regeneration (superadmin only — role check in controller)
 router.post('/venues-map/refresh', secured, venue_controller.venues_map_refresh);
