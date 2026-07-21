@@ -5,10 +5,10 @@ var Player = require('../models/players.js');
 require('dotenv').config()
 const sesUtil = require('../utils/ses');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const https = require('node:https');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
-const MailComposer = require("nodemailer/lib/mail-composer");
 const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
 var axios = require('axios');
@@ -776,7 +776,7 @@ exports.distribution_list = async function(req,res,next) {
       
 
       let transporter = nodemailer.createTransport({
-        SES: { ses: sesUtil.client, aws: { SendRawEmailCommand: sesUtil.SendRawEmailCommand } }
+        SES: { sesClient: new SESv2Client({ region: 'eu-west-1' }), SendEmailCommand }
       });
       
       
