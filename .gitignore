@@ -31,7 +31,7 @@ migrations/
 scripts/
 
 # Generated club/player registration docs (should move to a temp location)
-static/beta/docs/
+static/beta/docs/generated/
 
 # Legacy / scratch files (never committed)
 _amplience/
