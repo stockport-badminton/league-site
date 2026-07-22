@@ -752,6 +752,48 @@ ORDER BY
   return result
 }
 
+// Site-wide role/messerAdmin lookup by login email, for the Auth0Strategy
+// verify callback (app.js) to enrich req.user at login time. Scoped to only
+// rows that could plausibly have a role so the decrypt stays cheap on every
+// login — this is not a full-roster scan, it's bounded by how many admins
+// the league ever has (currently ~150 of 1104 players). Matches against
+// EITHER "authEmail" (the login identity, see migrations/009) or the older
+// "playerEmail" (contact email) — a player's login email is often not their
+// registered contact email, so relying on playerEmail alone misses most
+// admins (confirmed live: 82 of 151 during the initial backfill).
+exports.getAuthRoleByEmail = async function(email) {
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT player.id, player.role, player."messerAdmin", club.name AS "clubName"
+     FROM player JOIN club ON club.id = player.club
+     WHERE (player.role IS NOT NULL OR player."messerAdmin" = 1)
+       AND (
+         (player."authEmail" IS NOT NULL AND LOWER(pgp_sym_decrypt(player."authEmail", ?)::text) = LOWER(?))
+         OR (player."playerEmail" IS NOT NULL AND LOWER(pgp_sym_decrypt(player."playerEmail", ?)::text) = LOWER(?))
+       )`,
+    [process.env.DB_PI_KEY, email, process.env.DB_PI_KEY, email]
+  )
+  return result[0]
+}
+
+// Used by the superadmin-gated fields on the player edit form, and by the
+// auth-role backfill script. authEmail is only touched when explicitly
+// provided, so ordinary player-edit calls (which don't know about it) never
+// clear an existing value.
+exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail }) {
+  if (authEmail) {
+    const [result] = await (await db.otherConnect()).query(
+      'UPDATE player SET role = ?, "messerAdmin" = ?, "authEmail" = pgp_sym_encrypt(?, ?) WHERE id = ?',
+      [role || null, messerAdmin ? 1 : 0, authEmail, process.env.DB_PI_KEY, playerId]
+    )
+    return result
+  }
+  const [result] = await (await db.otherConnect()).query(
+    'UPDATE player SET role = ?, "messerAdmin" = ? WHERE id = ?',
+    [role || null, messerAdmin ? 1 : 0, playerId]
+  )
+  return result
+}
+
 exports.getEmails = async function(searchTerms) {
   var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
   var whereTerms = [];
@@ -888,7 +930,7 @@ exports.getByNameAndTeam = async function(playerName, teamId, distance) {
 
 exports.getById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", '" + process.env.DB_PI_KEY + "')::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, junior FROM player WHERE id = ?",
+    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", '" + process.env.DB_PI_KEY + "')::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, \"otherComms\", junior, role, \"messerAdmin\" FROM player WHERE id = ?",
     playerId
   )
   return result

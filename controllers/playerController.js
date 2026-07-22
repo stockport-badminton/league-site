@@ -7,14 +7,16 @@ var Team = require('../models/teams');
 var Venue = require('../models/venue');
 var jp = require('jsonpath');
 const {distance, closest} = require('fastest-levenshtein');
-const axios = require('axios');
-var Auth = require('../models/auth.js');
 const { read } = require('fs');
 const { validationResult } = require('express-validator');
 const docx = require("docx");
 const fs = require("fs");
 const path = require('path');
 const { match } = require('assert');
+
+function isSuperAdmin(req) {
+  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
+}
 
 exports.index = async function(req, res) {
   try {
@@ -132,19 +134,13 @@ exports.find_closest_matched_player = async function(req, res, next) {
 
 exports.manage_player_list_clubs_teams = async function(req, res, next) {
   try {
-    const apiKey = await Auth.getManagementAPIKey();
-    const userResponse = await axios.get(
-      'https://' + process.env.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + req.user.id + '&fields=app_metadata,nickname,email',
-      { headers: { "Authorization": "Bearer " + apiKey } }
-    );
-    const user = userResponse.data;
-    var superadmin = false;
-    if (user[0].app_metadata.role && user[0].app_metadata.role == "superadmin") {
-      superadmin = true;
-    }
-    var club = user[0].app_metadata.club || false;
+    // role/club now come from req.user._json, populated at login from the
+    // player table (see app.js's Auth0Strategy verify callback) — no need to
+    // re-fetch app_metadata from Auth0 on every request.
+    var superadmin = req.user._json["https://my-app.example.com/role"] === "superadmin";
+    var club = req.user._json["https://my-app.example.com/club"] || false;
 
-    if (user[0].app_metadata.club == req.params.club || user[0].app_metadata.club == "All") {
+    if (req.user._json["https://my-app.example.com/club"] == req.params.club || req.user._json["https://my-app.example.com/club"] == "All") {
       const rows = await Player.getNamesClubsTeams(req.params);
       if (rows.length < 1) return next("no club by that name");
 
@@ -582,6 +578,7 @@ exports.player_update_get = async function(req, res, next) {
       pageTitle: "Pair Stats",
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
+      viewerIsSuperAdmin: isSuperAdmin(req),
       canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
     });
   } catch (err) {
@@ -594,12 +591,22 @@ exports.player_update_post = async function(req, res, next) {
   let patchObj = {
     "tablename": "player",
     "fields": [
-      "id", "first_name", "family_name", "gender", "playerTel", "playerEmail", "teamCaptain", "clubSecretary", "matchSecrertary", "treasurer", "junior"
+      "id", "first_name", "family_name", "gender", "playerTel", "playerEmail", "teamCaptain", "clubSecretary", "matchSecrertary", "treasurer", "otherComms", "junior"
     ],
-    "data": [[req.params.id, req.body.first_name, req.body.family_name, req.body.gender, req.body.playerTel, req.body.playerEmail, req.body.teamCaptain == 1 ? 1 : 0, req.body.clubSecretary == 1 ? 1 : 0, req.body.matchSecrertary == 1 ? 1 : 0, req.body.treasurer == 1 ? 1 : 0, req.body.junior == 1 ? 1 : 0]]
+    "data": [[req.params.id, req.body.first_name, req.body.family_name, req.body.gender, req.body.playerTel, req.body.playerEmail, req.body.teamCaptain == 1 ? 1 : 0, req.body.clubSecretary == 1 ? 1 : 0, req.body.matchSecrertary == 1 ? 1 : 0, req.body.treasurer == 1 ? 1 : 0, req.body.otherComms == 1 ? 1 : 0, req.body.junior == 1 ? 1 : 0]]
   }
   try {
     await Player.updateBulk(patchObj);
+    // role/messerAdmin are site-wide authorization, not per-player flags —
+    // only ever written if the submitter is already a superadmin, regardless
+    // of what the form posted (see views/player_update_form.ejs, which only
+    // renders these controls for superadmin viewers in the first place).
+    if (isSuperAdmin(req)) {
+      await Player.setAuthRole(req.params.id, {
+        role: req.body.role || null,
+        messerAdmin: req.body.messerAdmin == 1
+      });
+    }
     res.redirect(`/player/${req.params.id}/update`);
   } catch (err) {
     res.send(err);

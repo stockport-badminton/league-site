@@ -85,6 +85,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+var Player = require('./models/players');
+
 var strategy = new Auth0Strategy(
   {
     domain: process.env.AUTH0_DOMAIN,
@@ -93,7 +95,20 @@ var strategy = new Auth0Strategy(
     callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:8080/callback'
   },
   function(accessToken, refreshToken, extraParams, profile, done) {
-    return done(null, profile);
+    // Enrich the profile with role/club/messeradmin from the player table
+    // (Postgres, not Auth0 app_metadata, is now the source of truth for
+    // authorization — see migrations/008_player_auth_roles.sql). Writing to
+    // the same claim keys the rest of the app already reads means no other
+    // call site needs to change. The whole profile is cached in the session
+    // for its lifetime, so this is one DB query per login, not per request.
+    var email = profile.emails && profile.emails[0] && profile.emails[0].value;
+    Player.getAuthRoleByEmail(email).then(function(authRow) {
+      var role = authRow && authRow.role;
+      profile._json['https://my-app.example.com/role'] = role || undefined;
+      profile._json['https://my-app.example.com/club'] = role === 'superadmin' ? 'All' : (role === 'admin' ? authRow.clubName : undefined);
+      profile._json['https://my-app.example.com/messeradmin'] = !!(authRow && authRow.messerAdmin);
+      done(null, profile);
+    }).catch(function(err) { done(err); });
   }
 );
 

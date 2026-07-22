@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const Sentry = require('@sentry/node');
+const secured = require('../middleware/secured');
 const sesUtil = require('../utils/ses');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
@@ -206,7 +207,7 @@ router.post('/manage-players/create', player_controller.player_create_from_team)
 router.post('/player/batch-create', checkJwt, player_controller.player_batch_create);
 router.get('/player/:id/delete', player_controller.player_delete_get);
 router.delete('/player/:id', checkJwt, player_controller.player_delete);
-router.get('/player/:id/update', player_controller.player_update_get);
+router.get('/player/:id/update', secured, player_controller.player_update_get);
 router.get('/player/:id', player_controller.player_detail);
 router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
@@ -324,8 +325,6 @@ router.get('/calendars/*', fixture_controller.fixture_calendars);
 router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
 
 // Secured routes
-const secured = require('../middleware/secured');
-
 router.post('/player/batch-update', secured, player_controller.player_batch_update);
 router.post('/player/:id', secured, player_controller.player_update_post);
 router.get('/admin/results/*', secured, fixture_controller.fixture_detail_byDivision);

@@ -45,9 +45,25 @@
             <input type="checkbox" class="form-control" id="matchSecrertary" name="matchSecrertary" value="1" <%= result[0].matchSecrertary == 1 ? 'checked':'' %>>
             <label for="treasurer">Treasurer</label>
             <input type="checkbox" class="form-control" id="treasurer" name="treasurer" value="1" <%= result[0].treasurer == 1 ? 'checked':'' %>>
+            <label for="otherComms">Other Comms</label>
+            <input type="checkbox" class="form-control" id="otherComms" name="otherComms" value="1" <%= result[0].otherComms == 1 ? 'checked':'' %>>
             <label for="junior">Junior</label>
             <input type="checkbox" class="form-control" id="junior" name="junior" value="1" <%= result[0].junior == 1 ? 'checked':'' %>>
           </div>
+
+          <% if (typeof viewerIsSuperAdmin !== 'undefined' && viewerIsSuperAdmin) { %>
+          <div class="form-group">
+            <hr>
+            <label for="role">Site Role</label>
+            <select name="role" id="role" class="form-control">
+              <option value="" <%= !result[0].role ? 'selected' : '' %>>None</option>
+              <option value="admin" <%= result[0].role == 'admin' ? 'selected' : '' %>>Admin (own club)</option>
+              <option value="superadmin" <%= result[0].role == 'superadmin' ? 'selected' : '' %>>Superadmin (all clubs)</option>
+            </select>
+            <label for="messerAdmin">Messer Admin</label>
+            <input type="checkbox" class="form-control" id="messerAdmin" name="messerAdmin" value="1" <%= result[0].messerAdmin == 1 ? 'checked':'' %>>
+          </div>
+          <% } %>
       </div>
       <div class="modal-footer">
         <button id="submit" type="submit" class="btn btn-primary">Submit</button>
