@@ -165,24 +165,21 @@ router.get('/messer-draw/:section', team_controller.new_messer_draw);
 router.get('/messer-draw/:season/:section', team_controller.new_messer_draw);
 router.get('/rules', static_controller.rules);
 
-router.get('/approve-user/:userId', auth_controller.grantResultsAccess);
+router.get('/approve-user/:userId', secured, auth_controller.approve_signup_get);
+router.post('/approve-user/:userId', secured, auth_controller.approve_signup_post);
 
 router.post('/new-users-v2', (req, res, next) => {
-  const msg = {
-    to: 'stockport.badders.results@gmail.com',
-    from: 'stockport.badders.results@stockport-badminton.co.uk',
-    subject: 'new user signup',
-    text: 'a new user has signed up: ' + req.body.user,
-    html: '<p>a new user has signed up: ' + req.body.user + '<br /><a href="https://stockport-badminton.co.uk/approve-user/' + req.body.id + '">Approve?</a></p>'
-  };
   if (typeof req.body.id != 'undefined' && req.body.id.length > 3 && req.body.id != 'undefined') {
+    // req.body.id is an Auth0 user_id (e.g. "auth0|abc123") — must be
+    // encoded before going into a URL, or the emailed link breaks.
+    const approveLink = 'https://stockport-badminton.co.uk/approve-user/' + encodeURIComponent(req.body.id);
     var params = {
       Destination: {
         ToAddresses: ['stockport.badders.results@gmail.com'],
         BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
       },
       Message: {
-        Body: { Html: { Charset: 'UTF-8', Data: '<p>a new user has signed up: ' + req.body.user + '<br /><a href="https://stockport-badminton.co.uk/approve-user/' + req.body.id + '">Approve?</a></p>' } },
+        Body: { Html: { Charset: 'UTF-8', Data: '<p>a new user has signed up: ' + req.body.user + '<br /><a href="' + approveLink + '">Approve?</a></p>' } },
         Subject: { Charset: 'UTF-8', Data: 'New User Signup' }
       },
       Source: 'results@stockport-badminton.co.uk',

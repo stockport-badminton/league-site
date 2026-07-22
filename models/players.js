@@ -763,7 +763,7 @@ ORDER BY
 // admins (confirmed live: 82 of 151 during the initial backfill).
 exports.getAuthRoleByEmail = async function(email) {
   const [result] = await (await db.otherConnect()).query(
-    `SELECT player.id, player.role, player."messerAdmin", club.name AS "clubName"
+    `SELECT player.id, player.first_name, player.family_name, player.role, player."messerAdmin", club.name AS "clubName"
      FROM player JOIN club ON club.id = player.club
      WHERE (player.role IS NOT NULL OR player."messerAdmin" = 1)
        AND (
