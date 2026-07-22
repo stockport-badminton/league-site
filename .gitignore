@@ -26,12 +26,10 @@ logs.log
 .vscode/launch.json
 .vscode/settings.json
 
-# DB migrations and one-off scripts (run manually, not from repo)
-migrations/
+# One-off seed data (run manually, not from repo) — the schema migrations
+# themselves belong in git, only the data/ subfolder is exempt
+migrations/data/
 scripts/
-
-# Generated club/player registration docs (should move to a temp location)
-static/beta/docs/generated/
 
 # Legacy / scratch files (never committed)
 _amplience/
