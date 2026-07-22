@@ -4,6 +4,12 @@
 
 
     <h1>Player Stats</h1>
+    <div class="col-12 alert alert-warning alert-dismissible fade show" role="alert">
+    <strong>HOW TO USE</strong> Some pointers:1.  you can only see your own clubs players and teams. 2. At the beginning of the season it'll appear that the filters don't work - this is because when no games are played there are no stats for the current season; combine filters with a season choice to see more info. 3. where a player has played in more than one team you'll see mutiple rows for them, one for each team and a summed `All Teams` row.
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
     <% if (typeof filter !== 'undefined' && filter == true){ %>
       <%- include('filters.ejs') %>
     <% } %>
