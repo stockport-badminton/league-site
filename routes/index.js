@@ -425,6 +425,10 @@ router.post('/shuttle-prices/refresh', secured, shuttle_controller.refreshPrices
 router.get('/forms/team-registration', documents_controller.teamRegistrationForm);
 // Same form, prefilled with a club's current player registrations (auth check in controller)
 router.get('/forms/team-registration/:club/prefilled', secured, documents_controller.teamRegistrationFormPrefilled);
+// Club registration form, generated with the current season filled in
+router.get('/forms/club-registration', documents_controller.clubRegistrationForm);
+// Same form, prefilled with a club's contacts, teams and venue (auth check in controller)
+router.get('/forms/club-registration/:club/prefilled', secured, documents_controller.clubRegistrationFormPrefilled);
 
 // Manual venues-map regeneration (superadmin only — role check in controller)
 router.post('/venues-map/refresh', secured, venue_controller.venues_map_refresh);

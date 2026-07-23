@@ -107,6 +107,56 @@ exports.getContactDetailsById = async function(clubId) {
   return result
 }
 
+// Lenient data source for the club registration form prefill. Unlike
+// getContactDetailsById (all-INNER-JOINs, returns nothing unless a match sec,
+// club sec and every team captain exist), this LEFT-JOINs everything so a club
+// with partial data still prefills what it has and leaves the rest blank for
+// the captain to complete. Keyed by club name to match the club claim on
+// req.user and the team-registration form's convention. DISTINCT ON collapses
+// the duplicate rows a club with two players flagged as secretary/captain would
+// otherwise produce.
+exports.getClubRegistration = async function(clubName) {
+  const key = process.env.DB_PI_KEY
+  const conn = await db.otherConnect()
+
+  const [core] = await conn.query(
+    `SELECT DISTINCT ON (club.id) club.id, club.name AS "clubName",
+            club."clubWebsite", club."contactUs" AS "clubEmail",
+            club."matchNightText", club."clubNightText", club."clubNight", club."clubNightCourts",
+            venue.name AS "venueName", venue.address AS "venueAddress",
+            NULLIF(TRIM(CONCAT(cs.first_name, ' ', cs.family_name)), '') AS "clubSecName",
+            pgp_sym_decrypt(cs."playerTel", ?)::text AS "clubSecTel",
+            pgp_sym_decrypt(cs."playerEmail", ?)::text AS "clubSecEmail",
+            NULLIF(TRIM(CONCAT(ms.first_name, ' ', ms.family_name)), '') AS "matchSecName",
+            pgp_sym_decrypt(ms."playerTel", ?)::text AS "matchSecTel",
+            pgp_sym_decrypt(ms."playerEmail", ?)::text AS "matchSecEmail"
+     FROM club
+     LEFT JOIN venue ON club.venue = venue.id
+     LEFT JOIN player cs ON ((club.id = cs.club AND cs."clubSecretary" = 1) OR (club."clubSec" = cs.id))
+     LEFT JOIN player ms ON ((club.id = ms.club AND ms."matchSecrertary" = 1) OR (club."matchSec" = ms.id))
+     WHERE club.name = ?
+     ORDER BY club.id`,
+    [key, key, key, key, clubName]
+  )
+  if (!core.length) return null
+
+  const [teams] = await conn.query(
+    `SELECT DISTINCT ON (team.id) team.id, team.name AS "teamName",
+            NULLIF(TRIM(CONCAT(cap.first_name, ' ', cap.family_name)), '') AS "captainName",
+            pgp_sym_decrypt(cap."playerTel", ?)::text AS "captainTel",
+            pgp_sym_decrypt(cap."playerEmail", ?)::text AS "captainEmail"
+     FROM team
+     JOIN club ON team.club = club.id
+     LEFT JOIN player cap ON ((team.id = cap.team AND cap."teamCaptain" = 1) OR (team.captain = cap.id))
+     WHERE club.name = ?
+     ORDER BY team.id`,
+    [key, key, clubName]
+  )
+  teams.sort((a, b) => a.teamName.localeCompare(b.teamName))
+
+  return { core: core[0], teams }
+}
+
 exports.getById = async function(clubId) {
   const [result] = await (await db.otherConnect()).query('SELECT * FROM club WHERE id = ?', clubId)
   return result

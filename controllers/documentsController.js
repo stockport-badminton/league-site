@@ -1,10 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const { PDFDocument, StandardFonts, rgb, PDFName, PDFString } = require('pdf-lib');
 const seasonModel = require('../models/season');
 const Player = require('../models/players');
+const Club = require('../models/club');
 
 const TEAM_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Team Registration Form ePDF.pdf');
+const CLUB_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Club Registration Form ePDF.pdf');
 const CLUB_CLAIM = 'https://my-app.example.com/club';
 const ROLE_CLAIM = 'https://my-app.example.com/role';
 
@@ -264,6 +266,167 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     const pdfBytes = await doc.save();
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${club} Team Registration Form ${label}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Club registration form ------------------------------------------
+
+// Cover the template's baked-in season text ("2025-26", top-right of the
+// "Club Registration Form" heading) and draw the current one in its place.
+async function stampClubSeason(doc, label) {
+  const page = doc.getPages()[0];
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  page.drawRectangle({ x: 444, y: 611, width: 114, height: 22, color: rgb(1, 1, 1) });
+  page.drawText(label, { x: 450, y: 616, size: 14, font, color: rgb(0.043, 0.176, 0.427) });
+}
+
+// The template reuses a single field named "email" for two cells: the club
+// contact-email row (x≈90) and the Match Secretary email cell (x≈296) — so
+// setting one fills both. Detach the second widget into its own "Match Sec
+// Email" field so the two can hold different addresses and stay independently
+// editable. Returns the new field's name, or null if the template shape has
+// changed (in which case the shared field is left alone).
+function splitSharedEmailWidget(doc, form) {
+  const email = form.getField('email');
+  const kids = email.acroField.Kids();
+  if (!kids || kids.size() < 2) return null;
+
+  const widgetRef = kids.get(1); // the match-secretary email cell
+  const widgetDict = doc.context.lookup(widgetRef);
+  kids.remove(1);
+  widgetDict.set(PDFName.of('FT'), PDFName.of('Tx'));
+  widgetDict.set(PDFName.of('T'), PDFString.of('Match Sec Email'));
+  widgetDict.delete(PDFName.of('Parent'));
+  form.acroForm.Fields().push(widgetRef);
+  return 'Match Sec Email';
+}
+
+const WEEKDAYS = {
+  mon: 'Monday', tue: 'Tuesday', tues: 'Tuesday', wed: 'Wednesday', weds: 'Wednesday',
+  thu: 'Thursday', thur: 'Thursday', thurs: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
+};
+
+// The match- and club-night details are stored as free text ("Thursday 7pm 2
+// courts", "Tues 8pm - 10pm ..."), so lift the day/time/court-count out
+// best-effort. The verbatim text still goes in the notes cell, so anything
+// these miss (multiple days, "reduce to 1 court at 8pm", typos) isn't lost.
+function parseNightDay(text) {
+  const m = (text || '').match(/\b(mon|tues?|weds?|thurs?|thur|thu|fri|sat|sun)[a-z]*/i);
+  return m ? (WEEKDAYS[m[1].toLowerCase()] || '') : '';
+}
+function parseTimes(text) {
+  return ((text || '').match(/\d{1,2}([.:]\d{2})?\s*[ap]m/ig) || []).map(s => s.replace(/\s+/g, '').toLowerCase());
+}
+function parseCourts(text) {
+  const m = (text || '').match(/(\d+)\s*courts?/i);
+  return m ? m[1] : '';
+}
+
+exports.clubRegistrationForm = async function(req, res, next) {
+  try {
+    const label = seasonLabel(seasonModel.current());
+    const doc = await PDFDocument.load(fs.readFileSync(CLUB_REGISTRATION_TEMPLATE));
+    await stampClubSeason(doc, label);
+
+    const pdfBytes = await doc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Club Registration Form ${label}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// The template's five match-contact rows, in order. A's email field is the
+// odd one out ("A Team email" lowercase); the rest are "Email". The Match
+// Secretary row has a Name and Mobile but no email field on the template.
+const CLUB_TEAM_FIELDS = [
+  { name: 'A Team', email: 'A Team email', mobile: 'A Team Mobile' },
+  { name: 'B Team', email: 'B Team Email', mobile: 'B Team Mobile' },
+  { name: 'C Team', email: 'C Team Email', mobile: 'C Team Mobile' },
+  { name: 'D Team', email: 'D Team Email', mobile: 'D Team Mobile' },
+  { name: 'E Team', email: 'E Team Email', mobile: 'E Team Mobile' },
+];
+
+// The address is one free-text field, comma-separated. Venue name takes the
+// template's "Venue" row; the remaining parts fill Line 2..6, with anything
+// past six parts folded into the last line so nothing is silently dropped.
+function addressLines(venueName, venueAddress) {
+  const parts = (venueAddress || '').split(',').map(s => s.trim()).filter(Boolean);
+  const venue = parts.length ? parts.shift() : (venueName || '');
+  const lines = parts.slice(0, 5);
+  if (parts.length > 5) lines[4] = parts.slice(4).join(', ');
+  return { venue, lines };
+}
+
+exports.clubRegistrationFormPrefilled = async function(req, res, next) {
+  try {
+    const club = req.params.club;
+    assertClubAccess(req, club);
+
+    const data = await Club.getClubRegistration(club);
+    if (!data) return next('no club by that name');
+    const { core, teams } = data;
+
+    const label = seasonLabel(seasonModel.current());
+    const doc = await PDFDocument.load(fs.readFileSync(CLUB_REGISTRATION_TEMPLATE));
+    await stampClubSeason(doc, label);
+    const form = doc.getForm();
+    const matchSecEmailField = splitSharedEmailWidget(doc, form);
+
+    // Club identity + address
+    const { venue, lines } = addressLines(core.venueName, core.venueAddress);
+    setField(form, 'Club', core.clubName);
+    setField(form, 'Venue', venue);
+    ['Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'].forEach((f, i) => setField(form, f, lines[i]));
+    setField(form, 'email', core.clubEmail && core.clubEmail.trim());
+    setField(form, 'website', core.clubWebsite);
+
+    // Club secretary (the alternate-contact block has no data source, left blank)
+    setField(form, 'Secretary', core.clubSecName);
+    setField(form, 'Secretary Email', core.clubSecEmail);
+    setField(form, 'Secretary Phone No', core.clubSecTel);
+
+    // Venue and match play details
+    setField(form, 'Number of teams entered', teams.length ? String(teams.length) : '');
+    setField(form, 'Match Secretary', core.matchSecName);
+    setField(form, 'Mobile', core.matchSecTel); // Match Secretary row's mobile
+    if (matchSecEmailField) setField(form, matchSecEmailField, core.matchSecEmail);
+
+    // Match play: structured cells parsed best-effort from the free-text
+    // description; the full text is kept verbatim in the notes cell so nothing
+    // the parser drops is lost.
+    const matchTimes = parseTimes(core.matchNightText);
+    setField(form, 'Night', parseNightDay(core.matchNightText));
+    setField(form, 'Start Time', matchTimes[0]);
+    setField(form, 'No of Courts', parseCourts(core.matchNightText));
+    setField(form, 'Match Play Match play notesRow1', core.matchNightText);
+
+    if (teams.length > CLUB_TEAM_FIELDS.length) {
+      console.warn(`Club registration form: ${teams.length} teams for "${club}", template only has ${CLUB_TEAM_FIELDS.length} rows`);
+    }
+    teams.slice(0, CLUB_TEAM_FIELDS.length).forEach((team, i) => {
+      const f = CLUB_TEAM_FIELDS[i];
+      setField(form, f.name, team.captainName);
+      setField(form, f.email, team.captainEmail);
+      setField(form, f.mobile, team.captainTel);
+    });
+
+    // Club night: day comes from the structured column where set, falling
+    // back to the free text (some clubs only have it there); the start/end
+    // times live only in the free text. The Winter/Summer/Visitors controls
+    // have no data source and are left for the captain.
+    const clubTimes = parseTimes(core.clubNightText);
+    setField(form, 'Club Night', parseNightDay(core.clubNight) || parseNightDay(core.clubNightText));
+    setField(form, 'From', clubTimes[0]);
+    setField(form, 'to', clubTimes[1]);
+
+    const pdfBytes = await doc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${club} Club Registration Form ${label}.pdf"`);
     res.send(Buffer.from(pdfBytes));
   } catch (err) {
     next(err);
