@@ -357,8 +357,10 @@ ladiesReserveTargets.forEach(function(team) {
 
 <% } %>
 
-<% if (typeof filter !== 'undefined' && filter == true){ %>
+<% if (typeof superadmin !== 'undefined' && superadmin) { %>
+    <% if (typeof filter !== 'undefined' && filter == true){ %>
       <%- include('filtersJs.ejs') %>
+    <% } %>
     <% } %>
 
 </script>

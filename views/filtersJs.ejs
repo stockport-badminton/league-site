@@ -51,9 +51,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     }
     
-    document.querySelector("#statsUpdate").addEventListener('click',updateFilter);
+    // The filter form isn't rendered on every page that includes this script
+    // (e.g. non-superadmins on the team-admin page), so guard the wiring —
+    // querySelector returns null when the control is absent.
+    var statsUpdateBtn = document.querySelector("#statsUpdate");
+    if (statsUpdateBtn) statsUpdateBtn.addEventListener('click',updateFilter);
     if (window.location.pathname.indexOf('/results') > -1 ){
-        document.querySelector("#showFilter").addEventListener('click',toggleFilter);
+        var showFilterBtn = document.querySelector("#showFilter");
+        if (showFilterBtn) showFilterBtn.addEventListener('click',toggleFilter);
     }
 
     
