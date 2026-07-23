@@ -18,6 +18,22 @@ function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
 }
 
+// Club admins see only their own club's stats; superadmins (club 'All') and
+// users with no role see everything. Mutates searchObj in place. Reads the
+// role/club claims populated at login from the player table (see app.js's
+// Auth0Strategy verify callback). Note: an 'admin' whose club claim didn't
+// resolve at login falls through to seeing all clubs rather than nothing —
+// acceptable here (stats are visible to any logged-in user anyway; the scope
+// is a convenience default, not a hard boundary).
+function scopeToAdminClub(req, searchObj) {
+  const claims = req.user && req.user._json;
+  if (!claims) return;
+  const club = claims['https://my-app.example.com/club'];
+  if (claims['https://my-app.example.com/role'] === 'admin' && club && club !== 'All') {
+    searchObj.club = club;
+  }
+}
+
 exports.index = async function(req, res) {
   try {
     const [player_count, player_female_count, player_male_count] = await Promise.all([
@@ -345,29 +361,12 @@ exports.all_player_stats = async function(req, res, next) {
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
-    if (typeof req.session.user != 'undefined') {
-      if (req.user._json["https://my-app.example.com/role"] !== undefined) {
-        if (req.user._json["https://my-app.example.com/role"] == "admin") {
-          if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined) {
-            searchObj.club = req.user._json["https://my-app.example.com/club"]
-          }
-        }
-      }
-    }
   } else {
     searchObj = {}
   }
 
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
-  if (req.user._json["https://my-app.example.com/role"] !== undefined) {
-    if (req.user._json["https://my-app.example.com/role"] == "admin") {
-      if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined) {
-        searchObj.club = req.user._json["https://my-app.example.com/club"]
-      }
-    }
-  }
-
-  console.log(searchObj)
+  scopeToAdminClub(req, searchObj)
 
   try {
     const rawResult = await Player.newGetPlayerStats(searchObj);
@@ -460,20 +459,12 @@ exports.all_pair_stats = async function(req, res, next) {
       const [key, value] = str.split("-");
       return { ...acc, [key]: value };
     }, {});
-    if (typeof req.session.user != 'undefined') {
-      if (req.user._json["https://my-app.example.com/role"] !== undefined) {
-        if (req.user._json["https://my-app.example.com/role"] == "admin") {
-          if (req.user._json["https://my-app.example.com/club"] != "All" && req.user._json["https://my-app.example.com/club"] !== undefined) {
-            searchObj.club = req.user._json["https://my-app.example.com/club"]
-          }
-        }
-      }
-    }
   } else {
     searchObj = {}
   }
   let divisionString = "All"
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
+  scopeToAdminClub(req, searchObj)
 
   try {
     const result = await Player.newGetPairStats(searchObj);
