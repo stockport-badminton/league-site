@@ -136,6 +136,11 @@ app.use(require('./middleware/devMode'));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Parses the filter path segments (/player-stats/Division-1/gender-Male/...) into
+// res.locals.filterBar, so views/filters.ejs can show what's applied and build
+// links that add or drop one filter without losing the others.
+app.use(require('./middleware/filterState').middleware);
+
 app.use(require('./routes'));
 
 // Sentry error handler — must be after all routes, before any other error middleware.
@@ -158,6 +163,15 @@ if (require.main === module) {
         app.locals.pastSeasons = all.filter(function(s) { return s.name !== current; });
       } catch (err) {
         console.error('pastSeasons load failed:', err.message);
+      }
+      // Division/season option lists for the filter toolbar. Runs after
+      // season.init() because the current season decides which seasons are
+      // offerable (see middleware/filterState.js).
+      try {
+        const counts = await require('./middleware/filterState').init();
+        console.log('Filter options loaded:', counts.divisions, 'divisions,', counts.seasons, 'seasons');
+      } catch (err) {
+        console.error('filterState load failed:', err.message);
       }
     }).finally(function() {
       app.listen(port, function() {

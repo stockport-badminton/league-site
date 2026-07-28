@@ -256,3 +256,384 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 .other-tooltip:hover:before {
   display:block;
 }
+
+/* ==========================================================================
+   Filter toolbar and DataTables control band
+   --------------------------------------------------------------------------
+   The stats/results pages used to scatter their controls: a Bootstrap grid row
+   of bare selects for the filters, a 13-option <select multiple> for column
+   visibility on player-stats, and DataTables' own four control blocks left
+   wherever its bs4 default layout dropped them. These two components replace
+   all of that - see views/filters.ejs and views/datatables-controls.ejs.
+
+   Colours follow the league purple already used by .footer and the DataTables
+   sort arrows above (#661163).
+   ========================================================================== */
+
+/* Filter toolbar (views/filters.ejs)
+ *
+ * One compact row of selects that reload the page, then a chip per applied
+ * filter. The chips matter more than they look: club and team options are
+ * derived from the result set, so on a zero-result page those dropdowns are
+ * empty and the chips are the only way back out.
+ */
+.filter-toolbar {
+  background: white;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  margin-bottom: 1.25rem;
+}
+
+.filter-toolbar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.filter-fields {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex: 1 1 9.5rem;
+  flex-direction: column;
+  min-width: 9.5rem;
+}
+
+.filter-field label {
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #661163;
+  /* Explicit: an ancestor centres its text, which left these reading as captions
+   * floating over the middle of each select rather than labelling it. */
+  text-align: left;
+}
+
+/* These icons are inside a label, not the footer social row that the global
+ * `.fa` rule above styles - so reset the parts of it that would apply. */
+.filter-field label i,
+.filter-chip i,
+.dt-controls .dt-buttons .dt-btn i {
+  float: none;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  opacity: 0.75;
+}
+
+.filter-field label i {
+  margin-right: 0.3rem;
+}
+
+.filter-field select.form-control {
+  height: auto;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Bootstrap's .btn-primary is its default blue, which fought the league purple
+ * used by everything else in this toolbar. Restyled here rather than overriding
+ * .btn-primary globally, which is used all over the site. */
+.filter-apply,
+.filter-apply.btn-primary {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border-color: #661163;
+  background-color: #661163;
+  color: white;
+}
+
+.filter-apply.btn-primary:hover,
+.filter-apply.btn-primary:focus,
+.filter-apply.btn-primary:active {
+  border-color: #4c0d4a;
+  background-color: #4c0d4a;
+  box-shadow: none;
+}
+
+/* Applied filters: each chip links to the same page minus that one filter. */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.filter-chips-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid #e0cfe0;
+  border-radius: 999px;
+  background: #f6eef6;
+  color: #661163;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.filter-chip:hover,
+.filter-chip:focus {
+  background: #ecdcec;
+  border-color: #661163;
+  color: #661163;
+  text-decoration: none;
+}
+
+.filter-chip i {
+  font-size: 0.7rem;
+}
+
+.filter-clear {
+  margin-left: auto;
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.filter-clear:hover {
+  color: #dc3545;
+  text-decoration: underline;
+}
+
+/* DataTables control band (views/datatables-controls.ejs)
+ *
+ * DataTables' own length/search/pagination controls, gathered into one bar above
+ * the table and one below it. Buttons (the Columns dropdown, Download CSV, and
+ * the "Search columns" toggle where a view opts in) render into .dt-controls-left.
+ */
+.dt-controls,
+.dt-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+}
+
+.dt-controls {
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+}
+
+.dt-footer {
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.dt-controls-left,
+.dt-controls-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dt-controls .dataTables_length,
+.dt-controls .dataTables_filter,
+.dt-footer .dataTables_info,
+.dt-footer .dataTables_paginate {
+  margin: 0;
+  padding: 0;
+}
+
+.dt-controls .dataTables_length label,
+.dt-controls .dataTables_filter label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #495057;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.dt-controls select,
+.dt-controls input[type="search"] {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* The page-length select needs room for its own dropdown arrow as well as the
+ * text - without a width it shrank to the widest option ("All") and clipped the
+ * arrow over the number. */
+.dt-controls select {
+  min-width: 5rem;
+}
+
+.dt-controls input[type="search"] {
+  min-width: 12rem;
+}
+
+.dt-footer .dataTables_info {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+/* A table with many pages produces a long numbered pager, which pushes the whole
+ * page into horizontal scroll on a phone. Let it wrap and let both footer items
+ * shrink. */
+.dt-footer .dt-info,
+.dt-footer .dt-pager {
+  min-width: 0;
+}
+
+.dt-footer .pagination {
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+/* Buttons: Columns (ColVis), Download CSV, and the Search columns toggle.
+ * Overrides both Bootstrap's .btn-secondary and the DataTables Buttons default. */
+.dt-controls .dt-buttons .dt-btn,
+.dt-controls .dt-buttons .dt-btn.btn {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  background: white;
+  color: #661163;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.dt-controls .dt-buttons .dt-btn:hover,
+.dt-controls .dt-buttons .dt-btn.btn:hover {
+  border-color: #661163;
+  background: #f6eef6;
+  color: #661163;
+}
+
+.dt-controls .dt-buttons .dt-btn.active,
+.dt-controls .dt-buttons .dt-btn.btn.active {
+  border-color: #661163;
+  background: #661163;
+  color: white;
+}
+
+.dt-controls .dt-buttons .dt-btn i {
+  margin-right: 0.35rem;
+}
+
+/* ColVis dropdown. The visible menu is the .dropdown-menu inside the
+ * positioning wrapper, so it - not the wrapper - carries the styling. */
+.dt-button-collection .dropdown-menu {
+  padding: 0.35rem;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.dt-button-collection .dt-button {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: white;
+  color: #495057;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.dt-button-collection .dt-button:hover {
+  background: #f6eef6;
+  color: #661163;
+}
+
+.dt-button-collection .dt-button.active {
+  background: #f6eef6;
+  color: #661163;
+  font-weight: 600;
+}
+
+/* Wrapper the DataTables views put around their table. Deliberately has no
+ * overflow of its own: the horizontal scroller is the .table-responsive that
+ * DataTables builds around just the table (see datatables-controls.ejs), so the
+ * control bands and the Columns dropdown aren't inside a clipping box -
+ * overflow-x: auto clips vertically too, which cut the bottom off the Columns
+ * menu whenever the table was shorter than it. */
+.dt-table-shell {
+  width: 100%;
+}
+
+/* Per-column search row, revealed by the Search columns toggle. It used to be
+ * permanently visible, which made every header two rows tall and made the input
+ * row read as the table's first data row. */
+.dt-colsearch-row {
+  display: none;
+}
+
+table.colsearch-on .dt-colsearch-row {
+  display: table-row;
+}
+
+.dt-colsearch-row th {
+  padding: 0.4rem 0.5rem;
+  background: #f1f3f6;
+}
+
+.dt-colsearch-row input {
+  width: 100%;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  /* Two filters per row rather than one: seven stacked full-width selects made
+   * the toolbar most of a phone screen tall before any data. */
+  .filter-fields {
+    gap: 0.6rem;
+  }
+
+  .filter-field {
+    flex: 1 1 calc(50% - 0.3rem);
+    min-width: 0;
+  }
+
+  .filter-apply {
+    width: 100%;
+  }
+
+  .dt-controls,
+  .dt-footer {
+    justify-content: flex-start;
+  }
+
+  .dt-controls input[type="search"] {
+    min-width: 0;
+  }
+}

@@ -250,8 +250,13 @@
     <link rel="stylesheet" href="/scripts/bootstrap/dist/css/bootstrap.min.css">
     <!-- font awesome CSS-->
     <link rel="stylesheet" href="/scripts/@fortawesome/fontawesome-free/css/all.css">
-    <%- include('datatables-css.ejs') -%>
-    
+    <%# DataTables CSS is only needed on the six views that build a table, so those
+        views opt in with include('header.ejs', { useDataTables: true }). It used to
+        load unconditionally on every page. %>
+    <% if (typeof useDataTables !== 'undefined' && useDataTables) { %>
+      <%- include('datatables-css.ejs') -%>
+    <% } %>
+
     <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/custom.css"/>
     <% if (typeof canonical != 'undefined') { %>
       <link rel="canonical"

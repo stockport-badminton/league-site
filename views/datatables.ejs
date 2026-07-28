@@ -1,5 +1,8 @@
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/jq-3.3.1/dt-1.10.20/b-1.6.1/b-colvis-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
-<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/date-euro.js"></script>
+<!-- Results/fixture tables: date-sorted on column 0 and paged to the nearest date.
+     Stats tables use datatables-stats.ejs instead. Optional extra:
+
+       include('datatables.ejs', { dtCsv: true })   Download CSV button -->
+<%- include('datatables-scripts.ejs') %>
 <script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.12.0/api/page.jumpToData().js"></script>
 
 <script type="text/javascript">
@@ -8,22 +11,26 @@
         "columnDefs": [
           { "type": "date-euro", "targets": 0 }
         ],
-        pageLength:20
+        pageLength:20,
+        <%- include('datatables-controls.ejs') %>
+        buttons: [
+          { extend: 'colvis', className: 'dt-btn' }
+          <% if (typeof dtCsv !== 'undefined' && dtCsv) { %>
+          ,
+          { extend: 'csv', text: '<i class="fas fa-download"></i> CSV', className: 'dt-btn' }
+          <% } %>
+        ]
       });
-      var data = table.data().toArray();
-
       <%
       if (typeof nearestDate === 'undefined'){
         nearestDate = new Date()
       }
       %>
       var today = new Date("<%= nearestDate %>")
-
       currentDateString = ('0' + today.getDate()).slice(-2) + '/'
              + ('0' + (today.getMonth()+1)).slice(-2) + '/'
              + today.getFullYear();
-      console.log(currentDateString)
       table.page.jumpToData(currentDateString, 0 );
-      
+
   } );
 </script>
