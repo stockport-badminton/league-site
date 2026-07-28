@@ -122,6 +122,55 @@ npm run test:watch # Watch mode
 - Mock `req`, `res`, `next` for middleware tests
 - Use `supertest` for HTTP integration tests (see `__tests__/integration/`)
 
+### Browser tests (Playwright)
+
+Jest renders routes with supertest but never runs the page's JavaScript. The
+scorecard forms live inside a Bootstrap modal and populate their team/player
+dropdowns with jQuery from three endpoints; the stats tables are built by
+DataTables. `e2e/` covers that layer.
+
+```bash
+npm run test:e2e      # headless
+npm run test:e2e:ui   # interactive
+npm run test:all      # jest, then playwright
+```
+
+- **Config**: `playwright.config.js` — starts the dev server itself with
+  `DEV_MODE=true` (so the secured routes render without Auth0) and reuses one
+  that's already running.
+- **Specs**: `scorecard.spec.js` (18-game), `messer-scorecard.spec.js` (15-game),
+  `populated-scorecard.spec.js` (the confirmation view for both),
+  `filter-toolbar.spec.js` (filters/chips/DataTables controls),
+  `read-only-guard.spec.js` (self-test for the guard below).
+- **Known bugs** are recorded with `test.fail()` *inside* the test body (at
+  describe level the modifier applies to every test in the group). The suite stays
+  green, and if the bug gets fixed the run says "expected to fail, but passed" —
+  which is the prompt to delete the annotation. There is one right now:
+  `/populated-messer-scorecard/:id` prefills nothing.
+
+**⚠️ These tests MUST stay read-only.** `dev.env` carries the *same*
+`DATABASE_URL` as `.env`, so a local dev server is talking to the **production**
+Supabase instance. A test that submitted a scorecard would create real rows in
+`scorecardstore` / `messer_scorecard` / `fixture`.
+
+`e2e/helpers/read-only.js` enforces this at the network layer rather than
+trusting each test: it aborts any mutating request and `assertNoWrites()` then
+fails the test. Call it at the end of every test. `POST /teams` is allowlisted
+because `team_search()` only SELECTs despite the verb. If you need coverage of
+actual submission, point the tests at a separate database first — don't widen the
+allowlist.
+
+Gotchas the specs already encode:
+- Score/player dropdowns lead with `<option disabled selected>Choose …</option>`
+  with no `value`, so `option.value` falls back to the *text*. Use
+  `e2e/helpers/selects.js` to pick a genuinely selectable option.
+- The scorecard modal is a multi-step wizard — the score inputs are not on step 1,
+  so assert on attributes (e.g. messer's `min="-10"` vs the standard `min="0"`)
+  rather than trying to type into them.
+- The messer team dropdown is server-rendered with *every* team and replaced on
+  section change, so "the list changed" is not a valid assertion for whichever
+  section holds them all. Assert against the API payload instead.
+
 ## Common Commands
 
 ### Development
@@ -133,6 +182,7 @@ npm run prodlocal    # Prod-like server locally (prod build, .env)
 
 ### Testing
 ```bash
+npm run test:e2e     # Browser tests (Playwright) — read-only, see Testing above
 npm test             # Run once
 npm run test:watch   # Watch mode
 ```

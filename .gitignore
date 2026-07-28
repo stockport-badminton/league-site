@@ -42,3 +42,9 @@ original-nginx.conf
 player-registration-pseudo.txt
 rootfiles/sw3.js
 rootfiles/swv2.js
+
+# Playwright (see playwright.config.js) — run artefacts, never committed
+test-results/
+playwright-report/
+blob-report/
+.last-run.json
