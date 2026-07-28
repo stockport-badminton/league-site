@@ -347,16 +347,23 @@ describe('Messer Scorecard Routes', () => {
       // getAllAndSelectedBySection computes - whereas the player selects compare
       // row.id against data.*. The view mixes the two mechanisms, so the mock has
       // to reproduce the flag rather than just return names.
+      // Compared loosely on purpose: the real query is `team.id = ?`, which
+      // Postgres coerces, and the id arrives as a number from a draft row but as a
+      // string from a form body.
       Team.getAllAndSelectedBySection.mockImplementation((teamId) =>
         Promise.resolve([
-          { id: 8, name: 'Racketeers B', selected: teamId === 8 },
-          { id: 10, name: 'Alderley Park A', selected: teamId === 10 },
+          { id: 8, name: 'Racketeers B', selected: String(teamId) === '8' },
+          { id: 10, name: 'Alderley Park A', selected: String(teamId) === '10' },
         ]));
+      // The real shape getEligiblePlayersAndSelectedById returns: id, first_name,
+      // family_name and the first/second/third flags. Deliberately NO `name` — an
+      // earlier version of this mock supplied one, and that hid the view rendering
+      // every player option label blank because it read row.name.
       Player.getEligiblePlayersAndSelectedById.mockImplementation((p1, p2, p3) =>
         Promise.resolve([
-          { id: p1, name: 'Player ' + p1 },
-          { id: p2, name: 'Player ' + p2 },
-          { id: p3, name: 'Player ' + p3 },
+          { id: p1, first_name: 'Pat', family_name: 'One' + p1, first: 1, second: 0, third: 0 },
+          { id: p2, first_name: 'Sam', family_name: 'Two' + p2, first: 0, second: 1, third: 0 },
+          { id: p3, first_name: 'Alex', family_name: 'Three' + p3, first: 0, second: 0, third: 1 },
         ]));
     });
 
@@ -386,6 +393,21 @@ describe('Messer Scorecard Routes', () => {
       });
     });
 
+    it('labels every player option with a readable name', async () => {
+      const res = await request(app).get('/populated-messer-scorecard/123');
+
+      // The player options used to render as `<option value="236" ></option>` —
+      // present and selectable but with no visible text — because the view read
+      // row.name and the model returns first_name/family_name. A captain saw a
+      // dropdown of blanks.
+      // Any match here is an option with a value but no visible label.
+      const blank = res.text.match(/<option value="\d+"\s*(selected)?\s*><\/option>/g) || [];
+      expect(blank).toEqual([]);
+
+      expect(res.text).toContain('Pat One101');
+      expect(res.text).toContain('Alex Three403');
+    });
+
     it('preselects the section derived from the home team', async () => {
       const res = await request(app).get('/populated-messer-scorecard/123');
       expect(Team.getById).toHaveBeenCalledWith(8);
@@ -399,6 +421,32 @@ describe('Messer Scorecard Routes', () => {
       // give 2026-07-16, showing the fixture a day early.
       expect(res.text).toMatch(/id="date"[^>]*value="2026-07-17"/);
       expect(res.text).not.toMatch(/id="date"[^>]*value="2026-07-16"/);
+    });
+
+    it('emits the modal exactly once on the validation-error path', async () => {
+      // The view used to carry two copies of the whole form: one guarded on
+      // `hasResult` and an older one on `hasScorecard && hasErrors`. The error
+      // render sets both, so both emitted - same id="signupModal" twice, 716 lines
+      // of duplicate markup, and a 181KB response. The older copy is gone; this
+      // pins it so it cannot come back.
+      const res = await request(app)
+        .post('/messer-scorecard-beta')
+        .type('form')
+        .send({
+          section: 'A', date: '2026-07-17', homeTeam: '8', awayTeam: '10',
+          homeMan1: '101',
+          Game1homeScore: '', Game1awayScore: '',   // fails validation, so no insert
+        });
+
+      expect(res.status).toBe(200);
+      const modals = res.text.match(/id="signupModal"/g) || [];
+      expect(modals).toHaveLength(1);
+
+      // And it is still the copy that repopulates what was submitted.
+      expect(res.text).toMatch(/<option value="A"\s+selected>/);
+      expect(res.text).toMatch(/id="date"[^>]*value="2026-07-17"/);
+      expect(res.text).toMatch(/<option value="8" selected>/);
+      expect(Fixture.createMesserScorecard).not.toHaveBeenCalled();
     });
 
     it('still renders the scores when the team lookup comes back empty', async () => {
