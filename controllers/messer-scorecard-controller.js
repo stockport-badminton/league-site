@@ -356,13 +356,38 @@ exports.full_messer_fixture_post = async function(req, res, next) {
   }
 };
 
+// `<input type="date">` only accepts yyyy-MM-dd, so a Date has to be formatted
+// before it reaches the view.
+//
+// Built from the LOCAL components, not toISOString(). The column is `timestamp
+// without time zone` holding midnight — '2026-07-17 00:00:00' — and the pg driver
+// hands that back as a Date in local time. Under BST toISOString() then reads
+// 2026-07-16T23:00:00Z, so slicing the ISO string would show the fixture a day
+// early for half the year.
+function toDateInputValue(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear()
+    + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // GET /populated-messer-scorecard/:id — load draft via POST-Redirect-Get
+//
+// This is the page the away captain lands on from the confirmation email, so it
+// has to show the result being confirmed. It used to render an empty form headed
+// "Messer Result Submitted": views/messer-scorecard.ejs reads every value from
+// `data` and builds its team/player option lists from `scorecard.*Rows`, and this
+// handler passed no `data` at all and put the raw draft row in `scorecard`. The
+// other three render sites (blank form, test card, validation-error repopulation)
+// already pass both, so this was the odd one out.
 exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next) {
   try {
     const scorecardId = req.params.id;
-    const scorecard = await Fixture.getMesserScorecardById(scorecardId);
+    const rows = await Fixture.getMesserScorecardById(scorecardId);
 
-    if (!scorecard || scorecard.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).render('404-error', {
         static_path: '/static',
         pageTitle: "Can't find the page you're looking for",
@@ -371,11 +396,40 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
       });
     }
 
+    const row = rows[0];
+
+    // messer_scorecard has no section column, so it comes from the home team —
+    // section is a property of the team, and both sides of a messer tie are in the
+    // same one. Defended against an empty lookup: a draft pointing at a team that
+    // has since been removed should still show its scores rather than 500 the page
+    // the away captain is being asked to confirm on.
+    const homeTeam = (await Team.getById(row.homeTeam)) || [];
+    const section = (homeTeam[0] && homeTeam[0].section) || '';
+
+    const [homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
+      Team.getAllAndSelectedBySection(row.homeTeam, section),
+      Team.getAllAndSelectedBySection(row.awayTeam, section),
+      Player.getEligiblePlayersAndSelectedById(row.homeMan1, row.homeMan2, row.homeMan3, row.homeTeam, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(row.homeLady1, row.homeLady2, row.homeLady3, row.homeTeam, 'Female'),
+      Player.getEligiblePlayersAndSelectedById(row.awayMan1, row.awayMan2, row.awayMan3, row.awayTeam, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(row.awayLady1, row.awayLady2, row.awayLady3, row.awayTeam, 'Female'),
+    ]);
+
+    const scorecard = { homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+
+    // Same shape full_messer_fixture_post builds for its error path: the draft row
+    // plus the section the row doesn't store and a date the input will accept.
+    const data = Object.assign({}, row, {
+      section,
+      date: toDateInputValue(row.date),
+    });
+
     res.render('messer-scorecard', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',
       result: true,
-      scorecard: scorecard[0],
+      scorecard,
+      data,
       devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
       pageTitle: 'Messer Result Submitted',
       pageDescription: 'Your messer result has been submitted',

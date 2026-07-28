@@ -45,6 +45,7 @@ jest.mock('../../utils/ses', () => ({
 
 const Division = require('../../models/division');
 const Team = require('../../models/teams');
+const Player = require('../../models/players');
 const Fixture = require('../../models/fixture');
 const app = require('../../app');
 
@@ -309,6 +310,106 @@ describe('Messer Scorecard Routes', () => {
       Fixture.getMesserScorecardById.mockResolvedValue([]);
       const res = await request(app).get('/populated-messer-scorecard/999');
       expect([200, 404]).toContain(res.status);
+    });
+  });
+
+  // The tests above assert on the mocked res.render, so they only ever see the
+  // view *name* - which is why they stayed green while this page rendered an empty
+  // form. These render the real EJS and assert on the HTML that reaches the away
+  // captain. The only messer draft in the production database is a partial row
+  // with no players and half its scores null, so a complete draft has to be
+  // mocked here rather than checked in a browser.
+  describe('GET /populated-messer-scorecard/:id — real render', () => {
+    const COMPLETE_DRAFT = {
+      id: 123,
+      // `timestamp without time zone` holding midnight, as the pg driver returns
+      // it: a Date whose LOCAL components are the fixture date.
+      date: new Date(2026, 6, 17),
+      homeTeam: 8,
+      awayTeam: 10,
+      homeMan1: 101, homeMan2: 102, homeMan3: 103,
+      homeLady1: 201, homeLady2: 202, homeLady3: 203,
+      awayMan1: 301, awayMan2: 302, awayMan3: 303,
+      awayLady1: 401, awayLady2: 402, awayLady3: 403,
+    };
+    for (let i = 1; i <= 15; i++) {
+      COMPLETE_DRAFT[`Game${i}homeScore`] = 21;
+      COMPLETE_DRAFT[`Game${i}awayScore`] = 19 - i;   // includes negatives
+    }
+
+    beforeEach(() => {
+      // Undo the res.render mock installed by the outer beforeEach.
+      require('express').response.render.mockRestore();
+
+      Fixture.getMesserScorecardById.mockResolvedValue([COMPLETE_DRAFT]);
+      Team.getById.mockResolvedValue([{ id: 8, name: 'Racketeers B', section: 'A' }]);
+      // The team selects mark their option from row.selected - the flag the SQL in
+      // getAllAndSelectedBySection computes - whereas the player selects compare
+      // row.id against data.*. The view mixes the two mechanisms, so the mock has
+      // to reproduce the flag rather than just return names.
+      Team.getAllAndSelectedBySection.mockImplementation((teamId) =>
+        Promise.resolve([
+          { id: 8, name: 'Racketeers B', selected: teamId === 8 },
+          { id: 10, name: 'Alderley Park A', selected: teamId === 10 },
+        ]));
+      Player.getEligiblePlayersAndSelectedById.mockImplementation((p1, p2, p3) =>
+        Promise.resolve([
+          { id: p1, name: 'Player ' + p1 },
+          { id: p2, name: 'Player ' + p2 },
+          { id: p3, name: 'Player ' + p3 },
+        ]));
+    });
+
+    it('prefills the submitted scores, including negative ones', async () => {
+      const res = await request(app).get('/populated-messer-scorecard/123');
+      expect(res.status).toBe(200);
+
+      expect(res.text).toMatch(/id="Game1homeScore"[^>]*value="21"/);
+      expect(res.text).toMatch(/id="Game15homeScore"[^>]*value="21"/);
+      // Game5awayScore is 19-5 = 14, and Game15awayScore is 19-15 = 4.
+      expect(res.text).toMatch(/id="Game5awayScore"[^>]*value="14"/);
+      expect(res.text).toMatch(/id="Game15awayScore"[^>]*value="4"/);
+    });
+
+    it('preselects the teams and every player', async () => {
+      const res = await request(app).get('/populated-messer-scorecard/123');
+
+      // Teams: the draft's home/away, not just the first option.
+      expect(res.text).toMatch(/<option value="8" selected>/);
+      expect(res.text).toMatch(/<option value="10" selected>/);
+
+      // All twelve players. This is what a raw draft row in `scorecard` could
+      // never produce, because the view builds these lists from scorecard.*Rows
+      // and marks them from data.*.
+      [101, 102, 103, 201, 202, 203, 301, 302, 303, 401, 402, 403].forEach(id => {
+        expect(res.text).toMatch(new RegExp(`<option value="${id}" selected>`));
+      });
+    });
+
+    it('preselects the section derived from the home team', async () => {
+      const res = await request(app).get('/populated-messer-scorecard/123');
+      expect(Team.getById).toHaveBeenCalledWith(8);
+      expect(res.text).toMatch(/<option value="A"\s+selected>/);
+      expect(res.text).not.toMatch(/<option value="B"\s+selected>/);
+    });
+
+    it('renders the date as yyyy-MM-dd from local components, not UTC', async () => {
+      const res = await request(app).get('/populated-messer-scorecard/123');
+      // new Date(2026, 6, 17) is midnight local. Under BST toISOString() would
+      // give 2026-07-16, showing the fixture a day early.
+      expect(res.text).toMatch(/id="date"[^>]*value="2026-07-17"/);
+      expect(res.text).not.toMatch(/id="date"[^>]*value="2026-07-16"/);
+    });
+
+    it('still renders the scores when the team lookup comes back empty', async () => {
+      // A draft pointing at a since-deleted team must not 500 the page the away
+      // captain has been sent to confirm.
+      Team.getById.mockResolvedValue([]);
+      Team.getAllAndSelectedBySection.mockResolvedValue([]);
+
+      const res = await request(app).get('/populated-messer-scorecard/123');
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/id="Game1homeScore"[^>]*value="21"/);
     });
   });
 });

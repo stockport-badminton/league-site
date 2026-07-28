@@ -145,8 +145,14 @@ npm run test:all      # jest, then playwright
 - **Known bugs** are recorded with `test.fail()` *inside* the test body (at
   describe level the modifier applies to every test in the group). The suite stays
   green, and if the bug gets fixed the run says "expected to fail, but passed" —
-  which is the prompt to delete the annotation. There is one right now:
-  `/populated-messer-scorecard/:id` prefills nothing.
+  which is the prompt to delete the annotation. None outstanding.
+- **Assert on rendered HTML, not the view name.** The older Jest tests in
+  `__tests__/integration/messer-scorecard.test.js` mock `res.render` and only check
+  which view was chosen — which is why they stayed green while
+  `/populated-messer-scorecard/:id` rendered a blank form. The
+  `— real render` describe block in that file restores the real render with
+  `require('express').response.render.mockRestore()` and matches on the HTML. Use
+  that pattern when the bug you care about is in the template's data contract.
 
 **⚠️ These tests MUST stay read-only.** `dev.env` carries the *same*
 `DATABASE_URL` as `.env`, so a local dev server is talking to the **production**

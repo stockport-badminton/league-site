@@ -102,36 +102,45 @@ test.describe('/populated-messer-scorecard/:id', function () {
     guard.assertNoWrites();
   });
 
-  // KNOWN BUG - marked test.fail() so the suite stays green while recording it,
-  // and tells us to remove the annotation once it is fixed.
-  //
-  // /populated-messer-scorecard/:id renders an empty form titled "Messer Result
-  // Submitted": the away captain following the confirmation link sees none of the
-  // scores they are being asked to confirm. Two mismatches in
-  // messer_fixture_populate_scorecard_fromId (controllers/messer-scorecard-controller.js):
-  //
-  //   - it passes the draft as `scorecard`, but the score inputs in
-  //     views/messer-scorecard.ejs read `data.Game1homeScore` etc, and `data` is
-  //     never passed - so every score renders value="".
-  //   - `scorecard` is the raw messer_scorecard row, while the view expects the
-  //     dropdown shape (scorecard.homeTeamRows, homeMenRows, homeLadiesRows...),
-  //     so the player selects render empty too.
-  //
-  // The standard /populated-scorecard-beta/:id passes both of these, so this is
-  // messer-only. Likely the same root cause as the messer form losing its data on
-  // validation errors.
   test('prefills the submitted scores', async function ({ page, baseURL }) {
     test.skip(!messerId, 'no messer drafts in the database to render');
     test.skip(!hasScores, 'the newest messer draft has no scores to prefill');
-    // Inside the test body, not the describe body - at describe level this
-    // modifier applies to every test in the group.
-    test.fail();
     const guard = await readOnly(page, baseURL);
 
+    // This page used to render an empty form headed "Messer Result Submitted", so
+    // the away captain following the confirmation link saw none of the scores they
+    // were being asked to confirm. The 12 selected players and every score are
+    // asserted against a complete mocked draft in
+    // __tests__/integration/messer-scorecard.test.js - the only draft in the
+    // production database is a partial row, so this checks what that row can show.
     await page.goto('/populated-messer-scorecard/' + messerId);
     const filled = await page.locator('input[id^="Game"][id$="Score"]').evaluateAll(
       els => els.filter(e => e.value !== '').length);
     expect(filled, 'the submitted scores should be prefilled').toBeGreaterThan(0);
+
+    guard.assertNoWrites();
+  });
+
+  test('prefills the section and date from the draft', async function ({ page, baseURL }) {
+    test.skip(!messerId, 'no messer drafts in the database to render');
+    const guard = await readOnly(page, baseURL);
+
+    await page.goto('/populated-messer-scorecard/' + messerId);
+
+    // messer_scorecard has no section column, so the section is derived from the
+    // home team - if that lookup breaks, the select falls back to its placeholder.
+    const section = await page.locator('#section').first().inputValue();
+    expect(['A', 'B'], 'a section should be preselected').toContain(section);
+
+    // yyyy-MM-dd, or the date input silently rejects the value and shows blank.
+    const date = await page.locator('#date').first().inputValue();
+    expect(date, 'the fixture date should be prefilled').toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // Both teams preselected, not left on "Select a team".
+    for (const sel of ['#homeTeam', '#awayTeam']) {
+      const value = await page.locator(sel).first().inputValue();
+      expect(value, sel + ' should be preselected').toMatch(/^\d+$/);
+    }
 
     guard.assertNoWrites();
   });
