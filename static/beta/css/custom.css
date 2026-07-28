@@ -1,3 +1,19 @@
+/* League brand palette. The purple was repeated 16 times through this file - the
+ * footer, the DataTables sort arrows, and every part of the filter toolbar and
+ * table control band - so changing it meant finding all of them.
+ *
+ * Only the brand colours are tokenised. The greys left as literals below
+ * (#e9ecef, #ced4da, #6c757d, #495057, #f8f9fa) are Bootstrap's own values and
+ * are deliberately matching it, so naming them here would imply they are ours to
+ * change when they aren't. */
+:root {
+  --sdbl-purple: #661163;
+  --sdbl-purple-dark: #4c0d4a;         /* button hover/active */
+  --sdbl-purple-tint: #f6eef6;         /* chip and menu-item backgrounds */
+  --sdbl-purple-tint-strong: #ecdcec;  /* chip hover */
+  --sdbl-purple-border: #e0cfe0;       /* chip border */
+}
+
 body {
   padding-top: 3.53rem;
   margin-bottom: 70px; /* Margin bottom by footer height */
@@ -97,7 +113,7 @@ bottom: 0;
 width: 100%;
 height: 70px; /* Set the fixed height of the footer here */
 line-height: 70px; /* Vertically center the text there */
-background-color: #661163;
+background-color: var(--sdbl-purple);
 }
 /* table padding overrid */
 .table td, .table th {
@@ -107,7 +123,7 @@ font-size: 0.9rem;
 
 table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, table.dataTable thead .sorting_asc:before, table.dataTable thead .sorting_asc:after, table.dataTable thead .sorting_desc:before, table.dataTable thead .sorting_desc:after, table.dataTable thead .sorting_asc_disabled:before, table.dataTable thead .sorting_asc_disabled:after, table.dataTable thead .sorting_desc_disabled:before, table.dataTable thead .sorting_desc_disabled:after {
   bottom:0.3em;
-  color:#661163;
+  color:var(--sdbl-purple);
 }
 
 /* Set the size of the div element that contains the map */
@@ -266,8 +282,8 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
    wherever its bs4 default layout dropped them. These two components replace
    all of that - see views/filters.ejs and views/datatables-controls.ejs.
 
-   Colours follow the league purple already used by .footer and the DataTables
-   sort arrows above (#661163).
+   Colours come from the --sdbl-* brand tokens at the top of this file, the same
+   purple already used by .footer and the DataTables sort arrows above.
    ========================================================================== */
 
 /* Filter toolbar (views/filters.ejs)
@@ -313,7 +329,7 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #661163;
+  color: var(--sdbl-purple);
   /* Explicit: an ancestor centres its text, which left these reading as captions
    * floating over the middle of each select rather than labelling it. */
   text-align: left;
@@ -348,16 +364,16 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 .filter-apply.btn-primary {
   flex: 0 0 auto;
   white-space: nowrap;
-  border-color: #661163;
-  background-color: #661163;
+  border-color: var(--sdbl-purple);
+  background-color: var(--sdbl-purple);
   color: white;
 }
 
 .filter-apply.btn-primary:hover,
 .filter-apply.btn-primary:focus,
 .filter-apply.btn-primary:active {
-  border-color: #4c0d4a;
-  background-color: #4c0d4a;
+  border-color: var(--sdbl-purple-dark);
+  background-color: var(--sdbl-purple-dark);
   box-shadow: none;
 }
 
@@ -385,10 +401,10 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   align-items: center;
   gap: 0.4rem;
   padding: 0.25rem 0.65rem;
-  border: 1px solid #e0cfe0;
+  border: 1px solid var(--sdbl-purple-border);
   border-radius: 999px;
-  background: #f6eef6;
-  color: #661163;
+  background: var(--sdbl-purple-tint);
+  color: var(--sdbl-purple);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
@@ -397,9 +413,9 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 
 .filter-chip:hover,
 .filter-chip:focus {
-  background: #ecdcec;
-  border-color: #661163;
-  color: #661163;
+  background: var(--sdbl-purple-tint-strong);
+  border-color: var(--sdbl-purple);
+  color: var(--sdbl-purple);
   text-decoration: none;
 }
 
@@ -521,7 +537,7 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   border: 1px solid #ced4da;
   border-radius: 8px;
   background: white;
-  color: #661163;
+  color: var(--sdbl-purple);
   font-size: 0.85rem;
   font-weight: 600;
   box-shadow: none;
@@ -529,15 +545,15 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 
 .dt-controls .dt-buttons .dt-btn:hover,
 .dt-controls .dt-buttons .dt-btn.btn:hover {
-  border-color: #661163;
-  background: #f6eef6;
-  color: #661163;
+  border-color: var(--sdbl-purple);
+  background: var(--sdbl-purple-tint);
+  color: var(--sdbl-purple);
 }
 
 .dt-controls .dt-buttons .dt-btn.active,
 .dt-controls .dt-buttons .dt-btn.btn.active {
-  border-color: #661163;
-  background: #661163;
+  border-color: var(--sdbl-purple);
+  background: var(--sdbl-purple);
   color: white;
 }
 
@@ -567,13 +583,13 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
 }
 
 .dt-button-collection .dt-button:hover {
-  background: #f6eef6;
-  color: #661163;
+  background: var(--sdbl-purple-tint);
+  color: var(--sdbl-purple);
 }
 
 .dt-button-collection .dt-button.active {
-  background: #f6eef6;
-  color: #661163;
+  background: var(--sdbl-purple-tint);
+  color: var(--sdbl-purple);
   font-weight: 600;
 }
 
