@@ -221,6 +221,24 @@ function canonicalFor(req) {
 // Editable team fields from the form. name/club/division/venue are required;
 // rank/divRank are NOT NULL in the DB and managed by the controller (defaulted
 // on create, recomputed on division change), so they are not in this object.
+// Column widths on `team`, mirrored here so an over-long value is rejected with a
+// message naming the field instead of reaching Postgres and coming back as
+// `value too long for type character varying(50)` — a 500 (Sentry NODE-W) that told
+// the admin nothing about which field was at fault. matchDay is the 50.
+const TEAM_FIELD_LIMITS = { name: 45, matchDay: 50, handicap: 45 };
+
+// Returns a message describing the first over-long field, or null if all fit.
+function teamFieldLengthError(teamObj) {
+  for (const field of Object.keys(TEAM_FIELD_LIMITS)) {
+    const value = teamObj[field];
+    if (typeof value === 'string' && value.length > TEAM_FIELD_LIMITS[field]) {
+      return field + ' is too long (' + value.length + ' characters; the maximum is '
+        + TEAM_FIELD_LIMITS[field] + ')';
+    }
+  }
+  return null;
+}
+
 function buildTeamObj(body) {
   const obj = { name: (body.name || '').trim() };
   ['starttime', 'endtime', 'matchDay', 'section', 'handicap'].forEach(k => {
@@ -348,6 +366,8 @@ exports.admin_team_create = async function(req, res, next) {
     if (teamObj.club == null || teamObj.division == null || teamObj.venue == null) {
       return res.status(400).send('Club, division and venue are required');
     }
+    const tooLong = teamFieldLengthError(teamObj);
+    if (tooLong) return res.status(400).send(tooLong);
     teamObj.rank = parseInt(req.body.rank, 10) || 0;
     teamObj.divRank = await Team.getNextDivRank(teamObj.division);
     await Team.createFull(teamObj);
@@ -390,6 +410,8 @@ exports.admin_team_update = async function(req, res, next) {
     if (teamObj.club == null || teamObj.division == null || teamObj.venue == null) {
       return res.status(400).send('Club, division and venue are required');
     }
+    const tooLong = teamFieldLengthError(teamObj);
+    if (tooLong) return res.status(400).send(tooLong);
     teamObj.rank = parseInt(req.body.rank, 10) || existing.rank || 0;
     // Direct division change from the edit form counts as a move — reset divRank
     // so the team sorts to the bottom of the new division until finalised.
