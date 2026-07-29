@@ -20,6 +20,23 @@
     gtag('set', 'user_properties', { 
     'crm_id' : '<%= user.user_id %>' 
     });
+    <%
+    /* Browser Sentry runs in production only.
+     *
+     * This used to be ungated: isProd was computed below but only ever used to
+     * decide on session replay, so error capture ran everywhere — including
+     * localhost and headless test runs — and every event arrived tagged
+     * `environment: production` because no environment was set at all. The
+     * unresolved list was two issues, both of them ours: 65 events from a
+     * Playwright suite on localhost:8199, and 3 from driving a wizard on
+     * 127.0.0.1:8080. Real user errors would have been lost among them, and it
+     * spends free-tier quota to do it.
+     *
+     * Same condition instrument.js uses for the server side, so the two agree.
+     * Cloud Run sets K_SERVICE. */
+    var sentryEnabled = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE;
+    %>
+    <% if (sentryEnabled) { %>
     window.sentryOnLoad = function () {
       // in here, Sentry is ensured to be loaded & fully available
 
@@ -55,6 +72,10 @@
 
       Sentry.init({
         dsn: "https://41a5442332daa78ebc9dba9dfe8da392@o4508301910540288.ingest.de.sentry.io/4508301914800208",
+        // Label events instead of letting them all default to "production" — this
+        // block only loads in production now, but a mislabelled event is worse than
+        // an unlabelled one if that ever changes.
+        environment: "<%= process.env.NODE_ENV || 'production' %>",
         // Off (0) on every non-eligible page. On eligible pages: keep a light
         // sample of normal sessions, and always keep one that hits an error
         // (errors are rare and the most useful, so they cost little quota).
@@ -73,8 +94,13 @@
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });
     }
+    <% } %>
       </script>
+      <% if (sentryEnabled) { %>
+      <%# Not just gated at init: outside production the loader is never fetched
+          either, so local pages don't pay for the request. %>
       <script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
+      <% } %>
       <!-- Hotjar Tracking Code for https://stockport-badminton.co.uk -->
 <script>
   (function(h,o,t,j,a,r){
