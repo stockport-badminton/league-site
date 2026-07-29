@@ -10,6 +10,15 @@ const {distance, closest} = require('fastest-levenshtein');
 const { read } = require('fs');
 const { validationResult } = require('express-validator');
 const docx = require("docx");
+
+// See the note on the identical helper in documentsController: an unmatched club
+// name in the URL is a 404, not a 500. Previously `next("no club by that name")`,
+// a bare string with no status, which rendered the 500 page and reported to Sentry.
+function unknownClub(club) {
+  const err = new Error('no club by that name: ' + JSON.stringify(String(club)));
+  err.status = 404;
+  return err;
+}
 const fs = require("fs");
 const path = require('path');
 const { match } = require('assert');
@@ -158,7 +167,7 @@ exports.manage_player_list_clubs_teams = async function(req, res, next) {
 
     if (req.user._json["https://my-app.example.com/club"] == req.params.club || req.user._json["https://my-app.example.com/club"] == "All") {
       const rows = await Player.getNamesClubsTeams(req.params);
-      if (rows.length < 1) return next("no club by that name");
+      if (rows.length < 1) return next(unknownClub(req.params.club));
 
       var manageTeamObject = {}
       manageTeamObject.teams = [];

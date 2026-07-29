@@ -10,6 +10,18 @@ const CLUB_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Clu
 const CLUB_CLAIM = 'https://my-app.example.com/club';
 const ROLE_CLAIM = 'https://my-app.example.com/role';
 
+// A club name in the URL that matches nothing is a missing page, not a server
+// fault. These used to be `next('no club by that name')` — a bare string, which
+// Express treats as an error but which carries no status, so it rendered the 500
+// page and spent a Sentry event. That is Sentry NODE-S, all four events being the
+// superadmin's own nav link: the club claim for a superadmin is the literal string
+// 'All', so /forms/club-registration/All/prefilled asked for a club called "All".
+function unknownClub(club) {
+  const err = new Error('no club by that name: ' + JSON.stringify(String(club)));
+  err.status = 404;
+  return err;
+}
+
 // "20262027" -> "2026-27", matching the template's existing header style
 function seasonLabel(seasonName) {
   return `${seasonName.slice(0, 4)}-${seasonName.slice(6, 8)}`;
@@ -227,7 +239,7 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     assertClubAccess(req, club);
 
     const roster = await Player.getClubRoster(club);
-    if (roster.length < 1) return next('no club by that name');
+    if (roster.length < 1) return next(unknownClub(club));
 
     const nominated = roster.filter(r => r.rank !== 99);
     const reserves = roster.filter(r => r.rank === 99);
@@ -368,7 +380,7 @@ exports.clubRegistrationFormPrefilled = async function(req, res, next) {
     assertClubAccess(req, club);
 
     const data = await Club.getClubRegistration(club);
-    if (!data) return next('no club by that name');
+    if (!data) return next(unknownClub(club));
     const { core, teams } = data;
 
     const label = seasonLabel(seasonModel.current());

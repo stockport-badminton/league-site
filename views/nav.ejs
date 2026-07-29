@@ -86,9 +86,26 @@
                 <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
                 <a class="dropdown-item" href="/messer-scorecard-beta">Enter Messer Result</a>
                 <a class="dropdown-item" href="/admin/results/All">Results Detail</a>
-                <a class="dropdown-item" href="/manage-players/club-<%= locals.user._json['https://my-app.example.com/club'] %>">Team Players</a>
-                <a class="dropdown-item" href="/forms/team-registration/<%= locals.user._json['https://my-app.example.com/club'] %>/prefilled" target="_blank">Team Registration Form (prefilled)</a>
-                <a class="dropdown-item" href="/forms/club-registration/<%= locals.user._json['https://my-app.example.com/club'] %>/prefilled" target="_blank">Club Registration Form (prefilled)</a>
+                <%
+                  /* The club claim is a club name for an admin, but the literal
+                     string 'All' for a superadmin (see app.js) — who has no one
+                     club. Building these links from it unconditionally gave the
+                     superadmin /manage-players/club-All and
+                     /forms/*-registration/All/prefilled, none of which can resolve;
+                     the registration ones were Sentry NODE-S. A superadmin gets the
+                     blank forms and the club picker instead. */
+                  var navClub = locals.user._json['https://my-app.example.com/club'];
+                  var hasOwnClub = navClub && navClub !== 'All';
+                %>
+                <% if (hasOwnClub) { %>
+                  <a class="dropdown-item" href="/manage-players/club-<%= navClub %>">Team Players</a>
+                  <a class="dropdown-item" href="/forms/team-registration/<%= navClub %>/prefilled" target="_blank">Team Registration Form (prefilled)</a>
+                  <a class="dropdown-item" href="/forms/club-registration/<%= navClub %>/prefilled" target="_blank">Club Registration Form (prefilled)</a>
+                <% } %>
+                <%# No else-branch on purpose: there is nothing to prefill without one
+                    club, and the blank forms are already in Useful Links above, so
+                    repeating them here would just duplicate the menu. A superadmin
+                    reaches a specific club's roster via Team Management below. %>
                 <% 
                   if(locals.user._json['https://my-app.example.com/messeradmin']) { %>
                     <a class="dropdown-item" href="/messer-results">Messer Results</a>

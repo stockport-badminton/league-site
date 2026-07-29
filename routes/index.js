@@ -447,15 +447,17 @@ router.use(function(req, res) {
 
 router.use(function(error, req, res, next) {
   // An error carrying a 4xx status is a bad request, not a fault of ours: render the
-  // 404 page and don't spend a Sentry event on it. Without this a junk season in a
-  // path splat (see models/season.js) would 500 and refill the issue list the way
-  // NODE-Q did.
+  // matching page and don't spend a Sentry event on it. Without this a junk season
+  // in a path splat (see models/season.js) would 500 and refill the issue list the
+  // way NODE-Q did, and assertClubAccess's 403 rendered the 500 page.
   var status = error && (error.status || error.statusCode);
   if (status >= 400 && status < 500) {
+    var view = status === 403 ? '403-error' : '404-error';
     res.status(status);
-    return res.render('404-error', {
+    return res.render(view, {
       static_path: '/static',
-      pageTitle: 'Can\'t find the page your looking for',
+      theme: process.env.THEME || 'flatly',
+      pageTitle: status === 403 ? 'Access Denied' : 'Can\'t find the page your looking for',
       pageDescription: 'HTTP ' + status + ' Error',
       canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
     });
