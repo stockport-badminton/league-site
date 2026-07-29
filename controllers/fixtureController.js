@@ -198,18 +198,56 @@ exports.fixture_event_detail = async function(req, res, next) {
 };
 
 // Display detail page for a specific Fixture
+// GET /scorecard/fixture/:id
+//
+// getScorecardDataById INNER JOINs `game`, so it returns nothing for a fixture with
+// no per-game rows — and 3,261 of 5,214 fixtures are in that state, the archive
+// predating game-level recording. viewScorecard.ejs read result[0].date unguarded,
+// so all of them threw a TypeError while rendering (Sentry NODE-T). Fixture 795 is
+// typical: a completed 2019 match with a 9-9 result and no game detail.
+//
+// The header is now built separately from the games, so a fixture with no detail
+// still shows what the match was and how it finished.
 exports.getScorecard = async function(req, res, next) {
   try {
-    const row = await Fixture.getScorecardDataById(req.params.id);
+    const games = await Fixture.getScorecardDataById(req.params.id);
+
+    let summary;
+    if (games.length) {
+      // Every game row repeats the fixture-level columns, so take them from the
+      // first and save a second query on the common path.
+      summary = {
+        date: games[0].date,
+        homeTeam: games[0].homeTeam,
+        awayTeam: games[0].awayTeam,
+        homeScore: games[0].totalHomeScore,
+        awayScore: games[0].totalAwayScore,
+      };
+    } else {
+      const fixture = await Fixture.getFixtureSummaryById(req.params.id);
+      if (!fixture.length) {
+        return res.status(404).render('404-error', {
+          static_path: '/static',
+          pageTitle: "Can't find the page you're looking for",
+          pageDescription: 'HTTP 404 Error',
+          canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        });
+      }
+      summary = fixture[0];
+    }
+
     res.render('viewScorecard', {
       static_path: '/static',
       pageTitle: "Scorecard Info",
       pageDescription: "View scorecard for this match",
-      result: row,
+      result: games,
+      summary: summary,
       canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
     });
   } catch (err) {
-    res.send(err);
+    // Was res.send(err), which answered 200 with a serialised error object — so a
+    // real failure looked like a success to the browser and to monitoring.
+    next(err);
   }
 };
 

@@ -345,6 +345,26 @@ exports.getFixtureDetailsById = async function(fixtureId) {
   return result
 }
 
+// Fixture header: the date, the two team names and the final score, and nothing
+// else. Deliberately LEFT JOINs, and deliberately separate from
+// getFixtureEventById — that one INNER JOINs teamCaptain and matchSecretary, so it
+// returns no rows for a fixture whose team has no captain flagged, which makes
+// "fixture does not exist" indistinguishable from "captain unset". This one can
+// only return zero rows when the fixture genuinely is not there.
+exports.getFixtureSummaryById = async function(fixtureId) {
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT f.id, f.date, f.status,
+            f."homeScore" AS "homeScore", f."awayScore" AS "awayScore",
+            homeTeam.name AS "homeTeam", awayTeam.name AS "awayTeam"
+     FROM fixture f
+     LEFT JOIN team homeTeam ON f."homeTeam" = homeTeam.id
+     LEFT JOIN team awayTeam ON f."awayTeam" = awayTeam.id
+     WHERE f.id = ?`,
+    fixtureId
+  )
+  return result
+}
+
 exports.getScorecardDataById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     `SELECT date, "homeTeam", "awayTeam", CONCAT(homePlayer1.first_name,' ',homePlayer1.family_name) AS "homePlayer1", CONCAT(homePlayer2.first_name,' ',homePlayer2.family_name) AS "homePlayer2", CONCAT(awayPlayer1.first_name,' ',awayPlayer1.family_name) AS "awayPlayer1", CONCAT(awayPlayer2.first_name,' ',awayPlayer2.family_name) AS "awayPlayer2", "homeScore", "awayScore", totalHomeScore AS "totalHomeScore", totalAwayScore AS "totalAwayScore" FROM (SELECT date, homeTeam.name AS "homeTeam", awayTeam.name AS "awayTeam", thisFixture."homePlayer1", thisFixture."homePlayer2", thisFixture."awayPlayer1", thisFixture."awayPlayer2", thisFixture."homeScore", thisFixture."awayScore", totalHomeScore, totalAwayScore FROM (SELECT fixture.date, fixture."homeTeam", fixture."awayTeam", fixture."homeScore" AS totalHomeScore, fixture."awayScore" AS totalAwayScore, thisGame."homePlayer1", thisGame."homePlayer2", thisGame."awayPlayer1", thisGame."awayPlayer2", thisGame."homeScore", thisGame."awayScore" FROM (SELECT * FROM game WHERE fixture = ?) AS thisGame JOIN fixture ON fixture.id = thisGame.fixture) AS thisFixture JOIN team homeTeam ON thisFixture."homeTeam" = homeTeam.id JOIN team awayTeam ON thisFixture."awayTeam" = awayTeam.id) AS teamFixture JOIN player homePlayer1 ON teamFixture."homePlayer1" = homePlayer1.id JOIN player homePlayer2 ON teamFixture."homePlayer2" = homePlayer2.id JOIN player awayPlayer1 ON teamFixture."awayPlayer1" = awayPlayer1.id JOIN player awayPlayer2 ON teamFixture."awayPlayer2" = awayPlayer2.id`,
