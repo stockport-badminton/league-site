@@ -252,6 +252,35 @@ Messer is a 15-game knockout (vs. 18-game regular fixtures):
 - **Controller**: `controllers/messer-scorecard-controller.js`
 - **Draft table**: `messer_scorecard` (mirrors `scorecardstore` but for 15 games)
 
+### Search / crawlability
+
+`GET /sitemap.xml` is **generated per request** by `controllers/sitemapController.js`
+(~718 URLs: public static pages, tables/results per division, the archived seasons'
+All views, and the last 18 months of `/event/` pages). It replaced a hand-written
+`rootfiles/sitemap.xml` from 2018. Two things to keep in mind:
+
+- `express.static('rootfiles')` is mounted in `app.js` **well before** the router, so
+  re-adding a `rootfiles/sitemap.xml` would silently shadow the route. Same trap as
+  `/sw.js`, which is registered early for this reason.
+- Only list URLs that answer 200 to an anonymous request. Anything behind `secured`
+  (`/player-stats`, `/pair-stats`, `/messer-results`, `/manage-players`,
+  `/shuttle-prices`, all of `/admin`) must stay out — a login redirect in a sitemap
+  reads as a soft 404. There's a test asserting this.
+
+Event-page URLs come from `eventPath()` in `utils/canonical.js`, exposed to views as
+`app.locals.eventPath`. `homepage.ejs` and the sitemap both call it: only `:id` is
+read from `/event/:id/:date-:homeTeam-:awayTeam`, so a second spelling of the
+decorative part would be a duplicate URL for a page that self-canonicalises.
+
+Structured data (JSON-LD) is inline in `views/header.ejs`, switched on `pageTitle`
+(`indexOf("Event")`, `indexOf("Homepage")`, `== 'Local Badminton Club Information'`).
+It has known defects that are **not yet fixed** — invalid `competitor` shape,
+`"type"` instead of `"@type"` on the address, `Lat`/`Lng` instead of `geo`,
+timezone-less `startDate`, and club localities derived from `String.match()` on a
+freetext address (producing `"Cheadle Hulme,Cheadle Hulme"` and picking
+"Manchester" out of "Manchester Road"). Anything emitting JSON from `<%= %>` is also
+HTML-escaping into JSON — `Mulberry&#39;s` is live today.
+
 ### Team management (rosters)
 
 Two pages, two audiences — they used to be one template switching on a
@@ -350,6 +379,24 @@ Key vars (see `.env` for examples):
 ## Gotchas & Lessons Learned
 
 1. **PostgreSQL column quoting**: Unquoted camelCase columns become lowercase. Always quote column names in SQL.
+   This bites `AS` aliases too, not just column references: `AS teamCaptain` becomes
+   `teamcaptain`, so `row.teamCaptain` is `undefined`. That silently blanked the
+   captain and match secretary on every `/event/` page for as long as it existed.
+1b. **Never build a URL from `req.get('host')`.** Firebase Hosting rewrites `**` to
+   Cloud Run and the Host header that arrives is the *Cloud Run* one — the requested
+   host is passed separately, in `x-fh-requested-host`. Every canonical and `og:url`
+   on the site pointed at `league-site-akvq7tsxuq-nw.a.run.app`, which serves the
+   whole site publicly, so Google was told the authoritative copy of every page was
+   on another hostname. Use `canonicalFor(req)` / `absoluteUrl(path)` from
+   `utils/canonical.js` — including for links in emails. `SITE_ORIGIN` overrides the
+   default for a staging deploy.
+1c. **An INNER JOIN to something optional loses the whole page.** `getFixtureEventById`
+   joined the home team's captain, six teams have none flagged, and the 48 affected
+   fixtures rendered as `HTTP 200` with a two-byte body. Two lessons: join optional
+   things with `LEFT JOIN` (or a scalar subquery, which also makes the pick
+   deterministic when there are duplicates), and never `res.send(err)` — an Error
+   serialises to `{}` and goes out with the default **status 200**, so a crawler
+   banks it as a real page. Use `next(err)`, or an explicit `res.status(404)`.
 2. **Query placeholders**: Use `?`, not `$1`. The wrapper converts automatically.
 2b. **There is no `insertId`.** The wrapper mimics mysql2's `[rows]` shape but cannot
    invent MySQL's `insertId`: Postgres reports nothing about an inserted row unless the
