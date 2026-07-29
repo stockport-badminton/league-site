@@ -351,6 +351,16 @@ Key vars (see `.env` for examples):
 
 1. **PostgreSQL column quoting**: Unquoted camelCase columns become lowercase. Always quote column names in SQL.
 2. **Query placeholders**: Use `?`, not `$1`. The wrapper converts automatically.
+2b. **There is no `insertId`.** The wrapper mimics mysql2's `[rows]` shape but cannot
+   invent MySQL's `insertId`: Postgres reports nothing about an inserted row unless the
+   statement says `RETURNING id`. Without it an INSERT resolves to an *empty rows
+   array*, so `result.insertId` is `undefined` — silently, since nothing throws. Any
+   INSERT whose id is needed must end `RETURNING id`, and the caller reads
+   `result[0].id`. This bit three separate flows (submitted scorecards redirected to
+   `/populated-scorecard-beta/undefined` and emailed that dead link for months; the
+   add-player modal posted `NaN` as the new id). **When mocking such a model in a
+   test, mock `[{ id: 42 }]`, never `{ insertId: 42 }`** — the invented shape is
+   exactly what let the scorecard bug live behind a green test.
 3. **Form repopulation on errors**: Must pass both submitted data AND team/player dropdowns with selected flags, or form appears empty to user.
 4. **Session cookie name**: Must be `__session` for Cloud Run (Firebase requirement).
 5. **DEV_MODE is safe**: Only works outside production; injects mock user for local testing without Auth0.

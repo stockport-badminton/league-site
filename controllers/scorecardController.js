@@ -398,7 +398,18 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
     };
     try {
       const rows = await Fixture.createScorecard(scorecardObj);
-      const scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + rows.insertId;
+      // `rows.insertId` used to be read here. Postgres returns nothing about an
+      // inserted row unless the statement says RETURNING, so it was always
+      // undefined: every submitted scorecard redirected the captain to
+      // /populated-scorecard-beta/undefined and emailed the results secretary the
+      // same dead link. createScorecard now RETURNs the id.
+      const scorecardId = rows[0] && rows[0].id;
+      if (!scorecardId) {
+        // The draft may well have been written; what we can't do is tell anyone
+        // where it is. Better to fail visibly than to send another broken link.
+        throw new Error('scorecard was saved but no id came back, so no confirmation link could be built');
+      }
+      const scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + scorecardId;
       const params = {
         Destination: {
           ToAddresses: ['stockport.badders.results@gmail.com'],
@@ -417,7 +428,7 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         ReplyToAddresses: ['stockport.badders.results@gmail.com'],
       };
       await ses.sendEmail(params);
-      res.redirect('/populated-scorecard-beta/' + rows.insertId);
+      res.redirect('/populated-scorecard-beta/' + scorecardId);
     } catch (err) { next(err); }
   }
 }

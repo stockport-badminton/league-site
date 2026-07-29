@@ -33,6 +33,7 @@ const Fixture = require('../../models/fixture');
 const Game = require('../../models/game');
 const Auth = require('../../models/auth.js');
 const axios = require('axios');
+const ses = require('../../utils/ses');
 const app = require('../../app');
 
 // ── Fixtures (test data) ──────────────────────────────────────────────────────
@@ -196,16 +197,25 @@ describe('POST /email-scorecard', () => {
 
   describe('with valid data', () => {
     beforeEach(() => {
-      Fixture.createScorecard.mockResolvedValue({ insertId: 42 });
+      // The shape Fixture.createScorecard really resolves to: the db wrapper returns
+      // a rows array, and the INSERT carries RETURNING id.
+      //
+      // This used to be mocked as `{ insertId: 42 }` — a mysql2 shape that this model
+      // never produced — and the assertion below passed against it while production
+      // redirected every captain to /populated-scorecard-beta/undefined and emailed
+      // the results secretary the same dead link. A mock that invents its subject's
+      // return shape can only test itself.
+      Fixture.createScorecard.mockResolvedValue([{ id: 42 }]);
     });
 
-    it('redirects to /populated-scorecard-beta/:insertId', async () => {
+    it('redirects to the new draft, using the id the INSERT returned', async () => {
       const res = await request(app)
         .post('/email-scorecard')
         .send(validScorecard());
 
       expect(res.status).toBe(302);
       expect(res.headers.location).toBe('/populated-scorecard-beta/42');
+      expect(res.headers.location).not.toContain('undefined');
     });
 
     it('saves the scorecard draft before redirecting', async () => {
@@ -227,6 +237,20 @@ describe('POST /email-scorecard', () => {
       // A redirect, not a 200 render
       expect(res.status).not.toBe(200);
     });
+
+    // The half of the bug a redirect assertion can't see: the results secretary is
+    // emailed a link to the draft, and for a long time that link ended in
+    // "undefined". This asserts on the mail body itself.
+    it('emails the results secretary a link containing the real id', async () => {
+      await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard());
+
+      expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      expect(html).toContain('/populated-scorecard-beta/42');
+      expect(html).not.toContain('undefined');
+    });
   });
 
   describe('when DB write fails', () => {
@@ -236,6 +260,20 @@ describe('POST /email-scorecard', () => {
         .post('/email-scorecard')
         .send(validScorecard());
       expect(res.status).toBe(500);
+    });
+  });
+
+  // If RETURNING is ever dropped from the INSERT again, this is what it looks like:
+  // the write may have landed but there is no way to tell anyone where. Fail
+  // visibly rather than send another dead link.
+  describe('when the insert returns no id', () => {
+    it('500s instead of building a link ending in undefined', async () => {
+      Fixture.createScorecard.mockResolvedValue([]);
+      const res = await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard());
+      expect(res.status).toBe(500);
+      expect(ses.sendEmail).not.toHaveBeenCalled();
     });
   });
 });

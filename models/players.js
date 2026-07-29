@@ -4,10 +4,15 @@ const levenshtein = require('js-levenshtein');
 
 
 // POST
+// Returns `[{ id }]`. Without RETURNING the result is an empty rows array, so the
+// `row.insertId` its caller read was always undefined — see the note on
+// Fixture.createScorecard for the same bug in the scorecard flow. Prefer
+// models/roster.js:createPlayer for the roster pages; this one stays for the
+// standalone /player/create form.
 exports.create = async function(first_name, family_name, team, club, gender) {
   var date_of_registration = new Date();
   const [result] = await (await db.otherConnect()).query(
-    'INSERT INTO player (first_name,family_name,date_of_registration,team,club,gender) VALUES (?,?,?,?,?,?)',
+    'INSERT INTO player (first_name,family_name,date_of_registration,team,club,gender) VALUES (?,?,?,?,?,?) RETURNING id',
     [first_name, family_name, date_of_registration, team, club, gender]
   )
   return result

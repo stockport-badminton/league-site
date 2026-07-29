@@ -28,11 +28,18 @@ exports.deleteScorecardById = async function(fixtureId) {
   return result
 }
 
+// Returns `[{ id }]` for the new draft — the caller needs it to build the
+// confirmation link. RETURNING is not optional here: Postgres reports nothing about
+// an inserted row unless asked, so the db wrapper's mysql2-shaped result has no
+// insertId to read (it is a rows array, and rows.insertId is undefined). The caller
+// did read `.insertId`, so every submitted scorecard redirected to
+// /populated-scorecard-beta/undefined and emailed the results secretary that same
+// dead link. Same shape as createMesserScorecard/createMesserResult below.
 exports.createScorecard = async function(fixtureObj) {
   if (!db.isObject(fixtureObj)) throw new Error('not object')
   const fields = Object.keys(fixtureObj).map(k => `"${k}"`).join(',')
   const placeholders = Object.keys(fixtureObj).map(() => '?').join(',')
-  const sql = `INSERT INTO scorecardstore (${fields}) VALUES (${placeholders})`
+  const sql = `INSERT INTO scorecardstore (${fields}) VALUES (${placeholders}) RETURNING id`
   const [result] = await (await db.otherConnect()).query(sql, Object.values(fixtureObj))
   return result
 }

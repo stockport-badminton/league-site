@@ -365,14 +365,19 @@ exports.player_create_get = async function(req, res, next) {
 // Handle Player create on POST
 exports.player_create = async function(req, res, next) {
   try {
-    const row = await Player.create(req.body.first_name, req.body.family_name, req.body.team, req.body.club, req.body.gender);
-    const rows = await Player.getPlayerClubandTeamById(row.insertId);
+    const created = await Player.create(req.body.first_name, req.body.family_name, req.body.team, req.body.club, req.body.gender);
+    // Was `row.insertId`, which Postgres never populates — so the confirmation
+    // looked up player `undefined` and the form came back empty. Player.create now
+    // RETURNs the id.
+    const newId = created[0] && created[0].id;
+    const rows = await Player.getPlayerClubandTeamById(newId);
     res.render('player_form', {
       pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path: '/static', theme: 'flatly', result: req.body, row: rows,
       canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
     });
   } catch (err) {
-    res.send(err);
+    // Was `res.send(err)`, which answered 200 with an Error serialised to `{}`.
+    next(err);
   }
 }
 
