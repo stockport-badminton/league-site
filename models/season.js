@@ -54,3 +54,79 @@ exports.getAll = async function() {
   );
   return rows;
 };
+
+// ---------------------------------------------------------------------------
+// Season name validation
+//
+// A season is not a bind parameter — it is a table-name *suffix*, interpolated
+// straight into SQL as `team${season}` / `club${season}` in eight model functions
+// across four models. A table name cannot be parameterised, so the only defence is
+// validating the value before it gets near a query.
+//
+// It arrives from the URL, and not always as a named :season param — /results/*,
+// /player-stats/* and /pair-stats/* have their controllers pick it out of a path
+// splat. So this is enforced at the model boundary, where every path converges.
+//
+// Confirmed reachable before this existed: requesting
+// /tables/All/20252026%20AS%20team%20WHERE%20false%20-- came back
+// `syntax error at or near "WHERE"` — i.e. the URL text was being parsed as SQL.
+// The payload failed on the surrounding query's shape, which is luck, not a defence.
+// ---------------------------------------------------------------------------
+
+// Every real season name is 8 digits, `20YY20YY`. Anchored, digits only, so nothing
+// that passes can carry a quote, space, comment marker or semicolon.
+const NAME_PATTERN = /^20\d{6}$/;
+
+let _servable = null;   // null until init() succeeds; see isServable()
+
+exports.isValidName = function(season) {
+  return NAME_PATTERN.test(String(season));
+};
+
+// Throw rather than return false: a model reached with a bad season should fail
+// loudly, not quietly query the wrong table. Callers pass an empty/undefined season
+// to mean "the live tables", which is always allowed.
+exports.assertName = function(season) {
+  if (season === undefined || season === null || season === '') return '';
+  if (!exports.isValidName(season)) {
+    const err = new Error('invalid season name: ' + JSON.stringify(String(season)));
+    // A junk season in the URL is a bad request, not a server fault. The central
+    // handler in routes/index.js renders a 404 for a 4xx status and skips Sentry,
+    // so this does not refill the issue list the way NODE-Q did. Matters for
+    // /results/*, /player-stats/* and /pair-stats/*, whose season is inside a path
+    // splat and so never reaches the route-level guard.
+    err.status = 404;
+    throw err;
+  }
+  return String(season);
+};
+
+// Whether a season can actually be served: correct shape AND either the current
+// season or one with an archived snapshot. Used by the route guard to answer 404
+// instead of letting a well-formed but non-existent season reach SQL and come back
+// as `relation "team20252027" does not exist` (Sentry NODE-Q).
+//
+// Falls back to shape-only when the allowlist could not be loaded, so a DB hiccup
+// at boot degrades to "some 500s" rather than "every archive page 404s". Injection
+// is blocked by the pattern either way.
+exports.isServable = function(season) {
+  if (season === undefined || season === null || season === '') return true;
+  if (!exports.isValidName(season)) return false;
+  if (!_servable) return true;
+  return _servable.has(String(season));
+};
+
+// Load the servable set. Call after init(); safe to call again to refresh.
+exports.loadServable = async function() {
+  try {
+    const rows = await exports.getAll();
+    const set = new Set(rows.map(function(r) { return r.name; }));
+    set.add(exports.current());
+    _servable = set;
+    return set.size;
+  } catch (err) {
+    console.error('season.loadServable failed; falling back to format-only checks:', err.message);
+    _servable = null;
+    return 0;
+  }
+};

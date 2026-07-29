@@ -164,6 +164,16 @@ if (require.main === module) {
       } catch (err) {
         console.error('pastSeasons load failed:', err.message);
       }
+      // Which seasons the archive can actually serve, for the /tables season guard
+      // (middleware/validateSeason.js). Falls back to format-only checks if this
+      // fails, so a hiccup here means some 500s rather than a 404 on every archive
+      // page — see models/season.js.
+      try {
+        const servable = await seasonModel.loadServable();
+        console.log('Servable seasons loaded:', servable);
+      } catch (err) {
+        console.error('servable seasons load failed:', err.message);
+      }
       // Division/season option lists for the filter toolbar. Runs after
       // season.init() because the current season decides which seasons are
       // offerable (see middleware/filterState.js).

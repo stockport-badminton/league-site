@@ -1,4 +1,5 @@
 var db = require('../db_connect.js');
+var seasonModel = require('./season');
 
 
 exports.create = async function(name, starttime, endtime, matchDay, venue, courtspace, club, division, rank) {
@@ -25,7 +26,9 @@ exports.getAll = async function() {
 }
 
 exports.getMesser = async function(searchTerms) {
-  const season = searchTerms.season || ''
+  // Interpolated below as messer${season} / team${season}, so it must be validated
+  // rather than bound — see models/season.js.
+  const season = seasonModel.assertName(searchTerms.season)
   const [result] = await (await db.otherConnect()).query(`SELECT
     homeTeam.name AS "homeTeamName",
     homeTeam.handicap AS "homeTeamHandicap",

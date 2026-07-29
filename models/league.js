@@ -33,6 +33,10 @@ exports.updateById = async function(name, admin, url, leagueId) {
 }
 
 exports.getLeagueTable = async function(division, season) {
+  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
+  // a table-name suffix, which cannot be a bind parameter — see the validation
+  // notes in models/season.js. These /tables routes are public.
+  seasonModel.assertName(season)
   const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season} AS team` : 'team'
   division = division.replace('-', ' ')
@@ -104,6 +108,10 @@ exports.getAnnualInvoices = async function(clubName) {
 }
 
 exports.getAllLeagueTables = async function(season) {
+  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
+  // a table-name suffix, which cannot be a bind parameter — see the validation
+  // notes in models/season.js. These /tables routes are public.
+  seasonModel.assertName(season)
   const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season} AS team` : 'team'
   const divisionTable = season ? `division${season} AS division` : 'division'
@@ -145,6 +153,10 @@ exports.getAllLeagueTables = async function(season) {
 }
 
 exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
+  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
+  // a table-name suffix, which cannot be a bind parameter — see the validation
+  // notes in models/season.js. These /tables routes are public.
+  seasonModel.assertName(season)
   const resolvedSeason = season || seasonModel.current()
   const teamTable = season ? `team${season}` : 'team'
   const divisionTable = season ? `division${season}` : 'division'

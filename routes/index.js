@@ -19,6 +19,7 @@ var fixture_controller = require('../controllers/fixtureController');
 var scorecard_controller = require('../controllers/scorecardController');
 var scorecard_analysis_controller = require('../controllers/scorecardAnalysisController');
 var league_controller = require('../controllers/leagueController');
+var validateSeason = require('../middleware/validateSeason');
 var contact_controller = require('../controllers/contactusController');
 var static_controller = require('../controllers/staticPagesController');
 var social_controller = require('../controllers/socialController');
@@ -235,9 +236,9 @@ router.post('/league/sendInvoice/:club', contact_controller.send_invoices);
 router.get('/league/:id', league_controller.league_detail);
 router.get('/leagues', checkJwt, league_controller.league_list);
 router.get('/tables/All', league_controller.all_league_tables);
-router.get('/tables/All/:season', league_controller.all_league_tables);
+router.get('/tables/All/:season', validateSeason, league_controller.all_league_tables);
 router.get('/tables/:division', league_controller.league_table);
-router.get('/tables/:division/:season', league_controller.league_table);
+router.get('/tables/:division/:season', validateSeason, league_controller.league_table);
 
 // Club routes
 router.get('/club/create', club_controller.club_create_get);
@@ -445,6 +446,21 @@ router.use(function(req, res) {
 });
 
 router.use(function(error, req, res, next) {
+  // An error carrying a 4xx status is a bad request, not a fault of ours: render the
+  // 404 page and don't spend a Sentry event on it. Without this a junk season in a
+  // path splat (see models/season.js) would 500 and refill the issue list the way
+  // NODE-Q did.
+  var status = error && (error.status || error.statusCode);
+  if (status >= 400 && status < 500) {
+    res.status(status);
+    return res.render('404-error', {
+      static_path: '/static',
+      pageTitle: 'Can\'t find the page your looking for',
+      pageDescription: 'HTTP ' + status + ' Error',
+      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    });
+  }
+
   // Report to Sentry before rendering. Flush first so the event is sent while
   // Cloud Run still has CPU allocated — post-response CPU is throttled, which
   // can drop a fire-and-forget send. Flush is capped so the error page isn't

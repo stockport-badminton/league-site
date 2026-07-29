@@ -66,7 +66,9 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   } else {
     searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
     sqlArray.push(fixtureObj.season)
-    seasonName = fixtureObj.season
+    // Bound above as a parameter, but also interpolated below as team${seasonName}
+    // / club${seasonName}, so validate before it becomes SQL text.
+    seasonName = seasonModel.assertName(fixtureObj.season)
   }
 
   const conditions = searchTerms.length > 0
@@ -203,8 +205,11 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
   } else {
     searchTerms.push('season.name = ? AND e.date > season."startDate" AND e.date < season."endDate"')
     sqlArray.push(fixtureObj.season)
-    teamTable = `team${fixtureObj.season} AS team`
-    clubTable = `club${fixtureObj.season} AS club`
+    // Same as above: bound as a parameter here, but also spliced into the FROM
+    // clause as a table-name suffix, so it has to be validated.
+    const safeSeason = seasonModel.assertName(fixtureObj.season)
+    teamTable = `team${safeSeason} AS team`
+    clubTable = `club${safeSeason} AS club`
   }
 
   const conditions = searchTerms.length > 0 ? ' WHERE ' + searchTerms.join(' AND ') : ''
@@ -230,6 +235,11 @@ exports.getFixtureDetails = async function(searchObj) {
   }
 
   const checkSeason = function(season) {
+    // Shape first — the parseInt pair below is not a guard. parseInt stops at the
+    // first non-digit, so "20252026 AS t --" yielded 2025/2026 and passed every
+    // check, then went into the query below as ${'team' + season}. That is the
+    // /results and /results-grid path.
+    if (!seasonModel.isValidName(season)) return false
     const firstYear = parseInt(season.slice(0, 4))
     const secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false

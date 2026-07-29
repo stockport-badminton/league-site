@@ -244,6 +244,10 @@ exports.getNamesClubsTeams = async function(searchTerms) {
 
   let season = ""
   function checkSeason(season) {
+    // Shape first. Without this the parseInt pair below waves payloads through:
+    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
+    // every check and reached the team${season} interpolation as SQL.
+    if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
@@ -396,6 +400,10 @@ exports.newGetPlayerStats = async function(searchObj) {
   let whereValue = []
 
   function checkSeason(season) {
+    // Shape first. Without this the parseInt pair below waves payloads through:
+    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
+    // every check and reached the team${season} interpolation as SQL.
+    if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
@@ -598,6 +606,10 @@ exports.newGetPairStats = async function(searchObj) {
   let whereValue = []
 
   function checkSeason(season) {
+    // Shape first. Without this the parseInt pair below waves payloads through:
+    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
+    // every check and reached the team${season} interpolation as SQL.
+    if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
     if (secondYear - firstYear != 1) return false
