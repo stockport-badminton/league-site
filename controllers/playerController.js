@@ -5,11 +5,10 @@ var Game = require('../models/game');
 var Player = require('../models/players');
 var Team = require('../models/teams');
 var Venue = require('../models/venue');
+var Roster = require('../models/roster');
+const { assertClubAccess } = require('../middleware/requireClubAccess');
 var jp = require('jsonpath');
-const {distance, closest} = require('fastest-levenshtein');
-const { read } = require('fs');
-const { validationResult } = require('express-validator');
-const docx = require("docx");
+const { distance } = require('fastest-levenshtein');
 
 // See the note on the identical helper in documentsController: an unmatched club
 // name in the URL is a 404, not a 500. Previously `next("no club by that name")`,
@@ -19,9 +18,7 @@ function unknownClub(club) {
   err.status = 404;
   return err;
 }
-const fs = require("fs");
-const path = require('path');
-const { match } = require('assert');
+const { validationResult } = require('express-validator');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
@@ -157,164 +154,11 @@ exports.find_closest_matched_player = async function(req, res, next) {
 }
 
 
-exports.manage_player_list_clubs_teams = async function(req, res, next) {
-  try {
-    // role/club now come from req.user._json, populated at login from the
-    // player table (see app.js's Auth0Strategy verify callback) — no need to
-    // re-fetch app_metadata from Auth0 on every request.
-    var superadmin = req.user._json["https://my-app.example.com/role"] === "superadmin";
-    var club = req.user._json["https://my-app.example.com/club"] || false;
-
-    if (req.user._json["https://my-app.example.com/club"] == req.params.club || req.user._json["https://my-app.example.com/club"] == "All") {
-      const rows = await Player.getNamesClubsTeams(req.params);
-      if (rows.length < 1) return next(unknownClub(req.params.club));
-
-      var manageTeamObject = {}
-      manageTeamObject.teams = [];
-      var teamNames = jp.query(rows, "$..teamName").filter((v, i, a) => a.indexOf(v) == i)
-      var teamIds = jp.query(rows, "$..teamId").filter((v, i, a) => a.indexOf(v) == i)
-      const table = new docx.Table({
-        rows: [
-          new docx.TableRow({
-            children: [
-              new docx.TableCell({
-                children: [new docx.Paragraph({
-                  text: teamNames[0].substring(0, teamNames[0].length - 2) + " Registrations",
-                  style: "docHeading"
-                })],
-                columnSpan: 4
-              })
-            ]
-          })
-        ],
-        margins: {
-          top: docx.convertInchesToTwip(0.05),
-          bottom: docx.convertInchesToTwip(0.05),
-          right: docx.convertInchesToTwip(0.1),
-          left: docx.convertInchesToTwip(0.1),
-        },
-        width: {
-          size: 100,
-          type: docx.percentage
-        }
-      });
-      for (let i = 0; i < teamNames.length; i++) {
-        table.addChildElement(new docx.TableRow({
-          children: [
-            new docx.TableCell({
-              children: [new docx.Paragraph({
-                text: teamNames[i],
-                style: "teamHeading"
-              })],
-              columnSpan: 4
-            })
-          ],
-        }))
-        table.addChildElement(new docx.TableRow({
-          children: [
-            new docx.TableCell({
-              children: [new docx.Paragraph({
-                text: "Men",
-                style: "gender"
-              })],
-              columnSpan: 2
-            }),
-            new docx.TableCell({
-              children: [new docx.Paragraph({
-                text: "Ladies",
-                style: "gender"
-              })],
-              columnSpan: 2
-            }),
-          ],
-        }))
-
-        var nomMen = jp.query(rows, "$..[?(@.teamName=='" + teamNames[i] + "' && @.rank != 99 && @.gender == 'Male')]")
-        var nomLadies = jp.query(rows, "$..[?(@.teamName=='" + teamNames[i] + "' && @.rank != 99 && @.gender == 'Female')]")
-        var resMen = jp.query(rows, "$..[?(@.teamName=='" + teamNames[i] + "' && @.rank == 99 && @.gender == 'Male')]")
-        var resLadies = jp.query(rows, "$..[?(@.teamName=='" + teamNames[i] + "' && @.rank == 99 && @.gender == 'Female')]")
-        let longest = Math.max(nomMen.length + resMen.length, nomLadies.length + resLadies.length);
-        for (let j = 1; j <= longest; j++) {
-          var manName = (j > (nomMen.length + resMen.length) ? "" : (j > nomMen.length ? resMen[j - nomMen.length - 1].name : nomMen[j - 1].name))
-          var menTeamName = teamNames[i].substring(teamNames[i].length - 1)
-          var ladiesTeamName = menTeamName
-          if (j > nomMen.length) menTeamName = "R"
-          if (j > nomLadies.length) ladiesTeamName = "R"
-          var ladyName = (j > (nomLadies.length + resLadies.length) ? "" : (j > nomLadies.length ? resLadies[j - nomLadies.length - 1].name : nomLadies[j - 1].name))
-          table.addChildElement(new docx.TableRow({
-            children: [
-              new docx.TableCell({
-                children: [new docx.Paragraph(manName)],
-                width: { size: 40, type: docx.PERCENTAGE }
-              }),
-              new docx.TableCell({
-                children: [new docx.Paragraph(menTeamName)],
-                width: { size: 10, type: docx.PERCENTAGE }
-              }),
-              new docx.TableCell({
-                children: [new docx.Paragraph(ladyName)],
-                width: { size: 40, type: docx.PERCENTAGE }
-              }),
-              new docx.TableCell({
-                children: [new docx.Paragraph(ladiesTeamName)],
-                width: { size: 10, type: docx.PERCENTAGE }
-              }),
-            ],
-          }))
-        }
-
-        var teamObject = {
-          name: teamNames[i],
-          id: teamIds[i],
-          nominated: { men: nomMen, ladies: nomLadies },
-          reserves: { men: resMen, ladies: resLadies }
-        }
-        manageTeamObject.teams.push(teamObject);
-      }
-      const doc = new docx.Document({
-        title: "Title",
-        sections: [{ children: [table] }],
-        styles: {
-          paragraphStyles: [
-            { name: 'Normal', run: { font: "Arial" } },
-            { name: 'docHeading', basedOn: "Normal", run: { bold: true, size: 30 } },
-            { name: 'teamHeading', basedOn: "Normal", run: { bold: true, size: 24 } },
-            { name: 'gender', basedOn: "Normal", run: { bold: true } }
-          ]
-        }
-      });
-
-      docx.Packer.toBuffer(doc).then((buffer) => {
-        const docDir = 'static/beta/docs/generated';
-        fs.mkdirSync(docDir, { recursive: true });
-        fs.writeFileSync(docDir + '/' + teamNames[0].substring(0, teamNames[0].length - 2) + '.docx', buffer);
-      });
-
-      const clubsRes = await Club.getAll();
-      console.log(clubsRes);
-      let clubs = clubsRes.map(row => row.name)
-      res.render('team-admin', {
-        static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
-        pageTitle: "Player Registrations",
-        pageDescription: "List of players registered to teams in the Stockport League",
-        result: manageTeamObject,
-        clubId: rows[0].clubId,
-        superadmin: superadmin,
-        filter: true,
-        hideFilters: ["season", "gametype", "gender", "division", "status"],
-        club: club,
-        clubs: clubs,
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
-      });
-    } else {
-      return next("Sorry you don't have access to this page");
-    }
-  } catch (err) {
-    next(err);
-  }
-};
+// manage_player_list_clubs_teams used to live here: one handler rendering one
+// template for both captains and the results secretary, which also rebuilt the
+// registration .docx and wrote it to disk on every GET. It is now two handlers and
+// two templates in controllers/rosterController.js — club_roster and
+// club_roster_edit — with the document on its own streaming endpoint.
 
 // Return list of players eligible based on team
 exports.eligible_players_list = async function(req, res, next) {
@@ -511,14 +355,12 @@ exports.player_create_get = async function(req, res, next) {
   }
 };
 
-exports.player_create_from_team = async function(req, res, next) {
-  try {
-    const row = await Player.create(req.body.first_name, req.body.family_name, req.body.team, req.body.club, req.body.gender);
-    res.send(row);
-  } catch (err) {
-    res.send(err);
-  }
-}
+// player_create_from_team used to live here, behind an unauthenticated
+// POST /manage-players/create: it took the team and club straight from the request
+// body, so anyone could create a player into any club. Its only caller was the old
+// add-player modal, and it returned Player.create's result — which has no
+// RETURNING clause, so the id the modal read back was always undefined.
+// POST /api/roster/club-:club/players replaced it.
 
 // Handle Player create on POST
 exports.player_create = async function(req, res, next) {
@@ -543,14 +385,13 @@ exports.player_batch_create = async function(req, res, next) {
   }
 }
 
-exports.player_batch_update = async function(req, res, next) {
-  try {
-    const result = await Player.updateBulk(req.body);
-    res.send(result);
-  } catch (err) {
-    res.send(err);
-  }
-}
+// player_batch_update used to live here, behind POST /player/batch-update: it
+// passed req.body straight to Player.updateBulk, which took the table name and
+// column list from that body. Any logged-in user could therefore UPDATE any column
+// of any table. The roster endpoints in controllers/rosterController.js replaced
+// it — they take an ordered list of player ids and a destination, and build their
+// own SQL. Nothing should reintroduce a route that forwards a request body into
+// updateBulk.
 
 // Display Player delete form on GET
 exports.player_delete_get = function(req, res) {
@@ -567,9 +408,36 @@ exports.player_delete = async function(req, res, next) {
   }
 };
 
+// Both the edit form and its POST are scoped to the viewer's own club. `secured`
+// alone only proved someone was logged in, so any captain could read and rewrite
+// any player's name, phone and email anywhere in the league just by changing the id
+// in the URL.
+async function assertPlayerInViewerClub(req, playerId) {
+  // `POST /player/:id` is broad enough to catch any /player/<word> that no earlier
+  // route claimed — including /player/batch-update, whose route was removed. Without
+  // this the id reached `WHERE id = 'batch-update'` against an integer column and
+  // Postgres raised a 500. A non-numeric id is a 404.
+  if (!/^[0-9]+$/.test(String(playerId))) {
+    const err = new Error('No such player');
+    err.status = 404;
+    throw err;
+  }
+  const owner = await Roster.getPlayerOwner(playerId);
+  if (!owner) {
+    const err = new Error('No such player');
+    err.status = 404;
+    throw err;
+  }
+  // A player parked on the No Club sentinel belongs to nobody, so only the results
+  // secretary can touch them.
+  assertClubAccess(req, owner.clubName);
+  return owner;
+}
+
 // Display Player update form on GET
 exports.player_update_get = async function(req, res, next) {
   try {
+    await assertPlayerInViewerClub(req, req.params.id);
     const result = await Player.getById(req.params.id);
     res.render('player_update_form', {
       static_path: '/static',
@@ -596,6 +464,7 @@ exports.player_update_post = async function(req, res, next) {
     "data": [[req.params.id, req.body.first_name, req.body.family_name, req.body.gender, req.body.playerTel, req.body.playerEmail, req.body.teamCaptain == 1 ? 1 : 0, req.body.clubSecretary == 1 ? 1 : 0, req.body.matchSecrertary == 1 ? 1 : 0, req.body.treasurer == 1 ? 1 : 0, req.body.otherComms == 1 ? 1 : 0, req.body.junior == 1 ? 1 : 0]]
   }
   try {
+    await assertPlayerInViewerClub(req, req.params.id);
     await Player.updateBulk(patchObj);
     // role/messerAdmin are site-wide authorization, not per-player flags —
     // only ever written if the submitter is already a superadmin, regardless
@@ -609,7 +478,10 @@ exports.player_update_post = async function(req, res, next) {
     }
     res.redirect(`/player/${req.params.id}/update`);
   } catch (err) {
-    res.send(err);
+    // Was `res.send(err)`, which answered 200 with an Error serialised to `{}` — a
+    // failed save was indistinguishable from a successful one, and a 403 or 404
+    // raised here never reached the error handler at all.
+    next(err);
   }
 };
 

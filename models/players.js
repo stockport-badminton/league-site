@@ -39,8 +39,31 @@ exports.updateById = async function(first_name, family_name, team, club, gender,
   return result
 }
 
+// Columns updateBulk is allowed to write. It builds its SET clause from
+// caller-supplied field names, which was safe enough while every caller was
+// server-side — but it was also reachable as POST /player/batch-update, where the
+// table name and field list came from the request body. That route is gone (see
+// controllers/rosterController.js for what replaced it); the allowlist is here so
+// a future caller can't reintroduce the same hole by passing `role` or `authEmail`
+// through from user input.
+const BULK_WRITABLE = new Set([
+  'id', 'first_name', 'family_name', 'gender', 'team', 'club', 'rank', 'rating',
+  'playerTel', 'playerEmail', 'teamCaptain', 'clubSecretary', 'matchSecrertary',
+  'treasurer', 'otherComms', 'junior', 'date_of_registration'
+])
+
 exports.updateBulk = async function(BatchObj) {
   if (!db.isObject(BatchObj)) throw new Error('not object')
+  // Authorization-bearing columns (role, messerAdmin, authEmail) are deliberately
+  // absent from the allowlist — they go through setAuthRole, which only ever runs
+  // for a superadmin.
+  if (BatchObj.tablename && BatchObj.tablename !== 'player') {
+    throw new Error(`updateBulk only writes the player table, got ${JSON.stringify(BatchObj.tablename)}`)
+  }
+  const rejected = (BatchObj.fields || []).filter(f => !BULK_WRITABLE.has(f))
+  if (rejected.length) {
+    throw new Error(`updateBulk cannot write these columns: ${rejected.join(', ')}`)
+  }
   const conn = await db.otherConnect()
   for (const x in BatchObj.data) {
     const row = BatchObj.data[x]

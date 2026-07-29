@@ -65,6 +65,49 @@ exports.otherConnect = async function() {
   return exports.get();
 };
 
+// Runs `fn` against a single checked-out client wrapped in BEGIN/COMMIT, rolling
+// back if it throws. The client exposes the same `{ query }` shape as
+// otherConnect() — same ? → $N conversion, same [rows] return — so a model
+// function can take a connection and be called either way.
+//
+// pgQuery goes through pool.query(), which grabs an arbitrary connection per
+// call: fine for single statements, useless for a transaction, because BEGIN and
+// the UPDATEs that follow could land on different sessions. Anything that has to
+// be all-or-nothing (renumbering two teams' ranks in one go) needs this instead.
+//
+// Note the pool cap: a transaction holds one of POOL_MAX slots for its whole
+// duration, so keep the body to queries and no awaited I/O.
+exports.withTransaction = async function(fn) {
+  const client = await state.pool.connect();
+  const conn = {
+    query: async function(sql, params = []) {
+      const normParams = Array.isArray(params) ? params : [params];
+      const result = await client.query(pgify(sql), normParams);
+      const rows = result.rows;
+      rows.affectedRows = result.rowCount;
+      rows.changedRows = result.rowCount;
+      return [rows];
+    }
+  };
+  try {
+    await client.query('BEGIN');
+    const out = await fn(conn);
+    await client.query('COMMIT');
+    return out;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // A failed rollback means the connection is already unusable; the original
+      // error is the one worth reporting.
+      console.error('ROLLBACK failed:', rollbackErr.message);
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 exports.isObject = function(obj) {
   return obj === Object(obj);
 };

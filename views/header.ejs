@@ -284,6 +284,11 @@
     <% } %>
 
     <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/custom.css"/>
+    <%# Team-management styles, opted into the same way as DataTables above so they
+        don't load on the other 40-odd pages. Used by roster.ejs and roster-edit.ejs. %>
+    <% if (typeof useRosterCss !== 'undefined' && useRosterCss) { %>
+      <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/roster.css"/>
+    <% } %>
     <% if (typeof canonical != 'undefined') { %>
       <link rel="canonical"
             href="<%= canonical %>" />

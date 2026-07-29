@@ -98,7 +98,7 @@
                   var hasOwnClub = navClub && navClub !== 'All';
                 %>
                 <% if (hasOwnClub) { %>
-                  <a class="dropdown-item" href="/manage-players/club-<%= navClub %>">Team Players</a>
+                  <a class="dropdown-item" href="/manage-players/club-<%= encodeURIComponent(navClub) %>">Team Players</a>
                   <a class="dropdown-item" href="/forms/team-registration/<%= navClub %>/prefilled" target="_blank">Team Registration Form (prefilled)</a>
                   <a class="dropdown-item" href="/forms/club-registration/<%= navClub %>/prefilled" target="_blank">Club Registration Form (prefilled)</a>
                 <% } %>
@@ -114,7 +114,10 @@
                 %>
                 <%
                   if(locals.user._json['https://my-app.example.com/role'] == 'superadmin') { %>
-                    <a class="dropdown-item" href="/manage-players/club-Aerospace">Team Management</a>
+                    <%# /manage-players lists the clubs. This used to be a hardcoded
+                        /manage-players/club-Aerospace — the alphabetically first
+                        club, standing in for a picker that didn't exist. %>
+                    <a class="dropdown-item" href="/manage-players">Team Management</a>
                     <a class="dropdown-item" href="/missed-three">Missed Three</a>
                     <a class="dropdown-item" href="/fixture-players">Fixture Players</a>
                     <a class="dropdown-item" href="/player-stats">Individual Stats</a>

@@ -4,6 +4,7 @@ const { PDFDocument, StandardFonts, rgb, PDFName, PDFString } = require('pdf-lib
 const seasonModel = require('../models/season');
 const Player = require('../models/players');
 const Club = require('../models/club');
+const Roster = require('../models/roster');
 
 const TEAM_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Team Registration Form ePDF.pdf');
 const CLUB_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Club Registration Form ePDF.pdf');
@@ -241,8 +242,12 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     const roster = await Player.getClubRoster(club);
     if (roster.length < 1) return next(unknownClub(club));
 
-    const nominated = roster.filter(r => r.rank !== 99);
-    const reserves = roster.filter(r => r.rank === 99);
+    // Reserves are rank >= 99, not rank == 99: they used to all be written flat at
+    // 99 so their order could never be saved, and are now numbered sequentially
+    // from it (see models/roster.js). An == 99 test would have silently reclassified
+    // every reserve after the first as nominated.
+    const nominated = roster.filter(r => !Roster.isReserve(r.rank));
+    const reserves = roster.filter(r => Roster.isReserve(r.rank));
     const nominatedRows = alignTeamRows(nominated, nominated.filter(r => r.gender === 'Female'), nominated.filter(r => r.gender === 'Male'));
     const reserveRows = alignTeamRows(reserves, reserves.filter(r => r.gender === 'Female'), reserves.filter(r => r.gender === 'Male'));
 

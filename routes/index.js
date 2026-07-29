@@ -29,6 +29,8 @@ var shuttle_controller = require('../controllers/shuttleController');
 var documents_controller = require('../controllers/documentsController');
 var homepage_content_controller = require('../controllers/homepageContentController');
 var site_settings_controller = require('../controllers/siteSettingsController');
+var roster_controller = require('../controllers/rosterController');
+const requireClubAccess = require('../middleware/requireClubAccess');
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -200,8 +202,13 @@ router.get('/contact-us', contact_controller.contactus_get);
 router.post('/contact-us', contact_controller.validateContactUs, contact_controller.contactus);
 
 // Player routes
-router.post('/player/create', player_controller.player_create);
-router.post('/manage-players/create', player_controller.player_create_from_team);
+//
+// `/player/create` and `/manage-players/create` used to sit here with no
+// middleware at all — anyone could create a player into any club, because both
+// took the club and team straight from the request body. Creating a player is now
+// only possible through POST /api/roster/club-:club/players, which is authorized
+// against the club in the URL and derives the club from the destination team.
+router.post('/player/create', secured, requireClubAccess.requireSuperAdmin, player_controller.player_create);
 router.post('/player/batch-create', checkJwt, player_controller.player_batch_create);
 router.get('/player/:id/delete', player_controller.player_delete_get);
 router.delete('/player/:id', checkJwt, player_controller.player_delete);
@@ -209,8 +216,13 @@ router.get('/player/:id/update', secured, player_controller.player_update_get);
 router.get('/player/:id', player_controller.player_detail);
 router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
-router.get('/players/club-:clubid?/team-:teamid?/gender-:gender?', player_controller.player_list);
-router.get('/players/matching/:name/:gender', player_controller.find_closest_matched_player);
+// `/players/club-:clubid?/team-:teamid?/gender-:gender?` used to be declared here,
+// unauthenticated, returning the registration rows as raw JSON. It shadowed the
+// identically-shaped `secured` route further down — first match wins — so the
+// Registered Players page never rendered for that URL shape and anyone could read
+// the data. Nothing in the app called the JSON version, so it is gone rather than
+// merely secured, which un-shadows the real page.
+router.get('/players/matching/:name/:gender', secured, player_controller.find_closest_matched_player);
 
 // Team routes
 router.get('/team/create', team_controller.team_create_get);
@@ -323,7 +335,24 @@ router.get('/calendars/*', fixture_controller.fixture_calendars);
 router.get('/results-grid/*', fixture_controller.fixture_detail_byDivision);
 
 // Secured routes
-router.post('/player/batch-update', secured, player_controller.player_batch_update);
+//
+// `POST /player/batch-update` used to live here. It took `tablename` and `fields`
+// from the request body and interpolated both into an UPDATE, behind `secured`
+// only — so any logged-in captain could write any column of any table, including
+// their own player.role. It was also the only write path the team-management page
+// had. The roster API below replaces it: each endpoint takes intent (an ordered
+// list of player ids, a destination team) and derives its own SQL.
+//
+// Roster writes. Authorization is resolved from the row's real owner inside each
+// handler — the club in the URL is never taken on trust.
+router.post('/api/teams/:id/order', secured, roster_controller.api_team_order);
+router.post('/api/players/:id/move', secured, roster_controller.api_player_move);
+router.post('/api/players/:id/release', secured, roster_controller.api_player_release);
+router.get('/api/roster/club-:club/candidates', secured, requireClubAccess, roster_controller.api_candidates);
+router.post('/api/roster/club-:club/players', secured, requireClubAccess, roster_controller.api_player_create);
+router.post('/api/roster/club-:club/attach', secured, requireClubAccess, roster_controller.api_player_attach);
+router.post('/api/roster/club-:club/transfer', secured, requireClubAccess, roster_controller.api_transfer_request);
+
 router.post('/player/:id', secured, player_controller.player_update_post);
 router.get('/admin/results/*', secured, fixture_controller.fixture_detail_byDivision);
 router.get('/admin/results/:division/:season', secured, fixture_controller.fixture_detail_byDivision);
@@ -368,8 +397,17 @@ router.get('/players/team-:team?', secured, player_controller.player_list_clubs_
 router.get('/players/gender-:gender?', secured, player_controller.player_list_clubs_teams);
 router.get('/players', secured, player_controller.player_list_clubs_teams);
 router.get('/missed-three', secured, player_controller.players_missed_three);
-router.get('/manage-players/club-:club?', secured, player_controller.manage_player_list_clubs_teams);
-router.get('/manage-players/:season?/club-:club?', secured, player_controller.manage_player_list_clubs_teams);
+// Team management. Two pages with two jobs, where there used to be one template
+// switching on a `superadmin` boolean: the roster a captain reads, and the editor
+// the results secretary works in. The .docx is its own endpoint rather than a side
+// effect of rendering the page.
+//
+// More specific paths first — `/manage-players/club-:club?` would otherwise match
+// `/manage-players/club-Aerospace/edit` with the club captured as 'Aerospace/edit'.
+router.get('/manage-players/club-:club/edit', secured, requireClubAccess, roster_controller.club_roster_edit);
+router.get('/manage-players/club-:club/registration.docx', secured, requireClubAccess, roster_controller.registration_docx);
+router.get('/manage-players/club-:club', secured, roster_controller.club_roster);
+router.get('/manage-players', secured, roster_controller.club_picker);
 router.get('/player/create', secured, player_controller.player_create_get);
 router.get('/players/eloPop', player_controller.player_elo_populate);
 router.get('/dev/player-stats-debug', player_controller.player_stats_debug);
@@ -442,6 +480,26 @@ router.use(function(req, res) {
     pageTitle: 'Can\'t find the page your looking for',
     pageDescription: 'HTTP 404 Error',
     canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+  });
+});
+
+// The /api/ routes answer in JSON, so their errors have to as well. Falling through
+// to the HTML handler below sent a rendered 403 page to a fetch() caller, which
+// could only report a generic "Save failed" — the roster editor shows the server's
+// reason in its toast ("Priya Ramanathan is registered to College Green. Request a
+// transfer instead."), and that only works if the reason survives the trip.
+router.use(function(error, req, res, next) {
+  if (!req.path.startsWith('/api/')) return next(error);
+
+  var status = (error && (error.status || error.statusCode)) || 500;
+  if (status >= 500) {
+    Sentry.captureException(error);
+  }
+  res.status(status).json({
+    ok: false,
+    // A 5xx message can carry internals (SQL fragments, connection strings), so
+    // only 4xx messages — which this code writes deliberately — are passed on.
+    error: status < 500 ? error.message : 'Something went wrong saving that. Try again.'
   });
 });
 

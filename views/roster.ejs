@@ -1,0 +1,65 @@
+<%- include('header.ejs', { useRosterCss: true }) %>
+<%- include('nav.ejs') %>
+
+<%#
+  A club's registrations, read-only — the page a captain actually opens.
+
+  It replaces the read-only half of team-admin.ejs, which was the editor's markup
+  with the controls stripped: four buckets per team laid out as columns sized for
+  drop targets, no ranks, no contact details, and a Download link pointing at a file
+  generated as a side effect of the request that might not exist yet.
+%>
+
+<div class="roster-page">
+  <div class="roster-head">
+    <div>
+      <h1><%= clubName %></h1>
+      <div class="roster-sub">
+        Registered players and nominated order
+      </div>
+    </div>
+    <div class="roster-actions">
+      <a class="btn btn-outline-secondary btn-sm"
+         href="/manage-players/club-<%= encodeURIComponent(clubName) %>/registration.docx">
+        <i class="fa fa-download" aria-hidden="true"></i> Registration form
+      </a>
+      <% if (canEdit) { %>
+        <a class="btn btn-primary btn-sm"
+           href="/manage-players/club-<%= encodeURIComponent(clubName) %>/edit">
+          <i class="fa fa-pen" aria-hidden="true"></i> Manage players
+        </a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="roster-summary">
+    <div class="roster-stat"><span class="n"><%= summary.players %></span><span class="l">Players</span></div>
+    <div class="roster-stat"><span class="n"><%= summary.teams %></span><span class="l">Teams</span></div>
+    <div class="roster-stat"><span class="n"><%= summary.nominated %></span><span class="l">Nominated</span></div>
+    <div class="roster-stat"><span class="n"><%= summary.reserves %></span><span class="l">Reserves</span></div>
+    <% if (summary.juniors) { %>
+      <div class="roster-stat"><span class="n"><%= summary.juniors %></span><span class="l">Juniors</span></div>
+    <% } %>
+    <div class="roster-stat<%= summary.noContact ? ' flag' : '' %>">
+      <span class="n"><%= summary.noContact %></span><span class="l">No contact</span>
+    </div>
+  </div>
+
+  <% if (summary.noContact > 0) { %>
+    <p class="text-muted small">
+      <i class="fa fa-circle-info" aria-hidden="true"></i>
+      <%= summary.noContact %> <%= summary.noContact === 1 ? 'player has' : 'players have' %>
+      no phone number or email on file. Grey icons below mark them.
+    </p>
+  <% } %>
+
+  <div class="roster-grid">
+    <% teamCards.forEach(function(team) { %>
+      <%- include('roster-team-card.ejs', { team: team, editable: false, contacts: true }) %>
+    <% }) %>
+  </div>
+</div>
+
+<%- include('footer.ejs') %>
+</body>
+</html>

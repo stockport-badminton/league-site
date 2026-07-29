@@ -48,3 +48,8 @@ test-results/
 playwright-report/
 blob-report/
 .last-run.json
+
+# Claude Code: settings.json is shared (permissions the whole team benefits from);
+# settings.local.json is personal and worktrees/ is scratch state.
+.claude/settings.local.json
+.claude/worktrees/
