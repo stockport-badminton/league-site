@@ -19,6 +19,7 @@ function unknownClub(club) {
   return err;
 }
 const { validationResult } = require('express-validator');
+const { canonicalFor } = require('../utils/canonical');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
@@ -76,7 +77,7 @@ exports.players_missed_three = async function(req, res, next) {
       pageTitle: "Players that have missed three matches",
       pageDescription: "Players that have missed three matches",
       result: rows,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -96,7 +97,7 @@ exports.player_game_data = async function(req, res, next) {
       pageDescription: "Information about games that " + req.params.fullName + "played in this season",
       result: rows,
       fullName: req.params.fullName,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -115,7 +116,7 @@ exports.player_list_clubs_teams = async function(req, res, next) {
       pageTitle: "Player Registrations",
       pageDescription: "List of players registered to teams in the Stockport League",
       result: rows,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -273,7 +274,7 @@ exports.all_player_stats = async function(req, res, next) {
       clubs: clubs,
       teams: teams,
       query: searchObj,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -335,7 +336,7 @@ exports.all_pair_stats = async function(req, res, next) {
       teams: teams,
       result: result,
       query: searchObj,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -348,7 +349,7 @@ exports.player_create_get = async function(req, res, next) {
     const clubs = await Club.getAll();
     res.render('player_form', {
       pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path: '/static', theme: 'flatly', club_list: clubs,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -373,7 +374,7 @@ exports.player_create = async function(req, res, next) {
     const rows = await Player.getPlayerClubandTeamById(newId);
     res.render('player_form', {
       pageTitle: 'Create Player', pageDescription: 'Create a Player', static_path: '/static', theme: 'flatly', result: req.body, row: rows,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     // Was `res.send(err)`, which answered 200 with an Error serialised to `{}`.
@@ -452,7 +453,7 @@ exports.player_update_get = async function(req, res, next) {
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
       viewerIsSuperAdmin: isSuperAdmin(req),
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -890,7 +891,7 @@ exports.player_elo_backfill_admin = async function(req, res, next) {
       pageTitle: 'ELO Backfill Admin',
       pageDescription: 'ELO rating backfill admin tool',
       seasons,
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk')
+      canonical: canonicalFor(req)
     })
   } catch (err) {
     next(err)
@@ -955,7 +956,7 @@ exports.player_elo_chart = async function(req, res, next) {
       divisions,
       clubs,
       teams,
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk')
+      canonical: canonicalFor(req)
     })
   } catch (err) {
     next(err)

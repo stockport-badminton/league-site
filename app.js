@@ -35,6 +35,12 @@ var app = express();
 // (below). Default to empty so views always have an array to iterate.
 app.locals.pastSeasons = [];
 
+// Event-page URLs are built in two places that must not drift: the homepage's
+// upcoming-fixtures list and the generated sitemap. Exposed as a view local so
+// the template calls the same function the sitemap does, rather than reassembling
+// the date arithmetic inline.
+app.locals.eventPath = require('./utils/canonical').eventPath;
+
 app.use(function(req, res, next) {
   var ipAddress = getClientIp(req);
   if (BLACKLIST.indexOf(ipAddress) === -1) {

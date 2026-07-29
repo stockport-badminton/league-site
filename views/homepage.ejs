@@ -94,7 +94,9 @@
                     + MyDate.getFullYear();
       %>
       <div class="col-3"><%= MyDateString %></div>
-      <div class="col"><a href="<%= '/event/' + result.id + '/' + MyDateString.replaceAll("/","") + '-' + result.homeTeam + '-' + result.awayTeam %>"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></a></div>
+      <%# eventPath is app.locals.eventPath — the same builder the sitemap uses, so
+          the URL advertised to crawlers and the one linked here are identical. %>
+      <div class="col"><a href="<%= eventPath(result) %>"><%= result['homeTeam'] %> vs <%= result['awayTeam'] %></a></div>
     </div>
     <% })  %>
   </div>

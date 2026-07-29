@@ -395,6 +395,32 @@ exports.getById = async function(fixtureId) {
   return result
 }
 
+// Everything /event/:id needs, in one row — and it must be one row, or none.
+//
+// This query used to lose 48 of the 272 fixtures in the 2026/27 season, and the
+// controller turned that into `HTTP 200` with a two-byte body (`{}`), which is
+// what Googlebot got for 18% of the event pages. Three separate causes, all of
+// them the same mistake — an INNER JOIN to something optional:
+//
+//  - `JOIN player teamCaptain` dropped any fixture whose home team has nobody
+//    flagged as captain. Six teams are in that state (Cheadle Hulme B,
+//    Featherforce B, Manor B, Parrswood C, Racketeers A, Syddal Park A), so
+//    every one of their home fixtures 200'd empty.
+//  - `JOIN season ON fixture.date BETWEEN ...` filtered on a table the SELECT
+//    list never touched, so an unseasoned date silently removed the fixture.
+//    Dropped rather than made outer: joining it could only ever duplicate rows.
+//  - venue/club/division are all NOT NULL in practice but nothing enforces it,
+//    and a missing one should cost a field, not the page.
+//
+// The captain and secretary are also scalar subqueries rather than joins now,
+// because four teams have *two* players flagged captain — which multiplied the
+// result set and left `row[0]` an arbitrary pick that could change between
+// deploys. `ORDER BY p.id LIMIT 1` makes it the same pick every time.
+//
+// Note the quoted aliases on those two. They were `AS teamCaptain` unquoted, so
+// Postgres folded them to `teamcaptain` while viewEventDetails.ejs read
+// `.teamCaptain` — meaning "Team Captain:" and "Match Secretary:" rendered blank
+// on every event page that *did* render, for as long as the page has existed.
 exports.getFixtureEventById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(`SELECT
     fixture.id,
@@ -416,30 +442,59 @@ exports.getFixtureEventById = async function(fixtureId) {
     fixture.status,
     fixture."homeScore",
     fixture."awayScore",
-    CONCAT(teamCaptain.first_name,' ',teamCaptain.family_name) AS teamCaptain,
-    teamCaptain.id AS teamCaptainId,
-    CONCAT(matchSecretary.first_name,' ',matchSecretary.family_name) AS matchSecretary,
-    matchSecretary.id AS matchSecretaryId
+    (SELECT CONCAT(p.first_name,' ',p.family_name) FROM player p
+      WHERE p.team = homeTeam.id AND p."teamCaptain" = 1
+      ORDER BY p.id LIMIT 1) AS "teamCaptain",
+    (SELECT p.id FROM player p
+      WHERE p.team = homeTeam.id AND p."teamCaptain" = 1
+      ORDER BY p.id LIMIT 1) AS "teamCaptainId",
+    (SELECT CONCAT(p.first_name,' ',p.family_name) FROM player p
+      WHERE p.club = homeClub.id AND p."matchSecrertary" = 1
+      ORDER BY p.id LIMIT 1) AS "matchSecretary",
+    (SELECT p.id FROM player p
+      WHERE p.club = homeClub.id AND p."matchSecrertary" = 1
+      ORDER BY p.id LIMIT 1) AS "matchSecretaryId"
 FROM
     fixture
         JOIN
     team homeTeam ON fixture."homeTeam" = homeTeam.id
         JOIN
-    club homeClub ON homeTeam.club = homeClub.id
-        JOIN
-    venue ON homeTeam.venue = venue.id
-        JOIN
     team awayTeam ON fixture."awayTeam" = awayTeam.id
-        JOIN
+        LEFT JOIN
+    club homeClub ON homeTeam.club = homeClub.id
+        LEFT JOIN
     club awayClub ON awayTeam.club = awayClub.id
-        JOIN
-    season ON (fixture.date > season."startDate"
-        AND fixture.date < season."endDate")
-    JOIN player teamCaptain ON (homeTeam.id = teamCaptain.team AND teamCaptain."teamCaptain" = 1)
-    JOIN player matchSecretary ON (homeClub.id = matchSecretary.club AND matchSecretary."matchSecrertary" = 1)
-    JOIN division ON homeTeam.division = division.id
+        LEFT JOIN
+    venue ON homeTeam.venue = venue.id
+        LEFT JOIN
+    division ON homeTeam.division = division.id
 WHERE
     fixture.id = ?`, fixtureId)
+  return result
+}
+
+// Fixtures whose /event/ pages belong in the sitemap, newest first.
+//
+// Deliberately not all 5,214 of them. The archive goes back to 2012 and those
+// pages are thin (two team names, a venue and a map), so submitting the lot
+// would spend crawl budget on 4,600 near-duplicates to get the ~600 that are
+// worth ranking. `monthsBack` covers the current season plus the one before it,
+// which is what "matches this week" and "<team> vs <team> result" actually need.
+//
+// The cap is a judgement call, not a limit of the format — a sitemap holds 50,000
+// URLs, so widening it is only a matter of changing the argument.
+exports.getForSitemap = async function(monthsBack = 18) {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+      fixture.id,
+      fixture.date,
+      fixture.status,
+      homeTeam.name AS "homeTeam",
+      awayTeam.name AS "awayTeam"
+    FROM fixture
+      JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
+      JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
+    WHERE fixture.date >= NOW() - (? || ' months')::interval
+    ORDER BY fixture.date DESC`, [String(monthsBack)])
   return result
 }
 

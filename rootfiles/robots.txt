@@ -1,3 +1,12 @@
+# Sitemap is generated from the database at /sitemap.xml (see
+# controllers/sitemapController.js). It is declared here because that is the only
+# way a crawler finds it without being told; there was no Sitemap: line in this
+# file at all, and the sitemap it would have pointed at was from 2018.
+Sitemap: https://stockport-badminton.co.uk/sitemap.xml
+
+# Everything below is a per-crawler blocklist. There is intentionally no
+# `User-agent: *` group: the default is allow, and adding one here would need
+# every rule restated for Googlebot and friends.
 User-agent: 173.212soso
 Disallow:/
 User-agent: 192.comagent

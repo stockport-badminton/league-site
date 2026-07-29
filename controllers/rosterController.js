@@ -10,6 +10,7 @@ const Club = require('../models/club')
 const Roster = require('../models/roster')
 const sesUtil = require('../utils/ses')
 const { assertClubAccess, isSuperAdmin } = require('../middleware/requireClubAccess')
+const { canonicalFor } = require('../utils/canonical');
 
 const RESULTS_SECRETARY = process.env.RESULTS_EMAIL || 'results@stockport-badminton.co.uk'
 const MAIL_SOURCE = 'results@stockport-badminton.co.uk'
@@ -124,8 +125,7 @@ function viewBase(req, extra) {
     static_path: '/static',
     theme: process.env.THEME || 'flatly',
     flask_debug: process.env.FLASK_DEBUG || 'false',
-    canonical: ('https://' + req.get('host') + req.originalUrl)
-      .replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   }, extra)
 }
 

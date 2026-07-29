@@ -1,6 +1,7 @@
 var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
+const { canonicalFor } = require('../utils/canonical');
 require('dotenv').config()
 
 
@@ -79,7 +80,7 @@ exports.club_list_detail = async function(req, res, next) {
          recaptcha : process.env.RECAPTCHA,
          mapsApiKey: process.env.GMAPSAPIKEY,
          venues:JSON.stringify(venueRows),
-         canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+         canonical:canonicalFor(req)
      });
   } catch (err) {
     res.status(500);
@@ -125,7 +126,7 @@ exports.club_detail = async function(req, res, next) {
         clubrow: clubrow,
         error: false,
         mapsApiKey: process.env.GMAPSAPIKEY,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+        canonical:canonicalFor(req)
     });
   } catch (err) {
     res.status(500);
@@ -201,10 +202,6 @@ exports.club_update_post = async function(req, res, next) {
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
-function canonicalFor(req) {
-  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
 }
 
 // Build a {column: value} object from the club form. name is required; every

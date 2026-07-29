@@ -1,5 +1,6 @@
 const axios = require('axios');
 var seasonModel = require("../models/season");
+const { canonicalFor } = require('../utils/canonical');
 
 
 exports.privacy_policy = function(req, res) {
@@ -9,7 +10,7 @@ exports.privacy_policy = function(req, res) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Stockport & District Badminton League Privacy Policy',
     pageDescription: 'Privacy Policy for the Stockport and District Badminton League',
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   })
 }
 
@@ -22,7 +23,7 @@ exports.history = function(req, res) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'History — Past Seasons & Archive',
     pageDescription: 'Results, tables and documents from past Stockport & District Badminton League seasons',
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   })
 }
 
@@ -33,7 +34,7 @@ exports.messer_rules = function(req, res) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Messer Tropy Rules',
     pageDescription: "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition",
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   })
 }
 
@@ -63,7 +64,7 @@ exports.get_gallery = async function(req, res, next) {
       flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: 'Stockport & District Badminton League Gallery',
       pageDescription: 'Photos from the Stockport & District Badminton League presentations, tournaments etc.',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+      canonical: canonicalFor(req)
     })
   } catch (err) {
     next(err)
@@ -78,7 +79,7 @@ exports.rules = function(req, res) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Stockport & District Badminton League Rules',
     pageDescription: 'Rules and regulations for the Stockport and District Badminton League',
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   })
 }
 
@@ -88,6 +89,6 @@ exports.upload_scoresheet = function(req, res) {
     theme: process.env.THEME || 'flatly',
     pageTitle: 'Upload Scorecard',
     pageDescription: 'Enter some results!',
-    canonical: ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+    canonical: canonicalFor(req)
   })
 }

@@ -10,6 +10,7 @@ const axios = require('axios');
 const ses = require('../utils/ses');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
+const { canonicalFor } = require('../utils/canonical');
 
 
 
@@ -72,7 +73,7 @@ exports.fixture_outstanding = async function(req, res, next) {
       pageDescription: "Quick Results Entry",
       result: result,
       stringResult: JSON.stringify(result),
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -107,7 +108,7 @@ exports.fixture_outstanding_post = async function(req, res, next) {
       result: result,
       zapRes: zapRes,
       success: true,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -143,7 +144,7 @@ exports.get_fixture_players_details = async function(req, res, next) {
       teams: teams,
       clubs: clubs,
       result: row,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     res.send(err);
@@ -181,19 +182,34 @@ exports.fixture_detail = async function(req, res, next) {
 };
 
 // Display detail page for a specific Fixture
+//
+// The missing-row case has to be a real 404. `row[0].homeTeam` on an empty result
+// threw a TypeError, and the old `catch { res.send(err) }` serialised the Error to
+// JSON — which for an Error is `{}` — and sent it with the default **status 200**.
+// So a fixture this query couldn't assemble was published to crawlers as a valid,
+// empty, two-byte page rather than as absent. See getFixtureEventById for why 48
+// of them were in that state.
 exports.fixture_event_detail = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureEventById(req.params.id);
+    if (!row.length) {
+      return res.status(404).render('404-error', {
+        static_path: '/static',
+        pageTitle: 'Fixture not found',
+        pageDescription: 'No fixture with that id',
+        canonical: canonicalFor(req)
+      });
+    }
     res.render('viewEventDetails', {
       static_path: '/static',
       pageTitle: 'Event Details: ' + row[0].homeTeam + " vs " + row[0].awayTeam,
       pageDescription: "View scorecard for this match",
       fixtureDetails: row[0],
       mapsApiKey: process.env.GMAPSAPIKEY,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
-    res.send(err);
+    next(err);
   }
 };
 
@@ -230,7 +246,7 @@ exports.getScorecard = async function(req, res, next) {
           static_path: '/static',
           pageTitle: "Can't find the page you're looking for",
           pageDescription: 'HTTP 404 Error',
-          canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+          canonical: canonicalFor(req)
         });
       }
       summary = fixture[0];
@@ -242,7 +258,7 @@ exports.getScorecard = async function(req, res, next) {
       pageDescription: "View scorecard for this match",
       result: games,
       summary: summary,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     // Was res.send(err), which answered 200 with a serialised error object — so a
@@ -399,7 +415,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         error: false,
         division: divisionString,
         nearestDate: nearestFixture[0].date,
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       }
       applyAdminRole(renderObject, req)
       res.render('fixtures-results' + type, renderObject);
@@ -455,7 +471,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         error: false,
         division: divisionString,
         nearestDate: nearestFixture[0].date,
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       }
       applyAdminRole(renderObject, req)
       if (req.path.indexOf('fixtures') > -1) {
@@ -515,7 +531,7 @@ exports.fixture_get_summary = async function(req, res, next) {
       scorecards,
       assets,
       announcements,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -539,7 +555,7 @@ exports.fixture_get_offline_home = async function(req, res, next) {
       scorecards: [],
       assets: [],
       announcements,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);

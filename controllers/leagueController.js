@@ -1,4 +1,5 @@
 var League = require('../models/league.js');
+const { canonicalFor } = require('../utils/canonical');
 
 // Display list of all Leagues
 exports.league_list = async function(req, res, next) {
@@ -90,7 +91,7 @@ exports.league_table = async function(req, res, next) {
         result : result,
         error : false,
         season: req.params.season,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+        canonical:canonicalFor(req)
     });
   } catch (err) {
     console.log(err);
@@ -111,7 +112,7 @@ exports.all_league_tables = async function(req, res, next) {
         pageDescription : "Find out how your teams are peforming this season",
         result : result,
         season: req.params.season,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+        canonical:canonicalFor(req)
     });
   } catch (err) {
     console.log(err);

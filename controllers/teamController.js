@@ -3,6 +3,7 @@ var Club = require('../models/club');
 var Division = require('../models/division');
 var Venue = require('../models/venue');
 var League = require('../models/league');
+const { canonicalFor } = require('../utils/canonical');
 
 // Display list of all Teams
 exports.team_list = async function(req, res, next) {
@@ -111,7 +112,7 @@ exports.messer_draw = function(req, res, next) {
     flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle : "Messer Tropy Draws and results",
     pageDescription : "Messer Trophy Draws and results",
-    canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+    canonical:canonicalFor(req)
   });
 };
 
@@ -197,7 +198,7 @@ exports.new_messer_draw = async function(req, res, next) {
       section: req.params.section.toUpperCase().at(0),
       pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section",
       pageDescription : "Messer Trophy Draws and results",
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+      canonical:canonicalFor(req)
     });
   } catch (err) {
     console.log(err);
@@ -212,10 +213,6 @@ exports.new_messer_draw = async function(req, res, next) {
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
-function canonicalFor(req) {
-  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
 }
 
 // Editable team fields from the form. name/club/division/venue are required;

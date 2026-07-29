@@ -4,6 +4,7 @@ const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 const Fixture = require('../models/fixture');
 const { formatMentionsForPlatforms } = require('../utils/socialMediaMentions');
+const { canonicalFor } = require('../utils/canonical');
 
 function escapeXml(str) {
   return String(str)
@@ -126,7 +127,7 @@ exports.tablesSocial = async function(req, res, next) {
       pageTitle: 'Table Social Images',
       pageDescription: 'Table Social Images',
       query: req.query,
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);

@@ -1,11 +1,8 @@
 var SiteSettings = require('../models/siteSettings');
+const { canonicalFor } = require('../utils/canonical');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
-function canonicalFor(req) {
-  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
 }
 
 exports.form = async function(req, res, next) {

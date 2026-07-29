@@ -1,5 +1,6 @@
 var Venue = require('../models/venue');
 var { generateVenuesMap } = require('../utils/venues-map-generator');
+const { canonicalFor } = require('../utils/canonical');
 
 function isSuperadmin(req) {
   return req.user?._json?.['https://my-app.example.com/role'] === 'superadmin';
@@ -26,7 +27,7 @@ exports.venue_list = async function(req, res, next) {
         pageDescription : "Venues",
         result: result,
         error: false,
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+        canonical:canonicalFor(req)
     });
   } catch (err) {
     res.status(500);

@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const ExcelJS = require('exceljs');
 const { scrapeAll, OUTPUT_PATH } = require('../utils/shuttle-scraper');
+const { canonicalFor } = require('../utils/canonical');
 
 function isSuperadmin(req) {
   return req.user?._json?.['https://my-app.example.com/role'] === 'superadmin';
@@ -23,7 +24,7 @@ exports.shuttlePrices = async function(req, res, next) {
     theme: process.env.THEME || 'flatly',
     pageTitle: 'Shuttle Prices',
     pageDescription: 'Feather shuttle price comparison',
-    canonical: 'https://stockport-badminton.co.uk/shuttle-prices',
+    canonical: canonicalFor(req),
     data
   });
 };

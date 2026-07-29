@@ -2,6 +2,7 @@ const axios = require('axios');
 const ses = require('../utils/ses');
 const Player = require('./players');
 const { isSuperAdmin } = require('../utils/authz');
+const { canonicalFor } = require('../utils/canonical');
 
 exports.getManagementAPIKey = async function() {
   const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
@@ -36,10 +37,6 @@ exports.getUserByAuthId = async function(userId) {
     { headers: { Authorization: 'Bearer ' + apiKey } }
   )
   return response.data[0]
-}
-
-function canonicalFor(req) {
-  return ('https://' + req.get('host') + req.originalUrl).replace("www.'", '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
 }
 
 // GET: pure display, no side effects (the old flow PATCHed Auth0 and sent an

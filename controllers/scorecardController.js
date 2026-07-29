@@ -8,6 +8,7 @@ const ses = require('../utils/ses');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
+const { canonicalFor } = require('../utils/canonical');
 
     const { sanitizeBody } = require("express-validator");
 
@@ -171,7 +172,7 @@ exports.full_fixture_post = async function(req, res, next) {
         scorecard,
         data,
         errors: errors.array(),
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     } catch (err) { next(err); }
     return;
@@ -330,7 +331,7 @@ exports.full_fixture_post = async function(req, res, next) {
       awayTeamNomPlayers,
       homeTeamFixturePlayers,
       awayTeamFixturePlayers,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
@@ -361,7 +362,7 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         scorecard: renderData,
         data,
         errors: errors.array(),
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     } catch (err) { next(err); }
   } else {
@@ -457,7 +458,7 @@ exports.fixture_populate_scorecard = async function(data, req, res, next) {
       pageDescription: "Show result of uploading scorecard",
       result: renderData,
       data,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) { next(err); }
 }
@@ -482,7 +483,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       pageDescription: "Show result of uploading scorecard",
       result: renderData,
       data: rows[0],
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) { next(err); }
 }
@@ -497,7 +498,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
         pageDescription: "Enter some results!",
         result: rows,
         formAction: '/scorecard-beta',
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     } catch (err) { next(err); }
   }
@@ -520,7 +521,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
         pageDescription: "Enter some results!",
         result: rows,
         fixtures,
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     } catch (err) { next(err); }
   }
@@ -532,7 +533,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
         flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Stockport & District Badminton League Scorecard Upload",
         pageDescription : "Upload your scorecard and send to the website",
-        canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+        canonical:canonicalFor(req)
     });
   };
 
@@ -542,7 +543,7 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       theme:process.env.THEME || 'flatly',
       pageTitle : "Upload Scorecard",
       pageDescription : "Enter some results!",
-      canonical:("https://" + req.get("host") + req.originalUrl).replace("www.'","").replace(".com",".co.uk").replace("-badders.herokuapp","-badminton")
+      canonical:canonicalFor(req)
     })
   }
 

@@ -5,6 +5,7 @@ const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const { body, validationResult } = require('express-validator');
+const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
 // Validation rules for 15-game messer format
 function greaterThan21(value, { req, path }) {
@@ -168,7 +169,7 @@ exports.messer_scorecard_beta = async function(req, res, next) {
       pageTitle: 'Enter Messer Result',
       pageDescription: 'Enter Messer Result',
       devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      canonical: canonicalFor(req),
     });
   } catch (err) {
     console.error('messer_scorecard_beta error:', err);
@@ -263,7 +264,7 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
       devMode: true,
       pageTitle: 'Enter Messer Result (Test Data)',
       pageDescription: 'Enter Messer Result',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      canonical: canonicalFor(req),
     });
   } catch (err) {
     console.error('messer_scorecard_beta_test error:', err);
@@ -296,7 +297,7 @@ exports.full_messer_fixture_post = async function(req, res, next) {
         devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
         pageTitle: 'Enter Messer Result',
         pageDescription: 'Enter Messer Result',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+        canonical: canonicalFor(req),
       });
     } catch (err) {
       return next(err);
@@ -392,7 +393,7 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
         static_path: '/static',
         pageTitle: "Can't find the page you're looking for",
         pageDescription: 'HTTP 404 Error',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+        canonical: canonicalFor(req),
       });
     }
 
@@ -433,7 +434,7 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
       devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
       pageTitle: 'Messer Result Submitted',
       pageDescription: 'Your messer result has been submitted',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      canonical: canonicalFor(req),
     });
   } catch (err) {
     console.error('messer_fixture_populate_scorecard_fromId error:', err);
@@ -466,7 +467,7 @@ exports.messer_results_list = async function(req, res, next) {
         static_path: '/static',
         pageTitle: 'Access Denied',
         pageDescription: 'Access Denied',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+        canonical: canonicalFor(req),
       });
     }
 
@@ -477,7 +478,7 @@ exports.messer_results_list = async function(req, res, next) {
       results: results,
       pageTitle: 'Messer Results Pending Approval',
       pageDescription: 'Review and approve messer match results',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      canonical: canonicalFor(req),
     });
   } catch (err) {
     console.error('messer_results_list error:', err);
@@ -494,7 +495,7 @@ exports.messer_result_detail = async function(req, res, next) {
         static_path: '/static',
         pageTitle: 'Access Denied',
         pageDescription: 'Access Denied',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+        canonical: canonicalFor(req),
       });
     }
 
@@ -506,7 +507,7 @@ exports.messer_result_detail = async function(req, res, next) {
         static_path: '/static',
         pageTitle: "Can't find the result",
         pageDescription: 'HTTP 404 Error',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+        canonical: canonicalFor(req),
       });
     }
 
@@ -530,7 +531,7 @@ exports.messer_result_detail = async function(req, res, next) {
       awayWins,
       pageTitle: 'Review Messer Result',
       pageDescription: 'Review messer match result before approval',
-      canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton'),
+      canonical: canonicalFor(req),
     });
   } catch (err) {
     console.error('messer_result_detail error:', err);
@@ -749,9 +750,6 @@ function isMesserAdmin(req) {
      req.user._json['https://my-app.example.com/messeradmin']);
 }
 
-const messerCanonical = (req) =>
-  ('https://' + req.get('host') + req.originalUrl).replace('www.', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton');
-
 // Sanity-check a section's wiring; returns an array of human-readable warnings.
 function validateBracket(rows) {
   const warnings = [];
@@ -797,7 +795,7 @@ exports.messer_bracket_landing = async function(req, res, next) {
       user: req.user,
       pageTitle: 'Messer Bracket Setup',
       pageDescription: 'Wire up the messer draw for auto-advance',
-      canonical: messerCanonical(req),
+      canonical: canonicalFor(req),
     });
   } catch (err) { next(err); }
 };
@@ -820,7 +818,7 @@ exports.messer_bracket_edit = async function(req, res, next) {
       saved: req.query.saved === '1',
       pageTitle: `Messer Bracket — ${section} Section`,
       pageDescription: 'Wire up the messer draw for auto-advance',
-      canonical: messerCanonical(req),
+      canonical: canonicalFor(req),
     });
   } catch (err) { next(err); }
 };
@@ -877,7 +875,7 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
               <p><strong>Match:</strong> ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}</p>
               <p><strong>Date:</strong> ${scorecardData.date}</p>
               <p><strong>Submitted by:</strong> ${scorecardData.email}</p>
-              <p><a href="https://${req.get('host')}/messer-result/${scorecardId}">Review and approve this result</a></p>
+              <p><a href="${absoluteUrl('/messer-result/' + scorecardId)}">Review and approve this result</a></p>
             `,
           },
         },

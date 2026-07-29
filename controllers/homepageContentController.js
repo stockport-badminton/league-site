@@ -1,5 +1,6 @@
 var HomepageContent = require('../models/homepageContent');
 const sanitizeHtml = require('sanitize-html');
+const { canonicalFor } = require('../utils/canonical');
 
 const SANITIZE_OPTS = {
   allowedTags: ['p', 'br', 'strong', 'em', 'a', 'img', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4'],
@@ -11,10 +12,6 @@ const SANITIZE_OPTS = {
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
-function canonicalFor(req) {
-  return ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton");
 }
 
 exports.list = async function(req, res, next) {

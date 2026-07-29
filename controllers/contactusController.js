@@ -16,6 +16,7 @@ const { read } = require('fs');
 const fs = require('fs');
 const { networkInterfaces } = require('node:os');
 const { find } = require('async');
+const { canonicalFor } = require('../utils/canonical');
 
 const FIRSTYEAR = new Date().getMonth() < 7 ? `${new Date().getFullYear() - 1}` : `${new Date().getFullYear()}`
 
@@ -453,7 +454,7 @@ exports.contactus = async function(req, res, next) {
       static_path: '/static',
       theme: 'flatly',
       content: errors.array(),
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
     return;
   }
@@ -504,7 +505,7 @@ exports.contactus = async function(req, res, next) {
         pageTitle: 'Contact Us - Success',
         pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
         message: 'Success - we\'ve sent your email to your chosen contact',
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     }
     if (req.body.contactType == 'League') {
@@ -566,7 +567,7 @@ exports.contactus = async function(req, res, next) {
         pageTitle: 'Contact Us - Success',
         pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
         message: 'Success - we\'ve sent your email to your chosen contact',
-        canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+        canonical: canonicalFor(req)
       });
     }
   } catch (error) {
@@ -1002,7 +1003,7 @@ exports.contactus_get = async function(req, res, next) {
       pageDescription: "Get in touch with your league representatives, or club secretaries",
       recaptcha: process.env.RECAPTCHA,
       clubs: rows,
-      canonical: ("https://" + req.get("host") + req.originalUrl).replace("www.'", "").replace(".com", ".co.uk").replace("-badders.herokuapp", "-badminton")
+      canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);

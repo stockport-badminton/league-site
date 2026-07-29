@@ -22,6 +22,7 @@ var league_controller = require('../controllers/leagueController');
 var validateSeason = require('../middleware/validateSeason');
 var contact_controller = require('../controllers/contactusController');
 var static_controller = require('../controllers/staticPagesController');
+var sitemap_controller = require('../controllers/sitemapController');
 var social_controller = require('../controllers/socialController');
 var social_video_controller = require('../controllers/socialVideoController');
 var messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
@@ -167,6 +168,12 @@ router.get('/messer-rules', static_controller.messer_rules);
 router.get('/messer-draw/:section', team_controller.new_messer_draw);
 router.get('/messer-draw/:season/:section', team_controller.new_messer_draw);
 router.get('/rules', static_controller.rules);
+
+// Generated from the database — see controllers/sitemapController.js. The stale
+// hand-written rootfiles/sitemap.xml was deleted along with this, because
+// `express.static('rootfiles')` is mounted in app.js well before the router and
+// would have shadowed this route for as long as the file existed.
+router.get('/sitemap.xml', sitemap_controller.sitemap);
 
 router.get('/approve-user/:userId', secured, auth_controller.approve_signup_get);
 router.post('/approve-user/:userId', secured, auth_controller.approve_signup_post);

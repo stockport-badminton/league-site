@@ -24,10 +24,16 @@ MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
 <div class="row w-100 align-self-start">
     <div class="col text-left">Venue: <%= fixtureDetails.venueName + " @ " + fixtureDetails.venueAddress %></div>
 </div>
+<%# Both are optional — six teams have no captain flagged, and the query no longer
+    drops the whole fixture over it. Show the label only when there's a name. %>
 <div class="row align-self-start w-100">
+    <% if (fixtureDetails.teamCaptain) { %>
     <div class="col-auto text-left">Team Captain: <%= fixtureDetails.teamCaptain %></div>
     <div class="col-1"></div>
+    <% } %>
+    <% if (fixtureDetails.matchSecretary) { %>
     <div class="col-auto text-left">Match Secretary: <%= fixtureDetails.matchSecretary %></div>
+    <% } %>
 </div>
 <div class="row no-gutters w-100">
     <div id="eventMap" class="col-12 col-md-6"></div>
