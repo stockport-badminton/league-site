@@ -522,6 +522,49 @@ exports.getFixtureId = async function(obj) {
   return result
 }
 
+// Who a scorecard reminder for this fixture should actually go to.
+//
+// The reminder form on /results used to carry a free-text "enter team captains email"
+// box, and fixture_reminder_post put whatever arrived straight into SES
+// ToAddresses — unauthenticated, uncaptcha'd, comma-split into multiple recipients,
+// with the subject line also taken from the request. That is an open mail relay
+// sending from our own verified domain, so the risk was never spam *to us*, it was
+// our sending reputation and our SES account.
+//
+// The recipient is now derived from the fixture instead: the home team's captain,
+// falling back to the club's match secretary. Emails are encrypted at rest, so this
+// decrypts with DB_PI_KEY. Returns [] when neither is on file, and the caller then
+// routes the nudge to the league inbox rather than inventing a recipient.
+exports.getReminderRecipients = async function(homeTeamName, awayTeamName) {
+  const [result] = await (await db.otherConnect()).query(`SELECT DISTINCT
+      NULLIF(TRIM(pgp_sym_decrypt(cap."playerEmail", ?)::text), '') AS "captainEmail",
+      NULLIF(TRIM(pgp_sym_decrypt(ms."playerEmail", ?)::text), '') AS "matchSecEmail"
+    FROM fixture f
+      JOIN team ht ON f."homeTeam" = ht.id
+      JOIN team at ON f."awayTeam" = at.id
+      LEFT JOIN player cap ON (cap.team = ht.id AND cap."teamCaptain" = 1
+                               AND cap."playerEmail" IS NOT NULL)
+      LEFT JOIN player ms ON (ms.club = ht.club AND ms."matchSecrertary" = 1
+                              AND ms."playerEmail" IS NOT NULL)
+    WHERE ht.name = ? AND at.name = ?
+      AND f.date > NOW() - INTERVAL '1 year'`,
+    [process.env.DB_PI_KEY, process.env.DB_PI_KEY, homeTeamName, awayTeamName]
+  )
+
+  const addresses = [];
+  for (const row of result) {
+    for (const candidate of [row.captainEmail, row.matchSecEmail]) {
+      // Belt and braces: only ever emit something that looks like one address, so a
+      // corrupt or comma-bearing value cannot fan out into a bulk send.
+      if (candidate && /^[^\s,;<>@]+@[^\s,;<>@]+\.[^\s,;<>@]+$/.test(candidate)
+          && !addresses.includes(candidate)) {
+        addresses.push(candidate);
+      }
+    }
+  }
+  return addresses;
+}
+
 exports.getOutstandingFixtureId = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
   const [result] = await (await db.otherConnect()).query(

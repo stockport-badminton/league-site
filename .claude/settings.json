@@ -50,8 +50,11 @@
 
       "Bash(python3 -c *)",
       "Bash(python3 -)",
+      "Bash(python3 - <<*)",
+      "Bash(python3 <<*)",
       "Bash(sed -n *)",
       "Bash(awk *)",
+      "Bash(xxd *)",
       "Bash(printf *)",
       "Bash(unzip -l *)",
       "Bash(basename *)",

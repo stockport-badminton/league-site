@@ -208,9 +208,12 @@
         <form role="form" id="reminderForm" action="/fixture/reminder" method="post">
         <div class="modal-body" id="reminderModalBody">
 
+            <%# The "enter team captains email" box is gone on purpose. The server now
+                looks the recipient up from the fixture, so anything typed here would
+                be ignored — and while it was honoured this endpoint would send from
+                our verified domain to any address a visitor typed. %>
             <div class="form-group">
-              <label for="contactEmail">Email contact</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="enter team captains email">
+              <p class="mb-0">We'll remind the home team that this scorecard is outstanding.</p>
               <input type="hidden" name="reminderHomeTeam" id="reminderHomeTeam" value="" />
               <input type="hidden" name="reminderAwayTeam" id="reminderAwayTeam" value="" />
             </div>
@@ -312,7 +315,8 @@
       })
 
       $('#remindFixture').click(function(){
-        $.post('/fixture/reminder', {'email':$('#email')[0].value,'homeTeam':$('#reminderHomeTeam')[0].value,'awayTeam':$('#reminderAwayTeam')[0].value }, function (data) {
+        // No email field any more — the server resolves the recipient from the fixture.
+        $.post('/fixture/reminder', {'homeTeam':$('#reminderHomeTeam')[0].value,'awayTeam':$('#reminderAwayTeam')[0].value }, function (data) {
                $('#reminderModalBody').html('<p>Reminder sent!</p>');
                $('#remindFixture').remove();
             });

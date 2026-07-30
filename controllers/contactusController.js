@@ -7,6 +7,7 @@ const sesUtil = require('../utils/ses');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const https = require('node:https');
+const verifySns = require('../middleware/verifySns');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
 const { body,validationResult, param } = require("express-validator");
@@ -205,29 +206,9 @@ exports.generateContactUsHTML = function(message, email) {
   `
 }
 
-function oldValidCaptcha(value,{req}){
-  // console.log('https://www.google.com/recaptcha/api/siteverify?secret='+ process.env.RECAPTCHA_SECRET +'&response='+value);
-  axios.post("https://www.google.com/recaptcha/api/siteverify?secret="+ process.env.RECAPTCHA_SECRET +"&response="+value)
-    .then(response => {
-      //console.log(response.request)
-      //console.log(response.config)
-      //console.log(response.data)
-      if (response.data.success){
-        // console.log('recaptcha sucess')
-        return value
-      }
-      else {
-         //console.log('recaptcha fail')
-        return false
-      }
-    })
-    .catch(err => {
-      console.log("error")
-      console.log(err)
-      return false
-    })
-}
-
+// oldValidCaptcha lived here. It was already unused, and it never worked: an async
+// axios chain inside a synchronous validator, so it returned undefined before the
+// verification resolved. validCaptcha below is the one wired up, and it awaits.
 async function validCaptcha(value, { req }) {
   if (!value) {
     throw new Error('reCAPTCHA response is required');
@@ -670,10 +651,20 @@ exports.distribution_list = async function(req,res,next) {
   let htmlBody = ""
   let sender = ""
   // console.log(req.headers)
-  if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'SubscriptionConfirmation'){
-    let msgBody = JSON.parse(req.body)
-    // console.log(req)
-    // console.log("req Body:" + req.body)
+  // req.snsMessage is the body already parsed *and signature-verified* by
+  // middleware/verifySns. The branch below used to switch on the
+  // x-amz-sns-message-type header, which any caller can set; it now switches on the
+  // verified message's own Type.
+  const snsMsg = req.snsMessage || {};
+  if (snsMsg.Type === 'SubscriptionConfirmation'){
+    let msgBody = snsMsg
+    // The URL is fetched by our own server, so it is checked against the SNS host
+    // pattern rather than followed on trust — otherwise a confirmation message is an
+    // SSRF primitive pointed at anything reachable from inside GCP.
+    if (!verifySns.isAmazonSubscribeUrl(msgBody.SubscribeURL)) {
+      console.warn('Refusing to fetch non-SNS SubscribeURL:', msgBody.SubscribeURL)
+      return res.status(400).send('bad SubscribeURL')
+    }
     console.log(`found message header: ${msgBody.SubscribeURL}`)
 
     https.get(msgBody.SubscribeURL, (res) => {
@@ -689,9 +680,9 @@ exports.distribution_list = async function(req,res,next) {
     console.error(e);
   });
   }
-  else if (typeof req.headers['x-amz-sns-message-type'] !== 'undefined' && req.headers['x-amz-sns-message-type'] == 'Notification'){
+  else if (snsMsg.Type === 'Notification'){
     try {
-      let message = JSON.parse(req.body);
+      let message = snsMsg;
       const notification = JSON.parse(message["Message"]);
 
       // Obtain the raw MIME message. Small emails may arrive inline via the SES

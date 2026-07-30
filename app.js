@@ -20,14 +20,11 @@ if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
   throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
 }
 
-const BLACKLIST = ['136.243.212.110', '165.231.182.103', '65.0.96.6'];
-
-var getClientIp = function(req) {
-  var ipAddress = req.connection.remoteAddress;
-  if (!ipAddress) { return ''; }
-  if (ipAddress.substr(0, 7) == '::ffff:') { ipAddress = ipAddress.substr(7); }
-  return ipAddress;
-};
+// See utils/clientIp.js for why this is not `req.connection.remoteAddress` — the short
+// version is that behind Firebase → Cloud Run that value is a Google frontend, so the
+// IP blacklist below has been comparing a Google internal address against a list of
+// spammers and matching nothing since the day it was written.
+const { clientIp: getClientIp } = require('./utils/clientIp');
 
 var app = express();
 
@@ -45,14 +42,25 @@ app.locals.eventPath = require('./utils/canonical').eventPath;
 // their SportsClub markup names them as `url`. One builder, so they cannot diverge.
 app.locals.clubPath = require('./utils/canonical').clubPath;
 
+// Blocked addresses, from BLOCKED_IPS (comma-separated) with the three that were
+// hardcoded here as the default. Tier 2 of the spam work moves this to a DB table with
+// an admin screen so blocking someone stops needing a deploy; the env var is the
+// stepping stone.
+//
+// Answers 403 now. It used to `res.send(...)` a message about a "whiteList" with a 200
+// status, which tells a crawler the page exists and a spammer exactly what happened.
+const BLOCKED_IPS = new Set(
+  (process.env.BLOCKED_IPS || '136.243.212.110,165.231.182.103,65.0.96.6')
+    .split(',').map(s => s.trim()).filter(Boolean)
+);
+
 app.use(function(req, res, next) {
   var ipAddress = getClientIp(req);
-  if (BLACKLIST.indexOf(ipAddress) === -1) {
-    next();
-  } else {
-    console.log(`traffic from ${ipAddress} blocked`);
-    res.send(ipAddress + ' IP is not in whiteList');
+  if (!BLOCKED_IPS.has(ipAddress)) {
+    return next();
   }
+  console.log(`traffic from ${ipAddress} blocked`);
+  res.status(403).send('Forbidden');
 });
 
 app.use(compression());
@@ -136,7 +144,12 @@ var sess = {
   saveUninitialized: false
 };
 if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+  // `true`, not `1`. There are two proxies in front of this app (Firebase Hosting and
+  // the Cloud Run frontend), so trusting a single hop left `req.ip` as a Google
+  // address — which would put every visitor in one rate-limit bucket. Trusting the
+  // chain takes the leftmost X-Forwarded-For entry, i.e. the visitor. See
+  // utils/clientIp.js for the spoofability trade-off that comes with it.
+  app.set('trust proxy', true);
   sess.cookie.secure = true;
   sess.proxy = true;
 }

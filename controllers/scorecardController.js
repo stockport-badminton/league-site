@@ -547,25 +547,58 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
     })
   }
 
+  // POST /fixture/reminder — nudge the home team about a missing scorecard.
+  //
+  // Reachable from the public /results page, so every input is hostile. It used to be
+  // an open relay: `req.body.email` went straight into SES ToAddresses (comma-split,
+  // so one request could reach many recipients) and `req.body.homeTeam`/`awayTeam`
+  // went into the Subject. Sending from our own verified domain to arbitrary
+  // addresses with attacker-chosen subject text puts the domain's reputation and the
+  // SES account at risk, which is a bigger problem than spam arriving here.
+  //
+  // Now: the teams are looked up, the recipient is derived from the fixture, and
+  // nothing from the request reaches the message. When no captain or match secretary
+  // email is on file the nudge goes to the league inbox instead — the sender gets the
+  // same acknowledgement either way, so the endpoint reveals nothing about who is or
+  // is not contactable.
+  const LEAGUE_INBOX = 'stockport.badders.results@gmail.com';
+  const MAX_REMINDER_RECIPIENTS = 3;
+
   exports.fixture_reminder_post = async function(req, res, next) {
-    const localToAdds = (req.body.email.indexOf(',') > 0 ? req.body.email.split(',') : [req.body.email]);
-    const params = {
-      Destination: {
-        ToAddresses: localToAdds,
-        BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
-      },
-      Message: {
-        Body: {
-          Html: { Charset: 'UTF-8', Data: contact_controller.generateScorecardReminderHTML() }
-        },
-        Subject: { Charset: 'UTF-8', Data: `Reminder: ${req.body.homeTeam} vs ${req.body.awayTeam}` }
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-    };
     try {
-      await ses.sendEmail(params);
-      res.send("Message Sent");
+      const homeTeam = String(req.body.homeTeam || '').trim();
+      const awayTeam = String(req.body.awayTeam || '').trim();
+      if (!homeTeam || !awayTeam) {
+        return res.status(400).send('Which fixture?');
+      }
+
+      let recipients = await Fixture.getReminderRecipients(homeTeam, awayTeam);
+      // A team pair that matches no fixture gets nothing sent at all — otherwise the
+      // endpoint would still emit a message for made-up teams.
+      if (!recipients.length) {
+        const [known] = await Promise.all([Fixture.getFixtureId({ homeTeam, awayTeam })]);
+        if (!known || !known.length) {
+          return res.send('Message Sent');
+        }
+        recipients = [LEAGUE_INBOX];
+      }
+      recipients = recipients.slice(0, MAX_REMINDER_RECIPIENTS);
+
+      // Team names come from the database rows we just matched, not from the request,
+      // so the subject cannot be authored by the sender.
+      await ses.sendEmail({
+        Destination: {
+          ToAddresses: recipients,
+          BccAddresses: [LEAGUE_INBOX, 'bigcoops@outlook.com']
+        },
+        Message: {
+          Body: { Html: { Charset: 'UTF-8', Data: contact_controller.generateScorecardReminderHTML() } },
+          Subject: { Charset: 'UTF-8', Data: 'Reminder: outstanding scorecard' }
+        },
+        Source: 'results@stockport-badminton.co.uk',
+        ReplyToAddresses: [LEAGUE_INBOX],
+      });
+      res.send('Message Sent');
     } catch (err) {
       console.log(err.toString());
       next(err);

@@ -32,6 +32,15 @@ var homepage_content_controller = require('../controllers/homepageContentControl
 var site_settings_controller = require('../controllers/siteSettingsController');
 var roster_controller = require('../controllers/rosterController');
 const requireClubAccess = require('../middleware/requireClubAccess');
+const verifySns = require('../middleware/verifySns');
+
+// For the one place a route handler builds email HTML inline. Anything richer belongs
+// in a controller with a template.
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
 
@@ -119,36 +128,14 @@ router.get('/sign-s3', async (req, res, next) => {
 
 router.get('/upload-scoresheet', scorecard_controller.upload_scoresheet);
 
-router.post('/SESemail', (req, res, next) => {
-  var params = {
-    Destination: { ToAddresses: ['bigcoops@gmail.com', 'stockport.badders.results@gmail.com', 'bigcoops@outlook.com'] },
-    Message: {
-      Body: { Html: { Charset: 'UTF-8', Data: contact_controller.generateContactUsHTML('some generic contact message', 'fromme@gmail.com') } },
-      Subject: { Charset: 'UTF-8', Data: 'Somebody is trying to get in touch' }
-    },
-    Source: 'results@stockport-badminton.co.uk',
-    ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-  };
-  const sendPromise = sesUtil.sendEmail(params);
-  sendPromise
-    .then(data => {
-      res.render('contact-us-form-delivered', {
-        static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
-        pageTitle: 'Contact Us - Success',
-        pageDescription: 'Succes - we\'ve sent an email to your chosen contact for you',
-        message: 'Success - we\'ve sent your email to your chosen contact',
-        canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')
-      });
-    })
-    .catch(error => {
-      return next('Sorry something went wrong sending your email.');
-    });
-});
-
-router.post('/mail', multer().none(), contact_controller.distribution_list);
-router.post('/mailtest', multer().none(), contact_controller.distribution_list);
+// /SESemail is gone. It was an unauthenticated POST that sent a hardcoded message
+// to three of our own inboxes — a one-line curl loop was a mail bomb, and nothing
+// in the app ever called it. /mailtest went with it for the same reason: an
+// unauthenticated twin of the /mail webhook below.
+// verifySns runs first: without it this endpoint accepted any POST that set the
+// x-amz-sns-message-type header, and forwarded the attached MIME message to a real
+// distribution list.
+router.post('/mail', multer().none(), verifySns, contact_controller.distribution_list);
 
 // Scorecard routes
 router.post('/scorecard-beta', scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
@@ -189,11 +176,16 @@ router.post('/new-users-v2', (req, res, next) => {
         BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
       },
       Message: {
-        Body: { Html: { Charset: 'UTF-8', Data: '<p>a new user has signed up: ' + req.body.user + '<br /><a href="' + approveLink + '">Approve?</a></p>' } },
+        // `req.body.user` used to be interpolated raw into this HTML and
+        // `req.body.contactEmail` went into ReplyToAddresses — both from an
+        // unauthenticated request, so anyone could post arbitrary markup into an email
+        // we send ourselves and choose where a reply would land. Escaped and capped;
+        // ReplyTo is fixed.
+        Body: { Html: { Charset: 'UTF-8', Data: '<p>a new user has signed up: ' + escapeHtml(String(req.body.user || '').slice(0, 200)) + '<br /><a href="' + approveLink + '">Approve?</a></p>' } },
         Subject: { Charset: 'UTF-8', Data: 'New User Signup' }
       },
       Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
+      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
     };
     const sendPromise = sesUtil.sendEmail(params);
     sendPromise
