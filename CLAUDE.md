@@ -270,7 +270,25 @@ All views, and the last 18 months of `/event/` pages). It replaced a hand-writte
 Event-page URLs come from `eventPath()` in `utils/canonical.js`, exposed to views as
 `app.locals.eventPath`. `homepage.ejs` and the sitemap both call it: only `:id` is
 read from `/event/:id/:date-:homeTeam-:awayTeam`, so a second spelling of the
-decorative part would be a duplicate URL for a page that self-canonicalises.
+decorative part would be a duplicate URL for a page that self-canonicalises. Club
+pages work the same way through `clubPath()` / `app.locals.clubPath`.
+
+**Club pages** — `/clubs/:slug` (`club_public_page`, view `club-page.ejs`), matched
+by name slug against `Club.getPublicClubs()`, with `clubSlug()` dropping punctuation
+rather than hyphenating it so "G.H.A.P" is `ghap`. They exist because Search Console
+showed `badminton club near me` at position 24.5 on 1,387 impressions with all 18
+clubs sharing the single `/info/clubs` URL — one page cannot rank for 18 local
+intents. What makes them work is the town in the `<title>` plus machine-readable
+address and coordinates, so keep those.
+
+Two constraints on that page:
+- **No captain or secretary names or contact details.** It is indexable and they are
+  volunteers; enquiries go via `/contact-us?club=<id>` (which preselects the club) or
+  the club's own site. There's a test asserting this.
+- It must stay linked from `/info/clubs`, which is in the sitewide nav. A sitemap
+  entry alone is weak — before this, the club names on that page linked straight out
+  to the clubs' own websites, so nothing on the site linked to our own club pages at
+  all. The outbound link is still there, just beside rather than instead.
 
 **Structured data (JSON-LD) is built in `utils/structuredData.js`, never in a
 template.** Controllers pass a `jsonLd` local — an array of already-serialised

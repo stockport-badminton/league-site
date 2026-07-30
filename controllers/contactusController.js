@@ -1003,6 +1003,9 @@ exports.contactus_get = async function(req, res, next) {
       pageDescription: "Get in touch with your league representatives, or club secretaries",
       recaptcha: process.env.RECAPTCHA,
       clubs: rows,
+      // The club pages link here as /contact-us?club=<id> so the dropdown arrives
+      // already set to the club the visitor came from.
+      selectedClub: req.query.club,
       canonical: canonicalFor(req)
     });
   } catch (err) {

@@ -1,0 +1,126 @@
+<%# useRosterCss because roster.css is what undoes the two global traps this page
+    would otherwise hit: `.starter-template { text-align: center }` from nav.ejs and
+    the site-wide `.fa` sizing in custom.css. See CLAUDE.md. %>
+<%- include('header.ejs', { useRosterCss: true }) %>
+<%- include('nav.ejs') %>
+
+<%#
+  A club's own page — one URL per club, so each can answer its own local intent.
+  Deliberately contains no captain or secretary names or contact details: enquiries
+  go through the league's contact form, and the club's own website is linked for
+  anything else.
+%>
+<div class="roster-page container-fluid text-left">
+
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/info/clubs">Clubs</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= displayName %></li>
+    </ol>
+  </nav>
+
+  <h1><%= displayName %></h1>
+  <% if (town) { %>
+    <p class="lead">Badminton in <%= town %>, playing in the Stockport &amp; District Badminton League.</p>
+  <% } %>
+
+  <div class="row">
+    <div class="col-12 col-md-6 mb-4">
+      <h2>Where they play</h2>
+      <% if (club.venueName) { %>
+        <p class="mb-1"><strong><%= club.venueName %></strong></p>
+      <% } %>
+      <% if (club.venueAddress) { %>
+        <p class="mb-1"><%= club.venueAddress %></p>
+      <% } %>
+      <% if (club.gMapUrl) { %>
+        <p><a href="<%= club.gMapUrl %>" target="_blank" rel="noopener">View on Google Maps</a></p>
+      <% } %>
+    </div>
+
+    <div class="col-12 col-md-6 mb-4">
+      <h2>When they play</h2>
+      <% if (club.clubNightText && !/^(none|na|n\/a)$/i.test(club.clubNightText.trim())) { %>
+        <p class="mb-1">
+          <strong>Club night:</strong> <%= club.clubNightText %>
+          <% if (club.clubNightCourts) { %>
+            (<%= club.clubNightCourts %> court<%= club.clubNightCourts === 1 ? '' : 's' %>)
+          <% } %>
+        </p>
+      <% } else { %>
+        <p class="mb-1">No regular club night listed — contact the club to ask about playing.</p>
+      <% } %>
+      <% if (club.matchNightText && !/^(none|na|n\/a)$/i.test(club.matchNightText.trim())) { %>
+        <p class="mb-1"><strong>Match nights:</strong> <%= club.matchNightText %></p>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (teams && teams.length) { %>
+    <h2>Teams</h2>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th scope="col">Team</th>
+            <th scope="col">Division</th>
+            <th scope="col">Match night</th>
+            <th scope="col">Home venue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% teams.forEach(function(t){ %>
+            <tr>
+              <td><%= t.name %></td>
+              <td>
+                <%# Division names hyphenate into their URL form — see Division.getIdByURLParam. %>
+                <% if (t.divisionName) { %>
+                  <a href="/tables/<%= t.divisionName.replace(/ /g, '-') %>"><%= t.divisionName %></a>
+                <% } else { %>—<% } %>
+              </td>
+              <td><%= t.matchDay || '—' %></td>
+              <td>
+                <% if (t.venueName) { %>
+                  <% if (t.gMapUrl) { %>
+                    <a href="<%= t.gMapUrl %>" target="_blank" rel="noopener"><%= t.venueName %></a>
+                  <% } else { %><%= t.venueName %><% } %>
+                <% } else { %>—<% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <h2>Get in touch</h2>
+  <p>
+    <% if (club.clubWebsite && /^https?:\/\//i.test(club.clubWebsite)) { %>
+      <%# The club's own site is the better destination for most enquiries, so it
+          leads. rel="noopener" on every target=_blank. %>
+      <a class="btn btn-primary" href="<%= club.clubWebsite %>" target="_blank" rel="noopener">
+        Visit the <%= club.name %> website
+      </a>
+    <% } %>
+    <a class="btn btn-outline-primary" href="/contact-us?club=<%= club.id %>">Contact this club via the league</a>
+  </p>
+
+  <% var social = [
+       { url: club.facebook, label: 'Facebook' },
+       { url: club.instagram, label: 'Instagram' },
+       { url: club.twitter, label: 'X / Twitter' }
+     ].filter(function(s){ return s.url && /^https?:\/\//i.test(s.url); });
+  %>
+  <% if (social.length) { %>
+    <p>
+      <% social.forEach(function(s, i){ %><% if (i) { %> &middot; <% } %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.label %></a><% }) %>
+    </p>
+  <% } %>
+
+  <p><a href="/info/clubs">&larr; All clubs in the league</a></p>
+</div>
+
+<%- include('footer.ejs') %>
+</body>
+</html>

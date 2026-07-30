@@ -75,6 +75,23 @@ function eventPath(fixture) {
   return `/event/${fixture.id}/${encodeURIComponent(slug).replace(/%2F/g, '-')}`;
 }
 
+// Club name -> URL slug. Punctuation is removed rather than turned into hyphens, so
+// "G.H.A.P" is `ghap` and not `g-h-a-p`.
+function clubSlug(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/[\s-]+/g, '-');
+}
+
+// A club's own public page. Same reasoning as eventPath: it is built in one place so
+// the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
+// markup cannot disagree.
+function clubPath(club) {
+  return '/clubs/' + clubSlug(club && club.name);
+}
+
 // The calendar day a fixture falls on, as zero-padded strings, read with local-time
 // getters. Shared so the URL slug, the sitemap's <lastmod> and the JSON-LD
 // startDate all name the same day: fixture.date is stored as local midnight, so
@@ -88,4 +105,8 @@ function localYmd(date) {
   };
 }
 
-module.exports = { canonicalFor, absoluteUrl, siteOrigin, eventPath, localYmd, DEFAULT_ORIGIN };
+module.exports = {
+  canonicalFor, absoluteUrl, siteOrigin,
+  eventPath, clubPath, clubSlug, localYmd,
+  DEFAULT_ORIGIN,
+};

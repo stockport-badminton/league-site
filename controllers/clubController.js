@@ -2,7 +2,7 @@ var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
 var Roster = require('../models/roster');
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, clubPath, clubSlug } = require('../utils/canonical');
 const SD = require('../utils/structuredData');
 require('dotenv').config()
 
@@ -77,9 +77,6 @@ exports.club_list_detail = async function(req, res, next) {
     }
     newClubArray.push(newClubElem)
     newClubArray.shift()
-    // console.log(JSON.stringify(newClubArray))
-    console.log(newClubArray)
-    console.log(JSON.stringify(venueRows))
     res.status(200);
     res.render('club-v2', {
          static_path: '/static',
@@ -100,6 +97,65 @@ exports.club_list_detail = async function(req, res, next) {
      });
   } catch (err) {
     res.status(500);
+    next(err);
+  }
+};
+
+// GET /clubs/:slug — a club's own public page.
+//
+// The reason this exists: Search Console shows "badminton club near me" at position
+// 24.5 on 1,387 impressions and "badminton clubs near me" at 16.3 on 807, both
+// answered by /info/clubs — a single URL carrying all 18 clubs. One page cannot rank
+// for 18 different local intents, and individual club names are searched too
+// ("cheadle hulme badminton club", 564 impressions). A page per club is the fix.
+//
+// It does not compete with the clubs' own websites: it links out to them prominently
+// and says so in the markup with `sameAs`. Contact goes through the league's form —
+// no captain or secretary details are published here.
+exports.club_public_page = async function(req, res, next) {
+  try {
+    const clubs = await Club.getPublicClubs(Roster.NO_CLUB_ID);
+    const slug = String(req.params.slug || '').toLowerCase();
+    const club = clubs.find(function(c) { return clubSlug(c.name) === slug; });
+
+    // A slug we don't recognise is absent, not an error — and must not be a 200.
+    if (!club) {
+      return res.status(404).render('404-error', {
+        static_path: '/static',
+        pageTitle: 'Club not found',
+        pageDescription: 'No club with that name',
+        canonical: canonicalFor(req)
+      });
+    }
+
+    const teams = await Club.getTeamsForClub(club.id, Roster.NO_TEAM_ID);
+    const displayName = /badminton/i.test(club.name) ? club.name : club.name + ' Badminton Club';
+    const address = SD.parseUkAddress(club.venueAddress);
+    const town = address && address.addressLocality;
+
+    res.render('club-page', {
+      static_path: '/static',
+      // Town in the title because that is the half of "badminton club near me" the
+      // old single page could never say.
+      pageTitle: displayName + (town ? ', ' + town : ''),
+      pageDescription: 'Where and when ' + displayName + ' play'
+        + (town ? ' in ' + town : '') + ', plus their teams in the '
+        + SD.LEAGUE_NAME + '.',
+      club,
+      teams,
+      displayName,
+      town,
+      jsonLd: [
+        SD.jsonLd(SD.sportsClub(club)),
+        SD.jsonLd(SD.breadcrumbs([
+          { name: 'Home', path: '/' },
+          { name: 'Clubs', path: '/info/clubs' },
+          { name: displayName, path: clubPath(club) },
+        ])),
+      ],
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
     next(err);
   }
 };

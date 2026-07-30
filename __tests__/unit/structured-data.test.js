@@ -245,12 +245,25 @@ describe('sportsClub', () => {
     clubWebsite: 'https://alderleyparkbc.wixsite.com/alderleyparkbc',
   };
 
-  it('points url at our own page and the club site at sameAs', () => {
+  it('points url at the club\'s own page and the club site at sameAs', () => {
     // `url` used to be the club's external website, claiming this markup described
-    // a page we do not control.
+    // a page we do not control. It briefly pointed at an anchor on /info/clubs;
+    // now the clubs have real pages.
     const c = SD.sportsClub(club);
-    expect(c.url).toBe('https://stockport-badminton.co.uk/info/clubs#club-43');
+    expect(c.url).toBe('https://stockport-badminton.co.uk/clubs/alderley-park');
     expect(c.sameAs).toContain('https://alderleyparkbc.wixsite.com/alderleyparkbc');
+  });
+
+  it('accepts either row shape for the venue', () => {
+    // /info/clubs regroups clubDetail() into {venue, address}; getPublicClubs()
+    // selects {venueName, venueAddress}.
+    const fromHub = SD.sportsClub(club);
+    const fromPage = SD.sportsClub({
+      ...club, venue: undefined, address: undefined,
+      venueName: club.venue, venueAddress: club.address,
+    });
+    expect(fromPage.location.name).toBe(fromHub.location.name);
+    expect(fromPage.address).toEqual(fromHub.address);
   });
 
   it('is a SportsClub with address, geo and opening hours', () => {

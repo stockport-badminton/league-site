@@ -13,10 +13,12 @@
   </div>
   <div class="form-group d-none" id="clubsDropDown">
     <label for="clubSelect">Which club are you contacting?</label>
+    <%# selectedClub arrives from ?club=<id>, which the club pages link with, so
+        arriving from a club page has that club already chosen. %>
     <select class="form-control" id="clubSelect" name="clubSelect">
-      <option disabled selected>Choose a Club</option>
+      <option disabled <%= typeof selectedClub === 'undefined' || !selectedClub ? 'selected' : '' %>>Choose a Club</option>
       <% clubs.forEach(function(row){ %>
-        <option value="<%= row['id'] %>"><%= row['name'] %></option>
+        <option value="<%= row['id'] %>" <%= (typeof selectedClub !== 'undefined' && String(selectedClub) === String(row['id'])) ? 'selected' : '' %>><%= row['name'] %></option>
       <% }) %>
     </select>
   </div>

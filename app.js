@@ -41,6 +41,10 @@ app.locals.pastSeasons = [];
 // the date arithmetic inline.
 app.locals.eventPath = require('./utils/canonical').eventPath;
 
+// Same reasoning for club pages: /info/clubs links them, the sitemap lists them and
+// their SportsClub markup names them as `url`. One builder, so they cannot diverge.
+app.locals.clubPath = require('./utils/canonical').clubPath;
+
 app.use(function(req, res, next) {
   var ipAddress = getClientIp(req);
   if (BLACKLIST.indexOf(ipAddress) === -1) {

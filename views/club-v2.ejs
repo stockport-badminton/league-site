@@ -30,16 +30,23 @@
 
       
 
-        <%# The id is the anchor the club's SportsClub JSON-LD gives as its `url`,
-            so that markup points at something real on this page. %>
+        <%# Kept as a deep-link target for this table. It was briefly what the club's
+            SportsClub `url` pointed at, before the clubs got pages of their own. %>
         <tr id="club-<%= row['id'] %>">
-          <% if (row['clubWebsite'] != ''){ %>
-            <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
-          <% }
-          else { %>
-  
-            <td><%= row['name'] %></td>
-          <% } %>
+          <%# The club name links to the club's own page on this site, and the
+              external website gets its own link beside it.
+
+              It used to link straight out to the club's website, which meant the
+              per-club pages had no inbound link at all — and a page nothing links to
+              is one a crawler has little reason to rank, sitemap entry or not. The
+              outbound link is kept because for most visitors the club's own site is
+              still the better destination. %>
+            <td>
+              <a href="<%= clubPath(row) %>"><%= row['name'] %></a>
+              <% if (row['clubWebsite']) { %>
+                <br /><small><a href="<%= row['clubWebsite'] %>" target="_blank" rel="noopener">club website</a></small>
+              <% } %>
+            </td>
             <td>
               <% if(locals.user) { %>
                 <a href="/club/<%= row['id'] %>">Club Contact Details</a><br />
@@ -59,13 +66,13 @@
             <% } %>
             <td><% if (row.teams.length > 1){ 
                for (team of row.teams){ %>
-                <%= team.name %>: <a href="<%= team.gMapURL %>" target="_blank"><%= team.address %></a><br />
+                <%= team.name %>: <a href="<%= team.gMapUrl %>" target="_blank"><%= team.address %></a><br />
                 <%= team.matchDay %><br />
               <% }
               %>
               
             <% } else { %>
-              All Teams: <a href="<%= row.teams[0].gMapURL %>" target="_blank"><%= row.teams[0].address %></a><br />
+              All Teams: <a href="<%= row.teams[0].gMapUrl %>" target="_blank"><%= row.teams[0].address %></a><br />
               <%= row.teams[0].matchDay %><br />
             <% } %>
               </td>

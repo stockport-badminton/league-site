@@ -9,12 +9,18 @@ jest.mock('../../models/teams');
 jest.mock('../../models/auth.js');
 jest.mock('../../models/homepageContent');
 jest.mock('../../models/siteSettings');
+jest.mock('../../models/club');
+jest.mock('../../models/roster');
 jest.mock('axios');
 
 const Fixture = require('../../models/fixture');
 const Division = require('../../models/division');
 const Season = require('../../models/season');
+const Club = require('../../models/club');
+const Roster = require('../../models/roster');
 const app = require('../../app');
+
+Roster.NO_CLUB_ID = 63;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -200,6 +206,12 @@ describe('GET /sitemap.xml', () => {
     ]);
     Division.getAll.mockResolvedValue([{ name: 'Premier' }, { name: 'Division 1' }]);
     Season.getAll.mockResolvedValue([{ name: '20252026', label: '2025/26' }]);
+    Club.getPublicClubs.mockResolvedValue([{ id: 57, name: 'Parrs Wood' }]);
+  });
+
+  it('includes a page per club', async () => {
+    const res = await request(app).get('/sitemap.xml');
+    expect(res.text).toContain('<loc>https://stockport-badminton.co.uk/clubs/parrs-wood</loc>');
   });
 
   it('serves XML', async () => {

@@ -268,6 +268,11 @@ router.delete('/club/:id', checkJwt, club_controller.club_delete_post);
 router.get('/club/:id/update', club_controller.club_update_get);
 router.patch('/club/:id', checkJwt, club_controller.club_update_post);
 router.get('/clubs', club_controller.club_list);
+// A public page per club — the surface for "badminton club near me", which
+// /info/clubs cannot rank for because all 18 clubs share that one URL. Matched by
+// name slug, not id, so the URL reads. Declared after `/clubs` so the exact path
+// still reaches club_list.
+router.get('/clubs/:slug', club_controller.club_public_page);
 router.get('/info/clubs', club_controller.club_list_detail);
 
 // Division routes

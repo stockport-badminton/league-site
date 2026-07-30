@@ -19,7 +19,9 @@
 const Fixture = require('../models/fixture');
 const Division = require('../models/division');
 const Season = require('../models/season');
-const { absoluteUrl, eventPath } = require('../utils/canonical');
+const Club = require('../models/club');
+const Roster = require('../models/roster');
+const { absoluteUrl, eventPath, clubPath } = require('../utils/canonical');
 
 // Pages that exist regardless of the data.
 const STATIC_PATHS = [
@@ -70,13 +72,20 @@ function localDay(date) {
 
 exports.sitemap = async function(req, res, next) {
   try {
-    const [fixtures, divisions, archivedSeasons] = await Promise.all([
+    const [fixtures, divisions, archivedSeasons, clubs] = await Promise.all([
       Fixture.getForSitemap(),
       Division.getAll(),
       Season.getAll(),
+      Club.getPublicClubs(Roster.NO_CLUB_ID),
     ]);
 
     const entries = STATIC_PATHS.map(function(p) { return urlEntry(p); });
+
+    // One page per club. These are the pages meant to answer "badminton clubs near
+    // me", so they matter more than their small number suggests.
+    clubs.forEach(function(c) {
+      entries.push(urlEntry(clubPath(c)));
+    });
 
     // Current-season tables and results, one per division. `getIdByURLParam`
     // turns "Division-1" back into "Division 1", so the URL form is the name with

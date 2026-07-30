@@ -23,6 +23,58 @@ exports.getAll = async function() {
   return result
 }
 
+// Every club that has a public page, one row each — the source for /clubs/:slug, the
+// club links on /info/clubs and the sitemap's club entries.
+//
+// Deliberately one row per club, unlike clubDetail() which fans out over teams and
+// leaves the caller to regroup. `excludeClubId` is the `No Club` sentinel that
+// released players are parked on; it has no page.
+exports.getPublicClubs = async function(excludeClubId) {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+      cl.id,
+      cl.name,
+      cl."clubNight",
+      cl."clubNightText",
+      cl."clubNightCourts",
+      cl."matchNightText",
+      cl."clubWebsite",
+      cl.facebook,
+      cl.instagram,
+      cl.twitter,
+      v.name AS "venueName",
+      v.address AS "venueAddress",
+      v."gMapUrl",
+      v."Lat",
+      v."Lng",
+      v."placeId"
+    FROM club cl
+    LEFT JOIN venue v ON cl.venue = v.id
+    WHERE cl.id <> ?
+    ORDER BY cl.name ASC`, [excludeClubId])
+  return result
+}
+
+// A club's teams, with the division and the venue each one plays its home matches at
+// (which is not always the club's own venue). `excludeTeamId` is the `No Team`
+// sentinel.
+exports.getTeamsForClub = async function(clubId, excludeTeamId) {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+      t.id,
+      t.name,
+      t."matchDay",
+      t.starttime AS "startTime",
+      d.name AS "divisionName",
+      v.name AS "venueName",
+      v.address AS "venueAddress",
+      v."gMapUrl"
+    FROM team t
+    LEFT JOIN division d ON t.division = d.id
+    LEFT JOIN venue v ON t.venue = v.id
+    WHERE t.club = ? AND t.id <> ?
+    ORDER BY t.name ASC`, [clubId, excludeTeamId])
+  return result
+}
+
 exports.clubDetail = async function() {
   const [result] = await (await db.otherConnect()).query(`SELECT
   club.id AS "clubId",

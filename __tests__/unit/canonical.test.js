@@ -1,4 +1,4 @@
-const { canonicalFor, absoluteUrl, eventPath, DEFAULT_ORIGIN } = require('../../utils/canonical');
+const { canonicalFor, absoluteUrl, eventPath, clubPath, clubSlug, DEFAULT_ORIGIN } = require('../../utils/canonical');
 
 // The bug this file exists to prevent: every page on the site declared its
 // canonical URL (and og:url) to be on the Cloud Run hostname, because the URL was
@@ -85,5 +85,39 @@ describe('eventPath', () => {
     const p = eventPath({ id: 2, date: '2026-10-07T00:00:00', homeTeam: 'Syddal Park A', awayTeam: 'College Green C' });
     expect(p).not.toContain(' ');
     expect(p).toBe('/event/2/07102026-Syddal%20Park%20A-College%20Green%20C');
+  });
+});
+
+describe('clubSlug / clubPath', () => {
+  it('drops punctuation instead of hyphenating it', () => {
+    // "G.H.A.P" must be `ghap`, not `g-h-a-p`.
+    expect(clubSlug('G.H.A.P')).toBe('ghap');
+    expect(clubSlug('Parrs Wood')).toBe('parrs-wood');
+    expect(clubSlug('Alderley Park')).toBe('alderley-park');
+  });
+
+  it('is stable against padding and case', () => {
+    expect(clubSlug('  Cheadle   Hulme  ')).toBe('cheadle-hulme');
+    expect(clubSlug('MELLOR')).toBe('mellor');
+  });
+
+  it('is unique across the real club list', () => {
+    // A collision would make one club's page unreachable.
+    const names = ['Aerospace', 'Alderley Park', 'Cheadle Hulme', 'College Green',
+      'David Lloyd', 'Disley', 'Dome', 'Featherforce', 'G.H.A.P', 'Macclesfield',
+      'Manor', 'Mellor', 'Parrs Wood', 'Racketeer', 'Remnants', 'Shell',
+      'Syddal Park', 'Tatton'];
+    const slugs = names.map(clubSlug);
+    expect(new Set(slugs).size).toBe(names.length);
+    expect(slugs.every(s => /^[a-z0-9-]+$/.test(s))).toBe(true);
+  });
+
+  it('builds the path the route expects', () => {
+    expect(clubPath({ name: 'Parrs Wood' })).toBe('/clubs/parrs-wood');
+  });
+
+  it('does not throw on a missing name', () => {
+    expect(clubSlug(null)).toBe('');
+    expect(clubPath({})).toBe('/clubs/');
   });
 });

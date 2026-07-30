@@ -17,7 +17,7 @@
 //     JSON.stringify makes that structurally impossible.
 //
 // Everything here returns a plain object; `jsonLd()` serialises it for a <script>.
-const { absoluteUrl, eventPath, localYmd } = require('./canonical');
+const { absoluteUrl, eventPath, clubPath, localYmd } = require('./canonical');
 
 const LEAGUE_NAME = 'Stockport & District Badminton League';
 const LOGO = '/static/beta/images/SDBLLogo.png';
@@ -231,26 +231,32 @@ function sportsEvent(f) {
 // A club on /info/clubs. SportsClub is a LocalBusiness subtype, so address, geo and
 // openingHoursSpecification apply directly to it — which is what makes it the right
 // type to answer "badminton clubs near me".
+// Two callers pass two row shapes — /info/clubs regroups clubDetail() into
+// `{venue, address}`, while getPublicClubs() selects `{venueName, venueAddress}` —
+// so both spellings are accepted rather than making one caller reshape.
 function sportsClub(c) {
+  const venueName = c.venueName || c.venue;
+  const venueAddress = c.venueAddress || c.address;
+
   const out = {
     '@context': 'https://schema.org',
     '@type': 'SportsClub',
     name: /badminton/i.test(c.name) ? c.name : `${c.name} Badminton Club`,
     sport: 'Badminton',
-    // Our own page for the club, not the club's external site — that goes in
+    // The club's own page on this site, not its external website — that goes in
     // sameAs. `url` pointing off-site claimed this markup described a page we do
     // not control.
-    url: absoluteUrl('/info/clubs#club-' + c.id),
+    url: absoluteUrl(clubPath(c)),
     parentOrganization: leagueOrganization(),
   };
 
-  const address = parseUkAddress(c.address);
+  const address = parseUkAddress(venueAddress);
   if (address) out.address = address;
   const geo = geoOf(c.Lat, c.Lng);
   if (geo) out.geo = geo;
   if (c.gMapUrl) out.hasMap = c.gMapUrl;
-  if (c.venue) {
-    out.location = { '@type': 'Place', name: c.venue };
+  if (venueName) {
+    out.location = { '@type': 'Place', name: venueName };
     if (address) out.location.address = address;
     if (geo) out.location.geo = geo;
   }
@@ -268,6 +274,23 @@ function sportsClub(c) {
     out.description = `Club night: ${nightText}.`;
   }
   return out;
+}
+
+// Trail for a page nested under a hub, e.g. Home > Clubs > Mellor Badminton Club.
+// `crumbs` is [{name, path}] in order, innermost last.
+function breadcrumbs(crumbs) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map(function(c, i) {
+      return {
+        '@type': 'ListItem',
+        position: i + 1,
+        name: c.name,
+        item: absoluteUrl(c.path),
+      };
+    }),
+  };
 }
 
 // Sitewide identity, emitted once on the homepage. One @graph so the WebSite can
@@ -312,6 +335,6 @@ function jsonLd(obj) {
 
 module.exports = {
   parseUkAddress, geoOf, openingHours, to24h, londonOffset, eventDateTime,
-  sportsEvent, sportsClub, leagueOrganization, webSite, jsonLd,
+  sportsEvent, sportsClub, leagueOrganization, webSite, breadcrumbs, jsonLd,
   LEAGUE_NAME, GEO_BOUNDS,
 };
