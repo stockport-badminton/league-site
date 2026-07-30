@@ -33,6 +33,12 @@ var site_settings_controller = require('../controllers/siteSettingsController');
 var roster_controller = require('../controllers/rosterController');
 const requireClubAccess = require('../middleware/requireClubAccess');
 const verifySns = require('../middleware/verifySns');
+const {
+  publicFormLimiter, contactLimiter, webhookLimiter
+} = require('../middleware/rateLimit');
+
+var userInViews = require('../models/userInViews');
+var auth_controller = require('../models/auth.js');
 
 // For the one place a route handler builds email HTML inline. Anything richer belongs
 // in a controller with a template.
@@ -41,8 +47,6 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-var userInViews = require('../models/userInViews');
-var auth_controller = require('../models/auth.js');
 
 const checkJwt = jwt({
   secret: jwksRsa.expressJwtSecret({
@@ -135,13 +139,13 @@ router.get('/upload-scoresheet', scorecard_controller.upload_scoresheet);
 // verifySns runs first: without it this endpoint accepted any POST that set the
 // x-amz-sns-message-type header, and forwarded the attached MIME message to a real
 // distribution list.
-router.post('/mail', multer().none(), verifySns, contact_controller.distribution_list);
+router.post('/mail', webhookLimiter, multer().none(), verifySns, contact_controller.distribution_list);
 
 // Scorecard routes
-router.post('/scorecard-beta', scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
-router.post('/email-scorecard', scorecard_controller.validateScorecard, scorecard_controller.fixture_populate_scorecard_errors);
-router.post('/add-scorecard-photo/:id', scorecard_controller.add_scorecard_photo);
-router.post('/submit-form', (req, res, next) => {
+router.post('/scorecard-beta', publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
+router.post('/email-scorecard', publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.fixture_populate_scorecard_errors);
+router.post('/add-scorecard-photo/:id', publicFormLimiter, scorecard_controller.add_scorecard_photo);
+router.post('/submit-form', publicFormLimiter, (req, res, next) => {
   scorecard_controller.fixture_populate_scorecard(req.body, req, res, next);
 });
 router.get('/populated-scorecard-beta/:id', (req, res, next) => {
@@ -165,7 +169,7 @@ router.get('/sitemap.xml', sitemap_controller.sitemap);
 router.get('/approve-user/:userId', secured, auth_controller.approve_signup_get);
 router.post('/approve-user/:userId', secured, auth_controller.approve_signup_post);
 
-router.post('/new-users-v2', (req, res, next) => {
+router.post('/new-users-v2', publicFormLimiter, (req, res, next) => {
   if (typeof req.body.id != 'undefined' && req.body.id.length > 3 && req.body.id != 'undefined') {
     // req.body.id is an Auth0 user_id (e.g. "auth0|abc123") — must be
     // encoded before going into a URL, or the emailed link breaks.
@@ -198,7 +202,7 @@ router.post('/new-users-v2', (req, res, next) => {
 
 // Contact us
 router.get('/contact-us', contact_controller.contactus_get);
-router.post('/contact-us', contact_controller.validateContactUs, contact_controller.contactus);
+router.post('/contact-us', contactLimiter, contact_controller.validateContactUs, contact_controller.contactus);
 
 // Player routes
 //
@@ -242,8 +246,8 @@ router.get('/league/:id/delete', league_controller.league_delete_get);
 router.delete('/league/:id', checkJwt, league_controller.league_delete);
 router.get('/league/:id/update', league_controller.league_update_get);
 router.patch('/league/:id', checkJwt, league_controller.league_update);
-router.post('/league/sendInvoices', contact_controller.send_invoices);
-router.post('/league/sendInvoice/:club', contact_controller.send_invoices);
+router.post('/league/sendInvoices', publicFormLimiter, contact_controller.send_invoices);
+router.post('/league/sendInvoice/:club', publicFormLimiter, contact_controller.send_invoices);
 router.get('/league/:id', league_controller.league_detail);
 router.get('/leagues', checkJwt, league_controller.league_list);
 router.get('/tables/All', league_controller.all_league_tables);
@@ -280,13 +284,13 @@ router.get('/divisions', checkJwt, division_controller.division_list);
 
 // Fixture routes
 router.get('/fixture/create', fixture_controller.fixture_create_get);
-router.post('/fixture/reminder', scorecard_controller.fixture_reminder_post);
+router.post('/fixture/reminder', publicFormLimiter, scorecard_controller.fixture_reminder_post);
 router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
-router.post('/fixture/short-result', fixture_controller.fixture_outstanding_post);
+router.post('/fixture/short-result', publicFormLimiter, fixture_controller.fixture_outstanding_post);
 router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
 router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
 router.post('/fixture/enter-result', checkJwt, fixture_controller.fixture_update_by_team_name);
-router.post('/fixture/rearrangement', fixture_controller.fixture_rearrange_by_team_name);
+router.post('/fixture/rearrangement', publicFormLimiter, fixture_controller.fixture_rearrange_by_team_name);
 router.patch('/fixture/rearrange', checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
 router.delete('/fixture/:id', checkJwt, fixture_controller.fixture_delete_post);

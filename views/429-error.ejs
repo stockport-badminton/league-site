@@ -1,0 +1,17 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<h1>Steady on</h1>
+<p>
+  That's a few too many submissions in a short space of time, so we've paused them for
+  a moment. Please try again in about <%= retryAfterMins %> minute<%= retryAfterMins === 1 ? '' : 's' %>.
+</p>
+<p>
+  If you were trying to get in touch and this keeps happening,
+  <a href="/info/clubs">contact your club directly</a> instead.
+</p>
+
+<%- include('footer.ejs') %>
+
+</body>
+</html>

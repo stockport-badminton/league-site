@@ -7,3 +7,7 @@ process.env.CLOUDINARY_AUTH = 'test-cloudinary-auth';
 process.env.RECAPTCHA = 'test-recaptcha';
 process.env.GMAPSAPIKEY = 'test-gmaps-key';
 process.env.THEME = 'flatly';
+
+// The rate-limit counter reset lives in setupAfterEnv.js, not here: this file is a
+// `setupFiles` entry, which runs before the test framework is installed, so beforeEach
+// does not exist yet.

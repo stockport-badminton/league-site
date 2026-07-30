@@ -67,6 +67,8 @@ app.use(compression());
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
+// (The sitewide request ceiling is mounted after the static handlers below — see there.)
+
 // Must be registered before the `rootfiles` static mount below, or that
 // mount shadows this route and the service worker never gets a fresh
 // per-deploy cache version.
@@ -99,6 +101,17 @@ app.get('/static/generated/venues-map.png', async function(req, res) {
 app.use('/static', express.static(path.join(__dirname, '/static')));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
 app.use(express.static('rootfiles'));
+
+// Sitewide request ceiling — the backstop for anything nobody thought to limit
+// individually. The per-endpoint limits in routes/index.js are the ones that matter for
+// spam.
+//
+// Mounted *after* the static handlers deliberately. Mounted before them it counted every
+// stylesheet, script and image, so one page view was a dozen or more hits and the browser
+// test suite exhausted a 600-request budget partway through — which is also what a real
+// visitor on a slow connection would eventually do. Below the static mounts, one page view
+// is one hit.
+app.use(require('./middleware/rateLimit').globalLimiter);
 app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: false }));
