@@ -9,6 +9,7 @@ const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const https = require('node:https');
 const verifySns = require('../middleware/verifySns');
 const Spam = require('../models/spamControls');
+const spamGate = require('../middleware/spamGate');
 const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
@@ -293,6 +294,13 @@ exports.contactus = async function(req, res, next) {
     for (i of errors.array()) {
       console.log(i)
     }
+    // `req._spamReason` is set by the blocklist validators; anything else that failed
+    // validation is a real person getting a field wrong, which is worth telling apart
+    // from spam in the log.
+    spamGate.logOutcome(req, {
+      verdict: 'rejected',
+      reason: req._spamReason || 'validation',
+    });
     res.render('contact-us-form-delivered', {
       pageTitle: 'Contact Us - Error',
       pageDescription: 'Sorry we weren\'t able sent your email - something went wrong',
@@ -304,6 +312,8 @@ exports.contactus = async function(req, res, next) {
     });
     return;
   }
+
+  spamGate.logOutcome(req, { verdict: 'accepted' });
 
   const msg = {
     to: '',

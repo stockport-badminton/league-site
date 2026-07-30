@@ -46,6 +46,8 @@
     <textarea class="form-control" id="contactQuery" name="contactQuery" rows="3"></textarea>
   </div>
   
+  <%- include('spam-fields.ejs') %>
+
   <button type="submit" class="btn btn-primary g-recaptcha" 
           data-sitekey="<%= recaptcha %>" 
           data-callback="onSubmit" 

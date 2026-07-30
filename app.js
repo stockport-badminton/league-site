@@ -42,6 +42,16 @@ app.locals.eventPath = require('./utils/canonical').eventPath;
 // their SportsClub markup names them as `url`. One builder, so they cannot diverge.
 app.locals.clubPath = require('./utils/canonical').clubPath;
 
+// Honeypot field name and a freshly signed render timestamp, for views/spam-fields.ejs.
+// Per-request rather than app-wide because the stamp has to be the time this page was
+// rendered — that is the whole point of it. One HMAC per request is nothing.
+const spamChecks = require('./utils/spamChecks');
+app.locals.spamHoneypotField = spamChecks.HONEYPOT_FIELD;
+app.use(function(req, res, next) {
+  res.locals.spamFormStamp = spamChecks.formStamp();
+  next();
+});
+
 // Blocked addresses now come from the blocked_entry table via models/spamControls, so
 // blocking someone is a form submission on /admin/spam rather than an edit to this file
 // followed by a deploy. The three addresses that used to be hardcoded here are seeded in

@@ -30,12 +30,14 @@ var shuttle_controller = require('../controllers/shuttleController');
 var documents_controller = require('../controllers/documentsController');
 var homepage_content_controller = require('../controllers/homepageContentController');
 var site_settings_controller = require('../controllers/siteSettingsController');
+var spam_admin_controller = require('../controllers/spamAdminController');
 var roster_controller = require('../controllers/rosterController');
 const requireClubAccess = require('../middleware/requireClubAccess');
 const verifySns = require('../middleware/verifySns');
 const {
   publicFormLimiter, contactLimiter, webhookLimiter
 } = require('../middleware/rateLimit');
+const spamGate = require('../middleware/spamGate');
 
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
@@ -202,7 +204,7 @@ router.post('/new-users-v2', publicFormLimiter, (req, res, next) => {
 
 // Contact us
 router.get('/contact-us', contact_controller.contactus_get);
-router.post('/contact-us', contactLimiter, contact_controller.validateContactUs, contact_controller.contactus);
+router.post('/contact-us', contactLimiter, spamGate({ endpoint: '/contact-us' }), contact_controller.validateContactUs, contact_controller.contactus);
 
 // Player routes
 //
@@ -433,6 +435,12 @@ router.post('/admin/homepage-content/:id/delete', secured, homepage_content_cont
 
 router.get('/admin/site-settings', secured, site_settings_controller.form);
 router.post('/admin/site-settings', secured, site_settings_controller.update);
+
+// Blocklists and the submission log. `secured` proves someone is logged in; the
+// controller checks superadmin, same as the other /admin screens.
+router.get('/admin/spam', secured, spam_admin_controller.form);
+router.post('/admin/spam', secured, spam_admin_controller.add);
+router.post('/admin/spam/:id/active', secured, spam_admin_controller.toggle);
 
 // League structure admin (superadmin only — role check in controller)
 router.get('/admin/clubs', secured, club_controller.admin_club_list);

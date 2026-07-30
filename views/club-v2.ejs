@@ -111,6 +111,8 @@
                <label for="contactQuery">Message that you want to send to the club contact</label>
                <textarea class="form-control" id="contactQuery" name="contactQuery" rows="3"></textarea>
              </div>
+             <%- include('spam-fields.ejs') %>
+
              <div class="form-group">
                <div class="g-recaptcha" data-sitekey="<%= recaptcha %>"></div>
              </div>

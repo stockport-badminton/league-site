@@ -1,0 +1,139 @@
+<%- include('../header.ejs', { useRosterCss: true }) %>
+<%- include('../nav.ejs') %>
+
+<%# useRosterCss for the same reason the roster pages need it: roster.css is what undoes
+    the global `.starter-template { text-align: center }` and the site-wide `.fa` sizing.
+    See CLAUDE.md. %>
+<div class="roster-page container-fluid text-left">
+
+  <h1>Spam controls</h1>
+
+  <% if (message) { %><div class="alert alert-success"><%= message %></div><% } %>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+  <p class="text-muted">
+    Blocking someone here takes effect within a minute, on every instance, with no deploy.
+    This list used to live in the source code &mdash; the 89 seeded email addresses are
+    what that cost.
+  </p>
+
+  <h2>Add a block</h2>
+  <form method="post" action="/admin/spam" class="form-row align-items-end mb-4">
+    <div class="form-group col-12 col-md-2">
+      <label for="kind">Type</label>
+      <select class="form-control" id="kind" name="kind">
+        <% kinds.forEach(function(k){ %><option value="<%= k %>"><%= k %></option><% }) %>
+      </select>
+    </div>
+    <div class="form-group col-12 col-md-4">
+      <label for="value">Value</label>
+      <input class="form-control" id="value" name="value" placeholder="address, email, or text">
+    </div>
+    <div class="form-group col-12 col-md-4">
+      <label for="note">Why (optional)</label>
+      <input class="form-control" id="note" name="note" placeholder="e.g. crypto spam, 12 messages">
+    </div>
+    <div class="form-group col-12 col-md-2">
+      <button type="submit" class="btn btn-primary btn-block">Block</button>
+    </div>
+  </form>
+
+  <p class="text-muted small">
+    <strong>ip</strong> exact address &middot;
+    <strong>email</strong> exact sender &middot;
+    <strong>phrase</strong> appears anywhere in the message &middot;
+    <strong>word</strong> whole word only (use this for anything that could appear inside
+    another word &mdash; &ldquo;ass&rdquo; as a phrase would block &ldquo;class&rdquo;)
+  </p>
+
+  <h2>What's being caught</h2>
+  <% if (!stats.length) { %>
+    <p>Nothing logged yet.</p>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr>
+          <th>Verdict</th><th>Reason</th>
+          <th class="text-right">Last 24h</th><th class="text-right">Last 7 days</th><th class="text-right">All time</th>
+        </tr></thead>
+        <tbody>
+          <% stats.forEach(function(s){ %>
+            <tr class="<%= s.verdict === 'rejected' ? '' : 'table-success' %>">
+              <td><%= s.verdict %></td>
+              <td><%= s.reason || '—' %></td>
+              <td class="text-right"><%= s.last24h %></td>
+              <td class="text-right"><%= s.last7 %></td>
+              <td class="text-right"><%= s.n %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted small">
+      A rising count against <code>validation</code> is worth a look &mdash; that is real
+      people failing the form rather than spam being caught.
+    </p>
+  <% } %>
+
+  <h2>Blocklist <small class="text-muted">(<%= entries.length %>)</small></h2>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr>
+        <th>Type</th><th>Value</th><th>Why</th><th>Added</th><th>By</th><th></th>
+      </tr></thead>
+      <tbody>
+        <% entries.forEach(function(e){ %>
+          <tr class="<%= e.active ? '' : 'text-muted' %>">
+            <td><%= e.kind %></td>
+            <td><code><%= e.value %></code></td>
+            <td><%= e.note || '—' %></td>
+            <td><%= new Date(e.created_at).toISOString().slice(0,10) %></td>
+            <td><%= e.created_by || '—' %></td>
+            <td>
+              <form method="post" action="/admin/spam/<%= e.id %>/active" class="m-0">
+                <input type="hidden" name="active" value="<%= e.active ? 'false' : 'true' %>">
+                <button type="submit" class="btn btn-sm <%= e.active ? 'btn-outline-secondary' : 'btn-outline-success' %>">
+                  <%= e.active ? 'Disable' : 'Enable' %>
+                </button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Recent submissions</h2>
+  <p class="text-muted small">
+    Newest first, last 100. Check <em>forwarded for</em> before blocking an address by
+    hand: the resolved address is the leftmost entry of X-Forwarded-For and a determined
+    caller can set that themselves, so it can name someone else.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr>
+        <th>When</th><th>Endpoint</th><th>Verdict</th><th>Reason</th>
+        <th>IP</th><th>Forwarded for</th><th>Email</th><th>Message</th>
+      </tr></thead>
+      <tbody>
+        <% recent.forEach(function(r){ %>
+          <tr class="<%= r.verdict === 'rejected' ? 'table-warning' : '' %>">
+            <td class="text-nowrap"><%= new Date(r.created_at).toISOString().slice(0,16).replace('T',' ') %></td>
+            <td><%= r.endpoint %></td>
+            <td><%= r.verdict %></td>
+            <td><%= r.reason || '—' %></td>
+            <td class="text-nowrap"><%= r.ip || '—' %></td>
+            <td class="small"><%= r.forwarded_for || '—' %></td>
+            <td class="small"><%= r.email || '—' %></td>
+            <td class="small"><%= r.excerpt || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<%- include('../footer.ejs') %>
+</body>
+</html>
