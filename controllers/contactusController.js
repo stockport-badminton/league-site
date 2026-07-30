@@ -8,6 +8,8 @@ const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const https = require('node:https');
 const verifySns = require('../middleware/verifySns');
+const Spam = require('../models/spamControls');
+const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
 const { simpleParser } = require("mailparser");
 const { body,validationResult, param } = require("express-validator");
@@ -245,172 +247,35 @@ async function validCaptcha(value, { req }) {
 }
 
 
-function containsProfanity(value, { req }) {
-  // Terms that should only match as whole words (using word boundaries)
-  const wholeWordTerms = [
-    "ass", "bitch", "bitches", "bastard", "bastards", "cock", "cocks",
-    "cunt", "cunts", "dick", "fag", "fags", "faggot", "fuck", "fucker",
-    "fucking", "fucks", "gay", "hell", "hore", "whore", "jizz", "kike",
-    "nigger", "nigga", "piss", "porn", "poop", "puta", "puto", "queer",
-    "queers", "sex", "sexy", "shit", "shits", "slut", "sluts", "tit",
-    "tits", "twat", "wank", "crap", "cum", "dyke", "retard", "spic",
-    "nazi", "nazis", "wetback", "chink", "gook", "wop", "jap", "japs",
-    "lesbo", "lesbian", "orgasm", "penis", "vagina", "vulva", "semen",
-    "scrotum", "rectum", "anus", "dildo", "enema", "sadist", "smut",
-    "skank", "boobs", "testicle"
-  ];
-
-  // Terms that are unambiguous enough to match as substrings
-  const substringTerms = [
-    "000***", "brokerage", "pharm", "blockchain", "@Cryptaxbot",
-    "@FeedbackMessages", "messages exploitation", "Financial Strategic Firm",
-    "Business Financial Team", "http://", "https://", "wininphone",
-    "corta.co", "cryptocurrency", "adultdating", "forex",
-    "asshole", "assh0le", "asswipe", "azzhole", "butthole", "buttwipe",
-    "c0ck", "c0k", "cockhead", "cocksucker", "cock-sucker",
-    "clit", "dild0", "dilld0", "dominatrix", "f u c k", "f u c k e r",
-    "fag1t", "fagg1t", "faggit", "fagit", "faig", "blowjob", "blow job",
-    "jackoff", "jerk-off", "jisim", "jizm", "knob", "kunt", "masterbat",
-    "masturbat", "motherfucker", "mother-fucker", "mutha", "motha",
-    "niigr", "n1gr", "orifice", "orgasim", "pecker", "peeenus", "peenus",
-    "pen1s", "phuc", "phuck", "phuk", "poonani", "pr1ck", "pusse",
-    "pussee", "pussy", "recktum", "scank", "schlong", "sh1t", "shitter",
-    "skanck", "son-of-a-bitch", "va1jina", "vag1na", "vagiina",
-    "xrated", "xxx", "b!tch", "b1tch", "b17ch", "bi+ch", "l3itch",
-    "fcuk", "fux0r", "nutsack", "pimpis", "shemale", "w00se",
-    "s.o.b.", "mofo", "polack", "pula", "kurwa", "wichser"
-  ];
-
-  const lowerValue = value.toLowerCase();
-
-  // Check whole-word matches using word boundaries
-  for (const term of wholeWordTerms) {
-    const regex = new RegExp(`\\b${term}\\b`, "i");
-    if (regex.test(value)) {
-      console.log("containsProfanity fail (whole word):", term);
-      return false;
-    }
+// Both of these used to carry their lists inline: ~180 phrases and 89 spammer email
+// addresses, meaning every new spammer cost a source edit and a deploy. They now read
+// models/spamControls (table blocked_entry, admin screen at /admin/spam), which is
+// cached for a minute so this costs nothing per request.
+//
+// The profanity half of the old phrase list was deliberately not carried over. It was
+// politeness policing rather than spam defence, and it cost legitimate messages — "hell",
+// "gay", "sex" and "ass" were whole-word blocks, and Gay is a real surname. The terms
+// that were actually catching spam (links, brokerage, pharma, crypto, forex) are seeded
+// in migration 010. Anything worth re-adding can be added through the admin screen, as a
+// 'word' entry for whole-word matching or 'phrase' for a substring.
+async function containsProfanity(value, { req }) {
+  const hit = await Spam.matchBlockedText(value);
+  if (hit) {
+    req._spamReason = 'blocked-' + hit.kind;
+    req._spamMatch = hit.value;
+    throw new Error('blocked content');
   }
-
-  // Check substring matches (for leet-speak, deliberate obfuscations, spam keywords)
-  for (const term of substringTerms) {
-    if (lowerValue.includes(term.toLowerCase())) {
-      console.log("containsProfanity fail (substring):", term);
-      return false;
-    }
-  }
-
-  return value;
+  return true;
 }
 
-function containsDodgyEmail(value,{req}){
-  var substringsArray = [
-    "elviemcxa@yahoo.com",
-    "oscar7ctj@mail.com",
-    "bsara5865@gmail.com",
-    "nikitafofanov46@gmail.com",
-    "n-dixie@hotmail.com",
-    "zekisuquc419@gmail.com",
-    "steven.green@m-solv.com",
-    "j.anderson51@outlook.com",
-    "333dino88@gmail.com",
-    "normandmercier@sbcglobal.net",
-    "rhickey@gvtc.com",
-    "jhuball@sbcglobal.net",
-    "aferinohis056@gmail.com",
-    "ameyjeffrey@gmail.com",
-    "xiceruxuk02@gmail.com",
-    "schuhmann5586@gmail.com",
-    "tbartol54@yahoo.com",
-    "m5062n@gmail.com",
-    "miklom1012@gmail.com",
-    "meifan36@gmail.com",
-    "duqotayowud23@gmail.com",
-    "peichun22@yahoo.com",
-    "ocopesuq299@gmail.com",
-    "mark@mtbgreentechnologies.com",
-    "moot888@gmail.com",
-    "anepivepaz038@gmail.com",
-    "lyraedwards@msn.com",
-    "htbabd@yahoo.com",
-    "ebojajuje04@gmail.com",
-    "testflood1488@gmail.com",
-    "carlosc@optonline.net",
-    "arikerer278@gmail.com",
-    "june_mandap@yahoo.com",
-    "moqagides18@gmail.com",
-    "bfifield@yahoo.com",
-    "boboyobe@yahoo.com.hk",
-    "winsatall4ever@gmail.com",
-    "yawiviseya67@gmail.com",
-    "ixutikob077@gmail.com",
-    "jamescook312@outlook.com",
-    "axobajigufo34@gmail.com",
-    "kayleighbpsteamship@gmail.com",
-    "yjdisantoyjdissemin@gmail.com",
-    "lucido.leinteract@gmail.com",
-    "projectdept@kanzalshamsprojectmgt.com",
-    "evalidator.test@gmail.com",
-    "simpsonmiddleton1111@gmail.com",
-    "simpsonmiddleton@bankingandfinanceconsultantsltd.com",
-    "breiner@cljfarmaceutisch.nl",
-    "drbreiner233@gmail.com",
-    "smithduncan610@gmail.com",
-    "5rdhp2fe29yb@beconfidential.com",
-    "stevenlove88@163.com",
-    "artweb.agency@gmail.com",
-    "help@aweb.sbs",
-    "hrhbah-mbi@aghemfondom.com",
-    "hrhmbambi@gmail.com",
-    "nhu-tran@sac-city.k12.ca.us",
-    "yourmail@gmail.com",
-    "kaenquirynicholls@gmail.com",
-    "nomin.momin+229a5@mail.ru",
-    "projectoffice111@gmail.com",
-    "olivier@balzcavocte.com",
-    "oknabalkonekb@rambler.ru",
-    "floodservice.bot@gmail.com",
-    "williamgrebos605@gmail.com",
-    "hymen8ojw@yahoo.com",
-    "xingsong@gmail.com",
-    "ericpetersonpa@gmail.com",
-    "wilmafoxchildren@gmail.com",
-    "arachnid@notdot.net",
-    "jaronni9o@zohomail.eu",
-    "ahmed.abdulla00175@gmail.com",
-    "bassproshops28@gmail.com",
-    "mr.bumbaster81@gmail.com",
-    "rayanwmlp@zohomail.eu",
-    "irinademenkova86@gmail.com",
-    "saniaftab464@gmail.com",
-    "chris@schoolconnection.co.uk",
-    "test@gmail.com",
-    "bahmmbi3@aghemfondom.com",
-    "dinanikolskaya99@gmail.com",
-    "cikoliag@yandex.ru",
-    "parmazanov@gmail.com",
-    "jalenb8dd@aol.com",
-    "susan@wikiexpertiinc.com",
-    "w.wojcik1000@gmail.com",
-    "derylcvnq@hotmail.com",
-    "rescueplumbhifi@gmail.com"
-];
-
-  if (substringsArray.some(function(v) { if (value.indexOf(v) >= 0) {console.log(v)}; return value.indexOf(v) >= 0; })) {
-     console.log('dodgyEmail fail')
-    // console.log('containsProfanity fail')
-    return false
+async function containsDodgyEmail(value, { req }) {
+  if (await Spam.isBlockedEmail(value)) {
+    req._spamReason = 'blocked-email';
+    req._spamMatch = String(value).toLowerCase();
+    throw new Error('blocked sender');
   }
-  // if (substringsArray.some(substring=>yourBigString.includes(substring))) {
-
-  // }
-  else{
-    // console.log('containsProfanity sucess')
-     console.log(value)
-    return value
-  }
+  return true;
 }
-
 
 exports.validateContactUs = [
   body('contactEmail').not().isEmpty().withMessage('please enter an Email address').isEmail().withMessage('Please enter a valid email address').custom(containsDodgyEmail).withMessage("You have been blocked for spamming the contact form"),
