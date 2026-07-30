@@ -318,6 +318,56 @@ Notes on the helpers:
 - Times come from `to24h`. Check am/pm **before** treating `H:MM` as 24-hour, or
   "7:30pm" reads as 07:30.
 
+### Spam and abuse controls
+
+Five layers, deliberately independent, because each covers what the others can't:
+
+| Layer | Where | Notes |
+|---|---|---|
+| reCAPTCHA | `validCaptcha` in `contactusController` | On `/contact-us` only. It works — a fake token is rejected |
+| Rate limits | `middleware/rateLimit.js` | 12 public endpoints + sitewide backstop |
+| Blocklists | `blocked_entry` table, `models/spamControls.js` | ip / email / phrase / word |
+| Honeypot + timing | `views/spam-fields.ejs`, `utils/spamChecks.js` | Catches bots we've never seen |
+| Submission log | `submission_log` table | The only way to tell whether any of it works |
+
+**Blocking someone is a form submission, not a deploy** — `/admin/spam` (superadmin, in
+the Admin nav). It used to be a source edit: 89 spammer addresses and ~180 phrases were
+hardcoded in `contactusController.js` and three IPs in `app.js`. Don't put lists back in
+code.
+
+Rules worth not rediscovering:
+
+- **Mount `globalLimiter` after the static handlers.** Above them it counts every
+  stylesheet, script and image, so one page view is a dozen hits — the Playwright suite
+  exhausted a 600-request budget partway through and only 23 of 44 specs ran.
+- **A new public form must include `views/spam-fields.ejs`** inside its `<form>`, and its
+  route must carry `spamGate()` and a limiter. The shared partial exists so the honeypot
+  and the timing floor can't drift apart or be forgotten.
+- **A rejection is deliberately indistinguishable from a success.** Naming the check that
+  fired is how a spammer tunes a payload. The cost is that a false positive silently eats
+  a real message — which is why only the two checks with negligible false-positive rates
+  behave this way, and why every rejection is logged with a reason. **Watch the
+  `validation` count on `/admin/spam`:** rising means real people failing the form.
+- **A missing timing stamp is not spam.** Caches, autofill and any form rendered before
+  the field existed would all be caught. Only the floor is enforced, so a stale tab still
+  submits.
+- **`models/spamControls` never fails closed.** A DB hiccup means empty lists, not
+  rejecting every submission. The cache is warmed before `listen()` because the IP check
+  reads it synchronously on every request.
+- **Rate limiters keep counters in module state**, so `resetRateLimits()` runs before each
+  test from `__tests__/setupAfterEnv.js`. It can't live in `setup.js` — that's a
+  `setupFiles` entry and runs before `beforeEach` exists. A test that wants to see a limit
+  bite must exhaust it within one case.
+
+Anything unauthenticated that sends email must derive its recipients server-side.
+`/fixture/reminder` took the address from the request body and was an open relay from our
+own verified domain; the risk there is the domain's sending reputation, not spam arriving.
+
+**Still open:** `POST /fixture/rearrangement` is unauthenticated and writes to `fixture` —
+it sets a fixture to `rearranged` and inserts a replacement from `{homeTeam, awayTeam,
+date}`. Rate-limited but not authorized. Fixing it changes how captains request
+rearrangements, so ask first.
+
 ### Team management (rosters)
 
 Two pages, two audiences — they used to be one template switching on a
