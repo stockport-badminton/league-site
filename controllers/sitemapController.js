@@ -118,9 +118,15 @@ exports.sitemap = async function(req, res, next) {
       + entries.join('\n') + '\n</urlset>\n';
 
     res.set('Content-Type', 'application/xml; charset=utf-8');
-    // Cheap to build but pointless to rebuild per crawl hit; a day is well inside
-    // how fast fixture changes need to be picked up.
-    res.set('Cache-Control', 'public, max-age=86400');
+    // An hour, not a day.
+    //
+    // This was 86400, which is longer than it looks: Firebase's CDN honours it, and
+    // nothing purges that cache on deploy. So after the release that added the club
+    // pages, /sitemap.xml kept serving the previous day's 715 URLs from the edge
+    // (`x-cache: HIT`) while the origin served all 733 — a deploy could add pages
+    // and advertise none of them for a day. Crawlers fetch this rarely, so the
+    // rebuild cost of a shorter window is irrelevant next to that.
+    res.set('Cache-Control', 'public, max-age=3600');
     res.send(xml);
   } catch (err) {
     next(err);
