@@ -30,7 +30,9 @@
 
       
 
-        <tr>
+        <%# The id is the anchor the club's SportsClub JSON-LD gives as its `url`,
+            so that markup points at something real on this page. %>
+        <tr id="club-<%= row['id'] %>">
           <% if (row['clubWebsite'] != ''){ %>
             <td><a href="<%= row['clubWebsite'] %>" target="_blank"><%= row['name'] %></a></td>
           <% }

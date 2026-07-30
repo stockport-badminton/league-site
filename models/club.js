@@ -32,6 +32,16 @@ exports.clubDetail = async function() {
   venue.name AS clubvenue,
   venue."gMapUrl" AS clubgmap,
   venue.address AS clubaddress,
+  -- Coordinates and the club-night day/time feed the SportsClub JSON-LD
+  -- (geo + openingHoursSpecification), which is what a "badminton clubs near me"
+  -- query actually reads. Quoted aliases: unquoted ones fold to lowercase.
+  venue."Lat" AS "clubLat",
+  venue."Lng" AS "clubLng",
+  club."clubNight",
+  club."clubNightCourts",
+  club.facebook,
+  club.instagram,
+  club.twitter,
   club."matchNightText",
   club."clubNightText",
   club."clubWebsite",

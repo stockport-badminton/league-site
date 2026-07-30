@@ -7,6 +7,7 @@ var Game = require('../models/game');
 var HomepageContent = require('../models/homepageContent');
 var SiteSettings = require('../models/siteSettings');
 const axios = require('axios');
+const SD = require('../utils/structuredData');
 const ses = require('../utils/ses');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
@@ -206,6 +207,9 @@ exports.fixture_event_detail = async function(req, res, next) {
       pageDescription: "View scorecard for this match",
       fixtureDetails: row[0],
       mapsApiKey: process.env.GMAPSAPIKEY,
+      // SportsEvent markup, built in utils/structuredData.js. header.ejs used to
+      // assemble this as literal JSON, keyed off `pageTitle.indexOf("Event")`.
+      jsonLd: [SD.jsonLd(SD.sportsEvent(row[0]))],
       canonical: canonicalFor(req)
     });
   } catch (err) {
@@ -531,6 +535,12 @@ exports.fixture_get_summary = async function(req, res, next) {
       scorecards,
       assets,
       announcements,
+      // Sitewide identity (SportsOrganization + WebSite) once, then a SportsEvent
+      // per upcoming fixture. Out of season `upcomingFixtures` is empty and only the
+      // identity block is emitted, which is correct — there is nothing to advertise.
+      jsonLd: [SD.jsonLd(SD.webSite())].concat(
+        upcomingFixtures.map(function(f) { return SD.jsonLd(SD.sportsEvent(f)); })
+      ),
       canonical: canonicalFor(req)
     });
   } catch (err) {

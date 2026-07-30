@@ -7,6 +7,8 @@ jest.mock('../../models/players');
 jest.mock('../../models/game');
 jest.mock('../../models/teams');
 jest.mock('../../models/auth.js');
+jest.mock('../../models/homepageContent');
+jest.mock('../../models/siteSettings');
 jest.mock('axios');
 
 const Fixture = require('../../models/fixture');
@@ -94,6 +96,99 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     const res = await request(app).get('/event/999999/01012027-A-B');
     expect(res.status).not.toBe(200);
     expect(res.text.trim()).not.toBe('{}');
+  });
+
+  // Assert on the JSON-LD that actually reaches the HTML, parsed. The old markup was
+  // a template string, so nothing checked that what shipped was even valid JSON —
+  // and invalid JSON-LD is silently ignored rather than erroring.
+  describe('JSON-LD', () => {
+    function ldFrom(html) {
+      return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+        .map(m => JSON.parse(m[1]));
+    }
+
+    it('emits one valid SportsEvent with usable teams, address and coordinates', async () => {
+      Fixture.getFixtureEventById.mockResolvedValue([eventRow({ teamCaptain: 'X Y' })]);
+      const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+      const ld = ldFrom(res.text);
+
+      expect(ld).toHaveLength(1);
+      const e = ld[0];
+      expect(e['@context']).toBe('https://schema.org');
+      expect(e['@type']).toBe('SportsEvent');
+      expect(e.homeTeam.name).toBe('Manor B');
+      expect(e.awayTeam.name).toBe('Parrswood C');
+      expect(e.location.address['@type']).toBe('PostalAddress');
+      expect(e.location.address.postalCode).toBe('SK9 1BU');
+      expect(e.location.geo['@type']).toBe('GeoCoordinates');
+      expect(e.startDate).toMatch(/^2026-09-01T19:00:00(\+01:00|Z)$/);
+    });
+
+    it('carries none of the invented properties the old markup used', async () => {
+      Fixture.getFixtureEventById.mockResolvedValue([eventRow()]);
+      const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+      const raw = JSON.stringify(ldFrom(res.text)[0]);
+      expect(raw).not.toContain('"Lat"');
+      expect(raw).not.toContain('"Lng"');
+      expect(raw).not.toContain('"competitor"');
+      expect(raw).not.toContain('"type":"PostalAddress"');
+      expect(raw).not.toContain('http://schema.org');
+    });
+
+    it('does not HTML-escape into the JSON', async () => {
+      Fixture.getFixtureEventById.mockResolvedValue([eventRow({ homeTeam: "Mulberry's A" })]);
+      const res = await request(app).get('/event/7388/x-y-z');
+      const e = ldFrom(res.text)[0];
+      expect(e.homeTeam.name).toBe("Mulberry's A");
+      // The league name contains an ampersand; it must survive as one.
+      expect(e.organizer.name).toContain('&');
+      expect(JSON.stringify(e)).not.toContain('&#39;');
+    });
+  });
+});
+
+describe('GET / — sitewide identity and upcoming fixtures', () => {
+  const HomepageContent = require('../../models/homepageContent');
+  const SiteSettings = require('../../models/siteSettings');
+
+  function ldFrom(html) {
+    return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map(m => JSON.parse(m[1]));
+  }
+
+  beforeEach(() => {
+    Fixture.getOutstandingScorecards.mockResolvedValue([]);
+    Fixture.getRecent.mockResolvedValue([]);
+    Fixture.getupComing.mockResolvedValue([]);
+    HomepageContent.getActive.mockResolvedValue([]);
+    SiteSettings.get.mockResolvedValue('messer2026');
+  });
+
+  it('always states who the site belongs to', async () => {
+    const res = await request(app).get('/');
+    const ld = ldFrom(res.text);
+    expect(ld).toHaveLength(1);
+    const types = ld[0]['@graph'].map(n => n['@type']);
+    expect(types).toContain('SportsOrganization');
+    expect(types).toContain('WebSite');
+  });
+
+  it('adds a SportsEvent per upcoming fixture', async () => {
+    Fixture.getupComing.mockResolvedValue([
+      { id: 1, date: '2026-09-03T00:00:00', homeTeam: 'Mellor A', awayTeam: 'Aerospace A',
+        venueName: 'Mellor', venueAddress: 'Mellor Sports Club, Mellor SK6 5PN',
+        Lat: 53.3935, Lng: -2.0397, startTime: '19:00', endTime: '23:00', divisionName: 'Division 2' },
+    ]);
+    const res = await request(app).get('/');
+    const ld = ldFrom(res.text);
+    expect(ld).toHaveLength(2);
+    expect(ld[1]['@type']).toBe('SportsEvent');
+    expect(ld[1].url).toBe('https://stockport-badminton.co.uk/event/1/03092026-Mellor%20A-Aerospace%20A');
+  });
+
+  it('emits only the identity block out of season', async () => {
+    const res = await request(app).get('/');
+    expect(ldFrom(res.text)).toHaveLength(1);
   });
 });
 

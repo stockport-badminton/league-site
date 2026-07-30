@@ -272,14 +272,33 @@ Event-page URLs come from `eventPath()` in `utils/canonical.js`, exposed to view
 read from `/event/:id/:date-:homeTeam-:awayTeam`, so a second spelling of the
 decorative part would be a duplicate URL for a page that self-canonicalises.
 
-Structured data (JSON-LD) is inline in `views/header.ejs`, switched on `pageTitle`
-(`indexOf("Event")`, `indexOf("Homepage")`, `== 'Local Badminton Club Information'`).
-It has known defects that are **not yet fixed** — invalid `competitor` shape,
-`"type"` instead of `"@type"` on the address, `Lat`/`Lng` instead of `geo`,
-timezone-less `startDate`, and club localities derived from `String.match()` on a
-freetext address (producing `"Cheadle Hulme,Cheadle Hulme"` and picking
-"Manchester" out of "Manchester Road"). Anything emitting JSON from `<%= %>` is also
-HTML-escaping into JSON — `Mulberry&#39;s` is live today.
+**Structured data (JSON-LD) is built in `utils/structuredData.js`, never in a
+template.** Controllers pass a `jsonLd` local — an array of already-serialised
+blocks — and `header.ejs` emits them with `<%- %>`. To add markup to a page, build
+an object there and pass it; do not write JSON into an EJS file.
+
+That rule exists because the previous approach failed in two ways that could not
+error: escaped-output tags escape for HTML, not JSON (a club called Mulberry's
+shipped as `Mulberry&#39;s`, and a double quote would have broken the block), and
+several property names were not schema.org at all — `competitor: [{"@type":
+"SportsTeam", "homeTeam": "..."}]`, `"type"` instead of `"@type"` on the address,
+`Lat`/`Lng` instead of `geo` — so the team names, the whole postal address and the
+coordinates were silently discarded. Invalid JSON-LD is ignored, not reported.
+
+Notes on the helpers:
+- `parseUkAddress` recovers streetAddress/locality/postcode from the single freetext
+  `venue.address` column by splitting on the postcode. It replaced a regex against a
+  hardcoded town list that emitted match *arrays*
+  (`"addressLocality": "Cheadle Hulme,Cheadle Hulme"`) and picked "Manchester" out of
+  "Manchester Road". `addressRegion` is deliberately omitted — it was hardcoded
+  "Cheshire" for every club including the Greater Manchester ones.
+- `geoOf` drops coordinates outside a bounding box for the league's catchment,
+  because one venue is stored ~110km north of it. A wrong location is worse than
+  none for a "near me" query.
+- `londonOffset` asks `Intl` for the offset instead of `getTimezoneOffset()`, which
+  is 0 on Cloud Run — so production used to emit `startDate` with no offset at all.
+- Times come from `to24h`. Check am/pm **before** treating `H:MM` as 24-hour, or
+  "7:30pm" reads as 07:30.
 
 ### Team management (rosters)
 

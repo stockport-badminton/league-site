@@ -70,12 +70,22 @@ function absoluteUrl(pathname) {
 // URI; the template's unencoded href resolves to the same thing once the browser
 // encodes it.
 function eventPath(fixture) {
-  const d = new Date(fixture.date);
-  const ddmmyyyy = ('0' + d.getDate()).slice(-2)
-                 + ('0' + (d.getMonth() + 1)).slice(-2)
-                 + d.getFullYear();
-  const slug = `${ddmmyyyy}-${fixture.homeTeam}-${fixture.awayTeam}`;
+  const { y, m, d } = localYmd(fixture.date);
+  const slug = `${d}${m}${y}-${fixture.homeTeam}-${fixture.awayTeam}`;
   return `/event/${fixture.id}/${encodeURIComponent(slug).replace(/%2F/g, '-')}`;
 }
 
-module.exports = { canonicalFor, absoluteUrl, siteOrigin, eventPath, DEFAULT_ORIGIN };
+// The calendar day a fixture falls on, as zero-padded strings, read with local-time
+// getters. Shared so the URL slug, the sitemap's <lastmod> and the JSON-LD
+// startDate all name the same day: fixture.date is stored as local midnight, so
+// under BST the UTC rendering of that instant is the day before.
+function localYmd(date) {
+  const dt = new Date(date);
+  return {
+    y: String(dt.getFullYear()),
+    m: ('0' + (dt.getMonth() + 1)).slice(-2),
+    d: ('0' + dt.getDate()).slice(-2),
+  };
+}
+
+module.exports = { canonicalFor, absoluteUrl, siteOrigin, eventPath, localYmd, DEFAULT_ORIGIN };

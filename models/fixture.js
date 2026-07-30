@@ -132,6 +132,21 @@ exports.getCardsDueToday = async function() {
   return result
 }
 
+// The homepage's "Upcoming Fixtures" list — and, because each row links to its
+// /event/ page, the only place a crawler could reach those pages from before they
+// went into the sitemap.
+//
+// It had the same three faults as getFixtureEventById, with a worse consequence
+// here: an INNER JOIN to the home team's captain silently *omitted* the fixture, so
+// the six captain-less teams' home matches never appeared on the homepage and never
+// got a link. Doubly orphaned — invisible to visitors and to Google.
+//
+// The captain and match secretary are simply gone rather than made outer: nothing
+// renders them (their aliases were unquoted, so `row.teamCaptain` was `undefined`
+// anyway). Dropping them also removes the GROUP BY, which existed only to collapse
+// the duplicate rows those joins produced for the four teams with two flagged
+// captains. The season join went for the same reason as before — it filtered on a
+// table the SELECT never touched.
 exports.getupComing = async function() {
   const [result] = await (await db.otherConnect()).query(`SELECT
     fixture.id,
@@ -151,39 +166,25 @@ exports.getupComing = async function() {
     venue."gMapUrl" AS "venueLink",
     fixture.status,
     fixture."homeScore",
-    fixture."awayScore",
-    CONCAT(teamCaptain.first_name,' ',teamCaptain.family_name) AS teamCaptain,
-    teamCaptain.id AS teamCaptainId,
-    CONCAT(matchSecretary.first_name,' ',matchSecretary.family_name) AS matchSecretary,
-    matchSecretary.id AS matchSecretaryId
+    fixture."awayScore"
 FROM
     fixture
         JOIN
     team homeTeam ON fixture."homeTeam" = homeTeam.id
         JOIN
-    club homeClub ON homeTeam.club = homeClub.id
-        JOIN
-    venue ON homeTeam.venue = venue.id
-        JOIN
     team awayTeam ON fixture."awayTeam" = awayTeam.id
-        JOIN
+        LEFT JOIN
+    club homeClub ON homeTeam.club = homeClub.id
+        LEFT JOIN
     club awayClub ON awayTeam.club = awayClub.id
-        JOIN
-    season ON (fixture.date > season."startDate"
-        AND fixture.date < season."endDate")
-    JOIN player teamCaptain ON (homeTeam.id = teamCaptain.team AND teamCaptain."teamCaptain" = 1)
-    JOIN player matchSecretary ON (homeClub.id = matchSecretary.club AND matchSecretary."matchSecrertary" = 1)
-    JOIN division ON homeTeam.division = division.id
+        LEFT JOIN
+    venue ON homeTeam.venue = venue.id
+        LEFT JOIN
+    division ON homeTeam.division = division.id
 WHERE
     fixture."homeScore" IS NULL
         AND fixture.status NOT IN ('rearranged','rearranging')
         AND fixture.date BETWEEN NOW() - INTERVAL '1 day' AND NOW() + INTERVAL '7 days'
-GROUP BY fixture.id, fixture.date, homeTeam.name, homeTeam.starttime, homeTeam.endtime,
-    homeClub.name, homeClub."clubWebsite", awayTeam.name, awayClub.name, division.name,
-    venue."Lat", venue."Lng", venue.name, venue.address, venue."gMapUrl",
-    fixture.status, fixture."homeScore", fixture."awayScore",
-    teamCaptain.first_name, teamCaptain.family_name, teamCaptain.id,
-    matchSecretary.first_name, matchSecretary.family_name, matchSecretary.id
 ORDER BY date`)
   return result
 }

@@ -1,7 +1,9 @@
 var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
+var Roster = require('../models/roster');
 const { canonicalFor } = require('../utils/canonical');
+const SD = require('../utils/structuredData');
 require('dotenv').config()
 
 
@@ -51,6 +53,14 @@ exports.club_list_detail = async function(req, res, next) {
         newClubElem.matchNightText = row.matchNightText
         newClubElem.clubNightText = row.clubNightText
         newClubElem.clubWebsite = row.clubWebsite
+        // For the SportsClub JSON-LD below — coordinates, club night and the club's
+        // own social/web presence (emitted as sameAs).
+        newClubElem.Lat = row.clubLat
+        newClubElem.Lng = row.clubLng
+        newClubElem.clubNight = row.clubNight
+        newClubElem.facebook = row.facebook
+        newClubElem.instagram = row.instagram
+        newClubElem.twitter = row.twitter
         newClubElem.teams = []
         teamElem = {}
         teamElem.name = row.teamName
@@ -80,6 +90,12 @@ exports.club_list_detail = async function(req, res, next) {
          recaptcha : process.env.RECAPTCHA,
          mapsApiKey: process.env.GMAPSAPIKEY,
          venues:JSON.stringify(venueRows),
+         // One SportsClub block per club, built in utils/structuredData.js rather
+         // than as literal JSON in the template. Club 63 is the `No Club` sentinel
+         // and is skipped here for the same reason club-v2.ejs skips it in the table.
+         jsonLd: newClubArray
+           .filter(function(c) { return c.id !== Roster.NO_CLUB_ID; })
+           .map(function(c) { return SD.jsonLd(SD.sportsClub(c)); }),
          canonical:canonicalFor(req)
      });
   } catch (err) {
