@@ -1,4 +1,8 @@
 const { Pool } = require('pg');
+// Safe to require here even though instrument.js owns Sentry.init: an
+// uninitialised Sentry no-ops, so this stays inert under Jest (which mocks this
+// module anyway) and in any process that never calls init.
+const Sentry = require('@sentry/node');
 
 const state = { pool: null };
 
@@ -29,6 +33,28 @@ exports.connect = function() {
     // Default is to wait forever. Fail with a clear error instead of hanging a
     // request indefinitely when the pool is saturated.
     connectionTimeoutMillis: 10000,
+    // Keep idle sockets warm so the network path (Cloud Run -> Supabase pooler)
+    // is less likely to drop one from under us between requests. Reduces how
+    // often the handler below has to fire; it does not remove the need for it.
+    keepAlive: true,
+  });
+
+  // REQUIRED, not defensive. `pg` emits 'error' on the Pool when the backend
+  // hangs up on an *idle* client, and an EventEmitter 'error' with no listener
+  // is an uncaught exception — which kills the whole Cloud Run instance, taking
+  // every in-flight request with it. That is Sentry NODE-X (6 Aug): Supabase
+  // reaped an idle connection and the process died mid-crawl.
+  //
+  // Note this is only for idle clients. An error on an in-flight query rejects
+  // that query's promise instead, so it surfaces through the caller's try/catch
+  // and the central 500 handler in routes/index.js — it never reaches here.
+  //
+  // Swallowing is the correct response: pg has already discarded the broken
+  // client, and the next query gets a fresh one. We capture it so the event is
+  // still visible in Sentry, just handled rather than fatal.
+  state.pool.on('error', function(err) {
+    console.error('pg pool: idle client error (connection discarded):', err.message);
+    Sentry.captureException(err, { tags: { source: 'pg-pool-idle-client' } });
   });
 };
 

@@ -495,6 +495,18 @@ Key vars (see `.env` for examples):
    add-player modal posted `NaN` as the new id). **When mocking such a model in a
    test, mock `[{ id: 42 }]`, never `{ insertId: 42 }`** — the invented shape is
    exactly what let the scorecard bug live behind a green test.
+2c. **The `pg` Pool must keep its `'error'` listener.** `pg` emits `'error'` on the
+   Pool when the backend hangs up on an **idle** client, and an EventEmitter `'error'`
+   with no listener is an uncaught exception — so a connection Supabase reaped while
+   nobody was using it killed the whole Cloud Run instance, in-flight requests
+   included (Sentry NODE-X, 6 Aug). Nothing catches this for you: the pool works
+   perfectly in dev, in tests, and under any load that keeps its connections busy, so
+   the gap is invisible until it isn't. Only idle clients come through the handler —
+   an error on an in-flight query rejects that query's promise and surfaces through
+   the caller's `try`/`catch` and the central 500 handler. Swallowing is correct (pg
+   has already discarded the client); it's captured to Sentry so the event stays
+   visible as *handled*. If it starts arriving often, the real fix is the transaction
+   pooler on 6543 — which is what `PG_POOL_MAX` exists for.
 3. **Form repopulation on errors**: Must pass both submitted data AND team/player dropdowns with selected flags, or form appears empty to user.
 4. **Session cookie name**: Must be `__session` for Cloud Run (Firebase requirement).
 5. **DEV_MODE is safe**: Only works outside production; injects mock user for local testing without Auth0.
