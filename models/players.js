@@ -1135,25 +1135,44 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
 
 // Name-fragment search, optionally narrowed by the same division/club/team/
 // gender filters used on /player-stats — used by the ELO comparison page.
+// The stored names are not clean: 378 of 1107 player rows carry leading or
+// trailing whitespace, nearly always a space in front of family_name (" Petty",
+// " Roach", " Kainth"). Concatenating first and family straight out of the column
+// therefore yields "Chris  Petty" with two spaces, and a LIKE for the "Chris
+// Petty" a human types matches nothing — a third of the league was unfindable by
+// full name while still being findable by surname alone, which is a maddening way
+// for a search to fail. Both sides are whitespace-normalised so the comparison is
+// about the name rather than about how it happened to be typed in.
+const SEARCH_NAME = `regexp_replace(TRIM(COALESCE(player.first_name, '') || ' ' || COALESCE(player.family_name, '')), '\\s+', ' ', 'g')`
+
 exports.searchPlayers = async function(query, filters = {}) {
-  const whereClauses = ['LOWER(CONCAT(player.first_name, \' \', player.family_name)) LIKE LOWER(?)']
-  const params = [`%${query || ''}%`]
+  const whereClauses = [`LOWER(${SEARCH_NAME}) LIKE LOWER(?)`]
+  // Collapse the caller's spacing too, so "Chris  Petty" and " chris petty " work.
+  const term = (query || '').trim().replace(/\s+/g, ' ')
+  const params = [`%${term}%`]
 
   if (filters.division) { whereClauses.push('division.name = ?'); params.push(filters.division) }
   if (filters.club) { whereClauses.push('club.name = ?'); params.push(filters.club) }
   if (filters.team) { whereClauses.push('team.name = ?'); params.push(filters.team) }
   if (filters.gender) { whereClauses.push('player.gender = ?'); params.push(filters.gender) }
 
+  // LEFT JOINs. These were INNER, and club/division contribute nothing to the
+  // output — they exist only so the optional filters have something to match — so
+  // an unrelated gap in either silently removed a player from the results. It did:
+  // team 52 "No Team", where released players are parked, has division 0, which is
+  // not a division that exists, so the division join alone hid 490 players. A
+  // returning member who had been released could not be found at all. The filters
+  // still filter: an equality test in WHERE fails against a NULL from a LEFT JOIN.
   const [result] = await (await db.otherConnect()).query(
     `SELECT player.id,
-            CONCAT(player.first_name, ' ', player.family_name) AS name,
+            ${SEARCH_NAME} AS name,
             team.name AS "teamName"
      FROM player
-     JOIN team ON team.id = player.team
-     JOIN club ON club.id = team.club
-     JOIN division ON division.id = team.division
+     LEFT JOIN team ON team.id = player.team
+     LEFT JOIN club ON club.id = team.club
+     LEFT JOIN division ON division.id = team.division
      WHERE ${whereClauses.join(' AND ')}
-     ORDER BY player.family_name, player.first_name
+     ORDER BY TRIM(COALESCE(player.family_name, '')), TRIM(COALESCE(player.first_name, ''))
      LIMIT 20`,
     params
   )
