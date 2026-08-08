@@ -2,6 +2,8 @@
 <%- include('nav.ejs') %>
 
 <div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-body">
   <h3>Approve New Signup</h3>
   <p><strong>Email:</strong> <%= authUser.email %></p>
   <% if (authUser.name && authUser.name !== authUser.email) { %>
@@ -41,6 +43,8 @@
 
     <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Approve &amp; Assign</button>
   </form>
+    </div>
+  </div>
 </div>
 
 <script>
