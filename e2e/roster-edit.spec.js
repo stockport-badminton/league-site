@@ -56,6 +56,41 @@ async function ranksIn(list) {
   return list.locator('.roster-row .rank').allTextContents();
 }
 
+// A nominated list with at least two players whose team also has reserves of the
+// same gender — the pairing the drop-target bug needed, since the row was flung
+// into whichever list came next in the array.
+async function nominatedWithReserves(page) {
+  const key = await page.locator('.roster-list').evaluateAll(function (lists) {
+    for (const l of lists) {
+      if (l.dataset.section !== 'nominated') continue;
+      if (l.querySelectorAll('.roster-row').length < 2) continue;
+      const reserve = document.querySelector('.roster-list[data-team="' + l.dataset.team +
+        '"][data-gender="' + l.dataset.gender + '"][data-section="reserve"]');
+      if (reserve && reserve.querySelectorAll('.roster-row').length) {
+        return { team: l.dataset.team, gender: l.dataset.gender };
+      }
+    }
+    return null;
+  });
+  expect(key, 'no team with both nominated players and reserves of one gender').not.toBeNull();
+
+  const base = `.roster-list[data-team="${key.team}"][data-gender="${key.gender}"]`;
+  return {
+    nominated: page.locator(`${base}[data-section="nominated"]`),
+    reserve: page.locator(`${base}[data-section="reserve"]`)
+  };
+}
+
+// Puts a row a fixed distance below the top of the window, so a test's coordinates
+// stay valid: measure something near an edge and the drag's own edge-scrolling
+// moves the page out from under it.
+async function parkNearTop(locator, offset = 140) {
+  await locator.evaluate(function (el, y) {
+    el.scrollIntoView({ block: 'center' });
+    window.scrollBy(0, el.getBoundingClientRect().top - y);
+  }, offset);
+}
+
 test.describe('roster editor', () => {
   test('renders one card per team with numbered lists', async ({ page, baseURL }) => {
     const guard = await readOnly(page, baseURL);
@@ -172,6 +207,155 @@ test.describe('roster editor', () => {
     const after = await namesIn(list);
     expect(after[0]).toBe(before[1]);
 
+    guard.assertNoWrites();
+  });
+
+  // `.roster-card` carried `overflow: hidden`, so the menu was cut off at the card's
+  // edge for every player in the bottom half of a team — and a rank-8 man is exactly
+  // who you open it for.
+  test('the row menu of a player at the foot of a card is not clipped', async ({ page, baseURL }) => {
+    const guard = await readOnly(page, baseURL);
+    await openBiggestClubEditor(page);
+
+    // The last player in the first populated card: below them is only the Add
+    // button and the card's own bottom edge. The last card on the page would do as
+    // well, but it can't be scrolled away from the foot of the window, and a row
+    // there flips its menu upwards for a different reason.
+    const row = page.locator('.roster-card')
+      .filter({ has: page.locator('.roster-row') }).first()
+      .locator('.roster-row').last();
+    await parkNearTop(row);
+    await row.locator('.row-menu-btn').click();
+
+    const menu = page.locator('.roster-menu');
+    await expect(menu).toBeVisible();
+
+    // Asserted against the ancestors rather than the pixels. A clipped element still
+    // reports its full getBoundingClientRect — it just isn't painted — and whether
+    // any given row's menu happens to spill past its card depends on which gender
+    // column is taller, which is a property of the club's roster, not of the page.
+    // "Nothing between the menu and the body clips" is the actual invariant.
+    const clipper = await menu.evaluate(function (el) {
+      for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        var style = getComputedStyle(p);
+        if (style.overflowY !== 'visible' || style.overflowX !== 'visible') {
+          return p.className || p.tagName;
+        }
+      }
+      return null;
+    });
+    expect(clipper, 'an ancestor clips the row menu').toBeNull();
+
+    // And it really is painted where it says it is.
+    const painted = await menu.evaluate(function (el) {
+      const box = el.getBoundingClientRect();
+      const at = document.elementFromPoint(box.left + box.width / 2, box.bottom - 4);
+      return !!(at && el.contains(at));
+    });
+    expect(painted, 'the bottom of the row menu is covered').toBe(true);
+
+    guard.assertNoWrites();
+  });
+
+  test('the row menu opens upwards when the row is near the bottom of the window', async ({ page, baseURL }) => {
+    const guard = await readOnly(page, baseURL);
+    await openBiggestClubEditor(page);
+
+    // A short window, so "near the bottom" doesn't depend on how tall this club's
+    // roster happens to be.
+    await page.setViewportSize({ width: 1280, height: 420 });
+    const row = page.locator('.roster-row').first();
+    await row.evaluate(function (el) {
+      el.scrollIntoView({ block: 'center' });
+      window.scrollBy(0, el.getBoundingClientRect().top - (window.innerHeight - 60));
+    });
+    await row.locator('.row-menu-btn').click({ force: true });
+
+    const menu = page.locator('.roster-menu');
+    await expect(menu).toHaveClass(/drop-up/);
+    const box = await menu.boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(0);
+
+    guard.assertNoWrites();
+  });
+
+  // The old drop-target search took the first list that would accept an insert,
+  // scanning nominated before reserve — and a pointer *above* a list still tests as
+  // "before its first row". So dragging the last nominated player upwards, into the
+  // gap between the row above's midpoint and its bottom edge, matched nothing in the
+  // nominated list, fell through to the reserve list, and dropped them at the top of
+  // the reserves.
+  test('dragging the last nominated player upwards does not drop them into the reserves',
+    async ({ page, baseURL }) => {
+      const guard = await readOnly(page, baseURL);
+      await openBiggestClubEditor(page);
+
+      const { nominated, reserve } = await nominatedWithReserves(page);
+      const names = await namesIn(nominated);
+      const reserves = await namesIn(reserve);
+
+      const last = nominated.locator('.roster-row').last();
+      const above = nominated.locator('.roster-row').nth(names.length - 2);
+      await parkNearTop(last, 200);
+
+      const from = await last.locator('.drag-handle').boundingBox();
+      const aboveBox = await above.boundingBox();
+      const x = from.x + from.width / 2;
+
+      await page.mouse.move(x, from.y + from.height / 2);
+      await page.mouse.down();
+
+      // Into the dead zone: past the row above, but not yet halfway up it.
+      await page.mouse.move(x, aboveBox.y + aboveBox.height * 0.75, { steps: 6 });
+      expect(await namesIn(reserve)).toEqual(reserves);
+      expect(await namesIn(nominated)).toEqual(names);
+
+      // Carry on past its midpoint and the swap happens, as it should.
+      await page.mouse.move(x, aboveBox.y + aboveBox.height * 0.25, { steps: 6 });
+      await page.mouse.up();
+
+      const after = await namesIn(nominated);
+      expect(after[names.length - 2]).toBe(names[names.length - 1]);
+      expect(after[names.length - 1]).toBe(names[names.length - 2]);
+      expect(await namesIn(reserve)).toEqual(reserves);
+
+      guard.assertNoWrites();
+    });
+
+  // The row is positioned from the pointer's offset within it, re-derived after every
+  // DOM move. The old code reset the transform to zero and re-baselined the pointer
+  // instead, so the row snapped into its new slot rather than staying under the
+  // finger — which reads as the drag catching on things.
+  test('the dragged row stays under the pointer across a swap', async ({ page, baseURL }) => {
+    const guard = await readOnly(page, baseURL);
+    await openBiggestClubEditor(page);
+
+    const list = listWithAtLeast(page, 3);
+    const first = list.locator('.roster-row').first();
+    const third = list.locator('.roster-row').nth(2);
+    await parkNearTop(first, 200);
+
+    const from = await first.locator('.drag-handle').boundingBox();
+    const thirdBox = await third.boundingBox();
+    const x = from.x + from.width / 2;
+    // Grabbed near the top of the handle, not its centre. That is the whole point:
+    // the old code re-baselined the pointer on every swap, which only happens to be
+    // a no-op when the row is held exactly at its own middle.
+    const grabY = from.y + 4;
+
+    await page.mouse.move(x, grabY);
+    await page.mouse.down();
+    const offset = grabY - (await first.boundingBox()).y;
+
+    // Two swaps' worth of travel, stopping a third of the way into the last row so
+    // the row is mid-gesture rather than settled on a boundary.
+    const at = thirdBox.y + thirdBox.height * 0.7;
+    await page.mouse.move(x, at, { steps: 12 });
+
+    const grabbed = await page.locator('.roster-row.grabbed').boundingBox();
+    expect(Math.abs(at - grabbed.y - offset)).toBeLessThanOrEqual(2);
+
+    await page.mouse.up();
     guard.assertNoWrites();
   });
 

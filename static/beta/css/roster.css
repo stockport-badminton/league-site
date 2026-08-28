@@ -119,14 +119,18 @@
   .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* No `overflow: hidden` here, deliberately. The row menu is absolutely positioned
+ * inside its own row, so clipping the card cut it off for every player in the
+ * bottom half of a team — the rows a captain reorders most. The head's grey band
+ * gets explicit top corners instead, which is all the clipping was buying. */
 .roster-card {
   border: 1px solid #dee2e6;
   border-radius: 5px;
   background: #fff;
-  overflow: hidden;
   min-width: 0;
 }
 .roster-card-head {
+  border-radius: 4px 4px 0 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -351,6 +355,12 @@
 .roster-savebar .spacer { flex: 1 1 auto; }
 
 /* ---- row menu ---- */
+/* The row is the anchor, and it has to out-rank the cards after it in the grid and
+ * the sticky save bar (z-index 30) while its menu is open. */
+.roster-row.has-menu {
+  position: relative;
+  z-index: 41;
+}
 .roster-menu {
   position: absolute;
   right: 6px;
@@ -364,6 +374,12 @@
   z-index: 40;
   display: flex;
   flex-direction: column;
+}
+/* Opened upwards when the row is close to the bottom of the window — the card no
+ * longer clips the menu, but the viewport still does. */
+.roster-menu.drop-up {
+  top: auto;
+  bottom: 100%;
 }
 .roster-menu button {
   text-align: left;

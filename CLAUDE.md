@@ -141,9 +141,11 @@ npm run test:all      # jest, then playwright
 - **Specs**: `scorecard.spec.js` (18-game), `messer-scorecard.spec.js` (15-game),
   `populated-scorecard.spec.js` (the confirmation view for both),
   `filter-toolbar.spec.js` (filters/chips/DataTables controls),
-  `roster-edit.spec.js` (team-management: pointer and **real touch** drag, arrow-key
-  reordering, the row menu, Discard, plus mobile stacking — the reordering is
-  JavaScript-only behaviour that no server-side test can reach),
+  `roster-edit.spec.js` (team-management: pointer and **real touch** drag, drag
+  *precision* — the row tracking the pointer and not falling into the wrong list —
+  arrow-key reordering, the row menu and its clipping/flip, Discard, plus mobile
+  stacking; the reordering is JavaScript-only behaviour that no server-side test can
+  reach),
   `read-only-guard.spec.js` (self-test for the guard below).
 - **Known bugs** are recorded with `test.fail()` *inside* the test body (at
   describe level the modifier applies to every test in the group). The suite stays
@@ -437,7 +439,22 @@ Gotchas:
   them centrally, 40-odd other pages depend on them.
 - Drag uses **Pointer Events** plus `touch-action: none` on the handle. Both are
   needed; the old page bound only `dragstart`/`drop`, which mobile browsers never
-  fire from touch, so nothing on it worked on a phone.
+  fire from touch, so nothing on it worked on a phone. `touch-action: none` also
+  means the dragging finger can't scroll, which is why the drag runs its own
+  edge auto-scroll off `requestAnimationFrame`.
+- **The dragged row is positioned in document coordinates**, from the pointer's
+  offset within it, re-derived after every DOM move (`reanchor()`). Don't go back to
+  a running delta with the transform reset to zero on each swap: that snaps the row
+  into its new slot out from under the finger, and the asymmetric hysteresis it
+  leaves behind is what made the drag feel like it was catching.
+- **The drop target is the list the pointer is in**, chosen by distance
+  (`listUnder()`), not the first list that would accept an insert. A pointer *above*
+  a list also tests as "before its first row", so first-match-wins meant a nominated
+  player dragged up from the bottom of the list landed at the top of the reserves.
+- **`.roster-card` must not clip** (no `overflow: hidden`). The row menu is absolutely
+  positioned inside its row, so clipping the card cut the menu in half for everyone in
+  the bottom half of a team. The head's rounded corners are set explicitly instead, and
+  the menu flips to `.drop-up` near the foot of the window.
 - `models/players.js:create` has no `RETURNING`, so its `insertId` is always
   `undefined`. Use `Roster.createPlayer` when you need the new id.
 - Club 63 is `No Club` and team 52 is `No Team` — the sentinels a released player is

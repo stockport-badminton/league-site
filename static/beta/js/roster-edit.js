@@ -172,6 +172,7 @@
   // ---------------------------------------------------------------------------
 
   var drag = null;
+  var EDGE = 56; // px from a window edge at which a drag starts scrolling the page
 
   function onHandleDown(e) {
     if (e.button !== undefined && e.button !== 0) return;
@@ -185,7 +186,21 @@
 
     var handle = e.currentTarget;
     handle.setPointerCapture(e.pointerId);
-    drag = { row: row, handle: handle, y: e.clientY, from: row.parentElement };
+    var rect = row.getBoundingClientRect();
+    drag = {
+      row: row,
+      handle: handle,
+      from: row.parentElement,
+      clientY: e.clientY,
+      // Where in the row the pointer landed, and where the row's in-flow top sits
+      // in *document* coordinates. Working in document space rather than from a
+      // running delta means the row stays put under the finger when the list
+      // reflows around it or the page scrolls mid-drag.
+      grabOffset: e.clientY - rect.top,
+      baseTop: rect.top + window.pageYOffset,
+      pageY: e.pageY,
+      raf: 0
+    };
     row.classList.add('grabbed');
     // Only the lists this row may legally be dropped into: same team, same gender.
     // Cross-team and cross-gender moves go through the move dialog, because the
@@ -199,54 +214,115 @@
     handle.addEventListener('pointermove', onHandleMove);
     handle.addEventListener('pointerup', onHandleUp);
     handle.addEventListener('pointercancel', onHandleUp);
+    drag.raf = window.requestAnimationFrame(autoScroll);
   }
 
   function onHandleMove(e) {
     if (!drag) return;
     e.preventDefault();
-    var row = drag.row;
-    row.style.transform = 'translateY(' + (e.clientY - drag.y) + 'px)';
+    drag.clientY = e.clientY;
+    drag.pageY = e.pageY;
+    follow();
+    placeRow();
+  }
 
-    for (var i = 0; i < drag.targets.length; i++) {
-      var list = drag.targets[i];
-      var others = rowsIn(list).filter(function (r) { return r !== row; });
+  // Puts the row where the pointer is holding it.
+  function follow() {
+    drag.row.style.transform =
+      'translateY(' + (drag.pageY - drag.grabOffset - drag.baseTop) + 'px)';
+  }
+
+  // Which of this team's two lists the pointer is over.
+  //
+  // The old code walked the targets in order and took the first that would accept an
+  // insert — but a pointer *above* a list also tests as "before its first row", so
+  // nominated always won: dragging a reserve up anywhere flung them to the top of
+  // the nominated list, and there was only a 26px band below the last nominated row
+  // in which a drop still counted as nominated at all. A few pixels past that and
+  // the row jumped into the reserves. Pick the list the pointer is actually in, and
+  // when it's outside both, leave the row alone rather than snapping it to an end.
+  function listUnder(clientY) {
+    var best = null;
+    var bestDistance = Infinity;
+    drag.targets.forEach(function (list) {
       var box = list.getBoundingClientRect();
+      var distance = clientY < box.top ? box.top - clientY
+        : clientY > box.bottom ? clientY - box.bottom
+        : 0;
+      if (distance < bestDistance) { bestDistance = distance; best = list; }
+    });
+    return bestDistance > 60 ? null : best;
+  }
 
-      // Insert above the first row whose midpoint the pointer is past.
-      for (var j = 0; j < others.length; j++) {
-        var r = others[j].getBoundingClientRect();
-        if (e.clientY < r.top + r.height / 2) {
-          if (others[j] !== row.nextElementSibling || row.parentElement !== list) {
-            list.insertBefore(row, others[j]);
-            settle(e.clientY);
-          }
-          return;
-        }
-      }
+  function placeRow() {
+    var list = listUnder(drag.clientY);
+    if (!list) return;
 
-      // Past every row in this list, but still within its band: append.
-      var lastBottom = others.length
-        ? others[others.length - 1].getBoundingClientRect().bottom
-        : box.top;
-      if (e.clientY >= lastBottom - 2 && e.clientY <= box.bottom + 24) {
-        if (row.parentElement !== list || row !== list.lastElementChild) {
-          list.appendChild(row);
-          settle(e.clientY);
-        }
-        return;
+    var row = drag.row;
+    // Probe with the dragged row's own centre, not the raw pointer. The pointer can
+    // be anywhere within the row depending on where the handle was grabbed, so
+    // comparing it against neighbours' midpoints meant the row swapped a
+    // half-row-height before or after it looked like it should.
+    var rect = row.getBoundingClientRect();
+    var centre = rect.top + rect.height / 2;
+
+    var others = rowsIn(list).filter(function (r) { return r !== row; });
+    var before = null;
+    for (var i = 0; i < others.length; i++) {
+      var r = others[i].getBoundingClientRect();
+      if (centre < r.top + r.height / 2) { before = others[i]; break; }
+    }
+
+    if (before) {
+      if (row.parentElement !== list || row.nextElementSibling !== before) {
+        list.insertBefore(row, before);
+        reanchor();
       }
+    } else if (row.parentElement !== list || row !== list.lastElementChild) {
+      list.appendChild(row);
+      reanchor();
     }
   }
 
-  // Re-baselines the finger offset after a DOM move so the row doesn't jump.
-  function settle(y) {
-    drag.y = y;
-    drag.row.style.transform = 'translateY(0px)';
+  // The row has just moved in the DOM, so its in-flow position has changed. Measure
+  // the new one and re-derive the offset from it. The old code reset the transform to
+  // zero and re-baselined the finger instead, which snapped the row into its new slot
+  // out from under the pointer — and since the pointer was then sitting near the
+  // midpoint it had just crossed, the next few pixels of movement often swapped it
+  // straight back. That oscillation is the sticking.
+  function reanchor() {
+    drag.row.style.transform = '';
+    drag.baseTop = drag.row.getBoundingClientRect().top + window.pageYOffset;
+    follow();
     refresh();
+  }
+
+  // touch-action: none on the handle means the finger doing the dragging can't also
+  // scroll the page, so without this a destination below the fold is unreachable on a
+  // phone. Runs off rAF rather than pointermove because the pointer can sit still at
+  // the edge.
+  function autoScroll() {
+    if (!drag) return;
+    var y = drag.clientY;
+    var speed = y < EDGE ? (y - EDGE) / 6
+      : y > window.innerHeight - EDGE ? (y - (window.innerHeight - EDGE)) / 6
+      : 0;
+    if (speed) {
+      var was = window.pageYOffset;
+      window.scrollBy(0, speed);
+      if (window.pageYOffset !== was) {
+        // The page moved under a stationary pointer: same clientY, new pageY.
+        drag.pageY = drag.clientY + window.pageYOffset;
+        follow();
+        placeRow();
+      }
+    }
+    drag.raf = window.requestAnimationFrame(autoScroll);
   }
 
   function onHandleUp() {
     if (!drag) return;
+    window.cancelAnimationFrame(drag.raf);
     drag.handle.removeEventListener('pointermove', onHandleMove);
     drag.handle.removeEventListener('pointerup', onHandleUp);
     drag.handle.removeEventListener('pointercancel', onHandleUp);
@@ -313,8 +389,10 @@
 
   function closeMenu() {
     if (!openMenuEl) return;
-    var btn = openMenuEl.parentElement.querySelector('.row-menu-btn');
+    var row = openMenuEl.parentElement;
+    var btn = row.querySelector('.row-menu-btn');
     if (btn) btn.setAttribute('aria-expanded', 'false');
+    row.classList.remove('has-menu');
     openMenuEl.remove();
     openMenuEl = null;
   }
@@ -357,11 +435,20 @@
     });
     item('Remove from team', function () { confirmRelease(row, name); }, { danger: true });
 
-    row.style.position = 'relative';
+    row.classList.add('has-menu');
     row.appendChild(menu);
     button.setAttribute('aria-expanded', 'true');
     openMenuEl = menu;
-    menu.querySelector('button:not(:disabled)').focus();
+
+    // Hangs below the row by default, above it when there isn't room. Measured
+    // after appending, because the menu has no height until it's in the document.
+    var box = row.getBoundingClientRect();
+    var below = window.innerHeight - box.bottom;
+    if (below < menu.offsetHeight + 12 && box.top > below) menu.classList.add('drop-up');
+
+    // preventScroll: the placement above was decided from where the row is now, and
+    // focus() would otherwise scroll it somewhere else immediately afterwards.
+    menu.querySelector('button:not(:disabled)').focus({ preventScroll: true });
   }
 
   // ---------------------------------------------------------------------------
