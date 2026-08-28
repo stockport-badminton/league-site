@@ -422,6 +422,17 @@ POST /api/roster/club-:club/players | /attach | /transfer
 query, so it cannot hold a transaction). Never renumber client-side: doing so is
 what left teams ranked 1, 2, 4, 6.
 
+**`saveTeamOrder` takes section membership from the payload, and settles a gender's
+two lists together** (`renumberGender`). Whether someone is nominated is what the
+save is *changing*, so it cannot also be the thing that decides which list they
+belong to. Reading it from the rank already stored meant a promoted reserve was
+dropped from the nominated list for not already being nominated, then re-appended to
+the reserve list as a member the payload hadn't named: the save wrote **nothing**,
+answered `ok: true`, and the refresh put them back. It was live for a month and no
+test caught it — every case posted one section, or four with nobody crossing.
+`renumberSection` still derives membership from the ranks, and is only for closing
+the gap a departing player leaves behind in `movePlayer` / `releasePlayer`.
+
 **Authorization**: `secured` only proves someone is logged in. Anything scoped to a
 club also needs `middleware/requireClubAccess` — as route middleware where the path
 carries `:club`, or `assertClubAccess(req, clubName)` inside a handler that has to

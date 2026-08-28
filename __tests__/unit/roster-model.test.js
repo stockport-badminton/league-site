@@ -167,12 +167,12 @@ describe('saveTeamOrder', () => {
     expect(updates()).toEqual([]);
   });
 
+  // One read per gender, not per section: a gender's two lists are settled
+  // together, which is what makes a nominated/reserve change saveable at all.
   it('writes all four sections inside one transaction', async () => {
     queue(
-      [{ id: 1, rank: 2 }],
-      [{ id: 2, rank: 3 }],
-      [{ id: 3, rank: 100 }],
-      [{ id: 4, rank: 105 }]
+      [{ id: 1, rank: 2 }, { id: 3, rank: 100 }],
+      [{ id: 2, rank: 3 }, { id: 4, rank: 105 }]
     );
     await Roster.saveTeamOrder(12, [
       { gender: 'Male', section: 'nominated', playerIds: [1] },
@@ -183,9 +183,70 @@ describe('saveTeamOrder', () => {
     const shape = db.__state.log.map(e => e.sql);
     expect(shape[0]).toBe('BEGIN');
     expect(shape[shape.length - 1]).toBe('COMMIT');
+    expect(shape.filter(s => s.startsWith('SELECT id, rank'))).toHaveLength(2);
     expect(updates()).toEqual([
-      { rank: 1, id: 1 }, { rank: 1, id: 2 }, { rank: 99, id: 3 }, { rank: 99, id: 4 }
+      { rank: 1, id: 1 }, { rank: 99, id: 3 }, { rank: 1, id: 2 }, { rank: 99, id: 4 }
     ]);
+  });
+
+  // The live bug, in the shape it reached production: Featherforce A's only reserve
+  // man would not stick as a nominated player. Section membership was read from the
+  // rank already in the database, so the id was dropped from the nominated list for
+  // not already being nominated, and then re-appended to the reserve list as a
+  // member the payload hadn't named. The save wrote nothing and reported success.
+  it('promotes a reserve into the nominated list', async () => {
+    queue([
+      { id: 2098, rank: 1 }, { id: 2192, rank: 2 }, { id: 2299, rank: 3 },
+      { id: 2202, rank: 4 }, { id: 2128, rank: 99 }
+    ]);
+    const updated = await Roster.saveTeamOrder(12, [
+      { gender: 'Male', section: 'nominated', playerIds: [2098, 2192, 2299, 2202, 2128] },
+      { gender: 'Male', section: 'reserve', playerIds: [] }
+    ]);
+    expect(updates()).toEqual([{ rank: 5, id: 2128 }]);
+    expect(updated).toEqual([{ id: 2128, rank: 5 }]);
+  });
+
+  it('demotes a nominated player into the reserves and closes the gap', async () => {
+    queue([
+      { id: 7, rank: 1 }, { id: 8, rank: 2 }, { id: 9, rank: 3 }, { id: 21, rank: 99 }
+    ]);
+    await Roster.saveTeamOrder(12, [
+      { gender: 'Male', section: 'nominated', playerIds: [7, 9] },
+      { gender: 'Male', section: 'reserve', playerIds: [21, 8] }
+    ]);
+    // 9 moves up into the hole, 8 lands behind the existing reserve.
+    expect(updates()).toEqual([{ rank: 2, id: 9 }, { rank: 100, id: 8 }]);
+  });
+
+  it('handles a swap in both directions at once', async () => {
+    queue([{ id: 7, rank: 1 }, { id: 8, rank: 2 }, { id: 21, rank: 99 }]);
+    await Roster.saveTeamOrder(12, [
+      { gender: 'Male', section: 'nominated', playerIds: [7, 21] },
+      { gender: 'Male', section: 'reserve', playerIds: [8] }
+    ]);
+    expect(updates()).toEqual([{ rank: 2, id: 21 }, { rank: 99, id: 8 }]);
+  });
+
+  // Nominated is settled first, so a payload naming someone twice can't leave them
+  // holding a reserve rank while the nominated list counts them.
+  it('gives the nominated list first claim on a player named in both', async () => {
+    queue([{ id: 7, rank: 1 }, { id: 8, rank: 99 }]);
+    await Roster.saveTeamOrder(12, [
+      { gender: 'Male', section: 'nominated', playerIds: [7, 8] },
+      { gender: 'Male', section: 'reserve', playerIds: [8] }
+    ]);
+    expect(updates()).toEqual([{ rank: 2, id: 8 }]);
+  });
+
+  // The team/gender guard still holds — it just isn't the section guard as well.
+  it('still refuses an id from another team even when it is named as nominated', async () => {
+    queue([{ id: 7, rank: 1 }]);
+    await Roster.saveTeamOrder(12, [
+      { gender: 'Male', section: 'nominated', playerIds: [7, 999] },
+      { gender: 'Male', section: 'reserve', playerIds: [] }
+    ]);
+    expect(updates()).toEqual([]);
   });
 
   it('rolls back rather than half-applying', async () => {

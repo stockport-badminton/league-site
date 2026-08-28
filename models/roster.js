@@ -38,6 +38,10 @@ const NO_TEAM_ID = parseInt(process.env.NO_TEAM_ID, 10) || 52
 
 const RESERVE_BASE = 99
 
+// Nominated before reserve, always: a save settles the two together, and the
+// nominated list gets first claim on a player named in both.
+const SECTIONS = ['nominated', 'reserve']
+
 // A player's display name, built the same way everywhere so a name matches between
 // the roster, the search results and a toast.
 //
@@ -186,7 +190,14 @@ exports.getPlayerOwner = async function(playerId, conn) {
 // Writes
 // ---------------------------------------------------------------------------
 
-// Renumbers one (team, gender, section) list to exactly `orderedIds`.
+// Renumbers one (team, gender, section) list to exactly `orderedIds`, taking
+// section membership from the ranks already in the database.
+//
+// **This cannot move anyone between nominated and reserve** — by design. It exists
+// for closing the gap a departing player leaves behind (movePlayer, releasePlayer),
+// where the player has already been UPDATEd out of the section and the remaining
+// members are exactly what their ranks say. A save that changes who is nominated
+// has to go through renumberGender, which reads membership from the payload.
 //
 // Called inside a transaction. Only rows that already belong to this team and
 // gender are touched — an id from anywhere else is ignored rather than being
@@ -239,19 +250,86 @@ async function renumberSection(conn, teamId, gender, section, orderedIds) {
 
 exports.renumberSection = renumberSection
 
+// Renumbers both of a (team, gender) pair's lists from the order the caller asked
+// for. `wanted` is { nominated: [...ids], reserve: [...ids] }; either may be absent.
+//
+// The two lists are settled together on purpose. Section membership is taken from
+// the payload rather than from the rank each player currently holds, and that is
+// the whole point: deriving it from the rank made promoting a reserve impossible to
+// save. The id was dropped from the nominated list for not already being nominated,
+// then re-appended to the reserve list as a member the payload hadn't mentioned — so
+// the save wrote nothing, reported success, and the refresh put the player back.
+// (Featherforce A: Dan Jennings, rank 99, would not stick at nominated 5.)
+async function renumberGender(conn, teamId, gender, wanted) {
+  const [current] = await conn.query(
+    'SELECT id, rank FROM player WHERE team = ? AND gender = ? ORDER BY rank NULLS LAST, id',
+    [teamId, gender]
+  )
+  const byId = new Map(current.map(r => [Number(r.id), r]))
+
+  const claimed = new Set()
+  const order = { nominated: [], reserve: [] }
+  for (const section of SECTIONS) {
+    for (const id of wanted[section] || []) {
+      const n = Number(id)
+      // Only players already in this team and gender. An id from anywhere else is
+      // ignored rather than dragged in, so a stale page can't relocate anyone.
+      // Cross-team and cross-gender moves go through movePlayer.
+      if (byId.has(n) && !claimed.has(n)) {
+        claimed.add(n)
+        order[section].push(n)
+      }
+    }
+  }
+
+  // Anyone the payload didn't mention keeps the section their rank puts them in,
+  // at the bottom of it — a stale payload shouldn't orphan a player or silently
+  // reclassify them.
+  for (const row of current) {
+    const n = Number(row.id)
+    if (claimed.has(n)) continue
+    claimed.add(n)
+    order[exports.isReserve(row.rank) ? 'reserve' : 'nominated'].push(n)
+  }
+
+  const updated = []
+  for (const section of SECTIONS) {
+    const base = section === 'reserve' ? RESERVE_BASE : 1
+    for (let i = 0; i < order[section].length; i++) {
+      const id = order[section][i]
+      const rank = base + i
+      const existing = byId.get(id)
+      if (existing && Number(existing.rank) === rank) continue // no-op, skip the write
+      await conn.query('UPDATE player SET rank = ? WHERE id = ?', [rank, id])
+      updated.push({ id, rank })
+    }
+  }
+  return updated
+}
+
+exports.renumberGender = renumberGender
+
 // Saves a whole team card in one transaction: nominated men, nominated ladies,
 // reserve men, reserve ladies.
 //
 // `sections` is [{ gender: 'Male', section: 'nominated', playerIds: [...] }, ...].
-// The editor posts every list it displays, so a drag from nominated to reserves
-// arrives as two lists and both ends stay consistent. All-or-nothing matters
-// here: a partial apply is what left teams ranked 1, 2, 4, 5 before.
+// The editor posts every list it displays. They are regrouped by gender and applied
+// a gender at a time, because "who is nominated" is one decision about one list of
+// people: settling a gender's two sections independently is what let a player be
+// dropped from the one they were joining and re-appended to the one they were
+// leaving. All-or-nothing matters too — a partial apply is what left teams ranked
+// 1, 2, 4, 5 before.
 exports.saveTeamOrder = async function(teamId, sections) {
+  const byGender = new Map()
+  for (const s of sections) {
+    if (!byGender.has(s.gender)) byGender.set(s.gender, {})
+    byGender.get(s.gender)[s.section] = s.playerIds || []
+  }
+
   return db.withTransaction(async conn => {
     const updated = []
-    for (const s of sections) {
-      const rows = await renumberSection(conn, teamId, s.gender, s.section, s.playerIds || [])
-      updated.push(...rows)
+    for (const [gender, wanted] of byGender) {
+      updated.push(...await renumberGender(conn, teamId, gender, wanted))
     }
     return updated
   })
