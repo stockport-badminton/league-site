@@ -668,7 +668,12 @@ describe('POST /add-scorecard-photo/:id', () => {
       expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', PHOTO_URL);
       expect(ses.sendEmail).toHaveBeenCalledTimes(1);
       const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
-      expect(html).toContain(PHOTO_URL);
+      // The bucket URL is what gets *stored*; what gets *emailed* is the proxy path.
+      // This asserted PHOTO_URL until HARD-02b made the objects private — a bucket link
+      // in this mail is now an AccessDenied page for the results secretary, and the
+      // bucket URL was itself the only authorization the photo had.
+      expect(html).toContain('/scorecard-photo/7');
+      expect(html).not.toContain(PHOTO_URL);
     });
   });
 
@@ -935,7 +940,10 @@ describe('POST /email-scorecard link and token', () => {
 
     expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe(PHOTO_URL);
     const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
-    expect(html).toContain(PHOTO_URL);
+    // Stored as the bucket URL, emailed as the proxy path — see HARD-02b, and the
+    // same change to the sibling assertion in POST /add-scorecard-photo/:id above.
+    expect(html).toContain('/scorecard-photo/');
+    expect(html).not.toContain(PHOTO_URL);
   });
 });
 
@@ -968,5 +976,75 @@ describe('GET /email-scorecard passes each draft token to the page', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('Mellor A');
+  });
+});
+
+// ── HARD-02b: the emails link the proxy, never the bucket ─────────────────────
+//
+// Both emails to the results secretary used to carry the raw S3 URL of the photo. That
+// URL *was* the authorization on the photo — public-read, forever, for anyone the mail
+// was ever forwarded to — and once the objects are private it is an AccessDenied page
+// for the one person who has to look at it. Both now link GET /scorecard-photo/:id,
+// which is gated by the draft's own confirmation token.
+
+describe('the results-secretary emails link the photo through the proxy', () => {
+  const bucketUrl = `https://${BUCKET}.s3.eu-west-1.amazonaws.com/scorecards/20262027/card.jpg`;
+
+  function htmlOfLastEmail() {
+    const call = ses.sendEmail.mock.calls[ses.sendEmail.mock.calls.length - 1][0];
+    return call.Message.Body.Html.Data;
+  }
+
+  beforeEach(() => {
+    sesWorks();
+    process.env.S3_BUCKET_NAME = BUCKET;
+  });
+
+  // The draft-filing path — POST /email-scorecard, which writes the row, mails the
+  // results secretary and redirects the captain to the confirmation page.
+  it('does it when the draft is filed', async () => {
+    Fixture.createScorecard.mockResolvedValue([{ id: 4242 }]);
+
+    const res = await request(app)
+      .post('/email-scorecard')
+      .send(validScorecard({ 'scoresheet-url': bucketUrl }));
+
+    expect(res.status).toBe(302);
+    const html = htmlOfLastEmail();
+    expect(html).toContain('/scorecard-photo/4242');
+    expect(html).not.toContain(bucketUrl);
+    expect(html).not.toContain(`${BUCKET}.s3`);
+    // Still the site's own origin, not the Cloud Run hostname — gotcha 1b.
+    expect(html).not.toContain('run.app');
+  });
+
+  it('does it when a photo is attached afterwards', async () => {
+    Fixture.getScorecardById.mockResolvedValue([
+      { id: 7, 'scoresheet-url': '', confirmToken: 'tok-en-123' }
+    ]);
+    Fixture.updateScorecardPhoto.mockResolvedValue(Object.assign([], { affectedRows: 1 }));
+
+    const res = await request(app)
+      .post('/add-scorecard-photo/7')
+      .send({ imgURL: bucketUrl, token: 'tok-en-123' });
+
+    expect(res.status).toBe(200);
+    const html = htmlOfLastEmail();
+    // The token travels with the link, or the secretary's own email would 403.
+    expect(html).toContain('/scorecard-photo/7?t=tok-en-123');
+    expect(html).not.toContain(`${BUCKET}.s3`);
+  });
+
+  // What is stored is still the bucket URL. Migrating that column is a one-way door and
+  // is left to the owner (HARD-02b); the reader is tolerant of both shapes instead.
+  it('still stores the bucket URL, not the proxy path', async () => {
+    Fixture.getScorecardById.mockResolvedValue([
+      { id: 7, 'scoresheet-url': '', confirmToken: null }
+    ]);
+    Fixture.updateScorecardPhoto.mockResolvedValue(Object.assign([], { affectedRows: 1 }));
+
+    await request(app).post('/add-scorecard-photo/7').send({ imgURL: bucketUrl });
+
+    expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', bucketUrl);
   });
 });

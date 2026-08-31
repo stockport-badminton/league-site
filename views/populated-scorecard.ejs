@@ -35,6 +35,20 @@
         <% if (hasResult && !hasErrors) { %>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>
         <% } %>
+        <%
+        // The scorecard photo, served by GET /scorecard-photo/:id and not from the S3
+        // bucket (HARD-02b). The path is built in the controller so the draft's
+        // confirmation token is handled in exactly one place; it is null when there is
+        // no photo, and the block then renders nothing rather than `src="undefined"`.
+        %>
+        <% if (locals.photoPath) { %>
+          <h2 class="h5">Scorecard photo</h2>
+          <p>
+            <a href="<%= photoPath %>" target="_blank" rel="noopener">
+              <img src="<%= photoPath %>" class="img-fluid" alt="Photo of the scorecard for this fixture" />
+            </a>
+          </p>
+        <% } %>
       </div>
 
       <!-- Modal -->
@@ -903,7 +917,14 @@
 
     $(document).ready(function() {
       <% if (hasResult || hasErrors){ %>
-        console.log(<%- JSON.stringify(data) %>);
+        // A console.log of the whole draft row, serialised straight into this script
+        // block, used to sit here. Removed with HARD-02b for two reasons beyond it being
+        // a debug leftover: it wrote the raw S3 photo URL and the draft's confirmToken
+        // into the page source, which is the opposite of making photos private; and
+        // unescaped JSON inside a script block is broken by any value containing the
+        // closing-script sequence, which team and player names come close enough to for
+        // it to be worth not doing.
+
       $(".form-group.step-2 input, .form-group.step-3 input").change(function() {
         console.log($(this).val() + '-' + $(this).attr("id"));
 

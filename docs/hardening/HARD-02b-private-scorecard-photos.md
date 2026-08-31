@@ -41,3 +41,161 @@ historical scorecard photo on the site.
 
 - Deleting the anonymous uploads already in the bucket.
 - Object lifecycle rules on the bucket, which would be a sensible separate thing.
+
+---
+
+# The runbook — how to actually make the photos private
+
+**The code is done and deployed-safe as it stands.** Everything below is the half that
+touches AWS, and none of it is in this repo. Nothing here is required for the site to
+keep working: the read path does not care whether the objects are public or private, so
+you can stop after any step and the site is fine.
+
+Do the steps in order. Each one says how to reverse it.
+
+**Before you start.** Know your bucket name (`S3_BUCKET_NAME` in Cloud Run) and check
+what is in it, because scorecard photos are not the only thing:
+
+```bash
+aws s3 ls s3://$BUCKET/ --recursive | head -50
+```
+
+You should see `scorecards/…` (photos), `venues-map.png`, and `social-videos/…`. The
+last two are *generated assets the site serves publicly* — `venues-map.png` is proxied by
+`app.js` and the videos are handed to Make.com. **Do not make those private.** Every step
+below is scoped to the `scorecards/` prefix for that reason.
+
+### Step 0 — confirm the read path works in production, while the objects are still public
+
+This is the whole reason the work was split. Deploy the code, then open a confirmation
+link from a recent results email and check the photo appears on the page. Also try a
+photo from an archived season:
+
+```bash
+# a draft id and token for something old, and one for something recent
+node tools/dbq.js "SELECT id, date, \"confirmToken\" IS NOT NULL AS tokened, \"scoresheet-url\"
+                   FROM scorecardstore
+                   WHERE COALESCE(NULLIF(TRIM(\"scoresheet-url\"), ''), '') <> ''
+                   ORDER BY date LIMIT 3"
+node tools/dbq.js "SELECT id, date, \"confirmToken\" IS NOT NULL AS tokened, \"scoresheet-url\"
+                   FROM scorecardstore
+                   WHERE COALESCE(NULLIF(TRIM(\"scoresheet-url\"), ''), '') <> ''
+                   ORDER BY date DESC LIMIT 3"
+```
+
+Then `curl -I https://stockport-badminton.co.uk/scorecard-photo/<id>` (add `?t=<token>`
+for a tokened draft) and expect `200` with an `image/*` content type. **If any of these
+404, stop and find out why before going near the bucket** — that is exactly the failure
+this ordering exists to catch, and at this point it costs nothing.
+
+A `404` here means one of: the object is genuinely gone from the bucket; the stored URL
+is not parseable as one of our own objects; or the key is corrupted. The third is known
+to exist — the upload page used to rewrite `%20` as `+` when reconstructing the URL, so
+some historical keys in the column do not match the object that was actually written.
+Those photos are already unreachable today and were before this work; note them and move
+on, do not treat them as a regression.
+
+**Reverse:** nothing to reverse. Redeploy the previous revision.
+
+### Step 1 — stop new uploads being public
+
+Already done in code: `/sign-s3` no longer signs `ACL: 'public-read'`. It takes effect on
+the next deploy and applies only to objects written after it.
+
+**Reverse:** `git revert` the commit "Stop signing scorecard uploads as public-read".
+It is deliberately a separate commit from the read path so this is a one-command
+reversal that does not take the read path with it.
+
+### Step 2 — check whether a bucket policy is granting public read anyway
+
+An ACL is not the only way an object is public. If a bucket policy grants
+`s3:GetObject` to `*`, step 1 changed nothing observable.
+
+```bash
+aws s3api get-bucket-policy --bucket $BUCKET --query Policy --output text | jq .
+```
+
+If there is a statement with `"Principal": "*"` and `"Action": "s3:GetObject"` covering
+`arn:aws:s3:::$BUCKET/scorecards/*` (or the whole bucket, `/*`), it has to be narrowed.
+**Save the current policy first** — this is the step it is most annoying to undo from
+memory:
+
+```bash
+aws s3api get-bucket-policy --bucket $BUCKET --query Policy --output text > /tmp/bucket-policy-before.json
+```
+
+Then edit it so any public-read statement's `Resource` covers only what must stay public
+(`arn:aws:s3:::$BUCKET/venues-map.png` and `arn:aws:s3:::$BUCKET/social-videos/*`) and no
+longer `scorecards/*`, and put it back with
+`aws s3api put-bucket-policy --bucket $BUCKET --policy file:///tmp/after.json`.
+
+**Reverse:** `aws s3api put-bucket-policy --bucket $BUCKET --policy file:///tmp/bucket-policy-before.json`.
+Effective within seconds.
+
+### Step 3 — make the existing photos private
+
+Only after step 0 passed. This is the step that would blank the photos if the read path
+were wrong, and it is the one worth doing in two halves.
+
+First one object, and check the site still shows it:
+
+```bash
+# pick a photo you have already loaded successfully through /scorecard-photo/:id
+aws s3api put-object-acl --bucket $BUCKET --key "scorecards/…/one-photo.jpg" --acl private
+curl -sI "https://$BUCKET.s3.eu-west-1.amazonaws.com/scorecards/…/one-photo.jpg" | head -1   # expect 403
+curl -sI "https://stockport-badminton.co.uk/scorecard-photo/<that draft id>" | head -1        # expect 200
+```
+
+If both of those are right, do the rest of the prefix:
+
+```bash
+aws s3 ls s3://$BUCKET/scorecards/ --recursive --output text \
+  | awk '{ $1=""; $2=""; $3=""; sub(/^ +/, ""); print }' \
+  | while IFS= read -r key; do
+      aws s3api put-object-acl --bucket "$BUCKET" --key "$key" --acl private
+    done
+```
+
+Note the historical photos that predate the `scorecards/` prefix and sit at the bucket
+root (`20182019-Shell A-Mellor A.jpg` and similar). They need the same treatment, and
+they are the ones where getting the read path right matters most — check a handful
+through `/scorecard-photo/:id` individually before changing them.
+
+**Reverse:** the same loop with `--acl public-read`. Note this is only *practically*
+reversible — if you cannot enumerate exactly which objects you changed, you will make
+things public that were private. Keep the output of the `aws s3 ls` above.
+
+### Step 4 (optional) — Block Public Access on the bucket
+
+The belt-and-braces version, and the only one that is genuinely hard to get wrong. **Do
+not do this** unless the venues map and the weekly videos have been moved out of this
+bucket or in front of a proxy first, because it blocks them too.
+
+**Reverse:** `aws s3api delete-public-access-block --bucket $BUCKET`, then re-apply the
+policy from step 2.
+
+### What is deliberately not in this runbook
+
+- **Migrating `scorecardstore."scoresheet-url"`.** The reader accepts a bare key as well
+  as every URL shape in the data, so storing keys for new uploads is a one-line change
+  whenever someone wants it. Rewriting ~1,500 rows of historical URLs is a one-way door
+  with no upside — it is the owner's call, not this package's.
+- **Backfilling `confirmToken`.** Same reason as HARD-03: minting tokens for existing
+  rows is what would invalidate the links this all rests on.
+- **Deleting the anonymous uploads already in the bucket**, and lifecycle rules on the
+  `scorecards/` prefix. Both still out of scope, and lifecycle is the right answer to the
+  storage-cost residual rather than more code.
+
+## Who can see a photo, once this is done
+
+| Who | How |
+|---|---|
+| Anyone holding a confirmation link for that draft | the `?t=` token, checked by `mayOpenDraft` |
+| Anyone who can guess a draft id, **for a draft filed before migration 011** | the grandfather clause — same exposure the confirmation page already has, and it shrinks as old drafts are processed |
+| Anyone at all, direct from the bucket | no longer — that was the finding |
+
+The middle row is the honest caveat: photos on tokenless drafts are still reachable by
+counting ids, exactly as the *scorecard* is. It is the same authorization as the data the
+photo is a picture of, which is the point — but it is not "private" in the strong sense
+until the grandfather clause in `utils/scorecardLinks.js` goes, and that clause carries
+its own note saying what removes it.
