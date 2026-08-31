@@ -62,6 +62,29 @@ LEFT JOIN division d ON ht."division" = d.id
   - `_json['https://my-app.example.com/role']` — user role (e.g., 'superadmin', 'captain')
   - `_json['https://my-app.example.com/messeradmin']` — boolean flag for messer admin
 
+### Two email columns on `player`, and they are not interchangeable
+
+Both are `pgp_sym_encrypt`'d bytea — always bind `DB_PI_KEY` as a `?` parameter,
+never inline it (one query had it as a string literal until Aug 2026).
+
+- **`authEmail`** — the login identity, written only when a superadmin approves a
+  signup (`Player.setAuthRole`). Read by `getAuthRoleByEmail` at login to enrich
+  `req.user`. A player's Auth0 address is often not the one they gave their captain,
+  which is why it exists at all.
+- **`playerEmail`** — the contact address. This is what the profile form, the club
+  contact page (`/club/:id`), the roster's mail links and the fixture reminder emails
+  all read. Editable by the player.
+
+Approving a signup **seeds `playerEmail` when it is blank**, in the same statement.
+Without that the two never met: a player added to a roster by their captain starts
+with no contact email, nothing else ever fills it in, and a signed-up player showed
+blank on every surface above while holding a good address in `authEmail`. 53 players
+were in that state before it was found (Aug 2026). The seed is guarded with
+`COALESCE(NULLIF(TRIM(...), ''), '') = ''` — an initialisation, never an overwrite.
+
+Note the blank is sometimes `NULL` and sometimes `pgp_sym_encrypt('')`, so a plain
+`IS NOT NULL` test is not enough to decide whether someone has an email.
+
 ### Secured Routes
 
 Use `/middleware/secured.js` middleware for auth-gated pages:
