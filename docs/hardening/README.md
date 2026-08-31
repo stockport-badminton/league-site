@@ -111,7 +111,7 @@ stand without reading git log.
 | HARD-05 | **done** | `4a10c68` | All 11 replaced with next(err), plus a repo-level guard test. |
 | HARD-06 | not started | | |
 | HARD-07 | not started | | |
-| HARD-08 | **done** | *(pending)* | `npm ci && npm test` before the build. Verified the suite passes with no .env, as in CI. Playwright stays local — HARD-13. |
+| HARD-08 | **done** | `5d48fa6` | `npm ci && npm test` before the build. Verified the suite passes with no .env, as in CI. Playwright stays local — HARD-13. |
 | HARD-09 | not started | | |
 | HARD-10 | not started | | |
 | HARD-11 | not started | | |
