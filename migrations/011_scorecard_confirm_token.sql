@@ -5,13 +5,13 @@
 -- that the visitor is connected to either club, and ids run to about 2,400 — so every
 -- scorecard ever filed can be walked by counting, and an outsider can confirm a result
 -- that neither captain has agreed. The token goes in the link and is checked on the way
--- in; nothing changes for a captain, who still clicks the link in their email.
+-- in. Nothing changes for a captain, who still clicks the link in their email.
 --
 -- 32 base64url characters from 24 random bytes (utils/scorecardLinks.js). VARCHAR(64)
 -- leaves room to lengthen it without a second migration.
 --
 -- Deliberately NULLable, and deliberately NOT backfilled. Drafts filed before this
--- column existed have confirmation links already sitting in captains' inboxes; a row
+-- column existed have confirmation links already sitting in captains' inboxes. A row
 -- with no token is treated as "no token required" (the grandfather clause in
 -- utils/scorecardLinks.js:draftRequiresToken), because minting tokens for existing rows
 -- is exactly what would invalidate those links and silently lock a captain out of

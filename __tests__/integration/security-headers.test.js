@@ -59,6 +59,40 @@ describe('the headers that enforce now', () => {
     expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
   });
 
+  // HSTS applies to this host only unless someone opts in.
+  //
+  // `includeSubDomains` commits every subdomain of stockport-badminton.co.uk to HTTPS
+  // for a year, and a browser that has seen the header keeps honouring it — so an
+  // http-only subdomain breaks and stays broken for anyone who has visited, whatever we
+  // serve afterwards. Nobody has confirmed what is on the subdomains.
+  //
+  // The assertion above only ever matched `max-age`, so this directive was untested in
+  // both directions and could be flipped by accident without a test noticing.
+  it('does not claim the subdomains without an explicit opt-in', async () => {
+    const res = await homepage();
+    expect(res.headers['strict-transport-security']).not.toMatch(/includeSubDomains/i);
+  });
+});
+
+describe('HSTS_INCLUDE_SUBDOMAINS', () => {
+  // Read at request time by helmet, so flipping it needs the app rebuilt; the module
+  // registry is reset so app.js re-runs its helmet() call with the new value.
+  const original = process.env.HSTS_INCLUDE_SUBDOMAINS;
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.HSTS_INCLUDE_SUBDOMAINS;
+    else process.env.HSTS_INCLUDE_SUBDOMAINS = original;
+    jest.resetModules();
+  });
+
+  it('adds includeSubDomains when set to true', async () => {
+    process.env.HSTS_INCLUDE_SUBDOMAINS = 'true';
+    jest.resetModules();
+    const freshApp = require('../../app');
+    const res = await request(freshApp).get('/healthz');
+    expect(res.headers['strict-transport-security']).toMatch(/includeSubDomains/i);
+  });
+
   // "Headers present on every response" is the acceptance criterion, so helmet is
   // mounted above the static handlers and above /healthz rather than beside the router.
   it('sets them on a static asset', async () => {
