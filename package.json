@@ -71,7 +71,7 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/\\.claude/"
+      "<rootDir>/\\.claude/"
     ],
     "testTimeout": 15000,
     "setupFilesAfterEnv": [
