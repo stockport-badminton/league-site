@@ -68,6 +68,11 @@
     "testMatch": [
       "**/__tests__/**/*.test.js"
     ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/\\.claude/"
+    ],
+    "testTimeout": 15000,
     "setupFilesAfterEnv": [
       "./__tests__/setupAfterEnv.js"
     ]
