@@ -108,10 +108,10 @@ stand without reading git log.
 | HARD-02 | **done** | `8f1fb71` | Server-generated keys, image-only content types, rate limit. Residual tracked as HARD-02b. |
 | HARD-03 | not started | | |
 | HARD-04 | **done** | `19d27ec` | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
-| HARD-05 | **done** | *(pending)* | All 11 replaced with next(err), plus a repo-level guard test. |
+| HARD-05 | **done** | `4a10c68` | All 11 replaced with next(err), plus a repo-level guard test. |
 | HARD-06 | not started | | |
 | HARD-07 | not started | | |
-| HARD-08 | not started | | |
+| HARD-08 | **done** | *(pending)* | `npm ci && npm test` before the build. Verified the suite passes with no .env, as in CI. Playwright stays local — HARD-13. |
 | HARD-09 | not started | | |
 | HARD-10 | not started | | |
 | HARD-11 | not started | | |

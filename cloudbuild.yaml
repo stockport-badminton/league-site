@@ -1,4 +1,30 @@
 steps:
+  # Tests first. A failing step fails the build, so a broken commit never becomes an
+  # image, let alone a deployment.
+  #
+  # There was no test step at all until August 2026: 391 Jest tests that ran only when
+  # somebody remembered to run them. That works while the person deploying is the person
+  # who wrote them; the moment it isn't, the suite stops being a safety net and becomes
+  # documentation of what used to be checked.
+  #
+  # These need no database. `__tests__/setup.js` supplies the env they read and every
+  # suite mocks db_connect, which is why this can run before anything else exists.
+  #
+  # Playwright deliberately isn't here. It drives a real server, and the only database
+  # this project has is production — `dev.env` carries the same DATABASE_URL as `.env`.
+  # Running it in the pipeline would point a browser suite at live league data. It stays
+  # a local gate (`npm run test:all`) until there is a separate database to point it at;
+  # that is HARD-13 in docs/hardening.
+  - name: 'node:22'
+    id: 'test'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        set -e
+        npm ci
+        npm test
+
   # Pull the previous image so its layers seed the build cache below.
   # First ever build (no :latest yet) is a harmless no-op thanks to `|| true`.
   - name: 'gcr.io/cloud-builders/docker'
