@@ -519,6 +519,21 @@ router.get('/forms/club-registration/:club/prefilled', secured, documents_contro
 router.post('/venues-map/refresh', secured, venue_controller.venues_map_refresh);
 
 // ---------------------------------------------------------------------------
+// Weekly data-integrity digest (HARD-07)
+// ---------------------------------------------------------------------------
+// Required here rather than at the top of the file to keep this package's diff inside
+// the block it owns; `require` is cached, so there is no cost to it.
+const audit_controller = require('../controllers/auditController');
+
+// The report is a list of every weakness in the league's data, so both routes are
+// gated. The preview is superadmin-session only. The send additionally accepts a shared
+// secret in X-Audit-Token, for Cloud Scheduler, and deliberately does *not* use
+// `secured`: `secured` answers an anonymous caller with a 302 to /login, which a
+// scheduler would record as a successful job.
+router.get('/admin/audit', secured, requireClubAccess.requireSuperAdmin, audit_controller.audit_preview);
+router.post('/admin/audit/run', audit_controller.requireAuditCaller, audit_controller.audit_run);
+
+// ---------------------------------------------------------------------------
 // Error handlers
 // ---------------------------------------------------------------------------
 
