@@ -43,6 +43,12 @@ player-registration-pseudo.txt
 rootfiles/sw3.js
 rootfiles/swv2.js
 
+# Audit output. The findings live in docs/hardening/*.md, which IS tracked — the
+# agents working the backlog need it. Only the rendered PDFs and their HTML sources
+# are ignored: they're large, they're regenerable
+# (node tools/artifact-to-pdf.js), and the artifact URLs are in the README.
+docs/hardening/pdf/
+
 # Playwright (see playwright.config.js) — run artefacts, never committed
 test-results/
 playwright-report/

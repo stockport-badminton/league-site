@@ -205,6 +205,40 @@ Gotchas the specs already encode:
   section change, so "the list changed" is not a valid assertion for whichever
   section holds them all. Assert against the API payload instead.
 
+## Querying the database
+
+**Don't hand-write dotenv/db.connect boilerplate for a one-off query.** Use:
+
+```bash
+node tools/dbq.js "SELECT id, name FROM team LIMIT 5"
+node tools/dbq.js --schema player        # columns and types
+node tools/dbq.js --check all            # data-integrity checks
+node tools/dbq.js --check orphan-results # the offending rows
+node tools/dbq.js --json "SELECT ..."    # machine-readable
+```
+
+It loads `dev.env` then `.env`, connects, and prints a table. **It refuses anything that
+is not a single read** — `DATABASE_URL` is production, and there is no local copy to
+practise on. A write belongs in a reviewed script under `scripts/` (gitignored) with a
+dry run, modelled on `scripts/backfill-contact-emails.js`: dry by default, `--apply` to
+write, and the guard repeated in the `WHERE` clause of the write itself so a row that
+changed between the read and the write can't be clobbered.
+
+`tools/audit/checks.js` holds the integrity checks — orphaned results, orphaned drafts,
+impossible scores, duplicate ranks, ghost teams, fixtures pointing at deleted teams.
+Each one found something real. Run `--check all` before and after any data work.
+
+One lesson already encoded there: **a data check must not inner-join to the data it is
+checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was
+changed to a `LEFT JOIN`, because six of them reference teams that no longer exist.
+
+## Hardening backlog
+
+`docs/hardening/` holds the work packages from the August 2026 audit — thirteen
+self-contained briefs with evidence, acceptance criteria and a conflict map showing which
+can run in parallel. `docs/hardening/README.md` first. The `/hardening` skill loads a
+single package without pulling in the rest.
+
 ## Common Commands
 
 ### Development
