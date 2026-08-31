@@ -1,0 +1,48 @@
+<%#
+  Shown instead of a draft scorecard when the confirmation link can't be opened —
+  either the id names nothing (404) or the link is missing its token, or has the wrong
+  one (403).
+
+  The link used to be /populated-scorecard-beta/<sequential id> with no token at all, so
+  every scorecard ever filed could be read, and confirmed, by counting up from 1. The
+  token closed that; this page is what a broken or truncated link now lands on, in place
+  of either a stranger's result or a 500 whose text told a captain nothing.
+
+  Locals: notFound (boolean).
+%>
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<div class="container" style="max-width:720px;text-align:left;margin:0 auto 48px">
+
+<% if (notFound) { %>
+  <h1>We can't find that scorecard</h1>
+  <p class="lead">There's no scorecard with that reference.</p>
+<% } else { %>
+  <h1>That link isn't complete</h1>
+  <p class="lead">
+    Confirmation links carry a code that identifies the scorecard, and this one either
+    doesn't have it or has only part of it. Some email apps break long links across two
+    lines, which does exactly this.
+  </p>
+  <p>
+    Go back to the email and open the link again &mdash; or copy the whole thing,
+    including everything after the question mark, into your browser's address bar.
+  </p>
+<% } %>
+
+<p>
+  Nothing has been lost: the result is saved as it was submitted. If the link still won't
+  open, email
+  <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+  with the two teams and the date, and it'll be confirmed for you.
+</p>
+
+<p><a class="btn btn-success" href="/results">Back to results</a></p>
+
+</div>
+
+<%- include('footer.ejs') %>
+
+</body>
+</html>

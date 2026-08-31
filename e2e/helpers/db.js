@@ -25,6 +25,25 @@ async function latestScorecardDraftId() {
   return rows.length ? rows[0].id : null;
 }
 
+/**
+ * The path a captain would follow from their email for the newest draft: the id plus
+ * the confirmation token, which /populated-scorecard-beta/:id now requires (HARD-03).
+ * Returns null when there are no drafts.
+ *
+ * The token is read through to_jsonb rather than as a column so that this works both
+ * before and after migrations/011_scorecard_confirm_token.sql is applied — `->>` on a
+ * key that isn't there is NULL, where a missing column is an error. A draft with no
+ * token is grandfathered by the app and opens without one.
+ */
+async function latestScorecardDraftPath() {
+  const rows = await query(
+    `SELECT id, to_jsonb(s) ->> 'confirmToken' AS token
+       FROM scorecardstore s ORDER BY id DESC LIMIT 1`);
+  if (!rows.length) return null;
+  const { id, token } = rows[0];
+  return '/populated-scorecard-beta/' + id + (token ? '?t=' + encodeURIComponent(token) : '');
+}
+
 /** Newest messer draft id, or null if there are none. */
 async function latestMesserDraftId() {
   const rows = await query('SELECT id FROM messer_scorecard ORDER BY id DESC LIMIT 1');
@@ -48,4 +67,6 @@ async function draftHasScores(table, id) {
   return rows[0].Game1homeScore !== null || rows[0].Game1awayScore !== null;
 }
 
-module.exports = { query, latestScorecardDraftId, latestMesserDraftId, draftHasScores };
+module.exports = {
+  query, latestScorecardDraftId, latestScorecardDraftPath, latestMesserDraftId, draftHasScores
+};

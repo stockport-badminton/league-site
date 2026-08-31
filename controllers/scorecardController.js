@@ -10,7 +10,12 @@ const ses = require('../utils/ses');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl } = require('../utils/canonical');
+const { escapeHtml } = require('../utils/html');
+const {
+  newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
+  normalisePhotoUrl, isPhotoUrl
+} = require('../utils/scorecardLinks');
 
 // A league fixture is 18 games — three pairs each of men's, ladies' and mixed, played
 // twice. Messer is 15 and goes through its own controller.
@@ -454,6 +459,26 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       });
     } catch (err) { next(err); }
   } else {
+    // The photo URL the upload widget put in the form. It is emailed as an anchor a few
+    // lines below, so the same rule as the photo endpoint applies — but a captain's
+    // result must not be lost over a link we don't like, so a URL that isn't one of our
+    // own bucket objects is dropped and the draft saved without it. The fixture then
+    // shows up in the "add scorecard photos" list, which is the recoverable outcome.
+    const submittedPhoto = req.body['scoresheet-url'];
+    const photoUrl = isPhotoUrl(submittedPhoto) ? normalisePhotoUrl(submittedPhoto) : '';
+    if (submittedPhoto && !photoUrl) {
+      console.warn('scorecard: dropped a scoresheet-url that is not an object in our bucket');
+      Sentry.captureMessage('scorecard: rejected scoresheet-url on draft submission', {
+        level: 'warning', tags: { stage: 'scorecard-draft' }
+      });
+    }
+
+    // Per-draft secret for the confirmation link. Without it the link is
+    // /populated-scorecard-beta/<sequential id>, which can be walked by counting — so
+    // any result could be read, and confirmed, by an outsider. See
+    // utils/scorecardLinks.js and migrations/011_scorecard_confirm_token.sql.
+    const confirmToken = newDraftToken();
+
     const scorecardObj = {
       date: req.body.date, division: req.body.division, homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam,
       homeMan1: req.body.homeMan1, homeMan2: req.body.homeMan2, homeMan3: req.body.homeMan3,
@@ -482,8 +507,9 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       Game16homeScore: req.body.Game16homeScore, Game16awayScore: req.body.Game16awayScore,
       Game17homeScore: req.body.Game17homeScore, Game17awayScore: req.body.Game17awayScore,
       Game18homeScore: req.body.Game18homeScore, Game18awayScore: req.body.Game18awayScore,
-      'scoresheet-url': req.body['scoresheet-url'],
-      email: req.body['email']
+      'scoresheet-url': photoUrl,
+      email: req.body['email'],
+      confirmToken
     };
     try {
       const rows = await Fixture.createScorecard(scorecardObj);
@@ -498,7 +524,14 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         // where it is. Better to fail visibly than to send another broken link.
         throw new Error('scorecard was saved but no id came back, so no confirmation link could be built');
       }
-      const scorecardUrlBeta = 'https://' + req.headers.host + '/populated-scorecard-beta/' + scorecardId;
+      // Built from the site's own origin, never from req.headers.host: behind Firebase
+      // that header is the Cloud Run hostname, so this link used to point at
+      // league-site-…-nw.a.run.app. See utils/canonical.js.
+      const scorecardUrlBeta = confirmationUrl(scorecardId, confirmToken);
+      const photoLine = photoUrl
+        ? 'a new scorecard has been uploaded: <a href="' + escapeHtml(photoUrl) + '">' +
+          escapeHtml(photoUrl) + '</a>'
+        : 'a new scorecard has been entered, with no photo attached.';
       const params = {
         Destination: {
           ToAddresses: ['stockport.badders.results@gmail.com'],
@@ -508,7 +541,8 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
           Body: {
             Html: {
               Charset: 'UTF-8',
-              Data: '<p>a new scorecard has been uploaded: <a href="' + req.body["scoresheet-url"] + '">' + req.body["scoresheet-url"] + '</a><br />Check the result here: <a href="' + scorecardUrlBeta + '">' + scorecardUrlBeta + '</a></p>'
+              Data: '<p>' + photoLine + '<br />Check the result here: <a href="' +
+                escapeHtml(scorecardUrlBeta) + '">' + escapeHtml(scorecardUrlBeta) + '</a></p>'
             }
           },
           Subject: { Charset: 'UTF-8', Data: 'Scorecard Received' }
@@ -517,7 +551,9 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         ReplyToAddresses: ['stockport.badders.results@gmail.com'],
       };
       await ses.sendEmail(params);
-      res.redirect('/populated-scorecard-beta/' + scorecardId);
+      // The captain gets the token too, or the page they are redirected to would refuse
+      // the draft they have just this moment filed.
+      res.redirect(confirmationPath(scorecardId, confirmToken));
     } catch (err) { next(err); }
   }
 }
@@ -554,6 +590,22 @@ exports.fixture_populate_scorecard = async function(data, req, res, next) {
 exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
   try {
     const rows = await Fixture.getScorecardById(req.params.id);
+
+    // No such draft. This used to fall through to rows[0].division and throw, which the
+    // central handler turned into a 500 — an id that has never existed is a 404.
+    if (!rows || !rows.length) {
+      return renderLinkRefused(req, res, 404);
+    }
+
+    // The token that makes this link unguessable. Before it, the URL was the draft's
+    // sequential primary key and nothing else: about 2,400 of them, so every scorecard
+    // ever filed could be read — and confirmed — by counting. See
+    // utils/scorecardLinks.js for the grandfather clause that keeps links already sitting
+    // in captains' inboxes working.
+    if (!mayOpenDraft(rows[0].confirmToken, req.query.t)) {
+      return renderLinkRefused(req, res, 403);
+    }
+
     const [divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
       Division.getAllAndSelectedById(1, rows[0].division),
       Team.getAllAndSelectedById(rows[0].homeTeam, rows[0].division),
@@ -571,9 +623,31 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       pageDescription: "Show result of uploading scorecard",
       result: renderData,
       data: rows[0],
-      canonical: canonicalFor(req)
+      // Deliberately not canonicalFor(req): that keeps the query string, and the query
+      // string is now a secret. A canonical tag is copied, shared and crawled.
+      canonical: absoluteUrl('/populated-scorecard-beta/' + encodeURIComponent(String(req.params.id)))
     });
   } catch (err) { next(err); }
+}
+
+// What someone sees when a confirmation link doesn't open a draft: either it names an id
+// that has never existed (404) or it is missing the token, or has the wrong one (403).
+//
+// 403 rather than 404 for a bad token, because the person on the other end is far more
+// likely to be a captain whose email client mangled a long URL than an attacker, and
+// "this link isn't complete" is actionable where "not found" is not. It does tell a
+// walker that draft #2100 exists — but not its teams, its players or its score, and it
+// cannot be confirmed, which is what the token is protecting.
+function renderLinkRefused(req, res, status) {
+  res.status(status);
+  return res.render('scorecard-link-invalid', {
+    static_path: '/static',
+    theme: process.env.THEME || 'flatly',
+    pageTitle: 'Scorecard link not valid',
+    pageDescription: 'This confirmation link cannot be opened',
+    notFound: status === 404,
+    canonical: absoluteUrl('/populated-scorecard-beta/' + encodeURIComponent(String(req.params.id)))
+  });
 }
 
   exports.scorecard_beta = async function(req, res, next) {
@@ -693,9 +767,72 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
     }
   }
 
+// The body of the "Scorecard Updated" email, escaped.
+//
+// Exported because it cannot be exercised through the endpoint any more: no value that
+// survives normalisePhotoUrl contains an HTML metacharacter, so the escaping is a second
+// line of defence and the only way to prove it holds is to call it directly.
+exports.buildPhotoEmailHtml = function(photoUrl, confirmUrl) {
+  const safePhoto = escapeHtml(photoUrl);
+  const safeConfirm = escapeHtml(confirmUrl);
+  return `<p>a scorecard has been updated with a photo: <a href="${safePhoto}">${safePhoto}</a>` +
+    `<br />Check the result here: <a href="${safeConfirm}">${safeConfirm}</a></p>`;
+};
+
+// POST /add-scorecard-photo/:id — attach a photo to a draft that was filed without one.
+//
+// Reachable unauthenticated, and it was the worst endpoint on the site (SEC-2): it wrote
+// `req.body.imgURL` against any draft id and interpolated that value **unescaped** into
+// an HTML email from results@stockport-badminton.co.uk. So any scorecard's photo could
+// be replaced with a link to anything, and a crafted value rewrote the message itself —
+// a phishing email from our own verified domain, delivered to the results secretary, who
+// is expecting exactly that email about exactly that fixture.
+//
+// Four things stand between the request and that email now:
+//
+//   1. the URL has to be an object in our own S3 bucket (utils/scorecardLinks.js);
+//   2. it is HTML-escaped on the way into the body regardless;
+//   3. the draft has to exist and to have no photo yet — an id alone was never
+//      authorisation, and a photo that is already there is not ours to replace;
+//   4. if the draft carries a confirmation token, the request has to present it.
+//
+// A rejection sends no email at all, so the results secretary is never notified about a
+// write that did not happen.
 exports.add_scorecard_photo = async function(req, res, next) {
   try {
-    await Fixture.updateScorecardPhoto(req.params.id, req.body.imgURL);
+    let photoUrl;
+    try {
+      photoUrl = normalisePhotoUrl(req.body.imgURL);
+    } catch (err) {
+      if (err.status === 400) return res.status(400).json({ error: err.message });
+      throw err;
+    }
+
+    const rows = await Fixture.getScorecardById(req.params.id);
+    if (!rows || !rows.length) {
+      return res.status(404).json({ error: 'There is no scorecard with that id.' });
+    }
+    const draft = rows[0];
+
+    // Same grandfather clause as the confirmation page: a draft filed before the token
+    // column existed has none, and the page offering the upload was rendered without one.
+    if (!mayOpenDraft(draft.confirmToken, req.body.token)) {
+      return res.status(403).json({ error: 'That link is not valid for this scorecard.' });
+    }
+
+    if (String(draft['scoresheet-url'] || '').trim() !== '') {
+      return res.status(409).json({
+        error: 'This scorecard already has a photo. Email the results secretary if it needs replacing.'
+      });
+    }
+
+    const result = await Fixture.updateScorecardPhoto(req.params.id, photoUrl);
+    // The model repeats the "no photo yet" test in its WHERE clause, so a row that
+    // gained one between the read above and this write matches nothing.
+    if (result && result.affectedRows === 0) {
+      return res.status(409).json({ error: 'This scorecard already has a photo.' });
+    }
+
     const params = {
       Destination: {
         ToAddresses: ['stockport.badders.results@gmail.com'],
@@ -705,7 +842,10 @@ exports.add_scorecard_photo = async function(req, res, next) {
         Body: {
           Html: {
             Charset: 'UTF-8',
-            Data: `<p>a scorecard has been updated with a photo: <a href="${req.body.imgURL}">${req.body.imgURL}</a><br />Check the result here: <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">Confirm</a> or <a href="https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}">https://stockport-badminton.co.uk/populated-scorecard-beta/${req.params.id}</a></p>`
+            Data: exports.buildPhotoEmailHtml(
+              photoUrl,
+              confirmationUrl(req.params.id, draft.confirmToken)
+            )
           }
         },
         Subject: { Charset: 'UTF-8', Data: 'Scorecard Updated' }
@@ -717,6 +857,6 @@ exports.add_scorecard_photo = async function(req, res, next) {
     res.sendStatus(200);
   } catch (err) {
     console.log(err.toString());
-    next("Sorry something went wrong sending your scoresheet to the admin - drop him an email.");
+    next(err);
   }
 }

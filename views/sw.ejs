@@ -45,7 +45,11 @@ var EXCLUDED_PATH_PREFIXES = [
   '/calendars',
   '/sign-s3',
   '/submit-form',
-  '/add-scorecard-photo'
+  '/add-scorecard-photo',
+  // The confirmation URL now carries a per-draft token in its query string (HARD-03),
+  // so it is a secret-bearing URL for someone else's unconfirmed result. Keep it out of
+  // the cache, and out of an offline replay that could show a draft already processed.
+  '/populated-scorecard-beta'
 ];
 
 self.addEventListener('install', function(event) {

@@ -68,7 +68,14 @@
               <% for (fixture of fixtures){ %>
                 <li>
                   <%= fixture.homeTeam + ' vs ' + fixture.awayTeam %> 
-                  <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" />
+                  <%#
+                    data-token is the draft's confirmation token, posted back by the
+                    handler below. /add-scorecard-photo/:id used to take the id alone as
+                    authorisation, which meant anyone could replace any scorecard's photo.
+                    Empty for a draft filed before migration 011, which the endpoint
+                    grandfathers — see utils/scorecardLinks.js.
+                  %>
+                  <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" data-token="<%= fixture.confirmToken || '' %>" />
                   <input type="hidden" name="scoresheet-url-<%= fixture.id %>" id="scoresheet-url-<%= fixture.id %>" /> 
                 </li>
               <% } %>
@@ -1491,20 +1498,38 @@
                 if (!success) {
                     return; // Don't continue if upload failed
                 }
-                // uploadFile(file, response.signedUrl);
-                console.log(response.signedUrl);
-                e.srcElement.nextSibling.nextSibling.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
+                // /sign-s3 returns the object's public URL as `url`. This used to be
+                // reconstructed by cutting the signature off the presigned URL and then
+                // rewriting %20 as '+', which corrupts any key containing a space —
+                // there are rows in the table with '+' in the filename to prove it. The
+                // server already knows the answer, so ask it.
+                const photoUrl = response.url || response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz"));
+                console.log(photoUrl);
+                e.srcElement.nextSibling.nextSibling.value = photoUrl
 
                 const myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/json");
                 try {
                   const updatedScorecard = await fetch(window.location.origin+"/add-scorecard-photo/"+scorecardId, {
                     method: "POST",
-                    body: JSON.stringify({ imgURL:response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+') }),
+                    // The draft's own token: the id alone was never authorisation for
+                    // this write. Blank for a draft filed before migration 011, which
+                    // the endpoint grandfathers.
+                    body: JSON.stringify({ imgURL: photoUrl, token: e.srcElement.dataset.token || '' }),
                     headers: myHeaders,
                   });
                   if (!updatedScorecard.ok) {
-                    throw new Error(`Response status: ${response.status}`);
+                    // The endpoint can now refuse (a URL that isn't one of our own
+                    // uploads, a draft that already has a photo, a bad token) and it
+                    // says why in JSON. This used to log `response.status` — the wrong
+                    // object, and only to the console — so a captain whose upload was
+                    // rejected was told nothing at all and assumed it had worked.
+                    let reason = 'Response status: ' + updatedScorecard.status;
+                    try {
+                      const body = await updatedScorecard.json();
+                      if (body && body.error) reason = body.error;
+                    } catch (parseError) { /* not JSON; keep the status */ }
+                    throw new Error(reason);
                   }
                   else {
                     window.alert('scorecard photo updated - Thank you!')
@@ -1512,6 +1537,7 @@
                 }
                 catch (error){
                   console.error(error.message);
+                  window.alert('The photo could not be attached: ' + error.message);
                 }
               }
             }
