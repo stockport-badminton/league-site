@@ -1,0 +1,46 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1><%= result.name %> withdrawn</h1>
+
+  <div class="alert alert-success">
+    <%= result.name %> has left its division for the <%= result.season %> season. It is no
+    longer in the league table and no longer counted on the annual invoice. The team row
+    was not deleted.
+  </div>
+
+  <ul>
+    <li>
+      <strong><%= result.voidedFixtures.length %></strong>
+      outstanding fixture<%= result.voidedFixtures.length === 1 ? '' : 's' %> marked
+      <code>void</code>&mdash; nothing awarded to anybody.
+      <% if (result.voidedFixtures.length) { %>
+        <small class="text-muted">(fixture
+        <%= result.voidedFixtures.slice(0, 40).join(', ') %><%= result.voidedFixtures.length > 40 ? ', …' : '' %>)</small>
+      <% } %>
+    </li>
+    <li>Recorded results left untouched.</li>
+    <li>
+      <% if (result.released && result.released.length) { %>
+        <strong><%= result.released.length %></strong>
+        player<%= result.released.length === 1 ? '' : 's' %> released to No Club / No Team:
+        <%= result.released.map(function(r){ return r.name; }).join(', ') %>.
+        <em>This part is not reversible by Reinstate.</em>
+      <% } else { %>
+        Players left where they were. Move or release them from
+        <a href="/manage-players">Team Management</a> if the club wants them elsewhere.
+      <% } %>
+    </li>
+  </ul>
+
+  <p>
+    Made a mistake? <strong>Reinstate</strong> on
+    <a href="/admin/teams">Team Admin</a> puts the team back in its division and un-voids
+    exactly those fixtures.
+  </p>
+
+  <a class="btn btn-primary" href="/admin/teams">Back to Team Admin</a>
+</div>
+
+<%- include('../footer.ejs') %>

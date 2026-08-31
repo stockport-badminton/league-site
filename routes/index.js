@@ -570,6 +570,12 @@ router.get('/admin/teams', secured, team_controller.admin_team_list);
 router.get('/admin/teams/create', secured, team_controller.admin_team_createForm);
 router.post('/admin/teams', secured, team_controller.admin_team_create);
 router.post('/admin/teams/:id/move', secured, team_controller.admin_team_move);
+// Withdrawing a team voids fixtures and takes a team out of the league table, so it
+// carries requireSuperAdmin as well as the in-controller role check the rest of
+// /admin/teams uses — `secured` only proves someone is logged in. HARD-10.
+router.get('/admin/teams/:id/withdraw', secured, requireClubAccess.requireSuperAdmin, team_controller.admin_team_withdrawForm);
+router.post('/admin/teams/:id/withdraw', secured, requireClubAccess.requireSuperAdmin, team_controller.admin_team_withdraw);
+router.post('/admin/teams/:id/reinstate', secured, requireClubAccess.requireSuperAdmin, team_controller.admin_team_reinstate);
 router.get('/admin/teams/:id', secured, team_controller.admin_team_editForm);
 router.post('/admin/teams/:id', secured, team_controller.admin_team_update);
 router.post('/admin/fixture/:id/date', secured, fixture_controller.admin_fixture_date_update);
