@@ -80,6 +80,7 @@ Packages in the same wave touch disjoint handlers and can run in parallel. Addin
 | [HARD-11](HARD-11-referential-integrity.md) 2,132 orphaned team references | model queries across the app | B | — |
 | [HARD-12](HARD-12-security-headers.md) helmet + CSP | `app.js` | C | HARD-04 |
 | [HARD-13](HARD-13-dev-database-guard.md) Stop dev pointing at production | `app.js`, `dev.env` | C | HARD-04 |
+| [HARD-14](HARD-14-flaky-authorization-test.md) A flaky authorization test | `__tests__/integration/roster.test.js` | A | — |
 
 ## Priority
 
@@ -101,6 +102,7 @@ where things stand without reading git log.
 
 | Package | Status | Commit | Notes |
 |---|---|---|---|
+| SEC-3 | **done** | *(this commit)* | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
 | HARD-01 | not started | | |
 | HARD-02 | not started | | |
 | HARD-03 | not started | | |
@@ -114,3 +116,4 @@ where things stand without reading git log.
 | HARD-11 | not started | | |
 | HARD-12 | not started | | |
 | HARD-13 | not started | | |
+| HARD-14 | not started | | Found 31 Aug while working SEC-3. |

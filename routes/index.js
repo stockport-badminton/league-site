@@ -248,8 +248,14 @@ router.get('/league/:id/delete', league_controller.league_delete_get);
 router.delete('/league/:id', checkJwt, league_controller.league_delete);
 router.get('/league/:id/update', league_controller.league_update_get);
 router.patch('/league/:id', checkJwt, league_controller.league_update);
-router.post('/league/sendInvoices', publicFormLimiter, contact_controller.send_invoices);
-router.post('/league/sendInvoice/:club', publicFormLimiter, contact_controller.send_invoices);
+// Superadmin only. These were unauthenticated, protected by nothing but a check that
+// today is the annual invoice date — so on that one day of the year any caller could
+// send every club its invoice, repeatedly, from our own verified domain. The date check
+// stays, but as a safety net rather than as the only control.
+router.post('/league/sendInvoices', secured, requireClubAccess.requireSuperAdmin,
+  publicFormLimiter, contact_controller.send_invoices);
+router.post('/league/sendInvoice/:club', secured, requireClubAccess.requireSuperAdmin,
+  publicFormLimiter, contact_controller.send_invoices);
 router.get('/league/:id', league_controller.league_detail);
 router.get('/leagues', checkJwt, league_controller.league_list);
 router.get('/tables/All', league_controller.all_league_tables);
