@@ -427,6 +427,37 @@ it sets a fixture to `rearranged` and inserts a replacement from `{homeTeam, awa
 date}`. Rate-limited but not authorized. Fixing it changes how captains request
 rearrangements, so ask first.
 
+### Security response headers and the CSP
+
+`helmet` is mounted at the very top of `app.js` — above the static handlers, the IP
+blocklist and `/healthz` — because the requirement is every response. The policy itself
+is in **`utils/securityHeaders.js`**, where every allowlist entry sits beside the
+template that forces it. Read that file, not `app.js`, to understand the policy.
+
+Two CSP headers go out, and the split is the design:
+
+| Header | Holds | Why |
+|---|---|---|
+| `Content-Security-Policy` | `frame-ancestors`, `base-uri`, `object-src`, `form-action` | No resource allowlist at all, so it cannot blank a page that works today |
+| `Content-Security-Policy-Report-Only` | the full `script-src`/`style-src`/`img-src`/… allowlist | This is the one that could break the scorecard modal, so it observes first |
+
+- **Adding a CDN to a view means adding it to `OBSERVED`.** A test walks `views/**/*.ejs`
+  for external `<script src>` / `<link href>` and fails if a host is missing, so this is
+  caught rather than discovered when enforcement is flipped on.
+- **Not everything is greppable.** Google Maps injects a `fonts.googleapis.com`
+  stylesheet at runtime, and both the Facebook page plugin and reCAPTCHA create iframes
+  that appear in no template. Grepping for `<iframe>` finds nothing and builds a policy
+  that breaks both.
+- **`script-src` keeps `'unsafe-inline'`**, because `views/` has 159 inline `onclick`
+  attributes. Do not "improve" this by adding a nonce: a nonce makes the browser *ignore*
+  `'unsafe-inline'`, and no nonce can be attached to an `onclick` at all, so it would
+  break every one of them. Removing them is HARD-15.
+- **`frame-ancestors` is ignored in a report-only header**, which is why the clickjacking
+  protection had to go in the enforcing one to do anything.
+- Violations POST to `/csp-report` (in `app.js`, above `globalLimiter` for the same reason
+  `/healthz` is). Sentry does *not* collect these by default — that needs `report-uri`
+  pointed at its security endpoint and the feature enabled, which was never set up.
+
 ### Team management (rosters)
 
 Two pages, two audiences — they used to be one template switching on a
@@ -546,6 +577,13 @@ Key vars (see `.env` for examples):
 - `DEV_MODE` — `'true'` for local auth bypass (dev/test only)
 - `PORT` — Server port (default 8080)
 - `SESSION_SECRET` — Session encryption key
+- `CSP_ENFORCE` — `'true'` promotes the Content-Security-Policy resource allowlist from
+  report-only to enforcing. **Leave unset** until the prerequisites in
+  `utils/securityHeaders.js` are met; a wrong policy blanks pages silently, and the
+  scorecard wizard is the most likely casualty.
+- `CSP_REPORT_URI` — where CSP violations are POSTed. Defaults to `/csp-report`, handled
+  in `app.js` and logged to Cloud Logging. Set it to Sentry's security-header endpoint to
+  send them there instead; set it to `''` to emit no reporting directives at all.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
