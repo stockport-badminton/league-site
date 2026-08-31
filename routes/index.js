@@ -130,13 +130,26 @@ router.get('/logout', function(req, res, next) {
 // reachable. `file-name` survives only as an advisory hint, sanitised down to letters
 // and digits, so the results secretary can still tell photos apart in the bucket.
 //
-// **Residual, deliberately accepted for now:** an anonymous caller can still upload a
-// JPEG under a random name in `scorecards/`, and the object is still `public-read`
-// because scorecard photos are rendered directly from the bucket by `<img src>` and by
-// links already stored in `scorecardstore."scoresheet-url"`. Making them private needs
-// a read proxy and a migration of the existing URLs; that is HARD-02b in
-// docs/hardening. What is closed here is overwriting anything, and serving anything
-// other than an image.
+// **No `ACL: 'public-read'` any more** (HARD-02b). It was there because scorecard photos
+// were rendered directly from the bucket by `<img src>` and by links already stored in
+// `scorecardstore."scoresheet-url"`, so dropping it without a read path would have
+// blanked every photo on the site, including on archived seasons. `GET
+// /scorecard-photo/:id` above is that read path, and it serves the historical URL shapes
+// as well as new keys, so the signer no longer asks for one.
+//
+// **What this does and does not do.** It stops a *new* object being made public by its
+// own ACL. It does not touch objects already in the bucket, which keep the ACL they were
+// written with, and it is overridden by a bucket policy granting public read. Both of
+// those live on the bucket rather than in this repo — see the runbook in
+// docs/hardening/HARD-02b-private-scorecard-photos.md for the order to do them in and
+// how to reverse each. Until they are done, photos are still publicly readable; nothing
+// here breaks either way, because the read path does not depend on the object being
+// private or public.
+//
+// Residual, unchanged: an anonymous caller can still upload a JPEG under a random name
+// in `scorecards/`. That is a storage-cost nuisance, the endpoint carries
+// publicFormLimiter, and a lifecycle rule on the prefix is the answer rather than more
+// code. Still deliberately out of scope, as is deleting what is already there.
 router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
   try {
     const { key } = buildUploadKey(req.query['file-type'], req.query['file-name']);
@@ -144,8 +157,7 @@ router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME,
       Key: key,
-      ContentType: String(req.query['file-type']).toLowerCase().trim(),
-      ACL: 'public-read'
+      ContentType: String(req.query['file-type']).toLowerCase().trim()
     });
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
     const url = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${key}`;

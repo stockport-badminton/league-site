@@ -93,4 +93,31 @@ describe('GET /sign-s3', () => {
     const res = await request(app).get('/sign-s3');
     expect(res.status).toBe(400);
   });
+
+  // HARD-02b. The upload asked for `ACL: 'public-read'`, so every scorecard photo was
+  // world-readable direct from the bucket and its URL was the only thing standing
+  // between a stranger and a photo of a match — a URL that was then emailed. It could
+  // not be dropped until there was a read path for the historical rows; there is one
+  // now (GET /scorecard-photo/:id), so the signer stops asking.
+  //
+  // Note what this does and does not do: it stops *new* objects being made public by
+  // their own ACL. Anything already in the bucket keeps the ACL it was written with, and
+  // a bucket policy granting public read would still override this — both are on the
+  // bucket, not in the code, and are the two steps of the runbook in
+  // docs/hardening/HARD-02b-private-scorecard-photos.md.
+  it('does not ask for a public-read ACL', async () => {
+    await sign('card.jpg', 'image/jpeg');
+    const command = getSignedUrl.mock.calls[0][1];
+    expect(command.input.ACL).toBeUndefined();
+  });
+
+  // The presigner signs the headers it is given, so a signature minted without an ACL
+  // does not authorise a client to add one: an upload that sends `x-amz-acl` fails the
+  // signature check. Asserting the absence above is therefore the whole of it — but the
+  // response still has to carry the URL the caller stores, or the draft loses its photo.
+  it('still returns the object URL the draft will store', async () => {
+    const res = await sign('card.jpg', 'image/jpeg');
+    expect(res.status).toBe(200);
+    expect(res.body.url).toMatch(/^https:\/\/bucket\.s3\.eu-west-1\.amazonaws\.com\/scorecards\//);
+  });
 });
