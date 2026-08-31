@@ -131,22 +131,27 @@ exports.clubDetailbyId = async function(clubId) {
   return result
 }
 
+// The decryption key was written into this query as a string literal — the only
+// place in the codebase that didn't bind it from DB_PI_KEY. It happened to be the
+// right key, so nothing was visibly broken; it was just the production PI key
+// sitting in source control, and it would have silently started returning errors
+// the day the key was rotated. Bound as a parameter like everywhere else.
 exports.getContactDetailsById = async function(clubId) {
-  console.log(clubId)
+  const key = process.env.DB_PI_KEY
   const [result] = await (await db.otherConnect()).query(
     `SELECT club.name AS clubName, team.name AS teamName,
             venue.id AS "venueId", venue.name AS venueName, venue.address AS address,
             "matchVenue".id AS matchVenueId, "matchVenue".name AS matchVenueName, "matchVenue".address AS matchVenueAddress,
             "matchNightText" AS matchNight,
             CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchSecretary,
-            pgp_sym_decrypt(matchSec."playerTel", 'euvbdijnyvshmcf')::text AS matchSecTel,
-            pgp_sym_decrypt(matchSec."playerEmail", 'euvbdijnyvshmcf')::text AS matchSecEmail,
+            pgp_sym_decrypt(matchSec."playerTel", ?)::text AS matchSecTel,
+            pgp_sym_decrypt(matchSec."playerEmail", ?)::text AS matchSecEmail,
             CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubSecretary,
-            pgp_sym_decrypt(clubSec."playerTel", 'euvbdijnyvshmcf')::text AS clubSecTel,
-            pgp_sym_decrypt(clubSec."playerEmail", 'euvbdijnyvshmcf')::text AS "clubSecEmail",
+            pgp_sym_decrypt(clubSec."playerTel", ?)::text AS clubSecTel,
+            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS "clubSecEmail",
             CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamCaptain,
-            pgp_sym_decrypt(teamCaptain."playerTel", 'euvbdijnyvshmcf')::text AS teamCaptainTel,
-            pgp_sym_decrypt(teamCaptain."playerEmail", 'euvbdijnyvshmcf')::text AS teamCaptainEmail
+            pgp_sym_decrypt(teamCaptain."playerTel", ?)::text AS teamCaptainTel,
+            pgp_sym_decrypt(teamCaptain."playerEmail", ?)::text AS teamCaptainEmail
      FROM club
      JOIN team ON team.club = club.id
      JOIN venue ON club.venue = venue.id
@@ -164,7 +169,7 @@ exports.getContactDetailsById = async function(clubId) {
               clubSec.first_name, clubSec.family_name, clubSec."playerTel", clubSec."playerEmail",
               club.name, club.id
      ORDER BY teamName`,
-    clubId
+    [key, key, key, key, key, key, clubId]
   )
   return result
 }

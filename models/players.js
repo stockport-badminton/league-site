@@ -819,11 +819,36 @@ exports.getAuthRoleByEmail = async function(email) {
 // auth-role backfill script. authEmail is only touched when explicitly
 // provided, so ordinary player-edit calls (which don't know about it) never
 // clear an existing value.
+//
+// Approving a signup also seeds "playerEmail" **when the player has none**.
+// The two columns are deliberately separate — authEmail is the login identity,
+// playerEmail the contact address a player can edit — but a player added to a
+// roster by their captain has no contact email at all, and nothing else ever
+// fills it in. So a newly signed-up player could log in, hold a real address in
+// authEmail, and still show a blank email on their own profile form and on their
+// club's contact page, which read playerEmail (Chris Petty, Alderley Park B).
+// A player who already has a contact email keeps it: the COALESCE/NULLIF guard
+// makes this an initialisation, never an overwrite.
 exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail }) {
   if (authEmail) {
     const [result] = await (await db.otherConnect()).query(
-      'UPDATE player SET role = ?, "messerAdmin" = ?, "authEmail" = pgp_sym_encrypt(?, ?) WHERE id = ?',
-      [role || null, messerAdmin ? 1 : 0, authEmail, process.env.DB_PI_KEY, playerId]
+      `UPDATE player SET
+         role = ?,
+         "messerAdmin" = ?,
+         "authEmail" = pgp_sym_encrypt(?, ?),
+         "playerEmail" = CASE
+           WHEN COALESCE(NULLIF(TRIM(pgp_sym_decrypt("playerEmail", ?)::text), ''), '') = ''
+             THEN pgp_sym_encrypt(?, ?)
+           ELSE "playerEmail"
+         END
+       WHERE id = ?`,
+      [
+        role || null, messerAdmin ? 1 : 0,
+        authEmail, process.env.DB_PI_KEY,
+        process.env.DB_PI_KEY,
+        authEmail, process.env.DB_PI_KEY,
+        playerId
+      ]
     )
     return result
   }
