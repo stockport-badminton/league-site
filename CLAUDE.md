@@ -234,10 +234,17 @@ changed to a `LEFT JOIN`, because six of them reference teams that no longer exi
 
 ## Hardening backlog
 
-`docs/hardening/` holds the work packages from the August 2026 audit — thirteen
-self-contained briefs with evidence, acceptance criteria and a conflict map showing which
-can run in parallel. `docs/hardening/README.md` first. The `/hardening` skill loads a
-single package without pulling in the rest.
+`docs/hardening/` holds the work packages from the August 2026 audit, plus the ones each
+round of work has turned up since — self-contained briefs with evidence, acceptance
+criteria and a conflict map showing which can run in parallel.
+`docs/hardening/README.md` first. The `/hardening` skill loads a single package without
+pulling in the rest.
+
+**Landed packages move to `docs/hardening/done/`**, so the top level is what is still open.
+They are kept, not deleted: each records why some code is shaped the way it is, and is
+worth reading before touching a file it owned. A package whose *code* is finished but which
+still needs a human to do something — set an env var, change a bucket policy, flip a
+switch — stays at the top level until that happens.
 
 ## Common Commands
 

@@ -233,6 +233,34 @@ function isEnforcing() {
   return process.env.CSP_ENFORCE === 'true';
 }
 
+// HSTS, as a value rather than a literal in app.js — so it can be tested without booting
+// the app.
+//
+// It lived inline in the helmet() call, and the only way to test the env switch was
+// `jest.resetModules()` plus `require('../../app')`, which builds a second application
+// including a second pg pool. That leaked: Jest reported "a worker process has failed to
+// exit gracefully" and the test timed out roughly one full run in nine. It looked exactly
+// like the contention flakiness this suite already had, which is the worst kind of bad
+// test — it hides in a known problem.
+//
+// `includeSubDomains` is off unless asked for. It commits *every* subdomain of the domain
+// to HTTPS for a year, and a browser that has seen the header keeps honouring it, so
+// anything http-only on a subdomain breaks and stays broken for people who have already
+// visited — whatever we serve afterwards. Nobody has confirmed what is on the subdomains,
+// and this app serves the apex.
+//
+// No `preload` either: that is a submission to a browser-vendor list, slow to reverse and
+// not ours to make unilaterally.
+const HSTS_MAX_AGE = 31536000; // one year
+
+function strictTransportSecurity() {
+  return {
+    maxAge: HSTS_MAX_AGE,
+    includeSubDomains: process.env.HSTS_INCLUDE_SUBDOMAINS === 'true',
+    preload: false,
+  };
+}
+
 // report-uri is deprecated but is still the only one Firefox and Safari implement;
 // report-to (with the Reporting-Endpoints header) is the only one current Chrome
 // honours. Both, or half the visitors report nothing.
@@ -275,6 +303,8 @@ module.exports = {
   DEFAULT_REPORT_URI,
   reportUri,
   isEnforcing,
+  strictTransportSecurity,
+  HSTS_MAX_AGE,
   enforcedDirectives,
   observedDirectives,
   reportingEndpointsHeader,

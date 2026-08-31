@@ -75,22 +75,39 @@ describe('the headers that enforce now', () => {
 });
 
 describe('HSTS_INCLUDE_SUBDOMAINS', () => {
-  // Read at request time by helmet, so flipping it needs the app rebuilt; the module
-  // registry is reset so app.js re-runs its helmet() call with the new value.
+  // Tested against the function that builds the value, not by booting a second app.
+  //
+  // The first version of this did `jest.resetModules()` and `require('../../app')`, which
+  // constructs a whole second application including a second pg pool. It leaked — Jest
+  // reported "a worker process has failed to exit gracefully" — and timed out about one
+  // full run in nine, looking exactly like the contention flakiness this suite already
+  // suffers from. A bad test hiding inside a known problem is worse than an obvious one,
+  // so the config moved to utils/securityHeaders.js where it can be read directly.
+  const { strictTransportSecurity, HSTS_MAX_AGE } = require('../../utils/securityHeaders');
   const original = process.env.HSTS_INCLUDE_SUBDOMAINS;
 
   afterEach(() => {
     if (original === undefined) delete process.env.HSTS_INCLUDE_SUBDOMAINS;
     else process.env.HSTS_INCLUDE_SUBDOMAINS = original;
-    jest.resetModules();
   });
 
-  it('adds includeSubDomains when set to true', async () => {
+  it('adds includeSubDomains when set to true', () => {
     process.env.HSTS_INCLUDE_SUBDOMAINS = 'true';
-    jest.resetModules();
-    const freshApp = require('../../app');
-    const res = await request(freshApp).get('/healthz');
-    expect(res.headers['strict-transport-security']).toMatch(/includeSubDomains/i);
+    expect(strictTransportSecurity().includeSubDomains).toBe(true);
+  });
+
+  it('leaves it off for anything else, including "1" and "yes"', () => {
+    for (const v of ['1', 'yes', 'TRUE', '', 'false']) {
+      process.env.HSTS_INCLUDE_SUBDOMAINS = v;
+      expect(strictTransportSecurity().includeSubDomains).toBe(false);
+    }
+    delete process.env.HSTS_INCLUDE_SUBDOMAINS;
+    expect(strictTransportSecurity().includeSubDomains).toBe(false);
+  });
+
+  it('never preloads, and keeps a year', () => {
+    expect(strictTransportSecurity().preload).toBe(false);
+    expect(strictTransportSecurity().maxAge).toBe(HSTS_MAX_AGE);
   });
 
   // "Headers present on every response" is the acceptance criterion, so helmet is

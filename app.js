@@ -60,23 +60,10 @@ app.use(helmet({
   // default, and enough for the privacy the strict setting was buying.
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 
-  // A year, for this host only.
-  //
-  // No `preload`: that is a submission to a browser-vendor list which is slow and
-  // awkward to reverse, and is not ours to commit to unilaterally.
-  //
-  // No `includeSubDomains` either, for a smaller version of the same reason. It commits
-  // *every* subdomain of stockport-badminton.co.uk to HTTPS for a year, and a browser
-  // that has already seen the header keeps honouring it — so anything http-only on a
-  // subdomain (an old blog, a webmail interface, something at a hosting provider) breaks
-  // and stays broken for people who have visited the site, whatever we serve afterwards.
-  // Nobody has confirmed what lives on the subdomains, and the apex is what this app
-  // serves. Set HSTS_INCLUDE_SUBDOMAINS=true once someone has checked.
-  strictTransportSecurity: {
-    maxAge: 31536000,
-    includeSubDomains: process.env.HSTS_INCLUDE_SUBDOMAINS === 'true',
-    preload: false,
-  },
+  // A year, for this host only. Built in utils/securityHeaders.js with the rest of the
+  // policy — including why `includeSubDomains` and `preload` are both off by default, and
+  // which env var turns the first one on.
+  strictTransportSecurity: securityHeaders.strictTransportSecurity(),
 
   // Everything on this site is public, and it is meant to be embedded elsewhere:
   // views/emails/websiteUpdated.ejs mails a generated result image hosted here, and the

@@ -1,6 +1,6 @@
 ---
 name: hardening
-description: Pick up a work package from the August 2026 hardening audit (docs/hardening). Use when the user names a package (HARD-01 … HARD-13), asks what to work on next from the audit/backlog, or asks for the status of the hardening work. Loads only the one package's brief plus the rules of engagement, so a session starts with the right context instead of exploring for it.
+description: Pick up a work package from the August 2026 hardening audit (docs/hardening). Use when the user names a package (HARD-01 … HARD-19), asks what to work on next from the audit/backlog, or asks for the status of the hardening work. Loads only the one package's brief plus the rules of engagement, so a session starts with the right context instead of exploring for it.
 ---
 
 # Working a hardening package
@@ -11,7 +11,10 @@ evidence are in the package files, not in anyone's memory.
 ## If the user named a package (e.g. `/hardening HARD-01`)
 
 1. Read `docs/hardening/README.md` — rules of engagement and the conflict map.
-2. Read `docs/hardening/HARD-0N-*.md` — the brief.
+2. Read the brief: `docs/hardening/HARD-<N>-*.md`, or `docs/hardening/done/HARD-<N>-*.md`
+   if it has already landed. Completed packages are moved into `done/` so the top
+   level lists only what is still open — a package in `done/` is still worth reading
+   when you are working on something that touches the same files.
 3. Read `CLAUDE.md` if it is not already in context.
 
 **Do not read the other package files.** Each is self-contained; reading all thirteen is
