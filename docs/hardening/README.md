@@ -115,7 +115,8 @@ stand without reading git log.
 | HARD-09 | not started | | |
 | HARD-10 | not started | | |
 | HARD-11 | not started | | |
-| HARD-12 | not started | | |
+| HARD-12 | **done (report-only)** | | helmet + two CSP headers: an enforcing baseline with no resource allowlist, and the full allowlist report-only. `CSP_ENFORCE=true` flips it — prerequisites in `utils/securityHeaders.js`, do not flip without them. Nothing was receiving reports (Sentry needs setup that was never done), so `POST /csp-report` collects them into Cloud Logging. Residual: `'unsafe-inline'` must stay in `script-src` until the 159 inline `onclick` handlers go — tracked as HARD-15. |
 | HARD-13 | not started | | |
-| HARD-14 | not started | | Found 31 Aug while working SEC-3. |
+| HARD-14 | not started | | Found 31 Aug while working SEC-3. Wider than one test: on repeated full runs (HARD-12, 31 Aug) `sign-s3`, `club-pages`, `roster` and `event-page-and-sitemap` each failed intermittently under parallel workers and passed alone, with a different set each run. Verified pre-existing — it reproduces with HARD-12 stashed out. Worth treating as one flakiness bug, not four. |
 | HARD-02b | not started | | Residual from HARD-02. |
+| HARD-15 | not started | | Residual from HARD-12. Move the 159 inline `onclick=` attributes and 17 inline `<script>` blocks in `views/` onto delegated handlers, so `script-src` can drop `'unsafe-inline'` for a nonce. Until then the CSP stops a script being *loaded* from an unlisted host but not an injected inline one. Not a package brief yet — no evidence gathered beyond the counts. |

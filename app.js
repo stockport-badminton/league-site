@@ -10,6 +10,7 @@ const pgSession = require('connect-pg-simple')(session);
 var passport = require('passport');
 var Auth0Strategy = require('passport-auth0');
 var bodyParser = require('body-parser');
+var helmet = require('helmet');
 var path = require('path');
 const fs = require('fs');
 const compression = require('compression');
@@ -31,6 +32,76 @@ if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
 const { clientIp: getClientIp } = require('./utils/clientIp');
 
 var app = express();
+
+// ---------------------------------------------------------------------------
+// Security response headers
+// ---------------------------------------------------------------------------
+//
+// Mounted first, above everything including the static handlers, the IP blocklist and
+// /healthz, because "present on every response" is the requirement — a header that is
+// missing from the one response an attacker cares about is not a control.
+//
+// The policy itself lives in utils/securityHeaders.js, where each allowlist entry sits
+// next to the template that forces it. Read that file before changing anything here.
+//
+// Two CSP headers go out. The enforcing one carries no resource allowlist at all, so it
+// cannot blank a page that works today; the full allowlist ships report-only until it
+// has been observed. See the module for why that split, and for why a nonce-based
+// policy is not the answer on a site with 159 inline onclick handlers.
+var securityHeaders = require('./utils/securityHeaders');
+
+app.use(helmet({
+  // Set explicitly below, as two headers rather than helmet's single enforcing one.
+  contentSecurityPolicy: false,
+
+  // Helmet's default is no-referrer, which also strips the referrer from links out to
+  // the clubs' own websites and from analytics. strict-origin-when-cross-origin keeps
+  // the full path same-origin and sends only the origin outward — the modern browser
+  // default, and enough for the privacy the strict setting was buying.
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+
+  // A year, and subdomains. No `preload`: that is a submission to a browser-vendor list
+  // which is slow and awkward to reverse, and is not ours to commit to unilaterally.
+  strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true, preload: false },
+
+  // Everything on this site is public, and it is meant to be embedded elsewhere:
+  // views/emails/websiteUpdated.ejs mails a generated result image hosted here, and the
+  // og:image is fetched by other people's link previewers. Helmet's same-origin default
+  // would tell browsers not to render our own images anywhere but our own pages.
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+
+  // Helmet's default is same-origin, which severs window.opener for any popup. The
+  // Auth0 login here is a redirect flow so nothing depends on it today, but the
+  // Facebook SDK opens popups and the allow-popups variant keeps the isolation that
+  // matters without betting on that.
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+
+  // Off (which is also helmet's default since v6). Requiring CORP on every cross-origin
+  // subresource would block Cloudinary, Google Maps tiles, the Facebook plugin and
+  // every avatar Auth0 hands back, none of which send one.
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Chrome no longer honours report-uri; it wants a named group declared in this header.
+// Firefox and Safari have it the other way round, so both go out — see the module.
+app.use(function(req, res, next) {
+  var endpoints = securityHeaders.reportingEndpointsHeader();
+  if (endpoints) res.setHeader('Reporting-Endpoints', endpoints);
+  next();
+});
+
+app.use(helmet.contentSecurityPolicy({
+  useDefaults: false,
+  directives: securityHeaders.enforcedDirectives(),
+}));
+
+if (securityHeaders.observedDirectives()) {
+  app.use(helmet.contentSecurityPolicy({
+    useDefaults: false,
+    reportOnly: true,
+    directives: securityHeaders.observedDirectives(),
+  }));
+}
 
 // Past seasons for the History nav / archive, loaded from the DB at startup
 // (below). Default to empty so views always have an array to iterate.
@@ -133,6 +204,77 @@ app.get('/healthz', async function(req, res) {
     console.error('healthz: database unreachable:', err.message);
     res.status(503).json({ ok: false, error: 'database unreachable' });
   }
+});
+
+// Where the report-only CSP sends its violations.
+//
+// HARD-12 assumed Sentry would collect these. It does not do so by itself — that needs
+// report-uri pointed at the project's security-header endpoint and the feature switched
+// on in project settings, and neither had been done. A report-only period with nothing
+// receiving the reports observes nothing, which is exactly the outcome the report-only
+// step exists to avoid. So we collect them ourselves, into Cloud Logging, where they
+// cost nothing and can be counted. CSP_REPORT_URI redirects them elsewhere.
+//
+// Mounted here for the same reason /healthz is, and more so: a browser fires one report
+// per blocked subresource, so one page load under a wrong policy can be a dozen POSTs.
+// Below globalLimiter those would spend a real visitor's sitewide budget and then
+// rate-limit the pages they were trying to read.
+//
+// Deliberately not sent to Sentry. Browser extensions inject scripts into pages
+// constantly and each one is a violation; forwarding them would exhaust the free-tier
+// quota within days and bury the server errors it exists to show.
+var cspBodyParser = express.json({
+  type: ['application/csp-report', 'application/reports+json', 'application/json'],
+  limit: '32kb'
+});
+
+// The report body is written by the visitor's browser about a URL an attacker may have
+// chosen, and it ends up in a log. A newline in it would forge a log line of its own.
+function logSafe(value) {
+  if (typeof value !== 'string') return '-';
+  return value.replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 300);
+}
+
+// chrome-extension:, moz-extension:, safari-web-extension: and friends are injected
+// scripts; webkit-masked-url: is what Safari substitutes for one rather than naming it.
+var IGNORED_SCHEMES = /^(?:(?:chrome|moz|safari|safari-web|ms-browser)-extension|webkit-masked-url|about):/i;
+
+app.post('/csp-report', require('./middleware/rateLimit').cspReportLimiter, cspBodyParser, function(req, res) {
+  // Answer first and unconditionally. A report endpoint that can 4xx teaches a browser
+  // nothing useful and gives an attacker a probe; there is nothing for the client to do
+  // with the answer either way.
+  res.status(204).end();
+
+  var body = req.body;
+  // Two wire formats: report-uri posts { "csp-report": {...} }, the Reporting API posts
+  // an array of { type, url, body }. Both are in the field simultaneously.
+  var reports = Array.isArray(body)
+    ? body.filter(function(r) { return r && r.type === 'csp-violation'; })
+        .map(function(r) {
+          return {
+            directive: r.body && (r.body.effectiveDirective || r.body.violatedDirective),
+            blocked: r.body && r.body.blockedURL,
+            document: r.body && r.body.documentURL || r.url,
+            source: r.body && r.body.sourceFile
+          };
+        })
+    : (body && body['csp-report'] ? [{
+        directive: body['csp-report']['effective-directive'] || body['csp-report']['violated-directive'],
+        blocked: body['csp-report']['blocked-uri'],
+        document: body['csp-report']['document-uri'],
+        source: body['csp-report']['source-file']
+      }] : []);
+
+  reports.forEach(function(r) {
+    // Extension-injected scripts violate any policy on any site and are not ours to
+    // fix. Left in, they are the overwhelming majority of the volume and the reason a
+    // report-only period gets abandoned as noise.
+    if (r.blocked && IGNORED_SCHEMES.test(r.blocked)) return;
+    console.warn('csp-report: ' + logSafe(r.directive) +
+      ' blocked=' + logSafe(r.blocked) +
+      ' page=' + logSafe(r.document) +
+      ' source=' + logSafe(r.source));
+  });
 });
 
 app.use('/static', express.static(path.join(__dirname, '/static')));

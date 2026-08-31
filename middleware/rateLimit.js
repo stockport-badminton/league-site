@@ -88,6 +88,17 @@ const webhookLimiter = makeLimiter({
   limit: 120,
 });
 
+// CSP violation reports (see utils/securityHeaders.js). Its own limiter rather than the
+// sitewide one because it is mounted above globalLimiter in app.js: a browser fires one
+// report per blocked subresource, so a single page load under a bad policy can be a
+// dozen hits, and counting those against the visitor's sitewide budget would rate-limit
+// the pages they were actually trying to read. Generous — the reports are the point —
+// but not unbounded, since the endpoint is unauthenticated by necessity.
+const cspReportLimiter = makeLimiter({
+  windowMs: 5 * 60 * 1000,
+  limit: 300,
+});
+
 // Sitewide backstop. Generous enough that no real visitor meets it — a page with images
 // and scripts is one request here (static assets are mounted before the router), and
 // crawlers stay well under it.
@@ -109,6 +120,7 @@ module.exports = {
   publicFormLimiter,
   contactLimiter,
   webhookLimiter,
+  cspReportLimiter,
   globalLimiter,
   keyGenerator,
   skipCrawlSurface,
