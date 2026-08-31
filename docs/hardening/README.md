@@ -106,7 +106,7 @@ stand without reading git log.
 | SEC-3 | **done** | `f5f36ff` | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
 | HARD-01 | **done** | `17e2d0e` | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
 | HARD-02 | **done** | `8f1fb71` | Server-generated keys, image-only content types, rate limit. Residual tracked as HARD-02b. |
-| HARD-03 | not started | | |
+| HARD-03 | **done, migration pending** | | Photo URL validated + escaped, write gated, per-draft `confirmToken` in the confirmation link. **`migrations/011_scorecard_confirm_token.sql` is NOT applied** — it must be, before this deploys, or every scorecard submission fails on an unknown column. Tokenless drafts are grandfathered (see the clause in `utils/scorecardLinks.js`). |
 | HARD-04 | **done** | `19d27ec` | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
 | HARD-05 | **done** | `4a10c68` | All 11 replaced with next(err), plus a repo-level guard test. |
 | HARD-06 | not started | | |

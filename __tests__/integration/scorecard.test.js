@@ -259,7 +259,8 @@ describe('POST /email-scorecard', () => {
         .send(validScorecard());
 
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/populated-scorecard-beta/42');
+      // The token is asserted separately, below; the id is what this test is about.
+      expect(res.headers.location).toMatch(/^\/populated-scorecard-beta\/42(\?|$)/);
       expect(res.headers.location).not.toContain('undefined');
     });
 
@@ -588,5 +589,384 @@ describe('POST /scorecard-beta', () => {
         .send(validScorecard({ homeScore: '11', awayScore: '7' }));
       expect(res.status).toBe(200);
     });
+  });
+});
+
+// ── HARD-03: the photo endpoint and the confirmation link ─────────────────────
+//
+// POST /add-scorecard-photo/:id was unauthenticated, wrote req.body.imgURL against any
+// draft id, and interpolated that value unescaped into an HTML email sent from
+// results@stockport-badminton.co.uk — so a crafted value rewrote the message itself and
+// arrived as a phishing mail from our own verified domain, at the one inbox that is
+// expecting exactly that email.
+//
+// And /populated-scorecard-beta/:id took only the draft's sequential id, so every
+// scorecard ever filed could be walked by counting.
+
+const BUCKET = 'badmintontemp';
+const PHOTO_URL = `https://${BUCKET}.s3.eu-west-1.amazonaws.com/scorecards/20262027/photo.jpg`;
+// The Host header Firebase actually forwards to Cloud Run. Any link built from it goes
+// to a hostname that is not the site.
+const CLOUD_RUN_HOST = 'league-site-akvq7tsxuq-nw.a.run.app';
+
+function updateResult(affectedRows) {
+  return Object.assign([], { affectedRows });
+}
+
+// jest.clearAllMocks() clears calls but keeps implementations, and the post-commit
+// describe above leaves ses.sendEmail rejecting. Every describe below sends mail, so it
+// has to be put back or they all see an SES outage that no test asked for.
+function sesWorks() {
+  ses.sendEmail.mockResolvedValue({});
+}
+
+describe('POST /add-scorecard-photo/:id', () => {
+  beforeEach(() => {
+    sesWorks();
+    process.env.S3_BUCKET_NAME = BUCKET;
+    Fixture.getScorecardById.mockResolvedValue([
+      { id: 7, 'scoresheet-url': '', confirmToken: null }
+    ]);
+    Fixture.updateScorecardPhoto.mockResolvedValue(updateResult(1));
+  });
+
+  describe('the imgURL', () => {
+    it('is rejected when it points somewhere other than our bucket', async () => {
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: 'https://evil.example.com/scorecard.jpg' });
+
+      expect(res.status).toBe(400);
+      expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('is rejected when it carries HTML metacharacters, so nothing is emailed at all', async () => {
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: `${PHOTO_URL}"><a href="https://evil.example.com">Confirm</a>` });
+
+      expect(res.status).toBe(400);
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('is rejected when it is a javascript: URL', async () => {
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: 'javascript:alert(document.domain)' });
+
+      expect(res.status).toBe(400);
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('is stored, and emailed, when it really is a photo in our bucket', async () => {
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL });
+
+      expect(res.status).toBe(200);
+      expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', PHOTO_URL);
+      expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      expect(html).toContain(PHOTO_URL);
+    });
+  });
+
+  describe('the emailed confirmation link', () => {
+    it('uses the public origin even when the Host header is the Cloud Run one', async () => {
+      await request(app)
+        .post('/add-scorecard-photo/7')
+        .set('Host', CLOUD_RUN_HOST)
+        .send({ imgURL: PHOTO_URL });
+
+      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      expect(html).toContain('https://stockport-badminton.co.uk/populated-scorecard-beta/7');
+      expect(html).not.toContain(CLOUD_RUN_HOST);
+    });
+
+    it('carries the draft token when the draft has one', async () => {
+      Fixture.getScorecardById.mockResolvedValue([
+        { id: 7, 'scoresheet-url': '', confirmToken: 'tok-en-123' }
+      ]);
+
+      await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL, token: 'tok-en-123' });
+
+      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      expect(html).toContain('/populated-scorecard-beta/7?t=tok-en-123');
+    });
+  });
+
+  describe('the write itself', () => {
+    it('404s for a draft that does not exist, rather than writing against the id', async () => {
+      Fixture.getScorecardById.mockResolvedValue([]);
+
+      const res = await request(app)
+        .post('/add-scorecard-photo/9999')
+        .send({ imgURL: PHOTO_URL });
+
+      expect(res.status).toBe(404);
+      expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('refuses to replace a photo that is already there', async () => {
+      Fixture.getScorecardById.mockResolvedValue([
+        { id: 7, 'scoresheet-url': `https://${BUCKET}.s3.eu-west-1.amazonaws.com/original.jpg`, confirmToken: null }
+      ]);
+
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL });
+
+      expect(res.status).toBe(409);
+      expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('409s when the guarded UPDATE matched nothing, so no email claims a write that did not happen', async () => {
+      Fixture.updateScorecardPhoto.mockResolvedValue(updateResult(0));
+
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL });
+
+      expect(res.status).toBe(409);
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('requires the draft token when the draft has one', async () => {
+      Fixture.getScorecardById.mockResolvedValue([
+        { id: 7, 'scoresheet-url': '', confirmToken: 'the-real-token' }
+      ]);
+
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL, token: 'a-guess' });
+
+      expect(res.status).toBe(403);
+      expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
+      expect(ses.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('accepts the draft token when it matches', async () => {
+      Fixture.getScorecardById.mockResolvedValue([
+        { id: 7, 'scoresheet-url': '', confirmToken: 'the-real-token' }
+      ]);
+
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL, token: 'the-real-token' });
+
+      expect(res.status).toBe(200);
+      expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', PHOTO_URL);
+    });
+
+    // Grandfathered: drafts filed before the token column existed have none.
+    it('still accepts a photo for a draft that has no token', async () => {
+      const res = await request(app)
+        .post('/add-scorecard-photo/7')
+        .send({ imgURL: PHOTO_URL });
+
+      expect(res.status).toBe(200);
+    });
+  });
+});
+
+// The escaping is the second line of defence behind the URL check above, and is proved
+// directly here because no value that survives validation can exercise it.
+describe('buildPhotoEmailHtml', () => {
+  const { buildPhotoEmailHtml } = require('../../controllers/scorecardController');
+
+  it('cannot have its structure altered by the URL it is given', () => {
+    const hostile = 'https://x/a.jpg"><a href="https://evil.example.com">Confirm</a><!--';
+    const html = buildPhotoEmailHtml(hostile, 'https://stockport-badminton.co.uk/x');
+
+    expect(html).not.toContain('evil.example.com">Confirm');
+    expect(html).not.toContain('<!--');
+    // Exactly the two anchors the template itself writes: the photo and the link.
+    expect((html.match(/<a /g) || []).length).toBe(2);
+    expect(html).toContain('&quot;&gt;&lt;a href=&quot;');
+  });
+});
+
+// ── HARD-03: the confirmation link needs the token ───────────────────────────
+
+describe('GET /populated-scorecard-beta/:id with tokens', () => {
+  const draft = (overrides = {}) => [{
+    id: 42, division: 1, homeTeam: 10, awayTeam: 20,
+    homeMan1: 1, homeMan2: 2, homeMan3: 3,
+    homeLady1: 4, homeLady2: 5, homeLady3: 6,
+    awayMan1: 7, awayMan2: 8, awayMan3: 9,
+    awayLady1: 10, awayLady2: 11, awayLady3: 12,
+    'scoresheet-url': '', confirmToken: null,
+    ...overrides,
+  }];
+
+  beforeEach(() => {
+    Division.getAllAndSelectedById.mockResolvedValue([{ id: 1, name: 'Division 1', selected: 1 }]);
+    Team.getAllAndSelectedById.mockResolvedValue([{ id: 10, name: 'Mellor A', selected: 1 }]);
+    // populated-scorecard.ejs prints first_name/family_name, not name — assert on what
+    // the template really renders, not on what the mock happens to carry.
+    Player.getEligiblePlayersAndSelectedById.mockResolvedValue([
+      { id: 1, first_name: 'Player', family_name: 'One', first: 1 }
+    ]);
+  });
+
+  it('does not render a scorecard when the draft has a token and the URL has none', async () => {
+    Fixture.getScorecardById.mockResolvedValue(draft({ confirmToken: 'the-real-token' }));
+
+    const res = await request(app).get('/populated-scorecard-beta/42');
+
+    expect(res.status).toBe(403);
+    expect(res.text).not.toContain('Player One');
+    expect(res.text).not.toContain('signupForm');
+  });
+
+  it('does not render a scorecard for a guessed token', async () => {
+    Fixture.getScorecardById.mockResolvedValue(draft({ confirmToken: 'the-real-token' }));
+
+    const res = await request(app).get('/populated-scorecard-beta/42?t=a-guess');
+
+    expect(res.status).toBe(403);
+    expect(res.text).not.toContain('Player One');
+  });
+
+  it('renders for the token that was emailed', async () => {
+    Fixture.getScorecardById.mockResolvedValue(draft({ confirmToken: 'the-real-token' }));
+
+    const res = await request(app).get('/populated-scorecard-beta/42?t=the-real-token');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Player One');
+  });
+
+  // Grandfather clause: the links already in captains' inboxes have no token.
+  it('still renders a draft that has no token stored', async () => {
+    Fixture.getScorecardById.mockResolvedValue(draft());
+
+    const res = await request(app).get('/populated-scorecard-beta/42');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Player One');
+  });
+
+  it('404s for a draft that does not exist, instead of crashing on row zero', async () => {
+    Fixture.getScorecardById.mockResolvedValue([]);
+
+    const res = await request(app).get('/populated-scorecard-beta/9999');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('keeps the token out of the page canonical', async () => {
+    Fixture.getScorecardById.mockResolvedValue(draft({ confirmToken: 'the-real-token' }));
+
+    const res = await request(app).get('/populated-scorecard-beta/42?t=the-real-token');
+
+    expect(res.text).toContain('href="https://stockport-badminton.co.uk/populated-scorecard-beta/42"');
+    expect(res.text).not.toContain('/populated-scorecard-beta/42?t=');
+  });
+});
+
+// ── HARD-03: the draft gets a token when it is filed ─────────────────────────
+
+describe('POST /email-scorecard link and token', () => {
+  beforeEach(() => {
+    sesWorks();
+    process.env.S3_BUCKET_NAME = BUCKET;
+    Fixture.createScorecard.mockResolvedValue([{ id: 42 }]);
+  });
+
+  it('stores a token on the new draft', async () => {
+    await request(app).post('/email-scorecard').send(validScorecard());
+
+    const written = Fixture.createScorecard.mock.calls[0][0];
+    expect(typeof written.confirmToken).toBe('string');
+    expect(written.confirmToken.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it('emails a link on the public origin, not the Cloud Run host', async () => {
+    await request(app)
+      .post('/email-scorecard')
+      .set('Host', CLOUD_RUN_HOST)
+      .send(validScorecard());
+
+    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    expect(html).toContain('https://stockport-badminton.co.uk/populated-scorecard-beta/42?t=');
+    expect(html).not.toContain(CLOUD_RUN_HOST);
+  });
+
+  it('emails a link carrying the same token it stored', async () => {
+    await request(app).post('/email-scorecard').send(validScorecard());
+
+    const token = Fixture.createScorecard.mock.calls[0][0].confirmToken;
+    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    expect(html).toContain('/populated-scorecard-beta/42?t=' + token);
+  });
+
+  it('redirects the captain to a URL that carries the token, so their own draft opens', async () => {
+    const res = await request(app).post('/email-scorecard').send(validScorecard());
+
+    const token = Fixture.createScorecard.mock.calls[0][0].confirmToken;
+    expect(res.headers.location).toBe('/populated-scorecard-beta/42?t=' + token);
+  });
+
+  // The other end of the same injection: this handler emails req.body['scoresheet-url']
+  // as an anchor too. A result must not be lost over it, so the URL is dropped and the
+  // draft still saved.
+  it('saves the draft but drops an off-bucket scoresheet URL', async () => {
+    const res = await request(app)
+      .post('/email-scorecard')
+      .send(validScorecard({ 'scoresheet-url': 'https://evil.example.com/x.jpg">' }));
+
+    expect(res.status).toBe(302);
+    expect(Fixture.createScorecard).toHaveBeenCalledTimes(1);
+    expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe('');
+    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    expect(html).not.toContain('evil.example.com');
+  });
+
+  it('keeps a scoresheet URL that really is in our bucket', async () => {
+    await request(app)
+      .post('/email-scorecard')
+      .send(validScorecard({ 'scoresheet-url': PHOTO_URL }));
+
+    expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe(PHOTO_URL);
+    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    expect(html).toContain(PHOTO_URL);
+  });
+});
+
+// ── HARD-03: the photo-upload list has to carry the token ────────────────────
+
+describe('GET /email-scorecard passes each draft token to the page', () => {
+  beforeEach(() => {
+    Division.getAllByLeague.mockResolvedValue(mockDivisions);
+    Auth.getManagementAPIKey.mockResolvedValue('mock-token');
+    axios.get.mockResolvedValue({ data: [{ email: 'test@test.com', app_metadata: {} }] });
+  });
+
+  it('renders the token alongside the file input, so the POST can prove it', async () => {
+    Fixture.getMissingScorecardPhotos.mockResolvedValue([
+      { id: 7, homeTeam: 'Mellor A', awayTeam: 'Canute A', confirmToken: 'tok-en-123' }
+    ]);
+
+    const res = await request(app).get('/email-scorecard');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('tok-en-123');
+  });
+
+  it('renders the list for a legacy draft with no token', async () => {
+    Fixture.getMissingScorecardPhotos.mockResolvedValue([
+      { id: 7, homeTeam: 'Mellor A', awayTeam: 'Canute A', confirmToken: null }
+    ]);
+
+    const res = await request(app).get('/email-scorecard');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Mellor A');
   });
 });

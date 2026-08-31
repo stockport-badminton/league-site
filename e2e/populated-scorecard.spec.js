@@ -10,23 +10,24 @@
 
 const { test, expect } = require('@playwright/test');
 const { readOnly } = require('./helpers/read-only');
-const { latestScorecardDraftId, latestMesserDraftId, draftHasScores } = require('./helpers/db');
+const { latestScorecardDraftPath, latestMesserDraftId, draftHasScores } = require('./helpers/db');
 
 test.describe('/populated-scorecard-beta/:id', function () {
 
-  let draftId;
+  let draftPath;
 
   test.beforeAll(async function () {
     // No page lists these ids - the URL only ever arrives by email - so it comes
-    // from a SELECT. See e2e/helpers/db.js.
-    draftId = await latestScorecardDraftId();
+    // from a SELECT, along with the confirmation token the page now requires
+    // (HARD-03). See e2e/helpers/db.js.
+    draftPath = await latestScorecardDraftPath();
   });
 
   test('plays the submitted result back with scores prefilled', async function ({ page, baseURL }) {
-    test.skip(!draftId, 'no scorecard drafts in the database to render');
+    test.skip(!draftPath, 'no scorecard drafts in the database to render');
     const guard = await readOnly(page, baseURL);
 
-    await page.goto('/populated-scorecard-beta/' + draftId);
+    await page.goto(draftPath);
 
     // All 18 games, same as the entry form.
     await expect(page.locator('#Game1homeScore').first()).toHaveCount(1);
@@ -43,10 +44,10 @@ test.describe('/populated-scorecard-beta/:id', function () {
   });
 
   test('prefills the player selections too', async function ({ page, baseURL }) {
-    test.skip(!draftId, 'no scorecard drafts in the database to render');
+    test.skip(!draftPath, 'no scorecard drafts in the database to render');
     const guard = await readOnly(page, baseURL);
 
-    await page.goto('/populated-scorecard-beta/' + draftId);
+    await page.goto(draftPath);
 
     // Players are selects, not inputs - a prefill regression here shows up as
     // every dropdown sitting on its placeholder.
@@ -58,14 +59,30 @@ test.describe('/populated-scorecard-beta/:id', function () {
     guard.assertNoWrites();
   });
 
+  // The enumeration this token exists to stop: the id alone used to be the whole
+  // credential. Skips while the newest draft predates migration 011 (no token to
+  // withhold); once a real tokenised draft exists this asserts the gate for real.
+  test('refuses the same draft when the token is left off the URL', async function ({ page, baseURL }) {
+    test.skip(!draftPath, 'no scorecard drafts in the database to render');
+    test.skip(!draftPath.includes('?t='), 'newest draft predates the confirmation token');
+    const guard = await readOnly(page, baseURL);
+
+    const response = await page.goto(draftPath.split('?')[0]);
+
+    expect(response.status()).toBe(403);
+    await expect(page.locator('#Game1homeScore')).toHaveCount(0);
+
+    guard.assertNoWrites();
+  });
+
   test('loads without console or page errors', async function ({ page, baseURL }) {
-    test.skip(!draftId, 'no scorecard drafts in the database to render');
+    test.skip(!draftPath, 'no scorecard drafts in the database to render');
     const guard = await readOnly(page, baseURL);
     const errors = [];
     page.on('pageerror', e => errors.push('pageerror: ' + e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
-    await page.goto('/populated-scorecard-beta/' + draftId);
+    await page.goto(draftPath);
     await page.waitForTimeout(500);
 
     const real = errors.filter(e => !/ERR_FAILED|ERR_ABORTED|net::/.test(e));

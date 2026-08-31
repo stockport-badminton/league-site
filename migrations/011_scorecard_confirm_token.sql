@@ -1,0 +1,30 @@
+-- A per-draft secret for the scorecard confirmation link (HARD-03, finding SEASON-5).
+--
+-- The link emailed when a scorecard is filed is /populated-scorecard-beta/<id>, where
+-- <id> is this table's sequential primary key. There is no token, no login and no check
+-- that the visitor is connected to either club, and ids run to about 2,400 — so every
+-- scorecard ever filed can be walked by counting, and an outsider can confirm a result
+-- that neither captain has agreed. The token goes in the link and is checked on the way
+-- in; nothing changes for a captain, who still clicks the link in their email.
+--
+-- 32 base64url characters from 24 random bytes (utils/scorecardLinks.js). VARCHAR(64)
+-- leaves room to lengthen it without a second migration.
+--
+-- Deliberately NULLable, and deliberately NOT backfilled. Drafts filed before this
+-- column existed have confirmation links already sitting in captains' inboxes; a row
+-- with no token is treated as "no token required" (the grandfather clause in
+-- utils/scorecardLinks.js:draftRequiresToken), because minting tokens for existing rows
+-- is exactly what would invalidate those links and silently lock a captain out of
+-- confirming a result mid-season. Drafts are confirmed within days, so the clause can be
+-- removed once no outstanding draft is missing a token.
+--
+-- ⚠️ This must be applied BEFORE the code that reads it is deployed. The application
+-- writes "confirmToken" on every new draft and selects it for the photo-upload list, so
+-- deploying first means every scorecard submission fails on an unknown column.
+--
+--   node run-migration.js 011_scorecard_confirm_token.sql
+--
+-- Quoted, because an unquoted camelCase identifier is folded to lowercase by Postgres
+-- and `row.confirmToken` would then be undefined — see CLAUDE.md.
+
+ALTER TABLE scorecardstore ADD COLUMN IF NOT EXISTS "confirmToken" VARCHAR(64);

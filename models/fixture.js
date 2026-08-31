@@ -742,9 +742,20 @@ exports.updateById = async function(fixtureObj, fixtureId, conn) {
   return result
 }
 
+// Attaches a photo to a draft that does not have one.
+//
+// The emptiness guard is repeated in the WHERE clause on purpose, the same way the
+// backfill scripts do it: the caller checks the draft has no photo yet, and between
+// that read and this write the row can change. `rows.affectedRows` is 0 when the guard
+// bit, and the caller answers 409 rather than emailing the results secretary about a
+// write that did not happen.
+//
+// Without it, this was an unconditional overwrite keyed on an id from the URL — so any
+// fixture's photo could be replaced by anyone.
 exports.updateScorecardPhoto = async function(id, imgurl) {
   const [result] = await (await db.otherConnect()).query(
-    'UPDATE scorecardstore SET "scoresheet-url" = ? WHERE id = ?',
+    `UPDATE scorecardstore SET "scoresheet-url" = ?
+     WHERE id = ? AND COALESCE(NULLIF(TRIM("scoresheet-url"), ''), '') = ''`,
     [imgurl, id]
   )
   return result
@@ -758,6 +769,9 @@ scorecardstore.id,
 scorecardstore.date,
 scorecardstore."scoresheet-url",
 scorecardstore.email,
+-- The draft's confirmation token, so the page can post it back when attaching a photo
+-- (POST /add-scorecard-photo/:id). NULL for a draft filed before migration 011.
+scorecardstore."confirmToken",
 homeTeam.name AS "homeTeam",
 awayTeam.name AS "awayTeam"
 FROM

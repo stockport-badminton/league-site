@@ -303,6 +303,32 @@ Phase 8a: Weekly video generation from fixture results
 - Supports 16-9 (1920×1080) and 1-1 (1080×1080) aspect ratios
 - Creates temporary image sequences, outputs to `static/beta/videos/generated/`
 
+### Scorecard confirmation links and the photo endpoint
+
+The link emailed when a draft is filed is `/populated-scorecard-beta/:id?t=<token>`. The
+token is a random per-draft column, `scorecardstore."confirmToken"` (migration 011), and
+it exists because the id alone is a sequential primary key running to ~2,400 — every
+scorecard ever filed could be walked by counting, and confirmed by an outsider.
+
+- **All of it lives in `utils/scorecardLinks.js`** — minting, comparing (constant time),
+  building the URL, and the rule for what may be stored as a photo. Don't reimplement any
+  of those next to a new caller.
+- **A draft with no token still opens.** Links filed before the column existed are
+  already in captains' inboxes; `draftRequiresToken()` treats NULL/'' as "no token
+  needed", and there is deliberately **no backfill**, because minting tokens for existing
+  rows is exactly what would invalidate those links. The clause carries a note saying what
+  removes it.
+- **Emailed links go through `confirmationUrl()`/`absoluteUrl()`**, never
+  `req.headers.host` — see gotcha 1b.
+- **`POST /add-scorecard-photo/:id` is unauthenticated**, so it takes four checks: the URL
+  must be an object in our own S3 bucket, it is HTML-escaped into the email regardless,
+  the draft must exist and have no photo yet, and a draft with a token must present it. It
+  used to interpolate `req.body.imgURL` raw into a mail from
+  `results@stockport-badminton.co.uk`, so a crafted value rewrote the message — phishing
+  from our own verified domain, to the inbox expecting that exact email.
+- **Hand-built email HTML escapes with `utils/html.js`.** EJS escapes; string
+  concatenation does not, and every outbound email in this codebase is concatenated.
+
 ### Messer Knockout Tournament
 
 Messer is a 15-game knockout (vs. 18-game regular fixtures):
