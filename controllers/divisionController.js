@@ -47,7 +47,11 @@ exports.division_batch_create = async function(req, res, next) {
     // console.log(result)
     res.send(result);
   } catch (err) {
-    res.send(err);
+    // Was `res.send(err)` — an Error serialises to `{}` and goes out with the default
+    // status, so a failed request answered **HTTP 200** with an empty body. A visitor
+    // saw a blank page, Sentry heard nothing because Express thought it succeeded, and
+    // a crawler banked it as a real page. That is what blanked 48 /event/ pages.
+    next(err);
     // console.log(err);
   }
 };
