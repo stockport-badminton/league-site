@@ -78,6 +78,7 @@ Packages in the same wave touch disjoint handlers and can run in parallel. Addin
 | [HARD-07](HARD-07-weekly-anomaly-email.md) Weekly anomaly email | new controller + view, one new route | B | HARD-09 |
 | [HARD-10](HARD-10-team-lifecycle.md) Withdraw a team properly | `teamController`, `models/league.js`, admin views | B | — |
 | [HARD-11](HARD-11-referential-integrity.md) 2,132 orphaned team references | model queries across the app | B | — |
+| [HARD-02b](HARD-02b-private-scorecard-photos.md) Make scorecard photos private | `routes/index.js` (`/sign-s3`), a new read path | C | — |
 | [HARD-12](HARD-12-security-headers.md) helmet + CSP | `app.js` | C | HARD-04 |
 | [HARD-13](HARD-13-dev-database-guard.md) Stop dev pointing at production | `app.js`, `dev.env` | C | HARD-04 |
 | [HARD-14](HARD-14-flaky-authorization-test.md) A flaky authorization test | `__tests__/integration/roster.test.js` | A | — |
@@ -104,7 +105,7 @@ stand without reading git log.
 |---|---|---|---|
 | SEC-3 | **done** | `f5f36ff` | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
 | HARD-01 | **done** | `17e2d0e` | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
-| HARD-02 | not started | | |
+| HARD-02 | **done** | *(pending)* | Server-generated keys, image-only content types, rate limit. Residual tracked as HARD-02b. |
 | HARD-03 | not started | | |
 | HARD-04 | **done** | *(pending)* | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
 | HARD-05 | not started | | |
@@ -117,3 +118,4 @@ stand without reading git log.
 | HARD-12 | not started | | |
 | HARD-13 | not started | | |
 | HARD-14 | not started | | Found 31 Aug while working SEC-3. |
+| HARD-02b | not started | | Residual from HARD-02. |

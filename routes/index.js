@@ -38,6 +38,7 @@ const {
   publicFormLimiter, contactLimiter, webhookLimiter
 } = require('../middleware/rateLimit');
 const spamGate = require('../middleware/spamGate');
+const { buildUploadKey } = require('../utils/uploads');
 
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
@@ -112,22 +113,45 @@ router.get('/logout', function(req, res, next) {
 });
 
 // S3 signed URL for scorecard uploads
-router.get('/sign-s3', async (req, res, next) => {
-  const fileName = req.query['file-name'];
-  const fileType = req.query['file-type'];
-  const s3Params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: fileName,
-    ContentType: fileType,
-    ACL: 'public-read'
-  };
-  const s3 = new S3Client({ region: 'eu-west-1' });
-  const command = new PutObjectCommand(s3Params);
+// Presigned upload for a scorecard photo.
+//
+// This took `file-name` and `file-type` straight from the query string and returned a
+// presigned PUT with `ACL: public-read`. Both were attacker-chosen, so any anonymous
+// caller could overwrite any object in the bucket by naming it — including the venues
+// map and the generated weekly videos, which live in the same bucket — and could have
+// the bucket serve HTML or an executable from our own storage by picking the type.
+//
+// The key is now generated server-side under a fixed `scorecards/` prefix and the
+// content type has to be an image we recognise (see utils/uploads.js), so neither is
+// reachable. `file-name` survives only as an advisory hint, sanitised down to letters
+// and digits, so the results secretary can still tell photos apart in the bucket.
+//
+// **Residual, deliberately accepted for now:** an anonymous caller can still upload a
+// JPEG under a random name in `scorecards/`, and the object is still `public-read`
+// because scorecard photos are rendered directly from the bucket by `<img src>` and by
+// links already stored in `scorecardstore."scoresheet-url"`. Making them private needs
+// a read proxy and a migration of the existing URLs; that is HARD-02b in
+// docs/hardening. What is closed here is overwriting anything, and serving anything
+// other than an image.
+router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
   try {
+    const { key } = buildUploadKey(req.query['file-type'], req.query['file-name']);
+    const s3 = new S3Client({ region: 'eu-west-1' });
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      ContentType: String(req.query['file-type']).toLowerCase().trim(),
+      ACL: 'public-read'
+    });
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
-    res.json({ signedUrl });
+    const url = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${key}`;
+    // `signedUrl` for the two scorecard views, `signedRequest`/`url` for
+    // views/scorecard-upload.ejs, which has always read those names and so has never
+    // worked against this endpoint. Same values, three keys, no caller left broken.
+    res.json({ signedUrl, signedRequest: signedUrl, url, key });
   } catch (err) {
-    console.error(err);
+    if (err.status === 400) return res.status(400).json({ error: err.message });
+    console.error('sign-s3 failed:', err.message);
     next(err);
   }
 });
