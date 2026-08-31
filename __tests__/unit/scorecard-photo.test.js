@@ -162,3 +162,77 @@ describe('photoPath / photoUrl', () => {
     expect(photoUrl(42, 'tok')).not.toContain('run.app');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Found by the browser suite after merging, against the real bucket
+// ---------------------------------------------------------------------------
+//
+// The read path 404'd for *every* draft that actually had a photo. Both causes below are
+// invisible to a test that invents its own URLs, which is why the unit tests above passed
+// while the page was broken: they have to be taken from the column as it really is.
+
+describe('a `+` in a stored URL is a space in the key', () => {
+  const {
+    photoKeyFromStored: keyOf,
+    downloadTypeFor,
+    downloadNameFor,
+  } = require('../../utils/scorecardPhoto');
+
+  // The upload widget used to rebuild the object URL from the presigned one and rewrite
+  // `%20` as `+`, so years of rows point at `...Manor+A-Disley+A.jpg` for an object keyed
+  // `20252026-Manor A-Disley A.jpg`. Those URLs work in a browser — S3's REST endpoint
+  // reads `+` in a path as a space — but GetObject takes the key literally, so proxying
+  // them without decoding asks for a key that has never existed.
+  //
+  // Verified against the real bucket: HeadObject on the `+` form is NotFound and on the
+  // space form is found, while both URLs answer 200 over HTTPS.
+  it('decodes + to a space, for the real row that exposed this', () => {
+    expect(keyOf(`https://${BUCKET}.s3.eu-west-1.amazonaws.com/20252026-Manor+A-Disley+A.jpg`))
+      .toBe('20252026-Manor A-Disley A.jpg');
+  });
+
+  it('still decodes %20, which the older rows use', () => {
+    expect(keyOf(`https://${BUCKET}.s3.eu-west-1.amazonaws.com/20182019-Shell%20A-Mellor%20A.jpg`))
+      .toBe('20182019-Shell A-Mellor A.jpg');
+  });
+
+  it('leaves a key with no + alone', () => {
+    expect(keyOf(`https://${BUCKET}.s3.eu-west-1.amazonaws.com/scorecards/2025-26/a-b.jpg`))
+      .toBe('scorecards/2025-26/a-b.jpg');
+  });
+});
+
+describe('scorecards that are not images', () => {
+  const { downloadTypeFor, downloadNameFor, contentTypeFor } =
+    require('../../utils/scorecardPhoto');
+
+  // 93 PDFs and 16 Word documents out of 1,479 photos on record — 7% of the archive,
+  // all filed before HARD-02 restricted uploads to images, all served fine from the
+  // public bucket until the proxy started 404ing them.
+  it('serves a PDF as a download, not inline', () => {
+    expect(contentTypeFor('x.pdf', 'application/pdf')).toBeNull();
+    expect(downloadTypeFor('x.pdf')).toBe('application/pdf');
+  });
+
+  it('serves a Word document as a download', () => {
+    expect(downloadTypeFor('x.docx'))
+      .toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  });
+
+  it('treats .jfif as the JPEG it is', () => {
+    expect(contentTypeFor('x.jfif', undefined)).toBe('image/jpeg');
+  });
+
+  // The extension decides, never what S3 declares — otherwise a legacy object claiming
+  // text/html would be served as HTML from our own origin, same-origin with the session.
+  it('will not serve HTML however the object describes itself', () => {
+    expect(contentTypeFor('x.html', 'text/html')).toBeNull();
+    expect(downloadTypeFor('x.html')).toBeNull();
+    expect(downloadTypeFor('x.js')).toBeNull();
+  });
+
+  it('strips quotes and path segments from the download filename', () => {
+    expect(downloadNameFor('scorecards/2025-26/a"b.pdf')).toBe('ab.pdf');
+    expect(downloadNameFor('')).toBe('scorecard');
+  });
+});

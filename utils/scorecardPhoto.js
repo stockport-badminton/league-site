@@ -36,10 +36,32 @@ const { ALLOWED_TYPES } = require('./uploads');
 const TYPE_BY_EXTENSION = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
+  // A JFIF file is a JPEG. Seven rows use the extension, all of them real scorecards
+  // from captains whose phone or scanner chose it.
+  jfif: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
   heic: 'image/heic',
   heif: 'image/heif',
+};
+
+// Not images, but real scorecards, and the reason this list exists at all.
+//
+// Of the 1,479 photos on record, 93 are PDFs and 16 are Word documents — 7% of every
+// scorecard ever filed. HARD-02 stopped *new* uploads being anything but an image, which
+// is right, but these were filed years before that rule and were being served perfectly
+// well from the public bucket. A proxy that 404s them turns "make photos private" into
+// "silently lose 7% of the archive", which is a worse outcome than the one it is
+// preventing.
+//
+// They are served as a download rather than inline. A PDF rendered inline runs in our
+// origin and PDFs can carry script; as an attachment the browser saves it and nothing
+// executes. The route pairs this with `X-Content-Type-Options: nosniff` so the type
+// cannot be re-guessed.
+const DOWNLOAD_TYPE_BY_EXTENSION = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc: 'application/msword',
 };
 
 // Other things living in the same bucket. The content-type rule below is the real
@@ -113,6 +135,26 @@ function photoKeyFromStored(stored) {
   // that it is one of the two.
   if (!host.startsWith(bucket + '.')) path = path.slice(bucket.length + 1);
 
+  // `+` in a stored URL means a space, and the object's real key has the space.
+  //
+  // The upload widget used to rebuild the object URL by trimming the signature off the
+  // presigned one and rewriting `%20` as `+` (fixed in HARD-03), so several years of rows
+  // hold URLs like `.../20252026-Manor+A-Disley+A.jpg` for an object actually keyed
+  // `20252026-Manor A-Disley A.jpg`.
+  //
+  // Those URLs worked, which is why nobody noticed: S3's REST endpoint decodes `+` in a
+  // path as a space, so the browser fetched the right object. `GetObject` does not — it
+  // takes the key literally — so proxying them without this line asks for a key that has
+  // never existed and answers 404 for **every historical photo on the site**. Confirmed
+  // against the real bucket: HeadObject on the `+` form is NotFound, on the space form it
+  // is found, while both URLs answer 200 over HTTPS.
+  //
+  // Safe to apply unconditionally on this branch: it runs only for values that arrived as
+  // a URL, where `+` is the URL spelling of a space. Keys minted since HARD-02 come from
+  // `buildUploadKey`, which sanitises to letters, digits and single dashes, so no key this
+  // codebase creates can contain a literal `+` to be mangled by it.
+  path = path.replace(/\+/g, ' ');
+
   return cleanKey(path);
 }
 
@@ -133,9 +175,36 @@ function contentTypeFor(key, declaredType) {
   return TYPE_BY_EXTENSION[match[1].toLowerCase()] || null;
 }
 
+// The type for an object that is a genuine scorecard but not an image — a PDF or a Word
+// document from before HARD-02 restricted uploads. Never inferred from what S3 declares:
+// the extension alone decides, so a legacy object claiming `text/html` cannot talk its
+// way into being served as HTML from our origin.
+//
+// The route serves whatever this returns as an attachment. Kept as a separate function
+// from contentTypeFor so a caller cannot accidentally render one of these inline — the
+// two answers mean different things and the disposition is not optional.
+function downloadTypeFor(key) {
+  const match = String(key || '').match(/\.([a-z0-9]+)$/i);
+  if (!match) return null;
+  return DOWNLOAD_TYPE_BY_EXTENSION[match[1].toLowerCase()] || null;
+}
+
+// The filename offered to the browser when serving an attachment. Path segments and
+// quotes are stripped so the value cannot break out of the Content-Disposition header;
+// the key is attacker-influenced only in the sense that it comes from a database column
+// that once accepted any string at all, which is reason enough not to trust it.
+function downloadNameFor(key) {
+  const base = String(key || '').split('/').pop() || 'scorecard';
+  const safe = base.replace(/["\\\r\n]/g, '').trim();
+  return safe || 'scorecard';
+}
+
 module.exports = {
   photoKeyFromStored,
   contentTypeFor,
+  downloadTypeFor,
+  downloadNameFor,
+  DOWNLOAD_TYPE_BY_EXTENSION,
   cleanKey,
   DENIED_PREFIXES,
   TYPE_BY_EXTENSION,

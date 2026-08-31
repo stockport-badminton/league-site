@@ -40,7 +40,7 @@ const {
 const spamGate = require('../middleware/spamGate');
 const { buildUploadKey } = require('../utils/uploads');
 // The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
-const { photoKeyFromStored, contentTypeFor } = require('../utils/scorecardPhoto');
+const { photoKeyFromStored, contentTypeFor, downloadTypeFor, downloadNameFor } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
 const Fixture = require('../models/fixture');
 
@@ -245,12 +245,20 @@ router.get('/scorecard-photo/:id', mediaLimiter, async (req, res, next) => {
       return res.status(404).end();
     }
 
+    // An image is served inline. A PDF or Word document is a real scorecard too — 109 of
+    // the 1,479 on record, filed before HARD-02 restricted uploads to images — and is
+    // served as a download instead: inline PDF rendering happens in our origin and PDFs
+    // can carry script, whereas an attachment is saved and never executes. 404ing them
+    // would have turned "make photos private" into "silently lose 7% of the archive".
     const contentType = contentTypeFor(key, obj.ContentType);
-    if (!contentType) return res.status(404).end();
+    const downloadType = contentType ? null : downloadTypeFor(key);
+    if (!contentType && !downloadType) return res.status(404).end();
 
-    res.set('Content-Type', contentType);
+    res.set('Content-Type', contentType || downloadType);
     res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Content-Disposition', 'inline');
+    res.set('Content-Disposition', contentType
+      ? 'inline'
+      : 'attachment; filename="' + downloadNameFor(key) + '"');
     res.set('Cache-Control', 'private, max-age=300');
     if (obj.ContentLength) res.set('Content-Length', String(obj.ContentLength));
 

@@ -610,6 +610,16 @@ Key vars (see `.env` for examples):
 - `CSP_REPORT_URI` — where CSP violations are POSTed. Defaults to `/csp-report`, handled
   in `app.js` and logged to Cloud Logging. Set it to Sentry's security-header endpoint to
   send them there instead; set it to `''` to emit no reporting directives at all.
+- `AUDIT_EMAIL_TO` — comma-separated recipients of the weekly data-integrity digest
+  (HARD-07). **Unset means nothing is ever sent**, which is the safe default and is why
+  it is unset locally: `dev.env` points at production, so a stray run would otherwise mail
+  the real results secretary. The recipient never comes from the request — `/fixture/reminder`
+  was an open relay from our own verified domain for exactly that reason.
+- `AUDIT_EMAIL_FROM` — sender for that digest. Defaults to the results address.
+- `AUDIT_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Audit-Token` to
+  `POST /admin/audit/run`. Compared with `timingSafeEqual` over SHA-256 of both sides;
+  **unset closes the token path rather than opening it**. A superadmin session also works.
+  `GET /admin/audit` previews the same email (Admin → Data Health).
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
