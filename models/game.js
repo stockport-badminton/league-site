@@ -60,13 +60,16 @@ exports.create = async function(gameObj) {
   return result
 }
 
-exports.createBatch = async function(batchObj) {
+// `conn` is optional, so a caller can write the games inside the same transaction as
+// the fixture result they belong to. See Fixture.updateById for why that matters.
+exports.createBatch = async function(batchObj, conn) {
   if (!db.isObject(batchObj)) throw new Error('not object')
   const fields = batchObj.fields.map(f => `"${f}"`).join(',')
   const rows = Object.values(batchObj.data).map(row => Object.values(row))
   const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
   const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
-  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
+  const c = conn || await db.otherConnect()
+  const [result] = await c.query(sql, rows.flat())
   return result
 }
 

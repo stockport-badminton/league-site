@@ -26,6 +26,35 @@ jest.mock('../../utils/ses', () => ({
   sendEmail: jest.fn().mockResolvedValue({})
 }));
 
+// The database. withTransaction is the point of these tests, so the fake records the
+// connection it hands out and whether the body threw — that is how a test can assert
+// both writes joined the same transaction, and that a failing one rolls back rather
+// than leaving a result with no games behind it.
+jest.mock('../../db_connect', () => {
+  const state = {
+    __lastTransactionConn: null,
+    __rolledBack: false,
+    connect: jest.fn(),
+    otherConnect: jest.fn(() => Promise.resolve({
+      query: jest.fn(() => Promise.resolve([[]]))
+    })),
+    isObject: obj => obj === Object(obj),
+    withTransaction: jest.fn(async fn => {
+      const conn = { query: jest.fn(() => Promise.resolve([[]])) };
+      state.__lastTransactionConn = conn;
+      try {
+        const out = await fn(conn);
+        state.__rolledBack = false;
+        return out;
+      } catch (err) {
+        state.__rolledBack = true;
+        throw err;
+      }
+    })
+  };
+  return state;
+});
+
 const Division = require('../../models/division');
 const Team = require('../../models/teams');
 const Player = require('../../models/players');
@@ -34,6 +63,7 @@ const Game = require('../../models/game');
 const Auth = require('../../models/auth.js');
 const axios = require('axios');
 const ses = require('../../utils/ses');
+const db = require('../../db_connect');
 const app = require('../../app');
 
 // ── Fixtures (test data) ──────────────────────────────────────────────────────
@@ -58,6 +88,11 @@ function validScorecard(overrides = {}) {
     homeTeam: '10',
     awayTeam: '20',
     date: '2026-01-15',
+    // The rubber-stamped match totals. The form posts these and the handler writes
+    // them straight onto the fixture; this fixture omitted them entirely, so every
+    // test here was exercising a body the real form never sends. Home wins all 18.
+    homeScore: '18',
+    awayScore: '0',
     // Standard player selectors (12 distinct IDs)
     homeMan1: '1', homeMan2: '2', homeMan3: '3',
     homeLady1: '4', homeLady2: '5', homeLady3: '6',
@@ -91,7 +126,17 @@ function setupFullFixtureMocks() {
     mockPrevScores[String(i)] = { rating: 1500, date: '2026-01-01' };
   }
 
-  Fixture.getOutstandingFixtureId.mockResolvedValue(fixtureRow);
+  // One open fixture for the pairing. The controller now resolves which fixture a
+  // result belongs to from every row for those two teams, so the mock returns rows
+  // with a status rather than a pre-filtered id.
+  Fixture.getFixturesForTeams.mockResolvedValue([
+    { id: 99, status: 'outstanding', date: '2026-01-15', rank: 1, name: 'Division 1' }
+  ]);
+  // resolveFixtureForResult is pure, so use the real one — mocking it would leave the
+  // choosing logic, which is the part that was broken, untested.
+  Fixture.resolveFixtureForResult.mockImplementation(
+    jest.requireActual('../../models/fixture').resolveFixtureForResult
+  );
   Fixture.updateById.mockResolvedValue({});
   Fixture.getFixtureDetailsById.mockResolvedValue(fixtureDetails);
   Fixture.sendResultZap.mockResolvedValue({});
@@ -352,7 +397,7 @@ describe('POST /scorecard-beta', () => {
 
     it('looks up the fixture by home and away team names', async () => {
       await request(app).post('/scorecard-beta').send(validScorecard());
-      expect(Fixture.getOutstandingFixtureId).toHaveBeenCalledWith(
+      expect(Fixture.getFixturesForTeams).toHaveBeenCalledWith(
         expect.objectContaining({ homeTeam: '10', awayTeam: '20' })
       );
     });
@@ -371,7 +416,7 @@ describe('POST /scorecard-beta', () => {
 
   describe('when fixture lookup fails', () => {
     it('propagates the error', async () => {
-      Fixture.getOutstandingFixtureId.mockRejectedValue(new Error('fixture not found'));
+      Fixture.getFixturesForTeams.mockRejectedValue(new Error('fixture not found'));
       Division.getAllByLeague.mockResolvedValue(mockDivisions);
 
       const res = await request(app)
@@ -379,6 +424,169 @@ describe('POST /scorecard-beta', () => {
         .send(validScorecard());
 
       expect(res.status).toBe(500);
+    });
+  });
+
+  // The result and its games must land together or not at all.
+  //
+  // They were two independent writes with the fixture first, so anything that threw
+  // afterwards left a score in the league table with no games behind it — player
+  // stats, pair stats and ELO all silently omitting the match. Three fixtures from
+  // last season are still in that state (#6117, #6576, #6037), unnoticed for a whole
+  // season because a half-applied result renders perfectly.
+  describe('atomicity', () => {
+    beforeEach(() => {
+      setupFullFixtureMocks();
+    });
+
+    it('writes the result and the games in one transaction', async () => {
+      await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(db.withTransaction).toHaveBeenCalledTimes(1);
+      // Both writes received the transaction's connection, not a fresh one.
+      const conn = db.__lastTransactionConn;
+      expect(Fixture.updateById).toHaveBeenCalledWith(expect.anything(), 99, conn);
+      expect(Game.createBatch).toHaveBeenCalledWith(expect.anything(), conn);
+    });
+
+    it('does not record the result when the games cannot be written', async () => {
+      Game.createBatch.mockRejectedValue(new Error('insert exploded'));
+
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+
+      // The transaction rolls back, so the request fails honestly rather than leaving
+      // a score with nothing behind it.
+      expect(res.status).toBe(500);
+      expect(db.__rolledBack).toBe(true);
+    });
+  });
+
+  // Everything after the commit is notification and presentation. None of it may cost
+  // the captain a result that is already saved — which is how a momentary SES outage
+  // used to turn into a captain resubmitting and being told "no matching fixtures".
+  describe('when a post-commit step fails', () => {
+    beforeEach(() => {
+      setupFullFixtureMocks();
+    });
+
+    it('still succeeds when the results email cannot be sent', async () => {
+      ses.sendEmail.mockRejectedValue(new Error('SES is having a moment'));
+
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(res.status).toBe(200);
+      expect(Game.createBatch).toHaveBeenCalled();
+      // And the captain is told the difference between "saved" and "saved and notified".
+      expect(res.text).toMatch(/couldn't email the results secretary/i);
+    });
+
+    it('still succeeds when the Zapier webhook fails', async () => {
+      Fixture.sendResultZap.mockRejectedValue(new Error('zap down'));
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+      expect(res.status).toBe(200);
+    });
+
+    it('still succeeds when the confirmation-page data cannot be fetched', async () => {
+      Player.getMatchStats.mockRejectedValue(new Error('stats down'));
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // A captain resubmitting used to read the literal string "no matching fixtures" on
+  // the 500 page, and reasonably conclude nothing had saved.
+  describe('when the fixture cannot be matched', () => {
+    beforeEach(() => {
+      setupFullFixtureMocks();
+      Fixture.resolveFixtureForResult.mockImplementation(
+        jest.requireActual('../../models/fixture').resolveFixtureForResult
+      );
+    });
+
+    it('tells a captain the result is already recorded, and writes nothing', async () => {
+      Fixture.getFixturesForTeams.mockResolvedValue([
+        { id: 99, status: 'complete', date: '2026-01-15', homeScore: 11, awayScore: 7 }
+      ]);
+
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(res.status).toBe(409);
+      expect(res.text).toMatch(/already recorded/i);
+      expect(res.text).toContain('11');
+      expect(res.text).not.toMatch(/no matching fixtures/i);
+      expect(Fixture.updateById).not.toHaveBeenCalled();
+      expect(Game.createBatch).not.toHaveBeenCalled();
+    });
+
+    it('refuses to guess between two open fixtures for the same pairing', async () => {
+      Fixture.getFixturesForTeams.mockResolvedValue([
+        { id: 99, status: 'outstanding', date: '2026-01-15' },
+        { id: 77, status: 'outstanding', date: '2026-03-02' }
+      ]);
+      // Submitted date matches neither, so there is nothing to disambiguate on.
+      const res = await request(app)
+        .post('/scorecard-beta')
+        .send(validScorecard({ date: '2026-02-01' }));
+
+      expect(res.status).toBe(409);
+      expect(res.text).toMatch(/can't tell which match/i);
+      expect(Game.createBatch).not.toHaveBeenCalled();
+    });
+
+    it('picks the fixture matching the submitted date when two are open', async () => {
+      Fixture.getFixturesForTeams.mockResolvedValue([
+        { id: 99, status: 'outstanding', date: '2026-01-15', rank: 1, name: 'Division 1' },
+        { id: 77, status: 'outstanding', date: '2026-03-02', rank: 1, name: 'Division 1' }
+      ]);
+
+      const res = await request(app)
+        .post('/scorecard-beta')
+        .send(validScorecard({ date: '2026-03-02' }));
+
+      expect(res.status).toBe(200);
+      expect(Fixture.updateById).toHaveBeenCalledWith(expect.anything(), 77, expect.anything());
+    });
+
+    it('explains a rearranged fixture instead of failing', async () => {
+      Fixture.getFixturesForTeams.mockResolvedValue([
+        { id: 99, status: 'rearranged', date: '2026-01-15' }
+      ]);
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+      expect(res.status).toBe(409);
+      expect(res.text).toMatch(/rearranged/i);
+    });
+
+    it('404s when the pairing has no fixture at all', async () => {
+      Fixture.getFixturesForTeams.mockResolvedValue([]);
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+      expect(res.status).toBe(404);
+      expect(res.text).toMatch(/can't find that fixture/i);
+    });
+  });
+
+  // Nothing checked that a result was a possible one. Eight fixtures in the live table
+  // record something other than 18 games, a 3–3 among them.
+  describe('score totals', () => {
+    beforeEach(() => {
+      setupFullFixtureMocks();
+    });
+
+    it('refuses a result that does not total 18 games', async () => {
+      const res = await request(app)
+        .post('/scorecard-beta')
+        .send(validScorecard({ homeScore: '3', awayScore: '3' }));
+
+      expect(res.status).toBe(409);
+      expect(res.text).toMatch(/don't add up to a match/i);
+      expect(Fixture.updateById).not.toHaveBeenCalled();
+      expect(Game.createBatch).not.toHaveBeenCalled();
+    });
+
+    it('accepts a result that totals 18', async () => {
+      const res = await request(app)
+        .post('/scorecard-beta')
+        .send(validScorecard({ homeScore: '11', awayScore: '7' }));
+      expect(res.status).toBe(200);
     });
   });
 });

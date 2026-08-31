@@ -1,0 +1,108 @@
+<%#
+  Shown when a submitted scorecard can't be matched to an open fixture.
+
+  Every one of these cases used to be a thrown Error landing on the 500 page, which
+  prints the error's own text — so a captain resubmitting a result that had saved
+  perfectly well read "no matching fixtures" and concluded it hadn't. The captain whose
+  submission genuinely failed and the captain whose submission was fine saw identical,
+  meaningless screens.
+
+  Locals: conflict { reason, fixture?, candidates? }, data (the submitted body).
+%>
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<div class="container" style="max-width:720px;text-align:left;margin:0 auto 48px">
+
+<% if (conflict.reason === 'already-recorded') { %>
+  <h1>This match is already recorded</h1>
+  <p class="lead">
+    We have it as
+    <strong><%= conflict.fixture.homeScore %>&ndash;<%= conflict.fixture.awayScore %></strong><% if (conflict.fixture.date) { %>,
+    played on <%= new Date(conflict.fixture.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %><% } %>.
+  </p>
+  <p>
+    Nothing has been lost and you don't need to send it again. If that score is wrong,
+    or you think you're looking at the wrong match, email the results secretary at
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    and say which fixture you mean.
+  </p>
+  <p><a class="btn btn-success" href="/event/<%= conflict.fixture.id %>">See the recorded result</a></p>
+
+<% } else if (conflict.reason === 'rearranged') { %>
+  <h1>That fixture has been rearranged</h1>
+  <p class="lead">
+    The match you've entered was marked as rearranged, so there's no open fixture for it
+    on that date.
+  </p>
+  <p>
+    If it has now been played, the new date needs to be in the system before the result
+    can go in. Email
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    with the date it was played and your scorecard, and it'll be sorted out. Keep this
+    page or a photo of the card in the meantime.
+  </p>
+
+<% } else if (conflict.reason === 'conceded') { %>
+  <h1>That fixture is recorded as conceded</h1>
+  <p class="lead">There's no open fixture to attach a score to.</p>
+  <p>
+    If the match was actually played, email
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    with the details and it can be reopened.
+  </p>
+
+<% } else if (conflict.reason === 'ambiguous') { %>
+  <h1>We can't tell which match this is</h1>
+  <p class="lead">
+    There's more than one open fixture between these two teams, and the date you entered
+    doesn't single one out:
+  </p>
+  <ul>
+    <% conflict.candidates.forEach(function(c) { %>
+      <li><%= new Date(c.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></li>
+    <% }) %>
+  </ul>
+  <p>
+    Rather than guess and put your result against the wrong night, we've stopped. Go back
+    and set the match date to the one you played, and submit again.
+  </p>
+  <p><a class="btn btn-success" href="/scorecard-beta">Back to the scorecard</a></p>
+
+<% } else if (conflict.reason === 'bad-total') { %>
+  <h1>Those scores don't add up to a match</h1>
+  <p class="lead">
+    A league fixture is 18 games, so the two totals should come to 18. You've entered
+    <strong><%= conflict.homeScore %></strong> and <strong><%= conflict.awayScore %></strong><% if (conflict.total !== null) { %>,
+    which is <strong><%= conflict.total %></strong><% } %>.
+  </p>
+  <p>
+    Nothing has been saved. Go back, check the game-by-game scores against the card, and
+    submit again. If the match genuinely wasn't 18 games &mdash; a concession, say &mdash;
+    email
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    rather than forcing it through here.
+  </p>
+  <p><a class="btn btn-success" href="/scorecard-beta">Back to the scorecard</a></p>
+
+<% } else { %>
+  <h1>We can't find that fixture</h1>
+  <p class="lead">
+    There's no fixture in this season between those two teams, so there's nothing to
+    record the result against.
+  </p>
+  <p>
+    Check the two teams are the right way round &mdash; home team first &mdash; and that
+    you've picked the right sides. If they look right, email
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    and include the date and the score.
+  </p>
+  <p><a class="btn btn-success" href="/scorecard-beta">Back to the scorecard</a></p>
+<% } %>
+
+</div>
+
+<%- include('footer.ejs') %>
+
+</body>
+</html>

@@ -37,7 +37,18 @@
             <% }) %></p>
         <% } %>
         <% if (hasScorecardData) { %>
-          <p>Some Scorecard Data</p>
+          <p><strong>Result saved.</strong> Thanks &mdash; that's recorded against the fixture.</p>
+          <%# The result is committed before any of the notification work runs, so a
+              failure there must not read as a failed submission. Saying so is the
+              difference between a captain relaxing and a captain re-submitting. %>
+          <% if (locals.notificationFailed) { %>
+            <p class="text-warning">
+              We couldn't email the results secretary just now &mdash; that's our end, not
+              yours, and your result is safely stored either way. If you want to be sure
+              it's been seen, drop a note to
+              <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>.
+            </p>
+          <% } %>
           <%- include('recentPlayerHistory.ejs') %>
         <% } %>
         <% if (hasScorecard && !hasErrors) { %>

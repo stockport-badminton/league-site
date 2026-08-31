@@ -103,7 +103,7 @@ where things stand without reading git log.
 | Package | Status | Commit | Notes |
 |---|---|---|---|
 | SEC-3 | **done** | *(this commit)* | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
-| HARD-01 | not started | | |
+| HARD-01 | **done** | *(this commit)* | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
 | HARD-02 | not started | | |
 | HARD-03 | not started | | |
 | HARD-04 | not started | | |

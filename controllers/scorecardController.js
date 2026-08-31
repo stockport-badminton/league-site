@@ -3,12 +3,18 @@ var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
+var db = require('../db_connect.js');
 const axios = require('axios');
+const Sentry = require('@sentry/node');
 const ses = require('../utils/ses');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
 const { canonicalFor } = require('../utils/canonical');
+
+// A league fixture is 18 games — three pairs each of men's, ladies' and mixed, played
+// twice. Messer is 15 and goes through its own controller.
+const GAMES_PER_FIXTURE = 18;
 
     const { sanitizeBody } = require("express-validator");
 
@@ -179,7 +185,31 @@ exports.full_fixture_post = async function(req, res, next) {
   }
 
   try {
-    const FixtureIdResult = await Fixture.getOutstandingFixtureId({ homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam });
+    // Which fixture is this? Resolved from every row for the pairing rather than from
+    // the first outstanding one the planner happened to return — see
+    // Fixture.getFixturesForTeams for what that used to cost.
+    const candidateRows = await Fixture.getFixturesForTeams({
+      homeTeam: req.body.homeTeam,
+      awayTeam: req.body.awayTeam
+    });
+    const resolved = Fixture.resolveFixtureForResult(candidateRows, req.body.date);
+    if (resolved.conflict) {
+      return renderSubmissionConflict(req, res, resolved.conflict);
+    }
+    const FixtureIdResult = [resolved.fixture];
+
+    // A league fixture is 18 games, so the scores must total 18. Nothing checked this
+    // before, and 8 fixtures in the table record something else — a 3–3 among them.
+    // An impossible result silently distorts the league table and the points.
+    const total = Number(req.body.homeScore) + Number(req.body.awayScore);
+    if (!Number.isFinite(total) || total !== GAMES_PER_FIXTURE) {
+      return renderSubmissionConflict(req, res, {
+        reason: 'bad-total',
+        homeScore: req.body.homeScore,
+        awayScore: req.body.awayScore,
+        total: Number.isFinite(total) ? total : null
+      });
+    }
 
     const fixtureObject = {
       homeMan1: req.body.homeMan1,
@@ -213,8 +243,6 @@ exports.full_fixture_post = async function(req, res, next) {
     prevScores[req.body.awayLady2] = {};
     prevScores[req.body.awayLady3] = {};
     prevScores = await Player.getPrevRating(req.body.date, prevScores);
-
-    await Fixture.updateById(fixtureObject, FixtureIdResult[0].id);
 
     const gameObject = {
       tablename: "game",
@@ -273,8 +301,23 @@ exports.full_fixture_post = async function(req, res, next) {
       }
     }
 
-    await Game.createBatch(gameObject);
+    // The result and its games land together or not at all.
+    //
+    // These were two independent writes, and the fixture went first. Anything that
+    // threw afterwards — a bad game row, an ELO error, a momentary SES outage — left
+    // the league table showing a result with no games behind it, so player stats, pair
+    // stats and ELO silently omitted the match and the scorecard view for it was blank.
+    // Three fixtures from last season are still in that state (#6117, #6576, #6037);
+    // nobody noticed for a whole season, because a half-applied result renders
+    // perfectly. `node tools/dbq.js --check orphan-results`
+    await db.withTransaction(async conn => {
+      await Fixture.updateById(fixtureObject, FixtureIdResult[0].id, conn);
+      await Game.createBatch(gameObject, conn);
+    });
 
+    // Past this point the result is safely recorded. Everything below is notification
+    // and presentation, and none of it may cost the captain their submission — so each
+    // step is allowed to fail on its own without taking the request down with it.
     const getFixtureDetailsResult = await Fixture.getFixtureDetailsById(FixtureIdResult[0].id);
     const zapObject = {
       host: req.headers.host,
@@ -285,41 +328,44 @@ exports.full_fixture_post = async function(req, res, next) {
       division: FixtureIdResult[0].name
     };
 
-    await Fixture.sendResultZap(zapObject);
+    await afterCommit('result zap', () => Fixture.sendResultZap(zapObject));
 
-    const [homeTeamNomPlayers, awayTeamNomPlayers, homeTeamFixturePlayers, awayTeamFixturePlayers, matchStats] = await Promise.all([
-      Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam),
-      Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam),
-      Fixture.getMatchPlayerOrderDetails({ team: getFixtureDetailsResult[0].homeTeam, limit: 4 }),
-      Fixture.getMatchPlayerOrderDetails({ team: getFixtureDetailsResult[0].awayTeam, limit: 4 }),
-      Player.getMatchStats(FixtureIdResult[0].id)
-    ]);
+    const [homeTeamNomPlayers, awayTeamNomPlayers, homeTeamFixturePlayers, awayTeamFixturePlayers, matchStats] =
+      await afterCommit('confirmation page data', () => Promise.all([
+        Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam),
+        Player.getNominatedPlayers(getFixtureDetailsResult[0].awayTeam),
+        Fixture.getMatchPlayerOrderDetails({ team: getFixtureDetailsResult[0].homeTeam, limit: 4 }),
+        Fixture.getMatchPlayerOrderDetails({ team: getFixtureDetailsResult[0].awayTeam, limit: 4 }),
+        Player.getMatchStats(FixtureIdResult[0].id)
+      ])) || [[], [], [], [], []];
 
-    const ejs = require('ejs');
-    const emailData = {
-      homeTeam: zapObject.homeTeam,
-      awayTeam: zapObject.awayTeam,
-      generatedImage: zapObject.homeTeam.replace(/([\s]{1,})/g, '-') + zapObject.awayTeam.replace(/([\s]{1,})/g, '-'),
-      matchStats: matchStats[1]
-    };
-    const str = await ejs.renderFile('views/emails/websiteUpdated.ejs', { data: emailData }, { debug: true });
+    const notified = await afterCommit('results email', async () => {
+      const ejs = require('ejs');
+      const emailData = {
+        homeTeam: zapObject.homeTeam,
+        awayTeam: zapObject.awayTeam,
+        generatedImage: zapObject.homeTeam.replace(/([\s]{1,})/g, '-') + zapObject.awayTeam.replace(/([\s]{1,})/g, '-'),
+        matchStats: matchStats && matchStats[1]
+      };
+      const str = await ejs.renderFile('views/emails/websiteUpdated.ejs', { data: emailData }, { debug: false });
 
-    const toAddresses = (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']);
-    const params = {
-      Destination: {
-        ToAddresses: toAddresses,
-        BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com']
-      },
-      Message: {
-        Body: {
-          Html: { Charset: 'UTF-8', Data: str }
+      const toAddresses = (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']);
+      await ses.sendEmail({
+        Destination: {
+          ToAddresses: toAddresses,
+          BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com']
         },
-        Subject: { Charset: 'UTF-8', Data: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam }
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-    };
-    await ses.sendEmail(params);
+        Message: {
+          Body: {
+            Html: { Charset: 'UTF-8', Data: str }
+          },
+          Subject: { Charset: 'UTF-8', Data: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam }
+        },
+        Source: 'results@stockport-badminton.co.uk',
+        ReplyToAddresses: ['stockport.badders.results@gmail.com'],
+      });
+      return true;
+    });
 
     res.render('index-scorecard', {
       static_path: '/static',
@@ -331,11 +377,53 @@ exports.full_fixture_post = async function(req, res, next) {
       awayTeamNomPlayers,
       homeTeamFixturePlayers,
       awayTeamFixturePlayers,
+      // The captain needs to know the difference between "we have your result" and
+      // "we have your result and told the results secretary".
+      notificationFailed: !notified,
       canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
   }
+}
+
+// Runs a post-commit step that must not be able to undo a saved result. Returns the
+// step's value, or null if it threw — the caller carries on either way.
+//
+// The result is already in the database by the time any of these run. Letting one of
+// them reject would send the captain to the 500 page, which tells them nothing was
+// recorded, which is false. That is how a momentary SES outage used to turn into a
+// captain re-submitting a result that was already saved — and getting "no matching
+// fixtures" for their trouble.
+async function afterCommit(label, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`scorecard: ${label} failed after the result was saved:`, err.message);
+    Sentry.captureException(err, { tags: { stage: 'scorecard-post-commit', step: label } });
+    return null;
+  }
+}
+
+// What a captain sees when their submission cannot be matched to an open fixture.
+//
+// Every one of these used to be a thrown Error reaching the 500 page, which prints the
+// error text verbatim — so a captain re-submitting a result that had saved perfectly
+// well read "no matching fixtures" and reasonably concluded it had not.
+function renderSubmissionConflict(req, res, conflict) {
+  const view = {
+    static_path: '/static',
+    theme: process.env.THEME || 'flatly',
+    pageTitle: 'Scorecard not recorded',
+    pageDescription: 'We could not match this scorecard to a fixture',
+    conflict,
+    data: req.body,
+    canonical: canonicalFor(req)
+  };
+  // 409: the request was well-formed, it just conflicts with what we already hold.
+  // Deliberately not a 500 — nothing has gone wrong on our side.
+  res.status(conflict.reason === 'not-found' ? 404 : 409);
+  return res.render('scorecard-conflict', view);
 }
 
 exports.fixture_populate_scorecard_errors = async function(req, res, next) {

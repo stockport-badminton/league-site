@@ -565,14 +565,67 @@ exports.getReminderRecipients = async function(homeTeamName, awayTeamName) {
   return addresses;
 }
 
-exports.getOutstandingFixtureId = async function(obj) {
+// Every fixture this season between these two teams, whatever its status, newest
+// first. The controller decides what to do with them.
+//
+// This replaced a query that filtered to status = 'outstanding' inside the SQL, had
+// **no ORDER BY**, and whose caller took `result[0]`. Two things were wrong with that.
+// Row order without ORDER BY is whatever the planner returns, so with two outstanding
+// fixtures for one pairing the result landed on an arbitrary one — 15 pairings in the
+// table already carry two outstanding rows, and a rearrangement that leaves the
+// original open creates exactly that state. And filtering in SQL meant an
+// already-recorded fixture came back as "no matching fixtures", a bare error that
+// reached the 500 page and told a captain their result had not saved when it had.
+//
+// `date` is optional; when given, an exact match on the day is preferred over anything
+// else, which is what makes the choice deterministic rather than lucky.
+exports.getFixturesForTeams = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
   const [result] = await (await db.otherConnect()).query(
-    `SELECT a.id, division.name, division.rank FROM (SELECT id, "homeTeam" FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam", status FROM fixture, season WHERE season.name = ? AND fixture.date > season."startDate") AS a WHERE a."awayTeam" = ? AND a."homeTeam" = ? AND status = 'outstanding') AS a JOIN team ON a."homeTeam" = team.id JOIN division ON team.division = division.id`,
-    [seasonModel.current(), obj.awayTeam, obj.homeTeam]
+    `SELECT f.id, f.status, f.date, f."homeScore", f."awayScore",
+            division.name, division.rank
+     FROM fixture f
+     JOIN team ON f."homeTeam" = team.id
+     JOIN division ON team.division = division.id
+     WHERE f."homeTeam" = ? AND f."awayTeam" = ?
+       AND f.date > (SELECT s."startDate" FROM season s WHERE s.name = ?)
+     ORDER BY f.date DESC, f.id DESC`,
+    [obj.homeTeam, obj.awayTeam, seasonModel.current()]
   )
-  if (!result.length || !result[0].id) throw new Error('no matching fixtures')
   return result
+}
+
+// Which of those rows a submitted result belongs to.
+//
+// Returns { fixture, candidates } on success, or { conflict } describing why not, so
+// the caller can say something useful instead of throwing a developer's error string
+// at a captain. Never guesses between two equally plausible fixtures.
+exports.resolveFixtureForResult = function(rows, submittedDate) {
+  const day = d => (d instanceof Date ? d : new Date(d)).toISOString().slice(0, 10)
+  const outstanding = rows.filter(r => r.status === 'outstanding')
+
+  if (outstanding.length === 1) return { fixture: outstanding[0] }
+
+  if (outstanding.length > 1) {
+    // Prefer the one actually played on the submitted date. Only if that is
+    // unambiguous — otherwise ask, rather than pick.
+    if (submittedDate) {
+      const exact = outstanding.filter(r => day(r.date) === day(submittedDate))
+      if (exact.length === 1) return { fixture: exact[0] }
+    }
+    return { conflict: { reason: 'ambiguous', candidates: outstanding } }
+  }
+
+  const complete = rows.find(r => r.status === 'complete')
+  if (complete) return { conflict: { reason: 'already-recorded', fixture: complete } }
+
+  const rearranged = rows.find(r => r.status === 'rearranged' || r.status === 'rearranging')
+  if (rearranged) return { conflict: { reason: 'rearranged', fixture: rearranged } }
+
+  const conceded = rows.find(r => r.status === 'conceded')
+  if (conceded) return { conflict: { reason: 'conceded', fixture: conceded } }
+
+  return { conflict: { reason: 'not-found' } }
 }
 
 exports.rearrangeByTeamNames = async function(updateObj) {
@@ -675,11 +728,17 @@ exports.sendResultZap = async function(zapObject) {
   return response.data
 }
 
-exports.updateById = async function(fixtureObj, fixtureId) {
+// `conn` is optional and exists so this can join a caller's transaction —
+// otherConnect() takes a connection per query, so without it a result and its games
+// cannot be written atomically. See scorecardController.full_fixture_post, where the
+// gap between this and Game.createBatch left three fixtures last season holding a
+// score with no games behind them.
+exports.updateById = async function(fixtureObj, fixtureId, conn) {
   if (!db.isObject(fixtureObj)) throw new Error('not object')
   const setClauses = Object.keys(fixtureObj).map(k => `"${k}" = ?`).join(', ')
   const sql = `UPDATE fixture SET ${setClauses} WHERE id = ?`
-  const [result] = await (await db.otherConnect()).query(sql, [...Object.values(fixtureObj), fixtureId])
+  const c = conn || await db.otherConnect()
+  const [result] = await c.query(sql, [...Object.values(fixtureObj), fixtureId])
   return result
 }
 
