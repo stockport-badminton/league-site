@@ -41,12 +41,57 @@
               <a href="/admin/teams/<%= t.id %>">Edit</a>
               &nbsp;|&nbsp;
               <a href="/admin/teams/create?copyFrom=<%= t.id %>">Copy</a>
+              &nbsp;|&nbsp;
+              <a class="text-danger" href="/admin/teams/<%= t.id %>/withdraw">Withdraw</a>
             </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
   <% }) %>
+
+  <% if (typeof withdrawn !== 'undefined' && withdrawn && withdrawn.length) { %>
+    <h3 class="mt-4">Withdrawn</h3>
+    <p class="text-muted">
+      Out of the league table and off the annual invoice, but not deleted — history,
+      results and player stats are intact, and the archived tables still show them.
+      Reinstate returns a team to the division it left and un-voids exactly the fixtures
+      its withdrawal voided.
+    </p>
+    <table class="table table-bordered table-sm">
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Club</th>
+          <th>Was in</th>
+          <th>Withdrawn</th>
+          <th>Reason</th>
+          <th style="width:1%">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% withdrawn.forEach(function(t){ %>
+          <tr>
+            <td><%= t.name %></td>
+            <td><%= t.clubName || '—' %></td>
+            <td><%= t.withdrawnDivisionName || '—' %></td>
+            <td><%= new Date(t.withdrawn).toISOString().slice(0, 10) %></td>
+            <td>
+              <%= t.withdrawnReason || '—' %>
+              <% if (t.withdrawnFixtures && t.withdrawnFixtures.length) { %>
+                <small class="text-muted">(<%= t.withdrawnFixtures.length %> fixture<%= t.withdrawnFixtures.length === 1 ? '' : 's' %> voided)</small>
+              <% } %>
+            </td>
+            <td class="text-nowrap">
+              <form style="display:inline" method="post" action="/admin/teams/<%= t.id %>/reinstate">
+                <button type="submit" class="btn btn-sm btn-outline-success py-0">Reinstate</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
 
   <% if (unassigned && unassigned.length) { %>
     <h3 class="mt-4 text-danger">Unassigned (no matching division)</h3>
@@ -56,7 +101,11 @@
           <tr>
             <td><%= t.name %></td>
             <td><%= t.clubName %></td>
-            <td><a href="/admin/teams/<%= t.id %>">Edit</a></td>
+            <td class="text-nowrap">
+              <a href="/admin/teams/<%= t.id %>">Edit</a>
+              &nbsp;|&nbsp;
+              <a class="text-danger" href="/admin/teams/<%= t.id %>/withdraw">Withdraw</a>
+            </td>
           </tr>
         <% }) %>
       </tbody>

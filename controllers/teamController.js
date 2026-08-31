@@ -3,6 +3,7 @@ var Club = require('../models/club');
 var Division = require('../models/division');
 var Venue = require('../models/venue');
 var League = require('../models/league');
+var Roster = require('../models/roster');
 const { canonicalFor } = require('../utils/canonical');
 
 // Display list of all Teams
@@ -254,8 +255,9 @@ function buildTeamObj(body) {
 exports.admin_team_list = async function(req, res, next) {
   if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
-    const [teams, divisionRows, clubs, tableRows] = await Promise.all([
-      Team.getAll(), Division.getAll(), Club.getAll(), League.getAllLeagueTables()
+    const [teams, divisionRows, clubs, tableRows, withdrawn] = await Promise.all([
+      Team.getAll(), Division.getAll(), Club.getAll(), League.getAllLeagueTables(),
+      League.getWithdrawnTeams()
     ]);
     const clubName = {};
     clubs.forEach(c => { clubName[c.id] = c.name; });
@@ -280,8 +282,15 @@ exports.admin_team_list = async function(req, res, next) {
     const divById = {};
     divisions.forEach(d => { divById[d.id] = d; });
 
+    // A withdrawn team has a NULL division, so without this it would land in the
+    // "Unassigned (no matching division)" bucket alongside genuine data problems —
+    // which is the opposite of the point: withdrawal is deliberate and needs its own
+    // section, with the Reinstate button that undoes it.
+    const withdrawnIds = new Set((withdrawn || []).map(t => Number(t.id)));
+
     const unassigned = [];
     teams.forEach(t => {
+      if (withdrawnIds.has(Number(t.id))) return;
       const row = { id: t.id, name: t.name, clubName: clubName[t.club] || '' };
       if (divById[t.division]) divById[t.division].teams.push(row);
       else unassigned.push(row);
@@ -303,6 +312,7 @@ exports.admin_team_list = async function(req, res, next) {
       user: req.user,
       divisions,
       unassigned,
+      withdrawn: withdrawn || [],
       canonical: canonicalFor(req)
     });
   } catch (err) {
@@ -402,6 +412,14 @@ exports.admin_team_update = async function(req, res, next) {
   try {
     const [existing] = await Team.getById(req.params.id);
     if (!existing) return res.status(404).send('Not found');
+    // The edit form always posts a division, and a withdrawn team's division is
+    // deliberately NULL. Letting the form write one would put the team back in the
+    // standings while still flagged withdrawn — half-reinstated, and invisible on
+    // this page. Reinstate is the operation that does it properly.
+    if (existing.withdrawn) {
+      return res.status(409).send(existing.name + ' is withdrawn. Reinstate it from '
+        + '/admin/teams before editing it.');
+    }
     const teamObj = buildTeamObj(req.body);
     if (!teamObj.name) return res.status(400).send('Team name is required');
     if (teamObj.club == null || teamObj.division == null || teamObj.venue == null) {
@@ -439,6 +457,99 @@ exports.admin_team_move = async function(req, res, next) {
 
     const divRank = await Team.getNextDivRank(target.id);
     await Team.updateById({ division: target.id, divRank }, req.params.id);
+    res.redirect('/admin/teams');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Withdraw / reinstate a team (HARD-10)
+//
+// The gap this fills: a team that folds mid-season could only be dealt with by hand.
+// Parrswood C was moved onto the No Club / No Team sentinels on 31 August 2026, which
+// left it in Division 3 with no players and no fixtures — a row of zeros in the public
+// league table, and two integrity checks reporting it as a fault. Neither was corrupt
+// data; both were the correct description of a missing operation.
+//
+// Withdrawal is destructive and mid-season, so the flow is deliberately two steps: a GET
+// that renders the full consequences from a read-only preview, and a POST that will not
+// act without the checkbox on that page. `League.withdrawTeam` refuses to run twice, and
+// `admin_team_reinstate` undoes it.
+// ---------------------------------------------------------------------------
+
+exports.admin_team_withdrawForm = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const impact = await League.getWithdrawalImpact(req.params.id);
+    if (!impact) return res.status(404).send('Not found');
+    res.render('admin/team-withdraw', {
+      static_path: '/static',
+      pageTitle: 'Withdraw ' + impact.team.name,
+      pageDescription: 'Withdraw a team from the league',
+      user: req.user,
+      impact,
+      error: null,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_withdraw = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    const impact = await League.getWithdrawalImpact(req.params.id);
+    if (!impact) return res.status(404).send('Not found');
+
+    // The confirmation is a real gate, not decoration: the POST is what voids fixtures,
+    // so a bare curl or a double-submitted form must not be enough.
+    if (req.body.confirm !== 'yes') {
+      res.status(400);
+      return res.render('admin/team-withdraw', {
+        static_path: '/static',
+        pageTitle: 'Withdraw ' + impact.team.name,
+        pageDescription: 'Withdraw a team from the league',
+        user: req.user,
+        impact,
+        error: 'Tick the confirmation box to withdraw ' + impact.team.name + '.',
+        canonical: canonicalFor(req)
+      });
+    }
+
+    const result = await League.withdrawTeam(req.params.id, { reason: req.body.reason });
+
+    // Releasing the players is the one part that cannot be undone — reinstating the
+    // team cannot put them back, because nothing records which team they were in. So it
+    // is opt-in, off by default, and goes through Roster.releasePlayer so the rank
+    // renumbering of the list they leave is done by the code that owns it. Doing it
+    // here, one player at a time, is what Neil did by hand for Parrswood C.
+    result.released = [];
+    if (req.body.releasePlayers === 'yes') {
+      const playerIds = await League.getTeamPlayerIds(req.params.id);
+      for (const playerId of playerIds) {
+        result.released.push(await Roster.releasePlayer(playerId));
+      }
+    }
+
+    res.render('admin/team-withdrawn', {
+      static_path: '/static',
+      pageTitle: result.name + ' withdrawn',
+      pageDescription: 'Withdrawal complete',
+      user: req.user,
+      result,
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_team_reinstate = async function(req, res, next) {
+  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
+  try {
+    await League.reinstateTeam(req.params.id);
     res.redirect('/admin/teams');
   } catch (err) {
     next(err);
