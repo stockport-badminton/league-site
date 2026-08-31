@@ -81,9 +81,108 @@ exports.end = async function() {
 };
 
 // Converts MySQL ? placeholders to Postgres $N in sequence.
+//
+// This used to be `sql.replace(/\?/g, ...)`, which rewrites every question mark in the
+// statement — including the ones inside string literals, quoted identifiers and
+// comments, which are not placeholders at all. Two ways that went wrong:
+//
+//   SELECT ?::text AS param, '?#unknown' AS literal      -- one parameter supplied
+//     -> the literal came back as '$2#unknown'.  Silent. No error.
+//
+//   SELECT COALESCE(t.name, '?#' || f."homeTeam") ... WHERE f.date < ?
+//     -> the literal takes $1, the real placeholder becomes $2, and Postgres rejects
+//        the statement with "could not determine data type of parameter $1".
+//
+// Which of the two you get depends only on whether the literal appears before or after
+// the real placeholder, so the same mistake is either a hard error or corrupted output.
+// It was already live: `tools/audit/checks.js` labels a missing team `'?#' || id`, and
+// the audit has been printing `$1#44` where it meant `?#44` for as long as it has
+// existed.
+//
+// So the scan tracks what it is inside and rewrites only outside:
+//   'literal'        with '' as the escape
+//   "identifier"     with "" as the escape
+//   $tag$ ... $tag$  dollar quoting
+//   -- to end of line
+//   /* ... */        nestable, as Postgres allows
+//
+// Note the one thing this deliberately does not solve: Postgres' jsonb operators are
+// spelled `?`, `?|` and `?&`, and a bare `?` outside a literal is genuinely ambiguous
+// between "placeholder" and "does this key exist". Nothing in this codebase uses them,
+// and if that changes the answer is a `jsonb_exists(...)` function call rather than
+// guesswork here.
 function pgify(sql) {
+  let out = '';
   let idx = 0;
-  return sql.replace(/\?/g, () => `$${++idx}`);
+  let i = 0;
+
+  while (i < sql.length) {
+    const ch = sql[i];
+    const next = sql[i + 1];
+
+    // -- line comment
+    if (ch === '-' && next === '-') {
+      const end = sql.indexOf('\n', i);
+      const stop = end === -1 ? sql.length : end;
+      out += sql.slice(i, stop);
+      i = stop;
+      continue;
+    }
+
+    // /* block comment */, which Postgres allows to nest
+    if (ch === '/' && next === '*') {
+      let depth = 0;
+      const start = i;
+      while (i < sql.length) {
+        if (sql[i] === '/' && sql[i + 1] === '*') { depth++; i += 2; continue; }
+        if (sql[i] === '*' && sql[i + 1] === '/') { depth--; i += 2; if (!depth) break; continue; }
+        i++;
+      }
+      out += sql.slice(start, i);
+      continue;
+    }
+
+    // $tag$ dollar-quoted string. The tag may be empty ($$) or a bare identifier.
+    if (ch === '$') {
+      const tag = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(sql.slice(i));
+      if (tag) {
+        const marker = tag[0];
+        const close = sql.indexOf(marker, i + marker.length);
+        const stop = close === -1 ? sql.length : close + marker.length;
+        out += sql.slice(i, stop);
+        i = stop;
+        continue;
+      }
+    }
+
+    // 'string literal' or "quoted identifier"; a doubled quote is an escaped one.
+    if (ch === "'" || ch === '"') {
+      const quote = ch;
+      const start = i;
+      i++;
+      while (i < sql.length) {
+        if (sql[i] === quote) {
+          if (sql[i + 1] === quote) { i += 2; continue; }
+          i++;
+          break;
+        }
+        i++;
+      }
+      out += sql.slice(start, i);
+      continue;
+    }
+
+    if (ch === '?') {
+      out += '$' + (++idx);
+      i++;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+
+  return out;
 }
 
 // Compatibility wrapper:
@@ -154,3 +253,8 @@ exports.withTransaction = async function(fn) {
 exports.isObject = function(obj) {
   return obj === Object(obj);
 };
+
+// Exported for its unit test. Every query in the app goes through it, and the failure it
+// used to have was silent in one direction, so it is worth testing directly rather than
+// only through a mocked pool.
+exports.pgify = pgify;
