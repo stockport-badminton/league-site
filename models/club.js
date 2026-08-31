@@ -148,7 +148,7 @@ exports.getContactDetailsById = async function(clubId) {
             pgp_sym_decrypt(matchSec."playerEmail", ?)::text AS matchSecEmail,
             CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubSecretary,
             pgp_sym_decrypt(clubSec."playerTel", ?)::text AS clubSecTel,
-            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS "clubSecEmail",
+            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS clubSecEmail,
             CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamCaptain,
             pgp_sym_decrypt(teamCaptain."playerTel", ?)::text AS teamCaptainTel,
             pgp_sym_decrypt(teamCaptain."playerEmail", ?)::text AS teamCaptainEmail
@@ -156,19 +156,43 @@ exports.getContactDetailsById = async function(clubId) {
      JOIN team ON team.club = club.id
      JOIN venue ON club.venue = venue.id
      JOIN venue "matchVenue" ON club."matchVenue" = "matchVenue".id
-     JOIN player matchSec ON club.id = matchSec.club AND matchSec."matchSecrertary" = 1
-     JOIN player clubSec ON ((club.id = clubSec.club AND clubSec."clubSecretary" = 1) OR (club."clubSec" = clubSec.id))
-     JOIN player teamCaptain ON ((team.id = teamCaptain.team AND teamCaptain."teamCaptain" = 1) OR (team.captain = teamCaptain.id))
+     -- The two club officers are joined as *scalar subqueries*, one row each.
+     --
+     -- They used to be plain joins, and a club with more than one person flagged for a
+     -- role multiplied every other row by that count: College Green has two match
+     -- secretaries and two club secretaries, so its five teams came back as twenty rows
+     -- and the page listed each captain four times. Nothing in the club table stops a
+     -- second person being flagged, and several clubs have one.
+     --
+     -- These are club-level facts, not per-team ones, and the view has always read them
+     -- from clubrow[0] — so the extra rows never showed a second secretary, they only
+     -- duplicated the captains. LIMIT 1 with an explicit ORDER BY also makes the pick
+     -- deterministic; without it, which of the two secretaries appeared was down to
+     -- whatever order Postgres happened to return.
+     LEFT JOIN LATERAL (
+       SELECT p.* FROM player p
+       WHERE p.club = club.id AND p."matchSecrertary" = 1
+       ORDER BY p.id LIMIT 1
+     ) matchSec ON true
+     LEFT JOIN LATERAL (
+       SELECT p.* FROM player p
+       WHERE (p.club = club.id AND p."clubSecretary" = 1) OR club."clubSec" = p.id
+       ORDER BY p.id LIMIT 1
+     ) clubSec ON true
+     -- Likewise one captain per team, and LEFT so a team without one still lists.
+     -- This was an inner join, which meant a single team with no captain flagged removed
+     -- that team from the page entirely — the same trap as gotcha 1c.
+     LEFT JOIN LATERAL (
+       SELECT p.* FROM player p
+       WHERE (p.team = team.id AND p."teamCaptain" = 1) OR team.captain = p.id
+       ORDER BY p.id LIMIT 1
+     ) teamCaptain ON true
      WHERE club.id = ?
-     GROUP BY teamCaptain.id, teamCaptain.first_name, teamCaptain.family_name, teamCaptain."playerTel", teamCaptain."playerEmail",
-              team.name,
-              venue.id, venue.name, venue.address,
-              "matchVenue".id, "matchVenue".name, "matchVenue".address,
-              club."matchNightText",
-              matchSec.first_name, matchSec.family_name, matchSec."playerTel", matchSec."playerEmail",
-              clubSec.first_name, clubSec.family_name, clubSec."playerTel", clubSec."playerEmail",
-              club.name, club.id
-     ORDER BY teamName`,
+     -- No GROUP BY. It was there to collapse the duplicate rows the old joins produced,
+     -- and it could not: grouping by the captain's own columns keeps one row per distinct
+     -- (captain, match sec, club sec) combination, which is exactly the fan-out. The
+     -- subqueries above remove the cause, so there is nothing left to collapse.
+     ORDER BY team.name`,
     [key, key, key, key, key, key, clubId]
   )
   return result

@@ -183,19 +183,38 @@ exports.club_detail = async function(req, res, next) {
       res.status(500);
       return next(new Error('Club not found'));
     }
-    console.log("clubrow");
-    for (row of clubrow){
-      console.log(row)
-       //console.log(row)
+    // The row dump that used to be here printed every officer's **decrypted** phone
+    // number and email address into Cloud Logging, once per row, on every view of the
+    // page. `playerTel` and `playerEmail` are pgp_sym_encrypt'd in the database precisely
+    // so they are not lying around in plain text; decrypting them and then logging them
+    // undoes that for anyone with log access. Removed rather than commented out.
+
+    // One row per team, defensively.
+    //
+    // The duplication this guards against is fixed at source — Club.getContactDetailsById
+    // now picks one match secretary, one club secretary and one captain each via a
+    // lateral subquery. But that is SQL, which nothing in the Jest suite can execute, so
+    // this is the layer where the guarantee can actually be tested. It is cheap and the
+    // symptom it prevents is the one a visitor sees: College Green listed all five of its
+    // captains four times over, because the club has two match secretaries and two club
+    // secretaries and every combination produced a row.
+    const teams = [];
+    const seenTeam = new Set();
+    for (const row of clubrow) {
+      const key = row.teamname;
+      if (seenTeam.has(key)) continue;
+      seenTeam.add(key);
+      teams.push(row);
     }
-    // console.log(JSON.stringify(clubrow));
-    // console.log(clubrow)
+
     res.status(200);
     res.render('club-contact', {
         static_path: '/static',
         pageTitle : clubrow[0].clubname + " Contact information",
         pageDescription : clubrow[0].clubname + "'s Club / Team Contact information",
-        clubrow: clubrow,
+        // The view reads club-level details from clubrow[0] and iterates the rest for the
+        // team table, so it gets the de-duplicated list.
+        clubrow: teams,
         error: false,
         mapsApiKey: process.env.GMAPSAPIKEY,
         canonical:canonicalFor(req)
