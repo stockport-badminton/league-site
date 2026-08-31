@@ -1,0 +1,253 @@
+<%#
+  The weekly data-integrity digest, as HTML email.
+
+  This is also what GET /admin/audit renders, deliberately: the preview page and the
+  email are the same bytes, so "it looked fine in the browser" and "it looked fine in
+  the inbox" cannot diverge.
+
+  Every value here goes out through an escaped-output tag. Team names in this league
+  contain apostrophes and full stops, and every other outbound email in this codebase is
+  built by string concatenation — which is how a crafted photo URL once rewrote a
+  message from our own verified sending domain. A template escapes; concatenation does
+  not.
+
+  Inline styles only, and tables for layout: no email client can be relied on for a
+  stylesheet, and several strip a style element entirely.
+
+  Note for anyone editing this header: an EJS comment ends at the first close tag, so
+  literal EJS tags cannot be written inside one.
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= digest.subject %></title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f5f7;">
+<%
+  // Severity colours, dullest to loudest. A severity badge is the only colour in the
+  // email, so the eye lands on the worst thing first.
+  var SEV = {
+    critical: '#8b1a1a',
+    high:     '#b8500f',
+    medium:   '#7a6a12',
+    low:      '#4b5563'
+  };
+  function sevColour(s) { return SEV[s] || SEV.low; }
+
+  var runDate = digest.runAt.toLocaleDateString('en-GB',
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' });
+  // `recipients`, `preview` and `absoluteUrl` come in as locals and are deliberately not
+  // re-declared here: EJS compiles locals into scope, so a `var` of the same name
+  // shadows the value that was passed and silently reads as undefined.
+%>
+<div style="display:none; max-height:0; overflow:hidden; opacity:0;"><%= digest.subject %></div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f4f5f7;">
+<tr><td align="center" style="padding:16px 8px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:680px; background-color:#ffffff; border-radius:6px; font-family:Arial,Helvetica,sans-serif; color:#1f2933;">
+
+  <!-- Header -->
+  <tr>
+    <td style="background-color:#343a40; padding:18px 20px; border-radius:6px 6px 0 0;">
+      <div style="color:#ffffff; font-size:20px; font-weight:bold;">League data check</div>
+      <div style="color:#c7cbd1; font-size:13px; padding-top:4px;">Stockport &amp; District Badminton League &middot; <%= runDate %></div>
+    </td>
+  </tr>
+
+  <!-- The verdict, in the same words as the subject line -->
+  <tr>
+    <td style="padding:18px 20px 4px 20px;">
+      <% if (digest.allClear) { %>
+        <div style="font-size:17px; font-weight:bold; color:#14532d;">Nothing new to look at.</div>
+        <div style="font-size:14px; padding-top:6px; color:#4b5563;">
+          All <%= digest.sections.length %> checks ran.
+          <% if (digest.known.length) { %>
+            <%= digest.known.length %> known issue<%= digest.known.length === 1 ? '' : 's' %>
+            <%= digest.known.length === 1 ? 'is' : 'are' %> already tracked and listed below;
+            nothing else found anything.
+          <% } else { %>
+            None of them found anything.
+          <% } %>
+        </div>
+      <% } else { %>
+        <div style="font-size:17px; font-weight:bold; color:#8b1a1a;">
+          <%= digest.subject.replace('[SBL audit] ', '') %>.
+        </div>
+        <div style="font-size:14px; padding-top:6px; color:#4b5563;">
+          Out of <%= digest.sections.length %> checks. Every one of these renders as a
+          perfectly normal page on the site, which is why nobody has reported it.
+        </div>
+      <% } %>
+    </td>
+  </tr>
+
+  <!-- Findings, worst first -->
+  <% digest.attention.forEach(function(section) { %>
+  <tr>
+    <td style="padding:16px 20px 0 20px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+             style="border:1px solid #e5e7eb; border-left:4px solid <%= sevColour(section.severity) %>; border-radius:4px;">
+        <tr>
+          <td style="padding:12px 14px;">
+            <div style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:<%= sevColour(section.severity) %>; font-weight:bold;">
+              <%= section.severity %><% if (section.status === 'error') { %> &middot; check failed<% } %>
+            </div>
+            <div style="font-size:15px; font-weight:bold; padding-top:3px;"><%= section.description %></div>
+            <div style="font-size:12px; color:#6b7280; padding-top:2px;">
+              <code><%= section.name %></code>
+              <% if (section.status === 'grown') { %>
+                &middot; <%= section.total %> rows, <%= section.delta %> more than the
+                <%= section.tracked.count %> tracked under <%= section.tracked.owner %>
+              <% } else if (section.status !== 'error') { %>
+                &middot; <%= section.total %> row<%= section.total === 1 ? '' : 's' %>
+                <% if (section.trackedRows) { %>
+                  (<%= section.trackedRows %> already tracked under <%= section.tracked.owner %>, not listed)
+                <% } %>
+              <% } %>
+            </div>
+
+            <% if (section.status === 'error') { %>
+              <div style="margin-top:10px; padding:10px 12px; background-color:#fdf2f2; border-radius:3px; font-size:13px; color:#8b1a1a;">
+                This check could not run, so nothing it would have found was looked for
+                this week:<br>
+                <code style="font-size:12px;"><%= section.error %></code>
+              </div>
+            <% } %>
+
+            <% if (section.status === 'grown') { %>
+              <div style="margin-top:10px; font-size:12px; color:#6b7280;">
+                A count-based baseline cannot tell which rows are the new ones, so the
+                whole set is shown.
+              </div>
+            <% } %>
+
+            <% if (section.shown.length) { %>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+                     style="margin-top:10px; font-size:13px; border-collapse:collapse;">
+                <tr>
+                  <% section.columns.forEach(function(col) { %>
+                    <th align="left" style="padding:5px 8px; border-bottom:1px solid #d1d5db; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:#6b7280;"><%= col %></th>
+                  <% }) %>
+                  <th style="border-bottom:1px solid #d1d5db;"></th>
+                </tr>
+                <% section.shown.forEach(function(entry, i) { %>
+                  <tr style="background-color:<%= i % 2 ? '#fafafa' : '#ffffff' %>;">
+                    <% section.columns.forEach(function(col) { %>
+                      <td style="padding:5px 8px; border-bottom:1px solid #f0f1f3; vertical-align:top;"><%= entry.row[col] === null || typeof entry.row[col] === 'undefined' ? '—' : entry.row[col] %></td>
+                    <% }) %>
+                    <td style="padding:5px 8px; border-bottom:1px solid #f0f1f3; white-space:nowrap;">
+                      <% if (entry.link) { %>
+                        <a href="<%= entry.link %>" style="color:#1155cc;">open</a>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </table>
+              <% if (section.hidden) { %>
+                <div style="font-size:12px; color:#6b7280; padding-top:6px;">
+                  &hellip; and <%= section.hidden %> more. Run
+                  <code>node tools/dbq.js --check <%= section.name %></code> for the full list.
+                </div>
+              <% } %>
+            <% } %>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <% }) %>
+
+  <!-- Known and tracked: one line each, no row detail. This block is the whole reason
+       the email stays readable week after week. -->
+  <% if (digest.noted.length) { %>
+  <tr>
+    <td style="padding:20px 20px 0 20px;">
+      <div style="font-size:13px; font-weight:bold; color:#4b5563; text-transform:uppercase; letter-spacing:0.05em;">Known, already owned</div>
+      <div style="font-size:12px; color:#6b7280; padding-top:3px;">
+        Not listed row by row on purpose &mdash; these are expected to keep appearing until
+        their package lands, and an email that repeats them every week is an email nobody
+        opens. Growth in any of them would appear above instead.
+      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:8px; font-size:13px;">
+        <% digest.noted.forEach(function(section) { %>
+          <tr>
+            <td style="padding:7px 0; border-top:1px solid #f0f1f3; vertical-align:top;">
+              <div>
+                <strong><%= section.tracked.owner %></strong>
+                &middot; <%= section.description %>
+                <% if (section.status === 'resolved') { %>
+                  &middot; <span style="color:#14532d;"><strong>nothing found any more.</strong>
+                  Delete the <code><%= section.name %></code> entry from
+                  <code>utils/auditDigest.js</code>, so the next occurrence is reported in
+                  full rather than quietly counted against a baseline nobody needs.</span>
+                <% } else { %>
+                  &middot; <%= section.total %> row<%= section.total === 1 ? '' : 's' %>
+                  <% if (section.status === 'shrunk') { %>
+                    <span style="color:#14532d;">(<%= -section.delta %> fewer than tracked &mdash; worth
+                    lowering the baseline in <code>utils/auditDigest.js</code> so the next
+                    regression still shows)</span>
+                  <% } %>
+                <% } %>
+              </div>
+              <div style="font-size:12px; color:#6b7280; padding-top:2px;"><%= section.tracked.note %></div>
+            </td>
+          </tr>
+        <% }) %>
+      </table>
+    </td>
+  </tr>
+  <% } %>
+
+  <!-- Everything clean, in one line. Naming them would be most of the email. -->
+  <% if (digest.clean.length) { %>
+  <tr>
+    <td style="padding:18px 20px 0 20px;">
+      <div style="font-size:13px; color:#4b5563;">
+        Everything else looks fine &mdash;
+        <%= digest.clean.length %> check<%= digest.clean.length === 1 ? '' : 's' %> found nothing:
+        <span style="color:#6b7280;"><%= digest.clean.map(function(c) { return c.name; }).join(', ') %></span>.
+      </div>
+    </td>
+  </tr>
+  <% } %>
+
+  <!-- A misconfigured job must say so on its own face, or it looks like a quiet week. -->
+  <% if (!recipients.length) { %>
+  <tr>
+    <td style="padding:18px 20px 0 20px;">
+      <div style="padding:12px 14px; background-color:#fffbeb; border:1px solid #fde68a; border-radius:4px; font-size:13px; color:#78350f;">
+        <strong>No recipient is configured, so this report was not emailed to anyone.</strong>
+        Set <code>AUDIT_EMAIL_TO</code> (one address, or several separated by commas) in the
+        Cloud Run service and it will start arriving. Until then the weekly job runs, builds
+        this page and sends nothing &mdash; deliberately, so that a checkout pointed at the
+        production database cannot mail the results secretary by accident.
+      </div>
+    </td>
+  </tr>
+  <% } %>
+
+  <!-- Footer -->
+  <tr>
+    <td style="padding:20px; color:#6b7280; font-size:12px; line-height:18px;">
+      <hr style="border:none; border-top:1px solid #e5e7eb; margin:0 0 12px 0;">
+      <% if (preview) { %>
+        This is a preview of the email. Nothing was sent.
+        <% if (recipients.length) { %>It would go to <%= recipients.join(', ') %>.<% } %>
+        <br>
+      <% } %>
+      Every check here is one that has already found something real. The full row lists live
+      in <code>node tools/dbq.js --check &lt;name&gt;</code>; the definitions are in
+      <code>tools/audit/checks.js</code>.
+      <br><br>
+      Sent because somebody has to see these &mdash; each one renders as an ordinary page,
+      so nothing on the site looks wrong.
+      <a href="<%= absoluteUrl('/admin/audit') %>" style="color:#1155cc;">Run the checks now</a>.
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
