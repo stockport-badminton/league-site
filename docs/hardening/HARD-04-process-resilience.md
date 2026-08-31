@@ -42,8 +42,16 @@ substitute: it can render from a warm instance while Postgres is unreachable.
    otherwise eat the sitewide budget, which is exactly what happened to the Playwright
    suite when `globalLimiter` was mounted above the static handlers.
 
-Then (a person, not the agent) point a free uptime monitor at `/healthz` with SMS
-alerting. That step is what turns this from code into coverage.
+Then (a person, not the agent) point a free uptime monitor at
+**`https://stockport-badminton.co.uk/health`** with SMS alerting. That step is what turns
+this from code into coverage.
+
+**Use `/health`, not `/healthz`.** Google's frontend intercepts the exact literal path
+`/healthz` in front of Cloud Run and answers its own 404 page, so that request never
+reaches the container — a monitor pointed at it would have reported the site permanently
+down while the site was perfectly healthy. Found on 31 Aug 2026 by curling production
+after the deploy; `/healthz/` and `/HEALTHZ` both answer 200, which is what identified
+the cause. Both paths are registered now, but only `/health` survives the frontend.
 
 ## Acceptance criteria
 

@@ -626,6 +626,16 @@ Key vars (see `.env` for examples):
    on another hostname. Use `canonicalFor(req)` / `absoluteUrl(path)` from
    `utils/canonical.js` — including for links in emails. `SITE_ORIGIN` overrides the
    default for a staging deploy.
+1bb. **`/healthz` never reaches the container, and a new endpoint gets curled in
+   production.** Google's frontend intercepts that exact literal path in front of Cloud
+   Run and answers its own `Error 404 (Not Found)!!1` page — no response headers of ours,
+   so the request demonstrably never arrives. The health endpoint is therefore served at
+   **`/health`** (both are registered; monitor `/health`). What makes this worth
+   remembering is not the path: it passed Jest, it passed against a real local server,
+   and it 404'd in production, because the thing that breaks it only exists once there is
+   a Google frontend in front of the app. `/healthz/` and `/HEALTHZ` both answer 200,
+   which is how it was pinned down — compare a path you know has no route (it should
+   return *our* 404 page, with our headers) against the one you are debugging.
 1c. **An INNER JOIN to something optional loses the whole page.** `getFixtureEventById`
    joined the home team's captain, six teams have none flagged, and the 48 affected
    fixtures rendered as `HTTP 200` with a two-byte body. Two lessons: join optional

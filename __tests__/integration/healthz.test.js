@@ -28,6 +28,36 @@ beforeEach(() => {
   mockQueryImpl = () => Promise.resolve([[{ '?column?': 1 }]]);
 });
 
+// `/health` is the address to monitor. Google's frontend intercepts the exact literal
+// path `/healthz` in front of Cloud Run and answers its own 404, so that spelling never
+// reaches the container in production however it is routed here — verified live on
+// 31 Aug 2026. Both are registered; see the comment in app.js.
+//
+// Note what this file could not have caught. Every case below passed while the endpoint
+// was unreachable on the real domain, because supertest talks straight to the Express app
+// and there is no Google frontend in front of it. Nothing in Jest can test that hop, so
+// this test asserts what it can — that both paths are served — and the production check
+// stays a curl.
+describe('GET /health', () => {
+  it('answers 200 when the database is reachable', async () => {
+    const res = await request(app).get('/health');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('answers 503 when the database is unreachable', async () => {
+    mockQueryImpl = () => Promise.reject(new Error('ECONNREFUSED'));
+    const res = await request(app).get('/health');
+    expect(res.status).toBe(503);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('is never cached', async () => {
+    const res = await request(app).get('/health');
+    expect(res.headers['cache-control']).toMatch(/no-store/);
+  });
+});
+
 describe('GET /healthz', () => {
   it('answers 200 when the database is reachable', async () => {
     const res = await request(app).get('/healthz');

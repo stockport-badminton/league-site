@@ -208,17 +208,45 @@ app.get('/static/generated/venues-map.png', async function(req, res) {
 // The homepage is a poor substitute for that — it is cached, and it renders happily from
 // a warm instance while Postgres is unreachable, which is precisely the outage you want
 // to be told about. Excluded from the sitemap: it is not a page.
-app.get('/healthz', async function(req, res) {
+//
+// ⚠️ **`/health` is the address to monitor, not `/healthz`.** Google's frontend
+// intercepts the exact literal path `/healthz` in front of Cloud Run and answers its own
+// "Error 404 (Not Found)!!1" page — the request never reaches the container, so no
+// amount of routing in here can serve it. Verified in production on 31 Aug 2026, on both
+// the run.app host and the custom domain:
+//
+//   /healthz                     404, Google's page, none of our response headers
+//   /healthz/  and  /HEALTHZ     200 from this handler
+//   /definitely-not-a-route-xyz  404 from *our* 404 page, headers present
+//   /health /_health /status ... all reach the container
+//
+// So the container was always fine and the route always worked — the one spelling that
+// was documented and monitored was the one spelling that could not be reached. That is
+// worse than having no health endpoint: an operator following the docs gets a 404 and
+// concludes the site is down, which is the precise opposite of the job.
+//
+// Nothing local can catch this. It passes in Jest, it passes against a real local
+// server, and it only fails once there is a Google frontend in front of the app. The
+// lesson is the general one from CLAUDE.md 1b: infrastructure between us and the visitor
+// changes what the app appears to do, so a new endpoint gets curled in production.
+//
+// `/healthz` stays registered because it works everywhere except through that frontend
+// (locally, in tests, and via `/healthz/`), and removing it would break anything already
+// pointed at it.
+async function healthCheck(req, res) {
   res.set('Cache-Control', 'no-store');
   try {
     const conn = await db.otherConnect();
     await conn.query('SELECT 1');
     res.status(200).json({ ok: true, uptime: Math.round(process.uptime()) });
   } catch (err) {
-    console.error('healthz: database unreachable:', err.message);
+    console.error('health: database unreachable:', err.message);
     res.status(503).json({ ok: false, error: 'database unreachable' });
   }
-});
+}
+
+app.get('/health', healthCheck);
+app.get('/healthz', healthCheck);
 
 // Where the report-only CSP sends its violations.
 //
