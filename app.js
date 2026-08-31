@@ -15,6 +15,10 @@ const fs = require('fs');
 const compression = require('compression');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { S3_KEY: VENUES_MAP_S3_KEY } = require('./utils/venues-map-generator');
+// Required up here rather than beside the startup block below, because /healthz uses it
+// and a hoisted `var` that only happens to be assigned in time is not something to rely
+// on.
+var db = require('./db_connect');
 
 if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
   throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
@@ -109,6 +113,28 @@ app.get('/static/generated/venues-map.png', async function(req, res) {
   }
 });
 
+// Liveness + readiness, for an external uptime monitor.
+//
+// Mounted here, above globalLimiter, on purpose: a monitor polling every minute would
+// otherwise spend the sitewide request budget, which is the same trap that made the
+// browser suite run out of requests when the limiter sat above the static handlers.
+//
+// It answers "can this instance reach the database", not merely "is the process alive".
+// The homepage is a poor substitute for that — it is cached, and it renders happily from
+// a warm instance while Postgres is unreachable, which is precisely the outage you want
+// to be told about. Excluded from the sitemap: it is not a page.
+app.get('/healthz', async function(req, res) {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const conn = await db.otherConnect();
+    await conn.query('SELECT 1');
+    res.status(200).json({ ok: true, uptime: Math.round(process.uptime()) });
+  } catch (err) {
+    console.error('healthz: database unreachable:', err.message);
+    res.status(503).json({ ok: false, error: 'database unreachable' });
+  }
+});
+
 app.use('/static', express.static(path.join(__dirname, '/static')));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
 app.use(express.static('rootfiles'));
@@ -193,8 +219,65 @@ app.use(require('./routes'));
 // Sentry error handler — must be after all routes, before any other error middleware.
 Sentry.setupExpressErrorHandler(app);
 
-var db = require('./db_connect');
 var port = process.env.PORT || 8080;
+
+// ---------------------------------------------------------------------------
+// Staying alive, and dying tidily
+// ---------------------------------------------------------------------------
+
+// Node 22 treats an unhandled promise rejection as fatal — the process exits. There was
+// no handler anywhere in this codebase, so a single promise rejecting without a .catch()
+// (an SES send in a fire-and-forget path, an S3 call, a timer callback) took the whole
+// Cloud Run instance down and every in-flight request with it. Same shape as the pg pool
+// crash on 6 August; that one has a listener now, nothing else did.
+//
+// Report it and keep serving. A rejected promise somewhere is a bug to fix, not a reason
+// to drop the requests of everyone currently using the site.
+process.on('unhandledRejection', function(reason) {
+  const err = reason instanceof Error ? reason : new Error('Unhandled rejection: ' + reason);
+  console.error('unhandledRejection (kept serving):', err.message);
+  Sentry.captureException(err, { tags: { source: 'unhandled-rejection' } });
+});
+
+// An uncaught exception is different: the stack unwound through code that was not
+// expecting it, so the process state is genuinely unknown and carrying on risks serving
+// wrong answers. Report, flush, and exit non-zero so Cloud Run replaces the instance —
+// still far better than dying silently with nothing recorded.
+process.on('uncaughtException', function(err) {
+  console.error('uncaughtException (exiting):', err && err.message);
+  Sentry.captureException(err, { tags: { source: 'uncaught-exception' } });
+  Sentry.flush(2000).catch(function() {}).finally(function() {
+    process.exit(1);
+  });
+});
+
+// Cloud Run sends SIGTERM and allows ten seconds before killing the container. With no
+// handler the process died at once, severing whatever was in flight — on every deploy
+// and every scale-down. Usually a page load somebody retries; occasionally a captain
+// submitting a scorecard.
+//
+// `server` is captured from app.listen below; without a reference there is nothing to
+// close. The timeout is deliberately under Cloud Run's grace period, so a single stuck
+// request cannot hold the shutdown past the point where we are killed anyway.
+const SHUTDOWN_GRACE_MS = 8000;
+function shutdown(signal, server) {
+  console.log(`${signal} received — draining`);
+  const done = function(code) {
+    db.end().catch(function() {}).finally(function() { process.exit(code); });
+  };
+  const timer = setTimeout(function() {
+    console.error('drain timed out; exiting anyway');
+    done(1);
+  }, SHUTDOWN_GRACE_MS);
+  timer.unref();
+
+  if (!server) return done(0);
+  server.close(function() {
+    clearTimeout(timer);
+    console.log('drained cleanly');
+    done(0);
+  });
+}
 
 if (require.main === module) {
   try {
@@ -249,8 +332,11 @@ if (require.main === module) {
         });
       }, 60 * 1000).unref();
     }).finally(function() {
-      app.listen(port, function() {
+      const server = app.listen(port, function() {
         console.log('Server running at http://127.0.0.1:' + port + '/');
+      });
+      ['SIGTERM', 'SIGINT'].forEach(function(sig) {
+        process.on(sig, function() { shutdown(sig, server); });
       });
     });
   } catch {

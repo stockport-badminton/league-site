@@ -97,16 +97,16 @@ If you are doing this alone and in order, the combined top of both passes is:
 
 ## Status
 
-Nothing started. Update the table below as packages land, so a fresh session can see
-where things stand without reading git log.
+Update the table below as packages land, so a fresh session can see where things
+stand without reading git log.
 
 | Package | Status | Commit | Notes |
 |---|---|---|---|
-| SEC-3 | **done** | *(this commit)* | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
-| HARD-01 | **done** | *(this commit)* | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
+| SEC-3 | **done** | `f5f36ff` | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
+| HARD-01 | **done** | `17e2d0e` | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
 | HARD-02 | not started | | |
 | HARD-03 | not started | | |
-| HARD-04 | not started | | |
+| HARD-04 | **done** | *(pending)* | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
 | HARD-05 | not started | | |
 | HARD-06 | not started | | |
 | HARD-07 | not started | | |

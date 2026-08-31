@@ -63,6 +63,23 @@ exports.poolMax = function() {
   return POOL_MAX;
 };
 
+// Closes the pool, for a graceful shutdown. Cloud Run gives ten seconds after SIGTERM;
+// handing session-mode slots back inside that window is politer to Supabase's small
+// connection ceiling than letting them time out. Safe to call when nothing was ever
+// connected, and safe to call twice.
+exports.end = async function() {
+  if (!state.pool) return;
+  const pool = state.pool;
+  state.pool = null;
+  try {
+    await pool.end();
+  } catch (err) {
+    // Already closing, or a client died on the way out. Nothing useful to do while the
+    // process is on its way down.
+    console.error('pg pool: error while closing:', err.message);
+  }
+};
+
 // Converts MySQL ? placeholders to Postgres $N in sequence.
 function pgify(sql) {
   let idx = 0;
