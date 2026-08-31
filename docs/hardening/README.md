@@ -49,8 +49,18 @@ script under `scripts/` with a dry run, modelled on `scripts/backfill-contact-em
    this codebase: write the test, stash the fix (`git stash push <files>`), confirm the
    test fails, `git stash pop`, confirm it passes. Three of this year's bugs lived
    behind a green suite because nobody did this.
-3. **Run `npm test` before you claim done.** 391 Jest tests, ~13s. If you touched
-   anything the browser drives, `npm run test:e2e` too (48 specs, ~20s, read-only).
+3. **Run `npm test` before you claim done.** 573 Jest tests, ~25s. If you touched
+   anything the browser drives, `npm run test:e2e` too (48 specs + 1 skipped, ~60s,
+   read-only) — but see rule 7 if you are one of several agents.
+7. **If you are working in parallel with other agents, do not run Playwright**, and do
+   not trust a single loaded Jest run. Playwright starts its own dev server on a fixed
+   port, so two agents racing it produce nonsense. Jest is safe per-worktree (a worktree
+   contains no sibling worktrees), but concurrent Jest processes contend: that is what
+   produced every "a different arbitrary subset failed" report on 31 Aug, all of them
+   `Exceeded timeout of 5000 ms`. `testTimeout` is now 15s, which should absorb it. If a
+   test fails on a busy machine, re-run that suite **alone** before reporting it — and if
+   it fails with a wrong *status* rather than a timeout, that is a real bug, not
+   contention. Whoever merges runs the browser suite once on the merged result.
 4. **Read `CLAUDE.md` first.** It documents the Postgres quoting rules, the missing
    `insertId`, the canonical-URL trap and the roster rank convention. Most of the
    listed gotchas were expensive to learn.
@@ -106,7 +116,7 @@ stand without reading git log.
 | SEC-3 | **done** | `f5f36ff` | Invoice endpoints gated to superadmin. Not a package — pulled forward because the annual send was the next day. |
 | HARD-01 | **done** | `17e2d0e` | Transaction, resubmit page, deterministic lookup, 18-game validation. 17 new/updated tests. |
 | HARD-02 | **done** | `8f1fb71` | Server-generated keys, image-only content types, rate limit. Residual tracked as HARD-02b. |
-| HARD-03 | **done, migration pending** | | Photo URL validated + escaped, write gated, per-draft `confirmToken` in the confirmation link. **`migrations/011_scorecard_confirm_token.sql` is NOT applied** — it must be, before this deploys, or every scorecard submission fails on an unknown column. Tokenless drafts are grandfathered (see the clause in `utils/scorecardLinks.js`). |
+| HARD-03 | **done, migration pending** | `01e10fe` | Photo URL validated + escaped, write gated, per-draft `confirmToken` in the confirmation link. **`migrations/011_scorecard_confirm_token.sql` is NOT applied** — it must be, before this deploys, or every scorecard submission fails on an unknown column. Tokenless drafts are grandfathered (see the clause in `utils/scorecardLinks.js`). |
 | HARD-04 | **done** | `19d27ec` | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
 | HARD-05 | **done** | `4a10c68` | All 11 replaced with next(err), plus a repo-level guard test. |
 | HARD-06 | **done** | `869257e` | Error out of the page entirely, six-hex reference on the page and as a Sentry tag, three canonicals moved to `canonicalFor`. Left alone, same `req.get('host')` bug: `middleware/validateSeason.js:23` (its own 404 render) and `routes/index.js` lines 83 (`failed-login`) and 408 (`/user`) — out of this package's ownership. |
@@ -117,6 +127,6 @@ stand without reading git log.
 | HARD-11 | not started | | |
 | HARD-12 | **done (report-only)** | `aa20cf8` | helmet + two CSP headers: an enforcing baseline with no resource allowlist, and the full allowlist report-only. `CSP_ENFORCE=true` flips it — prerequisites in `utils/securityHeaders.js`, do not flip without them. Nothing was receiving reports (Sentry needs setup that was never done), so `POST /csp-report` collects them into Cloud Logging. Residual: `'unsafe-inline'` must stay in `script-src` until the 159 inline `onclick` handlers go — tracked as HARD-15. |
 | HARD-13 | not started | | |
-| HARD-14 | not started | | Found 31 Aug while working SEC-3. Wider than one test: on repeated full runs (HARD-12, 31 Aug) `sign-s3`, `club-pages`, `roster` and `event-page-and-sitemap` each failed intermittently under parallel workers and passed alone, with a different set each run. Verified pre-existing — it reproduces with HARD-12 stashed out. Worth treating as one flakiness bug, not four. |
+| HARD-14 | **mostly diagnosed** | `d60312d` | **Most of what looked like flakiness was contention, not the suite.** Three agents working in parallel worktrees each ran their own Jest, and the reports that came back ("`sign-s3`, `club-pages`, `roster`, `event-page-and-sitemap` fail intermittently, a different set each run") all describe the same mechanism: the default 5s `testTimeout` is too tight for a supertest case that boots the whole app once the machine is contended. Measured, not assumed — the suite is **12/12 clean** alone, clean at **load 12–14**, and clean at `--maxWorkers=16` on 8 cores; it takes **two concurrent Jest processes** to fail one arbitrary test, and the failure is always `Exceeded timeout of 5000 ms`. `testTimeout` is now 15s. Separately, a run in the main checkout was collecting **140 test files, 106 of them from `.claude/worktrees/`**, because `testMatch` starts with `**` — now ignored. **What is still open:** the original 403→404 on `roster.test.js` › *403s a club admin ordering another club's team*. That is a wrong *status*, not a timeout, so it is a different bug and the one that still matters — a test that fails in the "access granted" direction. Reproduce it alone before assuming it is contention too. |
 | HARD-02b | not started | | Residual from HARD-02. |
 | HARD-15 | not started | | Residual from HARD-12. Move the 159 inline `onclick=` attributes and 17 inline `<script>` blocks in `views/` onto delegated handlers, so `script-src` can drop `'unsafe-inline'` for a nonce. Until then the CSP stops a script being *loaded* from an unlisted host but not an injected inline one. Not a package brief yet — no evidence gathered beyond the counts. |
