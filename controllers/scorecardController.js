@@ -14,6 +14,10 @@ const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 const { escapeHtml } = require('../utils/html');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
+  // `photoUrl` is aliased because full_fixture_post already has a local of that name
+  // holding the *bucket* URL, and the two must not be confused: one is what we store,
+  // the other is what we show and email.
+  photoPath, photoUrl: photoLinkFor,
   normalisePhotoUrl, isPhotoUrl
 } = require('../utils/scorecardLinks');
 
@@ -528,9 +532,15 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       // that header is the Cloud Run hostname, so this link used to point at
       // league-site-…-nw.a.run.app. See utils/canonical.js.
       const scorecardUrlBeta = confirmationUrl(scorecardId, confirmToken);
+      // The photo is linked through GET /scorecard-photo/:id, never as the raw S3 URL
+      // (HARD-02b). Photos are private objects, so a bucket link in this email would be
+      // an AccessDenied page for the one person who has to look at it — and the bucket
+      // URL was itself the authorization on the photo, which is what made it worth
+      // fixing: forwarded once, it was public forever.
+      const photoLink = photoUrl ? photoLinkFor(scorecardId, confirmToken) : '';
       const photoLine = photoUrl
-        ? 'a new scorecard has been uploaded: <a href="' + escapeHtml(photoUrl) + '">' +
-          escapeHtml(photoUrl) + '</a>'
+        ? 'a new scorecard has been uploaded: <a href="' + escapeHtml(photoLink) + '">' +
+          escapeHtml(photoLink) + '</a>'
         : 'a new scorecard has been entered, with no photo attached.';
       const params = {
         Destination: {
@@ -623,6 +633,16 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       pageDescription: "Show result of uploading scorecard",
       result: renderData,
       data: rows[0],
+      // The scorecard photo, through GET /scorecard-photo/:id rather than from the
+      // bucket (HARD-02b). This is the only page that shows a photo to a human, and it
+      // is the right one: it already has the draft row and already checks the token, so
+      // no second authorization model is needed. Null when the draft has no photo — the
+      // two `<img src="<%= scorecard['scoresheet-url'] %>">` blocks that used to be the
+      // photo surface read the *dropdown* object, which has no such key, so they only
+      // ever rendered `src="undefined"`.
+      photoPath: String(rows[0]['scoresheet-url'] || '').trim()
+        ? photoPath(req.params.id, rows[0].confirmToken)
+        : null,
       // Deliberately not canonicalFor(req): that keeps the query string, and the query
       // string is now a secret. A canonical tag is copied, shared and crawled.
       canonical: absoluteUrl('/populated-scorecard-beta/' + encodeURIComponent(String(req.params.id)))
@@ -842,8 +862,10 @@ exports.add_scorecard_photo = async function(req, res, next) {
         Body: {
           Html: {
             Charset: 'UTF-8',
+            // The proxy link, not the bucket URL: photos are private objects now, and
+            // the bucket URL was itself the authorization on one. See HARD-02b.
             Data: exports.buildPhotoEmailHtml(
-              photoUrl,
+              photoLinkFor(req.params.id, draft.confirmToken),
               confirmationUrl(req.params.id, draft.confirmToken)
             )
           }

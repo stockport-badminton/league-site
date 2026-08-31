@@ -53,8 +53,18 @@
         <% } %>
         <% if (hasScorecard && !hasErrors) { %>
             <p>Thanks for entering your result - the Results Secretary has been emailed and will verify your result soon! Thanks!</p>
-            <img src="<%= scorecard['scoresheet-url'] %>" class="img-fluid" />
-            <a href="<%= scorecard['scoresheet-url'] %>" class="img-fluid"><%= scorecard['scoresheet-url'] %></a>
+            <!--
+              There used to be an img tag here whose src was scorecard['scoresheet-url'],
+              and a link beside it printing the raw S3 URL. `scorecard` is the *dropdown*
+              data (divisionRows, homeTeamRows, ...) in every render that reaches this
+              branch, so it has no 'scoresheet-url' key: this only ever emitted
+              src="undefined" and a link to the string "undefined".
+
+              The photo now has one surface, the confirmation page, and one read path,
+              GET /scorecard-photo/:id, authorized by the draft's own token (HARD-02b).
+              Do not put a bucket URL back here: photos are private, so it would be a
+              broken image, and this page has no draft id to build a proxy path from.
+            -->
             <% } %>
         <% if (hasResult && !hasErrors) { %>
         <p>Welcome to results entry. If you have any problems email the results secretary, it's more likely to be something broken than something you did wrong.<br />

@@ -76,6 +76,24 @@ function confirmationUrl(draftId, token) {
   return absoluteUrl(confirmationPath(draftId, token));
 }
 
+// The photo for a draft, served by GET /scorecard-photo/:id rather than from the bucket.
+//
+// HARD-02b. Photos were `ACL: public-read` and rendered straight from S3, so the
+// authorization on one was "know the URL" — and the URL was in an email. The route reads
+// the object key from the draft row and applies the *same* token rule as the
+// confirmation page, which is why the token handling lives here beside
+// `confirmationPath` and not next to the route: there is one definition of "does this
+// draft have a token", grandfather clause included.
+function photoPath(draftId, token) {
+  const base = '/scorecard-photo/' + encodeURIComponent(String(draftId));
+  return draftRequiresToken(token) ? base + '?t=' + encodeURIComponent(token) : base;
+}
+
+// For the two emails to the results secretary. Never req.headers.host — see gotcha 1b.
+function photoUrl(draftId, token) {
+  return absoluteUrl(photoPath(draftId, token));
+}
+
 // --- scorecard photo URLs ---------------------------------------------------
 
 // Hostnames S3 serves this bucket under: `s3.amazonaws.com`, `s3.<region>.amazonaws.com`
@@ -162,6 +180,8 @@ module.exports = {
   mayOpenDraft,
   confirmationPath,
   confirmationUrl,
+  photoPath,
+  photoUrl,
   normalisePhotoUrl,
   isPhotoUrl,
   TOKEN_BYTES,

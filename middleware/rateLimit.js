@@ -88,6 +88,19 @@ const webhookLimiter = makeLimiter({
   limit: 120,
 });
 
+// GET /scorecard-photo/:id — the only read path for a scorecard photo (HARD-02b).
+//
+// Its own limiter, and not publicFormLimiter, because that one is ten an hour: a
+// confirmation page reloaded a few times would lock the captain out of their own photo.
+// But it cannot go unlimited either, unlike every other GET on the site — this one
+// streams bytes out of S3, so a caller working through the sitewide 600-per-15-minutes
+// budget is buying us egress rather than page renders. Generous enough that a human
+// reading a confirmation email never meets it.
+const mediaLimiter = makeLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+});
+
 // CSP violation reports (see utils/securityHeaders.js). Its own limiter rather than the
 // sitewide one because it is mounted above globalLimiter in app.js: a browser fires one
 // report per blocked subresource, so a single page load under a bad policy can be a
@@ -120,6 +133,7 @@ module.exports = {
   publicFormLimiter,
   contactLimiter,
   webhookLimiter,
+  mediaLimiter,
   cspReportLimiter,
   globalLimiter,
   keyGenerator,

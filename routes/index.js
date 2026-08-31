@@ -6,7 +6,7 @@ const sesUtil = require('../utils/ses');
 const { expressjwt: jwt } = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
 const multer = require('multer');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 var venue_controller = require('../controllers/venueController');
@@ -35,10 +35,14 @@ var roster_controller = require('../controllers/rosterController');
 const requireClubAccess = require('../middleware/requireClubAccess');
 const verifySns = require('../middleware/verifySns');
 const {
-  publicFormLimiter, contactLimiter, webhookLimiter
+  publicFormLimiter, contactLimiter, webhookLimiter, mediaLimiter
 } = require('../middleware/rateLimit');
 const spamGate = require('../middleware/spamGate');
 const { buildUploadKey } = require('../utils/uploads');
+// The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
+const { photoKeyFromStored, contentTypeFor } = require('../utils/scorecardPhoto');
+const { mayOpenDraft } = require('../utils/scorecardLinks');
+const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
@@ -176,6 +180,77 @@ router.post('/submit-form', publicFormLimiter, (req, res, next) => {
 });
 router.get('/populated-scorecard-beta/:id', (req, res, next) => {
   scorecard_controller.fixture_populate_scorecard_fromId(req, res, next);
+});
+
+// GET /scorecard-photo/:id — the only way a scorecard photo is read (HARD-02b).
+//
+// Scorecard photos were `ACL: public-read` and rendered straight out of the bucket, with
+// the URL stored in `scorecardstore."scoresheet-url"` and emailed to the results
+// secretary. So the authorization on a photo of a match was "know the URL", forever, for
+// anyone the email was ever forwarded to; and the objects could not be made private
+// without blanking every photo the site has, including on archived seasons.
+//
+// **This route is keyed by draft id, never by object key.** That is the whole design.
+// Every part of the object's identity comes from the row:
+//
+//   - the draft must exist, and must have a photo (404 otherwise);
+//   - **who may see it is exactly who may see the draft** — `mayOpenDraft`, the same
+//     per-draft token as the confirmation page (HARD-03), including the same
+//     grandfather clause for links filed before migration 011. There is deliberately
+//     not a second authorization model for photos: a photo of a scorecard is the
+//     scorecard;
+//   - the key comes from `photoKeyFromStored`, which accepts only an object in our own
+//     bucket and refuses the prefixes belonging to the venues map and the weekly videos
+//     (a row could name one — `POST /add-scorecard-photo/:id` accepted any string for
+//     years before HARD-03);
+//   - the content type is one we recognise as an image or the answer is 404. Objects
+//     predating HARD-02 were uploaded with a caller-chosen type, and echoing that back
+//     would make this a way to serve HTML from our *own origin*, which is worse than
+//     from the bucket because here it is same-origin with the session cookie.
+//
+// Modelled on the venues-map proxy in app.js, which does the same thing for a public
+// object. `Cache-Control: private` because the token in the query string is the
+// authorization, so a shared cache must not hold the answer.
+router.get('/scorecard-photo/:id', mediaLimiter, async (req, res, next) => {
+  try {
+    const rows = await Fixture.getScorecardById(req.params.id);
+    if (!rows || !rows.length) return res.status(404).end();
+    const draft = rows[0];
+
+    if (!mayOpenDraft(draft.confirmToken, req.query.t)) return res.status(403).end();
+
+    const key = photoKeyFromStored(draft['scoresheet-url']);
+    if (!key) return res.status(404).end();
+
+    const s3 = new S3Client({ region: 'eu-west-1' });
+    let obj;
+    try {
+      obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+    } catch (err) {
+      // A key the bucket does not hold is a 404, not a 500. There are rows whose key was
+      // corrupted on the way in years ago (the upload page used to rewrite %20 as '+'),
+      // and a missing photo must not take the page with it.
+      return res.status(404).end();
+    }
+
+    const contentType = contentTypeFor(key, obj.ContentType);
+    if (!contentType) return res.status(404).end();
+
+    res.set('Content-Type', contentType);
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Disposition', 'inline');
+    res.set('Cache-Control', 'private, max-age=300');
+    if (obj.ContentLength) res.set('Content-Length', String(obj.ContentLength));
+
+    // The stream needs its own 'error' listener or a mid-transfer failure is an
+    // unhandled 'error' event on an EventEmitter, which takes the instance down — the
+    // same shape as the pg pool bug in gotcha 2c. Headers are already sent by then, so
+    // all that is left is to stop talking.
+    obj.Body.on('error', () => res.destroy());
+    obj.Body.pipe(res);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Static pages
