@@ -1,10 +1,42 @@
+<%#
+  The 500 page.
+
+  This used to render the error object straight into a paragraph with an escaped-output
+  tag. A pg error stringifies with its message, and a pg message is made of the schema —
+  `relation "scorecardstore" does not exist`, `column player.authemail does not exist`,
+  fragments of the failing statement — so the page handed a little more of the database
+  to whoever tripped it, one failed request at a time. Escaping was never the answer: it
+  escapes for HTML, so the quotes came out as character references while the table name
+  sat there in plain sight.
+
+  So the error is not passed to this template at all. `reference` is: a short code the
+  visitor can quote, which is also on the Sentry event as a searchable tag. Without it
+  this page would be a prettier dead end — the league is run by volunteers, and "I saw
+  error 7F2A1B" needs to be one Sentry search away from the stack trace.
+
+  (Careful with EJS comments: the scanner stops at the first close tag, so don't write a
+  literal EJS tag in here.)
+-%>
 <%- include('header.ejs') %>
 <%- include('nav.ejs') %>
 
-<h1>500 Error</h1>
-<p>Sorry, something's gone wrong<br /></p>
-<p><%= error %></p>
+<h1>Something went wrong</h1>
 
+<p>
+  We couldn't load this page. It isn't anything you did &mdash; the fault is at our end,
+  and it has been reported automatically.
+</p>
+
+<p>
+  Please try again in a minute. If it keeps happening,
+  <a href="/contact-us">tell us about it</a> and quote this reference:
+</p>
+
+<p class="lead">
+  Reference <code class="error-reference"><%= typeof reference !== 'undefined' ? reference : '' %></code>
+</p>
+
+<p><a href="/">Go to the home page</a></p>
 
 <%- include('footer.ejs') %>
 

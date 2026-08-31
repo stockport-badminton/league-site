@@ -109,7 +109,7 @@ stand without reading git log.
 | HARD-03 | not started | | |
 | HARD-04 | **done** | `19d27ec` | unhandledRejection + uncaughtException handlers, SIGTERM drain, /healthz above the limiter. Verified against a real server. |
 | HARD-05 | **done** | `4a10c68` | All 11 replaced with next(err), plus a repo-level guard test. |
-| HARD-06 | not started | | |
+| HARD-06 | **done** | `869257e` | Error out of the page entirely, six-hex reference on the page and as a Sentry tag, three canonicals moved to `canonicalFor`. Left alone, same `req.get('host')` bug: `middleware/validateSeason.js:23` (its own 404 render) and `routes/index.js` lines 83 (`failed-login`) and 408 (`/user`) — out of this package's ownership. |
 | HARD-07 | not started | | |
 | HARD-08 | **done** | `5d48fa6` | `npm ci && npm test` before the build. Verified the suite passes with no .env, as in CI. Playwright stays local — HARD-13. |
 | HARD-09 | not started | | |
