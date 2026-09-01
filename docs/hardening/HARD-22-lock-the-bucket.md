@@ -105,6 +105,14 @@ members. The tool prints this warning too.
 Inbound email breaking silently is the worst outcome available here, which is why it gets
 a tool rather than a sentence.
 
+**Baseline taken 1 Sep 2026, before any of this package ran: the whole chain works.** A
+test send landed a new object under `inbound-email/` *and* arrived in the owner's inbox,
+so both halves — SES's write and the SNS → `POST /mail` → forward — were healthy going in.
+That is the reading this package is measured against. If the same test fails after step 3
+or 4, the lockdown did it; there is no ambiguity left about whether it was already broken.
+(HARD-02b's own sweep could not have affected this: it was scoped to the bucket root and
+never touched the `inbound-email/` prefix.)
+
 **3. Object Ownership → `bucket owner enforced`.**
 ```bash
 aws s3api put-bucket-ownership-controls --bucket badmintontemp \
