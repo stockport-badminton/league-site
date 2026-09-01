@@ -97,6 +97,70 @@ on, do not treat them as a regression.
 
 **Reverse:** nothing to reverse. Redeploy the previous revision.
 
+**Step 0 was run on 1 Sep 2026 and passed.** `tools/scorecard-photo-audit.js` reconciles
+every row in `scorecardstore."scoresheet-url"` against a `ListObjectsV2` of the bucket,
+using the route's *own* `photoKeyFromStored` and content-type gate rather than a
+reimplementation — a hand-rolled parser here would measure the script instead of the
+proxy, which is the same class of mistake that put 490 `+`-for-space URLs in the column.
+Re-run it after step 3 and diff the counts; that is the check that proves nothing broke.
+
+| Verdict | Rows | |
+|---|---|---|
+| Servable | **1,456** | 98.4% of 1,479 |
+| Object missing | 21 | already 404 today |
+| Unservable type | 2 | already 404 today |
+| **Refused by the guard** | **0** | every stored URL shape parses |
+
+**The zero is what licenses step 3.** The risk was that making objects private would blank
+photos whose keys the reader could not resolve; measured, that set is empty. Both host
+spellings and all 490 `+` URLs resolve. Every failure is a genuinely absent object — one
+was confirmed by hand with `head-object` and in the S3 console.
+
+The 21 dead rows are not age-related rot: 17 are the contiguous block **ids 878–900, all
+dated Feb 2020**, while 1,282 servable rows sit inside the same id range. Something
+happened to those objects specifically. The remaining four are 2160, 2252, 2253, 2259.
+The 2 unservable ones are keys that never had a real extension
+(`College Green C-Disley B.22`).
+
+**406 objects in the bucket are referenced by no row at all** — the anonymous-upload
+residual HARD-02 left behind, and the true size of the lifecycle-rule question this
+package defers.
+
+### Correction: the premise of step 4 is out of date
+
+The step-4 warning below says Block Public Access would break the venues map and the
+weekly videos. **Checked on 1 Sep 2026: both are already `403` to an anonymous request**,
+and `GET /static/generated/venues-map.png` still answers `200` because the app fetches it
+with credentials. So that warning no longer describes the bucket. Before acting on it,
+re-check how Make.com actually retrieves a video — if it uses a presigned or credentialed
+fetch it is unaffected by Block Public Access, and if it relies on public read it is
+**already broken**, which is worth knowing either way.
+
+### Non-image objects, and which are public
+
+Of 1,484 objects, 41 are neither image nor document. 29 are already private and
+legitimate: `inbound-email/` (12, the SES→S3 inbound store),
+`scorecard-ocr-cache/*.vision.json` (14 — note these are **Tameside** league OCR cache
+written into the Stockport bucket, worth knowing when reasoning about who writes here),
+and `social-videos/` (the two weekly videos plus the `.generating` lock).
+
+**Five are publicly readable and are captain uploads that were never photos** — all named
+exactly like a scorecard, so they came in through the upload form:
+
+```
+David Lloyd A-Featherforce A.xlsx                    18K   2026-05-23   PUBLIC
+Alderley Park C-Manor A.msg                          3.7M  2024-11-14   PUBLIC
+Macclesfield B-Parrswood C.zip                      25.2M  2022-11-09   PUBLIC
+College Green C-Disley B.22                          1.5M  2022-01-20   PUBLIC
+Alderley Park C-College Green D.12102022_APBC_…      3.2M  2022-10-16   PUBLIC
+```
+
+Step 3 makes all five private along with everything else. The `.xlsx` is recent and may
+hold member data; the `.zip` alone is 25MB of the storage residual.
+
+Seven `.jfif` objects look non-image to a naive extension filter but are ordinary
+photos — `TYPE_BY_EXTENSION` includes `jfif` and all seven are referenced and servable.
+
 ### Step 1 — stop new uploads being public
 
 Already done in code: `/sign-s3` no longer signs `ACL: 'public-read'`. It takes effect on
