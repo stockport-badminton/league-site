@@ -84,6 +84,35 @@ refuses, and a one-day window. Discovery depends entirely on a human wondering.
 - Tests: token accepted, token rejected, session accepted, anonymous rejected, wrong-date
   refusal is non-2xx.
 
+## Postscript: the run had a second, unrelated fault
+
+Once the send was unblocked, the invoices went out reading **`2 league team(s): £NaN`** and
+**`TOTAL: £NaN`** to all 18 clubs. Fixed and deployed the same evening in `b7332e5`, and
+the corrected invoices were sent; the treasurers were told separately about the duplicate.
+
+`b3b8efd` ("rule and fee changes", 21 May 2026) renamed the fee column to
+`season."clubFee"` in the query and left the controller reading `club.teamFee`. `undefined`
+times anything is `NaN`, EJS prints `NaN` without complaint, and SES delivered it happily —
+so the run reported complete success.
+
+**It is the same root cause as the auth failure, one layer down: code that runs once a year
+is not exercised by anything until the day it matters.** A rename in May is not executed
+until September, and then it executes on every club at once. Two independent faults, both
+introduced months apart, both first observable on the same morning.
+
+Two things now guard it, and they are the template for the rest of this package:
+
+- The controller **refuses to send a club whose total is not finite**, logs why, and
+  continues with the others. An invoice for £NaN is worse than none — it is authoritative
+  and it reaches everyone simultaneously.
+- The tests now **mock the column names the query actually returns and assert on the
+  rendered HTML**. Every pre-existing test mocked `getAnnualInvoices` to `[]`, so the loop
+  never ran and the template was never rendered — they tested authorization only, which is
+  why a green suite coexisted with £NaN. Verified by stashing the fix: 4 fail without it.
+
+The remaining fixes in this package should be held to the same standard: a test that runs
+the real data contract, not one that proves the route is gated.
+
 ## Out of scope
 
 - Watching SES bounces for invoice delivery. Real, and it applies to the audit digest and

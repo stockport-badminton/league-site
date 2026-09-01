@@ -1,4 +1,7 @@
-# HARD-20 — A 401 from routes that have no authorization
+# HARD-20 — A wrong status from routes that have no authorization
+
+*(Originally "a phantom 401"; a third sighting on 1 Sep 2026 was a 404, so the symptom is
+broader than the title assumed. See below.)*
 
 **Severity:** low (test-only — see below) · **Wave:** A · **Blocked by:** nothing
 **Owns:** `__tests__/` setup, and whatever it turns out to be
@@ -19,6 +22,52 @@ __tests__/integration/friendly-500.test.js
 
 Neither route touches `checkJwt`. `POST /contact-us` carries `contactLimiter`,
 `spamGate()`, `validateContactUs` and the handler; `GET /fixtures` carries nothing at all.
+
+**A third sighting, 1 Sep 2026 — and it is not a 401**, which is the most useful thing
+about it:
+
+```
+__tests__/integration/mail-relay.test.js
+  400s without a fixture to identify                POST /fixture/reminder  expected 400, got 404
+```
+
+Captured verbatim from a full run. Same session also produced an unidentified single-test
+failure on a **docs-only** working tree, i.e. with no code change in play at all.
+
+Why it matters to this package: it widens the symptom from "a phantom 401" to **"a wrong
+status on an unauthenticated route under a contended full run"**, and 404 is a status this
+codebase produces in many places, so the `express-jwt` theory above cannot explain it.
+HARD-14 already records a 403→404 on `roster.test.js`; with this one, **two of the three
+non-401 sightings land on 404**. If there is a single mechanism, the search should start
+from what all four have in common — a full run, a loaded machine, an unauthenticated
+route, and a status that some *other* route on the same app would legitimately return —
+rather than from `express-jwt`.
+
+Behaviour matches the rest: does not reproduce alone (3/3 clean), does not reproduce with
+the neighbouring suite (3/3 clean), and three consecutive full runs afterwards were
+772/772. Per the note below, that is absence of evidence, not evidence of contention.
+
+### Frequency, and the reason there is so little evidence
+
+On 1 Sep 2026 a single session saw **three** failing full runs, two of them on a working
+tree containing **only documentation changes** — so whatever this is, it is not sensitive
+to the code under test. Only one of the three was captured. The other two are gone, for a
+mundane and fixable reason:
+
+> `npx jest 2>&1 | tail -4` shows the summary and **throws away the failing test's name and
+> its expected/received**. By the time you notice the count is wrong, the detail is gone,
+> and the next run passes.
+
+**So the first change this package needs is not a diagnostic, it is a habit.** Redirect the
+whole run to a file and read the summary from it:
+
+```bash
+npx jest > /tmp/jest.txt 2>&1; grep -E "^Tests:" /tmp/jest.txt
+grep -E "^  ● .*›|Expected: |Received: " /tmp/jest.txt | grep -v Console
+```
+
+Three sightings over months, two of them lost to `| tail`, is the whole reason this is
+still open. Capture first; the sightings are rare enough that losing one costs weeks.
 
 **There is no 401 anywhere in this codebase.** Grepping `middleware/`, `controllers/`,
 `routes/`, `models/`, `utils/` and `app.js` finds none. The only thing that can produce
