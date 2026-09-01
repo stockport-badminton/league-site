@@ -3,6 +3,10 @@
 **Severity:** low · **Wave:** C · **Blocked by:** nothing
 **Owns:** `routes/index.js` (`/sign-s3`), a new read path, `scorecardstore."scoresheet-url"`
 **Source:** the residual left by HARD-02
+**Status: COMPLETE, 1 Sep 2026.** Code landed in `8312d1d` / `2a2589a`; runbook steps 0-3
+ran on 1 Sep and are evidenced below. The optional bucket-wide lockdown that used to be
+step 4 is now [HARD-22](../HARD-22-lock-the-bucket.md); the weekly-video reader found on the
+way is [HARD-21](../HARD-21-social-video-read-proxy.md).
 
 ## Why
 
@@ -79,8 +83,8 @@ below is scoped to the `scorecards/` prefix for that reason.
 > They are all named `tameside-…`. Stockport's photos survive going private because
 > `GET /scorecard-photo/:id` proxies them, and as of 1 Sep 2026 **Tameside has built the
 > same thing**, so they survive too — see
-> [`docs/handover/tameside-s3-bucket.md`](../handover/tameside-s3-bucket.md) (the ask) and
-> [`docs/handover/tameside-s3-bucket-reply.md`](../handover/tameside-s3-bucket-reply.md)
+> [`docs/handover/tameside-s3-bucket.md`](../../handover/tameside-s3-bucket.md) (the ask) and
+> [`docs/handover/tameside-s3-bucket-reply.md`](../../handover/tameside-s3-bucket-reply.md)
 > (their answer, and the evidence for it).
 >
 > **Sweep the whole root. No `tameside-*` carve-out is needed.** The root is exactly the
@@ -312,14 +316,21 @@ The canary ran first and is worth keeping in the procedure: one object private, 
 the bucket URL 403s **and** the site still serves it. Both were confirmed before the other
 1,453 moved.
 
-### Step 4 (optional) — Block Public Access on the bucket
+### Step 4 — moved out to HARD-22
 
-The belt-and-braces version, and the only one that is genuinely hard to get wrong. **Do
-not do this** unless the venues map and the weekly videos have been moved out of this
-bucket or in front of a proxy first, because it blocks them too.
+Block Public Access, and the better version of it (Object Ownership =
+`bucket owner enforced`, which makes ACLs unexpressible rather than merely unused), are
+now **[HARD-22](../HARD-22-lock-the-bucket.md)**.
 
-**Reverse:** `aws s3api delete-public-access-block --bucket $BUCKET`, then re-apply the
-policy from step 2.
+Split out because this package's job is done — the photos are private and every reader
+works — whereas step 4 is a bucket-wide setting with its own preconditions (every writer
+must have stopped sending an ACL), its own cross-repo dependency (tell Tameside first),
+its own reversal, and a sensible ordering behind HARD-21. Leaving it here would have kept
+a finished package open indefinitely on an optional extra.
+
+**One thing to carry across if you do it:** `bucket owner enforced` discards object ACLs,
+so `scripts/hard02b-acl-before.json` and the `--rollback` above stop being meaningful the
+moment it lands. If there is any chance of wanting step 3 reversed, reverse it first.
 
 ### What is deliberately not in this runbook
 
