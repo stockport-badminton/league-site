@@ -76,12 +76,18 @@ below is scoped to the `scorecards/` prefix for that reason.
 > not only ours.
 >
 > **338 of the root objects belong to the Tameside league**, which shares this bucket.
-> They are all named `tameside-…`, so they can be excluded, and they are all public today.
-> Stockport's photos survive going private because `GET /scorecard-photo/:id` proxies
-> them; **Tameside has no such read path**, so sweeping the whole root blanks 338 of their
-> scorecards. See [`docs/handover/tameside-s3-bucket.md`](../handover/tameside-s3-bucket.md).
-> Until the Tameside side has its own reader or its own bucket, **step 3 must exclude
-> `tameside-*`.**
+> They are all named `tameside-…`. Stockport's photos survive going private because
+> `GET /scorecard-photo/:id` proxies them, and as of 1 Sep 2026 **Tameside has built the
+> same thing**, so they survive too — see
+> [`docs/handover/tameside-s3-bucket.md`](../handover/tameside-s3-bucket.md) (the ask) and
+> [`docs/handover/tameside-s3-bucket-reply.md`](../handover/tameside-s3-bucket-reply.md)
+> (their answer, and the evidence for it).
+>
+> **Sweep the whole root. No `tameside-*` carve-out is needed.** The root is exactly the
+> two leagues' photos — 1,117 ours, 338 theirs, 1,455 total — plus `venues-map.png`, which
+> is already private and already proxied. Tameside also dropped `ACL: 'public-read'` from
+> their own `/sign-s3` and put it behind auth, so the bucket will not drift back to
+> world-readable one upload at a time.
 >
 > `venues-map.png` and `social-videos/*` need no protecting — they are already private
 > (see the step 4 correction below).
@@ -262,6 +268,13 @@ through `/scorecard-photo/:id` individually before changing them.
 **Reverse:** the same loop with `--acl public-read`. Note this is only *practically*
 reversible — if you cannot enumerate exactly which objects you changed, you will make
 things public that were private. Keep the output of the `aws s3 ls` above.
+
+> **Do not change Object Ownership to `bucket owner enforced` without telling the
+> Tameside side first.** This is their one ask, and it is a *write* dependency rather than
+> a read one, which is why it is easy to miss: that setting makes a presigned PUT carrying
+> `x-amz-acl` fail outright with `AccessControlListNotSupported`. Neither side sends one
+> any more, so it is safe as of 1 Sep 2026 — but done in the wrong order it breaks uploads
+> rather than displays, and a broken upload is the harder failure to diagnose from here.
 
 ### Step 4 (optional) — Block Public Access on the bucket
 
