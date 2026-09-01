@@ -48,7 +48,7 @@
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
               <a class="dropdown-item" href="/forms/club-registration">Club Registration (blank)</a>
-              <a class="dropdown-item" href="/forms/team-registration">Team Registration (blank)</a>
+              <a class="dropdown-item" href="/forms/team-registration.docx">Team Registration (blank)</a>
               <a class="dropdown-item" href="<%= static_path %>/beta/docs/Scorecard-print.pdf" title="printable scoresheet" target="_blank">Scorecard-print.pdf</a>
             </div>
           </li><!--
@@ -99,7 +99,7 @@
                 %>
                 <% if (hasOwnClub) { %>
                   <a class="dropdown-item" href="/manage-players/club-<%= encodeURIComponent(navClub) %>">Team Players</a>
-                  <a class="dropdown-item" href="/forms/team-registration/<%= navClub %>/prefilled" target="_blank">Team Registration Form (prefilled)</a>
+                  <a class="dropdown-item" href="/forms/team-registration/<%= navClub %>/prefilled.docx" target="_blank">Team Registration Form (prefilled)</a>
                   <a class="dropdown-item" href="/forms/club-registration/<%= navClub %>/prefilled" target="_blank">Club Registration Form (prefilled)</a>
                 <% } %>
                 <%# No else-branch on purpose: there is nothing to prefill without one

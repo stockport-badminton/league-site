@@ -35,7 +35,7 @@ describe('nav club links', () => {
   it('gives an admin the prefilled forms for their own club', () => {
     const html = renderNav('Shell', 'admin');
     expect(html).toContain('/manage-players/club-Shell');
-    expect(html).toContain('/forms/team-registration/Shell/prefilled');
+    expect(html).toContain('/forms/team-registration/Shell/prefilled.docx');
     expect(html).toContain('/forms/club-registration/Shell/prefilled');
   });
 
@@ -50,7 +50,10 @@ describe('nav club links', () => {
     // They are already in Useful Links, which every user sees.
     const html = renderNav('All', 'superadmin');
     expect(html.match(/href="\/forms\/club-registration"/g)).toHaveLength(1);
-    expect(html.match(/href="\/forms\/team-registration"/g)).toHaveLength(1);
+    // Team registration is the editable Word version now — the PDF routes still
+    // answer for old links, but nothing points at them.
+    expect(html.match(/href="\/forms\/team-registration\.docx"/g)).toHaveLength(1);
+    expect(html).not.toMatch(/href="\/forms\/team-registration"/);
   });
 
   it('falls back safely when the claim is missing entirely', () => {

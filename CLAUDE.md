@@ -609,6 +609,48 @@ Gotchas:
 - Club 63 is `No Club` and team 52 is `No Team` — the sentinels a released player is
   parked on. Named as `Roster.NO_CLUB_ID` / `NO_TEAM_ID`.
 
+### The league's registration forms
+
+Two different documents, easily confused:
+
+| Route | What |
+|---|---|
+| `/manage-players/club-:club/registration.docx` | the roster page's own export, built by `buildRegistrationDoc` in `rosterController.js` |
+| `/forms/team-registration.docx` + `/forms/team-registration/:club/prefilled.docx` | **the league's official player registration form** |
+| `/forms/club-registration` + `/:club/prefilled` | the club form — still a PDF |
+
+**The team registration form is a Word document, not a PDF** (Sep 2026). It was a
+prefilled `pdf-lib` AcroForm, and the reason that failed is worth keeping: an AcroForm
+has a **fixed set of named fields**, so a club secretary could type into the twelve rows
+but could not add a thirteenth or delete one for a player who had left — which is the
+entire job. The workaround had grown into three code paths (fill the static 12 rows;
+tack a "(continued)" page on for reserve overflow; blank page 1 and redraw both tables
+when nominated overflowed). A Word table just grows, so **all of that is gone from the
+docx path**.
+
+- Built in **`utils/teamRegistrationDoc.js`** with the `docx` package. `seasonLabel`,
+  `teamLabel`, `alignTeamRows` and `splitRoster` live there and are shared with the PDF
+  controller so the two renderings cannot drift.
+- **The PDF routes still answer** (`/forms/team-registration`, `.../prefilled`) for
+  anyone holding an old link. Nothing links to them.
+- Pass **`columnWidths` with DXA widths**, not the `PERCENTAGE` convention used by
+  `rosterController.buildRegistrationDoc`. `docx` defaults `<w:tblGrid>` to 100 twips
+  per column when you omit it, which under `layout: FIXED` collapses the table; and
+  percentages are an autofit instruction, so a long name widens the Ladies column out
+  of register with the paper form.
+- Header rows carry `tableHeader: true` so they repeat across pages, and every row
+  carries `cantSplit`.
+- The logo is `static/beta/docs/sdbl-logo.png`, cropped from a 300 dpi render of the
+  PDF template — the template's two embedded objects are a transparent figure and a
+  JPEG swoosh that only compose correctly together, so extracting them individually
+  gives you half a logo.
+- Colours and fonts were measured from the template, not guessed: fill and heading
+  text are **`#002060`** (the old dynamic PDF renderer used `#0B2D6D`, which was
+  slightly wrong), Calibri throughout, 22pt masthead / 14pt headings / 12pt table
+  headers / 11pt body.
+- Tests unzip the response and assert against `word/document.xml`. Asserting on the
+  buffer or on which function was called would not have caught the geometry bugs.
+
 ## Docker & Deployment
 
 - **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation

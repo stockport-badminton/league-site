@@ -4,12 +4,11 @@ const { PDFDocument, StandardFonts, rgb, PDFName, PDFString } = require('pdf-lib
 const seasonModel = require('../models/season');
 const Player = require('../models/players');
 const Club = require('../models/club');
-const Roster = require('../models/roster');
+const { assertClubAccess } = require('../middleware/requireClubAccess');
+const teamRegDoc = require('../utils/teamRegistrationDoc');
 
 const TEAM_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Team Registration Form ePDF.pdf');
 const CLUB_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Club Registration Form ePDF.pdf');
-const CLUB_CLAIM = 'https://my-app.example.com/club';
-const ROLE_CLAIM = 'https://my-app.example.com/role';
 
 // A club name in the URL that matches nothing is a missing page, not a server
 // fault. These used to be `next('no club by that name')` — a bare string, which
@@ -23,10 +22,12 @@ function unknownClub(club) {
   return err;
 }
 
-// "20262027" -> "2026-27", matching the template's existing header style
-function seasonLabel(seasonName) {
-  return `${seasonName.slice(0, 4)}-${seasonName.slice(6, 8)}`;
-}
+// Season label, team-name abbreviation and the ladies/men row pairing are shared
+// with the .docx build (utils/teamRegistrationDoc) so the two renderings of the
+// same form cannot drift apart.
+const seasonLabel = teamRegDoc.seasonLabel;
+const teamLabel = teamRegDoc.teamLabel;
+const alignTeamRows = teamRegDoc.alignTeamRows;
 
 // Cover the template's baked-in season text and draw the current one in its place
 async function stampSeason(doc, label) {
@@ -81,42 +82,8 @@ function reserveFieldNames(n) {
 
 const ROWS_PER_TABLE = 12;
 
-// Team names are "<Club> A" / "<Club> B" etc — the template's Team columns
-// are narrow, so show just the distinguishing letter, matching the existing
-// docx export's convention (playerController.js manage_player_list_clubs_teams).
-function teamLabel(teamName) {
-  return teamName.trim().slice(-1);
-}
-
 function setField(form, name, value) {
   form.getTextField(name).setText(value || '');
-}
-
-// Groups ladies/men into {lady, man} row pairs, one team at a time (in the
-// team's own rank order — see getClubRoster), padding the shorter gender
-// with blanks so a team's block ends at the same row for both columns. Without
-// this, a team with e.g. 3 ladies but 4 men pushes every following team's rows
-// out of alignment between the two columns.
-function alignTeamRows(allRows, ladies, men) {
-  const teamOrder = [];
-  const seen = new Set();
-  allRows.forEach(r => { if (!seen.has(r.teamName)) { seen.add(r.teamName); teamOrder.push(r.teamName); } });
-
-  const ladiesByTeam = {};
-  ladies.forEach(l => { (ladiesByTeam[l.teamName] = ladiesByTeam[l.teamName] || []).push(l); });
-  const menByTeam = {};
-  men.forEach(m => { (menByTeam[m.teamName] = menByTeam[m.teamName] || []).push(m); });
-
-  const rows = [];
-  teamOrder.forEach(team => {
-    const teamLadies = ladiesByTeam[team] || [];
-    const teamMen = menByTeam[team] || [];
-    const count = Math.max(teamLadies.length, teamMen.length);
-    for (let i = 0; i < count; i++) {
-      rows.push({ lady: teamLadies[i] || null, man: teamMen[i] || null });
-    }
-  });
-  return rows;
 }
 
 function fillStaticRows(form, fieldNamesFn, rows, count) {
@@ -222,18 +189,6 @@ async function renderSections(doc, form, startPage, startY, sections) {
   }
 }
 
-// Auth check mirrors manage_player_list_clubs_teams (playerController.js),
-// but reads the claims already present on req.user instead of making a live
-// Auth0 Management API call for data nav.ejs proves is already free on every page.
-function assertClubAccess(req, club) {
-  const userClub = req.user && req.user._json && req.user._json[CLUB_CLAIM];
-  if (userClub !== club && userClub !== 'All') {
-    const err = new Error("Sorry you don't have access to this page");
-    err.status = 403;
-    throw err;
-  }
-}
-
 exports.teamRegistrationFormPrefilled = async function(req, res, next) {
   try {
     const club = req.params.club;
@@ -242,14 +197,8 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     const roster = await Player.getClubRoster(club);
     if (roster.length < 1) return next(unknownClub(club));
 
-    // Reserves are rank >= 99, not rank == 99: they used to all be written flat at
-    // 99 so their order could never be saved, and are now numbered sequentially
-    // from it (see models/roster.js). An == 99 test would have silently reclassified
-    // every reserve after the first as nominated.
-    const nominated = roster.filter(r => !Roster.isReserve(r.rank));
-    const reserves = roster.filter(r => Roster.isReserve(r.rank));
-    const nominatedRows = alignTeamRows(nominated, nominated.filter(r => r.gender === 'Female'), nominated.filter(r => r.gender === 'Male'));
-    const reserveRows = alignTeamRows(reserves, reserves.filter(r => r.gender === 'Female'), reserves.filter(r => r.gender === 'Male'));
+    // Reserves are rank >= 99, not rank == 99 — see splitRoster.
+    const { nominatedRows, reserveRows } = teamRegDoc.splitRoster(roster);
 
     const label = seasonLabel(seasonModel.current());
     const doc = await PDFDocument.load(fs.readFileSync(TEAM_REGISTRATION_TEMPLATE));
@@ -284,6 +233,55 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${club} Team Registration Form ${label}.pdf"`);
     res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Editable Word version -------------------------------------------
+//
+// The AcroForm above is a form you cannot edit: its rows are a fixed set of
+// named fields, so a secretary can neither add the player who joined last week
+// nor delete the one who left, and a club that outgrows twelve rows falls into
+// the dynamic-redraw fallback. The .docx is the same document built from real
+// Word table rows — right-click, Insert/Delete Row — and so has no row cap and
+// no overflow machinery at all. This is what the nav links to; the PDF routes
+// stay for anyone holding an old link.
+
+const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+exports.teamRegistrationFormDocx = async function(req, res, next) {
+  try {
+    const label = seasonLabel(seasonModel.current());
+    const buffer = await teamRegDoc.buildTeamRegistrationDocx({ label: label });
+    res.setHeader('Content-Type', DOCX_TYPE);
+    res.setHeader('Content-Disposition', `attachment; filename="Team Registration Form ${label}.docx"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.teamRegistrationFormPrefilledDocx = async function(req, res, next) {
+  try {
+    const club = req.params.club;
+    assertClubAccess(req, club);
+
+    const roster = await Player.getClubRoster(club);
+    if (roster.length < 1) return next(unknownClub(club));
+
+    const { nominatedRows, reserveRows } = teamRegDoc.splitRoster(roster);
+    const label = seasonLabel(seasonModel.current());
+    const buffer = await teamRegDoc.buildTeamRegistrationDocx({
+      label: label,
+      clubName: club,
+      nominatedRows: nominatedRows,
+      reserveRows: reserveRows,
+    });
+
+    res.setHeader('Content-Type', DOCX_TYPE);
+    res.setHeader('Content-Disposition', `attachment; filename="${club} Team Registration Form ${label}.docx"`);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }

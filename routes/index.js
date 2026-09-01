@@ -613,9 +613,15 @@ router.get('/shuttle-prices', secured, shuttle_controller.shuttlePrices);
 router.get('/shuttle-prices/export', secured, shuttle_controller.exportPrices);
 router.post('/shuttle-prices/refresh', secured, shuttle_controller.refreshPrices);
 
-// Team registration form, generated with the current season filled in
+// Team registration form as an editable Word document — the one the nav links to.
+// A PDF AcroForm has a fixed set of named fields, so a club secretary cannot add or
+// delete a roster row; a Word table can. Same layout, no 12-row cap.
+router.get('/forms/team-registration.docx', documents_controller.teamRegistrationFormDocx);
+// Same, prefilled with a club's current player registrations (auth check in controller)
+router.get('/forms/team-registration/:club/prefilled.docx', secured, documents_controller.teamRegistrationFormPrefilledDocx);
+// The original PDF versions. Kept working for anyone holding an old link, but no
+// longer linked from the nav.
 router.get('/forms/team-registration', documents_controller.teamRegistrationForm);
-// Same form, prefilled with a club's current player registrations (auth check in controller)
 router.get('/forms/team-registration/:club/prefilled', secured, documents_controller.teamRegistrationFormPrefilled);
 // Club registration form, generated with the current season filled in
 router.get('/forms/club-registration', documents_controller.clubRegistrationForm);
