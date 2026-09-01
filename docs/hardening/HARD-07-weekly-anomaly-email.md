@@ -56,6 +56,48 @@ open relay.
 - the controller with one check failing → error surfaced, other sections still rendered
 - anonymous request → 403
 
+## Configured 1 Sep 2026
+
+The human half is done. For the record, since none of it is visible from this repo:
+
+| | |
+|---|---|
+| Cloud Run project | **`stockport-badminton-map`** (not `stockport-badmin-1531321435304`, which is Hyde High — an easy and confusing mistake, since gcloud's default points at the latter) |
+| Service / region | `league-site` / `europe-west2` |
+| `AUDIT_EMAIL_TO`, `AUDIT_CRON_TOKEN` | set |
+| Scheduler job | `sbl-weekly-audit`, `0 8 * * MON` Europe/London, ENABLED |
+
+Two things worth not rediscovering:
+
+- **The Cloud Scheduler API had to be enabled first** (`gcloud services enable
+  cloudscheduler.googleapis.com`). It was not on, and the error you get from the wrong
+  project says the same thing, so it is easy to chase the wrong cause.
+- **Use `--update-env-vars`, never `--set-env-vars`.** The latter replaces the whole
+  environment: it would drop `DATABASE_URL`, all four `AUTH0_*`, the AWS keys and
+  `SESSION_SECRET` on the next revision, and take the site down.
+
+### Still to verify: the first send
+
+There is deliberately no dry run — `POST /admin/audit/run` builds the digest and sends it.
+So the token path, the SES send and the recipient list are **unverified until a real fire**,
+and the failure mode is the one this whole package exists to remove: a mismatched
+`AUDIT_CRON_TOKEN` makes the job 403 every Monday and do nothing, which looks exactly like
+a quiet week.
+
+Force one run rather than waiting for Monday:
+
+```bash
+gcloud scheduler jobs run sbl-weekly-audit \
+  --location=europe-west2 --project=stockport-badminton-map
+```
+
+It sends a real email to `AUDIT_EMAIL_TO`. The response body is JSON
+(`{sent, subject, findings, failedChecks, tracked, caller}`) and Cloud Scheduler records
+it, so the outcome is legible without reading application logs. Expect
+`all clear — 3 known issues tracked`, because `--check all` currently reports
+orphan-team-refs 2,132, short-squads 1 and ghost-teams 1, all of which the `TRACKED`
+baseline collapses to one line each.
+
 ## Out of scope
 
 - Fixing anything the email reports.
