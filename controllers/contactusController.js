@@ -455,7 +455,17 @@ exports.send_invoices = async function(req, res, next) {
       data.secretary = club.secretary;
       data.email = club.playerEmail;
 
-      let clubTotal = club.teamsCount * club.teamFee;
+      // `clubFee`, not `teamFee`. The column is season."clubFee" and has been since
+      // b3b8efd ("rule and fee changes", 21 May 2026), which renamed it in the query and
+      // left this reading the old name. `undefined` multiplied by anything is NaN, EJS
+      // renders NaN as the string "NaN", and the invoices went out reading
+      // "2 league team(s): £NaN ... TOTAL: £NaN" to all 18 clubs on 1 Sep 2026.
+      //
+      // It survived four months because this runs once a year: the date guard below
+      // means the only execution that matters is the annual send, so a rename in May is
+      // not exercised until September. Despite the name, the fee is per *team* — the
+      // multiplication is the long-standing behaviour and is not what was wrong.
+      let clubTotal = club.teamsCount * club.clubFee;
 
       let fineRows = rows.filter(fine => fine.clubId === club.clubId);
       for (let fine of fineRows) {
@@ -465,8 +475,20 @@ exports.send_invoices = async function(req, res, next) {
         }
       }
 
-      data.teamsCost = club.teamsCount * club.teamFee;
+      data.teamsCost = club.teamsCount * club.clubFee;
       data.feesTotal = clubTotal;
+
+      // Never mail a number we cannot compute. A missing or renamed column yields NaN
+      // rather than throwing, EJS prints it happily, and the result is an invoice asking
+      // a club for £NaN — which is worse than no invoice, because it is authoritative,
+      // it reaches every club at once, and it only happens on the one day a year anybody
+      // would notice. Fail this club loudly and keep going for the rest.
+      if (!Number.isFinite(Number(data.teamsCost)) || !Number.isFinite(Number(data.feesTotal))) {
+        const detail = `teamsCount=${JSON.stringify(club.teamsCount)} clubFee=${JSON.stringify(club.clubFee)}`;
+        console.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
+        outputs.push(`${data.name} invoice NOT sent: total did not compute (${detail})`);
+        continue;
+      }
 
       if (!allData.some(row => row.name === data.name)) {
         allData.push(data);

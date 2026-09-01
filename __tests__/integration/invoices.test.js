@@ -111,3 +111,88 @@ describe('POST /league/sendInvoice/:club', () => {
     expect(League.getAnnualInvoices).toHaveBeenCalledWith('43');
   });
 });
+
+// --- the invoice body ------------------------------------------------
+//
+// Every test above mocks getAnnualInvoices to `[]`, so the loop never runs, the
+// template is never rendered and nothing about the data contract is exercised. That is
+// how the 1 Sep 2026 send went out reading "£NaN": commit b3b8efd renamed the fee column
+// to season."clubFee" in the query and left the controller reading `club.teamFee`.
+// `undefined` multiplied by anything is NaN, EJS prints NaN without complaint, and all 18
+// clubs were invoiced for £NaN.
+//
+// These rows use the column names the query actually returns. Mocking a shape the model
+// does not produce is the same mistake in a different costume — see the insertId note in
+// CLAUDE.md.
+describe('POST /league/sendInvoices — the numbers in the email', () => {
+  // Exactly as models/league.js getAnnualInvoices aliases them.
+  const row = (over = {}) => Object.assign({
+    clubId: 1,
+    clubName: 'Mellor',
+    teamsCount: '2',        // count() comes back as a string
+    fineId: null,
+    desc: null,
+    amount: null,
+    fineTeam: null,
+    fineClub: null,
+    season: null,
+    secretary: 'John',
+    playerEmail: 'sec@example.com',
+    clubFee: '15',          // bigint, also a string
+  }, over);
+
+  const sentHtml = () => ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+
+  beforeEach(() => {
+    mockCurrentUser = SUPERADMIN;
+    ses.sendEmail.mockResolvedValue({});
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T09:00:00Z'));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('bills teams at the season fee instead of NaN', async () => {
+    League.getAnnualInvoices.mockResolvedValue([row()]);
+
+    const res = await request(app).post('/league/sendInvoices');
+
+    expect(res.status).toBe(200);
+    expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+    const html = sentHtml();
+    expect(html).not.toMatch(/NaN/);
+    expect(html).toContain('£30');       // 2 teams x £15
+  });
+
+  it('adds fines to the total', async () => {
+    League.getAnnualInvoices.mockResolvedValue([
+      row({ fineId: 9, desc: 'card', amount: 10 }),
+    ]);
+
+    await request(app).post('/league/sendInvoices');
+
+    const html = sentHtml();
+    expect(html).not.toMatch(/NaN/);
+    expect(html).toContain('£40');       // 30 + 10
+  });
+
+  it('refuses to mail a club whose total will not compute', async () => {
+    // The exact failure of 1 Sep 2026: the fee column absent under the expected name.
+    League.getAnnualInvoices.mockResolvedValue([row({ clubFee: undefined })]);
+
+    const res = await request(app).post('/league/sendInvoices');
+
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+    expect(res.body.join(' ')).toMatch(/NOT sent/);
+  });
+
+  it('a broken club does not stop the others being invoiced', async () => {
+    League.getAnnualInvoices.mockResolvedValue([
+      row({ clubId: 1, clubName: 'Broken', clubFee: undefined }),
+      row({ clubId: 2, clubName: 'Fine' }),
+    ]);
+
+    await request(app).post('/league/sendInvoices');
+
+    expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+    expect(ses.sendEmail.mock.calls[0][0].Message.Subject.Data).toContain('Fine');
+  });
+});
