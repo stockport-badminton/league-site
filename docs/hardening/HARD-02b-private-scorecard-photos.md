@@ -276,6 +276,42 @@ things public that were private. Keep the output of the `aws s3 ls` above.
 > any more, so it is safe as of 1 Sep 2026 — but done in the wrong order it breaks uploads
 > rather than displays, and a broken upload is the harder failure to diagnose from here.
 
+### Step 3 was run on 1 Sep 2026 — done
+
+`scripts/hard02b-step3-acl-sweep.js` (gitignored, snapshot-first). Result:
+
+| | |
+|---|---|
+| Root objects | 1,455 |
+| Public before | 1,454 (the one exception: `venues-map.png`) |
+| Made private | 1,453 + the canary = **1,454** |
+| Failed | 0 |
+
+Verified either side, and the verification is the point:
+
+- **The audit is byte-identical before and after** — 1,456 servable, 21 missing, 0 refused,
+  2 unservable. It could not be otherwise, because the proxy reads with credentials, but
+  running it is what turns that reasoning into evidence.
+- Anonymous `HEAD`: 0 of 25 Stockport root objects, 0 of 25 Tameside, 0 of the 3 odd
+  uploads still readable. Before the sweep every sample was 100% public.
+- Live site: drafts 2430 (a 2006 photo), 2425, 2433, 2434 serve `image/jpeg`; 2432 and
+  2186 serve `application/pdf`; `venues-map.png` still 200. Drafts 1077 and 900 return
+  404 — those are two of the 23 that were already 404 before the sweep, not new damage.
+- `tools/dbq.js --check all` unchanged at 3 of 11 (orphan-team-refs 2,132, short-squads 1,
+  ghost-teams 1). Nothing here touches the database; run as the discipline requires.
+
+**Reversing it.** `node scripts/hard02b-step3-acl-sweep.js --rollback --apply` restores
+public-read to exactly the objects the snapshot recorded as public — not "everything",
+which would publish `venues-map.png`. The snapshot lives at
+`scripts/hard02b-acl-before.json`, and `scripts/` is gitignored, so **that file exists on
+one machine only**. If it is lost the rollback is still reconstructable, because the
+snapshot's content is nearly trivial: *every root object was public except
+`venues-map.png`*. Worth knowing rather than relying on.
+
+The canary ran first and is worth keeping in the procedure: one object private, then check
+the bucket URL 403s **and** the site still serves it. Both were confirmed before the other
+1,453 moved.
+
 ### Step 4 (optional) — Block Public Access on the bucket
 
 The belt-and-braces version, and the only one that is genuinely hard to get wrong. **Do
