@@ -628,23 +628,110 @@ exports.resolveFixtureForResult = function(rows, submittedDate) {
   return { conflict: { reason: 'not-found' } }
 }
 
-exports.rearrangeByTeamNames = async function(updateObj) {
-  if (!db.isObject(updateObj)) throw new Error('not object')
+// Archive a fixture and, if a new date is known, insert its replacement.
+//
+// Three things this used to get wrong, all of which put junk in `fixture`:
+//
+//  - The INSERT resolved both teams with `(SELECT id FROM team WHERE name = ?)`
+//    inline, so a name that matched nothing inserted a fixture with a NULL team
+//    rather than failing. That is precisely what the `ghost-teams` and
+//    `orphan-results` integrity checks in tools/audit/checks.js keep finding.
+//  - The UPDATE and the INSERT were independent. A pairing that matched no fixture
+//    archived nothing and still inserted the replacement, so a typo'd team name
+//    silently created a duplicate fixture nobody had asked for.
+//  - They were also two round trips with no transaction, so a failure between them
+//    left a fixture marked 'rearranged' with no replacement — invisible until a
+//    captain asked where their match had gone.
+//
+// Now: resolve both teams first, find the fixture explicitly, and do both writes in
+// one transaction. Throws with a `status` the controller can pass straight through.
+function badRequest(message) {
+  const err = new Error(message);
+  err.status = 400;
+  return err;
+}
 
-  const conn = await db.otherConnect()
-
-  if (updateObj.date == null || updateObj.date == '') {
-    const sql = `UPDATE fixture SET status = 'rearranging' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${seasonModel.current()}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
-    const [result] = await conn.query(sql, [updateObj.awayTeam, updateObj.homeTeam])
-    return result
-  } else {
-    const updateSql = `UPDATE fixture SET status = 'rearranged' WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS HomeTeamName FROM (SELECT c.id, c."homeTeam", c."awayTeam", team.name AS awayTeamName FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name = '${seasonModel.current()}' AND fixture.date > season."startDate") AS c JOIN team ON c."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?) ORDER BY id DESC LIMIT 1)`
-    await conn.query(updateSql, [updateObj.awayTeam, updateObj.homeTeam])
-
-    const insertSql = `INSERT INTO fixture ("homeTeam", "awayTeam", date, status) VALUES ((SELECT id FROM team WHERE name = ?), (SELECT id FROM team WHERE name = ?), ?, 'outstanding')`
-    const [result] = await conn.query(insertSql, [updateObj.homeTeam, updateObj.awayTeam, updateObj.date])
-    return result
+async function findTeamIdsByName(conn, homeTeam, awayTeam) {
+  const [rows] = await conn.query(
+    'SELECT id, name FROM team WHERE name = ? OR name = ?',
+    [homeTeam, awayTeam]
+  );
+  const byName = new Map(rows.map(r => [r.name, r.id]));
+  const missing = [homeTeam, awayTeam].filter(n => !byName.has(n));
+  if (missing.length) {
+    throw badRequest(`no team by that name: ${missing.map(n => JSON.stringify(n)).join(', ')}`);
   }
+  return { homeTeamId: byName.get(homeTeam), awayTeamId: byName.get(awayTeam) };
+}
+
+// The latest fixture between this pairing in the current season. Matching on the
+// team *names* is the endpoint's contract (the JWT PATCH caller posts names), but
+// the ids are resolved first so the join is on the key, not the string.
+async function findCurrentSeasonFixture(conn, homeTeamId, awayTeamId) {
+  const [rows] = await conn.query(
+    `SELECT f.id
+       FROM fixture f
+       JOIN season s ON s.name = ?
+      WHERE f."homeTeam" = ?
+        AND f."awayTeam" = ?
+        AND f.date > s."startDate"
+      ORDER BY f.id DESC
+      LIMIT 1`,
+    [seasonModel.current(), homeTeamId, awayTeamId]
+  );
+  return rows.length ? rows[0].id : null;
+}
+
+exports.rearrangeByTeamNames = async function(updateObj) {
+  if (!db.isObject(updateObj)) throw badRequest('not object')
+
+  const homeTeam = typeof updateObj.homeTeam === 'string' ? updateObj.homeTeam.trim() : ''
+  const awayTeam = typeof updateObj.awayTeam === 'string' ? updateObj.awayTeam.trim() : ''
+  if (!homeTeam || !awayTeam) throw badRequest('homeTeam and awayTeam are required')
+  if (homeTeam === awayTeam) throw badRequest('a team cannot be rearranged against itself')
+
+  const date = updateObj.date == null ? '' : String(updateObj.date).trim()
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw badRequest('invalid date — expected YYYY-MM-DD')
+  }
+
+  return db.withTransaction(async conn => {
+    const { homeTeamId, awayTeamId } = await findTeamIdsByName(conn, homeTeam, awayTeam)
+
+    const fixtureId = await findCurrentSeasonFixture(conn, homeTeamId, awayTeamId)
+    if (fixtureId == null) {
+      const err = new Error(`no current-season fixture for ${homeTeam} v ${awayTeam}`)
+      err.status = 404
+      throw err
+    }
+
+    // No date yet: the captains have agreed to move it but not agreed when. The
+    // fixture stays in place, flagged, and no replacement is created.
+    if (!date) {
+      await conn.query('UPDATE fixture SET status = \'rearranging\' WHERE id = ?', [fixtureId])
+      return { ok: true, action: 'rearranging', fixtureId, replacementId: null }
+    }
+
+    await conn.query('UPDATE fixture SET status = \'rearranged\' WHERE id = ?', [fixtureId])
+
+    // Wall-clock string, not a JS Date — a Date is converted through the server's
+    // zone and lands a day early over BST (see admin_fixture_date_update).
+    // RETURNING id because the wrapper cannot invent mysql2's insertId.
+    const [inserted] = await conn.query(
+      `INSERT INTO fixture ("homeTeam", "awayTeam", date, status)
+       VALUES (?, ?, ?, 'outstanding')
+       RETURNING id`,
+      [homeTeamId, awayTeamId, date + ' 00:00:00']
+    )
+
+    return {
+      ok: true,
+      action: 'rearranged',
+      fixtureId,
+      replacementId: inserted.length ? inserted[0].id : null,
+      date,
+    }
+  })
 }
 
 exports.updateByTeamNames = async function(updateObj) {

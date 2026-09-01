@@ -417,7 +417,13 @@ router.post('/fixture/short-result', publicFormLimiter, fixture_controller.fixtu
 router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
 router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
 router.post('/fixture/enter-result', checkJwt, fixture_controller.fixture_update_by_team_name);
-router.post('/fixture/rearrangement', publicFormLimiter, fixture_controller.fixture_rearrange_by_team_name);
+// Superadmin only. This was unauthenticated behind nothing but a rate limit until
+// Sep 2026 — anyone who could POST could set a fixture to 'rearranged' and insert a
+// replacement at a date of their choosing. The only client is the rearrangement modal
+// in fixtures-results.ejs, which is itself inside `if (superadmin)`, so the server now
+// says what the UI always assumed. Captains request rearrangements by email; they have
+// never had this form.
+router.post('/fixture/rearrangement', secured, requireClubAccess.requireSuperAdmin, fixture_controller.fixture_rearrange_by_team_name);
 router.patch('/fixture/rearrange', checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
 router.delete('/fixture/:id', checkJwt, fixture_controller.fixture_delete_post);

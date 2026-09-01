@@ -595,11 +595,20 @@ exports.fixture_update_by_team_name = async function(req, res, next) {
 }
 
 
+// POST /fixture/rearrangement (superadmin session) and PATCH /fixture/rearrange (JWT).
+//
+// Answers JSON either way. The 4xx cases here are all "you named a team or a pairing
+// that doesn't exist" — safe to tell the caller, and the rearrangement modal shows
+// nothing at all if it can't distinguish a miss from a success. 5xx keeps its message
+// to itself, since it can carry SQL.
 exports.fixture_rearrange_by_team_name = async function(req, res, next) {
   try {
     const result = await Fixture.rearrangeByTeamNames(req.body);
-    res.send(result);
+    res.json(result);
   } catch (err) {
+    if (err.status >= 400 && err.status < 500) {
+      return res.status(err.status).json({ ok: false, error: err.message });
+    }
     next(err);
   }
 }

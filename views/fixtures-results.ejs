@@ -303,15 +303,24 @@
       }) */
 
       $('#fixtureRearange').click(function(){
-        $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value }, function (data) {
-          $('#rearrangementModal > .formMessage').show();
-          $('#rearrangementForm > label').hide()
-          $('#rearrangementForm > #date').hide()
-          $('#emailHelp').hide()
-          $('#fixtureRearange').hide();
-      });
-               
-               
+        // The endpoint now answers JSON and can legitimately say no — an unmatched
+        // team name or a pairing with no fixture this season. Reporting only success
+        // meant a rejected request looked exactly like an accepted one.
+        $.post('/fixture/rearrangement', {'date':$('#date')[0].value,'homeTeam':$('#homeTeam')[0].value,'awayTeam':$('#awayTeam')[0].value })
+          .done(function (data) {
+            var msg = data && data.action === 'rearranging'
+              ? 'Fixture flagged as rearranging — no new date set.'
+              : 'Fixture Updated!';
+            $('#rearrangementModal > .formMessage').text(msg).show();
+            $('#rearrangementForm > label').hide()
+            $('#rearrangementForm > #date').hide()
+            $('#emailHelp').hide()
+            $('#fixtureRearange').hide();
+          })
+          .fail(function (xhr) {
+            var err = (xhr.responseJSON && xhr.responseJSON.error) || 'Something went wrong — the fixture was not changed.';
+            $('#rearrangementModal > .formMessage').text(err).show();
+          });
       })
 
       $('#remindFixture').click(function(){

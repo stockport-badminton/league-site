@@ -455,10 +455,27 @@ Anything unauthenticated that sends email must derive its recipients server-side
 `/fixture/reminder` took the address from the request body and was an open relay from our
 own verified domain; the risk there is the domain's sending reputation, not spam arriving.
 
-**Still open:** `POST /fixture/rearrangement` is unauthenticated and writes to `fixture` —
-it sets a fixture to `rearranged` and inserts a replacement from `{homeTeam, awayTeam,
-date}`. Rate-limited but not authorized. Fixing it changes how captains request
-rearrangements, so ask first.
+**`POST /fixture/rearrangement` is superadmin-only** (Sep 2026). It was unauthenticated
+behind nothing but a rate limit: anyone who could POST could set a fixture to
+`rearranged` and insert a replacement from `{homeTeam, awayTeam, date}`. The worry at
+the time was that locking it down would change how captains request rearrangements —
+it didn't, because the only client is the modal in `fixtures-results.ejs`, which has
+always been inside `if (superadmin)`. Captains ask by email; they never had the form.
+
+`Fixture.rearrangeByTeamNames` was tightened in the same pass, and the shape of what was
+wrong is worth keeping:
+- The INSERT resolved both teams inline with `(SELECT id FROM team WHERE name = ?)`, so
+  a name matching nothing inserted a fixture with a **NULL team** instead of failing —
+  a supply of exactly the rows `--check ghost-teams` keeps finding.
+- The UPDATE and the INSERT were unrelated statements, so a pairing that archived
+  nothing still created a replacement. One typo, one phantom fixture.
+- No transaction, so a failure between them left a fixture `rearranged` with no
+  replacement — invisible until a captain asked where their match had gone.
+
+Both teams are resolved first, the fixture is found explicitly, and both writes share
+one `db.withTransaction`. It answers JSON (`{ok, action, fixtureId, replacementId}`) and
+passes its 4xx messages to the client; the modal shows them, because reporting only
+success made a rejection look identical to an acceptance.
 
 ### Security response headers and the CSP
 
