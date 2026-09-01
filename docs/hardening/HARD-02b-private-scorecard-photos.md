@@ -65,6 +65,27 @@ last two are *generated assets the site serves publicly* — `venues-map.png` is
 `app.js` and the videos are handed to Make.com. **Do not make those private.** Every step
 below is scoped to the `scorecards/` prefix for that reason.
 
+> **Correction, 1 Sep 2026 — read this before running any sweep.** The paragraph above is
+> wrong in two ways that matter, both found by listing the bucket rather than assuming it.
+>
+> **There is no `scorecards/` prefix.** The bucket's only prefixes are
+> `scorecard-ocr-cache/` (14), `inbound-email/` (12) and `social-videos/` (3). All 1,455
+> photos sit at the **root**. Every `--recursive` command below scoped to `scorecards/`
+> matches nothing, so a sweep written from this runbook would appear to succeed and change
+> nothing. Re-scope to the root — and then read the next paragraph, because the root is
+> not only ours.
+>
+> **338 of the root objects belong to the Tameside league**, which shares this bucket.
+> They are all named `tameside-…`, so they can be excluded, and they are all public today.
+> Stockport's photos survive going private because `GET /scorecard-photo/:id` proxies
+> them; **Tameside has no such read path**, so sweeping the whole root blanks 338 of their
+> scorecards. See [`docs/handover/tameside-s3-bucket.md`](../handover/tameside-s3-bucket.md).
+> Until the Tameside side has its own reader or its own bucket, **step 3 must exclude
+> `tameside-*`.**
+>
+> `venues-map.png` and `social-videos/*` need no protecting — they are already private
+> (see the step 4 correction below).
+
 ### Step 0 — confirm the read path works in production, while the objects are still public
 
 This is the whole reason the work was split. Deploy the code, then open a confirmation
@@ -131,10 +152,23 @@ package defers.
 The step-4 warning below says Block Public Access would break the venues map and the
 weekly videos. **Checked on 1 Sep 2026: both are already `403` to an anonymous request**,
 and `GET /static/generated/venues-map.png` still answers `200` because the app fetches it
-with credentials. So that warning no longer describes the bucket. Before acting on it,
-re-check how Make.com actually retrieves a video — if it uses a presigned or credentialed
-fetch it is unaffected by Block Public Access, and if it relies on public read it is
-**already broken**, which is worth knowing either way.
+with credentials. So that warning no longer describes the bucket.
+
+**The weekly video handoff has never worked.** `uploadVideoToS3` in
+`controllers/socialVideoController.js` sets no ACL, so the two `.mp4`s were never public,
+while the controller hands Make.com a plain public bucket URL
+(`https://<bucket>.s3.eu-west-1.amazonaws.com/social-videos/weekly-video-16_9.mp4`) that
+403s. It has not been noticed because the feature was built over the summer and the season
+had not started. This is **not** a regression from HARD-02b — nothing here made it
+private, it never was. Fixing it belongs with the social-video work, not this package; the
+options are a credentialed proxy route (matching `venues-map.png` and
+`/scorecard-photo/:id`), a presigned URL with an expiry, or giving Make.com its own
+read-only IAM credentials.
+
+Also checked: **the bucket policy grants no public read at all.** Its one statement is
+`AllowSESReceiptWrite` (SES → `inbound-email/*`). Everything public is public by
+per-object ACL, so **step 2 requires no action** — and step 3's ACL sweep is genuinely the
+only lever, with nothing overriding it.
 
 ### Non-image objects, and which are public
 
