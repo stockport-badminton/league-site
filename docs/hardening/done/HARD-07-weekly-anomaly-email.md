@@ -76,7 +76,46 @@ Two things worth not rediscovering:
   environment: it would drop `DATABASE_URL`, all four `AUTH0_*`, the AWS keys and
   `SESSION_SECRET` on the next revision, and take the site down.
 
-### Still to verify: the first send
+### First send verified 1 Sep 2026 — and it failed the first time, silently
+
+The digest now arrives. Getting there produced the best possible illustration of what this
+package is for, so it is worth recording rather than tidying away.
+
+`AUDIT_EMAIL_TO` was first set to `stockport.badders.results@gmail.co` — **`gmail.co`, one
+character short of `gmail.com`**. No email arrived, and *every signal said it had worked*:
+
+| Signal | Said |
+|---|---|
+| Cloud Scheduler `status` | `{}` — last attempt fine |
+| HTTP response | **200**, not 403, so the token was right |
+| Cloud Run logs | **nothing** — the controller only logs on its two failure paths |
+| The controller itself | `sent: true` |
+
+Every one of those was *correct*. SES really did accept the message; SES is in production
+mode, so it queued it and the bounce came back asynchronously, where nothing in this system
+watches for it. `gmail.co` publishes a null MX (`0 .`, RFC 7505), so it bounced rather than
+being delivered to a typosquatter — luck, not design.
+
+**So the weekly-anomaly digest had, in its own delivery path, exactly the failure it exists
+to eliminate: a broken thing that is indistinguishable from a quiet week.** A mistyped
+recipient yields a green scheduler job, a 200, clean logs, and no email, every Monday,
+forever.
+
+Two things follow, neither yet built:
+
+- **`/admin/audit` cannot catch this.** It renders the digest without sending, so it
+  validates everything except the part that failed. Previewing it — which was done, and
+  looked perfect — proved nothing about delivery.
+- **The honest check is SES-side**, not app-side: a bounce or complaint on the audit
+  `Source` address is the only evidence that distinguishes "sent" from "delivered".
+  Asserting `sent: true` is not enough, because it was true. Worth considering an SES
+  event destination or a bounce-count check if this ever matters more than it did here.
+
+Diagnosing it took reading the env var, not the logs. `gcloud run services describe` and
+look at the value is the first thing to try when the digest is silent, ahead of anything
+cleverer.
+
+### How the first send was verified
 
 There is deliberately no dry run — `POST /admin/audit/run` builds the digest and sends it.
 So the token path, the SES send and the recipient list are **unverified until a real fire**,
