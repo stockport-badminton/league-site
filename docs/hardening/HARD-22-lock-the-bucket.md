@@ -78,9 +78,32 @@ not a fact.
 `AllowSESReceiptWrite`, granting `s3:PutObject` on `inbound-email/*` to
 `Principal: {Service: ses.amazonaws.com}` with an `aws:SourceAccount` condition. A
 service principal with a condition is **not** a public policy, so `BlockPublicPolicy` and
-`RestrictPublicBuckets` should leave it alone — but *should* is not *did*. After enabling,
-send a real email to the results address and confirm it still lands. Inbound email
-breaking silently is the worst outcome available here.
+`RestrictPublicBuckets` should leave it alone — but *should* is not *did*.
+
+Test it with `node tools/check-inbound-email.js --watch`, which lists what is already
+there, then waits for a new object to appear under `inbound-email/`:
+
+```bash
+node tools/check-inbound-email.js --watch      # then send the email it tells you to
+```
+
+**Why watch S3 rather than just checking your inbox.** The app fetches the raw MIME from
+S3 *with credentials*, so no lockdown can break the read; what a lockdown could break is
+SES's ability to **write**, which is the `AllowSESReceiptWrite` statement. A failed write
+is invisible from an inbox — the mail simply never arrives, with nothing to look at. A new
+object appearing is the assertion that matters, and it isolates the bucket from the rest
+of the chain: object present but no mail means SNS → `POST /mail` → SES send, not this
+package.
+
+**Send to a local part that maps to nothing** — `bpa-test@stockport-badminton.co.uk` will
+do. The receipt rule is domain-wide, so anything at the domain triggers it, and an
+unmatched local part forwards only to the owner's own plus-addressed inboxes. Avoid
+`clubSecretaries`, `matchSecretaries`, `teamCaptains`, `treasurers`, `leagueComms`,
+`Premier`, `division1`–`division3` and any club name: those fan out to real league
+members. The tool prints this warning too.
+
+Inbound email breaking silently is the worst outcome available here, which is why it gets
+a tool rather than a sentence.
 
 **3. Object Ownership → `bucket owner enforced`.**
 ```bash
@@ -112,7 +135,8 @@ through the site, and upload one scorecard end to end.
 - `tools/scorecard-photo-audit.js` unchanged: 1,456 servable, 0 refused.
 - A scorecard photo, a PDF scorecard and the venues map all still load through the site.
 - A new scorecard upload still succeeds, on **both** leagues' sites.
-- Inbound email to the results address still arrives.
+- Inbound email still arrives: `node tools/check-inbound-email.js --watch` sees a new
+  object land after a test send.
 
 ## Out of scope
 
