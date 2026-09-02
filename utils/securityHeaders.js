@@ -177,6 +177,20 @@ const OBSERVED = {
     'https://*.hotjar.io',
     'wss://*.hotjar.com',                 // Hotjar's recorder holds a websocket open
     'https://maps.googleapis.com',
+    // Added 2 Sep 2026 from the report-only data — 88 of the 94 violations in the first
+    // two days were these three, and none is a surprise: all three hosts are already
+    // trusted in script-src, they are just also fetched from.
+    'https://stats.g.doubleclick.net',    // gtag's second beacon, alongside
+                                          // *.google-analytics.com above. 48 reports.
+    // GA's ga-audiences beacon goes to the *viewer's local* Google domain, so this is
+    // .co.uk only because the traffic is. CSP cannot wildcard a TLD, so a visitor from
+    // elsewhere will report google.ie, google.fr and so on. Add them if they show up;
+    // for a Stockport league they are rounding errors, and a blocked analytics beacon
+    // costs a statistic rather than a feature.
+    'https://www.google.co.uk',           // /ads/ga-audiences. 22 reports.
+    'https://connect.facebook.net',       // the page plugin fetches its own app_config
+                                          // JSON, from the host it was loaded from.
+                                          // 18 reports.
   ],
 
   'frame-src': [
@@ -190,7 +204,14 @@ const OBSERVED = {
   ],
 
   // /sw.js, registered by pwa-head.ejs on every page.
-  'worker-src': ["'self'"],
+  'worker-src': [
+    "'self'",
+    // Sentry Session Replay compresses in a Worker built from a blob URL. It is
+    // path-gated by REPLAY_PATHS in header.ejs, which is why the only reports came from
+    // /email-scorecard rather than sitewide. A narrow concession: it permits a worker
+    // from a blob this origin created, not script from anywhere.
+    'blob:',
+  ],
   // /manifest.json, likewise.
   'manifest-src': ["'self'"],
   // No <video> or <audio> in any template today; the generated social videos are handed
