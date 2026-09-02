@@ -68,19 +68,16 @@
 <% } %>
 <%- include('footer.ejs') %>
 <% if (typeof club_list !== 'undefined'){ %>
-<script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
+<script type="text/javascript" src="/static/beta/js/form-options.js"></script>
 <script type="text/javascript">
 
 $(document).ready(function(){
   $("#club").change(function(){
     var selectedClub = this.value;
-    $.get('/static/beta/formOption.ejs', function (template) {
         $.post('/teams', {'clubid':selectedClub}, function (data) {
            // Generate the html from the given data.
-           var html = ejs.render(template,{data:data});
-           $('#team').html(html);
+           FormOptions.fillTeams($('#team'), data);
         });
-    });
   })
 
 })

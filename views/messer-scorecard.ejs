@@ -679,7 +679,7 @@
     <% } %>
 
     <%- include('footer.ejs') %>
-    <script type="text/javascript" src="/scripts/ejs/ejs.js"></script>
+    <script type="text/javascript" src="/static/beta/js/form-options.js"></script>
 
     <script type="text/javascript">
       
@@ -779,22 +779,20 @@
         var selectedMen = { man1: $('#homeMan1').val(), man2: $('#homeMan2').val(), man3: $('#homeMan3').val() };
         var selectedLadies = { lady1: $('#homeLady1').val(), lady2: $('#homeLady2').val(), lady3: $('#homeLady3').val() };
 
-        $.get('/static/beta/playerFormOptions.ejs', function (template) {
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
                // Generate the html from the given data.
-               var html = ejs.render(template,{data:data});
-               $('#homeMan1').html(html).val(selectedMen.man1);
-               $('#homeMan2').html(html).val(selectedMen.man2);
-               $('#homeMan3').html(html).val(selectedMen.man3);
+               FormOptions.fillPlayers($('#homeMan1, #homeMan2, #homeMan3'), data);
+               $('#homeMan1').val(selectedMen.man1);
+               $('#homeMan2').val(selectedMen.man2);
+               $('#homeMan3').val(selectedMen.man3);
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
                // Generate the html from the given data.
-               var html = ejs.render(template,{data:data});
-               $('#homeLady1').html(html).val(selectedLadies.lady1);
-               $('#homeLady2').html(html).val(selectedLadies.lady2);
-               $('#homeLady3').html(html).val(selectedLadies.lady3);
+               FormOptions.fillPlayers($('#homeLady1, #homeLady2, #homeLady3'), data);
+               $('#homeLady1').val(selectedLadies.lady1);
+               $('#homeLady2').val(selectedLadies.lady2);
+               $('#homeLady3').val(selectedLadies.lady3);
             });
-        });
       })
       $("#awayTeam").change(function(){
         var selectedTeam = this.value;
@@ -802,22 +800,20 @@
         var selectedMen = { man1: $('#awayMan1').val(), man2: $('#awayMan2').val(), man3: $('#awayMan3').val() };
         var selectedLadies = { lady1: $('#awayLady1').val(), lady2: $('#awayLady2').val(), lady3: $('#awayLady3').val() };
 
-        $.get('/static/beta/playerFormOptions.ejs', function (template) {
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
                // Generate the html from the given data.
-               var html = ejs.render(template,{data:data});
-               $('#awayMan1').html(html).val(selectedMen.man1);
-               $('#awayMan2').html(html).val(selectedMen.man2);
-               $('#awayMan3').html(html).val(selectedMen.man3);
+               FormOptions.fillPlayers($('#awayMan1, #awayMan2, #awayMan3'), data);
+               $('#awayMan1').val(selectedMen.man1);
+               $('#awayMan2').val(selectedMen.man2);
+               $('#awayMan3').val(selectedMen.man3);
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
                // Generate the html from the given data.
-               var html = ejs.render(template,{data:data});
-               $('#awayLady1').html(html).val(selectedLadies.lady1);
-               $('#awayLady2').html(html).val(selectedLadies.lady2);
-               $('#awayLady3').html(html).val(selectedLadies.lady3);
+               FormOptions.fillPlayers($('#awayLady1, #awayLady2, #awayLady3'), data);
+               $('#awayLady1').val(selectedLadies.lady1);
+               $('#awayLady2').val(selectedLadies.lady2);
+               $('#awayLady3').val(selectedLadies.lady3);
             });
-        });
       })
       $("#homeMan1, #homeMan2, #homeMan3, #homeLady1, #homeLady2, #homeLady3, #awayMan1, #awayMan2, #awayMan3, #awayLady1, #awayLady2, #awayLady3").change(function(){
         var selectedPlayerName = $(this)[0].selectedOptions[0].text;
