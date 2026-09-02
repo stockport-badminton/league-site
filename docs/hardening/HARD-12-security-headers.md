@@ -127,6 +127,33 @@ would say nothing about them, which is the trap prerequisite 3 exists to name.
 | 1 | Reports being received | **met** — 94 in 2 days |
 | 2 | A full week incl. Tue + Wed | **partial** — 2 days, but has covered a Tue and a Wed, and the scorecard did report |
 | 3 | The seven pages visited | **not met** — none of them |
-| 4 | e2e passes enforcing | **fails** — 5 failures, 2 functional |
+| 4 | e2e passes enforcing | **met, 2 Sep** — see below |
 
 **It is not a waiting game.** Prerequisite 2 is the only one that time alone satisfies.
+
+## Update, later on 2 Sep: prerequisites 1 and 4 are met
+
+**The three `connect-src` hosts and `worker-src blob:` are in** (`eb87d4f`), which cleared
+90 of the first 94 violations. With those alone the enforcing run was unchanged at 5
+failures and `'unsafe-eval'` was the only violation type left — so the additions were
+complete for their part.
+
+**The `unsafe-eval` requirement is gone** (`9e6f2df`). Client-side EJS was replaced with
+`static/beta/js/form-options.js`, which builds the `<option>` lists with DOM calls. The
+two templates it replaced were four and six lines and did nothing but produce options, so
+nothing was lost. `CSP_ENFORCE=true npx playwright test` now gives **48 passed, 1 skipped,
+zero CSP violations**, up from 43/5.
+
+**`script-src` therefore no longer needs `'unsafe-eval'`, and it never had it** — the
+policy was already right; the *site* was wrong. Worth stating plainly because the tempting
+fix was to add the directive, which alongside the `'unsafe-inline'` that must stay for
+HARD-15 would have left `script-src` constraining only where scripts load from.
+
+### What is still outstanding
+
+Only prerequisites **2** (a full week, for coverage rather than correctness) and **3** (the
+seven pages nobody has visited: `/admin`, `/player-stats`, `/pair-stats`, `/file-upload`,
+an `/event/`, a `/clubs/`, `/contact-us`). Prerequisite 3 is the one that matters — six
+third-party libraries have produced no reports at all, and a quiet week says nothing about
+any of them. **Visiting those seven pages once, while report-only is still on, is the
+remaining work**, and it is minutes rather than days.
