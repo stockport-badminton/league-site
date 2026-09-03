@@ -96,3 +96,103 @@ package is a diagnosis, not a patch.
 Do not "fix" this by tightening the date window used to match drafts to fixtures. The
 window is a symptom. Two records of the same match disagree, and no join condition
 resolves that.
+
+
+---
+
+# Diagnosis, 3 Sep 2026
+
+**Neither of the two candidate explanations above is right.** The answer is a third one,
+suggested by the league secretary and confirmed against the data:
+
+> **Results are corrected during validation, the `game` rows are rewritten, and the draft
+> is left exactly as the captain filed it.** Nothing edits a draft after the fact and
+> nothing writes games from a second submission. The two records simply diverge because
+> only one of them is ever corrected.
+
+## Explanation 1 — games written from a later submission — ruled out
+
+Duplicate drafts are real and common: of 1,373 matches, **140 have more than one draft**
+(106 have two, 27 three, four have four, three have five — nothing guards against a
+scorecard being filed twice). At 10.2% that is temptingly close to the ~20% divergence
+rate, which is why it looked like the answer.
+
+It is not. Re-running the comparison against **every** candidate draft rather than the
+nearest-dated one moves the match rate from **1033/1299 to 1036/1299** — three fixtures.
+`scripts/hard17-duplicate-draft-test.js`.
+
+## Explanation 2 — drafts editable after publication — ruled out
+
+No evidence, and the shape is wrong for it. See below: the drafts are internally
+consistent and look exactly like what a captain would have typed.
+
+## What is actually happening
+
+266 fixtures mismatch. **260 of them differ in the mixed rubbers** — the divergence is
+overwhelmingly concentrated there:
+
+```
+SecondMixed 190   ThirdMixed 185   FirstMixed 130      <- 505 of 679 rubber mismatches
+SecondLadies 47   ThirdLadies 44   SecondMens 29
+FirstMens 24      ThirdMens 21     FirstLadies 9
+```
+
+And of those 260, **173 (66.5%) contain exactly the same twelve people in draft and games —
+only the pairing differs.** The home pair stays put and the away partner moves between
+rubbers:
+
+```
+fixture 4790  FirstMixed   draft 50|66|68|427        games 50|66|68|91
+              SecondMixed  draft 1959|1868|1861|91    games 1959|1868|1861|427
+
+fixture 5468  SecondMixed  draft 2232|2233|347|2151   games 2232|2233|789|2151
+              ThirdMixed   draft 787|1777|789|2123    games 787|1777|347|2123
+```
+
+That is precisely "the mixed order isn't accurate, so it gets fixed during validation".
+The remaining 87 involve someone genuinely different — a real substitution corrected at
+the same time. Doubles diverge far less (79 fixtures, 38 of which hold the same squad).
+
+**Note for anyone re-measuring:** an earlier pass here asked whether the three mixed
+*tuples* had been reordered as units and found one case, and wrongly concluded the
+hypothesis was dead. The reordering happens *within* the mixed set — one side's players
+reassigned across rubbers — so the test has to compare the personnel multiset per side,
+not the tuples. `scripts/hard17-mixed-personnel.js`.
+
+**No time clustering**, which rules out a changed pairing convention: 73% / 81% / 77% /
+84% / 77% / 80% match for 2019/20 through 2025/26. A steady rate, consistent with a
+steady human process.
+
+## What this means for the three consumers
+
+- **The draft is a faithful record of what the captain submitted.** It is not, and never
+  was, a record of what was *played* once corrected. Both statements are fine as long as
+  nothing confuses them.
+- **HARD-03's confirmation flow is the real exposure.** It shows the away captain a draft
+  and asks them to agree it. For ~20% of fixtures that draft does not match the published
+  result, and the away captain has no way to see the corrected version. This is worth
+  fixing regardless of anything else here.
+- **HARD-09's four orphaned results should stay unrebuilt**, and now for a clear reason
+  rather than an uncertain one: rebuilding games from a draft would reinstate exactly the
+  uncorrected pairings that validation existed to fix.
+- **Player and pair statistics are affected, the league table is not.** Scores are
+  unchanged, so points and positions are right. But ELO and pair stats attribute results
+  to specific partnerships, and for ~173 fixtures the partnership recorded in the draft is
+  not the one recorded in `game`. The `game` rows are the corrected record and are what
+  those calculations already read, so nothing is wrong today — it only matters if anything
+  ever recomputes stats from drafts.
+
+## What to do about it
+
+The divergence is **not corruption and needs no data fix**. Two changes worth making:
+
+1. **Record on the fixture which draft produced its games** — an id, not a date match.
+   Every measurement in this package had to guess the association with a ±3-day window,
+   and 140 matches have several drafts to choose between. This removes a whole class of
+   guessing.
+2. **Stop guarding nothing against a second submission.** 140 duplicate-draft matches is a
+   lot of noise for a table that is also the confirmation record, even though it turned
+   out not to cause this.
+
+Both are smaller than the package assumed, because the headline turned out to be a process
+working as intended rather than a bug.
