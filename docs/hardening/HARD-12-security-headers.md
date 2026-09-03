@@ -157,3 +157,46 @@ an `/event/`, a `/clubs/`, `/contact-us`). Prerequisite 3 is the one that matter
 third-party libraries have produced no reports at all, and a quiet week says nothing about
 any of them. **Visiting those seven pages once, while report-only is still on, is the
 remaining work**, and it is minutes rather than days.
+
+## Update, 3 Sep: prerequisite 3 walked, and it found four things
+
+Report volume fell from 94 in two days to **5 in twenty-four hours** once the first batch
+was allowlisted. All five were new, and two are functional breaks that no amount of
+waiting would have surfaced:
+
+| blocked | page | consequence if enforced |
+|---|---|---|
+| `badmintontemp.s3….amazonaws.com` | `/messer-scorecard-beta` | **scorecard photo upload fails** — the presigned PUT from `/sign-s3` goes straight to the bucket |
+| `places.googleapis.com` | `/event/…` | Places lookups fail; only `maps.googleapis.com` was listed |
+| `www.google.com` | `/contact-us` | **reCAPTCHA fails** — it was trusted in `script-src` and `frame-src`, but `connect-src` is a separate list |
+| `www.google.ie` | results pages | analytics only — a beacon, not a feature |
+
+All four are now in `OBSERVED`. The bucket host is **derived from `S3_BUCKET_NAME`** rather
+than hardcoded, so it follows the bucket instead of going stale.
+
+### Silence is ambiguous — separate "clean" from "unvisited"
+
+A page with no reports may be clean or may simply never have been opened, and the two look
+identical. Cross-checking the access log against the report log separates them:
+
+| route | requests / 24h | verdict |
+|---|---|---|
+| `/clubs/<slug>` | 50 | **clean** — Google Maps fine |
+| `/contact-us` | 50 | violation found and fixed |
+| `/event/<id>/<slug>` | 50 | violation found and fixed |
+| `/player-stats` | 3 | **clean** — DataTables + Chart.js verified |
+| `/pair-stats` | 2 | **clean** |
+| `/upload-scoresheet` | **0** | **still unknown** — SheetJS from unpkg untested |
+| `/admin/homepage-content/create` | **0** | **still unknown** — Quill untested |
+
+### The two that are still unknown, and why they were missed
+
+Because this file told someone to visit **`/admin`** and **`/file-upload`**, which are the
+*view* names. Neither is a route. The pages are `/admin/homepage-content/create` (Quill)
+and `/upload-scoresheet` (SheetJS) — the latter public, no login needed. The list above is
+corrected in `utils/securityHeaders.js`.
+
+**Remaining work for prerequisite 3 is those two pages.** Open each once while report-only
+is on. `/upload-scoresheet` is the more interesting: SheetJS is loaded from unpkg, and the
+page is the one route in this set that an anonymous visitor could reach yet apparently
+none has.

@@ -39,11 +39,22 @@
 // 2. A full week including a Tuesday and a Wednesday. Those are league nights: it is
 //    the only window in which captains use the scorecard wizard in anger, and the
 //    wizard is the most inline-scripted thing on the site.
-// 3. Someone has visited the pages the reports cannot reach on their own — /admin
-//    (Quill), /player-stats and /pair-stats (DataTables + Chart.js), /file-upload
-//    (SheetJS from unpkg), an /event/ page and a /clubs/ page (Google Maps), and the
-//    contact form (reCAPTCHA). Several are behind `secured` and get no anonymous
-//    traffic at all, so a silent week says nothing about them.
+// 3. Someone has visited the pages the reports cannot reach on their own. **These are
+//    routes, not view names** — an earlier version of this list said `/admin` and
+//    `/file-upload`, which are the templates, and sent someone looking for pages that
+//    do not exist:
+//
+//      /admin/homepage-content/create   Quill
+//      /player-stats, /pair-stats       DataTables + Chart.js
+//      /upload-scoresheet               SheetJS from unpkg
+//      /event/<id>/<slug>               Google Maps + Places
+//      /clubs/<slug>                    Google Maps
+//      /contact-us                      reCAPTCHA
+//
+//    Several are behind `secured` and get no anonymous traffic at all, so a silent week
+//    says nothing about them. **A page with no reports is ambiguous** — it may be clean,
+//    or it may be unvisited. Separate the two by checking the access log for requests to
+//    the path before concluding anything from silence.
 // 4. `npm run test:e2e` passes with CSP_ENFORCE=true set for the dev server the
 //    Playwright config starts — 48 specs, including the scorecard modal.
 //
@@ -191,6 +202,30 @@ const OBSERVED = {
     'https://connect.facebook.net',       // the page plugin fetches its own app_config
                                           // JSON, from the host it was loaded from.
                                           // 18 reports.
+
+    // Added 3 Sep 2026, after someone walked the pages that get no anonymous traffic.
+    // These are the ones prerequisite 3 exists to find: two are functional breaks that
+    // no amount of waiting would have surfaced, because nobody visits these pages
+    // without being asked to.
+    'https://www.google.com',             // reCAPTCHA on /contact-us. Already trusted in
+                                          // script-src and frame-src; it also *fetches*,
+                                          // and connect-src is a separate list.
+    'https://places.googleapis.com',      // the Places API on /event/ pages. maps.googleapis
+                                          // .com was listed; Places is a different host.
+    // The presigned PUT from /sign-s3 goes straight to the bucket, so a blocked
+    // connect-src here means **scorecard photo upload fails** — the most consequential
+    // thing found in the report-only period. Derived from the env var rather than
+    // hardcoded, so it follows the bucket rather than going stale; both host spellings
+    // because the archive contains both (see utils/scorecardPhoto.js).
+    ...(process.env.S3_BUCKET_NAME
+      ? [`https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com`,
+         `https://${process.env.S3_BUCKET_NAME}.s3-eu-west-1.amazonaws.com`]
+      : []),
+    // Analytics only, unlike the three above. GA's ga-audiences beacon goes to the
+    // viewer's local Google domain, so this list grows one TLD at a time as visitors
+    // appear from new countries. Nothing breaks when one is missing — a blocked beacon
+    // costs a statistic — so add them when observed rather than guessing at the set.
+    'https://www.google.ie',              // observed 3 Sep
   ],
 
   'frame-src': [
