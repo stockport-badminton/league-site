@@ -187,7 +187,6 @@ describe('the report-only Content-Security-Policy', () => {
     ['https://cdn.datatables.net', 'views/datatables-scripts.ejs — every stats table'],
     ['https://cdn.jsdelivr.net', 'views/elo-chart.ejs, views/player-game-stats.ejs — Chart.js'],
     ['https://cdn.quilljs.com', 'views/admin/homepage-content-form.ejs — the editor'],
-    ['https://unpkg.com', 'views/file-upload.ejs — SheetJS'],
     ['https://connect.facebook.net', 'views/footer.ejs — the page plugin, every page'],
     ['https://www.google.com', 'views/contact-us-form.ejs, views/club-v2.ejs — reCAPTCHA'],
     ['https://maps.googleapis.com', 'views/club-v2.ejs, views/viewEventDetails.ejs — maps'],

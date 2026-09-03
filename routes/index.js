@@ -172,7 +172,6 @@ router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
   }
 });
 
-router.get('/upload-scoresheet', scorecard_controller.upload_scoresheet);
 
 // /SESemail is gone. It was an unauthenticated POST that sent a hardcoded message
 // to three of our own inboxes — a one-line curl loop was a mail bomb, and nothing

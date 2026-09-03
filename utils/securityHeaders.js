@@ -39,22 +39,27 @@
 // 2. A full week including a Tuesday and a Wednesday. Those are league nights: it is
 //    the only window in which captains use the scorecard wizard in anger, and the
 //    wizard is the most inline-scripted thing on the site.
-// 3. Someone has visited the pages the reports cannot reach on their own. **These are
-//    routes, not view names** — an earlier version of this list said `/admin` and
-//    `/file-upload`, which are the templates, and sent someone looking for pages that
-//    do not exist:
+// 3. Someone has visited the pages the reports cannot reach on their own. **List routes
+//    here, not view names.** An earlier version named `/admin` and `/file-upload`, which
+//    are templates, and sent someone hunting for pages that do not exist:
 //
-//      /admin/homepage-content/create   Quill
-//      /player-stats, /pair-stats       DataTables + Chart.js
-//      /upload-scoresheet               SheetJS from unpkg
-//      /event/<id>/<slug>               Google Maps + Places
-//      /clubs/<slug>                    Google Maps
-//      /contact-us                      reCAPTCHA
+//      /admin/homepage-content/create   Quill                  <- still unverified
+//      /player-stats, /pair-stats       DataTables + Chart.js  verified clean 3 Sep
+//      /event/<id>/<slug>               Google Maps + Places   fixed 3 Sep
+//      /clubs/<slug>                    Google Maps            verified clean 3 Sep
+//      /contact-us                      reCAPTCHA              fixed 3 Sep
 //
 //    Several are behind `secured` and get no anonymous traffic at all, so a silent week
 //    says nothing about them. **A page with no reports is ambiguous** — it may be clean,
 //    or it may be unvisited. Separate the two by checking the access log for requests to
 //    the path before concluding anything from silence.
+//
+//    `/upload-scoresheet` used to be on this list, as the only thing pulling
+//    `https://unpkg.com` into script-src. It predated the scorecard UI — an Excel copy
+//    of what the form now captures — had no hits in over a year by either GA or the
+//    Cloud Run logs, and was deleted on 3 Sep along with that allowlist entry. It loaded
+//    `unpkg.com/xlsx/dist/xlsx.full.min.js` **unversioned**, so the policy was carrying a
+//    standing allowance for whatever that CDN served as latest, for a page nobody used.
 // 4. `npm run test:e2e` passes with CSP_ENFORCE=true set for the dev server the
 //    Playwright config starts — 48 specs, including the scorecard modal.
 //
@@ -132,7 +137,6 @@ const OBSERVED = {
                                           // Chart.js and its date adapter
     'https://cdn.quilljs.com',            // admin/homepage-content-form.ejs — the
                                           // announcement editor
-    'https://unpkg.com',                  // file-upload.ejs — SheetJS
     'https://connect.facebook.net',       // footer.ejs — the page plugin, every page
     'https://www.google.com',             // contact-us-form.ejs, club-v2.ejs — reCAPTCHA
     'https://www.gstatic.com',            // what reCAPTCHA loads next

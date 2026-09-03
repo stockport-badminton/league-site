@@ -82,13 +82,3 @@ exports.rules = function(req, res) {
     canonical: canonicalFor(req)
   })
 }
-
-exports.upload_scoresheet = function(req, res) {
-  res.render('file-upload', {
-    static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    pageTitle: 'Upload Scorecard',
-    pageDescription: 'Enter some results!',
-    canonical: canonicalFor(req)
-  })
-}

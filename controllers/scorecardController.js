@@ -719,16 +719,6 @@ function renderLinkRefused(req, res, status) {
     });
   };
 
-  exports.upload_scoresheet = function(req,res){
-    res.render('file-upload',{
-      static_path:'/static',
-      theme:process.env.THEME || 'flatly',
-      pageTitle : "Upload Scorecard",
-      pageDescription : "Enter some results!",
-      canonical:canonicalFor(req)
-    })
-  }
-
   // POST /fixture/reminder — nudge the home team about a missing scorecard.
   //
   // Reachable from the public /results page, so every input is hostile. It used to be
