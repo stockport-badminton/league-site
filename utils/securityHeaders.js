@@ -152,6 +152,17 @@ const OBSERVED = {
     "'unsafe-inline'",
     'https://cdn.datatables.net',   // datatables-css.ejs
     'https://cdn.quilljs.com',      // quill.snow.css
+    // **cdn.quilljs.com 301s to cdn.jsdelivr.net**, and CSP checks every hop of a
+    // redirect, so allowing only the host in the markup is not enough. The browser
+    // reports the *pre-redirect* URL — it will not leak the chain — so the violation
+    // names `cdn.quilljs.com`, a host that is right there in this list, which makes the
+    // allowlist look broken when it is not. Found 3 Sep 2026 on
+    // /admin/homepage-content/:id, the last page of HARD-12's prerequisite 3.
+    //
+    // Quill's *script* was unaffected only by luck: it redirects too, and jsdelivr was
+    // already in script-src for Chart.js. Of the CDNs in this policy, quilljs is the only
+    // one that redirects — datatables, jsdelivr and sentry-cdn all serve directly.
+    'https://cdn.jsdelivr.net',     // where cdn.quilljs.com now redirects to
     'https://fonts.googleapis.com', // not linked by any template — the Google Maps JS
                                     // API injects a Roboto stylesheet at runtime, which
                                     // is why grepping the views alone misses it

@@ -200,3 +200,56 @@ corrected in `utils/securityHeaders.js`.
 is on. `/upload-scoresheet` is the more interesting: SheetJS is loaded from unpkg, and the
 page is the one route in this set that an anonymous visitor could reach yet apparently
 none has.
+
+## Update, 3 Sep (later): prerequisite 3 complete, and the last page found a redirect trap
+
+The Quill page was the last of the seven, and it reported:
+
+```
+style-src-elem  blocked=https://cdn.quilljs.com/1.3.6/quill.snow.css
+                page=/admin/homepage-content/3
+```
+
+**Naming a host that was already in `style-src`.** The cause is worth knowing, because it
+makes a correct allowlist look broken:
+
+> **`cdn.quilljs.com` 301s to `cdn.jsdelivr.net`, and CSP checks every hop of a redirect.**
+> The initial request passes; the redirect target is evaluated separately and
+> `cdn.jsdelivr.net` was only in `script-src`. The browser then reports the
+> *pre-redirect* URL, because leaking the chain would be an information leak — so the
+> violation names the host you allowed rather than the host that was blocked.
+
+Quill's **script** was unaffected purely by luck: it redirects too, and jsdelivr was
+already in `script-src` for Chart.js. Of the CDNs in this policy, quilljs is the only one
+that redirects — `cdn.datatables.net`, `cdn.jsdelivr.net` and `browser.sentry-cdn.com` all
+serve directly, checked the same day.
+
+Fixed by adding `https://cdn.jsdelivr.net` to `style-src`. The tidier end state would be to
+point the view at the post-redirect URL and drop `cdn.quilljs.com` entirely, since both its
+assets now come from jsdelivr — a small change to a working admin page, not done here.
+
+### Prerequisite 3 status: complete
+
+| route | verdict |
+|---|---|
+| `/clubs/<slug>` | clean |
+| `/player-stats`, `/pair-stats` | clean |
+| `/contact-us` | fixed — reCAPTCHA needed `www.google.com` in `connect-src` |
+| `/event/<id>/<slug>` | fixed — needed `places.googleapis.com` |
+| `/admin/homepage-content/:id` | fixed — the redirect above |
+| `/upload-scoresheet` | **deleted** — dead for over a year, and the only thing pulling `unpkg.com` into `script-src` |
+
+All four prerequisites are now met bar the calendar half of 2 (a full week of traffic,
+which is coverage rather than correctness).
+
+### The one thing still untested, and it is the one that matters
+
+Every violation found so far came from *loading* a page. **The most consequential find — the
+presigned S3 upload on the scorecard — is a write**, and writes only happen when someone
+completes a workflow. The read-only Playwright suite cannot do it by design, and neither
+can browsing.
+
+Matches restarted 3 Sep, so the next real scorecard filed by a captain — ideally one with a
+photo — is the missing test. Watch `/csp-report` for `connect-src` violations naming the
+bucket after the first one lands. **Do not flip `CSP_ENFORCE` before that**: a blocked
+upload would fail on the page captains use, at the one moment of the week they use it.
