@@ -262,26 +262,44 @@ exports.teamRegistrationFormDocx = async function(req, res, next) {
   }
 };
 
+// The prefilled form as bytes, without the HTTP round trip.
+//
+// Pulled out so the registration reminder can attach it (controllers/registrationController.js).
+// Fetching our own URL over HTTP to get it would have needed a way to authenticate to a
+// `secured` route from the server, which is a credential that need not exist.
+//
+// Returns null for a club with nobody on its books — there is nothing to prefill and an
+// empty form is what /forms/team-registration.docx is for.
+exports.buildPrefilledRegistrationDocx = async function(clubName) {
+  const roster = await Player.getClubRoster(clubName);
+  if (roster.length < 1) return null;
+
+  const { nominatedRows, reserveRows } = teamRegDoc.splitRoster(roster);
+  const label = seasonLabel(seasonModel.current());
+  const buffer = await teamRegDoc.buildTeamRegistrationDocx({
+    label: label,
+    clubName: clubName,
+    nominatedRows: nominatedRows,
+    reserveRows: reserveRows,
+  });
+  return {
+    buffer: buffer,
+    filename: `${clubName} Team Registration Form ${label}.docx`,
+    contentType: DOCX_TYPE,
+  };
+};
+
 exports.teamRegistrationFormPrefilledDocx = async function(req, res, next) {
   try {
     const club = req.params.club;
     assertClubAccess(req, club);
 
-    const roster = await Player.getClubRoster(club);
-    if (roster.length < 1) return next(unknownClub(club));
+    const doc = await exports.buildPrefilledRegistrationDocx(club);
+    if (!doc) return next(unknownClub(club));
 
-    const { nominatedRows, reserveRows } = teamRegDoc.splitRoster(roster);
-    const label = seasonLabel(seasonModel.current());
-    const buffer = await teamRegDoc.buildTeamRegistrationDocx({
-      label: label,
-      clubName: club,
-      nominatedRows: nominatedRows,
-      reserveRows: reserveRows,
-    });
-
-    res.setHeader('Content-Type', DOCX_TYPE);
-    res.setHeader('Content-Disposition', `attachment; filename="${club} Team Registration Form ${label}.docx"`);
-    res.send(buffer);
+    res.setHeader('Content-Type', doc.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.filename}"`);
+    res.send(doc.buffer);
   } catch (err) {
     next(err);
   }

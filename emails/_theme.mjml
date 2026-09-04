@@ -29,6 +29,16 @@
   <mj-class name="sub" font-size="15px" line-height="22px" color="#626b7d" />
   <mj-class name="muted" font-size="14px" line-height="21px" color="#626b7d" />
   <mj-class name="footer" font-size="13px" line-height="19px" color="#626b7d" />
+  <mj-class name="h2" font-size="18px" line-height="24px" color="#002060" font-weight="bold"
+            padding="20px 24px 4px" />
+  <!-- A tinted panel for the one thing the reader must not miss. Padding is set here
+       rather than inherited, because mj-text's default 0 24px would put the tint hard
+       against the text. Note container-background-color, NOT background-color: mj-text
+       has no such attribute and simply drops it. An mj-class naming a style nobody
+       defined is likewise IGNORED with no
+       error, so anything a template asks for has to exist here. -->
+  <mj-class name="callout" container-background-color="#eef1f7" color="#1f2430" padding="14px 24px"
+            font-size="15px" line-height="22px" />
 </mj-attributes>
 <mj-style>
   /* Some clients strip a button's own styles; keep the label readable if they do. */

@@ -1,0 +1,79 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Player registrations</mj-title>
+    <mj-preview><%= digest.dueSoon.length %> due soon, <%= digest.chased.length %> chased and still outstanding</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Player registrations</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0"><%= seasonLabel %></mj-text>
+        <mj-text mj-class="sub" padding="4px 24px 0">
+          <%= digest.received %> of <%= digest.total %> received
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Each section only exists when it has rows. mj-raw around every EJS tag that sits
+         between MJML components: without it the compiler discards the tag and the block
+         renders unconditionally, so an empty "due soon" heading would appear every day.
+         tools/build-emails.js counts the tags and fails the build if any were eaten. -->
+    <mj-raw><% if (digest.dueSoon.length) { %></mj-raw>
+    <mj-section padding="20px 0 0">
+      <mj-column>
+        <mj-text mj-class="h2">Due within <%= digest.withinDays %> days</mj-text>
+        <mj-table>
+          <tr style="background:#002060;color:#ffffff;font-weight:bold;text-align:left">
+            <th style="padding:8px 10px">Club</th>
+            <th style="padding:8px 10px">First match</th>
+            <th style="padding:8px 10px">Chased</th>
+          </tr>
+          <% digest.dueSoon.forEach(function (club, i) { %>
+          <tr style="background:<%= i % 2 ? '#f5f7fa' : '#ffffff' %>">
+            <td style="padding:8px 10px"><strong><%= club.name %></strong></td>
+            <td style="padding:8px 10px">
+              <%= longDate(club.firstFixture) %><%= club.daysAway < 0 ? ' (passed)' : '' %>
+            </td>
+            <td style="padding:8px 10px"><%= club.chased ? longDate(club.chasedAt) : '—' %></td>
+          </tr>
+          <% }); %>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-raw><% if (digest.chased.length) { %></mj-raw>
+    <mj-section padding="20px 0 0">
+      <mj-column>
+        <mj-text mj-class="h2">Chased, still outstanding</mj-text>
+        <mj-table>
+          <tr style="background:#002060;color:#ffffff;font-weight:bold;text-align:left">
+            <th style="padding:8px 10px">Club</th>
+            <th style="padding:8px 10px">Chased</th>
+            <th style="padding:8px 10px">First match</th>
+          </tr>
+          <% digest.chased.forEach(function (club, i) { %>
+          <tr style="background:<%= i % 2 ? '#f5f7fa' : '#ffffff' %>">
+            <td style="padding:8px 10px"><strong><%= club.name %></strong></td>
+            <td style="padding:8px 10px"><%= longDate(club.chasedAt) %></td>
+            <td style="padding:8px 10px"><%= longDate(club.firstFixture) %></td>
+          </tr>
+          <% }); %>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-section padding="20px 0 0">
+      <mj-column>
+        <mj-button href="<%= adminUrl %>" css-class="cta">Chase a club</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

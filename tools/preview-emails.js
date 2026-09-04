@@ -16,6 +16,18 @@ const OUT = process.argv[2] || '/tmp/email-preview';
 const TEMPLATES = path.join(__dirname, '..', 'views', 'emails');
 const logoUrl = 'https://stockport-badminton.co.uk/touch-icon-192x192.png';
 
+
+// The reminder's own date formatter, so a preview shows what the email will.
+const longDate = v => new Date(v).toLocaleDateString('en-GB',
+  { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/London' });
+
+const DIGEST_CLUBS = [
+  { name: 'Aerospace',  firstFixture: '2026-09-03', daysAway: -1, chased: true,
+    chasedAt: '2026-09-01' },
+  { name: 'Mellor',     firstFixture: '2026-09-03', daysAway: -1, chased: false, chasedAt: null },
+  { name: 'Racketeer',  firstFixture: '2026-09-07', daysAway: 3,  chased: false, chasedAt: null },
+];
+
 const SAMPLES = {
   'scorecard-received': {
     logoUrl,
@@ -25,6 +37,25 @@ const SAMPLES = {
     confirmUrl: 'https://stockport-badminton.co.uk/populated-scorecard-beta/2435?t=abc123',
     photoUrl: 'https://stockport-badminton.co.uk/scorecard-photo/2435?t=abc123',
     photoLine: 'A scorecard has been entered, with a photo attached.',
+  },
+  'registration-reminder': {
+    logoUrl,
+    whyReceiving: 'You are listed as a secretary for Aerospace in the league.',
+    clubName: 'Aerospace', seasonLabel: '2026-27', greetingName: ' Anne',
+    firstFixture: 'Thursday 10 September', overdue: false, daysLine: ', 5 days away',
+    replyTo: 'results@stockport-badminton.co.uk',
+    rosterUrl: 'https://stockport-badminton.co.uk/manage-players',
+  },
+  'registration-digest': {
+    logoUrl,
+    whyReceiving: 'You are listed as a recipient of the league admin digests.',
+    seasonLabel: '2026-27', longDate,
+    adminUrl: 'https://stockport-badminton.co.uk/admin/registrations',
+    digest: {
+      withinDays: 3, received: 2, total: 18,
+      dueSoon: DIGEST_CLUBS.slice(1),
+      chased: [DIGEST_CLUBS[0]],
+    },
   },
   'website-updated': {
     logoUrl,
@@ -55,6 +86,15 @@ const SAMPLES = {
         photoUrl: '', photoLine: 'A scorecard has been entered, with no photo attached.' })],
     'website-updated-no-stats': ['website-updated',
       Object.assign({}, SAMPLES['website-updated'], { matchStats: [] })],
+    // The overdue wording, which is the reminder's own mj-raw conditional.
+    'registration-reminder-overdue': ['registration-reminder',
+      Object.assign({}, SAMPLES['registration-reminder'], {
+        overdue: true, firstFixture: 'Thursday 3 September' })],
+    // A digest with nothing chased yet — the state on the first morning of a season, and
+    // the one where a discarded mj-raw tag would show an empty heading.
+    'registration-digest-none-chased': ['registration-digest',
+      Object.assign({}, SAMPLES['registration-digest'], {
+        digest: Object.assign({}, SAMPLES['registration-digest'].digest, { chased: [] }) })],
   };
   for (const [label, [tpl, data]] of Object.entries(variants)) {
     const html = await ejs.renderFile(path.join(TEMPLATES, tpl + '.ejs'), data);

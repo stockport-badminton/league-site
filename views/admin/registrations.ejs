@@ -1,0 +1,116 @@
+<%- include('../header.ejs', { useRosterCss: true }) %>
+<%- include('../nav.ejs') %>
+
+<%# useRosterCss for the same reason the roster pages need it: roster.css undoes the
+    global `.starter-template { text-align: center }` and the site-wide `.fa` sizing.
+    See CLAUDE.md. %>
+<div class="roster-page container-fluid text-left">
+
+  <h1>Player registrations <small class="text-muted"><%= seasonLabel %></small></h1>
+
+  <% if (sent) { %>
+    <div class="alert alert-success">Registration form sent to <strong><%= sent %></strong>.</div>
+  <% } %>
+  <% if (problem) { %>
+    <div class="alert alert-warning"><%= problem %></div>
+  <% } %>
+
+  <p class="text-muted">
+    Every club returns the league&rsquo;s registration form before its first match.
+    <strong><%= outstanding %></strong> of <%= clubs.length %> still outstanding,
+    <strong><%= dueSoon %></strong> due within <%= dueDays %> days.
+    Sending a chase emails the club secretary (match secretary copied) with the form
+    already filled in from their squads on the website.
+  </p>
+
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Club</th>
+        <th>Teams</th>
+        <th>First match</th>
+        <th>Status</th>
+        <th>Chased</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% clubs.forEach(function (club) { %>
+        <%
+          // Overdue outranks due-soon: a deadline that has passed is more urgent, not
+          // less, and a club that has already played an unregistered match is the whole
+          // thing this page exists to prevent.
+          var rowClass = club.received ? ''
+                       : club.daysAway < 0 ? 'table-danger'
+                       : club.daysAway <= dueDays ? 'table-warning' : '';
+        %>
+        <tr class="<%= rowClass %>">
+          <td>
+            <strong><%= club.name %></strong>
+            <% if (!club.officers.some(function (o) { return o.email; })) { %>
+              <span class="badge badge-danger">no contact</span>
+            <% } %>
+          </td>
+          <td><%= club.teams %></td>
+          <td>
+            <%= new Date(club.firstFixture).toLocaleDateString('en-GB',
+                  { weekday: 'short', day: 'numeric', month: 'short' }) %>
+            <% if (club.daysAway < 0) { %>
+              <span class="text-danger">(passed)</span>
+            <% } else if (club.daysAway === 0) { %>
+              <span class="text-danger">(today)</span>
+            <% } else { %>
+              <span class="text-muted">(<%= club.daysAway %>d)</span>
+            <% } %>
+          </td>
+          <td>
+            <% if (club.received) { %>
+              <span class="badge badge-success">received</span>
+            <% } else { %>
+              <span class="badge badge-secondary">outstanding</span>
+            <% } %>
+          </td>
+          <td>
+            <% if (club.chased) { %>
+              <%= new Date(club.chasedAt).toLocaleDateString('en-GB',
+                    { day: 'numeric', month: 'short' }) %>
+              <% if (club.chaseCount > 1) { %>
+                <span class="text-muted">&times;<%= club.chaseCount %></span>
+              <% } %>
+            <% } else { %>
+              <span class="text-muted">&mdash;</span>
+            <% } %>
+          </td>
+          <td class="text-right text-nowrap">
+            <% if (!club.received) { %>
+              <form method="post" action="/admin/registrations/<%= club.id %>/chase" class="d-inline">
+                <button class="btn btn-sm btn-outline-primary" type="submit">
+                  <%= club.chased ? 'Chase again' : 'Send form' %>
+                </button>
+              </form>
+              <form method="post" action="/admin/registrations/<%= club.id %>/received" class="d-inline">
+                <button class="btn btn-sm btn-success" type="submit">Mark received</button>
+              </form>
+            <% } else { %>
+              <form method="post" action="/admin/registrations/<%= club.id %>/received" class="d-inline">
+                <input type="hidden" name="received" value="false" />
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Undo</button>
+              </form>
+            <% } %>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="/forms/team-registration/<%= encodeURIComponent(club.name) %>/prefilled.docx">Form</a>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <p class="text-muted">
+    <a href="/admin/registrations/digest">Preview the daily reminder email</a> &mdash;
+    it is sent every morning while anything is outstanding, and sends nothing when
+    everything is in.
+  </p>
+
+</div>
+
+<%- include('../footer.ejs') %>

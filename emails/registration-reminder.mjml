@@ -1,0 +1,67 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Player registration form</mj-title>
+    <mj-preview><%= clubName %> — due before your first match on <%= firstFixture %></mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Player registration</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0"><%= clubName %></mj-text>
+        <mj-text mj-class="sub" padding="4px 24px 0">Season <%= seasonLabel %></mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text>Hello<%= greetingName %>,</mj-text>
+        <mj-text>
+          We have not yet received <%= clubName %>'s player registration form for the
+          <%= seasonLabel %> season. Every player must be registered before they play,
+          so please send it back before your first match.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- The deadline block. mj-raw around the conditional: an EJS tag sitting directly
+         between two MJML components is DISCARDED by the compiler, and whatever it guarded
+         then renders unconditionally — so an "already passed" warning would show for
+         every club. tools/build-emails.js counts the tags and fails if any were eaten. -->
+    <mj-section padding="8px 0 0">
+      <mj-column>
+        <mj-raw><% if (overdue) { %></mj-raw>
+        <mj-text mj-class="callout">
+          <strong><%= clubName %>'s first match was <%= firstFixture %>.</strong>
+          The form is overdue — please send it as soon as you can.
+        </mj-text>
+        <mj-raw><% } else { %></mj-raw>
+        <mj-text mj-class="callout">
+          <strong>Your first match is <%= firstFixture %><%= daysLine %>.</strong>
+        </mj-text>
+        <mj-raw><% } %></mj-raw>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text mj-class="h2">What to do</mj-text>
+        <mj-text>
+          The form is attached as a Word document, already filled in with the players we
+          have on your teams. Add anyone missing, delete anyone who has left, then send it
+          back to <a href="mailto:<%= replyTo %>"><%= replyTo %></a>.
+        </mj-text>
+        <mj-text>
+          You can also keep your squads up to date on the website, which is where the
+          attached list comes from.
+        </mj-text>
+        <mj-button href="<%= rosterUrl %>" css-class="cta">Manage your players</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

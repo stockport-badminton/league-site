@@ -76,9 +76,11 @@ const asList = value => (Array.isArray(value) ? value : [value]).filter(Boolean)
  * @param {string|string[]} [opts.cc]
  * @param {string|string[]} [opts.bcc]
  * @param {string|string[]} [opts.replyTo]
+ * @param {{filename: string, content: Buffer, contentType: string}[]} [opts.attachments]
  */
 async function send(opts) {
-  const { template, data, subject, text, whyReceiving, to, cc, bcc, replyTo } = opts || {};
+  const { template, data, subject, text, whyReceiving, to, cc, bcc, replyTo,
+          attachments } = opts || {};
   if (!template) throw new Error('mailer.send: template is required');
   if (!subject) throw new Error('mailer.send: subject is required');
   // Both are required rather than defaulted, so a new email cannot quietly ship without
@@ -108,6 +110,30 @@ async function send(opts) {
   if (asList(cc).length) params.Destination.CcAddresses = asList(cc);
   if (asList(bcc).length) params.Destination.BccAddresses = asList(bcc);
   if (asList(replyTo).length) params.ReplyToAddresses = asList(replyTo);
+
+  // An attachment cannot go through SendEmail — SES only accepts one if it is handed a
+  // complete MIME message. Everything above is identical either way; only the transport
+  // differs, so the templates, the required `text` and `whyReceiving`, and the rendering
+  // stay shared rather than forking into a second send path that could drift.
+  const files = asList(attachments);
+  if (files.length) {
+    await ses.sendRawEmail({
+      from: FROM,
+      to: recipients,
+      cc: asList(cc),
+      bcc: asList(bcc),
+      replyTo: asList(replyTo).join(', ') || undefined,
+      subject,
+      html,
+      text,
+      attachments: files,
+    });
+    // Reported the same shape as the simple path, plus what was attached, so a caller
+    // (and a test) can assert on one thing rather than two.
+    return Object.assign({}, params, {
+      Attachments: files.map(f => ({ filename: f.filename, bytes: f.content.length })),
+    });
+  }
 
   await ses.sendEmail(params);
   return params;

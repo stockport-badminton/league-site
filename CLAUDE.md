@@ -713,6 +713,49 @@ all **system** fonts: Outlook renders through Word and ignores `@font-face`, so 
 would apply for some readers and not others. Size text so it fits in the *fallback*, not
 just the intended face.
 
+### Chasing player registrations
+
+Every club returns the league's registration form before its first fixture, and that used
+to be chased from memory. `/admin/registrations` (superadmin, in the Admin nav) lists every
+club with a fixture this season, its first match, and whether the form is in.
+
+| | |
+|---|---|
+| `GET /admin/registrations` | the working page — chase, mark received, download the form |
+| `POST /admin/registrations/:club/chase` | emails the club its prefilled form |
+| `POST /admin/registrations/:club/received` | mark received (`received=false` to undo) |
+| `GET /admin/registrations/digest` | preview the daily email, sends nothing |
+| `POST /admin/registrations/run` | the daily send, for Cloud Scheduler |
+
+**Status is keyed by season, and that is the whole design** (`club_registration`, migration
+013). The job runs once a season, so the status has to reset every season — and the
+cheapest correct reset is none at all: a new season simply has no rows, which reads as
+"nothing received, nothing chased". No cron to clear it, nothing to remember in July, and
+last season's record is still there. A `received` boolean on `club` would have needed
+exactly the annual wipe nobody would remember to run.
+
+- **Recipients are derived server-side** from the club's own officers — club secretary, cc
+  match secretary, falling back to whoever has an address. Never from the request:
+  `/fixture/reminder` took its address from the body and was an open relay from our own
+  verified domain.
+- **The attached form is built in-process** by `documentsController.buildPrefilledRegistrationDocx`.
+  Fetching our own `secured` URL over HTTP would have needed a server-side credential that
+  need not exist.
+- **An attachment cannot go through SES's `SendEmail`** — SES only accepts one as a complete
+  MIME message. `utils/ses.sendRawEmail` composes it with nodemailer's `MailComposer` (already
+  a dependency) and posts it with `SendRawEmailCommand`. `mailer.send` picks the transport
+  from whether `attachments` is non-empty, so templates, the required `text`/`whyReceiving`
+  and the rendering stay shared.
+- **The digest sends nothing when nothing is outstanding.** A daily "nothing to do" trains
+  the reader to ignore it.
+- `fixture.date` is a `timestamp without time zone` holding **local midnight**
+  (`2026-09-03 00:00:00`), so compare it to `CURRENT_DATE` directly. Converting
+  `AT TIME ZONE 'Europe/London'` shifts every match a day earlier and puts league nights on
+  a Sunday. Note `tools/dbq.js` **prints** these an hour early — it renders through a JS
+  `Date` — so ask SQL for `to_char(...)` when you need to know what is really stored.
+- The status query filters `f.status IS DISTINCT FROM 'rearranged'`, so a match that has
+  been moved does not set the deadline.
+
 ## Docker & Deployment
 
 - **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation
@@ -748,6 +791,14 @@ Key vars (see `.env` for examples):
   `POST /admin/audit/run`. Compared with `timingSafeEqual` over SHA-256 of both sides;
   **unset closes the token path rather than opening it**. A superadmin session also works.
   `GET /admin/audit` previews the same email (Admin → Data Health).
+- `REGISTRATION_EMAIL_TO` — comma-separated recipients of the **daily** player-registration
+  reminder. Falls back to `AUDIT_EMAIL_TO`. **Unset means nothing is ever sent**, which is
+  why it is unset locally — `dev.env` points at production, so a stray run would mail the
+  real results secretary.
+- `REGISTRATION_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Registration-Token`
+  to `POST /admin/registrations/run`, compared with `timingSafeEqual` over SHA-256 of both
+  sides. **Unset closes the token path rather than opening it.** A superadmin session also
+  works. `GET /admin/registrations/digest` previews the same email and sends nothing.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

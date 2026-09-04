@@ -645,6 +645,7 @@ router.post('/venues-map/refresh', secured, venue_controller.venues_map_refresh)
 // Required here rather than at the top of the file to keep this package's diff inside
 // the block it owns; `require` is cached, so there is no cost to it.
 const audit_controller = require('../controllers/auditController');
+const registration_controller = require('../controllers/registrationController');
 
 // The report is a list of every weakness in the league's data, so both routes are
 // gated. The preview is superadmin-session only. The send additionally accepts a shared
@@ -653,6 +654,21 @@ const audit_controller = require('../controllers/auditController');
 // scheduler would record as a successful job.
 router.get('/admin/audit', secured, requireClubAccess.requireSuperAdmin, audit_controller.audit_preview);
 router.post('/admin/audit/run', audit_controller.requireAuditCaller, audit_controller.audit_run);
+
+// Chasing clubs for their player registration forms. The page and the two writes are
+// superadmin; the daily send takes either a superadmin session or the scheduler's token,
+// for the same reason the audit run does — `secured` would redirect Cloud Scheduler to
+// Auth0 and it would report the 302 as a success.
+router.get('/admin/registrations', secured, requireClubAccess.requireSuperAdmin,
+  registration_controller.registrations_page);
+router.get('/admin/registrations/digest', secured, requireClubAccess.requireSuperAdmin,
+  registration_controller.digest_preview);
+router.post('/admin/registrations/:club/received', secured, requireClubAccess.requireSuperAdmin,
+  registration_controller.mark_received);
+router.post('/admin/registrations/:club/chase', secured, requireClubAccess.requireSuperAdmin,
+  registration_controller.send_chase);
+router.post('/admin/registrations/run',
+  registration_controller.requireReminderCaller, registration_controller.digest_run);
 
 // ---------------------------------------------------------------------------
 // Error handlers
