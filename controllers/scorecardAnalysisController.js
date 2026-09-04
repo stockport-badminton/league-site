@@ -8,16 +8,72 @@ const Division = require('../models/division');
 
 // ── Multer — memory storage, 10 MB limit ─────────────────────────────────────
 
+const MAX_BYTES = 10 * 1024 * 1024;
+
+// A rejected upload is a captain making an ordinary mistake, not a fault.
+//
+// A logged-in captain hit this on 4 Sep 2026 (Sentry NODE-Z) and tried twice, a minute
+// apart, with two different files of 144KB and 94KB — a desktop, so not phone photos.
+// Both were refused by the `image/*` test, and because multer's fileFilter error went
+// straight to the central HTML error handler they arrived as a **500**. The uploader reads
+// `xhr.responseJSON.error`, which an HTML 500 does not carry, so all they saw was "Could
+// not read the scorecard. Please fill in manually." Nothing said the FILE TYPE was the
+// problem — which is why they tried a second file rather than converting the first.
+//
+// So the type gate stays, and the message earns its keep instead.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) =>
-    file.mimetype.startsWith('image/')
-      ? cb(null, true)
-      : cb(new Error('Only image files are accepted')),
+  limits: { fileSize: MAX_BYTES },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith('image/')) return cb(null, true);
+    // Some browsers hand a HEIC or an unusual camera format over as
+    // application/octet-stream, so fall back to the extension rather than refusing a
+    // photo for the sake of a bad content type.
+    if (/\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?)$/i.test(file.originalname || '')) {
+      return cb(null, true);
+    }
+    const err = new Error('Only image files are accepted');
+    err.code = 'UNSUPPORTED_FILE_TYPE';
+    err.mimetype = file.mimetype;
+    err.originalname = file.originalname;
+    cb(err);
+  },
 });
 
-exports.uploadMiddleware = upload.single('scorecard');
+const single = upload.single('scorecard');
+
+// Wraps the multer middleware so a refusal answers 400 JSON, in the shape the uploader
+// already displays, rather than falling through to the HTML 500 page.
+exports.uploadMiddleware = function (req, res, next) {
+  single(req, res, err => {
+    if (!err) return next();
+
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      // Reachable with an ordinary phone photo: a modern camera JPEG can exceed 10MB.
+      return res.status(400).json({
+        error: 'That photo is larger than 10MB. Try again with a smaller one — ' +
+               'most phones can send a reduced-size copy.',
+      });
+    }
+
+    if (err.code === 'UNSUPPORTED_FILE_TYPE') {
+      const pdf = /pdf/i.test(err.mimetype || '') ||
+                  /\.pdf$/i.test(err.originalname || '');
+      // PDFs are 7% of the scorecards on record, so a captain sending one is entirely
+      // reasonable behaviour — the reader just cannot use it. Say which, and say what
+      // still works, rather than refusing without a route forward.
+      return res.status(400).json({
+        error: pdf
+          ? 'That is a PDF, and the reader needs a photo of the card (JPEG, PNG or HEIC). ' +
+            'You can still attach the PDF to the scorecard itself.'
+          : 'That file is not a photo the reader can use. Send a JPEG, PNG or HEIC ' +
+            'image of the card.',
+      });
+    }
+
+    return next(err);
+  });
+};
 
 // ── Date normalisation ────────────────────────────────────────────────────────
 // OCR produces dates in whatever the captain wrote. Try common UK formats and
