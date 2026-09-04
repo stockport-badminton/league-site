@@ -207,6 +207,21 @@ whole set:
 **Those are exactly the three phantom statuses this package and HARD-14 recorded** — 401,
 404 and 400 — and nothing else in the range speaks HTTP at all.
 
+**Port 49447, the source of the 401, is the Claude Code extension's own local proxy.**
+Confirmed by pointing supertest at it deliberately:
+
+```json
+{"type":"error","error":{"type":"authentication_error",
+ "message":"Invalid authentication"},"request_id":null}
+```
+
+That is Anthropic's API error shape, returned to an unauthenticated caller. So the
+authorization bug this package spent days hunting was the assistant investigating it,
+answering on a port `supertest` had asked the kernel to pick. Worth stating plainly rather
+than as "a VS Code helper": the set of listeners depends entirely on what a given
+developer happens to be running, so the *specific* ports here will not reproduce
+elsewhere — the mechanism will.
+
 | sighting | expected | got | source |
 |---|---|---|---|
 | `spam-gate › looks identical to success` | 200 | 401 | port 49447 |
