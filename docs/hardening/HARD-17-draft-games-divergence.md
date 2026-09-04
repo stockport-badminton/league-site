@@ -168,10 +168,22 @@ steady human process.
 - **The draft is a faithful record of what the captain submitted.** It is not, and never
   was, a record of what was *played* once corrected. Both statements are fine as long as
   nothing confuses them.
-- **HARD-03's confirmation flow is the real exposure.** It shows the away captain a draft
-  and asks them to agree it. For ~20% of fixtures that draft does not match the published
-  result, and the away captain has no way to see the corrected version. This is worth
-  fixing regardless of anything else here.
+- **HARD-03's confirmation flow is a constraint on a feature that is not live yet, not a
+  live exposure.** Corrected 4 Sep 2026 after checking: **no away captain is ever emailed.**
+  Both send sites in `scorecardController` — the one when a draft is filed and the one when
+  a photo is added — hardcode `ToAddresses: ['stockport.badders.results@gmail.com']` with
+  the league secretary's two other addresses in Bcc, and **nothing anywhere resolves an
+  away captain's address**. The submitting captain is redirected to the confirmation page
+  with their own token; no second party is notified. A comment in
+  `messer-scorecard-controller.js:379` describes "the page the away captain lands on from
+  the confirmation email", but that email does not exist. Corroborated in the data:
+  **zero rows in `scorecardstore` carry a `confirmToken`**, so the tokened link has never
+  been exercised in production at all.
+  
+  So nobody is being asked to agree to anything they cannot see. What this becomes is a
+  **precondition on rolling the feature out**: an away captain shown the draft *as filed*
+  will, for ~20% of fixtures, be agreeing to something that is then corrected. Either show
+  them the published result, or ask for confirmation before validation rather than after.
 - **HARD-09's four orphaned results should stay unrebuilt**, and now for a clear reason
   rather than an uncertain one: rebuilding games from a draft would reinstate exactly the
   uncorrected pairings that validation existed to fix.
