@@ -387,7 +387,12 @@ cause is worth recording because it is not specific to S3:
 > `app.js` and `instrument.js` both call `require('dotenv').config()` at import time, and
 > every integration test requires `app.js`. So the real `.env` — production
 > `DATABASE_URL`, `S3_BUCKET_NAME` and live AWS credentials — is loaded into every test
-> process. The database has been safe only because the models are all mocked.
+> process.
+
+The database has never been reached, and the reason is discipline rather than structure:
+every suite mocks the models it touches (nothing mocks `db_connect` itself), and
+`saveUninitialized: false` keeps requests away from the session store. **HARD-26** carries
+the general problem; this package only closed the AWS half of it.
 
 Nothing server-side had ever written to S3 before (image uploads are a presigned PUT from
 the browser), so no suite had any reason to mock the SDK, and the new code path went
