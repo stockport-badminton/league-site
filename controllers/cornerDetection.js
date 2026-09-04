@@ -189,10 +189,31 @@ async function autoRotate(imageBuffer) {
 // ── OCR ───────────────────────────────────────────────────────────────────────
 
 async function runOCR(imageBuffer) {
-  const enhanced = await sharp(imageBuffer)
-    .greyscale().normalize().sharpen()
-    .linear(1.2, -(128 * 0.2))
-    .toBuffer();
+  // `.jpeg()` matters, and not for looks.
+  //
+  // sharp's `.toBuffer()` keeps the INPUT format, and greyscale png barely compresses: a
+  // real 13.5MB png scorecard came out at 11.8MB, so almost the whole file went to Vision.
+  // Encoded as jpeg the same image is 2.6MB — 4.6x smaller — and since it has already been
+  // greyscaled, normalised and sharpened *for OCR*, jpeg artefacts are irrelevant to text
+  // detection. Without this the 25MB upload cap is only safe for jpeg inputs and quietly
+  // unsafe for png, which would arrive near Vision's ~20MB ceiling.
+  //
+  // The fallback is the second half. A genuine 11.9MB scorecard in the bucket
+  // (Parrswood C-Dome B.jpeg) makes sharp throw `VipsJpeg: Invalid SOS parameters for
+  // sequential JPEG` — malformed, not large — and with no catch here that was a 500 on the
+  // one endpoint whose job is to be helpful. Vision is more tolerant than libvips, so hand
+  // it the original bytes and let it try.
+  let enhanced;
+  try {
+    enhanced = await sharp(imageBuffer)
+      .greyscale().normalize().sharpen()
+      .linear(1.2, -(128 * 0.2))
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  } catch (err) {
+    console.warn('[ocr] enhance failed, sending the original to Vision:', err.message);
+    enhanced = imageBuffer;
+  }
 
   const [result] = await visionClient.documentTextDetection(enhanced);
   if (!result.fullTextAnnotation) throw new Error('No text detected in image');

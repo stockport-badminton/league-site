@@ -1,4 +1,5 @@
 const multer   = require('multer');
+const { extractEmbeddedImage, isRefusedArchive } = require('../utils/documentImage');
 const { distance } = require('fastest-levenshtein');
 const { analyseImage }         = require('./cornerDetection');
 const { extractScorecardData } = require('./scorecardExtraction');
@@ -8,7 +9,18 @@ const Division = require('../models/division');
 
 // ── Multer — memory storage, 10 MB limit ─────────────────────────────────────
 
-const MAX_BYTES = 10 * 1024 * 1024;
+// 25MB, up from 10.
+//
+// Only 5 of 1,494 objects in the bucket exceed 10MB, and THREE of those are genuine
+// scorecards a captain filed: a 20.3MB pdf, a 13.5MB png and an 11.9MB jpeg. So the old
+// cap was refusing real cards, and had been for two seasons. The largest legitimate one is
+// 20.3MB; 25MB clears it and still refuses the 25.2MB zip, which is the only object above
+// that and was never a supported scorecard.
+//
+// Size is not the safety mechanism — a 20MB jpeg is an ordinary phone photo while a 20MB
+// pdf can declare a 20,000x20,000 image, and no byte count separates those. The shape
+// checks in utils/documentImage.js do that. This cap is only here to refuse the absurd.
+const MAX_BYTES = 25 * 1024 * 1024;
 
 // A rejected upload is a captain making an ordinary mistake, not a fault.
 //
@@ -26,6 +38,21 @@ const upload = multer({
   limits: { fileSize: MAX_BYTES },
   fileFilter: (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith('image/')) return cb(null, true);
+    // A zip was never a supported scorecard — the one in the bucket has no row pointing at
+    // it, so nothing ever displayed it — and unpacking arbitrary archives from an
+    // unauthenticated endpoint is a different risk class. Refused by name, before anything
+    // reads a byte of it.
+    if (isRefusedArchive(file.originalname)) {
+      const err = new Error('Archives are not accepted');
+      err.code = 'REFUSED_ARCHIVE';
+      return cb(err);
+    }
+    // Word and pdf scorecards are accepted now and converted below — they are 7% of the
+    // cards on record, so sending one is ordinary behaviour.
+    if (/\.(pdf|docx)$/i.test(file.originalname || '') ||
+        /pdf|wordprocessingml/i.test(file.mimetype || '')) {
+      return cb(null, true);
+    }
     // Some browsers hand a HEIC or an unusual camera format over as
     // application/octet-stream, so fall back to the extension rather than refusing a
     // photo for the sake of a bad content type.
@@ -51,23 +78,24 @@ exports.uploadMiddleware = function (req, res, next) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       // Reachable with an ordinary phone photo: a modern camera JPEG can exceed 10MB.
       return res.status(400).json({
-        error: 'That photo is larger than 10MB. Try again with a smaller one — ' +
+        error: 'That photo is larger than 25MB. Try again with a smaller one — ' +
                'most phones can send a reduced-size copy.',
       });
     }
 
-    if (err.code === 'UNSUPPORTED_FILE_TYPE') {
-      const pdf = /pdf/i.test(err.mimetype || '') ||
-                  /\.pdf$/i.test(err.originalname || '');
-      // PDFs are 7% of the scorecards on record, so a captain sending one is entirely
-      // reasonable behaviour — the reader just cannot use it. Say which, and say what
-      // still works, rather than refusing without a route forward.
+    if (err.code === 'REFUSED_ARCHIVE') {
       return res.status(400).json({
-        error: pdf
-          ? 'That is a PDF, and the reader needs a photo of the card (JPEG, PNG or HEIC). ' +
-            'You can still attach the PDF to the scorecard itself.'
-          : 'That file is not a photo the reader can use. Send a JPEG, PNG or HEIC ' +
-            'image of the card.',
+        error: 'Zip files are not accepted. Send the photo or the document itself.',
+      });
+    }
+
+    if (err.code === 'UNSUPPORTED_FILE_TYPE') {
+      // No PDF branch here any more: pdf and docx now pass the filter and are converted
+      // in the handler, so a refusal reaching this point is a format nothing here reads.
+      // An unconvertible pdf is refused later, with its own message.
+      return res.status(400).json({
+        error: 'That file is not a photo the reader can use. Send a JPEG, PNG or HEIC ' +
+               'image of the card, or a photo pasted into a Word document.',
       });
     }
 
@@ -184,8 +212,35 @@ exports.analyse_scorecard = async function(req, res) {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
+    // Step 0: a document scorecard is a photo with a wrapper around it — pull the photo
+    // out and carry on as if that is what arrived.
+    //
+    // Every document scorecard on record is one embedded image and no text at all (0
+    // words, 0 fonts, measured over the corpus), so this is a byte copy, not a render, and
+    // needs no Ghostscript or pdf.js. See utils/documentImage.js.
+    //
+    // Extraction handles ~65% of the real corpus — every docx, and the pdfs whose image is
+    // a jpeg. The rest (office-scanner CCITT, raw pixel data) return null and are refused
+    // BELOW rather than crashing: about three cards a season, and telling the captain
+    // plainly beats a 500.
+    let imageBuffer = req.file.buffer;
+    const isDocument = /\.(pdf|docx)$/i.test(req.file.originalname || '') ||
+                       /pdf|wordprocessingml/i.test(req.file.mimetype || '');
+    if (isDocument) {
+      const extracted = extractEmbeddedImage(req.file.buffer, req.file.originalname);
+      if (!extracted) {
+        return res.status(400).json({
+          error: 'The photo could not be pulled out of that file. Send a photo of the ' +
+                 'card instead — the file itself can still be attached to the scorecard.',
+        });
+      }
+      imageBuffer = extracted.buffer;
+      // So the caller can store the image rather than the wrapper.
+      res.locals.convertedImage = extracted;
+    }
+
     // Step 1: perspective-correct coordinates + OCR
-    const { textBlocks, imageWidth, imageHeight } = await analyseImage(req.file.buffer);
+    const { textBlocks, imageWidth, imageHeight } = await analyseImage(imageBuffer);
 
     // Step 2: region-based extraction
     const { metadata, homePlayers, awayPlayers, pointsPairs } = await extractScorecardData({

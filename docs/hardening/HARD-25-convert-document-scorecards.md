@@ -197,3 +197,139 @@ and each must run **before** the work it protects against:
 - Reading *text* out of a document scorecard. There is none — 0 words and 0 fonts across
   every sample. Anything that looks like text on these is pixels.
 - The `.msg` file in the bucket (one, 3.8MB, an Outlook message). A separate curiosity.
+
+
+---
+
+# Phase 1, built 4 Sep 2026
+
+**Delivered coverage: 104 of the 141 document scorecards on record — 74%.** All 14 .docx
+and 90 of the 127 PDFs. Every one produces an image `sharp` can decode.
+
+That is measured by running the extractor over **the whole corpus**, not a sample, and the
+brief's 82% prediction was never checkable any other way. Two intermediate figures were
+reported during the work — 65%, then 59% — and both were wrong in an instructive direction:
+65% came from extrapolating a 40-file sample, and 59% was the first honest full-corpus run.
+Every later gain came from a bug the full corpus exposed and the sample had hidden.
+
+Four bugs, all of them invisible to a synthetic fixture and three of them invisible to a
+sample:
+
+1. **PDF dictionary keys are unordered.** The first version searched the 600 bytes *after*
+   `/Subtype /Image` for the filter, and four of twenty files put `/Filter` first. Fixed by
+   walking the `<<`...`>>` dictionary that introduces each stream and testing the whole of
+   it. No change on its own — because of bug 2.
+2. **An off-by-one in that dictionary walk.** `depth` started at 0 having already consumed
+   the closing `>>`, so the matching `<<` took it to -1, the loop never broke, and *every*
+   walk ran to its 20,000-byte guard and returned nothing. Together with bug 1: **48% of
+   the sample → 65%**, and 59% measured properly.
+3. **`stream` followed by a bare CR.** 21 files — one page, one image, `/DCTDecode`, the
+   exact case Phase 1 exists for — matched nothing, because the regex looking for a stream
+   was `/stream\r?\n/` and these write CR for every line ending in the file. PDF-1.3 out
+   of some old scanner driver; the spec says CRLF or LF. **59% → 74%**, the single largest
+   gain in the package, and it was a two-character fix sitting behind a wrong denominator.
+4. **A zip directory entry counted as a second image.** `fromDocx` required exactly one
+   `word/media/` entry, and a writer that emits an entry for the directory itself (legal,
+   common, and not what Word does) made that two, so a perfectly good single-photo document
+   returned null. Found by the *generated* fixture within a minute of it existing — the
+   bucket's real files happen not to have directory entries, so no real fixture could have
+   caught it.
+
+What still fails, all 37 of it:
+
+| | | |
+|---|---|---|
+| `/CCITTFaxDecode` | 15 | office-scanner bitonal; no decoder to hand — Phase 3 |
+| multi-image page | 12 | one scan sliced into 30–89 strips; which is the card? |
+| multi-page | 5 | 2 or 4 pages; picking one is a guess, so it declines |
+| no image XObject | 3 | a genuinely typed document, not a photo of a card |
+| `/FlateDecode` | 2 | raw pixels; needs the inflate cap — Phase 2 |
+
+Note what is **not** on that list: a codec Phase 1 claims to handle. The census-vs-delivered
+gap the earlier write-up attributed to "where a real PDF parser would earn its dependency"
+was mostly bug 3. What remains is genuinely structural — the multi-image and multi-page
+cases need a parser that can tell which XObject the page actually draws, not more codecs.
+
+Also handled, and not in the original plan: **`/Filter[/FlateDecode/DCTDecode]`** - a jpeg
+with zlib on top, which Acrobat writes. The first version bailed on any filter array, which
+was right that the raw bytes are not a jpeg and wrong to give up: one inflate and they are.
+`zlib`'s `maxOutputLength` is the bomb guard, and it is why this stays a Phase 1 case - the
+output is bounded by a jpeg, unlike raw pixel data which can declare any dimensions.
+
+## Decisions taken
+
+**The cap is 25MB, up from 10.** Only 5 of 1,494 objects exceed 10MB and **three are
+genuine scorecards a captain filed** - a 20.3MB pdf, a 13.5MB png and an 11.9MB jpeg - so
+the old cap had been refusing real cards for two seasons. 25MB clears the largest and still
+refuses the 25.2MB zip, the only object above it.
+
+Size is explicitly **not** the safety mechanism: a 20MB jpeg is an ordinary phone photo
+while a 20MB pdf can declare a 20,000x20,000 image, and no byte count separates them. The
+shape checks do that.
+
+**Zips are refused by name**, before anything reads a byte. Never a supported scorecard -
+the one in the bucket has no row pointing at it, so nothing ever displayed it.
+
+**The OCR enhance step now encodes to jpeg.** `sharp`'s `.toBuffer()` keeps the input
+format and greyscale png barely compresses: a real 13.5MB png scorecard reached Vision at
+**11.8MB**, and as jpeg the same image is **2.6MB - 4.6x smaller**. Since it has already
+been greyscaled, normalised and sharpened *for OCR*, jpeg artefacts are irrelevant to text
+detection. Without this the 25MB cap would be safe for jpeg inputs and quietly unsafe for
+png, which would arrive near Vision's ~20MB ceiling. Verified separately that an 11.8MB
+image *does* go through Vision (164 words detected), so the ceiling is above our largest
+real card either way - but there is no reason to send 4.6x more than necessary.
+
+**The enhance step now falls back instead of throwing.** A genuine 11.9MB scorecard in the
+bucket (`Parrswood C-Dome B.jpeg`) makes `sharp` throw `VipsJpeg: Invalid SOS parameters
+for sequential JPEG` - malformed, not large - and with no catch that was a 500 on the one
+endpoint whose job is to be helpful. Vision is more tolerant than libvips, so the original
+bytes are handed over instead. **That card could not be OCR'd at any size limit before
+this.**
+
+## What Phase 1 does not do
+
+The other 26% return null and are refused with a message naming what still works, rather
+than crashing. `utils/documentImage.js` handles docx and jpeg-bearing pdfs only; CCITT
+(15 files) and raw `/FlateDecode` pixel data (2 files) are Phase 3 and Phase 2. Both stay
+optional — but note that the multi-image page case is now **12 files, larger than either**,
+and it is not a codec problem, so if a phase 2 gets built its first job is working out
+which XObject the page draws.
+
+Nothing writes the converted image to S3 yet. `res.locals.convertedImage` carries it for a
+caller that wants it, which is the seam the storage half will use - the OCR path works
+today without it.
+
+## Tests
+
+`__tests__/unit/document-image.test.js` (23 cases). The fixtures are **generated**, by
+`__tests__/fixtures/make-document-fixtures.js`, and the reason is worth recording because
+the first version of this test did the opposite.
+
+It used real scorecards from the bucket, on the argument — correct as far as it went — that
+no hand-made file would have had unordered dictionary keys or a Flate-over-DCT chain. Then
+one was rendered before committing, and it was a filled card carrying **twelve players'
+names and both captains' signatures**. A git repository is forever and possibly public, so
+that is not a thing to commit, whatever it buys in coverage.
+
+Generating them turned out to be strictly better, not a compromise. Each file exists to
+carry exactly one structural shape and is named after it, so the test says which shape it
+is defending; a real card carries a shape incidentally and you cannot tell which by looking
+at it. And the generated docx found bug 4 within a minute, which no real fixture could
+have, because the bucket's files don't have the entry that triggers it.
+
+| fixture | shape |
+|---|---|
+| `scorecard-docx-jpeg.docx` / `-png.docx` | pasted photo in `word/media/`, plus a directory entry |
+| `scorecard-pdf-dct.pdf` | the 80% case: the stream is a jpeg |
+| `scorecard-pdf-dct-keys-reordered.pdf` | `/Filter` before `/Subtype` (bug 1) |
+| `scorecard-pdf-dct-bare-cr.pdf` | bare CR after `stream`, `[ /DCTDecode ]` (bug 3) |
+| `scorecard-pdf-flate-over-dct.pdf` | Acrobat's zlib-over-jpeg |
+| `scorecard-pdf-flate.pdf` | **real**, and the one safe one: a *blank* league form. The negative case — raw pixels, declined |
+
+Coverage against the real corpus is not something a fixture can assert, so it was measured
+out-of-band by running the extractor over all 141 objects. Re-measure the same way before
+claiming a Phase 2 number; a sample will mislead you, as it did three times here.
+
+`__tests__/integration/scorecard-analysis-upload.test.js` covers the endpoint: docx and pdf
+accepted, unconvertible pdf explained, zip refused by name, a 12MB file accepted where the
+old cap refused it, and 26MB still refused.
