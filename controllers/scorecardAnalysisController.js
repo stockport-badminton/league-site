@@ -229,9 +229,14 @@ exports.analyse_scorecard = async function(req, res) {
     if (isDocument) {
       const extracted = extractEmbeddedImage(req.file.buffer, req.file.originalname);
       if (!extracted) {
+        // Do NOT offer to attach the document instead. `/sign-s3` accepts jpeg, png,
+        // webp and heic only (utils/uploads.js), so there is no path that stores a pdf
+        // or a docx — the ones in the bucket predate that check. An earlier version of
+        // this message said the file "can still be attached to the scorecard", which
+        // was untrue and would have sent a captain round a loop that cannot close.
         return res.status(400).json({
-          error: 'The photo could not be pulled out of that file. Send a photo of the ' +
-                 'card instead — the file itself can still be attached to the scorecard.',
+          error: 'The photo could not be pulled out of that file. Take a photo of the ' +
+                 'card with your phone and upload that instead.',
         });
       }
       imageBuffer = extracted.buffer;

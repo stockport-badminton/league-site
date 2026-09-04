@@ -49,8 +49,11 @@ describe('POST /api/analyse-scorecard — refusing an upload', () => {
     // Not a 500. The uploader only shows a message it can find in responseJSON.
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/could not be pulled out/i);
-    // A route forward, not just a refusal.
-    expect(res.body.error).toMatch(/attached to the scorecard/i);
+    // A route forward, not just a refusal — and one that actually exists. It must NOT
+    // offer to attach the document, because /sign-s3 takes images only, so that would
+    // send a captain round a loop that cannot close.
+    expect(res.body.error).toMatch(/take a photo/i);
+    expect(res.body.error).not.toMatch(/attach/i);
   });
 
   it('answers 400 JSON for any other non-photo, saying what to send', async () => {
@@ -131,7 +134,8 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
       });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/could not be pulled out/i);
-    expect(res.body.error).toMatch(/attached to the scorecard/i);
+    expect(res.body.error).toMatch(/take a photo/i);
+    expect(res.body.error).not.toMatch(/attach/i);
   });
 
   it('refuses a zip by name, without reading it', async () => {

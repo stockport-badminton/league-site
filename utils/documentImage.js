@@ -33,7 +33,10 @@
 // Note what is NOT on that list: a codec Phase 1 claims to handle. It was there until the
 // bare-CR fix below, at 21 files.
 //
-// A failed extraction is never a failed upload. The file the captain sent is the record.
+// A failed extraction refuses the upload, and it has to: `/sign-s3` accepts jpeg, png,
+// webp and heic only (utils/uploads.js), so there is no path that stores a pdf or a docx.
+// The ones in the bucket predate that check. So "we could not read it, send a photo" is
+// the whole of the fallback — there is nothing to attach it to.
 
 const zlib = require('zlib');
 const { zipEntries } = require('./zip');
