@@ -262,10 +262,32 @@ match of all three statuses. Two useful responses, in order of value:
    have the suite bind an explicit port outside the range instead of asking for `0`. The
    first is machine config and does not travel with the repo; the second does.
 
-**HARD-14's outstanding wrong-status failures are the same thing** and need no separate
-investigation. Its 403→404 on `roster.test.js` was the one item there still considered a
-possible real authorization bug "failing in the permissive direction" — it is not, and
-that note should be closed with a pointer here.
+**HARD-14's outstanding wrong-status failures are probably the same thing** — but
+**this was overstated when first written, and the guard has since disproved the strong
+form of it.**
+
+The original claim was that HARD-14's 403→404 on `roster.test.js` "is not" a real
+authorization bug and needed no separate investigation. On 4 Sep, with the guard in place,
+a full run produced:
+
+```
+GET /manage-players/club-Shell/edit  expected 200, received 404
+```
+
+**The guard did not fire**, which means the response carried our CSP headers — so it came
+from *our own app*, not from a colliding listener. A genuine intermittent 404 on a
+`secured` + `requireClubAccess` route is exactly what HARD-14 suspected, in the same test
+file, and this diagnosis does not account for it.
+
+So the honest position is: the collision mechanism is established and explains the *401*
+sightings and the captured 400; it does **not** explain every wrong status, and HARD-14's
+404 on the roster routes remains open. The guard is what separates them from here on — a
+wrong status **with** our headers is ours, a wrong status **without** them is not.
+
+A third signature seen the same day and *not* attributed: `POST /fixture/reminder` failing
+with `socket hang up`. There is no HTTP response for the guard to inspect, so it says
+nothing. A colliding listener resetting the connection instead of answering would look
+like this, but that is a guess and is recorded as one.
 
 ## The reasoning error worth keeping
 

@@ -61,3 +61,37 @@ trains everybody to re-run rather than look.
 
 - Making the assertion weaker to stop it failing.
 - The 397 other tests, unless the root cause is shared.
+
+
+---
+
+## Update, 4 Sep 2026 — the 403→404 is still open, and now separable
+
+HARD-20 turned out to be a real mechanism: other processes on the developer's machine
+listen on ephemeral ports, `supertest` binds one per request, and on a collision *they*
+answer — with a 400, 401 or 404 that looks exactly like a bug in our own code. That
+explains the phantom 401s.
+
+**It does not explain this package's 403→404**, and the initial claim in HARD-20 that it
+did was too strong. A guard now in `__tests__/setupAfterEnv.js` fails with an explicit
+"this response did not come from the application" whenever a response lacks the CSP header
+that helmet puts on every one of ours. On 4 Sep a full run produced
+
+```
+GET /manage-players/club-Shell/edit   expected 200, received 404
+```
+
+and **the guard stayed silent** — so that 404 was ours. Same test file, same shape as the
+403→404 recorded above.
+
+So this package's residual stands, and is now cheap to triage rather than expensive:
+
+| failure | meaning |
+|---|---|
+| timeout | contention. Re-run the suite alone. |
+| wrong status, guard fires | a colliding local listener. Not our bug. |
+| **wrong status, guard silent** | **ours. Investigate.** |
+| `socket hang up` | unattributed. No response to inspect; possibly a collision, possibly not. |
+
+The third row is what this package is about, and it is the one that was previously
+indistinguishable from the second.
