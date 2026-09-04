@@ -169,3 +169,94 @@ Both real bugs found on 1 Sep were first dismissed as contention on the grounds 
 "did not reproduce in N runs". That is not evidence of contention; it is absence of
 evidence. Both were only diagnosed by looping until failure **and capturing the output**.
 A wrong status is never contention — contention produces timeouts.
+
+
+---
+
+# SOLVED, 4 Sep 2026 — the responses are not ours
+
+**The phantom statuses come from other processes on the developer's machine, answering on
+ephemeral ports that `supertest` collided with.** Nothing in this application produces
+them, which is exactly why grepping the codebase for a 401 found nothing and why
+production has never logged one.
+
+## How it was caught
+
+A docs-only run failed `event-page-and-sitemap.test.js › hyphenates division names`, and
+this time the output was captured rather than discarded by `| tail`:
+
+```
+Expected substring: "<loc>https://stockport-badminton.co.uk/tables/Division-1</loc>"
+Received string:    "WebSockets request was expected"
+```
+
+That string does not exist in this repository or in `node_modules`. Scanning every
+listening socket for it found the source, and then a sweep of every HTTP-speaking listener
+inside macOS's ephemeral range (`net.inet.ip.portrange` = **49152–65535**) produced the
+whole set:
+
+| port | process | answers |
+|---|---|---|
+| 49436 | VS Code helper (`Code H`) | **400** `WebSockets request was expected` |
+| **49447** | VS Code helper | **401** |
+| 51373 | VS Code helper | **404** |
+| 52383 | VS Code helper | **404** |
+| 54987 | VS Code helper | **404** |
+| 55773 | Postman | **404** |
+
+**Those are exactly the three phantom statuses this package and HARD-14 recorded** — 401,
+404 and 400 — and nothing else in the range speaks HTTP at all.
+
+| sighting | expected | got | source |
+|---|---|---|---|
+| `spam-gate › looks identical to success` | 200 | 401 | port 49447 |
+| `friendly-500 › answers 500` | 500 | 401 | port 49447 |
+| `roster › 403s a club admin ordering another club's team` | 403 | 404 | a 404 port |
+| `mail-relay › 400s without a fixture to identify` | 400 | 404 | a 404 port |
+| `event-page-and-sitemap › hyphenates division names` | body | 400 + alien body | port 49436 |
+
+## Why it fits every symptom
+
+- **No 401 in the codebase.** Correct — it was never ours.
+- **Zero 401s in 30 days of production logs**, while 404s log fine. Correct — this is a
+  local artifact of the developer's machine and cannot occur on Cloud Run.
+- **A wrong *status*, never a timeout.** A different server answered, and answered fast.
+- **Failures on a docs-only working tree**, twice. Nothing to do with the code under test.
+- **A different arbitrary test each run.** Whichever request happens to collide.
+- **Worse with concurrency, and "does not reproduce alone".** `request(app)` stands up a
+  fresh server per call, so a full run binds an ephemeral port on the order of a thousand
+  times. Six conflicting ports in a 16,384-wide range puts a collision somewhere in a full
+  run at roughly 30% — which is about the observed rate — while a single suite binds a few
+  dozen times and essentially never hits one.
+
+## What to do
+
+The kernel-level detail of how a bind lands on a port another process holds on `*` is not
+worth chasing; the source of the responses is established well past doubt by the exact
+match of all three statuses. Two useful responses, in order of value:
+
+1. **Make an alien response say so.** The cost here was never the flake, it was that a
+   collision looks like an authorization bug — this package spent days on the theory that
+   `express-jwt` was somehow reachable. A check in the test harness that recognises a
+   response the app did not produce (no `x-powered-by`/our headers, or the literal
+   `WebSockets request was expected`) and fails with *"this response did not come from the
+   app — an ephemeral port collided with another local listener"* converts a multi-day
+   mystery into a one-line diagnosis. Cheap, and it survives the next tool that opens a
+   socket.
+2. **Stop colliding.** Either raise the machine's ephemeral floor above the listeners, or
+   have the suite bind an explicit port outside the range instead of asking for `0`. The
+   first is machine config and does not travel with the repo; the second does.
+
+**HARD-14's outstanding wrong-status failures are the same thing** and need no separate
+investigation. Its 403→404 on `roster.test.js` was the one item there still considered a
+possible real authorization bug "failing in the permissive direction" — it is not, and
+that note should be closed with a pointer here.
+
+## The reasoning error worth keeping
+
+This package's own note said *"'did not reproduce in N runs' is not evidence of
+contention, it is absence of evidence"* — and it was right, but the same trap then caught
+the investigation twice over. Two of three sightings were lost to `npx jest | tail`, which
+prints the summary and discards the failing test's name and its expected/received. **The
+diagnosis took one captured body.** Three sightings over months, two thrown away by a
+pipe: capture first, theorise second.
