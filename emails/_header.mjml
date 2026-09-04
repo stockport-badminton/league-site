@@ -1,0 +1,32 @@
+<!--
+  The navy band every league email opens with. The mark is the PWA/touch icon
+  (/touch-icon-192x192.png) — real RGBA transparency, and drawn for a dark tile, so it
+  sits on the navy without a seam. `icon-512.png` is the same shuttlecock plus the SDBL
+  wordmark but baked onto a near-black square, which would show an obvious edge here.
+
+  logoUrl is absolute and comes from utils/mailer.js via absoluteUrl(). It must never be
+  built from a request host — behind Firebase that is the Cloud Run hostname (gotcha 1b),
+  and an email has no request to build from anyway.
+-->
+<!--
+  BOTH columns carry an explicit width. Give only one of them a px width and MJML splits
+  the section 50/50 instead of letting the second take the remainder — which put the logo
+  in the middle of the band and squeezed the league's name into two lines. 44 + 508 = 552,
+  the 600px body less this section's 24px padding either side.
+
+  16px rather than 17: at 17 the name wrapped once the font fell back to Arial, which it
+  does everywhere Calibri is absent — Gmail on a phone, for one. Sized so it fits in the
+  wider fallback, not just in the face it was designed against. Same trap as the Word
+  registration form, where a Chrome render wrapped a masthead that fits in Calibri.
+-->
+<mj-section background-color="#002060" padding="18px 24px">
+  <mj-column width="44px" vertical-align="middle">
+    <mj-image src="<%= logoUrl %>" width="36px" alt="" padding="0" align="left" />
+  </mj-column>
+  <mj-column width="508px" vertical-align="middle">
+    <mj-text font-size="16px" line-height="21px" color="#ffffff" font-weight="bold"
+             padding="0 0 0 8px">
+      Stockport &amp; District Badminton League
+    </mj-text>
+  </mj-column>
+</mj-section>

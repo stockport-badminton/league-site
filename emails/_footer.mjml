@@ -1,0 +1,18 @@
+<!--
+  The closing rule and the "why you got this" line.
+
+  whyReceiving is per-email and required by utils/mailer.js, because the audiences differ
+  — the results secretary, a club secretary, a captain — and a transactional email nobody
+  can place is one somebody marks as junk. With SES that matters directly: a complaint
+  counts against the domain's reputation, which is shared with every other email the
+  league sends.
+-->
+<mj-section padding="16px 0 0">
+  <mj-column>
+    <mj-divider />
+    <mj-text mj-class="footer" padding="16px 24px 22px">
+      Stockport &amp; District Badminton League<br />
+      <%= whyReceiving %>
+    </mj-text>
+  </mj-column>
+</mj-section>

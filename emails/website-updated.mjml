@@ -1,0 +1,77 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Website updated</mj-title>
+    <mj-preview><%= homeTeamName %> <%= homeScore %>&ndash;<%= awayScore %> <%= awayTeamName %></mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Result published</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0"><%= homeTeamName %> <span style="color:#626b7d">v</span> <%= awayTeamName %></mj-text>
+        <mj-text mj-class="sub" padding="4px 24px 0"><%= divisionName %></mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- The score, given the room it deserves: it is the one thing a reader opens this for. -->
+    <mj-section padding="18px 0 0">
+      <mj-column>
+        <mj-text font-size="34px" line-height="40px" color="#002060" font-weight="bold">
+          <%= homeScore %> &ndash; <%= awayScore %>
+        </mj-text>
+        <mj-text mj-class="muted" padding="4px 24px 0">Games won, out of 18.</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Guarded in mj-raw: an EJS tag between two MJML components is discarded and the
+         section renders regardless, so an empty stats table would ship as a bare header
+         row. tools/build-emails.js counts the tags to prove this survived. -->
+    <mj-raw><% if (matchStats && matchStats.length) { %></mj-raw>
+    <mj-section padding="24px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase" padding="0 24px 8px">This match</mj-text>
+        <mj-table cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <th align="left" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Player</th>
+            <th align="left" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Team</th>
+            <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Won</th>
+            <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Pts for</th>
+            <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Pts against</th>
+          </tr>
+          <% matchStats.forEach(function (row, i) { %>
+          <tr>
+            <td style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.name %></td>
+            <td style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>; color:#626b7d;"><%= row.teamName %></td>
+            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.gamesWon %></td>
+            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.avgPtsFor %></td>
+            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.avgPtsAgainst %></td>
+          </tr>
+          <% }) %>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-raw><% if (resultImageUrl) { %></mj-raw>
+    <mj-section padding="24px 0 0">
+      <mj-column>
+        <mj-image src="<%= resultImageUrl %>" alt="Result card for sharing" padding="0 24px" />
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-section padding="20px 0 0">
+      <mj-column>
+        <mj-text mj-class="muted" padding="0 24px 26px">
+          The tables and player statistics have been updated.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+
+  </mj-body>
+</mjml>

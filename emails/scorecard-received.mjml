@@ -1,0 +1,53 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Scorecard received</mj-title>
+    <mj-preview><%= homeTeamName %> v <%= awayTeamName %> — check the result</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Scorecard received</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0"><%= homeTeamName %> <span style="color:#626b7d">v</span> <%= awayTeamName %></mj-text>
+        <mj-text mj-class="sub" padding="4px 24px 0"><%= divisionName %> &middot; <%= matchDate %></mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text><%= photoLine %></mj-text>
+        <mj-button href="<%= confirmUrl %>" css-class="cta">Check the result</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- The photo row only exists when a photo does. An EJS tag sitting directly between
+         two MJML components is DISCARDED by the compiler and whatever it guarded then
+         renders unconditionally — which is exactly how a photo link that always shows
+         gets shipped. mj-raw is what makes the conditional survive, and
+         tools/build-emails.js counts the tags to prove it did. -->
+    <mj-raw><% if (photoUrl) { %></mj-raw>
+    <mj-section padding="10px 0 0">
+      <mj-column>
+        <mj-text mj-class="muted">
+          Or view the photographed card:
+          <a href="<%= photoUrl %>" style="color:#002060">scorecard photo</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text mj-class="muted" padding="0 24px 26px">
+          The link above opens the card as it was filed, for checking before it is published.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+
+  </mj-body>
+</mjml>

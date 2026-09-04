@@ -7,6 +7,7 @@ var db = require('../db_connect.js');
 const axios = require('axios');
 const Sentry = require('@sentry/node');
 const ses = require('../utils/ses');
+const mailer = require('../utils/mailer');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
@@ -172,6 +173,21 @@ exports.validateScorecard = [
       }).withMessage("Third Mixed Away Lady: can't use the same player more than once")
     ]
 
+
+// "Tuesday 3 September" from the form's YYYY-MM-DD. Built from the string's own parts
+// rather than a parsed Date so it cannot shift a day across BST — the same trap that put
+// 1,605 fixtures on the wrong date, and the reason admin_fixture_date_update stores a
+// wall-clock string.
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function formatMatchDate(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''));
+  if (!m) return '';
+  const [, y, mo, d] = m;
+  const weekday = DAYS[new Date(Date.UTC(+y, +mo - 1, +d)).getUTCDay()];
+  return `${weekday} ${+d} ${MONTHS[+mo - 1]}`;
+}
 
 // Every value the error re-render queries with lands in an integer column, so coerce here
 // rather than trusting the form.
@@ -389,29 +405,43 @@ exports.full_fixture_post = async function(req, res, next) {
       ])) || [[], [], [], [], []];
 
     const notified = await afterCommit('results email', async () => {
-      const ejs = require('ejs');
-      const emailData = {
-        homeTeam: zapObject.homeTeam,
-        awayTeam: zapObject.awayTeam,
-        generatedImage: zapObject.homeTeam.replace(/([\s]{1,})/g, '-') + zapObject.awayTeam.replace(/([\s]{1,})/g, '-'),
-        matchStats: matchStats && matchStats[1]
-      };
-      const str = await ejs.renderFile('views/emails/websiteUpdated.ejs', { data: emailData }, { debug: false });
+      // The social card the result images job writes. Built with absoluteUrl rather than
+      // the hardcoded host the old template carried, so a staging deploy links to itself.
+      // Still unconditional, as before: the image is generated fire-and-forget, so it may
+      // not exist at send time and never did.
+      const generatedImage =
+        zapObject.homeTeam.replace(/([\s]{1,})/g, '-') + zapObject.awayTeam.replace(/([\s]{1,})/g, '-');
 
+      // RECIPIENT UNCHANGED, deliberately. `req.body.email` is a caller-supplied address
+      // — the same shape as the /fixture/reminder open relay — and moving it server-side
+      // changes who gets this email, so it belongs to HARD-24 rather than to a redesign.
       const toAddresses = (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']);
-      await ses.sendEmail({
-        Destination: {
-          ToAddresses: toAddresses,
-          BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com']
+
+      const rows = (matchStats && matchStats[1]) || [];
+      await mailer.send({
+        template: 'website-updated',
+        subject: 'Website updated: ' + zapObject.homeTeam + ' v ' + zapObject.awayTeam +
+                 ' ' + zapObject.homeScore + '\u2013' + zapObject.awayScore,
+        to: toAddresses,
+        bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com'],
+        replyTo: mailer.RESULTS_MAILBOX,
+        whyReceiving: 'Sent when a result you filed is published on the website.',
+        text: [
+          zapObject.homeTeam + ' ' + zapObject.homeScore + '-' + zapObject.awayScore + ' ' + zapObject.awayTeam,
+          zapObject.division,
+          '',
+          'The tables and player statistics have been updated.',
+          absoluteUrl('/results/All'),
+        ].join('\n'),
+        data: {
+          homeTeamName: zapObject.homeTeam,
+          awayTeamName: zapObject.awayTeam,
+          divisionName: zapObject.division,
+          homeScore: zapObject.homeScore,
+          awayScore: zapObject.awayScore,
+          matchStats: rows,
+          resultImageUrl: absoluteUrl('/static/beta/images/generated/' + generatedImage + '.jpg'),
         },
-        Message: {
-          Body: {
-            Html: { Charset: 'UTF-8', Data: str }
-          },
-          Subject: { Charset: 'UTF-8', Data: 'Website Updated: ' + zapObject.homeTeam + ' vs ' + zapObject.awayTeam }
-        },
-        Source: 'results@stockport-badminton.co.uk',
-        ReplyToAddresses: ['stockport.badders.results@gmail.com'],
       });
       return true;
     });
@@ -569,29 +599,49 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       // URL was itself the authorization on the photo, which is what made it worth
       // fixing: forwarded once, it was public forever.
       const photoLink = photoUrl ? photoLinkFor(scorecardId, confirmToken) : '';
+
+      // The match, by name. The form posts ids, so this costs three lookups — worth it
+      // because the email used to say only "a new scorecard has been entered" and left
+      // the reader to open the link to find out which match it meant. The same gap the
+      // Tameside site found in its reminder, whose subject line named a match its own
+      // body could not. A failed lookup degrades to a generic label rather than losing
+      // the email: the link is the payload, the names are the courtesy.
+      const [homeRows, awayRows, divRows] = await Promise.all([
+        Team.getById(scorecardObj.homeTeam),
+        Team.getById(scorecardObj.awayTeam),
+        Division.getById(scorecardObj.division),
+      ]).catch(() => [[], [], []]);
+      const named = (rows, fallback) => (rows && rows[0] && rows[0].name) || fallback;
+      const homeTeamName = named(homeRows, 'Home team');
+      const awayTeamName = named(awayRows, 'Away team');
       const photoLine = photoUrl
-        ? 'a new scorecard has been uploaded: <a href="' + escapeHtml(photoLink) + '">' +
-          escapeHtml(photoLink) + '</a>'
-        : 'a new scorecard has been entered, with no photo attached.';
-      const params = {
-        Destination: {
-          ToAddresses: ['stockport.badders.results@gmail.com'],
-          BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com']
+        ? 'A scorecard has been entered, with a photo attached.'
+        : 'A scorecard has been entered, with no photo attached.';
+
+      await mailer.send({
+        template: 'scorecard-received',
+        subject: 'Scorecard received: ' + homeTeamName + ' v ' + awayTeamName,
+        to: mailer.RESULTS_MAILBOX,
+        bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com'],
+        replyTo: mailer.RESULTS_MAILBOX,
+        whyReceiving: 'Sent to the results secretary whenever a captain files a scorecard.',
+        text: [
+          homeTeamName + ' v ' + awayTeamName,
+          photoLine,
+          '',
+          'Check the result: ' + scorecardUrlBeta,
+          photoUrl ? 'Photo: ' + photoLink : '',
+        ].filter(Boolean).join('\n'),
+        data: {
+          homeTeamName,
+          awayTeamName,
+          divisionName: named(divRows, 'League fixture'),
+          matchDate: formatMatchDate(scorecardObj.date),
+          confirmUrl: scorecardUrlBeta,
+          photoUrl: photoLink,
+          photoLine,
         },
-        Message: {
-          Body: {
-            Html: {
-              Charset: 'UTF-8',
-              Data: '<p>' + photoLine + '<br />Check the result here: <a href="' +
-                escapeHtml(scorecardUrlBeta) + '">' + escapeHtml(scorecardUrlBeta) + '</a></p>'
-            }
-          },
-          Subject: { Charset: 'UTF-8', Data: 'Scorecard Received' }
-        },
-        Source: 'results@stockport-badminton.co.uk',
-        ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-      };
-      await ses.sendEmail(params);
+      });
       // The captain gets the token too, or the page they are redirected to would refuse
       // the draft they have just this moment filed.
       res.redirect(confirmationPath(scorecardId, confirmToken));

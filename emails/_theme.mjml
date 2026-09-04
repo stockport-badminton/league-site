@@ -1,0 +1,38 @@
+<!--
+  Shared look for every league email. Included by each template's <mj-head>, so a colour
+  or a font changes in one place.
+
+  The palette is the league's own, not invented. #002060 is the navy measured off the
+  printed registration form (see utils/teamRegistrationDoc.js); the navy table header with
+  white bold text below is the same treatment that form uses, so an emailed invoice and a
+  posted one look related. #14532d and #8b1a1a were already in the weekly digest and are
+  kept. What has gone is the accreted set — a #343a40 header bar and #1188E6 links, both
+  inherited from a Mailchimp export.
+
+  Calibri first, then Segoe UI, then Arial. These are SYSTEM fonts, not a webfont: Outlook
+  renders through Word and ignores @font-face entirely, so a webfont would apply for some
+  readers and not others. Calibri is also what the paper forms are set in, and it is
+  present wherever Outlook is.
+-->
+<mj-attributes>
+  <mj-all font-family="Calibri, 'Segoe UI', Arial, sans-serif" />
+  <mj-text font-size="16px" line-height="24px" color="#1f2430" padding="0 24px" />
+  <mj-section background-color="#ffffff" padding="0" />
+  <mj-column padding="0" />
+  <mj-button background-color="#002060" color="#ffffff" font-size="16px"
+             font-weight="bold" inner-padding="13px 26px" border-radius="0"
+             padding="22px 24px 6px" align="left" />
+  <mj-divider border-color="#dfe3ea" border-width="1px" padding="0 24px" />
+  <mj-table font-size="15px" color="#1f2430" padding="20px 24px 0" />
+  <mj-class name="kicker" font-size="12px" line-height="16px" color="#626b7d" letter-spacing="1.1px" />
+  <mj-class name="h1" font-size="26px" line-height="32px" color="#1f2430" />
+  <mj-class name="sub" font-size="15px" line-height="22px" color="#626b7d" />
+  <mj-class name="muted" font-size="14px" line-height="21px" color="#626b7d" />
+  <mj-class name="footer" font-size="13px" line-height="19px" color="#626b7d" />
+</mj-attributes>
+<mj-style>
+  /* Some clients strip a button's own styles; keep the label readable if they do. */
+  .cta a { color: #ffffff !important; text-decoration: none !important; }
+  /* A long confirmation URL must not force sideways scrolling on a phone. */
+  .breakable { word-break: break-all; }
+</mj-style>

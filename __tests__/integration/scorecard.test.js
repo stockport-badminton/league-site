@@ -162,6 +162,18 @@ beforeEach(() => {
 
 // ── GET /scorecard-beta ───────────────────────────────────────────────────────
 
+// The whole emailed body — HTML and plain text together.
+//
+// This suite mocks `ejs` (see the top of the file), so once these emails moved to
+// compiled MJML templates the HTML part here is the mock's stub and the URLs live in the
+// plain-text part utils/mailer.js builds directly. These tests are about what got
+// emailed, not which MIME part it landed in, so they read both. The rendered HTML is
+// asserted for real in __tests__/integration/emails.test.js, which does not mock ejs.
+function emailBodyOf(call) {
+  const body = call.Message.Body;
+  return [body.Html && body.Html.Data, body.Text && body.Text.Data].filter(Boolean).join('\n');
+}
+
 describe('GET /scorecard-beta', () => {
   it('returns 200 and renders the scorecard form', async () => {
     Division.getAllByLeague.mockResolvedValue(mockDivisions);
@@ -293,7 +305,7 @@ describe('POST /email-scorecard', () => {
         .send(validScorecard());
 
       expect(ses.sendEmail).toHaveBeenCalledTimes(1);
-      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
       expect(html).toContain('/populated-scorecard-beta/42');
       expect(html).not.toContain('undefined');
     });
@@ -667,7 +679,7 @@ describe('POST /add-scorecard-photo/:id', () => {
       expect(res.status).toBe(200);
       expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', PHOTO_URL);
       expect(ses.sendEmail).toHaveBeenCalledTimes(1);
-      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
       // The bucket URL is what gets *stored*; what gets *emailed* is the proxy path.
       // This asserted PHOTO_URL until HARD-02b made the objects private — a bucket link
       // in this mail is now an AccessDenied page for the results secretary, and the
@@ -684,7 +696,7 @@ describe('POST /add-scorecard-photo/:id', () => {
         .set('Host', CLOUD_RUN_HOST)
         .send({ imgURL: PHOTO_URL });
 
-      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
       expect(html).toContain('https://stockport-badminton.co.uk/populated-scorecard-beta/7');
       expect(html).not.toContain(CLOUD_RUN_HOST);
     });
@@ -698,7 +710,7 @@ describe('POST /add-scorecard-photo/:id', () => {
         .post('/add-scorecard-photo/7')
         .send({ imgURL: PHOTO_URL, token: 'tok-en-123' });
 
-      const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+      const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
       expect(html).toContain('/populated-scorecard-beta/7?t=tok-en-123');
     });
   });
@@ -898,7 +910,7 @@ describe('POST /email-scorecard link and token', () => {
       .set('Host', CLOUD_RUN_HOST)
       .send(validScorecard());
 
-    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
     expect(html).toContain('https://stockport-badminton.co.uk/populated-scorecard-beta/42?t=');
     expect(html).not.toContain(CLOUD_RUN_HOST);
   });
@@ -907,7 +919,7 @@ describe('POST /email-scorecard link and token', () => {
     await request(app).post('/email-scorecard').send(validScorecard());
 
     const token = Fixture.createScorecard.mock.calls[0][0].confirmToken;
-    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
     expect(html).toContain('/populated-scorecard-beta/42?t=' + token);
   });
 
@@ -929,7 +941,7 @@ describe('POST /email-scorecard link and token', () => {
     expect(res.status).toBe(302);
     expect(Fixture.createScorecard).toHaveBeenCalledTimes(1);
     expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe('');
-    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
     expect(html).not.toContain('evil.example.com');
   });
 
@@ -939,7 +951,7 @@ describe('POST /email-scorecard link and token', () => {
       .send(validScorecard({ 'scoresheet-url': PHOTO_URL }));
 
     expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe(PHOTO_URL);
-    const html = ses.sendEmail.mock.calls[0][0].Message.Body.Html.Data;
+    const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
     // Stored as the bucket URL, emailed as the proxy path — see HARD-02b, and the
     // same change to the sibling assertion in POST /add-scorecard-photo/:id above.
     expect(html).toContain('/scorecard-photo/');
@@ -992,7 +1004,7 @@ describe('the results-secretary emails link the photo through the proxy', () => 
 
   function htmlOfLastEmail() {
     const call = ses.sendEmail.mock.calls[ses.sendEmail.mock.calls.length - 1][0];
-    return call.Message.Body.Html.Data;
+    return emailBodyOf(call);
   }
 
   beforeEach(() => {

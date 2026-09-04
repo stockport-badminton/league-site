@@ -651,6 +651,68 @@ docx path**.
 - Tests unzip the response and assert against `word/document.xml`. Asserting on the
   buffer or on which function was called would not have caught the geometry bugs.
 
+### Emails: one MJML pipeline
+
+```
+emails/*.mjml  --  npm run build:email  ->  views/emails/*.ejs  --  utils/mailer.js  ->  SES
+```
+
+**The compiled `.ejs` is committed, and that is deliberate.** The Dockerfile runs
+`npm ci --omit=dev` and `mjml` is a devDependency, so it never reaches the image;
+production renders a plain EJS template with the `ejs` it already had. Compiling in the
+image instead would make `mjml` a production dependency for the sake of a build step.
+`npm run build:email:check` fails if the committed output is stale, and a test asserts it,
+so editing a `views/emails/*.ejs` by hand is caught rather than silently overwritten.
+
+**Every send goes through `mailer.send({ template, data, subject, text, whyReceiving, to })`.**
+Two of its arguments are **required and have no default**, because both were missing
+everywhere before:
+
+- `text` — a plain-text alternative. No previous sender set one, and a message without it
+  scores worse with spam filters and shows an empty body in a text-only client.
+- `whyReceiving` — the footer's "why you got this" line, per email because the audiences
+  differ. With SES a complaint counts against the domain's reputation, which is shared
+  with the invoices.
+
+**Three MJML 5 traps, all of which fail silently** (`tools/build-emails.js` documents them
+at length and guards the third):
+
+1. **The API is async.** Treating `mjml2html()` as synchronous gives an object with no
+   `html` and a template containing only the banner comment.
+2. **`mj-include` is disabled by default.** `filePath` alone is not enough — without
+   `ignoreIncludes: false` the partials are dropped with no error, so you get a template
+   with no header, footer or theme.
+3. **An EJS tag *between* two MJML components is discarded**, and the content it guarded
+   then renders unconditionally — `<% if (photoUrl) { %>` around an `<mj-text>` becomes a
+   photo link that always shows. Wrap it in `<mj-raw>`. The build counts EJS tags in the
+   source and its includes against the output and **fails** if any were eaten.
+
+Two more that cost time here:
+
+- **`ejs.renderFile` must be called in its promise form** in `utils/mailer.js`.
+  `scorecard.test.js` mocks `ejs` with `renderFile: jest.fn().mockResolvedValue(...)`,
+  which never invokes a callback — so a callback-wrapped promise never settles, and 21
+  tests sat until Jest's timeout instead of failing.
+- **In `mj-section`, give *every* column an explicit width or none.** With one `44px`
+  column and one `auto`, MJML splits the section 50/50 rather than letting the second take
+  the remainder.
+
+`npm run preview:email` renders each template with sample data, including the no-photo and
+no-stats variants that exercise the `mj-raw` conditionals. A preview is not proof: it
+renders in a browser and an email renders in Outlook, which lays out through Word.
+
+**Converted so far: `scorecard-received` and `website-updated`** — the two a real
+submission triggers. The other 11 sends still build HTML by string concatenation, so
+CLAUDE.md's rule about escaping with `utils/html.js` still governs them; a template
+escapes by default, which is what retires that rule as each one moves.
+
+Design: navy `#002060` is the league's own colour, measured off the printed registration
+form, and the navy table header with white bold text is that form's own treatment — so an
+emailed invoice and a posted one look related. Calibri first, then Segoe UI, then Arial,
+all **system** fonts: Outlook renders through Word and ignores `@font-face`, so a webfont
+would apply for some readers and not others. Size text so it fits in the *fallback*, not
+just the intended face.
+
 ## Docker & Deployment
 
 - **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation

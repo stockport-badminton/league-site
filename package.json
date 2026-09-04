@@ -59,7 +59,10 @@
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "jest && playwright test"
+    "test:all": "jest && playwright test",
+    "build:email": "node tools/build-emails.js",
+    "build:email:check": "node tools/build-emails.js --check",
+    "preview:email": "node tools/preview-emails.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -81,6 +84,7 @@
   "devDependencies": {
     "@playwright/test": "^1.62.0",
     "jest": "^30.4.2",
+    "mjml": "^5.4.0",
     "supertest": "^7.2.2"
   },
   "overrides": {

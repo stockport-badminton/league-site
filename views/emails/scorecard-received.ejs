@@ -1,0 +1,638 @@
+<%# GENERATED FILE — do not edit.
+    Source: emails/scorecard-received.mjml   Rebuild: npm run build:email
+    Editing this file directly will be overwritten by the next build. %>
+<!doctype html>
+<html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head>
+    <title>Scorecard received</title>
+    <!--[if !mso]><!-->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!--<![endif]-->
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+      #outlook a { padding:0; }
+      body { margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%; }
+      table, td { border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt; }
+      img { border:0;height:auto;line-height:100%; outline:none;text-decoration:none;-ms-interpolation-mode:bicubic; }
+      p { display:block;margin:13px 0; }
+    </style>
+    <!--[if mso]>
+    <noscript>
+    <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+    <!--[if lte mso 11]>
+    <style type="text/css">
+      .mj-outlook-group-fix { width:100% !important; }
+    </style>
+    <![endif]-->
+    
+    
+    <style type="text/css">
+      @media only screen and (min-width:480px) {
+        .mj-column-px-44 { width:44px !important; max-width: 44px; }
+.mj-column-px-508 { width:508px !important; max-width: 508px; }
+.mj-column-per-100 { width:100% !important; max-width: 100%; }
+      }
+    </style>
+    <style media="screen and (min-width:480px)">
+      .moz-text-html .mj-column-px-44 { width:44px !important; max-width: 44px; }
+.moz-text-html .mj-column-px-508 { width:508px !important; max-width: 508px; }
+.moz-text-html .mj-column-per-100 { width:100% !important; max-width: 100%; }
+    </style>
+    
+    
+  
+    
+    <style type="text/css">
+
+    @media only screen and (max-width:479px) {
+      table.mj-full-width-mobile { width: 100% !important; }
+      td.mj-full-width-mobile { width: auto !important; }
+    }
+  
+    </style>
+     
+    <style type="text/css">
+/* Some clients strip a button's own styles; keep the label readable if they do. */
+  .cta a { color: #ffffff !important; text-decoration: none !important; }
+  /* A long confirmation URL must not force sideways scrolling on a phone. */
+  .breakable { word-break: break-all; }
+    </style>
+    <!--
+  Shared look for every league email. Included by each template's <mj-head>, so a colour
+  or a font changes in one place.
+
+  The palette is the league's own, not invented. #002060 is the navy measured off the
+  printed registration form (see utils/teamRegistrationDoc.js); the navy table header with
+  white bold text below is the same treatment that form uses, so an emailed invoice and a
+  posted one look related. #14532d and #8b1a1a were already in the weekly digest and are
+  kept. What has gone is the accreted set — a #343a40 header bar and #1188E6 links, both
+  inherited from a Mailchimp export.
+
+  Calibri first, then Segoe UI, then Arial. These are SYSTEM fonts, not a webfont: Outlook
+  renders through Word and ignores @font-face entirely, so a webfont would apply for some
+  readers and not others. Calibri is also what the paper forms are set in, and it is
+  present wherever Outlook is.
+-->
+  </head>
+  
+      <body  style="word-spacing:normal;background-color:#eef0f4;">
+        
+    <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;"><%= homeTeamName %> v <%= awayTeamName %> — check the result</div>
+  
+        <div
+           aria-label="Scorecard received" aria-roledescription="email" role="article" lang="und" dir="auto" style="word-spacing:normal;background-color:#eef0f4;"
+        >
+        <!--
+  The navy band every league email opens with. The mark is the PWA/touch icon
+  (/touch-icon-192x192.png) — real RGBA transparency, and drawn for a dark tile, so it
+  sits on the navy without a seam. `icon-512.png` is the same shuttlecock plus the SDBL
+  wordmark but baked onto a near-black square, which would show an obvious edge here.
+
+  logoUrl is absolute and comes from utils/mailer.js via absoluteUrl(). It must never be
+  built from a request host — behind Firebase that is the Cloud Run hostname (gotcha 1b),
+  and an email has no request to build from anyway.
+--><!--
+  BOTH columns carry an explicit width. Give only one of them a px width and MJML splits
+  the section 50/50 instead of letting the second take the remainder — which put the logo
+  in the middle of the band and squeezed the league's name into two lines. 44 + 508 = 552,
+  the 600px body less this section's 24px padding either side.
+
+  16px rather than 17: at 17 the name wrapped once the font fell back to Arial, which it
+  does everywhere Calibri is absent — Gmail on a phone, for one. Sized so it fits in the
+  wider fallback, not just in the face it was designed against. Same trap as the Word
+  registration form, where a Chrome render wrapped a masthead that fits in Calibri.
+-->
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#002060" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#002060;background-color:#002060;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#002060;background-color:#002060;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:18px 24px;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:44px;" ><![endif]-->
+            
+      <div
+         class="mj-column-px-44 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:middle;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0;word-break:break-word;"
+                >
+                  
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;"
+      >
+        <tbody>
+          <tr>
+            <td  style="width:36px;">
+              
+      <img
+         alt="" src="<%= logoUrl %>" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="36" height="auto"
+      />
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td><td class="" style="vertical-align:middle;width:508px;" ><![endif]-->
+            
+      <div
+         class="mj-column-px-508 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:middle;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 0 0 8px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:bold;line-height:21px;text-align:left;color:#ffffff;"
+      >Stockport &amp; District Badminton League</div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:28px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:12px;letter-spacing:1.1px;line-height:16px;text-align:left;text-transform:uppercase;color:#626b7d;"
+      >Scorecard received</div>
+    
+                </td>
+              </tr>
+            
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:6px 24px 0;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:26px;line-height:32px;text-align:left;color:#1f2430;"
+      ><%= homeTeamName %> <span style="color:#626b7d">v</span> <%= awayTeamName %></div>
+    
+                </td>
+              </tr>
+            
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:4px 24px 0;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:15px;line-height:22px;text-align:left;color:#626b7d;"
+      ><%= divisionName %> &middot; <%= matchDate %></div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:16px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;line-height:24px;text-align:left;color:#1f2430;"
+      ><%= photoLine %></div>
+    
+                </td>
+              </tr>
+            
+              <tr>
+                <td
+                   align="left" class="cta" style="font-size:0px;padding:22px 24px 6px;word-break:break-word;"
+                >
+                  
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;"
+      >
+        <tbody>
+          <tr>
+            <td
+               align="center" bgcolor="#002060" role="presentation" style="border:none;border-radius:0;cursor:auto;mso-padding-alt:13px 26px;background:#002060;" valign="middle"
+            >
+              <a
+                 href="<%= confirmUrl %>" style="display:inline-block;background:#002060;color:#ffffff;font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:bold;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:13px 26px;mso-padding-alt:0px;border-radius:0;" target="_blank"
+              >
+                Check the result
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><![endif]-->
+    
+    <!-- The photo row only exists when a photo does. An EJS tag sitting directly between
+         two MJML components is DISCARDED by the compiler and whatever it guarded then
+         renders unconditionally — which is exactly how a photo link that always shows
+         gets shipped. mj-raw is what makes the conditional survive, and
+         tools/build-emails.js counts the tags to prove it did. --><% if (photoUrl) { %>
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:10px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:14px;line-height:21px;text-align:left;color:#626b7d;"
+      >Or view the photographed card:
+          <a href="<%= photoUrl %>" style="color:#002060">scorecard photo</a></div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><![endif]-->
+    
+    <% } %>
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:16px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px 26px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:14px;line-height:21px;text-align:left;color:#626b7d;"
+      >The link above opens the card as it was filed, for checking before it is published.</div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><![endif]-->
+    
+    <!--
+  The closing rule and the "why you got this" line.
+
+  whyReceiving is per-email and required by utils/mailer.js, because the audiences differ
+  — the results secretary, a club secretary, a captain — and a transactional email nobody
+  can place is one somebody marks as junk. With SES that matters directly: a complaint
+  counts against the domain's reputation, which is shared with every other email the
+  league sends.
+-->
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:16px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="center" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <p
+         style="border-top:solid 1px #dfe3ea;font-size:1px;margin:0px auto;width:100%;"
+      >
+      </p>
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="border-top:solid 1px #dfe3ea;font-size:1px;margin:0px auto;width:552px;" role="presentation" width="552px" ><tr><td style="height:0;line-height:0;"> &nbsp;
+</td></tr></table><![endif]-->
+    
+    
+                </td>
+              </tr>
+            
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:16px 24px 22px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:13px;line-height:19px;text-align:left;color:#626b7d;"
+      >Stockport &amp; District Badminton League<br />
+      <%= whyReceiving %></div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><![endif]-->
+    
+    
+      </div>
+      </body>
+    
+</html>
+  
