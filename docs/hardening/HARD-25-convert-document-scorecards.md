@@ -410,3 +410,75 @@ mocked so the PUT is observable as well as harmless: the extracted jpeg is what 
 a `.jpg` extension, **no ACL**, the returned URL round-trips through `normalisePhotoUrl`, a
 store failure still returns the OCR with `photoStored: false`, and an image upload stores
 nothing and is told nothing. Plus the browser test for `accept`.
+
+
+---
+
+# Opening the form to documents, 4 Sep 2026
+
+All three photo inputs now take a scanner PDF or Word file. **Both upload boxes are
+kept**, and the split is the design:
+
+| box | reads the card? | route |
+|---|---|---|
+| auto-fill (`#scorecardPhoto`) | yes — OCR prefill | `POST /api/analyse-scorecard` |
+| plain photo (`#scoresheet-spreadsheet`) | **no** | `POST /api/convert-scorecard-document` for a document; presigned PUT for an image |
+| add to a filed fixture (`.scorecardimages`) | no | same, then `POST /add-scorecard-photo/:id` |
+
+**Why a second endpoint rather than a flag.** Some captains would rather a machine did not
+read their card, and until the OCR has a season behind it that is a preference to honour
+rather than design away. `/api/convert-scorecard-document` converts and stores and does
+**not** call Vision — there is a test asserting `analyseImage` is never called, because if
+that ever changes the promise the form makes is broken and nothing else would say so. It is
+cheaper too (no Vision units), but that is not the argument.
+
+Phase 2 was never the blocker: it is more *codecs*, and this is about routing. The 26% that
+cannot be decoded are refused with the same message either way.
+
+Both endpoints share `convertDocument()` and one `uploadMiddleware`, so the 25MB cap, the
+archive refusal, the extraction and the bucket allowlist cannot differ between them.
+
+## The bug this was really about
+
+The plain photo box had **no `accept` attribute**, so the dialog offered every file, and
+its handler's entire error path was:
+
+```js
+catch (error){ console.error(error.message); }
+```
+
+`/sign-s3` refuses anything that is not an image, so a captain picking a PDF got **no
+alert, no message, an empty `scoresheet-url`, and a scorecard filed with no photo**. That
+matches the reported symptom exactly — a card arriving with no photo alongside a Sentry
+issue about not being able to get a signed URL. The refusal was working; the page was
+throwing it away.
+
+`static/beta/js/scorecard-upload.js` now owns both routes for all three inputs, and every
+path either returns a URL or throws an `Error` whose message is fit for a captain to read.
+The three call sites previously held near-identical copies of the sign-and-PUT dance, so
+this removes duplication rather than adding a third copy — **do not add a caller that does
+not show what it throws.**
+
+Three further bugs fell out of doing it:
+
+- **The league form still rewrote `%20` as `+`.** HARD-03 fixed this on the other upload
+  path but not this one, so it was still minting the `+`-for-space URLs that
+  `photoKeyFromStored` has to undo. It uses the server's `url` now.
+- **`#scoresheet-img` was assigned `.value`.** It is an `<img>`, so the preview has never
+  once appeared.
+- **And the obvious fix for that was wrong.** Pointing it at the bucket URL is a broken
+  image: objects are private since HARD-02b, and there is no draft row to serve it through
+  `GET /scorecard-photo/:id` yet, because the draft is created by the submit the preview
+  happens before. `views/messer-scorecard.ejs` had already learned this and previews from
+  `URL.createObjectURL(file)`; reading that comment is what caught it. A document gets no
+  preview at all — a pdf will not render in an `<img>` either.
+
+## Tests
+
+Eight cases for the endpoint (stores the image not the pdf, server-generated key, no ACL,
+URL round-trips through `normalisePhotoUrl`, **does not OCR**, turns away an image, reports
+a failed store as 502 rather than a 200 with no URL, refuses a zip and the 25MB cap, and is
+not reachable without logging in). Four browser cases: `accept` on all three inputs across
+both forms, and `ScorecardUpload.isDocument` routing — asserted in the browser because the
+predicate runs there, and it needs no network so the read-only guard has nothing to object
+to.

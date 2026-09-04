@@ -208,6 +208,92 @@ function mapScores(pointsPairs) {
   return scores;
 }
 
+// ── Turning a document into a stored image ────────────────────────────────────
+//
+// Shared by both endpoints below, because the *rules* must not differ between them: the
+// same 25MB cap, the same archive refusal, the same extraction, the same allowlist on the
+// way into the bucket. Two copies of "what may be uploaded" is how one of them drifts.
+
+const isDocumentUpload = file =>
+  /\.(pdf|docx)$/i.test(file.originalname || '') ||
+  /pdf|wordprocessingml/i.test(file.mimetype || '');
+
+// The message a captain sees when Phase 1 cannot read their file. Deliberately does NOT
+// offer to attach the document: `/sign-s3` accepts jpeg, png, webp and heic only
+// (utils/uploads.js), so there is no path that stores a pdf or a docx — the ones in the
+// bucket predate that check. An earlier version of this said the file "can still be
+// attached to the scorecard", which was untrue and sent captains round a loop that
+// cannot close.
+const CANNOT_EXTRACT =
+  'The photo could not be pulled out of that file. Take a photo of the card with your ' +
+  'phone and upload that instead.';
+
+// Extract, then store the IMAGE — never the wrapper. Storing the pdf would preserve
+// exactly what captains find annoying about it: a file the browser will not open inline.
+//
+// Returns { extracted, stored } where `stored` is null if the PUT failed. A store failure
+// is reported, not thrown, because the caller may still have something worth returning
+// (the OCR prefill) and losing that as well helps nobody.
+async function convertDocument(file) {
+  const extracted = extractEmbeddedImage(file.buffer, file.originalname);
+  if (!extracted) return { extracted: null, stored: null };
+
+  let stored = null;
+  try {
+    stored = await storeImage({
+      buffer: extracted.buffer,
+      contentType: extracted.contentType,
+      hint: file.originalname,
+    });
+  } catch (err) {
+    console.error('scorecard document: storing the extracted photo failed:', err.message);
+    Sentry.captureException(err);
+  }
+  return { extracted, stored };
+}
+
+// ── POST /api/convert-scorecard-document ──────────────────────────────────────
+//
+// Convert a document scorecard to a stored image and hand back its URL. **No OCR.**
+//
+// That is the whole reason it is a separate endpoint rather than a flag on the analysis
+// one. The scorecard form keeps two upload boxes on purpose: the auto-fill box, which
+// reads the card, and the plain photo box, which does not. Some captains would rather
+// their card were not read by a machine, and until the OCR has a season behind it that is
+// a preference worth honouring rather than designing away. It is also cheaper — no Vision
+// units — but that is not the argument.
+//
+// Documents only. An image belongs on the presigned PUT from `/sign-s3`, which does not
+// pass the bytes through the server at all.
+exports.convert_scorecard_document = async function(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!isDocumentUpload(req.file)) {
+      return res.status(400).json({
+        error: 'That is not a PDF or Word file. A photo does not need converting — ' +
+               'upload it directly.',
+      });
+    }
+
+    const { extracted, stored } = await convertDocument(req.file);
+    if (!extracted) return res.status(400).json({ error: CANNOT_EXTRACT });
+    if (!stored) {
+      // Nothing else to fall back on here: unlike the analysis endpoint there is no
+      // prefill to return, so a failed store IS the failure.
+      return res.status(502).json({
+        error: 'The photo was read out of your file but could not be saved. Please try ' +
+               'again, or upload a photo of the card instead.',
+      });
+    }
+
+    res.json({ url: stored.url, contentType: extracted.contentType });
+  } catch (err) {
+    console.error('convert-scorecard-document failed:', err.message);
+    Sentry.captureException(err);
+    res.status(500).json({ error: 'Could not convert that file.' });
+  }
+};
+
 // ── POST /api/analyse-scorecard ───────────────────────────────────────────────
 
 exports.analyse_scorecard = async function(req, res) {
@@ -229,47 +315,18 @@ exports.analyse_scorecard = async function(req, res) {
     // Set when a document's image has been stored, so it is still reported if the OCR
     // below throws. The photo is the record; reading it is a bonus.
     let storedPhoto = null;
-    const isDocument = /\.(pdf|docx)$/i.test(req.file.originalname || '') ||
-                       /pdf|wordprocessingml/i.test(req.file.mimetype || '');
+    const isDocument = isDocumentUpload(req.file);
     if (isDocument) {
-      const extracted = extractEmbeddedImage(req.file.buffer, req.file.originalname);
-      if (!extracted) {
-        // Do NOT offer to attach the document instead. `/sign-s3` accepts jpeg, png,
-        // webp and heic only (utils/uploads.js), so there is no path that stores a pdf
-        // or a docx — the ones in the bucket predate that check. An earlier version of
-        // this message said the file "can still be attached to the scorecard", which
-        // was untrue and would have sent a captain round a loop that cannot close.
-        return res.status(400).json({
-          error: 'The photo could not be pulled out of that file. Take a photo of the ' +
-                 'card with your phone and upload that instead.',
-        });
-      }
+      const { extracted, stored } = await convertDocument(req.file);
+      if (!extracted) return res.status(400).json({ error: CANNOT_EXTRACT });
       imageBuffer = extracted.buffer;
+      storedPhoto = stored;
       // So a caller can reach the image rather than the wrapper.
       res.locals.convertedImage = extracted;
-
-      // Store the extracted image, not the document. `/sign-s3` accepts images only, so
-      // this is the ONLY way a document scorecard's photo gets into the bucket — and the
-      // right way round: what lands is an ordinary jpeg, so the photo proxy serves it,
-      // the browser shows it inline, and next season's OCR can read it again. Keeping
-      // the pdf instead would preserve the thing captains find annoying to open.
-      //
-      // Before the OCR, deliberately. If Vision or the extraction throws, the captain
-      // still gets their photo back rather than losing it to an error further down.
-      //
-      // A failure here must not fail the request: the OCR is still worth having, and the
-      // response says `photoStored: false` so the page can tell them to attach a photo
-      // the usual way rather than assuming it worked.
-      try {
-        storedPhoto = await storeImage({
-          buffer: extracted.buffer,
-          contentType: extracted.contentType,
-          hint: req.file.originalname,
-        });
-      } catch (err) {
-        console.error('analyse-scorecard: storing the extracted photo failed:', err.message);
-        Sentry.captureException(err);
-      }
+      // convertDocument has already stored it — before the OCR, deliberately, so that if
+      // Vision throws the captain still gets their photo back rather than losing it to an
+      // error further down. A failed store does not fail this request: the prefill is
+      // still worth having, and `photoStored: false` tells the page to say so.
     }
 
     // Step 1: perspective-correct coordinates + OCR

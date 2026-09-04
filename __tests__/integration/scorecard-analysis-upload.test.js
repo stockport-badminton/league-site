@@ -10,14 +10,21 @@
 
 const request = require('supertest');
 
-// Logged in: the route is `secured`, and the real caller was.
+// Logged in by default: both routes here are `secured`, and the real caller was. Mutable
+// so one case can exercise the anonymous path, following the pattern in
+// __tests__/integration/fixture-rearrangement.test.js.
+let mockLoggedIn = true;
 jest.mock('../../middleware/secured', () => (req, res, next) => {
+  if (!mockLoggedIn) {
+    return res.redirect('/login?returnTo=' + encodeURIComponent(req.originalUrl));
+  }
   req.user = { id: 'auth0|captain', _json: {
     'https://my-app.example.com/role': 'captain',
     'https://my-app.example.com/club': 'Mellor',
   } };
   next();
 });
+afterEach(() => { mockLoggedIn = true; });
 
 jest.mock('../../models/fixture');
 jest.mock('../../models/division');
@@ -285,5 +292,131 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
         filename: 'huge.jpg', contentType: 'image/jpeg' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/larger than 25MB/i);
+  }, 30000);
+});
+
+// The no-OCR route. The scorecard form keeps two upload boxes on purpose: the auto-fill
+// one reads the card, this one does not. Some captains would rather a machine did not
+// read their card, and until the OCR has a season behind it that is a preference worth
+// honouring rather than designing away.
+describe('POST /api/convert-scorecard-document', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const fixture = n => fs.readFileSync(path.join(__dirname, '..', 'fixtures', n));
+  const { analyseImage } = require('../../controllers/cornerDetection');
+  const { extractScorecardData } = require('../../controllers/scorecardExtraction');
+
+  beforeEach(() => {
+    mockS3Puts.length = 0;
+    mockPutFails = false;
+    analyseImage.mockClear();
+    extractScorecardData.mockClear();
+  });
+
+  it('converts a pdf, stores the image and returns its URL', async () => {
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-pdf-dct.pdf'), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.contentType).toBe('image/jpeg');
+
+    expect(mockS3Puts).toHaveLength(1);
+    expect(mockS3Puts[0].ContentType).toBe('image/jpeg');
+    expect(mockS3Puts[0].Body.slice(0, 3).toString('hex')).toBe('ffd8ff');
+    expect(mockS3Puts[0].Key).toMatch(/^scorecards\/\d{8}\/[0-9a-f-]{36}-card\.jpg$/);
+    expect(mockS3Puts[0].ACL).toBeUndefined();
+
+    // Must be servable by the photo proxy, or it is stored and unreachable.
+    const { normalisePhotoUrl } = require('../../utils/scorecardLinks');
+    expect(res.body.url).toContain(mockS3Puts[0].Key);
+    expect(() => normalisePhotoUrl(res.body.url)).not.toThrow();
+  });
+
+  // THE point of this endpoint. If it ever starts reading the card, the promise the form
+  // makes to a captain who chose the non-OCR box is broken, and nothing else would say so.
+  it('does not read the card', async () => {
+    await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-pdf-dct.pdf'), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+    expect(analyseImage).not.toHaveBeenCalled();
+    expect(extractScorecardData).not.toHaveBeenCalled();
+  });
+
+  it('converts a docx too', async () => {
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-docx-jpeg.docx'), {
+        filename: 'card.docx',
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+    expect(res.status).toBe(200);
+    expect(mockS3Puts[0].Key).toMatch(/\.jpg$/);
+  });
+
+  // An image needs no conversion and must not be routed here: /sign-s3 gives the browser
+  // a presigned PUT, so the bytes never pass through the server at all.
+  it('turns away an image', async () => {
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/not a PDF or Word file/i);
+    expect(mockS3Puts).toHaveLength(0);
+  });
+
+  it('explains itself for a document it cannot read', async () => {
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-pdf-flate.pdf'), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/could not be pulled out/i);
+    expect(res.body.error).toMatch(/take a photo/i);
+    expect(mockS3Puts).toHaveLength(0);
+  });
+
+  // Unlike the analysis endpoint there is no prefill to fall back on, so a failed store
+  // IS the failure and must be reported as one rather than answering 200 with no URL.
+  it('reports a failed store rather than pretending', async () => {
+    mockPutFails = true;
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-pdf-dct.pdf'), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+    expect(res.status).toBe(502);
+    expect(res.body.error).toMatch(/could not be saved/i);
+    expect(res.body.url).toBeUndefined();
+  });
+
+  // It puts an object in the bucket on every call, so it must not be reachable
+  // anonymously. `/add-scorecard-photo/:id` is deliberately unauthenticated for the
+  // emailed-link flow, and it would have been easy to follow that precedent here by
+  // mistake — but no emailed page has a file input, so nothing needs it.
+  it('is not reachable without logging in', async () => {
+    mockLoggedIn = false;
+    const res = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', fixture('scorecard-pdf-dct.pdf'), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/login/);
+    expect(mockS3Puts).toHaveLength(0);
+  });
+
+  it('refuses a zip by name, and the same size cap applies', async () => {
+    const zip = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', Buffer.from('PK pretend'), {
+        filename: 'card.zip', contentType: 'application/zip',
+      });
+    expect(zip.status).toBe(400);
+    expect(zip.body.error).toMatch(/zip|archive/i);
+
+    const big = await request(app).post('/api/convert-scorecard-document')
+      .attach('scorecard', Buffer.alloc(26 * 1024 * 1024, 1), {
+        filename: 'card.pdf', contentType: 'application/pdf',
+      });
+    expect(big.status).toBe(400);
+    expect(big.body.error).toMatch(/larger than/i);
   }, 30000);
 });

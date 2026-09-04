@@ -112,7 +112,8 @@
                     Empty for a draft filed before migration 011, which the endpoint
                     grandfathers — see utils/scorecardLinks.js.
                   %>
-                  <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" data-token="<%= fixture.confirmToken || '' %>" />
+                  <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" data-token="<%= fixture.confirmToken || '' %>"
+                    accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
                   <input type="hidden" name="scoresheet-url-<%= fixture.id %>" id="scoresheet-url-<%= fixture.id %>" /> 
                 </li>
               <% } %>
@@ -602,7 +603,8 @@
                     <div class="form-group step-13 ScorecardUpload col-6">
                         <label for="game17Score">Upload Scorecard</label>
                         <div class="form-row">
-                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" /></div>
+                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet"
+                              accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" /></div>
                             <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
                             <img src="" id="scoresheet-img" width="200%" />
                         </div>
@@ -1360,7 +1362,8 @@
                     <div class="form-group step-13 ScorecardUpload col-6">
                         <label for="game17Score">Upload Scorecard</label>
                         <div class="form-row">
-                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" /></div>
+                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet"
+                              accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" /></div>
                             <%# Carries the uploaded photo through a validation error. Without a `value` the
                                 error re-render discarded it, and a resubmission saved an empty
                                 `scoresheet-url` — leaving the object in S3 with nothing pointing at it and
@@ -1471,6 +1474,7 @@
     <% } %>
     <%- include('footer.ejs') %>
     <script type="text/javascript" src="/static/beta/js/form-options.js"></script>
+    <script type="text/javascript" src="/static/beta/js/scorecard-upload.js"></script>
 
     <script type="text/javascript">
       
@@ -1511,157 +1515,110 @@
           gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
         }
 
+        // Attach a photo to an already-filed draft. Goes through ScorecardUpload, so a
+        // scanner PDF is converted server-side and what gets attached is the image.
         async function otherGetSignedRequest(e){
-            console.log(e)
-            let files = e.srcElement.files
-            // const xhr = new XMLHttpRequest();
-            const file = files[0]
-            const name = files[0].name;
-            const lastDot = name.lastIndexOf('.');
-            const fileName = name.substring(0, lastDot);
-            const ext = name.substring(lastDot + 1);
-            let fixtureString = e.srcElement.previousSibling.data.trim()
-            const homeTeam = fixtureString.split('vs')[0].trim()
-            const awayTeam = fixtureString.split('vs')[1].trim()
-            let  SEASON = '';
-            if (new Date().getMonth() < 6){
-              SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
-            }
-            else {
-              SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
-            }
-            let filename = SEASON + '-'+ homeTeam + '-' + awayTeam + '.' + ext
-            let scorecardId = parseInt(e.srcElement.id.split('-')[2])
+            const input = e.srcElement;
+            const file = input.files[0];
+            if (!file) return;
+
+            const fixtureString = input.previousSibling.data.trim();
+            const homeTeam = fixtureString.split('vs')[0].trim();
+            const awayTeam = fixtureString.split('vs')[1].trim();
+            const now = new Date();
+            const startYear = now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear();
+            const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
+            const hint = '' + startYear + (startYear + 1) + '-' + homeTeam + '-' + awayTeam + '.' + ext;
+            const scorecardId = parseInt(input.id.split('-')[2]);
+
             try {
-              let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
-              if (!getSignReq.ok) {
-                throw new Error(`Could not get signed URL`);
-              }
-              else {
-                let response = await getSignReq.json()
-                console.log(response)
-                const success = await uploadFile(file, response.signedUrl);
-                if (!success) {
-                    return; // Don't continue if upload failed
-                }
-                // /sign-s3 returns the object's public URL as `url`. This used to be
-                // reconstructed by cutting the signature off the presigned URL and then
-                // rewriting %20 as '+', which corrupts any key containing a space —
-                // there are rows in the table with '+' in the filename to prove it. The
-                // server already knows the answer, so ask it.
-                const photoUrl = response.url || response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz"));
-                console.log(photoUrl);
-                e.srcElement.nextSibling.nextSibling.value = photoUrl
+              const photoUrl = await ScorecardUpload.store(file, hint);
+              input.nextSibling.nextSibling.value = photoUrl;
 
-                const myHeaders = new Headers();
-                myHeaders.append("Content-Type", "application/json");
-                try {
-                  const updatedScorecard = await fetch(window.location.origin+"/add-scorecard-photo/"+scorecardId, {
-                    method: "POST",
-                    // The draft's own token: the id alone was never authorisation for
-                    // this write. Blank for a draft filed before migration 011, which
-                    // the endpoint grandfathers.
-                    body: JSON.stringify({ imgURL: photoUrl, token: e.srcElement.dataset.token || '' }),
-                    headers: myHeaders,
-                  });
-                  if (!updatedScorecard.ok) {
-                    // The endpoint can now refuse (a URL that isn't one of our own
-                    // uploads, a draft that already has a photo, a bad token) and it
-                    // says why in JSON. This used to log `response.status` — the wrong
-                    // object, and only to the console — so a captain whose upload was
-                    // rejected was told nothing at all and assumed it had worked.
-                    let reason = 'Response status: ' + updatedScorecard.status;
-                    try {
-                      const body = await updatedScorecard.json();
-                      if (body && body.error) reason = body.error;
-                    } catch (parseError) { /* not JSON; keep the status */ }
-                    throw new Error(reason);
-                  }
-                  else {
-                    window.alert('scorecard photo updated - Thank you!')
-                  }
-                }
-                catch (error){
-                  console.error(error.message);
-                  window.alert('The photo could not be attached: ' + error.message);
-                }
-              }
-            }
-            catch (error){
-              console.error(error.message);
-            }
-            
-        }
-
-        async function getSignedRequest(file){
-            // const xhr = new XMLHttpRequest();
-            const name = file.name;
-            const lastDot = name.lastIndexOf('.');
-            const fileName = name.substring(0, lastDot);
-            const ext = name.substring(lastDot + 1);
-            const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text
-            const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text
-            let  SEASON = '';
-            if (new Date().getMonth() < 6){
-              SEASON = '' + new Date().getFullYear()-1 +''+ new Date().getFullYear();
-            }
-            else {
-              SEASON = '' + new Date().getFullYear() +''+ (new Date().getFullYear()+1);
-            }
-            let filename = SEASON + '-' + homeTeam + '-' + awayTeam + '.' + ext
-            try {
-              let getSignReq = await fetch('/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type))
-              if (!getSignReq.ok) {
-                throw new Error(`Could not get signed URL`);
-              }
-              else {
-                let response = await getSignReq.json()
-                console.log(response)
-                const success = await uploadFile(file, response.signedUrl);
-                if (!success) {
-                    return; // Don't continue if upload failed
-                }
-                // uploadFile(file, response.signedUrl);
-                console.log(response.signedUrl);
-                // document.getElementById('scoresheet-url').value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
-                let scoresheetUrls = await document.querySelectorAll('#scoresheet-url')
-                for (const ssUrl of scoresheetUrls){
-                  ssUrl.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
-                }
-                // document.getElementById('scoresheet-img').src = 'https://' + URL.parse(response.signedUrl).host+URL.parse(response.signedUrl).pathname.replaceAll('%20','+')
-                let scoresheetImgs = await document.querySelectorAll('#scoresheet-img')
-                for (const ssImg of scoresheetImgs){
-                  ssImg.value = response.signedUrl.substr(0,response.signedUrl.indexOf("?X-Amz")).replaceAll('%20','+')
-                }
-                console.error(document.getElementById('scoresheet-url').value)
-                console.error(document.getElementById('scoresheet-img').src)
-              }
-            }
-            catch (error){
-              console.error(error.message);
-            }
-        }
-
-        async function uploadFile(file, signedRequest){
-          try {
-              const uploaded = await fetch(signedRequest, {
-                  method: "PUT",
-                  body: file,
-                  headers: {"Content-Type": file.type},
+              const updated = await fetch(window.location.origin + "/add-scorecard-photo/" + scorecardId, {
+                method: "POST",
+                // The draft's own token: the id alone was never authorisation for this
+                // write. Blank for a draft filed before migration 011, which the
+                // endpoint grandfathers.
+                body: JSON.stringify({ imgURL: photoUrl, token: input.dataset.token || '' }),
+                headers: { "Content-Type": "application/json" },
               });
-              
-              if (!uploaded.ok) {
-                  throw new Error(`Upload failed with status ${uploaded.status}`);
+              if (!updated.ok) {
+                // The endpoint says why in JSON (a URL that isn't one of our own uploads,
+                // a draft that already has a photo, a bad token). This used to log
+                // `response.status` — the wrong object, and only to the console — so a
+                // captain whose upload was rejected was told nothing and assumed it worked.
+                let reason = 'Response status: ' + updated.status;
+                try {
+                  const body = await updated.json();
+                  if (body && body.error) reason = body.error;
+                } catch (parseError) { /* not JSON; keep the status */ }
+                throw new Error(reason);
               }
-              
-              alert('Uploaded successfully to ' + signedRequest);
-              return true;
-          } catch (error) {
-              console.error('Upload error:', error);
-              alert('Upload failed: ' + error.message);
-              return false;
-          }
+              window.alert('Scorecard photo updated - thank you!');
+            }
+            catch (error){
+              console.error(error.message);
+              // Never console-only. A silent failure here files the scorecard with no
+              // photo and tells the captain nothing.
+              window.alert('The photo could not be attached: ' + error.message);
+            }
         }
+
+
+        // The plain photo box on the new-scorecard form. Deliberately does NOT read the
+        // card: the auto-fill box above does that, and this one is the route for a captain
+        // who would rather no machine read theirs. ScorecardUpload picks the right path —
+        // presigned PUT for an image, server-side conversion for a scanner PDF.
+        async function getSignedRequest(file){
+            const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
+            const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text;
+            const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text;
+            const now = new Date();
+            const startYear = now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear();
+            const hint = '' + startYear + (startYear + 1) + '-' + homeTeam + '-' + awayTeam + '.' + ext;
+
+            try {
+              const photoUrl = await ScorecardUpload.store(file, hint);
+
+              // `photoUrl` comes from the server, which knows the object's real key.
+              // This used to trim the signature off the presigned URL and rewrite %20 as
+              // '+', which is what put a '+' in 490 stored URLs and made every one of
+              // them a key that has never existed (see utils/scorecardPhoto.js).
+              document.querySelectorAll('#scoresheet-url').forEach(function (el) {
+                el.value = photoUrl;
+              });
+              // Preview from the file the captain picked, NOT from the bucket URL.
+              // Objects are private since HARD-02b, so an <img> pointed at S3 is a broken
+              // image; and there is no draft row to serve it through
+              // GET /scorecard-photo/:id yet, because the draft is created by the submit
+              // this preview happens before. The local blob needs neither, shows
+              // instantly, and img-src already allows blob:. (For a document the blob is
+              // the pdf, which will not render, so only do this for an image.)
+              //
+              // `.src`, not `.value`: these are <img> elements, so setting `value` did
+              // nothing at all and the preview has never appeared.
+              if (!ScorecardUpload.isDocument(file)) {
+                const preview = URL.createObjectURL(file);
+                document.querySelectorAll('#scoresheet-img').forEach(function (el) {
+                  el.src = preview;
+                });
+              }
+            }
+            catch (error){
+              console.error(error.message);
+              // Never console-only. `/sign-s3` refuses anything that is not an image, and
+              // swallowing that is why a captain could pick a PDF here, be told nothing,
+              // and file the scorecard with no photo attached.
+              window.alert('The photo could not be uploaded: ' + error.message);
+            }
+        }
+
+
+        // uploadFile() lived here. Its one caller now goes through
+        // static/beta/js/scorecard-upload.js, which does the PUT and reports what
+        // it throws — this version alerted on success and returned false on failure,
+        // which the caller then ignored.
 
     $(document).ready(function() {
       <% if (hasResult || hasErrors || hasScorecard){ %>
@@ -1743,9 +1700,11 @@
               document.querySelectorAll('#scoresheet-url').forEach(function(el) {
                 el.value = data.photoUrl;
               });
-              document.querySelectorAll('#scoresheet-img').forEach(function(el) {
-                el.src = data.photoUrl;
-              });
+              // Deliberately not setting #scoresheet-img here: objects are private
+              // (HARD-02b) so the bucket URL is a broken image, and the file in hand is
+              // a pdf, which an <img> will not render either. The field that matters is
+              // scoresheet-url; the confirmation page shows the photo through
+              // GET /scorecard-photo/:id once the draft exists.
             }
             prefillFromAnalysis(data);
             // Say so explicitly when it did NOT save, because the prefill working makes

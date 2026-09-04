@@ -127,4 +127,19 @@ test.describe('/messer-scorecard-beta', function () {
 
     guard.assertNoWrites();
   });
+
+  // Symmetric with the league form: the messer photo box takes a scanner PDF too, and
+  // both pages share static/beta/js/scorecard-upload.js so they cannot drift.
+  test('the photo box offers documents, and the shared uploader is loaded', async function ({ page, baseURL }) {
+    const guard = await readOnly(page, baseURL);
+    await page.goto('/messer-scorecard-beta');
+    await openCard(page);
+
+    const accept = await page.locator('#scoresheet-spreadsheet').first().getAttribute('accept');
+    expect(accept).toMatch(/pdf/);
+    expect(accept).toMatch(/docx|wordprocessingml/);
+    expect(await page.evaluate(() => typeof window.ScorecardUpload)).toBe('object');
+
+    guard.assertNoWrites();
+  });
 });

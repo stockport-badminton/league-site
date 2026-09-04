@@ -126,6 +126,53 @@ test.describe('/scorecard-beta', function () {
     guard.assertNoWrites();
   });
 
+  // The plain photo box. It had no `accept` at all, so the dialog offered everything and
+  // a captain found out their PDF was wrong only afterwards — and the handler's catch was
+  // `console.error` alone, so "afterwards" meant never: the scorecard was filed with no
+  // photo and nothing said so.
+  test('the plain photo box offers documents too', async function ({ page, baseURL }) {
+    const guard = await readOnly(page, baseURL);
+
+    await page.goto('/scorecard-beta');
+    await page.getByRole('link', { name: /Enter Result/i }).first().click();
+    await expect(page.locator(MODAL).first()).toBeVisible();
+
+    const accept = await page.locator('#scoresheet-spreadsheet').first().getAttribute('accept');
+    expect(accept).toMatch(/pdf/);
+    expect(accept).toMatch(/docx|wordprocessingml/);
+
+    guard.assertNoWrites();
+  });
+
+  // Which route a file takes is the whole design: an image goes straight to S3 on a
+  // presigned PUT, a document goes through the server so what lands in the bucket is the
+  // image inside it. Asserted in the browser because the predicate runs there, and it
+  // needs no network at all — so the read-only guard has nothing to object to.
+  test('ScorecardUpload routes documents and images differently', async function ({ page, baseURL }) {
+    const guard = await readOnly(page, baseURL);
+    await page.goto('/scorecard-beta');
+
+    const verdicts = await page.evaluate(function () {
+      var mk = function (name, type) { return new File([new Uint8Array([1])], name, { type: type }); };
+      return {
+        loaded:   typeof window.ScorecardUpload === 'object',
+        pdf:      ScorecardUpload.isDocument(mk('card.pdf', 'application/pdf')),
+        docx:     ScorecardUpload.isDocument(mk('card.docx', '')),
+        // Trust the type when the name is unhelpful — phones and some scanners send one
+        // without the other.
+        pdfNoExt: ScorecardUpload.isDocument(mk('scan', 'application/pdf')),
+        jpeg:     ScorecardUpload.isDocument(mk('card.jpg', 'image/jpeg')),
+        heic:     ScorecardUpload.isDocument(mk('IMG_0001.HEIC', 'image/heic')),
+      };
+    });
+
+    expect(verdicts).toEqual({
+      loaded: true, pdf: true, docx: true, pdfNoExt: true, jpeg: false, heic: false,
+    });
+
+    guard.assertNoWrites();
+  });
+
   test('loads without console or page errors', async function ({ page, baseURL }) {
     const guard = await readOnly(page, baseURL);
     const errors = [];

@@ -514,6 +514,13 @@ router.get('/user', secured, async function(req, res) {
 router.post('/api/analyse-scorecard', secured,
   scorecard_analysis_controller.uploadMiddleware,
   scorecard_analysis_controller.analyse_scorecard);
+// Convert a document scorecard to a stored image, WITHOUT reading it. The form keeps two
+// upload boxes on purpose — the auto-fill one reads the card, the plain photo one does
+// not — so a captain who would rather no machine read their card still has a route for a
+// scanner PDF. Documents only; an image goes straight to S3 on a presigned PUT.
+router.post('/api/convert-scorecard-document', secured,
+  scorecard_analysis_controller.uploadMiddleware,
+  scorecard_analysis_controller.convert_scorecard_document);
 router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
 router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
 

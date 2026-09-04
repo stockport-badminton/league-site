@@ -571,7 +571,8 @@
                     <div class="form-group step-13 ScorecardUpload col-6">
                         <label for="game15Score">Upload Scorecard</label>
                         <div class="form-row">
-                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" /></div>
+                            <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet"
+                              accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" /></div>
                             <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
                             <img src="" id="scoresheet-img" width="200%" />
                         </div>
@@ -680,6 +681,7 @@
 
     <%- include('footer.ejs') %>
     <script type="text/javascript" src="/static/beta/js/form-options.js"></script>
+    <script type="text/javascript" src="/static/beta/js/scorecard-upload.js"></script>
 
     <script type="text/javascript">
       
@@ -699,56 +701,38 @@
           gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
         }
 
-        function getSignedRequest(file){
-            const xhr = new XMLHttpRequest();
-            const name = file.name;
-            const lastDot = name.lastIndexOf('.');
-            const fileName = name.substring(0, lastDot);
-            const ext = name.substring(lastDot + 1);
-            const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text
-            const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text
-            let filename = homeTeam + '-' + awayTeam + '.' + ext
-            xhr.open('GET', '/sign-s3?file-name='+ encodeURIComponent(filename)+'&file-type='+ encodeURIComponent(file.type));
-            xhr.onreadystatechange = () => {
-                if(xhr.readyState === 4){
-                if(xhr.status === 200){
-                    const response = JSON.parse(xhr.responseText);
-                    const signedUrl = response.signedUrl;
-                    const baseUrl = signedUrl.substr(0, signedUrl.indexOf("?X-Amz"));
-                    uploadFile(file, signedUrl, baseUrl);
-                    console.log(baseUrl);
-                }
-                else{
-                    alert('Could not get signed URL.');
-                }
-                }
-            };
-            xhr.send();
-        }
+        // Same two routes as the league form: a presigned PUT for an image, server-side
+        // conversion for a scanner PDF. Shared with index-scorecard.ejs through
+        // static/beta/js/scorecard-upload.js so the two cannot drift — they already held
+        // near-identical copies of the sign-and-PUT dance, one of which still rewrote
+        // %20 as '+'.
+        async function getSignedRequest(file){
+            const ext = file.name.substring(file.name.lastIndexOf('.') + 1);
+            const homeTeam = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text;
+            const awayTeam = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text;
+            const hint = homeTeam + '-' + awayTeam + '.' + ext;
 
-        function uploadFile(file, signedUrl, baseUrl){
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', signedUrl);
-            xhr.onreadystatechange = () => {
-                if(xhr.readyState === 4){
-                if(xhr.status === 200){
-                    document.getElementById('scoresheet-url').value = baseUrl;
-                    // Preview from the file the captain picked, not from the bucket URL.
-                    // Uploaded objects are private now (HARD-02b), so an <img> pointed at
-                    // S3 is a broken image; and there is no draft row to serve it through
-                    // GET /scorecard-photo/:id yet, because the draft is created by the
-                    // submit this preview happens before. The local blob needs neither,
-                    // shows instantly, and img-src already allows blob:.
-                    document.getElementById('scoresheet-img').src = URL.createObjectURL(file);
+            try {
+              const photoUrl = await ScorecardUpload.store(file, hint);
+              document.getElementById('scoresheet-url').value = photoUrl;
 
-                }
-                else{
-                    console.log(xhr);
-                    alert('Could not upload file.');
-                }
-                }
-            };
-            xhr.send(file);
+              // Preview from the file the captain picked, not from the bucket URL.
+              // Uploaded objects are private now (HARD-02b), so an <img> pointed at S3 is
+              // a broken image; and there is no draft row to serve it through
+              // GET /scorecard-photo/:id yet, because the draft is created by the submit
+              // this preview happens before. The local blob needs neither, shows
+              // instantly, and img-src already allows blob:. A pdf will not render in an
+              // <img>, so it gets no preview.
+              if (!ScorecardUpload.isDocument(file)) {
+                document.getElementById('scoresheet-img').src = URL.createObjectURL(file);
+              }
+            }
+            catch (error){
+              console.error(error.message);
+              // Pass the server's own message through. 'Could not get signed URL.' told a
+              // captain nothing about WHY — most often that their file was not an image.
+              window.alert('The photo could not be uploaded: ' + error.message);
+            }
         }
     $(document).ready(function() {
       <% if (hasResult || hasErrors || hasScorecard){ %>
