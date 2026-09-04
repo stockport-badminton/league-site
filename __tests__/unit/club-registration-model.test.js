@@ -113,3 +113,37 @@ describe('the season rollover', () => {
     expect(d.dueSoon.every(c => !c.received && !c.chased)).toBe(true);
   });
 });
+
+// A match that has been moved, or is being moved, does not set the deadline — the club is
+// not playing that night, so registrations are not due by it.
+//
+// This is asserted against the SQL text, which is not something to do lightly. It is done
+// here because there is no local database to run the query against (DATABASE_URL is
+// production), and both failures are invisible: dropping the exclusion moves a deadline
+// EARLIER and chases a club that has weeks left, while a bare NOT IN drops any fixture
+// with a NULL status, which moves a deadline LATER or removes it altogether. The second is
+// the one that matters — a club silently losing its earliest fixture is the exact outcome
+// this page exists to prevent.
+describe('which fixtures set the deadline', () => {
+  // The SQL is built once at module load, so reading it back is enough.
+  async function statusPredicate() {
+    answer([row()], []);
+    await Registration.getStatus('20262027');
+    const sql = mockQuery.mock.calls[0][0];
+    const line = sql.split('\n').find(l => /f\.status/.test(l) && !/^\s*--/.test(l));
+    return { sql, line: (line || '').trim() };
+  }
+
+  it('excludes both rearranged and rearranging', async () => {
+    const { sql } = await statusPredicate();
+    expect(sql).toMatch(/rearranged/);
+    expect(sql).toMatch(/rearranging/);
+  });
+
+  // `status NOT IN (...)` is NULL for a NULL status, which is not true, so the row goes.
+  // Any form that keeps it is fine; a bare NOT IN is not.
+  it('keeps a fixture whose status is NULL', async () => {
+    const { line } = await statusPredicate();
+    expect(line).toMatch(/f\.status\s+IS\s+NULL|COALESCE\s*\(\s*f\.status/i);
+  });
+});

@@ -753,8 +753,11 @@ exactly the annual wipe nobody would remember to run.
   `AT TIME ZONE 'Europe/London'` shifts every match a day earlier and puts league nights on
   a Sunday. Note `tools/dbq.js` **prints** these an hour early — it renders through a JS
   `Date` — so ask SQL for `to_char(...)` when you need to know what is really stored.
-- The status query filters `f.status IS DISTINCT FROM 'rearranged'`, so a match that has
-  been moved does not set the deadline.
+- **A moved match does not set the deadline.** The status query excludes `rearranged`
+  *and* `rearranging` — the club is not playing that night, so registrations are not due
+  by it. Written as `(f.status IS NULL OR f.status NOT IN (...))`, deliberately: a bare
+  `NOT IN` evaluates to NULL for a NULL status and drops the row, which would take a
+  club's earliest fixture and its deadline with it.
 
 ## Docker & Deployment
 

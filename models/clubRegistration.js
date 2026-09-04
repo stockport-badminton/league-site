@@ -54,7 +54,16 @@ const STATUS_SQL = `
     JOIN fixture f ON (f."homeTeam" = t.id OR f."awayTeam" = t.id)
     CROSS JOIN season_window w
     WHERE f.date >= w."startDate" AND f.date <= w."endDate"
-      AND f.status IS DISTINCT FROM 'rearranged'
+      -- A match that has been moved, or is being moved, does not set the deadline: the
+      -- club is not playing that night, so registrations are not due by it. Same pair
+      -- models/fixture.js excludes from the outstanding-results lists.
+      --
+      -- Written to KEEP a fixture with no status rather than a plain status NOT IN (...), which
+      -- evaluates to NULL for a NULL status and drops the row. Every current-season
+      -- fixture has one today and nothing enforces that, and the failure would be a club
+      -- silently losing its earliest fixture and so its deadline -- which is the one
+      -- outcome this whole page exists to prevent.
+      AND (f.status IS NULL OR f.status NOT IN ('rearranged', 'rearranging'))
     GROUP BY t.club
   )
   SELECT c.id, c.name,
