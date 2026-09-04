@@ -1,3 +1,30 @@
+<%
+  // The error re-render's player selects, and the two bugs they carried. Both are only
+  // reachable after a first validation failure, which is why they went unnoticed: the
+  // happy path builds these options client-side from static/beta/js/form-options.js.
+  //
+  //  1. The placeholder was `<option disabled selected>Choose Lady 2</option>` — no value AND not disabled,
+  //     so it was submittable, and a browser posts a value-less option's own LABEL. It is
+  //     now `disabled`, so it cannot be submitted at all.
+  //  2. A row was marked selected only where its ordinal flag was 1, and no player id
+  //     equals 0 — so when the captain had chosen "No Player" nothing matched, the select
+  //     fell back to that placeholder, and resubmitting posted "Choose Lady 2" as the
+  //     player id. `getEligiblePlayersAndSelectedById` then queried an integer column
+  //     with it, so the page whose only job was to show the validation message crashed
+  //     instead, and every retry did the same.
+  //
+  // Together those put a captain in an unrecoverable loop the moment they recorded a side
+  // that turned up short. Ported from the same chain in the Tameside site (8f924847).
+  function storedPlayerValue(field) {
+    if (typeof data === 'undefined' || !data) return undefined;
+    return data[field];
+  }
+  function noPlayerSelected(field, side) {
+    if (String(storedPlayerValue(field)) !== '0') return '';
+    var isHome = /home/i.test(field);
+    return ((side === 'home') === isHome) ? ' selected' : '';
+  }
+%>
 <%- include('header.ejs') %>
 <%- include('nav.ejs') %>
 
@@ -738,7 +765,7 @@
                  <div class="form-group">
                    <label for="homeTeam">Home Team</label>
                    <select class="form-control" id="homeTeam" name="homeTeam" placeholder="Home Team">
-                    <option>Choose Home Team</option>
+                    <option disabled selected>Choose Home Team</option>
                      <% scorecard.homeTeamRows.forEach(function(row){ %>
                        <%
                         if (row.selected == 1){
@@ -755,7 +782,7 @@
                  <div class="form-group">
                    <label for="awayTeam">Away Team</label>
                    <select class="form-control" id="awayTeam" name="awayTeam" placeholder="Away Team">
-                    <option>Choose Away Team</option>
+                    <option disabled selected>Choose Away Team</option>
                      <% scorecard.awayTeamRows.forEach(function(row){ %>
                        <%
                         if (row.selected == 1){
@@ -777,7 +804,7 @@
                      <div class="form-group step-2">
                        <label for="homeMan1">Man 1</label>
                        <select class="form-control" id="homeMan1" name="homeMan1" placeholder="Home Man 1">
-                        <option>Choose Man 1</option>
+                        <option disabled selected>Choose Man 1</option>
                          <% scorecard.homeMenRows.forEach(function(row){ %>
                            <%
                             if (row.first == 1){
@@ -789,14 +816,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan1', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan1', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-2">
                        <label for="homeMan2">Man 2</label>
                        <select class="form-control" id="homeMan2" name="homeMan2" placeholder="Home Man 2">
-                        <option>Choose Man 1</option>
+                        <option disabled selected>Choose Man 1</option>
                          <% scorecard.homeMenRows.forEach(function(row){ %>
                            <%
                             if (row.second == 1){
@@ -808,14 +835,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan2', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan2', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-2">
                        <label for="homeMan3">Man 3</label>
                        <select class="form-control" id="homeMan3" name="homeMan3" placeholder="Home Man 3">
-                        <option>Choose Man 1</option>
+                        <option disabled selected>Choose Man 1</option>
                          <% scorecard.homeMenRows.forEach(function(row){ %>
                            <%
                             if (row.third == 1){
@@ -827,8 +854,8 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan3', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeMan3', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                    </div>
@@ -836,7 +863,7 @@
                      <div class="form-group step-2">
                        <label for="homeLady1">Lady 1</label>
                        <select class="form-control" id="homeLady1" name="homeLady1" placeholder="Home Lady 1">
-                        <option>Choose Lady 1</option>
+                        <option disabled selected>Choose Lady 1</option>
                          <% scorecard.homeLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.first == 1){
@@ -848,14 +875,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady1', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady1', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-2">
                        <label for="homeLady2">Lady 2</label>
                        <select class="form-control" id="homeLady2" name="homeLady2" placeholder="Home Lady 2">
-                        <option>Choose Lady 2</option>
+                        <option disabled selected>Choose Lady 2</option>
                          <% scorecard.homeLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.second == 1){
@@ -867,14 +894,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady2', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady2', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-2">
                        <label for="homeLady3">Lady 3</label>
                        <select class="form-control" id="homeLady3" name="homeLady3" placeholder="Home Lady 3">
-                        <option>Choose Lady 3</option>
+                        <option disabled selected>Choose Lady 3</option>
                          <% scorecard.homeLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.third == 1){
@@ -886,8 +913,8 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady3', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('homeLady3', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                    </div>
@@ -901,7 +928,7 @@
                      <div class="form-group step-3">
                        <label for="awayMan1">Man 1</label>
                        <select class="form-control" id="awayMan1" name="awayMan1" placeholder="Away Man 1">
-                        <option>Choose Man 1</option>
+                        <option disabled selected>Choose Man 1</option>
                          <% scorecard.awayMenRows.forEach(function(row){ %>
                            <%
                             if (row.first == 1){
@@ -913,14 +940,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan1', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan1', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-3">
                        <label for="awayMan2">Man 2</label>
                        <select class="form-control" id="awayMan2" name="awayMan2" placeholder="Away Man 2">
-                        <option>Choose Man 2</option>
+                        <option disabled selected>Choose Man 2</option>
                          <% scorecard.awayMenRows.forEach(function(row){ %>
                            <%
                             if (row.second == 1){
@@ -932,14 +959,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan2', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan2', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-3">
                        <label for="awayMan3">Man 3</label>
                        <select class="form-control" id="awayMan3" name="awayMan3" placeholder="Away Man 3">
-                        <option>Choose Man 3</option>
+                        <option disabled selected>Choose Man 3</option>
                          <% scorecard.awayMenRows.forEach(function(row){ %>
                            <%
                             if (row.third == 1){
@@ -951,8 +978,8 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan3', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayMan3', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                    </div>
@@ -960,7 +987,7 @@
                      <div class="form-group step-3">
                        <label for="awayLady1">Lady 1</label>
                        <select class="form-control" id="awayLady1" name="awayLady1" placeholder="Away Lady 1">
-                        <option>Choose Lady 1</option>
+                        <option disabled selected>Choose Lady 1</option>
                          <% scorecard.awayLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.first == 1){
@@ -972,14 +999,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady1', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady1', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-3">
                        <label for="awayLady2">Lady 2</label>
                        <select class="form-control" id="awayLady2" name="awayLady2" placeholder="Away Lady 2">
-                        <option>Choose Lady 2</option>
+                        <option disabled selected>Choose Lady 2</option>
                          <% scorecard.awayLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.second == 1){
@@ -991,14 +1018,14 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady2', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady2', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                      <div class="form-group step-3">
                        <label for="awayLady3">Lady 3</label>
                        <select class="form-control" id="awayLady3" name="awayLady3" placeholder="Away Lady 3">
-                        <option>Choose Lady 3</option>
+                        <option disabled selected>Choose Lady 3</option>
                          <% scorecard.awayLadiesRows.forEach(function(row){ %>
                            <%
                             if (row.third == 1){
@@ -1010,8 +1037,8 @@
                            %>
                            <option value="<%= row.id %>" <%= selected %>><%= row.first_name %> <%= row.family_name %></option>
                          <% }) %>
-                         <option value="0">No Player Home Team</option>
-                         <option value="0">No Player Away Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady3', 'home') %>>No Player Home Team</option>
+                         <option value="0"<%= noPlayerSelected('awayLady3', 'away') %>>No Player Away Team</option>
                        </select>
                      </div>
                    </div>
@@ -1330,7 +1357,12 @@
                         <label for="game17Score">Upload Scorecard</label>
                         <div class="form-row">
                             <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet" /></div>
-                            <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
+                            <%# Carries the uploaded photo through a validation error. Without a `value` the
+                                error re-render discarded it, and a resubmission saved an empty
+                                `scoresheet-url` — leaving the object in S3 with nothing pointing at it and
+                                the captain believing they had attached a photo. Every field the form carries
+                                forward needs `value=` on this render, not just the selects. %>
+                            <input type="hidden" name="scoresheet-url" id="scoresheet-url" value="<%= (typeof data !== 'undefined' && data && data['scoresheet-url']) || '' %>" />
                         </div>
                     </div>
                 </div>

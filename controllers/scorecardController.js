@@ -52,7 +52,16 @@ const GAMES_PER_FIXTURE = 18;
         }
     }
 
-    exports.validateScorecard = [
+    // `0` is a player id meaning "nobody" — the No Player option, which is how a captain
+// records a side that turned up short — and several slots can legitimately hold it in one
+// match. So the duplicate check **skips** 0 rather than treating it as a clash.
+//
+// It returns an explicit boolean. The original returned `value` on the pass path, which
+// worked only because a form posts strings and `"0"` is truthy; a numeric 0 returned 0,
+// which is falsy, so express-validator would have rejected it with "can't use the same
+// player more than once" — the message that made this workflow impossible on the Tameside
+// site, and the first link in a three-bug chain that trapped a captain in a 500 loop.
+exports.validateScorecard = [
       body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
       body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
       body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
@@ -90,95 +99,126 @@ const GAMES_PER_FIXTURE = 18;
       body('Game18homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
       body('Game18awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("Third Mixed 2:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("Third Mixed 2:one of the teams needs to score at least 21"),
       body('homeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3)
       }).withMessage("Home Man 1: can't use the same player more than once"),
       body('homeMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3)
       }).withMessage("Home Man 2: can't use the same player more than once"),
       body('homeMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan2 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan2 || value == req.body.homeMan1 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan3)
       }).withMessage("Home Man 3:can't use the same player more than once"),
       body('homeLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3)
       }).withMessage("Home Lady 1: can't use the same player more than once"),
       body('homeLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3)
       }).withMessage("Home Lady 2: can't use the same player more than once"),
       body('homeLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady2 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady2 || value == req.body.homeLady1 || value == req.body.awayLady1 || value == req.body.awayLady2 || value == req.body.awayLady3)
       }).withMessage("Home Lady 3: can't use the same player more than once"),
       body('awayMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.homeMan1 || value == req.body.awayMan2 || value == req.body.awayMan3)
       }).withMessage("Away Man 1: can't use the same player more than once"),
       body('awayMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan3 || value == req.body.awayMan1) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan3 || value == req.body.awayMan1)
       }).withMessage("Away Man 2: can't use the same player more than once"),
       body('awayMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan1) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeMan2 || value == req.body.homeMan3 || value == req.body.awayMan1 || value == req.body.awayMan2 || value == req.body.awayMan1)
       }).withMessage("Away Man 3: can't use the same player more than once"),
       body('awayLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady2) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady2)
       }).withMessage("Away Lady 1: can't use the same player more than once"),
       body('awayLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady1) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady3 || value == req.body.awayLady1)
       }).withMessage("Away Lady 2: can't use the same player more than once"),
       body('awayLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady1) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.homeLady2 || value == req.body.homeLady3 || value == req.body.homeLady1 || value == req.body.awayLady2 || value == req.body.awayLady1)
       }).withMessage("Away Lady 3: can't use the same player more than once"),
       body('FirstMixedhomeMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.SecondMixedhomeMan2 || value == req.body.ThirdMixedhomeMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.SecondMixedhomeMan2 || value == req.body.ThirdMixedhomeMan3)
       }).withMessage("First Mixed Home Man: can't use the same player more than once"),
       body('SecondMixedhomeMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedhomeMan1 || value == req.body.ThirdMixedhomeMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedhomeMan1 || value == req.body.ThirdMixedhomeMan3)
       }).withMessage("Second Mixed Home Man: can't use the same player more than once"),
       body('ThirdMixedhomeMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedhomeMan1 || value == req.body.SecondMixedhomeMan2) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedhomeMan1 || value == req.body.SecondMixedhomeMan2)
       }).withMessage("Third Mixed Home Man: can't use the same player more than once"),
       body('FirstMixedawayMan1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.SecondMixedawayMan2 || value == req.body.ThirdMixedawayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.SecondMixedawayMan2 || value == req.body.ThirdMixedawayMan3)
       }).withMessage("First Mixed Away Man: can't use the same player more than once"),
       body('SecondMixedawayMan2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedawayMan1 || value == req.body.ThirdMixedawayMan3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedawayMan1 || value == req.body.ThirdMixedawayMan3)
       }).withMessage("Second Mixed Away Man: can't use the same player more than once"),
       body('ThirdMixedawayMan3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedawayMan1 || value == req.body.SecondMixedawayMan2) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedawayMan1 || value == req.body.SecondMixedawayMan2)
       }).withMessage("Third Mixed Away Man: can't use the same player more than once"),
       body('FirstMixedhomeLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.SecondMixedhomeLady2 || value == req.body.ThirdMixedhomeLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.SecondMixedhomeLady2 || value == req.body.ThirdMixedhomeLady3)
       }).withMessage("First Mixed Home Lady: can't use the same player more than once"),
       body('SecondMixedhomeLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedhomeLady1 || value == req.body.ThirdMixedhomeLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedhomeLady1 || value == req.body.ThirdMixedhomeLady3)
       }).withMessage("Second Mixed Home Lady: can't use the same player more than once"),
       body('ThirdMixedhomeLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedhomeLady1 || value == req.body.SecondMixedhomeLady2) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedhomeLady1 || value == req.body.SecondMixedhomeLady2)
       }).withMessage("Third Mixed Home Lady: can't use the same player more than once"),
       body('FirstMixedawayLady1', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.SecondMixedawayLady2 || value == req.body.ThirdMixedawayLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.SecondMixedawayLady2 || value == req.body.ThirdMixedawayLady3)
       }).withMessage("First Mixed Away Lady: can't use the same player more than once"),
       body('SecondMixedawayLady2', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedawayLady1 || value == req.body.ThirdMixedawayLady3) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedawayLady1 || value == req.body.ThirdMixedawayLady3)
       }).withMessage("Second Mixed Away Lady: can't use the same player more than once"),
       body('ThirdMixedawayLady3', 'Please choose a player.').isInt().custom((value,{req}) => {
-        return value !=0 ? ((value == req.body.FirstMixedawayLady1 || value == req.body.SecondMixedawayLady2) ? false : value) : value
+        return Number(value) === 0 ? true : !(value == req.body.FirstMixedawayLady1 || value == req.body.SecondMixedawayLady2)
       }).withMessage("Third Mixed Away Lady: can't use the same player more than once")
     ]
 
+
+// Every value the error re-render queries with lands in an integer column, so coerce here
+// rather than trusting the form.
+//
+// This is the third link in the chain that made a short-handed side unrecordable. A
+// value-less <option> posts its own LABEL, so a select that fell back to its placeholder
+// sent "Choose Lady 2" as a player id; `getEligiblePlayersAndSelectedById` then asked
+// Postgres to compare a bigint to that string, and the page whose only job was to show the
+// validation message threw `invalid input syntax for type bigint` instead. Every retry did
+// the same, so the captain was stuck.
+//
+// The placeholders are `disabled` now (views/index-scorecard.ejs), which closes the route
+// a captain could reach — but this is also reachable by anyone posting junk, so it is
+// fixed independently rather than relying on the view.
+//
+// 0 is the right fallback: it is the "No Player" sentinel, so an unusable value selects
+// nobody instead of selecting the wrong person.
+function playerId(value) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// The dropdown data both error branches need. Shared because they were byte-identical
+// copies, which is how one of them would have kept the bug after the other was fixed.
+async function errorRenderData(data) {
+  const division = playerId(data.division);
+  const homeTeam = playerId(data.homeTeam);
+  const awayTeam = playerId(data.awayTeam);
+  const [divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] =
+    await Promise.all([
+      Division.getAllAndSelectedById(1, division),
+      Team.getAllAndSelectedById(homeTeam, division),
+      Team.getAllAndSelectedById(awayTeam, division),
+      Player.getEligiblePlayersAndSelectedById(playerId(data.homeMan1), playerId(data.homeMan2), playerId(data.homeMan3), homeTeam, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(playerId(data.homeLady1), playerId(data.homeLady2), playerId(data.homeLady3), homeTeam, 'Female'),
+      Player.getEligiblePlayersAndSelectedById(playerId(data.awayMan1), playerId(data.awayMan2), playerId(data.awayMan3), awayTeam, 'Male'),
+      Player.getEligiblePlayersAndSelectedById(playerId(data.awayLady1), playerId(data.awayLady2), playerId(data.awayLady3), awayTeam, 'Female'),
+    ]);
+  return { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+}
 
 exports.full_fixture_post = async function(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const data = req.body;
     try {
-      const [divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
-        Division.getAllAndSelectedById(1, data.division),
-        Team.getAllAndSelectedById(data.homeTeam, data.division),
-        Team.getAllAndSelectedById(data.awayTeam, data.division),
-        Player.getEligiblePlayersAndSelectedById(data.homeMan1, data.homeMan2, data.homeMan3, data.homeTeam, 'Male'),
-        Player.getEligiblePlayersAndSelectedById(data.homeLady1, data.homeLady2, data.homeLady3, data.homeTeam, 'Female'),
-        Player.getEligiblePlayersAndSelectedById(data.awayMan1, data.awayMan2, data.awayMan3, data.awayTeam, 'Male'),
-        Player.getEligiblePlayersAndSelectedById(data.awayLady1, data.awayLady2, data.awayLady3, data.awayTeam, 'Female'),
-      ]);
-      const scorecard = { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+      const scorecard = await errorRenderData(data);
       res.render('index-scorecard', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',
@@ -439,19 +479,10 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const data = req.body;
-    console.log(data);
     try {
-      const [divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
-        Division.getAllAndSelectedById(1, data.division),
-        Team.getAllAndSelectedById(data.homeTeam, data.division),
-        Team.getAllAndSelectedById(data.awayTeam, data.division),
-        Player.getEligiblePlayersAndSelectedById(data.homeMan1, data.homeMan2, data.homeMan3, data.homeTeam, 'Male'),
-        Player.getEligiblePlayersAndSelectedById(data.homeLady1, data.homeLady2, data.homeLady3, data.homeTeam, 'Female'),
-        Player.getEligiblePlayersAndSelectedById(data.awayMan1, data.awayMan2, data.awayMan3, data.awayTeam, 'Male'),
-        Player.getEligiblePlayersAndSelectedById(data.awayLady1, data.awayLady2, data.awayLady3, data.awayTeam, 'Female'),
-      ]);
-      const renderData = { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
-      console.log(renderData);
+      // Was two console.logs of the whole request body and every eligible player, on
+      // every failed submission. Player names in the logs, for no diagnostic value.
+      const renderData = await errorRenderData(data);
       res.render('index-scorecard', {
         static_path: '/static',
         pageTitle: "Spreadsheet Upload Scorecard",

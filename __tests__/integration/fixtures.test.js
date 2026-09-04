@@ -82,7 +82,14 @@ describe('POST /scorecard-beta (validation errors path)', () => {
     Player.getEligiblePlayersAndSelectedById.mockResolvedValue([]);
 
     await request(app).post('/scorecard-beta').type('form').send({});
-    expect(Division.getAllAndSelectedById).toHaveBeenCalledWith(1, undefined);
+    // `(1, 0)`, not `(1, undefined)`. The error branch now coerces every id it queries
+    // with, because these land in integer columns and the values come straight off a
+    // form: a value-less <option> posts its own label, and a scanner posts junk. Passing
+    // the raw value through is what made the page whose only job is to show a validation
+    // message throw `invalid input syntax for type bigint` instead — see
+    // __tests__/integration/scorecard-no-player.test.js. 0 selects nobody, which is the
+    // right answer for an unusable id.
+    expect(Division.getAllAndSelectedById).toHaveBeenCalledWith(1, 0);
   });
 });
 
