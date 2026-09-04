@@ -149,10 +149,14 @@
 
                  <div class="card bg-light mb-3" id="photoUploadCard">
                    <div class="card-body py-2 px-3">
-                     <p class="mb-1 small"><strong>Got the scoresheet?</strong> Upload a photo to auto-fill the form.</p>
+                     <p class="mb-1 small"><strong>Got the scoresheet?</strong> Upload a photo to auto-fill the form &mdash; a PDF or Word file from a scanner works too.</p>
+                     <%# accept must list the document types: it was image/* only, so the
+                         file dialog would not offer a captain their own scanner's PDF and
+                         the server's conversion could never be reached from this page. %>
                      <div class="custom-file" style="max-width:320px">
-                       <input type="file" class="custom-file-input" id="scorecardPhoto" accept="image/*">
-                       <label class="custom-file-label" for="scorecardPhoto">Choose photo…</label>
+                       <input type="file" class="custom-file-input" id="scorecardPhoto"
+                              accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                       <label class="custom-file-label" for="scorecardPhoto">Choose photo or file…</label>
                      </div>
                      <div id="photoAnalysisStatus" class="mt-2" style="display:none">
                        <span class="spinner-border spinner-border-sm text-primary mr-1"></span>
@@ -1730,7 +1734,27 @@
           success: function(data) {
             $('#photoAnalysisStatus').hide();
             _photoUploaded = true;
+            // A document upload cannot use the presigned PUT below - /sign-s3 accepts
+            // images only - so the server stores the image it pulled out of the file and
+            // returns its URL. Dropping it into scoresheet-url here is what saves the
+            // captain uploading the same file twice, through an input that would refuse
+            // it the second time.
+            if (data.photoUrl) {
+              document.querySelectorAll('#scoresheet-url').forEach(function(el) {
+                el.value = data.photoUrl;
+              });
+              document.querySelectorAll('#scoresheet-img').forEach(function(el) {
+                el.src = data.photoUrl;
+              });
+            }
             prefillFromAnalysis(data);
+            // Say so explicitly when it did NOT save, because the prefill working makes
+            // it look like everything did.
+            if (data.photoStored === false) {
+              $('#photoAnalysisResult').html('<small class="text-warning">' +
+                'The form has been filled in, but the photo could not be saved. ' +
+                'Please attach a photo below before submitting.</small>').show();
+            }
           },
           error: function(xhr) {
             $('#photoAnalysisStatus').hide();

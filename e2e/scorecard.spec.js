@@ -107,6 +107,25 @@ test.describe('/scorecard-beta', function () {
     guard.assertNoWrites();
   });
 
+  // The auto-fill input carried accept="image/*", so a captain's own scanner PDF was not
+  // offered in the file dialog at all - the server could convert a document scorecard and
+  // no one could hand it one. A server test cannot see this: the attribute is what the
+  // BROWSER uses to filter the picker, and supertest posts whatever it is told to.
+  test('the auto-fill input offers documents, not just images', async function ({ page, baseURL }) {
+    const guard = await readOnly(page, baseURL);
+
+    await page.goto('/scorecard-beta');
+    await page.getByRole('link', { name: /Enter Result/i }).first().click();
+    await expect(page.locator(MODAL).first()).toBeVisible();
+
+    const accept = await page.locator('#scorecardPhoto').first().getAttribute('accept');
+    expect(accept).toContain('image/*');
+    expect(accept).toMatch(/pdf/);
+    expect(accept).toMatch(/docx|wordprocessingml/);
+
+    guard.assertNoWrites();
+  });
+
   test('loads without console or page errors', async function ({ page, baseURL }) {
     const guard = await readOnly(page, baseURL);
     const errors = [];

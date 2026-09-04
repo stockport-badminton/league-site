@@ -295,9 +295,7 @@ optional — but note that the multi-image page case is now **12 files, larger t
 and it is not a codec problem, so if a phase 2 gets built its first job is working out
 which XObject the page draws.
 
-Nothing writes the converted image to S3 yet. `res.locals.convertedImage` carries it for a
-caller that wants it, which is the seam the storage half will use - the OCR path works
-today without it.
+(Superseded — the storage half is built, below.)
 
 ## Tests
 
@@ -333,3 +331,77 @@ claiming a Phase 2 number; a sample will mislead you, as it did three times here
 `__tests__/integration/scorecard-analysis-upload.test.js` covers the endpoint: docx and pdf
 accepted, unconvertible pdf explained, zip refused by name, a 12MB file accepted where the
 old cap refused it, and 26MB still refused.
+
+
+---
+
+# The storage half, 4 Sep 2026
+
+A decodable document now becomes **an ordinary jpeg in the bucket**, and the captain
+uploads once.
+
+```
+captain picks card.pdf
+  -> POST /api/analyse-scorecard      (the auto-fill input)
+     -> extractEmbeddedImage          the photo inside it
+     -> uploads.storeImage            PUT the IMAGE, server-side, private
+     -> OCR + prefill
+  <- { ...form fields, photoUrl, photoStored }
+     -> the page drops photoUrl into every #scoresheet-url
+```
+
+**Why the image and not the document.** Storing the pdf would preserve the exact thing you
+wanted rid of: a file the browser will not open inline. What lands is a jpeg, so the photo
+proxy serves it, the confirmation page shows it, and next season's OCR can read it again.
+
+**Why server-side rather than a presigned PUT.** `/sign-s3` accepts jpeg, png, webp and
+heic only (`utils/uploads.js`), and that is a security boundary, not an oversight — it was
+opened up to caller-chosen types once and that was the HARD-02 hole. So documents get no
+presigned PUT at all; the bytes that reach the bucket are ones we produced, through the
+same `buildUploadKey` allowlist, so the extension comes from the sniffed content type and
+an extracted gif is refused here exactly as it would be there. No ACL is set: HARD-02b made
+this bucket private and a public-read object would be a silent hole in it.
+
+**Two things had to change that the brief did not anticipate:**
+
+1. **`accept="image/*"` on the auto-fill input.** The file dialog would not offer a captain
+   their own scanner's PDF, so the entire server-side conversion was unreachable from the
+   UI. No server test can see this — `accept` is what the *browser* filters the picker
+   with, and supertest posts whatever it is told to — so it is covered in
+   `e2e/scorecard.spec.js` instead.
+2. **`objectUrl` is now shared.** `/sign-s3` built the URL as a literal and `storeImage`
+   needed the identical shape, because `normalisePhotoUrl` has to accept both. Three places
+   agreeing on a string by hand is how they drift, so there is one definition and a test
+   asserts the stored URL round-trips through the photo proxy's own rule.
+
+**Ordering: store first, OCR second.** If Vision throws, the captain still has their photo.
+And a store failure does not fail the request — they keep the prefill and the response says
+`photoStored: false`, which the page turns into "the form is filled in but the photo did not
+save", because the prefill working otherwise makes it look like everything did.
+
+## It wrote to the production bucket, and that is now closed properly
+
+The first run of the suite covering this **put two real objects in `badmintontemp`**. The
+cause is worth recording because it is not specific to S3:
+
+> `app.js` and `instrument.js` both call `require('dotenv').config()` at import time, and
+> every integration test requires `app.js`. So the real `.env` — production
+> `DATABASE_URL`, `S3_BUCKET_NAME` and live AWS credentials — is loaded into every test
+> process. The database has been safe only because the models are all mocked.
+
+Nothing server-side had ever written to S3 before (image uploads are a presigned PUT from
+the browser), so no suite had any reason to mock the SDK, and the new code path went
+straight through to production. `__tests__/setup.js` now plants dummy AWS credentials and
+closes the shared-credentials file and the metadata service, so an **unmocked** AWS call
+fails to sign instead of succeeding — the Jest counterpart to `e2e/helpers/read-only.js`,
+enforced once rather than trusted to each test. `S3_BUCKET_NAME` is deliberately left
+alone; several tests compare URLs built from it against `normalisePhotoUrl`.
+
+## Tests
+
+Five cases in `__tests__/integration/scorecard-analysis-upload.test.js`, with the SDK
+mocked so the PUT is observable as well as harmless: the extracted jpeg is what gets stored
+(not the pdf, and smaller than it), the key is server-generated under the season prefix with
+a `.jpg` extension, **no ACL**, the returned URL round-trips through `normalisePhotoUrl`, a
+store failure still returns the OCR with `photoStored: false`, and an image upload stores
+nothing and is told nothing. Plus the browser test for `accept`.

@@ -1,5 +1,7 @@
 const multer   = require('multer');
+const Sentry   = require('@sentry/node');
 const { extractEmbeddedImage, isRefusedArchive } = require('../utils/documentImage');
+const { storeImage } = require('../utils/uploads');
 const { distance } = require('fastest-levenshtein');
 const { analyseImage }         = require('./cornerDetection');
 const { extractScorecardData } = require('./scorecardExtraction');
@@ -224,6 +226,9 @@ exports.analyse_scorecard = async function(req, res) {
     // BELOW rather than crashing: about three cards a season, and telling the captain
     // plainly beats a 500.
     let imageBuffer = req.file.buffer;
+    // Set when a document's image has been stored, so it is still reported if the OCR
+    // below throws. The photo is the record; reading it is a bonus.
+    let storedPhoto = null;
     const isDocument = /\.(pdf|docx)$/i.test(req.file.originalname || '') ||
                        /pdf|wordprocessingml/i.test(req.file.mimetype || '');
     if (isDocument) {
@@ -240,8 +245,31 @@ exports.analyse_scorecard = async function(req, res) {
         });
       }
       imageBuffer = extracted.buffer;
-      // So the caller can store the image rather than the wrapper.
+      // So a caller can reach the image rather than the wrapper.
       res.locals.convertedImage = extracted;
+
+      // Store the extracted image, not the document. `/sign-s3` accepts images only, so
+      // this is the ONLY way a document scorecard's photo gets into the bucket — and the
+      // right way round: what lands is an ordinary jpeg, so the photo proxy serves it,
+      // the browser shows it inline, and next season's OCR can read it again. Keeping
+      // the pdf instead would preserve the thing captains find annoying to open.
+      //
+      // Before the OCR, deliberately. If Vision or the extraction throws, the captain
+      // still gets their photo back rather than losing it to an error further down.
+      //
+      // A failure here must not fail the request: the OCR is still worth having, and the
+      // response says `photoStored: false` so the page can tell them to attach a photo
+      // the usual way rather than assuming it worked.
+      try {
+        storedPhoto = await storeImage({
+          buffer: extracted.buffer,
+          contentType: extracted.contentType,
+          hint: req.file.originalname,
+        });
+      } catch (err) {
+        console.error('analyse-scorecard: storing the extracted photo failed:', err.message);
+        Sentry.captureException(err);
+      }
     }
 
     // Step 1: perspective-correct coordinates + OCR
@@ -287,6 +315,13 @@ exports.analyse_scorecard = async function(req, res) {
       awayTeam: awayTeamId,
       ...playerFields,
       ...mapScores(pointsPairs),
+      // Only present for a document upload: the URL of the image pulled out of it, for
+      // the page to drop into its `scoresheet-url` field. An image upload does its own
+      // presigned PUT and does not need this.
+      ...(isDocument ? {
+        photoUrl: storedPhoto ? storedPhoto.url : null,
+        photoStored: !!storedPhoto,
+      } : {}),
       _meta: {
         dateRaw:            metadata.date,
         divisionRaw:        metadata.division,

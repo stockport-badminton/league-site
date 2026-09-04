@@ -17,6 +17,11 @@
 
 const crypto = require('crypto');
 
+// The bucket lives in eu-west-1 and `/sign-s3` has always hardcoded that, in both the
+// client and the URL it hands back. Kept literal rather than read from AWS_REGION so
+// this cannot start minting URLs for a region the objects are not in.
+const REGION = 'eu-west-1';
+
 // Deliberately not a general image list. These are what a phone camera or a scanner
 // produces, which is what a scorecard photo actually is.
 const ALLOWED_TYPES = {
@@ -77,10 +82,52 @@ function buildUploadKey(contentType, hint, now = new Date()) {
   return { key: `${PREFIX}/${seasonSegment(now)}/${name}.${extension}`, extension };
 }
 
+// The public URL of an object, in the virtual-hosted style. One definition, because
+// `/sign-s3` returns this to the upload widget, `storeImage` returns it to the OCR
+// uploader, and `utils/scorecardLinks.normalisePhotoUrl` has to accept both — three
+// places that must agree on a string, which is how they drift.
+//
+// The key is not escaped, and does not need to be: `buildUploadKey` emits letters,
+// digits, dashes, slashes and one dot. Anything else would be a bug there, not here.
+function objectUrl(key) {
+  const bucket = String(process.env.S3_BUCKET_NAME || '').trim();
+  return `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`;
+}
+
+// Store bytes we produced ourselves, server-side.
+//
+// This is the counterpart to `/sign-s3` for the one case that cannot use it: a document
+// scorecard, where the browser holds a pdf and the thing worth keeping is the image
+// inside it (see utils/documentImage.js). The client never sees a presigned PUT for
+// these — it posts the document to the OCR endpoint and gets back the URL of the image
+// that came out — so the type allowlist below is still the only way into the bucket.
+//
+// It goes through `buildUploadKey`, so an extracted image that is not a type we accept
+// (a gif, say) is refused here exactly as it would be at `/sign-s3`. Deliberately sets
+// no ACL: HARD-02b made every object in this bucket private, served through
+// `GET /scorecard-photo/:id`, and a public-read object here would be a hole in that.
+async function storeImage({ buffer, contentType, hint }, deps = {}) {
+  const { key } = buildUploadKey(contentType, hint);
+  const {
+    S3Client, PutObjectCommand,
+  } = deps.s3 || require('@aws-sdk/client-s3');
+  const client = new S3Client({ region: REGION });
+  await client.send(new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+    Body: buffer,
+  }));
+  return { key, url: objectUrl(key) };
+}
+
 module.exports = {
   ALLOWED_TYPES,
   PREFIX,
+  REGION,
   buildUploadKey,
+  objectUrl,
   sanitiseHint,
-  seasonSegment
+  seasonSegment,
+  storeImage
 };

@@ -38,7 +38,7 @@ const {
   publicFormLimiter, contactLimiter, webhookLimiter, mediaLimiter
 } = require('../middleware/rateLimit');
 const spamGate = require('../middleware/spamGate');
-const { buildUploadKey } = require('../utils/uploads');
+const { buildUploadKey, objectUrl } = require('../utils/uploads');
 // The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
 const { photoKeyFromStored, contentTypeFor, downloadTypeFor, downloadNameFor } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
@@ -160,7 +160,9 @@ router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
       ContentType: String(req.query['file-type']).toLowerCase().trim()
     });
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
-    const url = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${key}`;
+    // objectUrl, not a literal: `storeImage` hands the same shape to the OCR uploader
+    // and normalisePhotoUrl has to accept both, so there is one definition of it.
+    const url = objectUrl(key);
     // `signedUrl` for the two scorecard views, `signedRequest`/`url` for
     // views/scorecard-upload.ejs, which has always read those names and so has never
     // worked against this endpoint. Same values, three keys, no caller left broken.
