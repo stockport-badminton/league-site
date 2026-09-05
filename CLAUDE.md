@@ -713,6 +713,42 @@ all **system** fonts: Outlook renders through Word and ignores `@font-face`, so 
 would apply for some readers and not others. Size text so it fits in the *fallback*, not
 just the intended face.
 
+### Knowing whether our email arrived
+
+`POST /ses-events` records what SES says happened to every message, into `email_event`
+(migration 014). Two audit checks read it, so a failed send lands in the weekly digest:
+`email-delivery-failures` (bounces, complaints, rejections in the last 7 days) and
+`email-delivery-delays` (still being retried — the shape a failure has before it finishes).
+
+It exists because of 27 Aug 2026, and the shape of that miss is the point:
+
+- a distribution-list mail had **all eleven of its gmail.com recipients rejected** — Gmail
+  rate-limited the sending domain, SES retried for 840 minutes and gave up
+- **nobody knew for eight days**
+- **`GetSendStatistics` reported 0 bounces**, because it was `bounceType: Transient` and
+  that API counts only bounces that damage your sending reputation. Do not use it to
+  answer "did our email arrive"; it answers "is our reputation at risk"
+- `/admin/audit` said nothing because it only read the database
+
+The events come from the **`baddersEmail` configuration set, which is set as the default
+configuration set on the SES identity** — not in any code. Grepping for
+`ConfigurationSetName` finds nothing and proves nothing.
+
+- **One row per recipient per event.** A bounce naming eleven addresses is eleven rows,
+  because the question is always "who did not get it".
+- **`verifySns` gates it**, exactly as it gates `/mail`. Without it anyone could POST
+  invented bounces and they would appear in the results secretary's weekly email as fact.
+- **It answers 200 to a message it cannot parse.** SNS retries anything that is not 2xx,
+  so a malformed notification would otherwise be retried for ever.
+- The natural key `(message_id, email, event_type)` carries `ON CONFLICT DO NOTHING`,
+  because SNS delivers at least once.
+
+`tools/dbq.js` exports `assertReadOnly` and it is tested directly — including a case
+asserting **every audit check passes the guard**, since a check that cannot be run by name
+is otherwise only discovered by someone trying. The guard used to reject a semicolon inside
+a `--` comment as "multiple statements", the same blind spot HARD-18 records for
+`run-migration.js`.
+
 ### Forwarding inbound mail (`POST /mail`)
 
 A reply to `results@stockport-badminton.co.uk` arrives via SES inbound and is forwarded to

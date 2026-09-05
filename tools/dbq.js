@@ -32,7 +32,16 @@ const FORBIDDEN = /\b(insert|update|delete|drop|truncate|alter|create|grant|revo
 
 function assertReadOnly(sql) {
   const trimmed = sql.trim().replace(/;\s*$/, '');
-  if (trimmed.includes(';')) {
+  // A `--` comment can legitimately contain a semicolon, and one in an audit check's
+  // explanatory comment used to be rejected as "multiple statements". Same blind spot
+  // HARD-18 records for run-migration.js, which splits on `;` with no regard for comments.
+  //
+  // Only the multi-statement test looks at the stripped text. Everything below still runs
+  // against the WHOLE query, so a write keyword hidden after a comment is still caught —
+  // and stripping comments can only reveal more of the statement to those tests, never
+  // less.
+  const withoutComments = trimmed.replace(/--[^\n]*/g, '');
+  if (withoutComments.includes(';')) {
     throw new Error('multiple statements are not allowed — run one query at a time');
   }
   if (!READ_ONLY.test(trimmed)) {
@@ -130,4 +139,11 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(err => { console.error(err.message); process.exit(1); });
+// The guard is the only thing between a typo and production data, so it is exported and
+// tested directly (__tests__/unit/dbq-guard.test.js) rather than trusted. `require.main`
+// keeps the CLI behaviour identical: importing this file must not run a query.
+if (require.main === module) {
+  main().catch(err => { console.error(err.message); process.exit(1); });
+}
+
+module.exports = { assertReadOnly };

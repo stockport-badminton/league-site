@@ -21,6 +21,7 @@ var scorecard_analysis_controller = require('../controllers/scorecardAnalysisCon
 var league_controller = require('../controllers/leagueController');
 var validateSeason = require('../middleware/validateSeason');
 var contact_controller = require('../controllers/contactusController');
+var email_event_controller = require('../controllers/emailEventController');
 var static_controller = require('../controllers/staticPagesController');
 var sitemap_controller = require('../controllers/sitemapController');
 var social_controller = require('../controllers/socialController');
@@ -183,6 +184,13 @@ router.get('/sign-s3', publicFormLimiter, async (req, res, next) => {
 // x-amz-sns-message-type header, and forwarded the attached MIME message to a real
 // distribution list.
 router.post('/mail', webhookLimiter, multer().none(), verifySns, contact_controller.distribution_list);
+
+// SES delivery events from the baddersEmail configuration set's SNS topic, stored so the
+// weekly digest can report a failed send. verifySns for the same reason /mail has it:
+// without it anyone could POST invented bounces, and they would appear in the results
+// secretary's weekly email as fact.
+router.post('/ses-events', webhookLimiter, multer().none(), verifySns,
+  email_event_controller.ses_events);
 
 // Scorecard routes
 router.post('/scorecard-beta', publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);

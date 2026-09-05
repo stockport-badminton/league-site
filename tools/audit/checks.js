@@ -264,6 +264,53 @@ const CHECKS = [
       ORDER BY t.name`
   },
   {
+    // The check that exists because of 27 Aug 2026: eleven recipients of a
+    // distribution-list mail were rejected by Gmail (rate limited, retried for 840
+    // minutes, expired) and nobody knew for eight days. Both places anyone would have
+    // looked said all was well — `GetSendStatistics` reported 0 bounces because a
+    // Transient bounce does not count there, and this audit only read the database.
+    //
+    // Deliberately counts Transient bounces. They are the ones that do NOT hurt the
+    // sending reputation, which is precisely why AWS hides them and precisely why they
+    // are the ones that quietly cost a member their email.
+    //
+    // Complaints are in here too at any volume: one person marking league mail as spam
+    // is worth knowing about long before it is a rate.
+    name: 'email-delivery-failures',
+    description: 'Emails that did not arrive in the last 7 days — bounces, complaints and rejections',
+    severity: 'high',
+    sql: `
+      SELECT to_char(occurred_at, 'DD Mon') AS when,
+             event_type AS what,
+             COALESCE(bounce_type, '') AS kind,
+             email,
+             COALESCE(subject, '') AS subject,
+             -- The receiving server reason, trimmed. The 421-4.7.28 rate-limit text is
+             -- what explained the whole incident, where a status code alone would not.
+             LEFT(regexp_replace(COALESCE(diagnostic_code, ''), '\\s+', ' ', 'g'), 120) AS reason
+      FROM email_event
+      WHERE event_type IN ('Bounce', 'Complaint', 'Reject')
+        AND occurred_at >= now() - INTERVAL '7 days'
+      ORDER BY occurred_at DESC, email`
+  },
+  {
+    // A delay is not yet a failure, but it is the shape the 27 Aug incident had before it
+    // became one: SES kept retrying for fourteen hours. Seeing these means acting while
+    // the mail can still arrive.
+    name: 'email-delivery-delays',
+    description: 'Emails still being retried in the last 7 days — a failure that has not finished yet',
+    severity: 'medium',
+    sql: `
+      SELECT to_char(occurred_at, 'DD Mon HH24:MI') AS when,
+             COALESCE(bounce_subtype, '') AS delay,
+             email,
+             COALESCE(subject, '') AS subject
+      FROM email_event
+      WHERE event_type = 'DeliveryDelay'
+        AND occurred_at >= now() - INTERVAL '7 days'
+      ORDER BY occurred_at DESC, email`
+  },
+  {
     name: 'missing-contact',
     description: 'Officers (captain, club or match secretary) with no contact email',
     severity: 'medium',
