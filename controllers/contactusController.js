@@ -652,13 +652,41 @@ exports.distribution_list = async function(req,res,next) {
         "isMultiple":true
       };
 
+      // Who actually wrote it. This is a FORWARDER, so the envelope and the From header
+      // have to stay ours — sending as `someone@gmail.com` from our SES account fails
+      // SPF and DKIM alignment for their domain, and a domain on `p=reject` would have
+      // the forward binned rather than delivered. That is why mailing lists put the
+      // sender in the display name and the address in Reply-To, and it is what "via"
+      // means when you see it in a header.
+      //
+      // Before this, `from` was the flat league address and `sender` was computed two
+      // lines above and never used, so every forwarded message arrived looking as though
+      // the league had written it and Reply went back to the league — a loop, and the
+      // original correspondent's address lost unless you dug into the body.
+      const originalFrom = (parsedEmail.from && parsedEmail.from.value
+                            && parsedEmail.from.value[0]) || {};
+      // Fall back to the address when there is no display name: seeing the address is
+      // still far better than seeing ours.
+      const senderLabel = originalFrom.name || originalFrom.address || 'Unknown sender';
+      // Honour the original Reply-To if the sender set one; otherwise reply to them.
+      const replyTarget = (parsedEmail.replyTo && parsedEmail.replyTo.text)
+                       || (parsedEmail.from && parsedEmail.from.text)
+                       || undefined;
+
       let nodemailconfig = {
-        from: 'results@stockport-badminton.co.uk',
+        from: { name: senderLabel, address: 'results@stockport-badminton.co.uk' },
+        replyTo: replyTarget,
         to: "stockport.badders.results\+"+recipient+"@gmail.com",
         bcc: "bigcoops\+"+recipient+"@outlook.com",
         subject: subject,                // Subject line
-        text: "Email from sengrid parse send to "+recipient,                      // plaintext version
+        // The original plain-text part. This used to be a debug string — "Email from
+        // sengrid parse send to <list>" — so the text alternative of every forwarded
+        // message was that sentence and nothing else, which is what a text-only client
+        // and most spam scorers read.
+        text: textBody,
         html: htmlBody, // html version
+        // Kept for the record, since the From header can no longer carry it.
+        headers: { 'X-Original-From': originalFrom.address || 'unknown' },
         attachments:attachments
       }
       

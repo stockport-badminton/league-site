@@ -713,6 +713,35 @@ all **system** fonts: Outlook renders through Word and ignores `@font-face`, so 
 would apply for some readers and not others. Size text so it fits in the *fallback*, not
 just the intended face.
 
+### Forwarding inbound mail (`POST /mail`)
+
+A reply to `results@stockport-badminton.co.uk` arrives via SES inbound and is forwarded to
+the league's distribution lists by `distribution_list` in `contactusController.js`.
+
+**The From header stays ours, and it has to.** This is a forwarder: sending as
+`someone@gmail.com` out of our SES account fails SPF and DKIM alignment for *their* domain,
+and a sender whose domain is on `p=reject` would have the forward binned rather than
+delivered. So the sender's identity travels in the two places it can:
+
+- **display name** — `From: "Anne Secretary" <results@stockport-badminton.co.uk>`, falling
+  back to their address when they set no display name
+- **`Reply-To`** — the original sender, or the original `Reply-To` if they set one
+
+This is what a mailing list's "via" means. Before it, `from` was the flat league address and
+`sender` was computed and never used, so every forwarded message looked as though the league
+had written it and Reply went back to the league — a loop, with the correspondent's address
+lost unless you dug through the body. `X-Original-From` carries it for the record.
+
+`text` was also a debug string (`"Email from sengrid parse send to <list>"`), so the plain-text
+alternative of every forwarded message was that sentence — which is what a text-only client
+and most spam scorers read.
+
+Testing it: build the MIME by hand and post it base64'd inside the SNS `Message`. Two traps,
+both of which parse far enough to look fine and then lose the body — **send it as JSON, not
+form-encoded** (form encoding turns the base64's `+` into a space), and **do not
+`.filter(Boolean)` the lines** (the empty strings are the blank lines that terminate a
+header block).
+
 ### Chasing player registrations
 
 Every club returns the league's registration form before its first fixture, and that used
