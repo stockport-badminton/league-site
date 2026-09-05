@@ -92,6 +92,8 @@ describe('POST /admin/registrations/:club/chase', () => {
     const sent = ses.sendRawEmail.mock.calls[0][0];
     expect(sent.to).toEqual(['anne@example.com']);
     expect(sent.cc).toEqual(['mark@example.com']);
+    // A filed copy for the league, blind so the club's own mail stays clean.
+    expect(sent.bcc).toEqual(['results@stockport-badminton.co.uk']);
     expect(sent.subject).toMatch(/Aerospace player registration form/i);
 
     expect(sent.attachments).toHaveLength(1);
@@ -242,5 +244,41 @@ describe('marking a form received', () => {
   it('can be undone', async () => {
     await request(app).post('/admin/registrations/42/received').send({ received: 'false' });
     expect(Registration.markNotReceived).toHaveBeenCalledWith('20262027', '42', 'Neil');
+  });
+});
+
+// utils/ses.sendRawEmail, which is what carries the attachment and the blind copy.
+describe('the raw send', () => {
+  const realSes = jest.requireActual('../../utils/ses');
+
+  // MailComposer strips the Bcc header — correctly — and with no Destinations SES decides
+  // who to deliver to by reading the headers. So a bcc would be silently dropped: send
+  // succeeds, SES reports success, To and Cc get their mail, the blind copy never exists.
+  it('delivers to bcc even though the header is stripped', async () => {
+    const sent = [];
+    jest.isolateModules(() => {});
+    // Stand in for the SES client so nothing leaves the machine.
+    const { SESClient } = require('@aws-sdk/client-ses');
+    const spy = jest.spyOn(SESClient.prototype, 'send')
+      .mockImplementation(cmd => { sent.push(cmd.input); return Promise.resolve({}); });
+
+    await realSes.sendRawEmail({
+      from: 'results@stockport-badminton.co.uk',
+      to: ['club@example.com'], cc: ['match@example.com'], bcc: ['admin@example.co.uk'],
+      subject: 's', html: '<p>h</p>', text: 't',
+    });
+
+    const input = sent[0];
+    expect(input.Destinations).toEqual(
+      ['club@example.com', 'match@example.com', 'admin@example.co.uk']);
+
+    // ...and the delivered message still does not name the blind copy.
+    const head = Buffer.from(input.RawMessage.Data).toString('utf8').split('\r\n\r\n')[0];
+    expect(head).toMatch(/^To:/m);
+    expect(head).toMatch(/^Cc:/m);
+    expect(head).not.toMatch(/^Bcc:/m);
+    expect(head).not.toMatch(/admin@example\.co\.uk/);
+
+    spy.mockRestore();
   });
 });

@@ -106,10 +106,20 @@ async function sendChase(club, sentBy) {
   const named = club.officers.filter(o => recipients.includes(o.email));
   const greetingName = named.length === 1 ? ' ' + named[0].name.split(' ')[0] : '';
 
+  // Blind-copy the league's own address, so there is a record of what went out and to
+  // whom without waiting on SES's own notifications. Bcc rather than Cc: the reply-to is
+  // already the results mailbox, so a visible copy to it reads as clutter to the club,
+  // and the point is a filed copy rather than a signal to the reader.
+  //
+  // This works only because utils/ses.sendRawEmail passes Destinations explicitly —
+  // MailComposer strips the Bcc header, so SES would otherwise never see the address.
+  const fileCopy = digestRecipients();
+
   await mailer.send({
     template: 'registration-reminder',
     to: recipients,
     cc: copies,
+    bcc: fileCopy.length ? fileCopy : [mailer.RESULTS_MAILBOX],
     replyTo: mailer.RESULTS_MAILBOX,
     subject: `${club.name} player registration form — ${label}`,
     whyReceiving:
@@ -149,7 +159,9 @@ async function sendChase(club, sentBy) {
   });
 
   await Registration.recordChase(seasonModel.current(), club.id, sentBy);
-  return { club: club.name, to: recipients, cc: copies, attached: doc ? doc.filename : null };
+  return { club: club.name, to: recipients, cc: copies,
+           bcc: fileCopy.length ? fileCopy : [mailer.RESULTS_MAILBOX],
+           attached: doc ? doc.filename : null };
 }
 
 // ---------------------------------------------------------------------------

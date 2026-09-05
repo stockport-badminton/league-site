@@ -19,13 +19,30 @@ exports.sendEmail = function(params) {
   return client.send(new SendEmailCommand(params));
 };
 
-// `message` is a nodemailer message object: { from, to, cc, subject, html, text,
+// `message` is a nodemailer message object: { from, to, cc, bcc, subject, html, text,
 // attachments: [{ filename, content, contentType }] }.
 //
-// Note SES applies its own recipient list from the message headers for a raw send, so
-// there is no Destination to get out of step with what the message says.
+// `Destinations` is passed EXPLICITLY, and that is not belt-and-braces.
+//
+// MailComposer strips the `Bcc` header when it builds the message -- which is exactly what
+// blind carbon copy means, and exactly what you want in the delivered mail. But with no
+// `Destinations`, SES works out who to deliver to by READING THE HEADERS. So a bcc would be
+// silently dropped: the send succeeds, SES reports success, To and Cc get their mail, and
+// the blind copy simply never exists. Nothing anywhere reports it.
+//
+// Listing every recipient here delivers to all three while the built message still shows
+// only To and Cc, which is what both halves of that are after.
+const addresses = v => (Array.isArray(v) ? v : [v]).filter(Boolean);
+
 exports.sendRawEmail = async function(message) {
   const MailComposer = require('nodemailer/lib/mail-composer');
   const raw = await new MailComposer(message).compile().build();
-  return client.send(new SendRawEmailCommand({ RawMessage: { Data: raw } }));
+  return client.send(new SendRawEmailCommand({
+    RawMessage: { Data: raw },
+    Destinations: [
+      ...addresses(message.to),
+      ...addresses(message.cc),
+      ...addresses(message.bcc),
+    ],
+  }));
 };

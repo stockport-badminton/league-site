@@ -741,6 +741,13 @@ exactly the annual wipe nobody would remember to run.
 - **The attached form is built in-process** by `documentsController.buildPrefilledRegistrationDocx`.
   Fetching our own `secured` URL over HTTP would have needed a server-side credential that
   need not exist.
+- **A chase is blind-copied to `REGISTRATION_EMAIL_TO`** (falling back to the results
+  mailbox), so there is a filed record of what went out without waiting on SES's own
+  notifications. Bcc rather than Cc — the reply-to is already the results mailbox.
+- **`sendRawEmail` passes `Destinations` explicitly, and must keep doing so.**
+  `MailComposer` strips the `Bcc` header (correctly), and with no `Destinations` SES works
+  out delivery from the headers — so a blind copy is silently dropped: the send succeeds,
+  SES reports success, To and Cc get their mail, and the copy never exists.
 - **An attachment cannot go through SES's `SendEmail`** — SES only accepts one as a complete
   MIME message. `utils/ses.sendRawEmail` composes it with nodemailer's `MailComposer` (already
   a dependency) and posts it with `SendRawEmailCommand`. `mailer.send` picks the transport
