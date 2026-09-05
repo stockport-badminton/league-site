@@ -736,6 +736,40 @@ lost unless you dug through the body. `X-Original-From` carries it for the recor
 alternative of every forwarded message was that sentence — which is what a text-only client
 and most spam scorers read.
 
+**A list send is spread over time, and the budget is SNS's.** On 27 Aug 2026 a list mail
+to 30 recipients had **all eleven of its gmail.com addresses** rejected with
+`421-4.7.28 unusual rate of mail originating from your SPF domain`; SES retried for 840
+minutes and gave up, so eleven people never got a fixture withdrawal notice. The complaint
+is about **rate** — the same eleven messages reach Gmail whether it is one Bcc blast or
+eleven sends, because SES expands Bcc into one delivery each — so only spreading them over
+time answers it. `sendSpread` chunks the recipients and fits the gaps to a budget
+(`LIST_SEND_CHUNK`, `LIST_SEND_BUDGET_MS`), because **SNS gives an HTTP endpoint ~15
+seconds** before it calls the delivery failed and retries, and a retry means sending the
+whole list again. A long list gets bigger chunks, not a longer wall clock. Doing it after
+the response would dodge the budget but Cloud Run throttles CPU once a request is answered.
+It is a mitigation, not a guarantee: Gmail publishes no threshold, which is why both knobs
+are env vars.
+
+**That bounce is invisible to `GetSendStatistics`.** It was `bounceType: Transient`, and
+that API counts only bounces that hurt reputation — so "0 bounces in 14 days" from it means
+"none that count", not "everything arrived". The SNS event destination is where the truth
+is: `baddersEmail` is set as the **default configuration set on the SES identity**, not in
+any code, so grepping the codebase for `ConfigurationSetName` finds nothing and proves
+nothing.
+
+**`List-Unsubscribe` is the `mailto:` form, deliberately.** These lists are not
+subscriptions — membership is computed at send time from role flags in `player`
+(`Player.getEmails`), so nobody opted in, and unsubscribing a club secretary from
+`clubSecretaries@` means they stop receiving league business. That is a decision for a
+person, not a one-click POST. One-click would also force the rest of the redesign: its
+token identifies ONE recipient, so the header differs per person and the message can no
+longer be one blast with everyone in Bcc, and `getEmails` would have to return ids rather
+than bare address strings (HARD-27).
+
+**List matching is case-sensitive and by substring** — `roles` are spelled
+`clubSecretaries`, divisions `division3`. A lowercase `clubsecretaries@` matches nothing
+and falls through to the default branch, which mails only the league's own address.
+
 Testing it: build the MIME by hand and post it base64'd inside the SNS `Message`. Two traps,
 both of which parse far enough to look fine and then lose the body — **send it as JSON, not
 form-encoded** (form encoding turns the base64's `+` into a space), and **do not

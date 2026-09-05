@@ -12,6 +12,71 @@ const Spam = require('../models/spamControls');
 const spamGate = require('../middleware/spamGate');
 const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
+
+// Where an unsubscribe request from a distribution list lands. A person reads it and
+// decides — see the List-Unsubscribe comment in distribution_list.
+const UNSUBSCRIBE_MAILBOX = 'results@stockport-badminton.co.uk';
+
+// ── Spreading a distribution-list send over time ─────────────────────────────
+//
+// On 27 Aug 2026 a list mail to 30 recipients had ALL ELEVEN of its gmail.com addresses
+// rejected: `421-4.7.28 Gmail has detected an unusual rate of mail originating from your
+// SPF domain`. SES retried for 840 minutes and gave up, so eleven people never got a
+// fixture withdrawal notice, and the only trace was an SNS bounce notification in one
+// inbox. Note it does NOT appear in GetSendStatistics, because a Transient bounce is not
+// counted there — "0 bounces" from that API means "0 bounces that hurt your reputation".
+//
+// The complaint is about RATE. Nothing else here changes it: the same eleven messages
+// reach Gmail whether they are one Bcc blast or eleven separate sends, because SES expands
+// Bcc into one delivery each. Only spreading them over time does.
+//
+// **This is bounded by SNS, not by what Gmail would prefer.** POST /mail is answering an
+// SNS notification, and SNS gives an HTTP endpoint about 15 seconds before it calls the
+// delivery failed and retries — and a retry here means sending the whole list AGAIN. So
+// the drip has a time budget and fits the chunking to it, rather than picking a delay and
+// hoping the list is short. A long list gets bigger chunks, not a longer wall clock.
+//
+// Doing it after the response instead would dodge the budget, but Cloud Run throttles CPU
+// once a request is answered (the same reason Sentry.flush is awaited in the 500 handler),
+// so a post-response drip is not reliably scheduled.
+//
+// Honest about what this is: a mitigation, not a guarantee. Gmail publishes no threshold.
+// If transient bounces keep arriving, the next lever is fewer recipients per list or a
+// slower cadence, and the two knobs below are env vars so that does not need a deploy.
+const LIST_CHUNK = Number(process.env.LIST_SEND_CHUNK || 6);
+const LIST_BUDGET_MS = Number(process.env.LIST_SEND_BUDGET_MS || 10000);
+
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+const pause = ms => new Promise(r => setTimeout(r, ms));
+
+// Sends `config` once per chunk of `bcc`, spread across the budget. Returns the last
+// result so callers can keep logging a messageId.
+async function sendSpread(transporter, config, bcc) {
+  // bcc arrives as an array from the list branches and as a single string from the
+  // default one, so normalise before chunking.
+  const list = (Array.isArray(bcc) ? bcc : [bcc]).filter(Boolean);
+  const groups = chunk(list, Math.max(1, LIST_CHUNK));
+  if (groups.length <= 1) {
+    return transporter.sendMail(Object.assign({}, config, { bcc: groups[0] || [] }));
+  }
+  // Spread across the budget, never more than 2.5s apart -- a short list should not sit
+  // there for ten seconds for no reason.
+  const gap = Math.min(2500, Math.floor(LIST_BUDGET_MS / (groups.length - 1)));
+  let last;
+  for (let i = 0; i < groups.length; i++) {
+    if (i > 0) await pause(gap);
+    last = await transporter.sendMail(Object.assign({}, config, { bcc: groups[i] }));
+  }
+  console.log('list send: ' + bcc.length + ' recipients in ' + groups.length +
+              ' chunks, ' + gap + 'ms apart');
+  return last;
+}
+
 const { simpleParser } = require("mailparser");
 const { body,validationResult, param } = require("express-validator");
 const { sanitizeBody } = require("express-validator");
@@ -685,8 +750,28 @@ exports.distribution_list = async function(req,res,next) {
         // and most spam scorers read.
         text: textBody,
         html: htmlBody, // html version
-        // Kept for the record, since the From header can no longer carry it.
-        headers: { 'X-Original-From': originalFrom.address || 'unknown' },
+        headers: {
+          // Kept for the record, since the From header can no longer carry it.
+          'X-Original-From': originalFrom.address || 'unknown',
+          // Which list this went to. Standard, helps a recipient filter, and tells you
+          // which list an unsubscribe request is about.
+          'List-Id': recipient + ' <' + recipient + '.stockport-badminton.co.uk>',
+          // Deliberately the mailto form, not one-click.
+          //
+          // These lists are not subscriptions: membership is computed at send time from
+          // role flags in `player` (see Player.getEmails), so nobody opted in, and
+          // "unsubscribing" a club secretary from clubsecretaries@ means they stop
+          // receiving league business. That is a decision with consequences, and a
+          // one-click POST that silently drops a captain out of fixture comms is worse
+          // behaviour than a request landing in a person's inbox.
+          //
+          // One-click would also force the rest of the redesign: the token has to
+          // identify ONE recipient, so the header differs per person and the message can
+          // no longer be one blast with everyone in Bcc. getEmails would have to return
+          // ids rather than bare address strings (HARD-27).
+          'List-Unsubscribe': '<mailto:' + UNSUBSCRIBE_MAILBOX + '?subject=' +
+            encodeURIComponent('unsubscribe ' + recipient) + '>',
+        },
         attachments:attachments
       }
       
@@ -799,8 +884,7 @@ exports.distribution_list = async function(req,res,next) {
         if (subject.indexOf('test') == -1) {
           var tempArray = msg.to
           msg.to = tempArray.concat(rows)
-          nodemailconfig.bcc = tempArray.concat(rows)
-          const info = await transporter.sendMail(nodemailconfig);
+          const info = await sendSpread(transporter, nodemailconfig, tempArray.concat(rows));
           console.log(info.messageId);
           res.sendStatus(200)
         } else {
@@ -811,14 +895,16 @@ exports.distribution_list = async function(req,res,next) {
           nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>", "<p id=\"emaillist\">" + rows.join() + "<br/></p></body>")
           console.log("--- NODEMAIL HTML---- ")
           console.log(nodemailconfig.html)
-          const info = await transporter.sendMail(nodemailconfig);
+          // The 'test' branch mails only the league's own address, so there is nothing to
+          // spread -- but it goes through the same call so the two cannot drift.
+          const info = await sendSpread(transporter, nodemailconfig, nodemailconfig.bcc);
           console.log(info.envelope);
           console.log(info.messageId);
           res.sendStatus(200)
         }
       } else {
         console.log("nodeemailconfig" + JSON.stringify(nodemailconfig))
-        const info = await transporter.sendMail(nodemailconfig);
+        const info = await sendSpread(transporter, nodemailconfig, nodemailconfig.bcc);
         console.log(JSON.stringify(info))
         console.log(info.envelope);
         console.log(info.messageId);

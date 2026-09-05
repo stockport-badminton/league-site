@@ -78,7 +78,7 @@ function rawEmail({ from, replyTo, subject, text, html }) {
 function post(mime, recipients) {
   const notification = {
     content: Buffer.from(mime).toString('base64'),
-    receipt: { recipients: recipients || ['clubsecretaries@stockport-badminton.co.uk'] },
+    receipt: { recipients: recipients || ['division3@stockport-badminton.co.uk'] },
   };
   // JSON, not .type('form'): the notification is base64 and form encoding turns a
   // '+' into a space, so the message decodes to garbage from the first + onwards —
@@ -165,5 +165,89 @@ describe('POST /mail — the forwarded message', () => {
     await post(mime());
     expect(sent().subject).toBe('Re: player registration form');
     expect(sent().html).toMatch(/completed form/);
+  });
+});
+
+// ── The unsubscribe header ───────────────────────────────────────────────────
+describe('List-Unsubscribe', () => {
+  const mime = () => rawEmail({
+    from: '"Anne Secretary" <anne@someclub.org.uk>',
+    subject: 's', text: 't', html: '<p>t</p>',
+  });
+
+  it('offers a mailto unsubscribe naming the list', async () => {
+    await post(mime());
+    const h = sent().headers;
+    expect(h['List-Unsubscribe']).toMatch(/^<mailto:results@stockport-badminton\.co\.uk\?subject=/);
+    expect(decodeURIComponent(h['List-Unsubscribe'])).toMatch(/unsubscribe division3/);
+  });
+
+  // Deliberately NOT one-click. These lists are computed from role flags at send time, so
+  // nobody subscribed, and a one-click POST would silently drop a club officer out of
+  // league business. It would also need a per-recipient token, which the one-blast-with-
+  // everyone-in-Bcc shape cannot carry.
+  it('does not claim one-click support', async () => {
+    await post(mime());
+    expect(sent().headers['List-Unsubscribe-Post']).toBeUndefined();
+  });
+
+  it('identifies the list it came from', async () => {
+    await post(mime());
+    expect(sent().headers['List-Id']).toMatch(/division3/);
+  });
+});
+
+// ── Spreading the send ───────────────────────────────────────────────────────
+//
+// 27 Aug 2026: a list mail to 30 recipients had all eleven of its gmail.com addresses
+// rejected with 421-4.7.28 (unusual rate from the sending domain), retried for 840
+// minutes and expired. The complaint is about rate, and only spreading over time answers
+// it — the same eleven messages reach Gmail either way, because SES expands Bcc into one
+// delivery each.
+describe('spreading a list send over time', () => {
+  const many = n => Array.from({ length: n }, (_, i) => 'member' + i + '@example.com');
+
+  beforeEach(() => {
+    // division3@ — the list from the 27 Aug bounce. Note the matching is case-sensitive
+    // and by substring (roles are spelled clubSecretaries, divisions division3), so a
+    // lowercase clubsecretaries@ matches nothing and falls through to the default branch.
+    Player.getEmails = jest.fn().mockResolvedValue(many(30));
+  });
+
+  const listMime = () => rawEmail({
+    from: '"Anne Secretary" <anne@someclub.org.uk>',
+    subject: 'Parrs Wood C withdrawal', text: 't', html: '<p>t</p>',
+  });
+
+  it('splits a large list across several sends rather than one blast', async () => {
+    await post(listMime(), ['division3@stockport-badminton.co.uk']);
+    expect(mockSendMail.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('sends to every recipient exactly once across the chunks', async () => {
+    await post(listMime(), ['division3@stockport-badminton.co.uk']);
+    const delivered = mockSendMail.mock.calls.flatMap(c => c[0].bcc);
+    const members = delivered.filter(a => /^member\d+@/.test(a));
+    expect(members).toHaveLength(30);
+    expect(new Set(members).size).toBe(30);
+  });
+
+  // SNS gives an HTTP endpoint about 15 seconds before it calls the delivery failed and
+  // retries — and a retry would send the whole list again. A long list must therefore get
+  // bigger chunks, not a longer wall clock.
+  it('stays inside the SNS response budget however long the list is', async () => {
+    Player.getEmails = jest.fn().mockResolvedValue(many(400));
+    const started = Date.now();
+    await post(listMime(), ['division3@stockport-badminton.co.uk']);
+    expect(Date.now() - started).toBeLessThan(13000);
+    const delivered = mockSendMail.mock.calls
+      .flatMap(c => c[0].bcc).filter(a => /^member\d+@/.test(a));
+    expect(new Set(delivered).size).toBe(400);
+  }, 20000);
+
+  it('does not split a single-recipient send', async () => {
+    Player.getEmails = jest.fn().mockResolvedValue([]);
+    await post(listMime(), ['division3@stockport-badminton.co.uk']);
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
   });
 });
