@@ -55,10 +55,10 @@
           back to <a href="mailto:<%= replyTo %>"><%= replyTo %></a>.
         </mj-text>
         <mj-text>
-          You can also keep your squads up to date on the website, which is where the
+          You can also see your squads up to date on the website, which is where the
           attached list comes from.
         </mj-text>
-        <mj-button href="<%= rosterUrl %>" css-class="cta">Manage your players</mj-button>
+        <mj-button href="<%= rosterUrl %>" css-class="cta">Review your players</mj-button>
       </mj-column>
     </mj-section>
 
