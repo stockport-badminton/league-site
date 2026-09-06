@@ -779,10 +779,22 @@ exports.sendResultZap = async function(zapObject) {
     return 'test env'
   }
 
+  // `imgGen` is the live one: Make.com fetches it just before posting, and the endpoint
+  // renders the card with sharp on demand. Nothing keeps the file, which is why an
+  // on-demand URL is the right shape.
+  const imgGen = `https://stockport-badminton.co.uk/resultImage/${zapObject.homeTeam}/${zapObject.awayTeam}/${zapObject.homeScore}/${zapObject.awayScore}/${zapObject.division}`
+
   const webhookBody = {
-    imgGen: `https://stockport-badminton.co.uk/resultImage/${zapObject.homeTeam}/${zapObject.awayTeam}/${zapObject.homeScore}/${zapObject.awayScore}/${zapObject.division}`,
+    imgGen: imgGen,
     message: `Result: ${zapObject.homeTeam} vs ${zapObject.awayTeam} : ${zapObject.homeScore}-${zapObject.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`,
-    imgUrl: `http://stockport-badminton.co.uk/static/beta/images/generated/${zapObject.homeTeam.replace(/([\s]{1,})/g, '-')}${zapObject.awayTeam.replace(/([\s]{1,})/g, '-')}.jpg`
+    // `imgUrl` used to name the file the canvas block below wrote — spaces to dashes, no
+    // separator, and `http://`. That block went in May and the file has 404'd ever since,
+    // so nothing can be depending on the old value. Pointed at `imgGen` rather than
+    // deleted, because removing a field from a live webhook payload is a change to
+    // somebody else's scenario: this way a step that reads it starts working instead of
+    // failing, and the field can be dropped once the Make.com scenario is known not to
+    // reference it.
+    imgUrl: imgGen
   }
 
   // Include social media mentions if available
