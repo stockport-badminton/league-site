@@ -54,6 +54,29 @@ exports.createBatch = async function(batchObj) {
   return result
 }
 
+// Every player column on /fixture-players was blank, and so was Opposition.
+//
+// CLAUDE.md gotcha 1, in its `AS` form: an unquoted alias is folded to lowercase by
+// Postgres, so `AS Man1` comes back as `man1` and `row['Man1']` in the view is undefined.
+// It rendered as an empty cell rather than an error, which is why it survived — the page
+// looked like a page, just an empty one, exactly as `AS teamCaptain` blanked the captain
+// on every /event/ page for as long as that page existed.
+//
+// `teamName` and the six `Man1TeamName`-style aliases were already quoted, which is why
+// those columns worked and made the failure look like missing DATA rather than a missing
+// COLUMN.
+//
+// Only the aliases JAVASCRIPT reads are quoted. `teamId` and `clubId` are left folded on
+// purpose: the wrapper above joins `club ON club.id = clubId`, and that reference is
+// unquoted, so quoting the alias alone turns a blank column into `column "clubid" does
+// not exist`. Which is exactly what happened on the first attempt at this fix.
+//
+// The quoting is added ONLY in this outer projection, deliberately. The inner subquery
+// still says `AS Man1` and is still referenced as `playerNames.Man1` — both fold to
+// `man1`, so they agree with each other and nothing there needs to change. Quoting the
+// inner alias without quoting every reference to it is how this gets turned from a blank
+// column into a 500.
+//
 exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   const searchTerms = []
   const sqlArray = []
@@ -84,7 +107,7 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   const limit = fixtureObj.limit ? ` LIMIT ${fixtureObj.limit}` : ''
 
   const [result] = await (await db.otherConnect()).query(
-    `SELECT c.* FROM (SELECT fixturePlayers.*, club${seasonName}.name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as "teamName", homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as oppositionName, playerNames.Man1, playerNames.Man1Rank, Man1Team.name as "Man1TeamName", playerNames.Man2, playerNames.Man2Rank, Man2Team.name as "Man2TeamName", playerNames.Man3, playerNames.Man3Rank, Man3Team.name as "Man3TeamName", playerNames.Lady1, playerNames.Lady1Rank, Lady1Team.name as "Lady1TeamName", playerNames.Lady2, playerNames.Lady2Rank, Lady2Team.name as "Lady2TeamName", playerNames.Lady3, playerNames.Lady3Rank, Lady3Team.name as "Lady3TeamName" FROM (SELECT fixture.id, fixture.date, fixture."homeTeam" AS Team, fixture."awayTeam" AS Opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS Man1, homeMan1.rank AS Man1Rank, homeMan1.team AS Man1TeamId, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS Man2, homeMan2.rank AS Man2Rank, homeMan2.team AS Man2TeamId, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS Man3, homeMan3.rank AS Man3Rank, homeMan3.team AS Man3TeamId, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS Lady1, homeLady1.rank AS Lady1Rank, homeLady1.team AS Lady1TeamId, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS Lady2, homeLady2.rank AS Lady2Rank, homeLady2.team AS Lady2TeamId, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS Lady3, homeLady3.rank AS Lady3Rank, homeLady3.team AS Lady3TeamId FROM fixture JOIN player homeMan1 ON fixture."homeMan1" = homeMan1.id JOIN player homeMan2 ON fixture."homeMan2" = homeMan2.id JOIN player homeMan3 ON fixture."homeMan3" = homeMan3.id JOIN player homeLady1 ON fixture."homeLady1" = homeLady1.id JOIN player homeLady2 ON fixture."homeLady2" = homeLady2.id JOIN player homeLady3 ON fixture."homeLady3" = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture."awayTeam" AS Team, fixture."homeTeam" AS Opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS Man1, awayMan1.rank AS Man1Rank, awayMan1.team AS Man1TeamId, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS Man2, awayMan2.rank AS Man2Rank, awayMan2.team AS Man2TeamId, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS Man3, awayMan3.rank AS Man3Rank, awayMan3.team AS Man3TeamId, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS Lady1, awayLady1.rank AS Lady1Rank, awayLady1.team AS Lady1TeamId, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS Lady2, awayLady2.rank AS Lady2Rank, awayLady2.team AS Lady2TeamId, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS Lady3, awayLady3.rank AS Lady3Rank, awayLady3.team AS Lady3TeamId FROM fixture JOIN player awayMan1 ON fixture."awayMan1" = awayMan1.id JOIN player awayMan2 ON fixture."awayMan2" = awayMan2.id JOIN player awayMan3 ON fixture."awayMan3" = awayMan3.id JOIN player awayLady1 ON fixture."awayLady1" = awayLady1.id JOIN player awayLady2 ON fixture."awayLady2" = awayLady2.id JOIN player awayLady3 ON fixture."awayLady3" = awayLady3.id) AS playerNames JOIN team${seasonName} homeTeam ON playerNames.Team = homeTeam.id JOIN team${seasonName} awayTeam ON playerNames.Opposition = awayTeam.id JOIN team${seasonName} Man1Team ON playerNames.Man1TeamID = Man1Team.id JOIN team${seasonName} Man2Team ON playerNames.Man2TeamID = Man2Team.id JOIN team${seasonName} Man3Team ON playerNames.Man3TeamID = Man3Team.id JOIN team${seasonName} Lady1Team ON playerNames.Lady1TeamID = Lady1Team.id JOIN team${seasonName} Lady2Team ON playerNames.Lady2TeamID = Lady2Team.id JOIN team${seasonName} Lady3Team ON playerNames.Lady3TeamID = Lady3Team.id) AS fixturePlayers JOIN club${seasonName} ON club${seasonName}.id = clubId) AS c ${conditions} ORDER BY "teamName", date DESC${limit}`,
+    `SELECT c.* FROM (SELECT fixturePlayers.*, club${seasonName}.name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as "teamName", homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as "oppositionName", playerNames.Man1 AS "Man1", playerNames.Man1Rank AS "Man1Rank", Man1Team.name as "Man1TeamName", playerNames.Man2 AS "Man2", playerNames.Man2Rank AS "Man2Rank", Man2Team.name as "Man2TeamName", playerNames.Man3 AS "Man3", playerNames.Man3Rank AS "Man3Rank", Man3Team.name as "Man3TeamName", playerNames.Lady1 AS "Lady1", playerNames.Lady1Rank AS "Lady1Rank", Lady1Team.name as "Lady1TeamName", playerNames.Lady2 AS "Lady2", playerNames.Lady2Rank AS "Lady2Rank", Lady2Team.name as "Lady2TeamName", playerNames.Lady3 AS "Lady3", playerNames.Lady3Rank AS "Lady3Rank", Lady3Team.name as "Lady3TeamName" FROM (SELECT fixture.id, fixture.date, fixture."homeTeam" AS Team, fixture."awayTeam" AS Opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS Man1, homeMan1.rank AS Man1Rank, homeMan1.team AS Man1TeamId, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS Man2, homeMan2.rank AS Man2Rank, homeMan2.team AS Man2TeamId, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS Man3, homeMan3.rank AS Man3Rank, homeMan3.team AS Man3TeamId, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS Lady1, homeLady1.rank AS Lady1Rank, homeLady1.team AS Lady1TeamId, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS Lady2, homeLady2.rank AS Lady2Rank, homeLady2.team AS Lady2TeamId, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS Lady3, homeLady3.rank AS Lady3Rank, homeLady3.team AS Lady3TeamId FROM fixture JOIN player homeMan1 ON fixture."homeMan1" = homeMan1.id JOIN player homeMan2 ON fixture."homeMan2" = homeMan2.id JOIN player homeMan3 ON fixture."homeMan3" = homeMan3.id JOIN player homeLady1 ON fixture."homeLady1" = homeLady1.id JOIN player homeLady2 ON fixture."homeLady2" = homeLady2.id JOIN player homeLady3 ON fixture."homeLady3" = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture."awayTeam" AS Team, fixture."homeTeam" AS Opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS Man1, awayMan1.rank AS Man1Rank, awayMan1.team AS Man1TeamId, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS Man2, awayMan2.rank AS Man2Rank, awayMan2.team AS Man2TeamId, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS Man3, awayMan3.rank AS Man3Rank, awayMan3.team AS Man3TeamId, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS Lady1, awayLady1.rank AS Lady1Rank, awayLady1.team AS Lady1TeamId, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS Lady2, awayLady2.rank AS Lady2Rank, awayLady2.team AS Lady2TeamId, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS Lady3, awayLady3.rank AS Lady3Rank, awayLady3.team AS Lady3TeamId FROM fixture JOIN player awayMan1 ON fixture."awayMan1" = awayMan1.id JOIN player awayMan2 ON fixture."awayMan2" = awayMan2.id JOIN player awayMan3 ON fixture."awayMan3" = awayMan3.id JOIN player awayLady1 ON fixture."awayLady1" = awayLady1.id JOIN player awayLady2 ON fixture."awayLady2" = awayLady2.id JOIN player awayLady3 ON fixture."awayLady3" = awayLady3.id) AS playerNames JOIN team${seasonName} homeTeam ON playerNames.Team = homeTeam.id JOIN team${seasonName} awayTeam ON playerNames.Opposition = awayTeam.id JOIN team${seasonName} Man1Team ON playerNames.Man1TeamID = Man1Team.id JOIN team${seasonName} Man2Team ON playerNames.Man2TeamID = Man2Team.id JOIN team${seasonName} Man3Team ON playerNames.Man3TeamID = Man3Team.id JOIN team${seasonName} Lady1Team ON playerNames.Lady1TeamID = Lady1Team.id JOIN team${seasonName} Lady2Team ON playerNames.Lady2TeamID = Lady2Team.id JOIN team${seasonName} Lady3Team ON playerNames.Lady3TeamID = Lady3Team.id) AS fixturePlayers JOIN club${seasonName} ON club${seasonName}.id = clubId) AS c ${conditions} ORDER BY "teamName", date DESC${limit}`,
     sqlArray
   )
   return result
@@ -769,48 +792,30 @@ exports.sendResultZap = async function(zapObject) {
 
   const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
 
-  // canvas image generation is fire-and-forget
-  const { createCanvas, loadImage } = require('canvas')
-  const fs = require('fs')
-  const canvas = createCanvas(1080, 1350)
-  const ctx = canvas.getContext('2d')
-  loadImage(`static/beta/images/bg/social-${zapObject.division.replace(/([\s]{1,})/g, '-')}.png`).then((image) => {
-    ctx.drawImage(image, 0, 0, 1080, 1350)
-    ctx.font = 'bold 60px Arial'
-    ctx.fillStyle = 'White'
-    ctx.textAlign = 'right'
-    const text = `Result: ${zapObject.homeTeam} vs <br> ${zapObject.awayTeam} <br> ${zapObject.homeScore}-${zapObject.awayScore} <br> #stockport #badminton #sdbl #result https://stockport-badminton.co.uk`
-    const words = text.split(' ')
-    let line = ''
-    let y = canvas.height / 2 + canvas.width / 4
-    const x = canvas.width - 100
-    let lineHeight = 80
-    for (let n = 0; n < words.length; n++) {
-      if (line.indexOf('#') > -1 || line.indexOf('http') > -1) {
-        ctx.font = 'normal 30px Arial'
-        lineHeight = 40
-      }
-      if (words[n] == '<br>') {
-        ctx.fillText(line, x, y)
-        line = ''
-        y += lineHeight
-      } else {
-        const testLine = line + words[n] + ' '
-        const testWidth = ctx.measureText(testLine).width
-        if (testWidth > 900 && n > 0) {
-          ctx.fillText(line, x, y)
-          line = words[n] + ' '
-          y += lineHeight
-        } else {
-          line = testLine
-        }
-      }
-    }
-    ctx.fillText(line, x, y)
-    const out = fs.createWriteStream(`static/beta/images/generated/${zapObject.homeTeam.replace(/([\s]{1,})/g, '-')}${zapObject.awayTeam.replace(/([\s]{1,})/g, '-')}.jpg`)
-    canvas.createJPEGStream().pipe(out)
-    out.on('finish', () => console.log('The Jpg file was created.'))
-  })
+  // The canvas image generation that lived here is gone.
+  //
+  // `e25436f` (17 May 2026) replaced canvas with sharp + SVG in controllers/socialController.js
+  // and dropped `canvas` from package.json — but touched only that file, models/league.js and
+  // package.json, and missed this call site. So `require('canvas')` has thrown
+  // `Cannot find module 'canvas'` on EVERY result submitted since, for nearly four months.
+  //
+  // It was invisible for most of that time because it throws AFTER the webhook post above,
+  // which is why Make.com kept working. What it did do was fail the request that submitted
+  // the result — the result itself was already saved — which is precisely the symptom
+  // HARD-01 was written for: a captain seeing an error for a submission that had worked.
+  // HARD-01's `afterCommit` then caught it and sent it to Sentry (NODE-11), which is how it
+  // was finally found; the blame landing on HARD-01 is the reporting, not the cause.
+  //
+  // Not reinstated here: the same picture is generated by
+  // GET /resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division with sharp, on
+  // demand, and that is the copy the site and the results email use.
+  //
+  // NOTE the webhook body above still advertises `imgUrl` under this block's OWN naming
+  // convention (`Mellor-AAerospace-A.jpg`, spaces to dashes, no separator). The sharp
+  // route writes `Mellor+A+Aerospace+A.jpg`. So that URL has 404'd since May and would
+  // still 404 if the name were corrected, because nothing generates the file at submit
+  // time. Fixing it properly means calling the generator here rather than renaming a
+  // string.
 
   return response.data
 }

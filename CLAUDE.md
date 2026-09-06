@@ -865,6 +865,26 @@ exactly the annual wipe nobody would remember to run.
   `NOT IN` evaluates to NULL for a NULL status and drops the row, which would take a
   club's earliest fixture and its deadline with it.
 
+### A lazy require is a deploy-time bug that waits
+
+`models/fixture.js:sendResultZap` did `require('canvas')` inside the function. `e25436f`
+(17 May 2026) replaced canvas with sharp in `controllers/socialController.js` and removed
+`canvas` from `package.json`, touching three files — and missing that call site. So it
+threw `Cannot find module 'canvas'` on **every result submitted for nearly four months**.
+
+Nothing caught it because the require is inside a function on a path that only runs when a
+result is submitted: the app boots, the tests pass, and it fails in production only.
+
+It also shows how a fix can arrive as a blame: the exception surfaced as Sentry NODE-11
+attributed to HARD-01, because HARD-01's `afterCommit` is what finally *caught and
+reported* it. Before that it failed the request after the result had already saved — which
+is the exact symptom HARD-01 was written to fix.
+
+`__tests__/unit/runtime-requires.test.js` now walks `controllers/`, `models/`, `utils/`,
+`routes/`, `middleware/` and the entry files and asserts every bare `require()` names a
+**production** dependency — `dependencies`, not `devDependencies`, because the Dockerfile
+runs `npm ci --omit=dev` and a devDependency required at runtime is exactly as missing.
+
 ## Docker & Deployment
 
 - **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation
@@ -915,7 +935,15 @@ Key vars (see `.env` for examples):
 1. **PostgreSQL column quoting**: Unquoted camelCase columns become lowercase. Always quote column names in SQL.
    This bites `AS` aliases too, not just column references: `AS teamCaptain` becomes
    `teamcaptain`, so `row.teamCaptain` is `undefined`. That silently blanked the
-   captain and match secretary on every `/event/` page for as long as it existed.
+   captain and match secretary on every `/event/` page for as long as it existed, and
+   `AS Man1` blanked every player column on `/fixture-players` and on the scorecard
+   confirmation screen until Sep 2026. It renders as an empty cell, never an error.
+   **But quote the alias and its references together.** `getMatchPlayerOrderDetails`
+   aliases `homeTeam.club AS clubId` and the wrapper joins `club ON club.id = clubId`;
+   quoting only the alias turns a blank column into `column "clubid" does not exist`.
+   Where nothing in JavaScript reads a column, leaving it folded is the correct answer.
+   `__tests__/unit/fixture-players-aliases.test.js` derives the requirement from what the
+   views actually read; HARD-19 proposes the same check across the codebase.
 1b. **Never build a URL from `req.get('host')`.** Firebase Hosting rewrites `**` to
    Cloud Run and the Host header that arrives is the *Cloud Run* one — the requested
    host is passed separately, in `x-fh-requested-host`. Every canonical and `og:url`
