@@ -1,0 +1,27 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Scorecard photo added</mj-title>
+    <mj-preview>A photo has been attached to a scorecard</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Scorecard updated</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">A photo has been added</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text>A scorecard has been updated with a photo of the card.</mj-text>
+        <mj-button href="<%= photoUrl %>" css-class="cta">View the photo</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

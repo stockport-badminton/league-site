@@ -1,0 +1,53 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Messer result</mj-title>
+    <mj-preview><%= homeTeam %> v <%= awayTeam %> &mdash; <%= state %></mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Messer knockout</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">
+          <%= homeTeam %> <span style="color:#626b7d">v</span> <%= awayTeam %>
+        </mj-text>
+        <mj-raw><% if (matchDate) { %></mj-raw>
+        <mj-text mj-class="sub" padding="4px 24px 0"><%= matchDate %></mj-text>
+        <mj-raw><% } %></mj-raw>
+      </mj-column>
+    </mj-section>
+
+    <!-- Each state is its own block, wrapped in mj-raw so the compiler keeps the
+         conditional. Without it the tag is discarded and all three render at once. -->
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-raw><% if (state === 'submitted') { %></mj-raw>
+        <mj-text>A new messer result has been submitted<%= submittedBy ? ', by ' + submittedBy : '' %>.</mj-text>
+        <mj-raw><% } else if (state === 'approved') { %></mj-raw>
+        <mj-text mj-class="callout">
+          <strong>Your messer result has been approved</strong> and entered into the system.
+          The draw and standings have been updated.
+        </mj-text>
+        <mj-raw><% } else { %></mj-raw>
+        <mj-text mj-class="callout">
+          <strong>Your messer result was not entered.</strong>
+          Please check the scores and submit it again.
+        </mj-text>
+        <mj-raw><% } %></mj-raw>
+      </mj-column>
+    </mj-section>
+
+    <mj-raw><% if (actionUrl) { %></mj-raw>
+    <mj-section padding="8px 0 0">
+      <mj-column>
+        <mj-button href="<%= actionUrl %>" css-class="cta"><%= actionLabel %></mj-button>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

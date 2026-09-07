@@ -1,0 +1,47 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Missing scorecards</mj-title>
+    <mj-preview><%= fixtures.length %> fixture(s) with no scorecard</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Missing scorecards</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">
+          <%= fixtures.length %> outstanding
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-raw><% if (fixtures.length) { %></mj-raw>
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-table>
+          <tr style="background:#002060;color:#ffffff;font-weight:bold;text-align:left">
+            <th style="padding:8px 10px">Date</th>
+            <th style="padding:8px 10px">Match</th>
+          </tr>
+          <% fixtures.forEach(function (f, i) { %>
+          <tr style="background:<%= i % 2 ? '#f5f7fa' : '#ffffff' %>">
+            <td style="padding:8px 10px"><%= f.date %></td>
+            <td style="padding:8px 10px"><%= f.homeTeam %> v <%= f.awayTeam %></td>
+          </tr>
+          <% }); %>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } else { %></mj-raw>
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text mj-class="callout">No outstanding fixtures today.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

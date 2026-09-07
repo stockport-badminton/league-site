@@ -9,6 +9,7 @@ var SiteSettings = require('../models/siteSettings');
 const axios = require('axios');
 const SD = require('../utils/structuredData');
 const ses = require('../utils/ses');
+const mailer = require('../utils/mailer');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { canonicalFor } = require('../utils/canonical');
@@ -17,49 +18,44 @@ const { canonicalFor } = require('../utils/canonical');
 
 
 // Display fixtures played 6 days ago that haven't had results entered
-exports.getLateScorecards = async function(req, res) {
+exports.getLateScorecards = async function(req, res, next) {
   try {
-    const row = await Fixture.getCardsDueToday();
-    const msg = {
-      to: 'stockport.badders.results@gmail.com',
-      from: 'stockport.badders.results@stockport-badminton.co.uk',
-      replyto: 'stockport.badders.results@gmail.com',
-      templateId: 'd-3a224c8f7b214f3ba4062f6a2dbd1bd4',
-      dynamic_template_data: { "missingFixtures": [] }
-    };
+    const rows = await Fixture.getCardsDueToday();
 
-    var params;
-    if (row.length > 0) {
-      for (var x = 0; x < row.length; x++) {
-        var fixture = {};
-        fixture.date = row[x].date;
-        fixture.homeTeam = row[x].homeTeam;
-        fixture.awayTeam = row[x].awayTeam;
-        msg.dynamic_template_data.missingFixtures.push(fixture);
-      }
-      params = {
-        Destination: { ToAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com'] },
-        Message: {
-          Body: { Html: { Charset: 'UTF-8', Data: contact_controller.generateMissingScorecardHTML(msg.dynamic_template_data.missingFixtures) } },
-          Subject: { Charset: 'UTF-8', Data: 'Todays Missing Scorecards' }
-        },
-        Source: 'results@stockport-badminton.co.uk',
-        ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-      };
-    } else {
-      msg.dynamic_template_data.noFixtures = 'No outstanding fixtures today';
+    const fixtures = rows.map(r => ({
+      date: r.date, homeTeam: r.homeTeam, awayTeam: r.awayTeam,
+    }));
+
+    // Out of season, say nothing. Same window as before: months 0-4 and 7-11.
+    const month = new Date().getMonth();
+    if (!(month <= 4 || month >= 7)) return res.sendStatus(200);
+
+    // Nothing outstanding is not worth an email. It also used to be a 500: `params` was
+    // only built inside `if (row.length > 0)`, so an empty day called
+    // `ses.sendEmail(undefined)` and threw — the daily job failed precisely on the days
+    // when everything was in order.
+    if (!fixtures.length) {
+      return res.json({ ok: true, sent: false, reason: 'no outstanding scorecards' });
     }
 
-    let today = new Date()
-    if (today.getMonth() <= 4 || today.getMonth() >= 7) {
-      await ses.sendEmail(params);
-      res.send("Message Sent");
-    } else {
-      res.sendStatus(200);
-    }
+    await mailer.send({
+      template: 'missing-scorecards',
+      to: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com'],
+      replyTo: mailer.RESULTS_MAILBOX,
+      subject: `${fixtures.length} missing scorecard${fixtures.length === 1 ? '' : 's'}`,
+      whyReceiving: 'You are listed as a recipient of the league admin digests.',
+      text: [
+        `${fixtures.length} fixture(s) played with no scorecard entered:`,
+        '',
+        ...fixtures.map(f => `  ${f.date}: ${f.homeTeam} v ${f.awayTeam}`),
+      ].join('\n'),
+      data: { fixtures },
+    });
+
+    res.json({ ok: true, sent: true, fixtures: fixtures.length });
   } catch (err) {
-    console.log(err.toString());
-    res.status(500).send(err);
+    console.error('getLateScorecards failed:', err.message);
+    next(err);
   }
 };
 

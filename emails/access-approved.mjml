@@ -1,0 +1,30 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Results entry access</mj-title>
+    <mj-preview>Your access has been approved</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Access approved</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">You can enter results</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text>
+          Thanks for registering &mdash; your access has been approved, so you can now
+          enter your team&rsquo;s results on the league website.
+        </mj-text>
+        <mj-button href="<%= submitUrl %>" css-class="cta">Enter a result</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

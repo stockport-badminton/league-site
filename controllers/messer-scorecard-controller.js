@@ -4,6 +4,7 @@ const Player = require('../models/players');
 const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
+const mailer = require('../utils/mailer');
 const { body, validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
@@ -862,33 +863,32 @@ async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
     const homeTeam = await Team.getById(scorecardData.homeTeam);
     const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    const params = {
-      Destination: {
-        ToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
+    await mailer.send({
+      template: 'messer-result',
+      to: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
+      replyTo: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
+      subject: `Messer Result Submitted: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      whyReceiving: 'You administer the Messer knockout for the league.',
+      text: [
+        'A new messer result has been submitted.',
+        '',
+        `  Match:        ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+        `  Date:         ${scorecardData.date}`,
+        `  Submitted by: ${scorecardData.email}`,
+        '',
+        'Review and approve it:',
+        absoluteUrl('/messer-result/' + scorecardId),
+      ].join('\n'),
+      data: {
+        state: 'submitted',
+        homeTeam: homeTeam[0]?.name || 'Home',
+        awayTeam: awayTeam[0]?.name || 'Away',
+        matchDate: scorecardData.date,
+        submittedBy: scorecardData.email,
+        actionUrl: absoluteUrl('/messer-result/' + scorecardId),
+        actionLabel: 'Review and approve',
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `
-              <p>A new messer result has been submitted.</p>
-              <p><strong>Match:</strong> ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}</p>
-              <p><strong>Date:</strong> ${scorecardData.date}</p>
-              <p><strong>Submitted by:</strong> ${scorecardData.email}</p>
-              <p><a href="${absoluteUrl('/messer-result/' + scorecardId)}">Review and approve this result</a></p>
-            `,
-          },
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Messer Result Submitted: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        },
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
-    };
-
-    await ses.sendEmail(params);
+    });
   } catch (err) {
     console.error('sendMesserSubmissionEmail error:', err);
   }
@@ -900,31 +900,29 @@ async function sendMesserApprovalEmail(scorecardData) {
     const homeTeam = await Team.getById(scorecardData.homeTeam);
     const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    const params = {
-      Destination: {
-        ToAddresses: [scorecardData.email],
+    await mailer.send({
+      template: 'messer-result',
+      to: scorecardData.email,
+      replyTo: 'stockport.badders.results@gmail.com',
+      subject: `Messer Result Approved: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      whyReceiving: 'You submitted this Messer result to the league.',
+      text: [
+        'Your messer result has been approved and entered into the system.',
+        '',
+        `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+        '',
+        'The messer draw and standings have been updated.',
+      ].join('\n'),
+      data: {
+        state: 'approved',
+        homeTeam: homeTeam[0]?.name || 'Home',
+        awayTeam: awayTeam[0]?.name || 'Away',
+        matchDate: scorecardData.date,
+        submittedBy: '',
+        actionUrl: '',
+        actionLabel: '',
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `
-              <p>Your messer result has been approved and entered into the system.</p>
-              <p><strong>Match:</strong> ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}</p>
-              <p>The messer draw and standings have been updated.</p>
-            `,
-          },
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Messer Result Approved: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        },
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
-    };
-
-    await ses.sendEmail(params);
+    });
   } catch (err) {
     console.error('sendMesserApprovalEmail error:', err);
   }
@@ -935,31 +933,29 @@ async function sendMesserRejectionEmail(scorecardData) {
     const homeTeam = await Team.getById(scorecardData.homeTeam);
     const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    const params = {
-      Destination: {
-        ToAddresses: [scorecardData.email],
+    await mailer.send({
+      template: 'messer-result',
+      to: scorecardData.email,
+      replyTo: 'stockport.badders.results@gmail.com',
+      subject: `Messer Result Rejected: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      whyReceiving: 'You submitted this Messer result to the league.',
+      text: [
+        'Your messer result submission was not entered into the system.',
+        '',
+        `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+        '',
+        'Please review the scores and submit it again.',
+      ].join('\n'),
+      data: {
+        state: 'rejected',
+        homeTeam: homeTeam[0]?.name || 'Home',
+        awayTeam: awayTeam[0]?.name || 'Away',
+        matchDate: scorecardData.date,
+        submittedBy: '',
+        actionUrl: '',
+        actionLabel: '',
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `
-              <p>Your messer result submission has been rejected and was not entered into the system.</p>
-              <p><strong>Match:</strong> ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}</p>
-              <p>Please review the scores and submit again if needed.</p>
-            `,
-          },
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Messer Result Rejected: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        },
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com','stockportbadminton18@btinternet.com'],
-    };
-
-    await ses.sendEmail(params);
+    });
   } catch (err) {
     console.error('sendMesserRejectionEmail error:', err);
   }

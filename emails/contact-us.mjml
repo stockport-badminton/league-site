@@ -1,0 +1,38 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Somebody is trying to get in touch</mj-title>
+    <mj-preview>From <%= senderEmail %></mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Enquiry</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">Somebody is trying to get in touch</mj-text>
+        <mj-raw><% if (aboutClub) { %></mj-raw>
+        <mj-text mj-class="sub" padding="4px 24px 0">About <%= aboutClub %></mj-text>
+        <mj-raw><% } %></mj-raw>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text mj-class="callout"><%= message %></mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="12px 0 0">
+      <mj-column>
+        <mj-text>
+          From <a href="mailto:<%= senderEmail %>"><%= senderEmail %></a>. Replying to this
+          email goes back to them.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>

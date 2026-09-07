@@ -4,6 +4,7 @@ var League = require('../models/league.js');
 var Player = require('../models/players.js');
 require('dotenv').config()
 const sesUtil = require('../utils/ses');
+const mailer = require('../utils/mailer');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const https = require('node:https');
@@ -450,8 +451,24 @@ exports.contactus = async function(req, res, next) {
         clubRecipients.push('stockport.badders.results@gmail.com');
       }
 
-      params.Destination.ToAddresses = clubRecipients;
-      await sesUtil.sendEmail(params);
+      await mailer.send({
+        template: 'contact-us',
+        to: clubRecipients,
+        bcc: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com'],
+        replyTo: [mailer.RESULTS_MAILBOX, req.body.contactEmail],
+        subject: 'Somebody is trying to get in touch',
+        whyReceiving: 'You are listed as a secretary for this club in the Stockport & District Badminton League.',
+        text: [
+          req.body.contactQuery,
+          '',
+          'From ' + req.body.contactEmail + '. Replying to this email goes back to them.',
+        ].join('\n'),
+        data: {
+          message: req.body.contactQuery,
+          senderEmail: req.body.contactEmail,
+          aboutClub: rows.length ? rows[0].clubname : '',
+        },
+      });
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
@@ -492,28 +509,25 @@ exports.contactus = async function(req, res, next) {
           break;
         default:
       }
-      var params = {
-        Destination: {
-          ToAddresses: [],
-          BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
+      // `msg.to` came from the switch above, a fixed list of officers, never the request.
+      await mailer.send({
+        template: 'contact-us',
+        to: msg.to,
+        bcc: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com'],
+        replyTo: [mailer.RESULTS_MAILBOX, req.body.contactEmail],
+        subject: 'Somebody is trying to get in touch',
+        whyReceiving: 'You are listed as a league officer for this kind of enquiry.',
+        text: [
+          req.body.contactQuery,
+          '',
+          'From ' + req.body.contactEmail + '. Replying to this email goes back to them.',
+        ].join('\n'),
+        data: {
+          message: req.body.contactQuery,
+          senderEmail: req.body.contactEmail,
+          aboutClub: '',
         },
-        Message: {
-          Body: {
-            Html: {
-              Charset: 'UTF-8',
-              Data: exports.generateContactUsHTML(req.body.contactQuery, req.body.contactEmail)
-            }
-          },
-          Subject: {
-            Charset: 'UTF-8',
-            Data: 'Somebody is trying to get in touch'
-          }
-        },
-        Source: 'results@stockport-badminton.co.uk',
-        ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
-      };
-      params.Destination.ToAddresses = msg.to;
-      await sesUtil.sendEmail(params);
+      });
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',

@@ -57,6 +57,55 @@ const SAMPLES = {
       chased: [DIGEST_CLUBS[0]],
     },
   },
+  'contact-us': {
+    logoUrl,
+    whyReceiving: 'You are listed as a secretary for this club.',
+    message: 'Hello — my daughter is 14 and keen to start playing. Do you have a junior night?',
+    senderEmail: 'a.parent@example.com',
+    aboutClub: 'Mellor',
+  },
+  'scorecard-reminder': {
+    logoUrl,
+    whyReceiving: 'You are listed as a captain for one of the teams in this fixture.',
+    matchLine: '',
+    submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
+  },
+  'access-approved': {
+    logoUrl,
+    whyReceiving: 'You asked for access to enter results for your team.',
+    submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
+  },
+  'scorecard-photo-added': {
+    logoUrl,
+    whyReceiving: 'You are the league results secretary.',
+    photoUrl: 'https://stockport-badminton.co.uk/scorecard-photo/2437?t=abc123',
+    confirmUrl: 'https://stockport-badminton.co.uk/populated-scorecard-beta/2437?t=abc123',
+  },
+  'missing-scorecards': {
+    logoUrl,
+    whyReceiving: 'You are listed as a recipient of the league admin digests.',
+    fixtures: [
+      { date: '03/09/2026', homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      { date: '03/09/2026', homeTeam: 'Shell C', awayTeam: 'Dome B' },
+    ],
+  },
+  'transfer-request': {
+    logoUrl,
+    whyReceiving: 'You are the league results secretary, who approves transfers.',
+    requester: 'Anne Secretary', requesterClub: 'Mellor',
+    playerName: 'Jill Jackson', playerId: 1042,
+    currentlyAt: 'Aerospace — Aerospace A',
+    destTeam: 'Mellor B', destClub: 'Mellor',
+    rosterUrl: 'https://stockport-badminton.co.uk/manage-players',
+  },
+  'messer-result': {
+    logoUrl,
+    whyReceiving: 'You administer the Messer knockout for the league.',
+    state: 'submitted', homeTeam: 'Mellor A', awayTeam: 'Aerospace A',
+    matchDate: '2026-09-03', submittedBy: 'captain@example.com',
+    actionUrl: 'https://stockport-badminton.co.uk/messer-result/12',
+    actionLabel: 'Review and approve',
+  },
   'website-updated': {
     logoUrl,
     whyReceiving: 'Sent when a result you filed is published on the website.',
@@ -92,6 +141,16 @@ const SAMPLES = {
         overdue: true, firstFixture: 'Thursday 3 September' })],
     // A digest with nothing chased yet — the state on the first morning of a season, and
     // the one where a discarded mj-raw tag would show an empty heading.
+    // The three states of the messer email, which are its mj-raw conditionals.
+    'messer-result-approved': ['messer-result',
+      Object.assign({}, SAMPLES['messer-result'], {
+        state: 'approved', submittedBy: '', actionUrl: '', actionLabel: '' })],
+    'messer-result-rejected': ['messer-result',
+      Object.assign({}, SAMPLES['messer-result'], {
+        state: 'rejected', submittedBy: '', actionUrl: '', actionLabel: '' })],
+    // ...and the empty day, which is the other conditional.
+    'missing-scorecards-none': ['missing-scorecards',
+      Object.assign({}, SAMPLES['missing-scorecards'], { fixtures: [] })],
     'registration-digest-none-chased': ['registration-digest',
       Object.assign({}, SAMPLES['registration-digest'], {
         digest: Object.assign({}, SAMPLES['registration-digest'].digest, { chased: [] }) })],

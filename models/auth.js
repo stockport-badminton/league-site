@@ -1,8 +1,9 @@
 const axios = require('axios');
 const ses = require('../utils/ses');
+const mailer = require('../utils/mailer');
 const Player = require('./players');
 const { isSuperAdmin } = require('../utils/authz');
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
 exports.getManagementAPIKey = async function() {
   const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
@@ -88,25 +89,20 @@ exports.approve_signup_post = async function(req, res, next) {
       authEmail: user.email
     })
 
-    await ses.sendEmail({
-      Destination: {
-        ToAddresses: [user.email],
-        BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com', 'stockport.badders.results@gmail.com']
-      },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: '<p>Thanks for registering - i\'ve approved your access</p>'
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: 'Results Entry Access'
-        }
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com']
+    await mailer.send({
+      template: 'access-approved',
+      to: user.email,
+      bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com', 'stockport.badders.results@gmail.com'],
+      replyTo: mailer.RESULTS_MAILBOX,
+      subject: 'Results Entry Access',
+      whyReceiving: 'You asked for access to enter results for your team on the league website.',
+      text: [
+        'Thanks for registering — your access has been approved, so you can now enter',
+        "your team's results on the league website.",
+        '',
+        absoluteUrl('/scorecard-beta'),
+      ].join('\n'),
+      data: { submitUrl: absoluteUrl('/scorecard-beta') },
     })
 
     res.render('contact-us-form-delivered', {

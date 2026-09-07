@@ -839,17 +839,31 @@ function renderLinkRefused(req, res, status) {
 
       // Team names come from the database rows we just matched, not from the request,
       // so the subject cannot be authored by the sender.
-      await ses.sendEmail({
-        Destination: {
-          ToAddresses: recipients,
-          BccAddresses: [LEAGUE_INBOX, 'bigcoops@outlook.com']
+      await mailer.send({
+        template: 'scorecard-reminder',
+        to: recipients,
+        bcc: [LEAGUE_INBOX, 'bigcoops@outlook.com'],
+        replyTo: LEAGUE_INBOX,
+        subject: 'Reminder: outstanding scorecard',
+        whyReceiving:
+          'You are listed as a captain or secretary for one of the teams in this fixture.',
+        text: [
+          'Just a timely reminder that the scorecard for your recent match is due by',
+          'close of play tomorrow, to avoid a late card mark.',
+          '',
+          absoluteUrl('/scorecard-beta'),
+          '',
+          'Thanks,',
+          'Neil',
+        ].join('\n'),
+        data: {
+          // No match line. The only team names to hand come from req.body, and this
+          // endpoint is reachable from the public /results page — the note above is that
+          // the subject cannot be authored by the sender, and the body must not be
+          // either. The original email named no fixture, so nothing is lost.
+          matchLine: '',
+          submitUrl: absoluteUrl('/scorecard-beta'),
         },
-        Message: {
-          Body: { Html: { Charset: 'UTF-8', Data: contact_controller.generateScorecardReminderHTML() } },
-          Subject: { Charset: 'UTF-8', Data: 'Reminder: outstanding scorecard' }
-        },
-        Source: 'results@stockport-badminton.co.uk',
-        ReplyToAddresses: [LEAGUE_INBOX],
       });
       res.send('Message Sent');
     } catch (err) {
@@ -924,29 +938,28 @@ exports.add_scorecard_photo = async function(req, res, next) {
       return res.status(409).json({ error: 'This scorecard already has a photo.' });
     }
 
-    const params = {
-      Destination: {
-        ToAddresses: ['stockport.badders.results@gmail.com'],
-        BccAddresses: ['bigcoops@outlook.com', 'bigcoops@gmail.com']
+    // The proxy link, not the bucket URL: photos are private objects now, and the
+    // bucket URL was itself the authorization on one. See HARD-02b.
+    await mailer.send({
+      template: 'scorecard-photo-added',
+      to: 'stockport.badders.results@gmail.com',
+      bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com'],
+      replyTo: mailer.RESULTS_MAILBOX,
+      subject: 'Scorecard Updated',
+      whyReceiving: 'You are the league results secretary, who checks filed scorecards.',
+      text: [
+        'A scorecard has been updated with a photo of the card.',
+        '',
+        photoLinkFor(req.params.id, draft.confirmToken),
+        '',
+        'Check the result:',
+        confirmationUrl(req.params.id, draft.confirmToken),
+      ].join('\n'),
+      data: {
+        photoUrl: photoLinkFor(req.params.id, draft.confirmToken),
+        confirmUrl: confirmationUrl(req.params.id, draft.confirmToken),
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            // The proxy link, not the bucket URL: photos are private objects now, and
-            // the bucket URL was itself the authorization on one. See HARD-02b.
-            Data: exports.buildPhotoEmailHtml(
-              photoLinkFor(req.params.id, draft.confirmToken),
-              confirmationUrl(req.params.id, draft.confirmToken)
-            )
-          }
-        },
-        Subject: { Charset: 'UTF-8', Data: 'Scorecard Updated' }
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-    };
-    await ses.sendEmail(params);
+    });
     res.sendStatus(200);
   } catch (err) {
     console.log(err.toString());

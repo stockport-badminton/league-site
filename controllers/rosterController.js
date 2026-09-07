@@ -9,8 +9,9 @@
 const Club = require('../models/club')
 const Roster = require('../models/roster')
 const sesUtil = require('../utils/ses')
+const mailer = require('../utils/mailer')
 const { assertClubAccess, isSuperAdmin } = require('../middleware/requireClubAccess')
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
 const RESULTS_SECRETARY = process.env.RESULTS_EMAIL || 'results@stockport-badminton.co.uk'
 const MAIL_SOURCE = 'results@stockport-badminton.co.uk'
@@ -530,28 +531,38 @@ exports.api_transfer_request = async function(req, res, next) {
       })
     }
 
-    const html =
-      '<p><strong>' + escapeHtml(requester) + '</strong> at <strong>' + escapeHtml(clubName) +
-      '</strong> has requested a transfer.</p>' +
-      '<ul>' +
-      '<li>Player: <strong>' + escapeHtml(player.name) + '</strong> (id ' + player.id + ')</li>' +
-      '<li>Currently at: ' + escapeHtml(player.clubName || 'no club') +
-      (player.teamName ? ' — ' + escapeHtml(player.teamName) : '') + '</li>' +
-      '<li>Requested for: ' + escapeHtml(dest.name) + ' (' + escapeHtml(dest.clubName) + ')</li>' +
-      '</ul>' +
-      '<p>Approve it on the club\'s team management page.</p>'
+    // The template escapes; this used to be concatenated HTML with escapeHtml() called by
+    // hand at each interpolation, which is the rule CLAUDE.md keeps for the sends that are
+    // still built that way — and the reason for moving them.
+    const currentlyAt = (player.clubName || 'no club') +
+                        (player.teamName ? ' — ' + player.teamName : '')
 
-    await sesUtil.sendEmail({
-      Destination: { ToAddresses: [RESULTS_SECRETARY] },
-      Message: {
-        Body: { Html: { Charset: 'UTF-8', Data: html } },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: 'Transfer request: ' + player.name + ' → ' + dest.name
-        }
+    await mailer.send({
+      template: 'transfer-request',
+      to: RESULTS_SECRETARY,
+      replyTo: requesterEmail ? [MAIL_SOURCE, requesterEmail] : [MAIL_SOURCE],
+      subject: 'Transfer request: ' + player.name + ' → ' + dest.name,
+      whyReceiving: 'You are the league results secretary, who approves player transfers.',
+      text: [
+        requester + ' at ' + clubName + ' has requested a transfer.',
+        '',
+        '  Player:        ' + player.name + ' (id ' + player.id + ')',
+        '  Currently at:  ' + currentlyAt,
+        '  Requested for: ' + dest.name + ' (' + dest.clubName + ')',
+        '',
+        "Approve it on the club's team management page:",
+        absoluteUrl('/manage-players'),
+      ].join('\n'),
+      data: {
+        requester: requester,
+        requesterClub: clubName,
+        playerName: player.name,
+        playerId: player.id,
+        currentlyAt: currentlyAt,
+        destTeam: dest.name,
+        destClub: dest.clubName,
+        rosterUrl: absoluteUrl('/manage-players'),
       },
-      Source: MAIL_SOURCE,
-      ReplyToAddresses: requesterEmail ? [MAIL_SOURCE, requesterEmail] : [MAIL_SOURCE]
     })
 
     res.json({
