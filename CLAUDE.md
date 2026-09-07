@@ -944,6 +944,14 @@ Key vars (see `.env` for examples):
    Where nothing in JavaScript reads a column, leaving it folded is the correct answer.
    `__tests__/unit/fixture-players-aliases.test.js` derives the requirement from what the
    views actually read; HARD-19 proposes the same check across the codebase.
+   **And the folded name is sometimes the right thing to read.** `POST /contact-us` did
+   `rows[0].clubSecEmail.indexOf(',')` against `Club.getContactDetailsById`, whose alias is
+   `AS clubSecEmail` unquoted — so it was `undefined.indexOf`, the catch turned it into
+   "Sorry something went wrong sending your email.", and the enquiry was lost. One member
+   tried four times in five minutes on 7 Sep (Sentry NODE-12) and the league got nothing.
+   The fix reads `clubsecemail`, because `controllers/clubController.js` and
+   `views/club-contact.ejs` already read every column of that query in lowercase and work:
+   quoting the alias would have fixed one caller and broken the club contact page.
 1b. **Never build a URL from `req.get('host')`.** Firebase Hosting rewrites `**` to
    Cloud Run and the Host header that arrives is the *Cloud Run* one — the requested
    host is passed separately, in `x-fh-requested-host`. Every canonical and `og:url`

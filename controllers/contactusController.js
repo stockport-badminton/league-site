@@ -12,6 +12,7 @@ const Spam = require('../models/spamControls');
 const spamGate = require('../middleware/spamGate');
 const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
+const Sentry = require('@sentry/node');
 
 // Where an unsubscribe request from a distribution list lands. A person reads it and
 // decides — see the List-Unsubscribe comment in distribution_list.
@@ -416,7 +417,40 @@ exports.contactus = async function(req, res, next) {
         Source: 'results@stockport-badminton.co.uk',
         ReplyToAddresses: ['stockport.badders.results@gmail.com', req.body.contactEmail],
       };
-      params.Destination.ToAddresses = (rows[0].clubSecEmail.indexOf(',') > 0 ? rows[0].clubSecEmail.split(',') : [rows[0].clubSecEmail]);
+      // `clubsecemail`, lowercase, because that is what the query returns.
+      //
+      // This read was `rows[0].clubSecEmail` and CLAUDE.md gotcha 1 is why it was always
+      // undefined: `getContactDetailsById` aliases the column `AS clubSecEmail` without
+      // quotes, so Postgres folds it to `clubsecemail`. `undefined.indexOf(',')` throws,
+      // the catch below turns it into "Sorry something went wrong sending your email.",
+      // and the enquiry is gone. Sentry NODE-12: one member tried four times in five
+      // minutes on 7 Sep and the league never received any of them.
+      //
+      // Reading the folded name rather than quoting the alias is deliberate. The rest of
+      // this query's consumers — controllers/clubController.js and views/club-contact.ejs
+      // — already read every column in lowercase and work. Quoting the alias would fix
+      // this line and break the club contact page, which is the same desynchronisation
+      // that `AS clubId` caused in models/fixture.js. Do not "tidy" this to camelCase
+      // without changing those two as well.
+      const clubSecEmail = rows.length ? rows[0].clubsecemail : null;
+      const clubRecipients = String(clubSecEmail || '')
+        .split(',')
+        .map(a => a.trim())
+        .filter(a => a.includes('@'));
+
+      // A club with no usable secretary address must not cost the sender their message.
+      // The league inbox is already on the Bcc, so this only decides who it is addressed
+      // to; losing the enquiry to an exception is the one outcome worth avoiding.
+      if (!clubRecipients.length) {
+        console.warn(`contact-us: no club secretary address for club ${req.body.clubSelect}` +
+                     ` — sending to the league inbox instead`);
+        Sentry.captureMessage('contact-us: club has no secretary address', {
+          level: 'warning', tags: { club: String(req.body.clubSelect) },
+        });
+        clubRecipients.push('stockport.badders.results@gmail.com');
+      }
+
+      params.Destination.ToAddresses = clubRecipients;
       await sesUtil.sendEmail(params);
       console.log(msg);
       res.render('contact-us-form-delivered', {
@@ -492,8 +526,14 @@ exports.contactus = async function(req, res, next) {
       });
     }
   } catch (error) {
-    console.log(error.toString());
-    return next("Sorry something went wrong sending your email.");
+    // `next(string)` was passing the friendly TEXT as the error, so the real one — the
+    // TypeError above, in this case — reached nothing but stdout. Sentry recorded
+    // `Error: Sorry something went wrong sending your email.` with a stack of nothing but
+    // Express internals, which is why NODE-12 took a database session to diagnose rather
+    // than a glance. Report the cause, then render the friendly page.
+    console.error('contact-us send failed:', error && error.stack ? error.stack : error);
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
+    return next(new Error('Sorry something went wrong sending your email.'));
   }
 }
 exports.send_invoices = async function(req, res, next) {
