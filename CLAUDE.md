@@ -145,6 +145,37 @@ npm run test:watch # Watch mode
 - Mock `req`, `res`, `next` for middleware tests
 - Use `supertest` for HTTP integration tests (see `__tests__/integration/`)
 
+### supertest binds 127.0.0.1, and that is load-bearing
+
+`__tests__/setupAfterEnv.js` overrides supertest's `serverAddress` so the per-request
+server binds **`127.0.0.1`** rather than the wildcard. Do not simplify it back to
+`app.listen(0)`.
+
+`request(app)` stands up a server on an ephemeral port for every call — about 600 a run.
+Upstream binds the IPv6 wildcard `::` while addressing its requests to `127.0.0.1`, and
+that combination is a bug: the port-0 allocator for `::` **will** hand out a port already
+held on `127.0.0.1` specifically, and a loopback connection then goes to the *more
+specific* binding — the other process. Seven VS Code helpers listen in that range on a
+typical dev machine. **A quarter of full runs failed this way**, in twelve different
+suites, for a week, and it was read as a dozen separate bugs including an authorization
+one. Binding the loopback address makes it impossible: that allocator will not hand out a
+port already taken on that address.
+
+Two things follow, both of which cost days before they were understood:
+
+- **A foreign process can answer with anything** — 400, 401, `200 ok`, `ECONNRESET`
+  (which reads as `socket hang up`), or Express's own `Cannot GET /whatever` 404. A test
+  asserting only a status code can therefore **pass for the wrong reason**; one run had a
+  squatter return `200 ok`.
+- **Do not identify our own responses by their security headers.** The previous guard
+  inferred "ours" from the presence of helmet's CSP and `X-Content-Type-Options` — but
+  Express's default 404 carries both, so every collision with an Express squatter was
+  silently attributed to our code. Each server now stamps responses with an id we issue
+  (`__tests__/helpers/foreign-response.js`); an outsider cannot produce one.
+
+The suite is sized so this matters: the flake rate is a function of how many requests it
+makes, so it grows as the suite grows.
+
 ### Browser tests (Playwright)
 
 Jest renders routes with supertest but never runs the page's JavaScript. The

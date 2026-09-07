@@ -148,3 +148,151 @@ Two candidates worth eliminating first, given what the failures have in common:
 The second one links this package to HARD-26, and both should be settled before HARD-08
 puts the suite in CI — where a one-in-three flake is everybody's problem rather than
 something two people know to shrug at.
+
+
+---
+
+## Resolved, 7 Sep 2026 — it was one bug, it was never ours, and it was fixable
+
+**Root cause: supertest asked for the wrong kind of port.**
+
+`request(app)` calls `app.listen(0)` with no host. That binds the IPv6 **wildcard** `::`,
+while supertest addresses its own requests to `127.0.0.1`. Two things then go wrong
+together:
+
+1. the kernel's port-0 allocator for `::` **will hand out a port already held on
+   `127.0.0.1` specifically** — to the bind they are different addresses, so it is not a
+   conflict; and
+2. an incoming connection to `127.0.0.1` is delivered to the **more specific** of the two
+   bindings — theirs, not ours.
+
+Demonstrated directly, against a VS Code helper holding 49436:
+
+```
+bind wildcard *:49436  -> SUCCEEDED (:::49436)
+GET 127.0.0.1:49436    -> 400 "WebSockets request was expected"    (not ours)
+bind 127.0.0.1:49436   -> REFUSED EADDRINUSE
+```
+
+and with port 0, which is what supertest actually does — planting a loopback decoy just
+ahead of the allocator's cursor, where the next binds will look:
+
+```
+IPv6 wildcard ::  (before the fix)   -> handed out the held port? YES
+IPv4 loopback 127.0.0.1 (the fix)    -> handed out the held port? NO (skipped it)
+```
+
+So this was never a coincidence to be tolerated. **The fix is to bind `127.0.0.1`**, which
+is the address supertest was connecting to all along: that allocator will not hand out a
+port already taken on that address, and a foreign listener on the wildcard is covered too,
+because our bind is then the one refused.
+
+### Measured, not asserted
+
+Twenty full runs before the fix: **5 failed — 25%**, one in four, in five *different*
+suites. Twenty after: **20 green**. At the measured 25% rate, twenty clean runs in a row
+has a probability of 0.75^20, about **0.3%**. Every one was a port collision:
+
+| run | suite | port | guard |
+|---|---|---|---|
+| 5 | `rate-limits` | 49436 | fired |
+| 9 | `healthz` | — | **silent** |
+| 11 | `club-contact` | 57556 | fired |
+| 17 | `security-headers` | 49447 | fired — and it answered **200 `ok`** |
+| 18 | `roster` | — | **silent** |
+
+Run 17 is the one to remember: a foreign process answered **200**. A test asserting only a
+status code would have **passed for the wrong reason**.
+
+Then the suite was instrumented so each server stamped its own responses, which counts
+collisions directly instead of waiting for one to land somewhere that fails. Over four
+runs the correlation was exact — **collision ⇔ failing run**, no collisions in the runs
+that passed. That is the whole bug; there is no residual.
+
+### Three things this package believed that were wrong
+
+**1. "The guard was silent, so that 404 was ours."** It was not. Three of the seven
+colliding listeners are **Express** servers, and Express's own `finalhandler` 404 sends:
+
+```
+HTTP/1.1 404 Not Found
+X-Powered-By: Express
+Content-Security-Policy: default-src 'none'
+X-Content-Type-Options: nosniff
+```
+
+The guard inferred "ours" from the **absence** of those headers, so it could not fire on
+them. `curl` against one of those ports returns, verbatim, the failure the 4 Sep update
+recorded as ours and told the next reader to investigate:
+
+```
+Cannot GET /manage-players/club-Shell/edit
+```
+
+The rule now lives in `__tests__/helpers/foreign-response.js` and compares a **per-server
+id we issue ourselves** — something a process that does not know it exists cannot produce.
+The old heuristic remains only for `request('http://host:port')`, which stands up no
+server of ours and is used by nothing but the guard's own self-test.
+
+**2. "`--runInBand` passes, so it is between workers, not within a file."** It does not
+pass. Three instrumented `--runInBand` runs: one collided (port 54987, a 404, guard
+silent) and failed. It performs the *same* ~616 binds, so it was never going to be safer —
+the original claim rested on too few runs. This is the premise that sent the investigation
+towards module-registry leakage and mock hygiene, and it was the expensive one.
+
+**3. "Several suites mock `middleware/secured` and the models; a worker reusing a module
+instance would explain a lookup returning falsy."** Jest workers are separate *processes*
+and each test file gets a fresh module registry, so plain module state cannot leak between
+files at all. The other candidate — keep-alive sockets pooled on `http.globalAgent`,
+whose `keepAlive` really is `true` on Node 22 — is also dead: superagent sets
+`agent: false` on every request, so the global agent is never consulted. Verified at
+runtime: the server sees `Connection: close` and `http.globalAgent` holds zero sockets.
+
+### Why it looked like a dozen different bugs
+
+The victim is whichever suite happens to bind the contested port, and the symptom is
+whatever the squatter answers — 400, 401, 404, `200 ok`, or `ECONNRESET`, which is the
+`socket hang up` recorded against `scorecard-photo`. Across this package's history that is
+**twelve distinct suites**. There was one bug.
+
+It also explains the shape of the onset — and the onset was not 31 Aug. The suite roughly
+doubled that day (391 → 720 tests, 26 → 45 files) as the backlog landed, but what drives
+this is **binds**, not tests, and those grew about 1.4x (roughly 377 → 511 per run), which
+is enough to take an occasional oddity to a quarter of runs. The bug itself is older:
+commit `1c48aef` (30 Jul, at about half the size) records in its own message
+
+> the one-off flake seen while landing this: `fixtures.test.js` failed a status assertion
+> on one run and then passed on four consecutive full runs. I could not reproduce it and
+> have not explained it
+
+which is this, a month earlier and rarer. The rate is a function of how many requests the
+suite makes, so it grows as the suite grows — and it was never going to announce itself
+with a clean before-and-after.
+
+### The worker-teardown warning
+
+Explained as far as it can honestly be explained, and it is **not what it was assumed to
+be**. It printed in **8 of the 20** baseline runs — not "every run" as the brief says —
+and in **12 of the 20** runs after the fix, with every one of those 20 green. So it is
+independent of the collisions, does not track them, and was never part of this bug. It is
+also not a reliable distress signal: it fires on runs where nothing whatsoever is wrong.
+
+What it is *not*:
+
+- **not the app's timers.** Both `setInterval`s (`app.js:500`, connect-pg-simple's prune
+  timer) call `.unref()`, so neither can hold a worker open.
+- **not a production Postgres pool.** `db.connect()` is inside `if (require.main ===
+  module)` (`app.js:453`), so the app's own pool is **never constructed** under Jest. The
+  session store at `app.js:361` does build one, but express-session never calls the store
+  — no suite sends a session cookie — so it never connects.
+- **not a leaked handle any one suite can be blamed for.** `--detectOpenHandles` on an
+  app-requiring suite reports none.
+
+What is left is Jest force-exiting a worker that missed its 500 ms graceful-exit window.
+Which handle it was still holding is **not established**, and cannot be with the obvious
+tool: `--detectOpenHandles` silently implies `--runInBand`, so it cannot observe the
+parallel case that produces the warning. A suite making ~616 sockets a run has obvious
+candidates, but that is a guess and is written down as one.
+
+It belongs with **HARD-26** either way, which owns what `require('app.js')` drags into the
+test process.

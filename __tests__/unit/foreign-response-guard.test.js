@@ -10,6 +10,7 @@
 
 const http = require('http');
 const request = require('supertest');
+const { isForeignResponse, STAMP_HEADER } = require('../helpers/foreign-response');
 
 function foreignServer(status, body, headers) {
   const server = http.createServer((req, res) => {
@@ -51,9 +52,11 @@ describe('the foreign-response guard', () => {
     }
   });
 
-  it('does not fire on a response that does carry our security headers', async () => {
-    // The distinguishing signal is the CSP header helmet puts on every response, not the
-    // body — only one of the six colliding ports produced that string.
+  it('falls back to the header heuristic when there is no server of ours to compare against', async () => {
+    // request('http://host:port') hands supertest a URL rather than an app, so it stands
+    // up no server and there is no stamp to expect. Only this self-test does that. The
+    // old header heuristic is all that is available in that case — and it is a heuristic:
+    // see the rule tests below for what it cannot see.
     const { server, port } = await foreignServer(401, 'nope', {
       'Content-Security-Policy': "default-src 'self'",
     });
@@ -74,4 +77,45 @@ describe('the foreign-response guard', () => {
   // timeout that was twice written off as contention. It was written that way here, and
   // duly timed out in the full run while passing alone. `security-headers.test.js` already
   // asserts the header is on every response, including 404s, without booting a second app.
+});
+
+// The rule itself, tested directly. It is a pure function precisely because the version it
+// replaced was wrong in a way that no amount of re-running the suite would have shown.
+describe('isForeignResponse', () => {
+  const OURS = 'a-server-we-stood-up';
+
+  // This is the shape that defeated the previous rule, and it is not hypothetical: three
+  // of the seven colliding listeners on the machine where this was diagnosed are Express
+  // servers, and this is verbatim what Express's own finalhandler 404 sends.
+  const expressDefault404 = {
+    'x-powered-by': 'Express',
+    'content-security-policy': "default-src 'none'",
+    'x-content-type-options': 'nosniff',
+    'content-type': 'text/html; charset=utf-8',
+  };
+
+  it('reports a foreign response that carries the headers the old rule trusted', () => {
+    // The old rule asked only whether CSP and X-Content-Type-Options were ABSENT. All
+    // three of its clauses are satisfied here, so it stayed silent and the collision was
+    // reported as "expected 200, received 404" from our own code. Two separate
+    // investigations then went looking for a bug that was not there.
+    expect(isForeignResponse(expressDefault404, OURS)).toBe(true);
+  });
+
+  it('accepts a response carrying the id of the server that was stood up', () => {
+    expect(isForeignResponse({ [STAMP_HEADER]: OURS }, OURS)).toBe(false);
+  });
+
+  it('reports a response carrying a different server id', () => {
+    // Cross-talk rather than a foreign process: still not the server this request created.
+    expect(isForeignResponse({ [STAMP_HEADER]: 'some-other-server' }, OURS)).toBe(true);
+  });
+
+  it('reports a response with no id at all when one was expected', () => {
+    expect(isForeignResponse({ 'content-type': 'text/html' }, OURS)).toBe(true);
+  });
+
+  it('says nothing when there is no response to judge', () => {
+    expect(isForeignResponse(null, OURS)).toBe(false);
+  });
 });

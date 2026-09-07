@@ -297,3 +297,29 @@ the investigation twice over. Two of three sightings were lost to `npx jest | ta
 prints the summary and discards the failing test's name and its expected/received. **The
 diagnosis took one captured body.** Three sightings over months, two thrown away by a
 pipe: capture first, theorise second.
+
+
+---
+
+## Superseded, 7 Sep 2026 — the collision *can* be prevented
+
+This package concluded that the guard's job was "legibility, not stability": it could not
+stop the collision, only name it. That was wrong, and the reason is in how the port was
+asked for rather than in anything about the other processes.
+
+supertest's `app.listen(0)` binds the IPv6 **wildcard** `::` while addressing its requests
+to `127.0.0.1`. The port-0 allocator for `::` will hand out a port already held on
+`127.0.0.1` **specifically** — to the bind they are different addresses — and a loopback
+connection is then delivered to the *more specific* of the two bindings, i.e. to them.
+Binding `127.0.0.1` instead removes the first step and with it the whole class: that
+allocator will not hand out a port already taken on that address. Verified both ways round
+against a real decoy; see the resolution section of
+`docs/hardening/HARD-14-flaky-authorization-test.md`.
+
+**The guard also had a false negative that mattered.** It inferred "this response is ours"
+from the presence of helmet's `Content-Security-Policy` / `X-Content-Type-Options`. Three
+of the seven colliding listeners are **Express** servers, and Express's own `finalhandler`
+404 sends both headers — so those collisions passed the guard silently and were recorded,
+in this package's sibling, as bugs in our own code. The rule now compares a per-server id
+we issue ourselves (`__tests__/helpers/foreign-response.js`), which an outsider cannot
+produce, and the guard is a backstop rather than the mitigation.
