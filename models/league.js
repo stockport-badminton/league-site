@@ -95,7 +95,18 @@ exports.getLeagueTable = async function(division, season) {
 // whose only team has withdrawn should drop out of the count rather than appear
 // with a phantom one.
 exports.getAnnualInvoices = async function(clubName) {
-  const clubFilter = typeof clubName !== 'undefined' ? 'WHERE club.name = ?' : ''
+  // `No Club` (63) is the sentinel a released player is parked on — Roster.NO_CLUB_ID —
+  // and it holds `No Team` (52), so it looks like a club with two teams and would be
+  // invoiced. It was excluded only by ACCIDENT until now: it has nobody flagged as club
+  // secretary, and the officer join below used to be INNER, which dropped it. Making that
+  // join LEFT (correctly, so a real club missing a secretary is no longer silently
+  // dropped) surfaced it. Excluded on purpose instead, which does not depend on its data
+  // staying incomplete.
+  const SENTINEL_CLUB = 63
+  const base = `club.id <> ${SENTINEL_CLUB}`
+  const clubFilter = typeof clubName !== 'undefined'
+    ? `WHERE ${base} AND club.name = ?`
+    : `WHERE ${base}`
   const params = [process.env.DB_PI_KEY, seasonModel.current(), seasonModel.previous(), seasonModel.current()]
   if (typeof clubName !== 'undefined') params.push(clubName)
 
@@ -117,7 +128,17 @@ exports.getAnnualInvoices = async function(clubName) {
     fines ON fines.club = club.id AND ((fines.season = ? AND fines.desc IN ('agm')) OR (fines.season = ? AND fines.desc IN ('rearrangement','card')) OR fines.season IS NULL) LEFT JOIN
     team "fineTeam" ON fines.team = "fineTeam".id LEFT JOIN
     club "fineClub" ON fines.club = "fineClub".id JOIN
-    season on season.name = ? join
+    season on season.name = ? LEFT JOIN
+    -- LEFT, because a club secretary is OPTIONAL in the data and this was an inner join.
+    -- A club with nobody flagged as clubSecretary was dropped from the result entirely, so
+    -- it would silently never be invoiced — no error, no empty row, just absent from the
+    -- run. All 18 clubs happen to have one flagged today, which is the only reason this
+    -- has not already cost the league money. CLAUDE.md gotcha 1c: an INNER JOIN to
+    -- something optional loses the whole row.
+    --
+    -- The club now appears with a NULL secretary and email, and the caller
+    -- (contactusController.send_invoices) reports that rather than handing SES a null
+    -- recipient.
     player ON (player.club = club.id AND player."clubSecretary" = 1)
     ${clubFilter}
     GROUP BY club.id, club.name, fines.id, fines.desc, fines.amount, "fineTeam".name, "fineClub".name, fines.season, player.first_name, player."playerEmail",season."clubFee"`

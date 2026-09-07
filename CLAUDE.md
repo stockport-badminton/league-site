@@ -994,7 +994,21 @@ Key vars (see `.env` for examples):
    a Google frontend in front of the app. `/healthz/` and `/HEALTHZ` both answer 200,
    which is how it was pinned down — compare a path you know has no route (it should
    return *our* 404 page, with our headers) against the one you are debugging.
-1c. **An INNER JOIN to something optional loses the whole page.** `getFixtureEventById`
+1c. **An INNER JOIN to something optional loses the whole page.**
+   `__tests__/unit/optional-join-guard.test.js` now fails on the specific shape that has
+   caused this three times: an inner join to `player` on a ROLE (`teamCaptain`,
+   `clubSecretary`, `matchSecrertary`, `treasurer`, `otherComms`, `club."clubSec"`,
+   `team.captain`). A role is optional by nature — six teams have no captain flagged — so
+   joining one as an *attribute* of another row is always the mistake. The one permitted
+   form is a statement that hardcodes the role as a literal in its own SELECT
+   (`'club Sec' AS role`): then the join defines what the row IS, and INNER is right. It
+   deliberately ignores the 27 inner joins to `venue`/`club`/`division`, which need
+   judgement per query rather than a rule.
+   Found by it: `getAnnualInvoices` inner-joined the club secretary, so **a club with
+   nobody flagged would have been dropped from the invoice run entirely** — no error, no
+   empty row, just absent. Latent only because all 18 clubs have one today. Fixing it
+   surfaced that `No Club` (63) was being excluded *by the same accident*, so that is now
+   excluded on purpose. `getFixtureEventById`
    joined the home team's captain, six teams have none flagged, and the 48 affected
    fixtures rendered as `HTTP 200` with a two-byte body. Two lessons: join optional
    things with `LEFT JOIN` (or a scalar subquery, which also makes the pick

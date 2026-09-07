@@ -158,11 +158,52 @@ they already use the right pattern: fold internally, quote at the boundary
 
 Anyone continuing this should widen `ARGS` in the tool rather than trust the clean run.
 
+# The join half, 7 Sep 2026
+
+**Done.** `__tests__/unit/optional-join-guard.test.js`.
+
+The brief estimated 12 `JOIN player` without `LEFT`; there are now **41**, inside **164**
+inner joins in SQL overall. Flagging those would be deleted in a week, exactly as this
+brief predicts. So the guard takes the narrowest shape that is *always* wrong: **an inner
+join to `player` whose ON clause tests a ROLE.** A role is optional by nature — six teams
+have no captain flagged — so joining one as an attribute of another row is the mistake all
+three historical bugs made.
+
+That narrowing leaves **2** occurrences, not 41, and both were confirmed by hand:
+
+| | |
+|---|---|
+| `Player.getEmails` | correct. Five UNION branches, each hardcoding its own role (`'club Sec' AS role`), so the join defines what the row IS and a club with no treasurer *should* contribute no treasurer row |
+| `League.getAnnualInvoices` | **the bug** |
+
+The permitted form is expressed as a rule rather than an exemption — a statement that
+hardcodes a role literal in its own SELECT list — so there is no suppression list, which
+this brief refuses.
+
+## The bug it found
+
+`getAnnualInvoices` inner-joined the club secretary. **A club with nobody flagged
+`clubSecretary` was dropped from the invoice run entirely** — no error, no empty row, just
+absent from the output the treasurer reads. Latent rather than live: all 18 clubs have one
+flagged today, so it was one unflagged secretary away from a club never being invoiced.
+
+Fixing it surfaced a second thing. With the join LEFT, the result went from 18 clubs to
+**19** — and the newcomer was `No Club` (63), the sentinel a released player parks on,
+which holds `No Team` (52) and so looks like a club with two teams. It had been excluded
+*by the same accident*: no flagged secretary, inner join, dropped. It is now excluded on
+purpose, which does not depend on its data staying incomplete.
+
+`send_invoices` also no longer hands SES `ToAddresses: [null]`. A club with no address is
+reported into the same `outputs` list the successes go to, so the gap is visible rather
+than being an absence somebody has to notice.
+
+Verified the change is inert for real clubs: INNER and LEFT both return 20 grouped rows
+for `club.id <> 63`.
+
 ## Still to do
 
-- **The join guard.** Nothing here addresses gotcha 1c, and it has cost more than the
-  alias bug did: `getFixtureEventById` returned two-byte pages for 48 fixtures, and
-  `getContactDetailsById` was all-INNER-JOIN so a club missing one team captain returned
-  no rows at all.
-- Reach the 38 unchecked functions.
+- Inner joins to `venue`, `club` and `division` — 27 of them, a real class per gotcha 1c
+  ("a missing one should cost a field, not the page") but needing judgement per query.
+  A `tools/`-style audit, not a unit test.
+- Reach the 38 read functions `tools/key-contract.js` cannot make return a row.
 - The `homeClubName` links decision.

@@ -280,6 +280,26 @@ describe('withdrawn teams and the annual invoice', () => {
     queue([]);
     await League.getAnnualInvoices('Parrswood');
     expect(log()[0].sql).toMatch(/team ON team\.club = club\.id AND team\.withdrawn IS NULL/);
-    expect(log()[0].sql).toMatch(/WHERE club\.name = \?/);
+    // Was `WHERE club.name = ?`. The WHERE now also excludes the `No Club` sentinel, so
+    // this asserts the club filter is APPLIED rather than that it is the only condition.
+    expect(log()[0].sql).toMatch(/club\.name = \?/);
+    expect(log()[0].sql).toMatch(/WHERE/);
+  });
+
+  // The sentinel club (63, `No Club`) holds `No Team` and so looks like a club with two
+  // teams. It was excluded only because it has no flagged secretary and the officer join
+  // was INNER; making that join LEFT surfaced it, so it is now excluded on purpose.
+  it('never invoices the No Club sentinel', async () => {
+    queue([]);
+    await League.getAnnualInvoices();
+    expect(log()[0].sql).toMatch(/club\.id <> 63/);
+  });
+
+  // An officer is optional in the data. Joining one with INNER dropped the whole club
+  // from the invoice run — silently, with no error and no empty row.
+  it('joins the club secretary with LEFT, so a club without one is still invoiced', async () => {
+    queue([]);
+    await League.getAnnualInvoices();
+    expect(log()[0].sql).toMatch(/LEFT JOIN[\s\S]*player ON \(player\.club = club\.id/);
   });
 });

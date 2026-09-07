@@ -604,6 +604,22 @@ exports.send_invoices = async function(req, res, next) {
 
         const currentData = JSON.parse(JSON.stringify(data));
         try {
+          // A club with no flagged secretary now reaches here (the officer join in
+          // getAnnualInvoices is LEFT, so the club is no longer dropped from the run).
+          // It must not be handed to SES as `ToAddresses: [null]`, which fails the whole
+          // call for that club. Reported and skipped instead, so the invoice run
+          // continues and the gap is visible.
+          if (!currentData.email || !String(currentData.email).includes('@')) {
+            console.warn(`invoices: no club secretary address for ${currentData.name} — skipped`);
+            Sentry.captureMessage('invoices: club has no secretary address', {
+              level: 'warning', tags: { club: String(currentData.name) },
+            });
+            // Reported through `outputs`, which is what the response body is, so the
+            // treasurer sees the gap in the same list as the successes rather than
+            // having to notice an absence.
+            outputs.push(`${currentData.name} invoice NOT sent: no club secretary email on file`);
+            continue;
+          }
           const str = await ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false });
           const params = {
             Destination: {
