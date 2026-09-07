@@ -39,7 +39,7 @@ exports.club_list_detail = async function(req, res, next) {
         teamElem.gMapUrl = row.teamgmap
         teamElem.address = row.teamaddress
         teamElem.matchDay = row.matchDay
-        if (prevRowElem.teams[prevRowElem.teams.length -1].venue != row.teammatchvenue){
+        if (prevRowElem.teams[prevRowElem.teams.length -1].venue != row.teammatchvenue || prevRowElem.teams[prevRowElem.teams.length -1].matchDay != row.matchDay){
           prevRowElem.teams.push(teamElem)
         }
       }
