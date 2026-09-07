@@ -142,6 +142,15 @@
                 <% } } %>
             </td>
             
+            <%# `row['homeClubName']` is undefined — getFixtureDetails returns `homeClub`,
+                and this comparison has therefore always been false, so the Enter and
+                Confirm links below have only ever shown to a user whose club is 'All'.
+                NOT fixed to `homeClub`, deliberately: /fixtures/edit/:id does not exist.
+                It is swallowed by the `/fixtures/*` wildcard, which ignores the id — both
+                /fixtures/edit/7313 and /fixtures/edit/1 return the same page. Making the
+                comparison work would show every captain two links to nowhere. The fix is
+                to point them at /scorecard-beta and /populated-scorecard-beta/:id, or to
+                delete them; either is a decision about what captains should be offered. %>
             <% if (user._json["https://my-app.example.com/club"] == 'All' || user._json["https://my-app.example.com/club"] == row['homeClubName']){ %>
               <td><a href="/fixtures/edit/<%= row['id'] %>">Enter</a></td> 
             <% } 
@@ -287,9 +296,21 @@
         $('#reminderAwayTeam')[0].value = $(this).parent().siblings()[2].textContent;
         var homeTeamId = this.parentElement.parentElement.children[1].getAttribute('data-hometeam').valueOf()
         var homeTeamName = this.parentElement.parentElement.children[1].textContent
-        $.get('/club-api/'+homeTeamId, function(data){ 
-          var filterTeams = data.filter(row => row.teamName == homeTeamName)
-          $('#reminderModalBody > div.form-group > input#email')[0].value = filterTeams[0].matchSecEmail + "," + filterTeams[0].teamCaptainEmail
+        $.get('/club-api/'+homeTeamId, function(data){
+          // Lowercase keys, because that is what /club-api returns: it sends
+          // Club.getContactDetailsById straight out, and that query's aliases are
+          // unquoted, so Postgres folds them (CLAUDE.md gotcha 1).
+          //
+          // This read `row.teamName`, which is undefined for every row — so the filter
+          // matched nothing, `filterTeams[0]` was undefined, and
+          // `filterTeams[0].matchSecEmail` threw a TypeError that killed the callback.
+          // The address field was therefore never filled in at all, silently, since the
+          // error only ever appeared in the browser console.
+          var filterTeams = data.filter(row => row.teamname == homeTeamName)
+          if (!filterTeams.length) return;
+          var addresses = [filterTeams[0].matchsecemail, filterTeams[0].teamcaptainemail]
+            .filter(function (a) { return a; });
+          $('#reminderModalBody > div.form-group > input#email')[0].value = addresses.join(',');
         })
       })
 

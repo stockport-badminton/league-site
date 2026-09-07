@@ -215,6 +215,8 @@ node tools/dbq.js --schema player        # columns and types
 node tools/dbq.js --check all            # data-integrity checks
 node tools/dbq.js --check orphan-results # the offending rows
 node tools/dbq.js --json "SELECT ..."    # machine-readable
+node tools/key-contract.js               # do consumers read the keys queries return?
+node tools/key-contract.js --coverage    # ...and what it could not check
 ```
 
 It loads `dev.env` then `.env`, connects, and prints a table. **It refuses anything that
@@ -957,6 +959,15 @@ Key vars (see `.env` for examples):
    method is to run the query and diff its real keys against what its consumers read —
    which is HARD-19, and belongs with `dbq --check` because it needs the database.
    `__tests__/unit/fixture-players-aliases.test.js` does that for one query pair.
+   **`node tools/key-contract.js` is that check.** It runs every read-only model function,
+   reads `Object.keys()` off a real row, and reports any camelCase property read in
+   `views/` or `controllers/` whose lowercase form is a real output key while the camelCase
+   form is not — the exact signature of a folded alias with a camelCase reader. It reports
+   **suspects, not bugs**: it matches names, not producers, so confirm each by hand. Of the
+   first nine it found, three were SCREAMING_CASE OCR constants and four were fed by a
+   different function that quotes correctly; the two real ones were `/club-api` consumers
+   and `homeClubName`. `--coverage` lists the functions it could not make return a row,
+   which is the honest limit of any run.
    **And the folded name is sometimes the right thing to read.** `POST /contact-us` did
    `rows[0].clubSecEmail.indexOf(',')` against `Club.getContactDetailsById`, whose alias is
    `AS clubSecEmail` unquoted — so it was `undefined.indexOf`, the catch turned it into

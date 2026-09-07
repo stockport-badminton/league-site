@@ -102,3 +102,67 @@ and still shipped twice**, and that a page can be visibly wrong for years withou
 noticing. If a rule turns out not to be mechanically checkable with an acceptable false
 positive rate, say so and close the package — that is a real answer, and better than a
 guard nobody trusts.
+
+
+---
+
+# The alias half, 7 Sep 2026
+
+Half of this package is done: the alias guard exists, and so does the thing that finds
+existing offenders. **The join half — an INNER JOIN to something optional — is untouched.**
+
+## What landed
+
+**`__tests__/unit/sql-alias-quoting.test.js`** — the rule is *an alias is either
+quoted-and-camelCase, or written lowercase; never camelCase-unquoted*. Only that third
+form is dangerous, and it is dangerous because it LIES: the SQL says `AS clubSecEmail` and
+the row arrives as `clubsecemail`, so the mistake is invisible where anyone would look.
+
+This brief refuses a suppression list on day one, correctly, and that was the obstacle —
+there were 191 offenders. The way round it: **lowercasing an unquoted camelCase alias is a
+provable no-op**, because Postgres was already folding it. So all 191 were rewritten and
+the guard starts clean.
+
+Proved empirically rather than argued: the output keys of 35 model read functions were
+snapshotted against the real database before and after — **421 keys, none changed, none
+stopped returning rows** — and the diff was checked mechanically by normalising every
+`AS <token>`, which makes the added and removed line sets identical.
+
+**`tools/key-contract.js`** — the guard above compares SQL against itself and can never
+find a broken CONSUMER. Nor can Jest: these failures are silent, most of these queries
+have no test, and a mock spelling the key camelCase passes against the bug. So this runs
+each read-only model function, reads `Object.keys()` off a real row, and reports any
+camelCase read in `views/` or `controllers/` whose lowercase form is a real key while the
+camelCase form is not. It needs the database, so it lives with `dbq --check`, not in
+`npm test`.
+
+## What it found
+
+| | |
+|---|---|
+| `/club-api` consumer reading `teamName`, `matchSecEmail`, `teamCaptainEmail` | **fixed** — `row.teamName` was undefined, so the filter matched nothing, `filterTeams[0]` was undefined, and `.matchSecEmail` threw. The reminder modal's address field was never filled, silently, since the error only reached the browser console |
+| `fixtures-results.ejs` reading `homeClubName` | **recorded, not fixed** — the comparison has always been false, so the Enter and Confirm links only ever showed to `club == 'All'`. Fixing it would reveal two dead links: `/fixtures/edit/:id` does not exist and is swallowed by the `/fixtures/*` wildcard, which ignores the id. Needs a decision about what captains should be offered, not a cast |
+
+Earlier finds from the same class, for the record: `AS Man1` (every player column on
+`/fixture-players` and the confirmation screen), `AS clubSecEmail` (`/contact-us` losing
+enquiries), `AS pointsFor` (league tables, May), `AS teamCaptain` (`/event/` pages).
+
+## Honest coverage
+
+**66 of 104 read functions** returned a row and were checked. The other 38 need arguments
+the tool cannot guess; `--coverage` lists them. Of those 38, ten alias a folded multi-word
+name and so could hide the same bug — the two highest-value were hand-checked
+(`league.getLeagueTable`, `players.getPlayerGameData`) and **both are correct**, because
+they already use the right pattern: fold internally, quote at the boundary
+(`beforeval AS "beforeVal"`).
+
+Anyone continuing this should widen `ARGS` in the tool rather than trust the clean run.
+
+## Still to do
+
+- **The join guard.** Nothing here addresses gotcha 1c, and it has cost more than the
+  alias bug did: `getFixtureEventById` returned two-byte pages for 48 fixtures, and
+  `getContactDetailsById` was all-INNER-JOIN so a club missing one team captain returned
+  no rows at all.
+- Reach the 38 unchecked functions.
+- The `homeClubName` links decision.
