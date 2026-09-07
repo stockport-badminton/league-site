@@ -50,8 +50,16 @@ that its arguments must be trusted.
 1. Bind `DB_PI_KEY` as a `?` parameter in all five branches. The wrapper in `db_connect.js`
    converts `?` to `$n`, so the same value is bound five times — pass it five times.
 2. Bind the four `WHERE` terms.
-3. Remove or reduce the `console.log(sql)` on line 873. It exists to debug the query and
-   currently prints the decryption key on every list send.
+3. ~~Remove the `console.log(sql)`.~~ **Done 7 Sep 2026.** It printed the key thirteen
+   times into a terminal during an audit, which is how this package stopped being
+   theoretical. `__tests__/unit/no-sql-logging.test.js` now fails if any file that
+   interpolates `DB_PI_KEY` also logs a variable holding a statement — and its second
+   assertion exists to be deleted along with the first once step 1 lands, since logging a
+   statement with no secret in it is fine.
+   **The key was in the logs for as long as that line existed**, so whether to rotate it
+   is a decision to take knowingly rather than by default. Rotating is not small (every
+   `pgp_sym_encrypt` value has to be re-encrypted), which is exactly why it should be
+   decided rather than deferred.
 4. While in there: the function returns bare email strings, which is why one-click
    unsubscribe is not currently possible (there is no id to hang a token on). If the
    unsubscribe work in the mail package ever goes past the `mailto:` form, this is the

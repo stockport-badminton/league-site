@@ -870,7 +870,14 @@ exports.getEmails = async function(searchTerms) {
   if (whereTerms.length > 0) {
     sql = sql + ' WHERE ' + whereTerms.join(' AND ')
   }
-  console.log(sql)
+  // DO NOT log `sql` here. This query still interpolates DB_PI_KEY as a string literal —
+  // five times, once per UNION branch — so printing it writes the key that encrypts every
+  // player's email and phone number into Cloud Logging, on every distribution-list send.
+  //
+  // That is not hypothetical: running this function during an audit on 7 Sep 2026 printed
+  // the key thirteen times into a terminal. HARD-27 is to bind the key as a parameter,
+  // after which logging the statement would be harmless again — until then this line is
+  // the difference between the key being in the logs and not.
   const [result] = await (await db.otherConnect()).query(sql)
   var emailArray = result.map(row => row.playerEmail)
   emailArray = emailArray.filter(email => email && email.indexOf("@") != -1)
