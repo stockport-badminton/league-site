@@ -163,7 +163,7 @@ last3 AS (
 men_used AS (
   SELECT
     m.team_id,
-    COUNT(DISTINCT m.player_id) AS menDistinctUsed
+    COUNT(DISTINCT m.player_id) AS mendistinctused
   FROM (
     SELECT team_id, p1 AS player_id FROM last3
     UNION ALL SELECT team_id, p2 FROM last3
@@ -178,7 +178,7 @@ men_used AS (
 ladies_used AS (
   SELECT
     l.team_id,
-    COUNT(DISTINCT l.player_id) AS ladiesDistinctUsed
+    COUNT(DISTINCT l.player_id) AS ladiesdistinctused
   FROM (
     SELECT team_id, p4 AS player_id FROM last3
     UNION ALL SELECT team_id, p5 FROM last3
@@ -203,7 +203,7 @@ appearances AS (
   SELECT
     team_id,
     player_id,
-    COUNT(DISTINCT fixture_id) AS numPlayed
+    COUNT(DISTINCT fixture_id) AS numplayed
   FROM fixture_players
   WHERE player_id <> 0
   GROUP BY team_id, player_id
@@ -258,7 +258,7 @@ ORDER BY t.club, t."rank", np.family_name, np.first_name;`)
 
 exports.getMatchStats = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT CONCAT(player.first_name,' ',player.family_name) AS name, team.name AS \"teamName\", b.\"avgPtsFor\", b.\"avgPtsAgainst\", \"gamesWon\" FROM ( SELECT playerId, AVG(ptsFor) AS \"avgPtsFor\", AVG(ptsAgainst) AS \"avgPtsAgainst\", SUM(won) AS \"gamesWon\" FROM ( SELECT \"homePlayer1\" AS playerId, \"homeScore\" AS ptsFor, \"awayScore\" AS ptsAgainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"homePlayer2\" AS playerId, \"homeScore\" AS ptsFor, \"awayScore\" AS ptsAgainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer1\" AS playerId, \"awayScore\" AS ptsFor, \"homeScore\" AS ptsAgainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer2\" AS playerId, \"awayScore\" AS ptsFor, \"homeScore\" AS ptsAgainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY \"teamName\", \"gamesWon\" DESC, \"avgPtsAgainst\" ASC",
+    "SELECT CONCAT(player.first_name,' ',player.family_name) AS name, team.name AS \"teamName\", b.\"avgPtsFor\", b.\"avgPtsAgainst\", \"gamesWon\" FROM ( SELECT playerId, AVG(ptsFor) AS \"avgPtsFor\", AVG(ptsAgainst) AS \"avgPtsAgainst\", SUM(won) AS \"gamesWon\" FROM ( SELECT \"homePlayer1\" AS playerid, \"homeScore\" AS ptsfor, \"awayScore\" AS ptsagainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"homePlayer2\" AS playerid, \"homeScore\" AS ptsfor, \"awayScore\" AS ptsagainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer1\" AS playerid, \"awayScore\" AS ptsfor, \"homeScore\" AS ptsagainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer2\" AS playerid, \"awayScore\" AS ptsfor, \"homeScore\" AS ptsagainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY \"teamName\", \"gamesWon\" DESC, \"avgPtsAgainst\" ASC",
     Array(4).fill(fixtureId * 1)
   )
   return result
@@ -320,7 +320,7 @@ exports.getNamesClubsTeams = async function(searchTerms) {
 }
 
 exports.getPlayerGameData = async function(id) {
-  let sql = `WITH playerGames AS (SELECT game.*, fixture.date, homeTeam.name AS homeTeamName, homeTeam.rank AS homeTeamRank, awayTeam.name AS awayTeamName, awayTeam.rank AS awayTeamRank FROM game
+  let sql = `WITH playerGames AS (SELECT game.*, fixture.date, homeTeam.name AS hometeamname, homeTeam.rank AS hometeamrank, awayTeam.name AS awayteamname, awayTeam.rank AS awayteamrank FROM game
 JOIN fixture ON game.fixture = fixture.id
 JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
 JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
@@ -340,17 +340,17 @@ allGames AS (
   WHEN "homePlayer2" = ? THEN homeTeamName
   WHEN "awayPlayer1" = ? THEN awayTeamName
   WHEN "awayPlayer2" = ? THEN awayTeamName
-  END AS teamName,
+  END AS teamname,
   CASE WHEN "homePlayer1" = ? THEN homeTeamRank
   WHEN "homePlayer2" = ? THEN homeTeamRank
   WHEN "awayPlayer1" = ? THEN awayTeamRank
   WHEN "awayPlayer2" = ? THEN awayTeamRank
-  END AS teamRank,
+  END AS teamrank,
   CASE WHEN "homePlayer1" = ? THEN "homePlayer1"
   WHEN "homePlayer2" = ? THEN "homePlayer2"
   WHEN "awayPlayer1" = ? THEN "awayPlayer1"
   WHEN "awayPlayer2" = ? THEN "awayPlayer2"
-  END AS playerName,
+  END AS playername,
   CASE WHEN "homePlayer1" = ? THEN "homePlayer2"
   WHEN "homePlayer2" = ? THEN "homePlayer1"
   WHEN "awayPlayer1" = ? THEN "awayPlayer2"
@@ -375,13 +375,13 @@ allGames AS (
   WHEN "homePlayer2" = ? THEN "awayScore"
   WHEN "awayPlayer1" = ? THEN "homeScore"
   WHEN "awayPlayer2" = ? THEN "homeScore"
-  END AS vsScore,
+  END AS vsscore,
   "gameType",
   CASE WHEN "homePlayer1" = ? THEN "homePlayer1Start"
   WHEN "homePlayer2" = ? THEN "homePlayer2Start"
   WHEN "awayPlayer1" = ? THEN "awayPlayer1Start"
   WHEN "awayPlayer2" = ? THEN "awayPlayer2Start"
-  END AS beforeVal,
+  END AS beforeval,
   CASE WHEN "homePlayer1" = ? THEN "homePlayer1End"
   WHEN "homePlayer2" = ? THEN "homePlayer2End"
   WHEN "awayPlayer1" = ? THEN "awayPlayer1End"
@@ -508,16 +508,16 @@ exports.newGetPlayerStats = async function(searchObj) {
     SELECT
       gameTypeGender.id,
       gameTypeGender."homePlayer1" AS "playerId",
-      gameTypeGender."homeScore" AS forPoints,
-      gameTypeGender."awayScore" AS againstPoints,
+      gameTypeGender."homeScore" AS forpoints,
+      gameTypeGender."awayScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."homeScore" > gameTypeGender."awayScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."homeTeam" AS team,
       gameTypeGender."awayTeam" AS opposition,
@@ -528,16 +528,16 @@ exports.newGetPlayerStats = async function(searchObj) {
     SELECT
       gameTypeGender.id,
       gameTypeGender."homePlayer2" AS "playerId",
-      gameTypeGender."homeScore" AS forPoints,
-      gameTypeGender."awayScore" AS againstPoints,
+      gameTypeGender."homeScore" AS forpoints,
+      gameTypeGender."awayScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."homeScore" > gameTypeGender."awayScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."homeTeam" AS team,
       gameTypeGender."awayTeam" AS opposition,
@@ -548,16 +548,16 @@ exports.newGetPlayerStats = async function(searchObj) {
     SELECT
       gameTypeGender.id,
       gameTypeGender."awayPlayer1" AS "playerId",
-      gameTypeGender."awayScore" AS forPoints,
-      gameTypeGender."homeScore" AS againstPoints,
+      gameTypeGender."awayScore" AS forpoints,
+      gameTypeGender."homeScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."awayScore" > gameTypeGender."homeScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."awayTeam" AS team,
       gameTypeGender."homeTeam" AS opposition,
@@ -568,16 +568,16 @@ exports.newGetPlayerStats = async function(searchObj) {
     SELECT
       gameTypeGender.id,
       gameTypeGender."awayPlayer2" AS "playerId",
-      gameTypeGender."awayScore" AS forPoints,
-      gameTypeGender."homeScore" AS againstPoints,
+      gameTypeGender."awayScore" AS forpoints,
+      gameTypeGender."homeScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."awayScore" > gameTypeGender."homeScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."awayTeam" AS team,
       gameTypeGender."homeTeam" AS opposition,
@@ -709,18 +709,18 @@ exports.newGetPairStats = async function(searchObj) {
   PairsgameSummary AS (
     SELECT
       gameTypeGender.id,
-      LEAST(gameTypeGender."homePlayer1", gameTypeGender."homePlayer2") AS player1Id,
-      GREATEST(gameTypeGender."homePlayer1", gameTypeGender."homePlayer2") AS player2Id,
-      gameTypeGender."homeScore" AS forPoints,
-      gameTypeGender."awayScore" AS againstPoints,
+      LEAST(gameTypeGender."homePlayer1", gameTypeGender."homePlayer2") AS player1id,
+      GREATEST(gameTypeGender."homePlayer1", gameTypeGender."homePlayer2") AS player2id,
+      gameTypeGender."homeScore" AS forpoints,
+      gameTypeGender."awayScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."homeScore" > gameTypeGender."awayScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."homeTeam" AS team,
       gameTypeGender."awayTeam" AS opposition,
@@ -732,18 +732,18 @@ exports.newGetPairStats = async function(searchObj) {
     UNION ALL
     SELECT
       gameTypeGender.id,
-      LEAST(gameTypeGender."awayPlayer1", gameTypeGender."awayPlayer2") AS player1Id,
-      GREATEST(gameTypeGender."awayPlayer2", gameTypeGender."awayPlayer1") AS player2Id,
-      gameTypeGender."awayScore" AS forPoints,
-      gameTypeGender."homeScore" AS againstPoints,
+      LEAST(gameTypeGender."awayPlayer1", gameTypeGender."awayPlayer2") AS player1id,
+      GREATEST(gameTypeGender."awayPlayer2", gameTypeGender."awayPlayer1") AS player2id,
+      gameTypeGender."awayScore" AS forpoints,
+      gameTypeGender."homeScore" AS againstpoints,
       CASE
         WHEN gameTypeGender."awayScore" > gameTypeGender."homeScore" THEN 1
         ELSE 0
-      END AS gamesWon,
+      END AS gameswon,
       CASE
         WHEN gameTypeGender."homeScore" IS NOT NULL THEN 1
         ELSE 0
-      END AS gamesPlayed,
+      END AS gamesplayed,
       gameTypeGender.fixture,
       gameTypeGender."awayTeam" AS team,
       gameTypeGender."homeTeam" AS opposition,
@@ -860,7 +860,7 @@ exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail })
 }
 
 exports.getEmails = async function(searchTerms) {
-  var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubName, team.id AS teamId, team.name AS teamName, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
+  var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
   var whereTerms = [];
   if (searchTerms.role) whereTerms.push("b.role = '" + searchTerms.role + "'")
   if (searchTerms.division) whereTerms.push('b.division = ' + searchTerms.division)
@@ -893,7 +893,7 @@ exports.search = async function(searchTerms) {
 
 exports.findElgiblePlayersFromTeamId = async function(id, gender) {
   const [result] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name, b.rank AS teamRank, player.rank AS playerRank FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY b.rank ASC, player.rank DESC, player.family_name',
+    'SELECT player.id, player.first_name, player.family_name, b.rank AS teamrank, player.rank AS playerrank FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY b.rank ASC, player.rank DESC, player.family_name',
     [id, gender]
   )
   return result
@@ -901,7 +901,7 @@ exports.findElgiblePlayersFromTeamId = async function(id, gender) {
 
 exports.findElgiblePlayersFromTeamIdAndSelected = async function(teamName, gender, first, second, third) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name,?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?",
+    "SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name,?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?",
     [first, second, third, teamName, gender]
   )
   return result
@@ -909,7 +909,7 @@ exports.findElgiblePlayersFromTeamIdAndSelected = async function(teamName, gende
 
 exports.getEligiblePlayersAndSelectedById = async function(first, second, third, teamId, gender) {
   const [result] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
+    'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
     [first, second, third, teamId, gender]
   )
   return result
@@ -917,7 +917,7 @@ exports.getEligiblePlayersAndSelectedById = async function(first, second, third,
 
 exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async function(teamName, gender, first, second, third) {
   const [rows] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND team.name LIKE ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
+    'SELECT player.id, player.first_name, player.family_name FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.name LIKE ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
     [teamName, gender]
   )
 
@@ -961,7 +961,7 @@ exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async functio
 
 exports.findElgiblePlayersFromTeamIdAndSelectedNew = async function(teamName, gender, first, second, third) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) AS totalLev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalRank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY totalLev ASC, first ASC, second ASC, third ASC",
+    "SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) AS totallev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY totalLev ASC, first ASC, second ASC, third ASC",
     [first, second, third, first, second, third, teamName, gender]
   )
   return result
@@ -987,7 +987,7 @@ exports.getByName = async function(playerName) {
 
 exports.getByNameAndTeam = async function(playerName, teamId, distance) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT * FROM (SELECT player.id AS playerId, CONCAT(first_name,' ',family_name) AS playerName, team.id AS teamId, team.name AS teamName FROM player JOIN team ON player.team = team.id) AS playerClub WHERE teamId=? AND LEVENSHTEIN(playerName,?) < ?",
+    "SELECT * FROM (SELECT player.id AS playerid, CONCAT(first_name,' ',family_name) AS playername, team.id AS teamid, team.name AS teamname FROM player JOIN team ON player.team = team.id) AS playerclub WHERE teamId=? AND LEVENSHTEIN(playerName,?) < ?",
     [teamId, playerName, distance]
   )
   return result
@@ -1003,7 +1003,7 @@ exports.getById = async function(playerId) {
 
 exports.getPlayerClubandTeamById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT playerId AS \"playerId\", playerName AS \"playerName\", clubName AS \"clubName\", team.name AS \"teamName\", date_of_registration FROM (SELECT playerId, playerName, club.name AS clubName, teamId, date_of_registration FROM (SELECT player.id AS playerId, CONCAT(player.first_name,' ',player.family_name) AS playerName, player.club AS clubID, player.team AS teamId, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
+    "SELECT playerId AS \"playerId\", playerName AS \"playerName\", clubName AS \"clubName\", team.name AS \"teamName\", date_of_registration FROM (SELECT playerId, playerName, club.name AS clubname, teamId, date_of_registration FROM (SELECT player.id AS playerid, CONCAT(player.first_name,' ',player.family_name) AS playername, player.club AS clubid, player.team AS teamid, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
     [playerId]
   )
   return result

@@ -183,30 +183,30 @@ exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
   const withdrawnFilter = WITHDRAWN_FILTER('t', season)
   const [result] = await (await db.otherConnect()).query(`WITH standings AS (
     SELECT
-        d.name AS divisionName,
+        d.name AS divisionname,
         d.id AS division,
-        t.id AS teamId,
-        t.name AS teamName,
+        t.id AS teamid,
+        t.name AS teamname,
         t."divRank",
         s.played,
         s.remaining,
-        (s.pointsFor - t.penalties) AS pointsFor,
+        (s.pointsFor - t.penalties) AS pointsfor,
         s.pointsAgainst,
-        (s.pointsFor - t.penalties) + (18 * s.remaining) AS maxScore
+        (s.pointsFor - t.penalties) + (18 * s.remaining) AS maxscore
     FROM (
         SELECT
             x.teamId,
             SUM(x.played) AS played,
             SUM(x.remaining) AS remaining,
-            SUM(x.pointsFor) AS pointsFor,
-            SUM(x.pointsAgainst) AS pointsAgainst
+            SUM(x.pointsFor) AS pointsfor,
+            SUM(x.pointsAgainst) AS pointsagainst
         FROM (
             SELECT
-                f."homeTeam" AS teamId,
+                f."homeTeam" AS teamid,
                 CASE WHEN f."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
                 CASE WHEN f."homeScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f."homeScore" AS pointsFor,
-                f."awayScore" AS pointsAgainst
+                f."homeScore" AS pointsfor,
+                f."awayScore" AS pointsagainst
             FROM fixture f
             JOIN season se
               ON f.date > se."startDate"
@@ -220,11 +220,11 @@ exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
             UNION ALL
 
             SELECT
-                f."awayTeam" AS teamId,
+                f."awayTeam" AS teamid,
                 CASE WHEN f."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
                 CASE WHEN f."awayScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f."awayScore" AS pointsFor,
-                f."homeScore" AS pointsAgainst
+                f."awayScore" AS pointsfor,
+                f."homeScore" AS pointsagainst
             FROM fixture f
             JOIN season se
               ON f.date > se."startDate"
@@ -248,8 +248,8 @@ division_comparison AS (
     SELECT
         s1.division,
         s1.teamId,
-        MAX(s2.maxScore) AS maxOtherMaxScore,
-        MIN(s2.pointsFor) AS minOtherCurrentScore
+        MAX(s2.maxScore) AS maxothermaxscore,
+        MIN(s2.pointsFor) AS minothercurrentscore
     FROM standings s1
     LEFT JOIN standings s2
       ON s1.division = s2.division
@@ -270,18 +270,18 @@ SELECT
     CASE
         WHEN s.pointsFor > dc.maxOtherMaxScore THEN 1
         ELSE 0
-    END AS alreadyWonDivision,
+    END AS alreadywondivision,
 
     CASE
         WHEN s.maxScore < dc.minOtherCurrentScore THEN 1
         ELSE 0
-    END AS alreadyBottom,
+    END AS alreadybottom,
 
     CASE
         WHEN s.pointsFor > dc.maxOtherMaxScore THEN 0
         WHEN s.pointsFor + (18 * s.remaining) <= dc.maxOtherMaxScore THEN NULL
         ELSE FLOOR((dc.maxOtherMaxScore - s.pointsFor) / 18) + 1
-    END AS winsNeededToFinishTop
+    END AS winsneededtofinishtop
 
 FROM standings s
 JOIN division_comparison dc

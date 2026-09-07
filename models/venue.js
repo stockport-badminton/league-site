@@ -28,17 +28,17 @@ exports.getVenueClubs = async function() {
     `SELECT venueName, "Lat", "Lng", STRING_AGG(venueClubsHTML, '<br />') AS "venueInfoBox"
      FROM (
        SELECT venueName, "Lat", "Lng",
-         concat('<strong id="firstHeading" class="firstHeading"><a href="',"clubWebsite",'">',clubName,'</a></strong><div id="bodyContent"><p>Match Night:',"matchNightText",'<br />Club Night:',"clubNightText",'<br />Address:<a href="',"gMapUrl",'">',address,'</a></p></div>') AS venueClubsHTML
+         concat('<strong id="firstHeading" class="firstHeading"><a href="',"clubWebsite",'">',clubName,'</a></strong><div id="bodyContent"><p>Match Night:',"matchNightText",'<br />Club Night:',"clubNightText",'<br />Address:<a href="',"gMapUrl",'">',address,'</a></p></div>') AS venueclubshtml
        FROM (
-         SELECT venue.name AS venueName, venue.address, venue."gMapUrl", venue."Lat", venue."Lng",
-                club.name AS clubName, club."matchNightText", club."clubNightText", club."clubWebsite"
+         SELECT venue.name AS venuename, venue.address, venue."gMapUrl", venue."Lat", venue."Lng",
+                club.name AS clubname, club."matchNightText", club."clubNightText", club."clubWebsite"
          FROM venue JOIN club ON venue.id = club.venue
          UNION
-         SELECT venue.name AS venueName, venue.address, venue."gMapUrl", venue."Lat", venue."Lng",
-                club.name AS clubName, club."matchNightText", club."clubNightText", club."clubWebsite"
+         SELECT venue.name AS venuename, venue.address, venue."gMapUrl", venue."Lat", venue."Lng",
+                club.name AS clubname, club."matchNightText", club."clubNightText", club."clubWebsite"
          FROM venue JOIN club ON venue.id = club."matchVenue"
-       ) AS venueInfo
-     ) AS groupedVenueInfo
+       ) AS venueinfo
+     ) AS groupedvenueinfo
      GROUP BY venueName, "Lat", "Lng"`
   )
   return result

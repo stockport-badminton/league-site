@@ -942,8 +942,21 @@ Key vars (see `.env` for examples):
    aliases `homeTeam.club AS clubId` and the wrapper joins `club ON club.id = clubId`;
    quoting only the alias turns a blank column into `column "clubid" does not exist`.
    Where nothing in JavaScript reads a column, leaving it folded is the correct answer.
-   `__tests__/unit/fixture-players-aliases.test.js` derives the requirement from what the
-   views actually read; HARD-19 proposes the same check across the codebase.
+   **The rule, enforced by `__tests__/unit/sql-alias-quoting.test.js`: an alias is either
+   quoted-and-camelCase, or written lowercase. Never camelCase-unquoted.** That third form
+   is the only dangerous one, and it is dangerous because it LIES — the SQL says
+   `AS clubSecEmail` and the row arrives as `clubsecemail`, so the mistake is invisible at
+   the place you would look for it. 177 existing aliases were rewritten to lowercase to
+   start the guard clean, which was provably inert (Postgres was already folding them):
+   verified by snapshotting the output keys of 35 model functions against the real
+   database before and after — 421 keys, none changed.
+   **That guard cannot find a broken CONSUMER.** It compares SQL against itself and never
+   sees what JavaScript reads, so it stops new instances and finds none of the existing
+   ones. Neither will `npm test`: these failures are silent, most of these queries have no
+   test, and a mock spelling the key camelCase passes against the bug. The only reliable
+   method is to run the query and diff its real keys against what its consumers read —
+   which is HARD-19, and belongs with `dbq --check` because it needs the database.
+   `__tests__/unit/fixture-players-aliases.test.js` does that for one query pair.
    **And the folded name is sometimes the right thing to read.** `POST /contact-us` did
    `rows[0].clubSecEmail.indexOf(',')` against `Club.getContactDetailsById`, whose alias is
    `AS clubSecEmail` unquoted — so it was `undefined.indexOf`, the catch turned it into

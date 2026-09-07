@@ -114,12 +114,12 @@ ORDER BY
 
 exports.clubDetailbyId = async function(clubId) {
   const [result] = await (await db.otherConnect()).query(
-    `SELECT a.clubId, a.name, a.venue, a.address, a."gMapUrl" AS clubVenueURL,
+    `SELECT a.clubId, a.name, a.venue, a.address, a."gMapUrl" AS clubvenueurl,
             a."matchNightText", a."clubNightText", a."clubWebsite",
-            venue.name AS matchVenueName, venue."gMapUrl" AS matchVenueURL,
+            venue.name AS matchvenuename, venue."gMapUrl" AS matchvenueurl,
             venue."Lat", venue."Lng"
      FROM (
-       SELECT club.id AS clubId, club.name, venue.name AS venue, venue."gMapUrl", venue.address,
+       SELECT club.id AS clubid, club.name, venue.name AS venue, venue."gMapUrl", venue.address,
               club."matchNightText", club."clubNightText", club."clubWebsite", club."matchVenue"
        FROM club JOIN venue ON venue.id = club.venue
      ) AS a
@@ -139,19 +139,19 @@ exports.clubDetailbyId = async function(clubId) {
 exports.getContactDetailsById = async function(clubId) {
   const key = process.env.DB_PI_KEY
   const [result] = await (await db.otherConnect()).query(
-    `SELECT club.name AS clubName, team.name AS teamName,
-            venue.id AS "venueId", venue.name AS venueName, venue.address AS address,
-            "matchVenue".id AS matchVenueId, "matchVenue".name AS matchVenueName, "matchVenue".address AS matchVenueAddress,
-            "matchNightText" AS matchNight,
-            CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchSecretary,
-            pgp_sym_decrypt(matchSec."playerTel", ?)::text AS matchSecTel,
-            pgp_sym_decrypt(matchSec."playerEmail", ?)::text AS matchSecEmail,
-            CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubSecretary,
-            pgp_sym_decrypt(clubSec."playerTel", ?)::text AS clubSecTel,
-            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS clubSecEmail,
-            CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamCaptain,
-            pgp_sym_decrypt(teamCaptain."playerTel", ?)::text AS teamCaptainTel,
-            pgp_sym_decrypt(teamCaptain."playerEmail", ?)::text AS teamCaptainEmail
+    `SELECT club.name AS clubname, team.name AS teamname,
+            venue.id AS "venueId", venue.name AS venuename, venue.address AS address,
+            "matchVenue".id AS matchvenueid, "matchVenue".name AS matchvenuename, "matchVenue".address AS matchvenueaddress,
+            "matchNightText" AS matchnight,
+            CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchsecretary,
+            pgp_sym_decrypt(matchSec."playerTel", ?)::text AS matchsectel,
+            pgp_sym_decrypt(matchSec."playerEmail", ?)::text AS matchsecemail,
+            CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubsecretary,
+            pgp_sym_decrypt(clubSec."playerTel", ?)::text AS clubsectel,
+            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS clubsecemail,
+            CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamcaptain,
+            pgp_sym_decrypt(teamCaptain."playerTel", ?)::text AS teamcaptaintel,
+            pgp_sym_decrypt(teamCaptain."playerEmail", ?)::text AS teamcaptainemail
      FROM club
      JOIN team ON team.club = club.id
      JOIN venue ON club.venue = venue.id
