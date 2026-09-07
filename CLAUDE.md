@@ -703,10 +703,23 @@ Two more that cost time here:
 no-stats variants that exercise the `mj-raw` conditionals. A preview is not proof: it
 renders in a browser and an email renders in Outlook, which lays out through Word.
 
-**Converted so far: `scorecard-received` and `website-updated`** — the two a real
-submission triggers. The other 11 sends still build HTML by string concatenation, so
-CLAUDE.md's rule about escaping with `utils/html.js` still governs them; a template
-escapes by default, which is what retires that rule as each one moves.
+**Every send is on the pipeline.** Eleven templates: `scorecard-received`,
+`website-updated`, `registration-reminder`, `registration-digest`, `contact-us`,
+`scorecard-reminder`, `missing-scorecards`, `transfer-request`, `access-approved`,
+`scorecard-photo-added` and `messer-result`.
+
+So the old rule — escape by hand with `utils/html.js` when concatenating — is **retired**
+for outbound mail: a template escapes by default. The escaping tests moved with it, and
+assert the *property* (a hostile URL cannot alter the message's structure) rather than an
+entity spelling, since EJS writes `&#34;` where the hand-rolled escaper wrote `&quot;`.
+
+The concatenated builders are gone with them — `generateContactUsHTML` alone was 6,966
+characters of Mailchimp chrome, including dead "Unsubscribe Preferences" links, wrapped
+around three lines of content. Deleting them is what most of that change is by volume, and
+it is worth knowing that it took three attempts: the bodies are template literals full of
+CSS, so both a `}`-at-column-0 rule and a nearest-blank-line rule cut in the wrong place.
+What worked was walking the braces while skipping strings, template literals and comments.
+Do that, or leave them.
 
 Design: navy `#002060` is the league's own colour, measured off the printed registration
 form, and the navy table header with white bold text is that form's own treatment — so an

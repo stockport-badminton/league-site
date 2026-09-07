@@ -871,19 +871,6 @@ function renderLinkRefused(req, res, status) {
       next(err);
     }
   }
-
-// The body of the "Scorecard Updated" email, escaped.
-//
-// Exported because it cannot be exercised through the endpoint any more: no value that
-// survives normalisePhotoUrl contains an HTML metacharacter, so the escaping is a second
-// line of defence and the only way to prove it holds is to call it directly.
-exports.buildPhotoEmailHtml = function(photoUrl, confirmUrl) {
-  const safePhoto = escapeHtml(photoUrl);
-  const safeConfirm = escapeHtml(confirmUrl);
-  return `<p>a scorecard has been updated with a photo: <a href="${safePhoto}">${safePhoto}</a>` +
-    `<br />Check the result here: <a href="${safeConfirm}">${safeConfirm}</a></p>`;
-};
-
 // POST /add-scorecard-photo/:id — attach a photo to a draft that was filed without one.
 //
 // Reachable unauthenticated, and it was the worst endpoint on the site (SEC-2): it wrote

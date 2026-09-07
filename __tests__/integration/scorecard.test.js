@@ -793,18 +793,34 @@ describe('POST /add-scorecard-photo/:id', () => {
 
 // The escaping is the second line of defence behind the URL check above, and is proved
 // directly here because no value that survives validation can exercise it.
-describe('buildPhotoEmailHtml', () => {
-  const { buildPhotoEmailHtml } = require('../../controllers/scorecardController');
+//
+// This used to exercise `buildPhotoEmailHtml`, which concatenated the HTML and escaped by
+// hand. That is gone; the email is now views/emails/scorecard-photo-added.ejs, compiled
+// from MJML. So the assertion moved to the template — the property that matters is that a
+// hostile URL cannot alter the message's structure, not which function builds it. An EJS
+// `<%= %>` tag escapes, which is exactly why the templates retire the hand-rolled rule.
+describe('the photo email template', () => {
+  const ejs = jest.requireActual('ejs');
 
-  it('cannot have its structure altered by the URL it is given', () => {
+  it('cannot have its structure altered by the URL it is given', async () => {
     const hostile = 'https://x/a.jpg"><a href="https://evil.example.com">Confirm</a><!--';
-    const html = buildPhotoEmailHtml(hostile, 'https://stockport-badminton.co.uk/x');
+    const html = await ejs.renderFile('views/emails/scorecard-photo-added.ejs', {
+      photoUrl: hostile,
+      confirmUrl: 'https://stockport-badminton.co.uk/x',
+      logoUrl: 'https://stockport-badminton.co.uk/logo.png',
+      whyReceiving: 'test',
+    });
 
+    // The injected anchor must not exist as markup.
     expect(html).not.toContain('evil.example.com">Confirm');
-    expect(html).not.toContain('<!--');
-    // Exactly the two anchors the template itself writes: the photo and the link.
-    expect((html.match(/<a /g) || []).length).toBe(2);
-    expect(html).toContain('&quot;&gt;&lt;a href=&quot;');
+    expect(html).not.toContain('"><a href="https://evil');
+
+    // It IS present, inert, inside the href — escaped rather than parsed. Asserted by the
+    // property, not by the entity spelling: EJS writes `&#34;` where the hand-rolled
+    // escaper wrote `&quot;`, and pinning either would be testing the escaper's taste.
+    const quoted = html.includes('&#34;') || html.includes('&quot;');
+    expect(quoted).toBe(true);
+    expect(html).toMatch(/href="https:\/\/x\/a\.jpg&#(34|x22);/);
   });
 });
 
