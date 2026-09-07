@@ -95,3 +95,56 @@ So this package's residual stands, and is now cheap to triage rather than expens
 
 The third row is what this package is about, and it is the one that was previously
 indistinguishable from the second.
+
+
+---
+
+## Update, 7 Sep 2026 — "one run in five" is an undercount, and it is not one test
+
+A full day's work on unrelated packages produced intermittent failures in **five distinct
+suites**, every one of which passed on its own immediately afterwards:
+
+| suite | how it failed |
+|---|---|
+| `scorecard-photo.test.js` | `socket hang up` |
+| `team-withdrawal.test.js` | expected 200, got **404** |
+| `roster.test.js` | the original 403→404 |
+| `sign-s3.test.js` | (full run only) |
+| `contact-us-club.test.js` | 8 failures, then 8 passes alone |
+
+That matters for two reasons.
+
+**The brief's "roughly one full run in five" is optimistic.** Across roughly a dozen full
+runs today, four had at least one failure. The rate is closer to one in three.
+
+**It is not an authorization-test problem.** `team-withdrawal` returning 404 where 200 was
+expected is the same shape as `roster`'s 403→404 — a lookup resolving falsy — but in a
+different suite with different mocks. `socket hang up` is a different shape again. The
+package is still named after the first instance found, and that name is now misleading.
+
+Also worth recording: this cost real time. Twice I read a failing full run as a regression
+from the change I had just made, went looking for a cause in my own diff, and found the
+suite green on a clean run. **A suite that cries wolf is not free** — it taught me to
+re-run rather than look, which is precisely what the brief warns about, and is exactly the
+wrong reflex to have when a failure IS real.
+
+### Sharpened next step
+
+The single most informative fact is unchanged and still unexplained: `--runInBand` passes.
+Whatever this is, it is **between workers, not within a file** — so per-file mock hygiene
+is the wrong place to look, and step 3 of the plan (fix it in `setupAfterEnv.js`) is
+probably where it lands.
+
+Two candidates worth eliminating first, given what the failures have in common:
+
+- **Shared module state across workers via the module registry.** Several suites mock
+  `middleware/secured` and the models; a worker reusing a module instance from a previous
+  file would explain a lookup returning falsy in a suite that never set it up.
+- **Contention on the real resources the suite still touches.** `app.js` calls
+  `dotenv.config()` at import (HARD-26), so all 31 app-requiring suites hold production
+  credentials and a session store pointed at production Postgres. `socket hang up`
+  is the shape of a network resource under contention, not of a mock problem.
+
+The second one links this package to HARD-26, and both should be settled before HARD-08
+puts the suite in CI — where a one-in-three flake is everybody's problem rather than
+something two people know to shrug at.
