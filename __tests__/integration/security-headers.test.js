@@ -221,6 +221,18 @@ describe('the report-only Content-Security-Policy', () => {
     expect(connectSrc).toContain('hotjar');
   });
 
+  // A CSP wildcard matches subdomains and NOT the domain itself, so listing
+  // `*.analytics.google.com` does not permit `analytics.google.com` — and gtag fetches
+  // both. That gap produced every violation the policy got wrong in the report-only
+  // period, and produced no visible symptom, because a blocked analytics beacon costs a
+  // statistic rather than a feature. Assert the bare host explicitly: the wildcard
+  // sitting next to it reads as though it already covers this.
+  it('lists analytics hosts bare as well as wildcarded, since a wildcard excludes the domain itself', () => {
+    const connectSrc = policy.split(';').find(d => d.trim().startsWith('connect-src'));
+    const hosts = connectSrc.trim().split(/\s+/);
+    expect(hosts).toContain('https://analytics.google.com');
+  });
+
   // views/homepage.ejs renders announcement images from homepage_content.image_url, an
   // arbitrary URL an admin pastes into /admin/homepage-content, and the scorecard views
   // render scorecardstore."scoresheet-url" from S3. Neither has a fixed host.

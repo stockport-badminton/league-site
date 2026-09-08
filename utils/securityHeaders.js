@@ -43,11 +43,26 @@
 //    here, not view names.** An earlier version named `/admin` and `/file-upload`, which
 //    are templates, and sent someone hunting for pages that do not exist:
 //
-//      /admin/homepage-content/create   Quill                  <- still unverified
+//      /admin/homepage-content/<id>     Quill                  <- STILL UNVERIFIED
 //      /player-stats, /pair-stats       DataTables + Chart.js  verified clean 3 Sep
-//      /event/<id>/<slug>               Google Maps + Places   fixed 3 Sep
-//      /clubs/<slug>                    Google Maps            verified clean 3 Sep
-//      /contact-us                      reCAPTCHA              fixed 3 Sep
+//      /event/<id>/<slug>               Google Maps + Places   clean, 351 real hits
+//      /clubs/<slug>                    Google Maps            clean, 28 real hits
+//      /contact-us                      reCAPTCHA              clean, 48 real hits
+//
+//    Re-checked 8 Sep 2026 against Cloud Logging, counting only reports later than the
+//    last policy change (e2eb60e, 3 Sep 23:23) — an earlier report says nothing about
+//    the policy as it stands now. Four of the five are settled by real traffic. Quill is
+//    the one left, and it is the one that actually reported a violation on 3 Sep
+//    (`style-src-elem` -> cdn.quilljs.com, from /admin/homepage-content/3); e2eb60e is
+//    the fix and nobody has opened the page since, so it is untested rather than clean.
+//    Zero requests to it in that window, which is the ambiguity this list warns about.
+//
+//    Prerequisite 2 is separately worth recording as met in substance: between 4 and 8
+//    Sep a captain ran the whole chain for real — wizard, draft, POST /scorecard-beta,
+//    confirmation page, and a presigned S3 photo upload (GET /sign-s3 -> POST
+//    /add-scorecard-photo) — with no violation of any kind. That upload is the path this
+//    policy was most likely to break, and Playwright cannot cover it: the browser suite
+//    is read-only, so it never performs the PUT.
 //
 //    Several are behind `secured` and get no anonymous traffic at all, so a silent week
 //    says nothing about them. **A page with no reports is ambiguous** — it may be clean,
@@ -198,6 +213,13 @@ const OBSERVED = {
     'https://browser.sentry-cdn.com',
     'https://*.google-analytics.com',     // gtag beacons, including region1.*
     'https://*.analytics.google.com',
+    // The BARE host as well, and it is not redundant: a CSP wildcard matches subdomains
+    // and **not** the domain itself, so `*.analytics.google.com` covers
+    // region1.analytics.google.com and misses analytics.google.com. gtag uses both. This
+    // was the only thing the policy got wrong across the whole report-only period after
+    // 3 Sep — 5 reports, all `/`, all this one host. Analytics only, so nothing broke,
+    // which is exactly why it survived: the report was the only evidence it existed.
+    'https://analytics.google.com',
     'https://*.googletagmanager.com',
     'https://*.hotjar.com',
     'https://*.hotjar.io',
