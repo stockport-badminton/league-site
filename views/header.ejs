@@ -65,6 +65,7 @@
       var integrations = [];
       if (enableReplay) {
         integrations.push(Sentry.replayIntegration({
+          maskAllInputs: false,
           maskAllText: false,
           blockAllMedia: false
         }));
@@ -79,7 +80,8 @@
         // Off (0) on every non-eligible page. On eligible pages: keep a light
         // sample of normal sessions, and always keep one that hits an error
         // (errors are rare and the most useful, so they cost little quota).
-        replaysSessionSampleRate: enableReplay ? 0.1 : 0,
+        traceSampleRate: 0,
+        replaysSessionSampleRate: enableReplay ? 1.0 : 0,
         replaysOnErrorSampleRate: enableReplay ? 1.0 : 0,
         integrations: integrations,
       });
