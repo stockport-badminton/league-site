@@ -377,6 +377,38 @@ Messer is a 15-game knockout (vs. 18-game regular fixtures):
 - **Controller**: `controllers/messer-scorecard-controller.js`
 - **Draft table**: `messer_scorecard` (mirrors `scorecardstore` but for 15 games)
 
+### The social result card's URL
+
+`GET /resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division` renders the share
+card with sharp, on demand — nothing stores the file, which is why Make.com fetches this
+URL just before it posts rather than being handed an image.
+
+**Build it with `resultImagePath()` from `utils/canonical.js`** (exposed to views as
+`app.locals.resultImagePath`), never by interpolation. Every segment must be
+percent-encoded: almost every team name in this league contains a space — "Tatton A",
+"Mellor B" — as does every division name, and a raw space is not a legal URL character.
+
+Make.com posts that URL straight to the Facebook Graph API, which fetches it server-side
+and answered:
+
+```
+[400] Missing or invalid image file (324, OAuthException)
+```
+
+That reads as a problem with the image, the token, or Make. It was none of them — fetched
+with the spaces encoded the endpoint returns 200 and a 1080x1350 JPEG in about a second.
+Only the URL was malformed, and it was malformed by us, in `models/fixture.js`.
+
+Two things worth keeping from it:
+
+- **The URL was built in two places** — the webhook and `views/fixtures-results.ejs`
+  (whose `data-img-url` the share button hands to the Web Share API). That is the same
+  trap `eventPath()` exists to close, so it is one helper now.
+- **`sendResultZap` is mocked in every suite that reaches it**, so what it posts had
+  never been asserted by anything. `__tests__/unit/result-zap-url.test.js` asserts the
+  payload itself. A function that is only ever mocked is untested, however many tests
+  mention it.
+
 ### Search / crawlability
 
 `GET /sitemap.xml` is **generated per request** by `controllers/sitemapController.js`

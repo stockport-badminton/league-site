@@ -1,4 +1,5 @@
 var db = require('../db_connect.js');
+const { absoluteUrl, resultImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
 const axios = require('axios');
 
@@ -782,7 +783,11 @@ exports.sendResultZap = async function(zapObject) {
   // `imgGen` is the live one: Make.com fetches it just before posting, and the endpoint
   // renders the card with sharp on demand. Nothing keeps the file, which is why an
   // on-demand URL is the right shape.
-  const imgGen = `https://stockport-badminton.co.uk/resultImage/${zapObject.homeTeam}/${zapObject.awayTeam}/${zapObject.homeScore}/${zapObject.awayScore}/${zapObject.division}`
+  // Built through the helper, and percent-encoded, because Make.com posts this straight
+  // to the Facebook Graph API. Interpolated raw, "Tatton A" put a literal space in the
+  // URL and Facebook answered `Missing or invalid image file (324, OAuthException)` —
+  // the endpoint was fine, the URL was not.
+  const imgGen = absoluteUrl(resultImagePath(zapObject))
 
   const webhookBody = {
     imgGen: imgGen,

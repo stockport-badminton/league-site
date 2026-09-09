@@ -117,7 +117,15 @@
           <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
           <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){
-               var resultImgUrl = '/resultImage/' + row['homeTeam'] + '/' + row['awayTeam'] + '/' + row['homeScore'] + '/' + row['awayScore'] + '/' + row['divisionName'];
+               // Through the shared helper so this cannot drift from the URL the
+               // Make.com webhook sends, and so the segments are encoded: team and
+               // division names contain spaces, and the raw value here goes into
+               // data-img-url, which the share button hands to the Web Share API.
+               var resultImgUrl = resultImagePath({
+                 homeTeam: row['homeTeam'], awayTeam: row['awayTeam'],
+                 homeScore: row['homeScore'], awayScore: row['awayScore'],
+                 division: row['divisionName']
+               });
              %>
           <td><%= row['homeScore'] %>-<%= row['awayScore'] %> <%= status %>
             <% if (typeof superadmin !== 'undefined' && superadmin) { %><br /><a href="<%= resultImgUrl %>">Social Image</a><% } %>

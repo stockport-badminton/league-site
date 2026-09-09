@@ -88,6 +88,35 @@ function clubSlug(name) {
 // A club's own public page. Same reasoning as eventPath: it is built in one place so
 // the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
 // markup cannot disagree.
+// Path for the on-demand social result card:
+// /resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division
+//
+// **Every segment must be percent-encoded**, and that is the whole reason this is a
+// function rather than a template literal at each call site. Almost every team name in
+// this league contains a space — "Tatton A", "Mellor B" — as does every division name.
+// A raw space is not legal in a URL, so an unencoded one produces a link that some
+// clients repair and others simply reject.
+//
+// Facebook is one that rejects it. The Make.com scenario posts this URL to the Graph API,
+// which fetches it server-side and answered:
+//
+//     [400] Missing or invalid image file (324, OAuthException)
+//
+// The endpoint was fine the whole time — encoded, it returns a 1080x1350 JPEG in about a
+// second. It was the URL that was malformed, built by string interpolation in
+// models/fixture.js and, separately, in views/fixtures-results.ejs. Two spellings of the
+// same URL is the same trap eventPath() exists to close.
+function resultImagePath(result) {
+  const parts = [
+    result.homeTeam, result.awayTeam,
+    result.homeScore, result.awayScore,
+    result.division,
+  ];
+  // A team name containing a slash would otherwise open a new path segment and match a
+  // different route (or nothing), so encode rather than merely replacing spaces.
+  return '/resultImage/' + parts.map(p => encodeURIComponent(String(p ?? ''))).join('/');
+}
+
 function clubPath(club) {
   return '/clubs/' + clubSlug(club && club.name);
 }
@@ -107,6 +136,6 @@ function localYmd(date) {
 
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
-  eventPath, clubPath, clubSlug, localYmd,
+  eventPath, clubPath, clubSlug, localYmd, resultImagePath,
   DEFAULT_ORIGIN,
 };

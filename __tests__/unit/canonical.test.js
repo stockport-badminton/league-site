@@ -1,4 +1,4 @@
-const { canonicalFor, absoluteUrl, eventPath, clubPath, clubSlug, DEFAULT_ORIGIN } = require('../../utils/canonical');
+const {canonicalFor, absoluteUrl, eventPath, clubPath, clubSlug, DEFAULT_ORIGIN, resultImagePath } = require('../../utils/canonical');
 
 // The bug this file exists to prevent: every page on the site declared its
 // canonical URL (and og:url) to be on the Cloud Run hostname, because the URL was
@@ -119,5 +119,49 @@ describe('clubSlug / clubPath', () => {
   it('does not throw on a missing name', () => {
     expect(clubSlug(null)).toBe('');
     expect(clubPath({})).toBe('/clubs/');
+  });
+});
+
+// The social result card's URL.
+//
+// Make.com posts this straight to the Facebook Graph API, which fetches it server-side.
+// Built by string interpolation it carried literal spaces — almost every team name in
+// this league has one — and Facebook answered
+// `[400] Missing or invalid image file (324, OAuthException)`. The endpoint was fine
+// throughout: encoded, it returns a 1080x1350 JPEG. Only the URL was malformed.
+describe('resultImagePath', () => {
+  const RESULT = {
+    homeTeam: 'Tatton A', awayTeam: 'Mellor B',
+    homeScore: 11, awayScore: 7, division: 'Division 3',
+  };
+
+  it('percent-encodes the spaces in team and division names', () => {
+    expect(resultImagePath(RESULT))
+      .toBe('/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203');
+  });
+
+  it('leaves no raw space anywhere in the path', () => {
+    // The property that matters, rather than one expected spelling: a space is not legal
+    // in a URL, and what each client does with one differs — some repair it, Facebook
+    // refuses it.
+    expect(resultImagePath(RESULT)).not.toMatch(/ /);
+  });
+
+  // A slash would otherwise open a new path segment and match a different route, or
+  // nothing at all — so encode rather than merely swapping spaces for something.
+  it('encodes a slash in a name instead of letting it split the path', () => {
+    const path = resultImagePath(Object.assign({}, RESULT, { homeTeam: 'A/B' }));
+    expect(path).toBe('/resultImage/A%2FB/Mellor%20B/11/7/Division%203');
+    expect(path.split('/')).toHaveLength(7); // '', resultImage, and the five segments
+  });
+
+  it('survives a missing segment without emitting "undefined"', () => {
+    expect(resultImagePath({ homeTeam: 'A', awayTeam: 'B', homeScore: 1, awayScore: 2 }))
+      .toBe('/resultImage/A/B/1/2/');
+  });
+
+  it('round-trips: decoding each segment gives the original values back', () => {
+    const segments = resultImagePath(RESULT).split('/').slice(2).map(decodeURIComponent);
+    expect(segments).toEqual(['Tatton A', 'Mellor B', '11', '7', 'Division 3']);
   });
 });
