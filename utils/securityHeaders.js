@@ -43,19 +43,23 @@
 //    here, not view names.** An earlier version named `/admin` and `/file-upload`, which
 //    are templates, and sent someone hunting for pages that do not exist:
 //
-//      /admin/homepage-content/<id>     Quill                  <- STILL UNVERIFIED
+//      /admin/homepage-content/<id>     Quill                  clean, loaded and saved 9 Sep
 //      /player-stats, /pair-stats       DataTables + Chart.js  verified clean 3 Sep
 //      /event/<id>/<slug>               Google Maps + Places   clean, 351 real hits
 //      /clubs/<slug>                    Google Maps            clean, 28 real hits
 //      /contact-us                      reCAPTCHA              clean, 48 real hits
 //
-//    Re-checked 8 Sep 2026 against Cloud Logging, counting only reports later than the
-//    last policy change (e2eb60e, 3 Sep 23:23) — an earlier report says nothing about
-//    the policy as it stands now. Four of the five are settled by real traffic. Quill is
-//    the one left, and it is the one that actually reported a violation on 3 Sep
-//    (`style-src-elem` -> cdn.quilljs.com, from /admin/homepage-content/3); e2eb60e is
-//    the fix and nobody has opened the page since, so it is untested rather than clean.
-//    Zero requests to it in that window, which is the ambiguity this list warns about.
+//    Re-checked 9 Sep 2026 against Cloud Logging, counting only reports later than the
+//    last policy change — an earlier report says nothing about the policy as it stands
+//    now. ALL FIVE are settled. Quill was the last: it is the one that actually reported
+//    on 3 Sep (`style-src-elem` -> cdn.quilljs.com, from /admin/homepage-content/3),
+//    e2eb60e added the redirect target, and on 9 Sep at 17:08 the page was loaded AND
+//    saved (GET /admin/homepage-content/7, then a POST) with no report of any kind.
+//    Loading it alone would have been enough; saving exercises the editor as well.
+//
+//    Across 4-9 Sep the whole report-only period produced FIVE violations, every one the
+//    same host — the bare analytics.google.com the wildcard did not cover — and none
+//    since that was added on 8 Sep.
 //
 //    Prerequisite 2 is separately worth recording as met in substance: between 4 and 8
 //    Sep a captain ran the whole chain for real — wizard, draft, POST /scorecard-beta,
