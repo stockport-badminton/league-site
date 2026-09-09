@@ -795,6 +795,50 @@ is otherwise only discovered by someone trying. The guard used to reject a semic
 a `--` comment as "multiple statements", the same blind spot HARD-18 records for
 `run-migration.js`.
 
+### Knowing whether our mail is being spoofed (DMARC)
+
+DMARC is published at `_dmarc.stockport-badminton.co.uk` with
+`rua=mailto:dmarc@stockport-badminton.co.uk`, so the aggregate reports arrive as ordinary
+inbound mail — Google and Microsoft send one a day each.
+
+```bash
+node tools/dmarc.js                 # the last 30 days, rolled up per sending source
+node tools/dmarc.js --days 90       # a wider window
+node tools/dmarc.js --raw --json    # the individual reports / machine-readable
+```
+
+Parsing lives in **`utils/dmarcReports.js`**, shared by that tool and the weekly audit
+check so the two cannot drift.
+
+- **The bucket and prefix come from an SES receipt rule in AWS, not from any code.**
+  `inbound-badders-email` → S3 `badmintontemp/inbound-email/`. Grepping the repo proves
+  nothing, exactly as it does not for the `baddersEmail` configuration set.
+- **Header order varies between reporters.** Microsoft puts `Content-Disposition` *after*
+  `Content-Transfer-Encoding`; Google does not. A regex anchored on the encoding header
+  matches Google and silently skips Microsoft — and the symptom is "Microsoft isn't
+  reporting", which reads as a DNS problem rather than a parsing bug. Find the blank line
+  that ends the part's headers instead. Google sends `.zip`, Microsoft `.gz`; handle both.
+- **DMARC passes on *either* aligned leg**, so the verdict is an OR. Read as an AND, every
+  SPF-broken forward — normal and harmless — reports as a failure.
+- **`aspf=r` is load-bearing, do not "harden" it to `s`.** SPF authenticates
+  `mail.stockport-badminton.co.uk` (the SES custom MAIL FROM) while `From:` is the apex;
+  strict alignment would fail SPF on every message we send.
+- The policy is **`p=none`** — monitoring only, enforcing nothing. The point of the reports
+  is to leave it: `p=quarantine; pct=25` → `pct=100` → `p=reject`. What blocks that is a
+  legitimate sender that does not authenticate, which is what the check below looks for.
+  Note `fo=1` in the record is inert while there is no `ruf=`.
+
+**The weekly digest reports only the failures** (`dmarc-unauthenticated-senders`, in
+`tools/audit/checks.js`). A row means either somebody is sending as our domain and is not
+us, or a real sender that tightening the policy would start binning. The passing rows stay
+in `tools/dmarc.js`: a weekly "26 of 26 passed" is the noise the digest exists to avoid.
+
+**This is the one audit check that is not SQL.** It brings a `run()` instead of a `sql`,
+because the question — did the receiving world accept our mail as authentic — cannot be
+answered from our own tables at all. `checks.runAll` and `dbq --check <name>` handle both
+shapes; `__tests__/unit/dbq-guard.test.js` skips the read-only guard for a `run()` check
+but asserts it really is one, so a SQL check whose query went missing still fails.
+
 ### Forwarding inbound mail (`POST /mail`)
 
 A reply to `results@stockport-badminton.co.uk` arrives via SES inbound and is forwarded to

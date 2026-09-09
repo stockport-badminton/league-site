@@ -114,6 +114,16 @@ async function main() {
     }
     const check = checks.get(rest[1]);
     if (!check) throw new Error(`no such check: ${rest[1]}`);
+    // One check asks something the database cannot answer and brings its own run().
+    // It has no SQL, so there is nothing for assertReadOnly to inspect — it never
+    // reaches the database at all.
+    if (check.run) {
+      const rows = await check.run();
+      if (json) { console.log(JSON.stringify(rows, null, 2)); process.exit(0); }
+      console.log(check.description + '\n');
+      console.log(renderTable(rows));
+      process.exit(0);
+    }
     sql = check.sql;
     label = check.description;
   } else if (rest[0] === '--file') {

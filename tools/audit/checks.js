@@ -327,6 +327,36 @@ const CHECKS = [
     // Needs the PI key, which is an env var rather than a database setting — the
     // runner substitutes it. Kept declarative so the weekly email can reuse it.
     needsKey: true
+  },
+  {
+    // Not a database check — the only one. Everything else here asks the league's own
+    // tables a question; this asks the *receiving world* whether mail claiming to be from
+    // us actually authenticated. That cannot be answered from our data at all: SES will
+    // happily report a message as delivered while the recipient's provider files it as
+    // unauthenticated, and a spoofer never touches our infrastructure in the first place.
+    //
+    // Reports only rows that FAILED. DMARC is on p=none, so nothing is being rejected
+    // today and a row here means one of two things, both worth a Monday morning:
+    //   - somebody is sending as our domain and is not us, or
+    //   - a legitimate sender we have forgotten about would start being binned the moment
+    //     the policy is tightened.
+    // A weekly "26 of 26 passed" would be exactly the noise the digest is meant to avoid,
+    // which is why the passing rows live in `node tools/dmarc.js` and not in here.
+    name: 'dmarc-unauthenticated-senders',
+    description: 'Mail sent as our domain in the last 7 days that did not authenticate',
+    severity: 'high',
+    run: async () => {
+      const dmarc = require('../../utils/dmarcReports');
+      const summary = dmarc.summarise(await dmarc.fetchReports({ days: 7 }));
+      return summary.unauthenticated.map(s => ({
+        source_ip: s.sourceIp,
+        sending_as: s.headerFrom,
+        messages: s.fail,
+        dkim: s.dkim,
+        spf: s.spf,
+        reported_by: s.reporters,
+      }));
+    }
   }
 ];
 
@@ -335,6 +365,7 @@ exports.all = () => CHECKS.map(({ name, description, severity }) => ({ name, des
 exports.get = name => {
   const c = CHECKS.find(x => x.name === name);
   if (!c) return null;
+  if (c.run) return { ...c };          // no SQL to key or to guard
   return { ...c, sql: withKey(c) };
 };
 
@@ -352,7 +383,10 @@ exports.runAll = async function(conn) {
   const out = [];
   for (const check of CHECKS) {
     try {
-      const [rows] = await conn.query(withKey(check));
+      // Most checks are a SELECT. One asks something the database cannot answer and
+      // brings its own `run()` — see dmarc-unauthenticated-senders. Both shapes return
+      // the same {name, description, severity, rows}, so every consumer is unaffected.
+      const rows = check.run ? await check.run() : (await conn.query(withKey(check)))[0];
       out.push({ name: check.name, description: check.description, severity: check.severity, rows });
     } catch (err) {
       out.push({ name: check.name, description: check.description, severity: check.severity,

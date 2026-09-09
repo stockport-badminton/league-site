@@ -49,8 +49,22 @@ describe('what it allows', () => {
     const checks = require('../../tools/audit/checks');
     const names = checks.all().map(c => c.name);
     expect(names.length).toBeGreaterThan(5);
+
+    let guarded = 0;
     for (const name of names) {
-      expect(() => assertReadOnly(checks.get(name).sql)).not.toThrow();
+      const check = checks.get(name);
+      // A check may instead bring its own run() — dmarc-unauthenticated-senders reads S3,
+      // not the database. It has no SQL to guard, so assert that it is genuinely of that
+      // shape rather than a SQL check whose query has gone missing, which is the way a
+      // skip like this would otherwise hide a real problem.
+      if (!check.sql) {
+        expect(typeof check.run).toBe('function');
+        continue;
+      }
+      guarded++;
+      expect(() => assertReadOnly(check.sql)).not.toThrow();
     }
+    // The exemption above must not be able to swallow the whole suite of checks.
+    expect(guarded).toBeGreaterThan(5);
   });
 });
