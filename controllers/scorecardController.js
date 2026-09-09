@@ -529,12 +529,41 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
     // result must not be lost over a link we don't like, so a URL that isn't one of our
     // own bucket objects is dropped and the draft saved without it. The fixture then
     // shows up in the "add scorecard photos" list, which is the recoverable outcome.
-    const submittedPhoto = req.body['scoresheet-url'];
-    const photoUrl = isPhotoUrl(submittedPhoto) ? normalisePhotoUrl(submittedPhoto) : '';
-    if (submittedPhoto && !photoUrl) {
+    // The form can post this field more than once, so treat it as a list.
+    //
+    // It did, for months. Step 13 of the wizard has two states — "upload one here" and
+    // "already uploaded at step 1" — and each carried its own hidden input. Toggling
+    // `display:none` between them does not stop a hidden input submitting, so BOTH posted
+    // and this arrived as an array. `isPhotoUrl(['url','url'])` is false, so every photo
+    // attached during submission was dropped; captains only got theirs back through the
+    // emailed "add a photo" link, a different path that works, which is what hid it.
+    //
+    // The markup is fixed (one field per form), but coalescing here as well is the cheap
+    // half: a captain's photo must not be lost to a form-markup mistake, and the two
+    // remaining inputs sit in mutually exclusive EJS branches that a future edit could
+    // accidentally render together.
+    const submitted = req.body['scoresheet-url'];
+    const candidates = (Array.isArray(submitted) ? submitted : [submitted])
+      .filter(value => typeof value === 'string' && value.trim() !== '');
+    const accepted = candidates.find(isPhotoUrl);
+    const photoUrl = accepted ? normalisePhotoUrl(accepted) : '';
+
+    // Only when something was actually offered and none of it was usable. Testing the raw
+    // value instead reported every photo-less submission as a rejection, because an array
+    // of empty strings is truthy — two of the first three Sentry events were that.
+    if (candidates.length && !photoUrl) {
       console.warn('scorecard: dropped a scoresheet-url that is not an object in our bucket');
       Sentry.captureMessage('scorecard: rejected scoresheet-url on draft submission', {
-        level: 'warning', tags: { stage: 'scorecard-draft' }
+        level: 'warning',
+        tags: { stage: 'scorecard-draft' },
+        // What was rejected, which the first version did not record — so answering "what
+        // did they try to upload" meant reading the raw request body out of Sentry and
+        // then working out why a URL that passes isPhotoUrl() had been refused.
+        extra: {
+          rejected: candidates.map(value => String(value).slice(0, 300)),
+          count: candidates.length,
+          wasArray: Array.isArray(submitted),
+        },
       });
     }
 

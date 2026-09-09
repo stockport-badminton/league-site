@@ -156,6 +156,14 @@ function setupFullFixtureMocks() {
   Division.getAllByLeague.mockResolvedValue(mockDivisions);
 }
 
+// Sentry is already a no-op in tests (instrument.js only enables it in production), so
+// spy rather than jest.mock the module: instrument.js calls Sentry.init() at import, and
+// a hand-written mock has to keep up with whatever else it reaches for. The draft handler
+// reports a rejected scoresheet-url through captureMessage, and what that carries is the
+// only record of what a captain tried to upload — worth asserting on.
+const Sentry = require('@sentry/node');
+jest.spyOn(Sentry, 'captureMessage').mockImplementation(() => {});
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -285,6 +293,66 @@ describe('POST /email-scorecard', () => {
       const callArg = Fixture.createScorecard.mock.calls[0][0];
       expect(callArg.homeTeam).toBe('10');
       expect(callArg.awayTeam).toBe('20');
+    });
+
+    // The wizard's step 13 has two states — "upload one here" and "already uploaded at
+    // step 1" — and each used to carry its own hidden `scoresheet-url`. `display:none`
+    // does not stop a hidden input submitting, so both posted and this arrived as an
+    // ARRAY. isPhotoUrl() rejects an array, so EVERY photo attached during submission was
+    // silently dropped and the draft saved without one. It went unnoticed for months
+    // because the emailed "add a photo" link is a different path and works.
+    //
+    // The markup now carries one field, but the handler coalesces too: a captain's photo
+    // must not be lost to a form-markup mistake.
+    it('keeps the photo when the form posts the field more than once', async () => {
+      const url = `https://${BUCKET}.s3.eu-west-1.amazonaws.com/scorecards/20262027/a-photo.jpg`;
+
+      await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard({ 'scoresheet-url': [url, url] }));
+
+      const callArg = Fixture.createScorecard.mock.calls[0][0];
+      expect(callArg['scoresheet-url']).toBe(url);
+    });
+
+    it('takes the usable value when a blank is posted alongside a real one', async () => {
+      const url = `https://${BUCKET}.s3.eu-west-1.amazonaws.com/scorecards/20262027/b-photo.jpg`;
+
+      await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard({ 'scoresheet-url': ['', url] }));
+
+      expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe(url);
+    });
+
+    // An array of empty strings is truthy, so the old test `if (submittedPhoto && ...)`
+    // reported a rejection for every submission that carried no photo at all. Two of the
+    // first three Sentry events under this message were that, which is noise on a warning
+    // whose whole job is to mean something.
+    it('says nothing when no photo was offered at all', async () => {
+      await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard({ 'scoresheet-url': ['', ''] }));
+
+      expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe('');
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    });
+
+    // A URL that is not one of our own bucket objects is still refused — the draft is
+    // saved without it rather than lost, and the rejection now records WHAT was refused,
+    // which the first version did not.
+    it('still refuses a foreign url, and records what it was', async () => {
+      await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard({ 'scoresheet-url': 'https://evil.example.com/not-ours.jpg' }));
+
+      expect(Fixture.createScorecard.mock.calls[0][0]['scoresheet-url']).toBe('');
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('rejected scoresheet-url'),
+        expect.objectContaining({
+          extra: expect.objectContaining({ rejected: ['https://evil.example.com/not-ours.jpg'] }),
+        })
+      );
     });
 
     it('does not re-render the form (prevents duplicate submission on refresh)', async () => {

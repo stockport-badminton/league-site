@@ -598,6 +598,16 @@
 
              </div>
              <div class="modal-body step step-13 ScorecardUpload">
+                <%# ONE hidden field for the whole step, deliberately outside the two state
+                    divs below. It used to sit inside each of them, and `display:none` does
+                    not stop a hidden input submitting — so both posted, and
+                    req.body['scoresheet-url'] arrived as an ARRAY. isPhotoUrl() rejects an
+                    array, so every photo attached during submission was dropped and the
+                    draft saved without one; the captain only got it back through the
+                    emailed "add a photo" link, which is a different code path and works,
+                    which is why this went unnoticed. Both upload routes still set this one
+                    field: the step-1 OCR upload and the plain step-13 one. %>
+                <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
                 <div id="scorecardUploadPrompt">
                 <div class="form-row">
                     <div class="form-group step-13 ScorecardUpload col-6">
@@ -605,7 +615,6 @@
                         <div class="form-row">
                             <div class="col-12"><input type="file" name="scoresheet-spreadsheet" id="scoresheet-spreadsheet"
                               accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" /></div>
-                            <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
                             <img src="" id="scoresheet-img" width="200%" />
                         </div>
                     </div>
@@ -613,7 +622,6 @@
                 </div>
                 <div id="scorecardUploadDone" style="display:none" class="py-2">
                   <p class="text-success mb-0">&#10003; Scorecard photo uploaded at the start of the form.</p>
-                  <input type="hidden" name="scoresheet-url" id="scoresheet-url" />
                   <small class="text-muted">You can go back to step 1 to upload a different photo.</small>
                 </div>
             </div>
