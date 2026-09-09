@@ -169,9 +169,35 @@ describe('POST /new-users-v2', () => {
 
     const params = sentParams();
     const html = params.Message.Body.Html.Data;
-    expect(html).not.toContain('<img');
-    expect(html).toContain('&lt;img');
+    // Assert the property — the supplied label cannot become markup — rather than "there
+    // is no <img in this email". Since this moved onto the MJML pipeline the email
+    // legitimately contains one: the league logo in the header.
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).not.toContain('<img src=x');
     expect(params.ReplyToAddresses).toEqual(['stockport.badders.results@gmail.com']);
     expect(JSON.stringify(params)).not.toContain('evil.example.com');
+  });
+
+  // The reason this send was rewritten at all: it was the last one building its HTML by
+  // concatenation, so it arrived unstyled, with no plain-text part and no footer saying
+  // why you got it. All three are properties of the pipeline rather than of this route,
+  // but this is the send that was missing them.
+  it('sends a styled email with a plain-text alternative and a why-you-got-this line', async () => {
+    await request(app).post('/new-users-v2').send({ id: 'auth0|abc123', user: 'Priya Ramanathan' });
+
+    const params = sentParams();
+    const html = params.Message.Body.Html.Data;
+    const text = params.Message.Body.Text.Data;
+
+    expect(html).toContain('#002060');                       // the league's own navy
+    expect(html).toMatch(/why you|You are a league administrator/i);
+    expect(text).toContain('Priya Ramanathan');
+    expect(text).toContain('/approve-user/auth0%7Cabc123');  // encoded, or the link breaks
+    expect(html).toContain('/approve-user/auth0%7Cabc123');
+  });
+
+  it('says nothing and answers 200 when there is no user id to approve', async () => {
+    const res = await request(app).post('/new-users-v2').send({ id: 'undefined' });
+    expect(res.status).toBe(200);
   });
 });

@@ -734,10 +734,34 @@ Two more that cost time here:
 no-stats variants that exercise the `mj-raw` conditionals. A preview is not proof: it
 renders in a browser and an email renders in Outlook, which lays out through Word.
 
-**Every send is on the pipeline.** Eleven templates: `scorecard-received`,
-`website-updated`, `registration-reminder`, `registration-digest`, `contact-us`,
-`scorecard-reminder`, `missing-scorecards`, `transfer-request`, `access-approved`,
-`scorecard-photo-added` and `messer-result`.
+**Twelve templates**: `scorecard-received`, `website-updated`, `registration-reminder`,
+`registration-digest`, `contact-us`, `scorecard-reminder`, `missing-scorecards`,
+`transfer-request`, `access-approved`, `access-request`, `scorecard-photo-added` and
+`messer-result`.
+
+**Two sends are deliberately not on it, and both are listed in
+`__tests__/unit/mail-sends-use-mailer.test.js` with their reason:**
+
+| Send | Why not |
+|---|---|
+| the annual club invoice | still on its own hand-written `views/emails/clubInvoice.ejs` from June 2025 — off-brand (`#1188E6`, no navy) and its own piece of work |
+| the weekly data-integrity digest | renders `views/emails/weekly-anomalies.ejs`, internal to the results secretary rather than member-facing |
+
+That guard exists because this section used to say *"Every send is on the pipeline. Eleven
+templates"* and it was **not true**. The signup notification (`POST /new-users-v2`) built
+its HTML by string concatenation in `routes/index.js`, so it went out unstyled, with no
+plain-text part and no "why you got this" line, for as long as the pipeline existed. It
+was missed because it lives in a **route rather than a controller** — there was no
+unstyled file in `views/emails/` to be conspicuous — and then this file asserted it had
+been done, which is exactly the sort of claim that stops the next person looking.
+
+The guard counts **call sites, not mentions**: it strips comments and strings first,
+because `controllers/fixtureController.js` carries a note about `ses.sendEmail(undefined)`
+that is not a send. Getting that stripping right matters more than it sounds — the first
+version desynchronised on `.replace(/"/g, …)`, a regex literal containing a quote, and
+reported `routes/index.js` **clean while it held the very send being hunted**. A
+desynchronised scanner under-reports, so it fails in the direction that looks fine. It now
+throws if a `'`/`"` run contains a raw newline, which a JS string literal cannot.
 
 So the old rule — escape by hand with `utils/html.js` when concatenating — is **retired**
 for outbound mail: a template escapes by default. The escaping tests moved with it, and

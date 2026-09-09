@@ -2,7 +2,8 @@ var express = require('express');
 var router = express.Router();
 const Sentry = require('@sentry/node');
 const secured = require('../middleware/secured');
-const sesUtil = require('../utils/ses');
+const mailer = require('../utils/mailer');
+const { absoluteUrl } = require('../utils/canonical');
 const { expressjwt: jwt } = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
 const multer = require('multer');
@@ -47,14 +48,6 @@ const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
-
-// For the one place a route handler builds email HTML inline. Anything richer belongs
-// in a controller with a template.
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 const checkJwt = jwt({
   secret: jwksRsa.expressJwtSecret({
@@ -299,34 +292,51 @@ router.get('/sitemap.xml', sitemap_controller.sitemap);
 router.get('/approve-user/:userId', secured, auth_controller.approve_signup_get);
 router.post('/approve-user/:userId', secured, auth_controller.approve_signup_post);
 
-router.post('/new-users-v2', publicFormLimiter, (req, res, next) => {
-  if (typeof req.body.id != 'undefined' && req.body.id.length > 3 && req.body.id != 'undefined') {
-    // req.body.id is an Auth0 user_id (e.g. "auth0|abc123") — must be
-    // encoded before going into a URL, or the emailed link breaks.
-    const approveLink = 'https://stockport-badminton.co.uk/approve-user/' + encodeURIComponent(req.body.id);
-    var params = {
-      Destination: {
-        ToAddresses: ['stockport.badders.results@gmail.com'],
-        BccAddresses: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com']
+// Tells the results secretary that somebody has signed up and is waiting on approval.
+//
+// This was the last send in the codebase still building its HTML by hand, and it was
+// missed when the other ten moved onto the MJML pipeline because it lives in a route
+// rather than a controller — there was no template file sitting in views/emails/ to look
+// conspicuously unstyled. __tests__/unit/mail-sends-use-mailer.test.js now fails if
+// another one appears.
+router.post('/new-users-v2', publicFormLimiter, async (req, res, next) => {
+  const id = String(req.body.id || '');
+  if (id.length <= 3 || id === 'undefined') return res.sendStatus(200);
+
+  try {
+    await mailer.send({
+      template: 'access-request',
+      // Derived here, never from the request. `req.body.contactEmail` used to go into
+      // ReplyToAddresses on this unauthenticated endpoint, so the sender could choose
+      // where a reply landed.
+      to: ['stockport.badders.results@gmail.com'],
+      bcc: ['bigcoops@outlook.com'],
+      replyTo: mailer.RESULTS_MAILBOX,
+      subject: 'New user signup — approval needed',
+      whyReceiving: 'You are a league administrator, so you are told when someone asks for results access.',
+      data: {
+        // Whatever the signup form was given, capped. The template escapes it; the
+        // concatenated version this replaces needed a hand-rolled escapeHtml() to do the
+        // same job, and that is exactly the pattern the pipeline retires.
+        userLabel: String(req.body.user || 'Someone').slice(0, 200),
+        // req.body.id is an Auth0 user_id (e.g. "auth0|abc123") — must be encoded before
+        // going into a URL, or the emailed link breaks. absoluteUrl rather than a
+        // hardcoded host: see gotcha 1b, req.get('host') is the Cloud Run hostname.
+        approveUrl: absoluteUrl('/approve-user/' + encodeURIComponent(id)),
       },
-      Message: {
-        // `req.body.user` used to be interpolated raw into this HTML and
-        // `req.body.contactEmail` went into ReplyToAddresses — both from an
-        // unauthenticated request, so anyone could post arbitrary markup into an email
-        // we send ourselves and choose where a reply would land. Escaped and capped;
-        // ReplyTo is fixed.
-        Body: { Html: { Charset: 'UTF-8', Data: '<p>a new user has signed up: ' + escapeHtml(String(req.body.user || '').slice(0, 200)) + '<br /><a href="' + approveLink + '">Approve?</a></p>' } },
-        Subject: { Charset: 'UTF-8', Data: 'New User Signup' }
-      },
-      Source: 'results@stockport-badminton.co.uk',
-      ReplyToAddresses: ['stockport.badders.results@gmail.com'],
-    };
-    const sendPromise = sesUtil.sendEmail(params);
-    sendPromise
-      .then(() => { res.sendStatus(200); })
-      .catch(error => { console.log(error.toString()); next('Sorry something went wrong sending your email.'); });
-  } else {
+      text: [
+        'A new user has signed up for results entry and is waiting for approval.',
+        '',
+        String(req.body.user || 'Someone').slice(0, 200),
+        '',
+        'Approve them here:',
+        absoluteUrl('/approve-user/' + encodeURIComponent(id)),
+      ].join('\n'),
+    });
     res.sendStatus(200);
+  } catch (err) {
+    console.log(err.toString());
+    next(err);
   }
 });
 

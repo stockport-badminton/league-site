@@ -75,6 +75,15 @@ const SAMPLES = {
     whyReceiving: 'You asked for access to enter results for your team.',
     submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
   },
+  'access-request': {
+    logoUrl,
+    whyReceiving: 'You are a league administrator, so you are told when someone asks for results access.',
+    // Deliberately hostile: this value arrives on an unauthenticated endpoint, and the
+    // version this template replaced concatenated it into HTML by hand. If the preview
+    // shows tags rather than rendering them, the escaping is doing its job.
+    userLabel: 'Priya Ramanathan <priya@example.com> "&" <script>alert(1)</script>',
+    approveUrl: 'https://stockport-badminton.co.uk/approve-user/auth0%7Cabc123',
+  },
   'scorecard-photo-added': {
     logoUrl,
     whyReceiving: 'You are the league results secretary.',

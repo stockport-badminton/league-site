@@ -1,0 +1,37 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>New results access request</mj-title>
+    <mj-preview>Someone has signed up and is waiting for approval</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Access request</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">Someone is waiting for approval</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text>
+          A new user has signed up for results entry and cannot do anything until
+          somebody approves them.
+        </mj-text>
+        <!-- Escaped by EJS, and it needs to be: this arrives on an unauthenticated
+             endpoint, so it is whatever the signup form was given. -->
+        <mj-text mj-class="callout"><%= userLabel %></mj-text>
+        <mj-button href="<%= approveUrl %>" css-class="cta">Review and approve</mj-button>
+        <mj-text mj-class="muted">
+          Approving sets their role and, if they have no contact address on file yet,
+          seeds it from the address they signed up with.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>
