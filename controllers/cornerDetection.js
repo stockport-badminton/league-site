@@ -251,7 +251,27 @@ async function analyseImage(imageBuffer) {
 
   const anchors = findAnchors(textBlocks, imgW, imgH);
   const missing = REQUIRED_ANCHORS.filter(a => !anchors[a]);
-  if (missing.length > 0) throw new Error(`Missing corner anchors: ${missing.join(', ')}`);
+  if (missing.length > 0) {
+    // Not a fault. The reader locates every field by these four printed anchors, so a
+    // photo it cannot line up is one of: cropped, at an angle, or — the case that
+    // actually happened — an older version of the scorecard that does not carry them.
+    //
+    // Carries `status` so the route answers 4xx rather than 500. It went out as a 500
+    // with this raw message, and a captain who reads "Missing corner anchors:
+    // STOCKPORT, LEAGUE, RULE18" learns nothing except that the site is broken; the one
+    // it happened to abandoned the auto-fill and uploaded by hand. `detail` keeps the
+    // anchor names for the log, where they are the useful half.
+    const err = new Error(
+      'The reader could not line up this scorecard, so it cannot fill the form in for ' +
+      'you. That usually means the photo is cropped or taken at an angle, or that the ' +
+      'card is an older version of the form. Take a straight-on photo of the whole ' +
+      'card and try again, or just carry on and fill the form in yourself — you can ' +
+      'still attach the photo at the end.'
+    );
+    err.status = 422;
+    err.detail = `Missing corner anchors: ${missing.join(', ')}`;
+    throw err;
+  }
 
   const a = anchors;
   const sides = [

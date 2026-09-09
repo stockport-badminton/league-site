@@ -299,6 +299,69 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
 // one reads the card, this one does not. Some captains would rather a machine did not
 // read their card, and until the OCR has a season behind it that is a preference worth
 // honouring rather than designing away.
+// A scorecard the reader cannot line up.
+//
+// This is what an old form looks like to the OCR: the reader locates every field from
+// four printed anchors, and a card that predates them has none. It is an ordinary
+// outcome, not a fault — but it used to come back as `500 {"error":"Missing corner
+// anchors: STOCKPORT, LEAGUE, RULE18"}`, which reads as a crash. The captain it happened
+// to gave up on the auto-fill and uploaded the photo by hand.
+describe('POST /api/analyse-scorecard — a card the reader cannot line up', () => {
+  const { analyseImage } = require('../../controllers/cornerDetection');
+  const Sentry = require('@sentry/node');
+
+  function anchorFailure() {
+    const err = new Error('friendly text set by cornerDetection');
+    err.status = 422;
+    err.detail = 'Missing corner anchors: STOCKPORT, LEAGUE, RULE18';
+    return err;
+  }
+
+  const photo = () => Buffer.from('\xff\xd8\xff\xe0 not really a jpeg', 'binary');
+
+  it('answers 422, not 500', async () => {
+    analyseImage.mockRejectedValueOnce(anchorFailure());
+    const res = await request(app).post('/api/analyse-scorecard')
+      .attach('scorecard', photo(), { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('passes the message through, since it is written for the captain', async () => {
+    analyseImage.mockRejectedValueOnce(anchorFailure());
+    const res = await request(app).post('/api/analyse-scorecard')
+      .attach('scorecard', photo(), { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+    expect(res.body.error).toBe('friendly text set by cornerDetection');
+    // The anchor names belong in the log, not in front of a captain.
+    expect(res.body.error).not.toMatch(/corner anchors/i);
+  });
+
+  it('does not report it to Sentry, because it is not a fault', async () => {
+    Sentry.captureException.mockClear && Sentry.captureException.mockClear();
+    analyseImage.mockRejectedValueOnce(anchorFailure());
+    await request(app).post('/api/analyse-scorecard')
+      .attach('scorecard', photo(), { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+    if (jest.isMockFunction(Sentry.captureException)) {
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+    }
+  });
+
+  // The other half of the same rule: an UNEXPECTED throw is still a 500, and its message
+  // must not reach the client. CLAUDE.md's /api/ rule — 4xx messages pass through, 5xx
+  // ones do not, since they can carry SQL.
+  it('still answers 500 for an unexpected failure, without leaking its message', async () => {
+    analyseImage.mockRejectedValueOnce(new Error('relation "player" does not exist'));
+    const res = await request(app).post('/api/analyse-scorecard')
+      .attach('scorecard', photo(), { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).not.toMatch(/relation|does not exist/);
+    expect(res.body.error).toMatch(/nothing is lost/i);
+  });
+});
+
 describe('POST /api/convert-scorecard-document', () => {
   const fs = require('fs');
   const path = require('path');

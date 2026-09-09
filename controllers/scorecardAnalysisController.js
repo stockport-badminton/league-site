@@ -391,7 +391,25 @@ exports.analyse_scorecard = async function(req, res) {
       },
     });
   } catch (err) {
-    console.error('Scorecard analysis failed:', err.message);
-    res.status(500).json({ error: err.message });
+    // Expected failures carry a `status` — see analyseImage in cornerDetection.js. A
+    // scorecard the reader cannot line up is the caller's condition, not ours, and every
+    // one used to come back as a 500 carrying its internal message. Two costs: the
+    // captain reads a crash where the honest answer is "we cannot read this one", and
+    // CLAUDE.md's rule for /api/ routes — pass 4xx messages through, never 5xx ones,
+    // since those can carry SQL — was being broken on every unexpected throw.
+    const status = err.status || 500;
+    console.error('Scorecard analysis failed:', err.detail || err.message);
+
+    if (status >= 500) {
+      // Only the genuine faults. Reporting a photo of the wrong scorecard as an
+      // exception is how a Sentry project stops being read.
+      Sentry.captureException(err, { tags: { stage: 'scorecard-analysis' } });
+      return res.status(500).json({
+        error: 'Something went wrong reading that scorecard. Fill the form in yourself ' +
+               'and attach the photo at the end — nothing is lost.',
+      });
+    }
+
+    res.status(status).json({ error: err.message });
   }
 };
