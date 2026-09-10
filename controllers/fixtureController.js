@@ -60,58 +60,6 @@ exports.getLateScorecards = async function(req, res, next) {
 };
 
 
-exports.fixture_outstanding = async function(req, res, next) {
-  try {
-    const result = await Fixture.getOutstandingResults();
-    res.render('results-short', {
-      static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      pageTitle: "Quick Results Entry",
-      pageDescription: "Quick Results Entry",
-      result: result,
-      stringResult: JSON.stringify(result),
-      canonical: canonicalFor(req)
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// Handle Fixture update on POST
-exports.fixture_outstanding_post = async function(req, res, next) {
-  try {
-    var reqBody = {
-      "homeScore": 1 * (req.body.homeTeamScore),
-      "awayScore": 18 - req.body.homeTeamScore,
-      "status": "complete"
-    }
-    await Fixture.updateById(reqBody, req.body.outstandingResults);
-    var zapObject = {
-      "homeTeam": req.body.homeTeamName,
-      "awayTeam": req.body.awayTeamName,
-      "homeScore": 1 * (req.body.homeTeamScore),
-      "awayScore": 1 * (req.body.awayTeamScore),
-      "division": "Premier"
-    }
-    // Get social media mentions for the result
-    zapObject.mentions = await Fixture.getResultMentions(zapObject.homeTeam, zapObject.awayTeam);
-    const zapRes = await Fixture.sendResultZap(zapObject);
-    const result = await Fixture.getOutstandingResults();
-    res.render('results-short', {
-      static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      pageTitle: "Quick Results Entry - Success",
-      pageDescription: "Quick Results Entry - Success",
-      result: result,
-      zapRes: zapRes,
-      success: true,
-      canonical: canonicalFor(req)
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display list of all Fixtures
 exports.fixture_list = async function(req, res, next) {
   try {
@@ -580,16 +528,6 @@ exports.fixture_batch_create = async function(req, res, next) {
     next(err);
   }
 }
-
-exports.fixture_update_by_team_name = async function(req, res, next) {
-  try {
-    const result = await Fixture.updateByTeamNames(req.body);
-    res.send(result);
-  } catch (err) {
-    next(err);
-  }
-}
-
 
 // POST /fixture/rearrangement (superadmin session) and PATCH /fixture/rearrange (JWT).
 //

@@ -432,10 +432,8 @@ router.get('/divisions', checkJwt, division_controller.division_list);
 router.get('/fixture/create', fixture_controller.fixture_create_get);
 router.post('/fixture/reminder', publicFormLimiter, scorecard_controller.fixture_reminder_post);
 router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
-router.post('/fixture/short-result', publicFormLimiter, fixture_controller.fixture_outstanding_post);
 router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
 router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
-router.post('/fixture/enter-result', checkJwt, fixture_controller.fixture_update_by_team_name);
 // Superadmin only. This was unauthenticated behind nothing but a rate limit until
 // Sep 2026 — anyone who could POST could set a fixture to 'rearranged' and insert a
 // replacement at a date of their choosing. The only client is the rearrangement modal
@@ -632,7 +630,6 @@ router.get('/pair-stats', secured, player_controller.all_pair_stats);
 router.get('/club/:id', secured, club_controller.club_detail);
 router.get('/club-api/:id', secured, club_controller.club_detail_api);
 router.get('/admin/info/clubs', secured, club_controller.club_list_detail);
-router.get('/short-results', secured, fixture_controller.fixture_outstanding);
 
 // Shuttle price comparison (superadmin only — role check in controller)
 router.get('/shuttle-prices', secured, shuttle_controller.shuttlePrices);
