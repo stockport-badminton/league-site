@@ -128,13 +128,6 @@ exports.getRecent = async function() {
   return result
 }
 
-exports.getOutstandingResults = async function() {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT a.id, a.date, a."homeTeam", a."homeTeamId", team.name AS "awayTeam", team.id AS "awayTeamId", a."homeScore", a."awayScore" FROM (SELECT fixture.id, fixture.date, team.name AS "homeTeam", team.id AS "homeTeamId", fixture."homeScore", fixture."awayScore", fixture."awayTeam" FROM fixture JOIN team ON fixture."homeTeam" = team.id WHERE fixture.status NOT IN ('rearranged','rearranging')) AS a JOIN team ON a."awayTeam" = team.id WHERE a."homeScore" IS NULL AND date BETWEEN NOW() - INTERVAL '7 days' AND NOW() + INTERVAL '1 day' ORDER BY date`
-  )
-  return result
-}
-
 exports.getOutstandingScorecards = async function() {
   const [result] = await (await db.otherConnect()).query(`SELECT * FROM
 (SELECT homeTeam.name AS "homeTeam", homeTeam.id AS "homeId", awayTeam.name AS "awayTeam", awayTeam.id AS "awayId", fixture.date, fixture.status, scorecardstore.id AS "scoreCardId" FROM
@@ -758,21 +751,6 @@ exports.rearrangeByTeamNames = async function(updateObj) {
   })
 }
 
-exports.updateByTeamNames = async function(updateObj) {
-  if (!db.isObject(updateObj)) throw new Error('updateObj is not an object')
-  const [result] = await (await db.otherConnect()).query(
-    'UPDATE fixture SET "homeScore" = ?, "awayScore" = ? WHERE id = (SELECT b.id FROM (SELECT a.id, a."homeTeam", a."awayTeam", a.awayTeamName, team.name AS hometeamname FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam", team.name AS awayteamname FROM fixture JOIN team ON fixture."awayTeam" = team.id) AS a JOIN team ON a."homeTeam" = team.id) AS b WHERE (b.awayTeamName = ? AND b.homeTeamName = ?))',
-    [updateObj.homeScore, updateObj.awayScore, updateObj.awayTeam, updateObj.homeTeam]
-  )
-  if (result.affectedRows != 1 || result.changedRows != 1) {
-    throw new Error("nothing updated - teams probably didn't match up or the result was already entered")
-  }
-  await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', {
-    message: `Result: ${updateObj.homeTeam} vs ${updateObj.awayTeam} : ${updateObj.homeScore}-${updateObj.awayScore} ##stockport #sdbl #result https://stockport-co.uk`
-  })
-  return result
-}
-
 exports.sendResultZap = async function(zapObject) {
   if (!db.isObject(zapObject)) throw new Error("you've not supplied an object")
   if (zapObject.host == '127.0.0.1:8080') {
@@ -802,10 +780,12 @@ exports.sendResultZap = async function(zapObject) {
     imgUrl: imgGen
   }
 
-  // Include social media mentions if available
-  if (zapObject.mentions) {
-    webhookBody.mentions = zapObject.mentions
-  }
+  // No `mentions` field. Tagging the clubs in the post needs a Facebook app reviewed and
+  // approved by Meta — paperwork, not development — so the handles we hold cannot
+  // actually be turned into mentions on a page post. Fixture.getResultMentions and
+  // getClubSocialHandlesByTeamName existed for it and were only ever called from the
+  // quick-results-entry flow deleted in 74c52d1, so no post has ever carried one.
+  // /api/social/tables-mentions is a different thing and still live.
 
   const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
 
@@ -1067,19 +1047,6 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
   return { advanced: true, targetId: target.id, slot: match.nextSlot }
 }
 
-// Get social media handles for a club by team name
-exports.getClubSocialHandlesByTeamName = async function(teamName) {
-  const sql = `
-    SELECT c.id, c.name, c.facebook, c.instagram
-    FROM club c
-    INNER JOIN team t ON t.club = c.id
-    WHERE t.name = ?
-    LIMIT 1
-  `
-  const [result] = await (await db.otherConnect()).query(sql, [teamName])
-  return result?.[0] || null
-}
-
 // Get all clubs with social media handles
 exports.getAllClubsWithSocialHandles = async function() {
   const sql = `
@@ -1090,17 +1057,4 @@ exports.getAllClubsWithSocialHandles = async function() {
   `
   const [result] = await (await db.otherConnect()).query(sql)
   return result
-}
-
-// Get formatted mentions for a result (given two team names)
-exports.getResultMentions = async function(homeTeamName, awayTeamName) {
-  const { formatMentionsForPlatforms } = require('../utils/socialMediaMentions')
-
-  const [homeClub, awayClub] = await Promise.all([
-    this.getClubSocialHandlesByTeamName(homeTeamName),
-    this.getClubSocialHandlesByTeamName(awayTeamName),
-  ])
-
-  const clubsWithHandles = [homeClub, awayClub].filter(Boolean)
-  return formatMentionsForPlatforms(clubsWithHandles)
 }
