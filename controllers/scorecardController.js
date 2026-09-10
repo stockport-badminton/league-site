@@ -797,15 +797,39 @@ function renderLinkRefused(req, res, status) {
 
   exports.email_scorecard = async function(req, res, next) {
     try {
-      const [rows, apiKey] = await Promise.all([
-        Division.getAllByLeague(1),
-        Auth.getManagementAPIKey()
-      ]);
-      const response = await axios.get('https://' + process.env.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + req.user.id + '&fields=app_metadata,nickname,email', {
-        headers: { 'Authorization': 'Bearer ' + apiKey }
-      });
-      const user = response.data;
-      const fixtures = await Fixture.getMissingScorecardPhotos(user[0].email);
+      const rows = await Division.getAllByLeague(1);
+
+      // The "fixtures still missing a photo" list is a convenience on top of the form,
+      // not the form itself — so nothing about fetching it may cost the captain the page.
+      //
+      // It used to be awaited inline: an Auth0 Management API lookup for the logged-in
+      // user, then `user[0].email`. Any of three ordinary things made that throw and took
+      // the whole page with it — Auth0 slow or unreachable, the token call failing, or the
+      // lookup simply matching nobody, which is what `user[0]` being undefined means. That
+      // is the page captains file results from, and a 500 on it means they cannot report
+      // at all.
+      //
+      // It also made the page unrenderable under DEV_MODE, because the mock user is not a
+      // real Auth0 identity — which is why no browser test has ever covered the captain's
+      // entry point, only the superadmin one at /scorecard-beta.
+      let fixtures = [];
+      try {
+        const apiKey = await Auth.getManagementAPIKey();
+        const response = await axios.get(
+          'https://' + process.env.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + req.user.id, {
+            headers: { 'Authorization': 'Bearer ' + apiKey }
+          });
+        const email = response && response.data && response.data[0] && response.data[0].email;
+        if (email) fixtures = await Fixture.getMissingScorecardPhotos(email);
+      } catch (lookupErr) {
+        // Reported, not thrown. The captain gets the form; we get to see that the lookup
+        // is failing rather than it being invisible behind a working page.
+        console.warn('email_scorecard: could not load the missing-photo list:', lookupErr.message);
+        Sentry.captureMessage('email_scorecard: missing-photo lookup failed', {
+          level: 'warning', tags: { stage: 'scorecard-entry' },
+        });
+      }
+
       res.render('index-scorecard', {
         static_path: '/static',
         theme: process.env.THEME || 'flatly',

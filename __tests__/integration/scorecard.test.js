@@ -222,11 +222,36 @@ describe('GET /email-scorecard', () => {
     expect(Fixture.getMissingScorecardPhotos).toHaveBeenCalledWith('test@test.com');
   });
 
-  it('returns 500 when Auth0 API call fails', async () => {
+  // These two used to be a single test asserting 500, and the expectation was changed
+  // deliberately in Sep 2026 rather than the code being bent to keep it.
+  //
+  // The Auth0 lookup exists only to build the "fixtures still missing a photo" list, a
+  // convenience above the form. Failing the request over it meant an Auth0 blip, a slow
+  // token call, or a lookup that simply matched nobody took away the page captains file
+  // their results from — and there is nothing they can do about any of those. It also
+  // made the page unrenderable under DEV_MODE, where the mock user is not a real Auth0
+  // identity, which is why no browser test had ever covered the captain's entry point;
+  // e2e/form-contract.spec.js covers it now.
+  it('still renders the form when the Auth0 lookup fails, without the photo list', async () => {
     Auth.getManagementAPIKey.mockResolvedValue('mock-token');
     axios.get.mockRejectedValue(new Error('Auth0 unreachable'));
+
     const res = await request(app).get('/email-scorecard');
-    expect(res.status).toBe(500);
+
+    expect(res.status).toBe(200);
+    expect(Fixture.getMissingScorecardPhotos).not.toHaveBeenCalled();
+  });
+
+  // The specific crash: `user[0].email` on an empty array. This is what DEV_MODE hits
+  // every time, and what production hits for any user Auth0 does not return.
+  it('renders the form when Auth0 matches no user, rather than throwing on user[0]', async () => {
+    Auth.getManagementAPIKey.mockResolvedValue('mock-token');
+    axios.get.mockResolvedValue({ data: [] });
+
+    const res = await request(app).get('/email-scorecard');
+
+    expect(res.status).toBe(200);
+    expect(Fixture.getMissingScorecardPhotos).not.toHaveBeenCalled();
   });
 });
 

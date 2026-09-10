@@ -733,6 +733,11 @@ router.use(function(error, req, res, next) {
   }
 
   var reference = errorReference();
+
+  // Log as well as report — see the note on the HTML handler below.
+  console.error('500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl) +
+                ' — ' + (error && error.stack ? error.stack : error));
+
   Sentry.captureException(error, { tags: { reference: reference } });
   res.status(status).json({
     ok: false,
@@ -767,6 +772,20 @@ router.use(function(error, req, res, next) {
   // can drop a fire-and-forget send. Flush is capped so the error page isn't
   // held up if Sentry is slow/unreachable.
   var reference = errorReference();
+
+  // Log it as well as reporting it, and this is not belt-and-braces.
+  //
+  // Sentry is disabled outside production (instrument.js gates on NODE_ENV/K_SERVICE),
+  // so with only the capture below, EVERY 500 in local development produced the friendly
+  // page, a reference code, and absolutely nothing in the terminal. `GET /email-scorecard`
+  // — the page captains actually file results from — has been failing under DEV_MODE with
+  // no way to see why, which is why no browser test has ever covered it.
+  //
+  // In production it lands in Cloud Logging beside the request, and the same reference
+  // ties the log line to the Sentry event and to the page the visitor was shown.
+  console.error('500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl) +
+                ' — ' + (error && error.stack ? error.stack : error));
+
   Sentry.captureException(error, { tags: { reference: reference } });
   Sentry.flush(2000).catch(() => {}).finally(function() {
     res.status(500);
