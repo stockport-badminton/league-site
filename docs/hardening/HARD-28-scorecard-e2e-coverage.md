@@ -4,10 +4,9 @@
 **Owns:** `e2e/scorecard.spec.js`, `e2e/messer-scorecard.spec.js`, `e2e/populated-scorecard.spec.js`
 **Source:** four bugs in a fortnight, Sep 2026
 
-> **Read the "Assumptions" section first and correct it.** The rest of this document is
-> built on it, and I inferred it from code that has been wrong four times this month. If
-> an assumption is wrong the tests below will pin the wrong behaviour in place, which is
-> worse than having none.
+> **Answered by Neil, 10 Sep.** The seven open assumptions are settled below and the
+> priorities re-ordered accordingly — Messer moved to the top, because the audit that put
+> it at the bottom was wrong (see "A correction").
 
 ## Why
 
@@ -75,27 +74,46 @@ social webhook fired.
 **E — Messer.** The same shape: 15 games, negative scores allowed, sections rather than
 divisions, a separate draft table and approve/reject step.
 
-## Assumptions — please correct these
+## Answered, 10 Sep
 
-1. **Two entry points.** `GET /scorecard-beta` and `GET /email-scorecard` both render the
-   standard card. I assume one is the captain's route and the other is legacy or the
-   secretary's. **Which do captains actually use, and should both survive?**
-2. **Who publishes.** CLAUDE.md says the away captain confirms via the token link before
-   a result finalises; HARD-24 says a superadmin "is who actually validates and publishes
-   today". **Which is the intended flow — and is the away-captain confirmation real, or
-   aspirational?**
-3. **The confirmation page.** Can whoever opens it *change* scores and players, or only
-   accept what was filed? That decides whether it needs its own submit-shape tests.
-4. **Invalid scores.** Should the wizard *block* moving to the next step, or only warn?
-   `validateGamePair(n, requireFilled)` takes a flag, so it does both somewhere.
-5. **Players.** Can a card be filed with players left unchosen? `scorecard-no-player`
-   tests exist, so I assume yes — but is that a supported case or a tolerated one?
-6. **Totals.** The `bad-totals` audit check finds fixtures not totalling 18. Should the
-   form prevent that at submit time, or is it deliberately permissive because a conceded
-   or short match is legitimate?
-7. **Messer this season.** The draw and rules pages get traffic; no result has ever been
-   submitted through the site. **Is Messer expected to run through this form this season?**
-   If yes it should be tested before it starts; if it is run on paper, it should not be.
+1. **Two entry points, and they differ.** `GET /email-scorecard` is the captain's route:
+   it files a draft, and additionally loads that captain's own fixtures missing photos.
+   `GET /scorecard-beta` sets `formAction: '/scorecard-beta'`, so it posts **straight to
+   publish** — the superadmin's route for entering or correcting a result directly. Both
+   stay.
+2. **The superadmin confirms and publishes.** Not the away captain. CLAUDE.md's note that
+   "the away captain must confirm via token link before the result finalises" describes an
+   intention, not the flow — HARD-24 has it right.
+3. **The confirmation page is editable.** `/populated-scorecard-beta/:id?t=…` plays the
+   draft back into the *same* form, whose action is `POST /scorecard-beta`. So whoever
+   opens it can correct scores and players before publishing, and the submit-shape
+   contract applies to that page too, not just the entry form.
+4. **Invalid scores block the next step.** Not a warning.
+5. **Every player must be chosen**, using the `No Player` option where there was nobody —
+   which supplies a zero. So an unchosen select is a validation failure, and `No Player` is
+   a legitimate value rather than a gap.
+6. **A total that is not 18 must be prevented** at submit time.
+7. **Messer runs through the site, and is in season now.** Three results have been filed
+   and approved through it, most recently Shell B v Remnants A on 2 Sep, approved 4 Sep.
+
+## A correction, and the method behind it
+
+The first version of this document put Messer last, on the grounds that no Messer route
+had been reached in four months. **That was wrong, and the error is worth keeping.**
+
+`gcloud logging read` applies `--freshness=1d` unless the filter carries a timestamp
+constraint. The audit had none, so every "no traffic in four months" was really "no
+traffic in the last 24 hours". Re-run with `timestamp>="2026-05-01"`, the whole Messer
+submission and approval flow is live: `POST /messer-scorecard-beta` on 3 Sep,
+`/populated-messer-scorecard/:id` on 3 Sep, `POST /messer-result/:id/approve` and
+`/reject` on 4 Sep. `GET /scorecard/fixture/:id` is live too.
+
+Three routes were deleted in the same pass on the same flawed evidence. They survive
+review because that case did not rest on the logs alone — nothing in the codebase
+referenced them and the page was linked from nowhere — but that was corroboration that
+happened to be there, not method. **Never delete on log silence alone**, and note that the
+dev server writes to the production database while logging nothing to Cloud Run, so a row
+can exist with no request behind it. Recorded in CLAUDE.md.
 
 ## Gaps, in the order I would close them
 
@@ -116,9 +134,12 @@ scores gate the next step (assumption 4), and that the summary shows what was en
 **4. The prefill.** `prefillFromAnalysis` sets division, teams, players and scores. Only
 its photo half is tested. It is also the most-used path now that auto-fill exists.
 
-**5. Messer, to parity.** Same checks, 15 games. Ranked here rather than lower **only if
-assumption 7 says it runs through the site** — and then it moves to the top, because its
-paths have never executed in production at all.
+**Messer, to parity — now first, not fifth.** Same checks, 15 games, negative scores,
+sections rather than divisions, plus the approve/reject step the standard card does not
+have. It is in season, it has ~7 specs against the standard card's 10, and its
+submit-and-approve flow carries the same two contracts. The standard card produced four
+bugs in a fortnight; there is no reason to think the 15-game copy of it is healthier, and
+it is being used right now.
 
 **6. Mobile.** `roster-edit.spec.js` tests touch and stacking; the scorecard has nothing,
 and captains file results on phones at the end of a match night.

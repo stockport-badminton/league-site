@@ -265,6 +265,33 @@ One lesson already encoded there: **a data check must not inner-join to the data
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was
 changed to a `LEFT JOIN`, because six of them reference teams that no longer exist.
 
+## Asking production what is actually used
+
+Cloud Run request logs are the only honest answer to "does anybody use this route", and
+they go back about four months. **Always put a `timestamp>=` constraint in the filter:**
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="league-site"
+   AND httpRequest.requestUrl:"/some-route" AND timestamp>="2026-05-01T00:00:00Z"' \
+  --project stockport-badminton-map --account stockport.badders.results@gmail.com \
+  --limit=5 --format="value(timestamp,httpRequest.requestMethod,httpRequest.status)"
+```
+
+**`gcloud logging read` applies `--freshness=1d` unless the filter contains a timestamp
+constraint.** Leave it out and an empty result means "nothing in the last 24 hours", which
+reads exactly like "nothing, ever" — and it is the answer you get right before you delete
+something. It happened here on 10 Sep: an audit of 31 routes reported the whole Messer
+submission and approval flow as unused, when it had run a week earlier (Shell B v
+Remnants A, 2 Sep, approved 4 Sep). Three routes were deleted in the same pass and
+survived review only because the case for those rested on code evidence as well — nothing
+referenced them and the page was linked from nowhere.
+
+So: **never delete on log silence alone.** Corroborate with something that does not depend
+on a time window — no references anywhere, unreachable by navigation, a table with no
+rows. And note that the dev server writes to the production database while logging
+nothing to Cloud Run, so a row can exist with no request behind it.
+
 ## Hardening backlog
 
 `docs/hardening/` holds the work packages from the August 2026 audit, plus the ones each
