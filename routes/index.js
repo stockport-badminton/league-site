@@ -97,8 +97,6 @@ router.get('/tables-social', social_controller.tablesSocial);
 router.get('/tournament-social', social_controller.tournamentSocial);
 router.get('/handicap-tournament-social', social_controller.handicapTournamentSocial);
 
-// Social API endpoints with mentions for Make.com integration
-router.get('/api/social/tables-mentions', social_controller.tablesMentions);
 
 // Social video generation
 router.get('/api/social/generate-weekly-video', social_video_controller.generateWeeklyVideo);

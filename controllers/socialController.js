@@ -3,7 +3,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 const Fixture = require('../models/fixture');
-const { formatMentionsForPlatforms } = require('../utils/socialMediaMentions');
 const { canonicalFor } = require('../utils/canonical');
 
 function escapeXml(str) {
@@ -219,19 +218,4 @@ exports.handicapTournamentSocial = async function(req, res, next) {
 };
 
 
-// GET /api/social/tables-mentions - lightweight endpoint that returns formatted mentions only
-exports.tablesMentions = async function(req, res, next) {
-  try {
-    const allClubs = await Fixture.getAllClubsWithSocialHandles();
-    const mentions = formatMentionsForPlatforms(allClubs);
-
-    res.json({
-      success: true,
-      comments: mentions,
-    });
-  } catch (err) {
-    console.error('tablesMentions error:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
 

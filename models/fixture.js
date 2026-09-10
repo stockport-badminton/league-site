@@ -785,7 +785,6 @@ exports.sendResultZap = async function(zapObject) {
   // actually be turned into mentions on a page post. Fixture.getResultMentions and
   // getClubSocialHandlesByTeamName existed for it and were only ever called from the
   // quick-results-entry flow deleted in 74c52d1, so no post has ever carried one.
-  // /api/social/tables-mentions is a different thing and still live.
 
   const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
 
@@ -1047,14 +1046,3 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
   return { advanced: true, targetId: target.id, slot: match.nextSlot }
 }
 
-// Get all clubs with social media handles
-exports.getAllClubsWithSocialHandles = async function() {
-  const sql = `
-    SELECT id, name, facebook, instagram
-    FROM club
-    WHERE facebook IS NOT NULL OR instagram IS NOT NULL
-    ORDER BY name
-  `
-  const [result] = await (await db.otherConnect()).query(sql)
-  return result
-}
