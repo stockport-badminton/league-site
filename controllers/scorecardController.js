@@ -11,7 +11,7 @@ const mailer = require('../utils/mailer');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
-const { canonicalFor, absoluteUrl } = require('../utils/canonical');
+const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
 const { escapeHtml } = require('../utils/html');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
@@ -405,19 +405,20 @@ exports.full_fixture_post = async function(req, res, next) {
       ])) || [[], [], [], [], []];
 
     const notified = await afterCommit('results email', async () => {
-      // The social card the result images job writes. Built with absoluteUrl rather than
-      // the hardcoded host the old template carried, so a staging deploy links to itself.
-      // Still unconditional, as before: the image is generated fire-and-forget, so it may
-      // not exist at send time and never did.
-      const generatedImage =
-        zapObject.homeTeam.replace(/([\s]{1,})/g, '-') + zapObject.awayTeam.replace(/([\s]{1,})/g, '-');
 
       // RECIPIENT UNCHANGED, deliberately. `req.body.email` is a caller-supplied address
       // — the same shape as the /fixture/reminder open relay — and moving it server-side
       // changes who gets this email, so it belongs to HARD-24 rather than to a redesign.
       const toAddresses = (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']);
 
-      const rows = (matchStats && matchStats[1]) || [];
+      // `matchStats` IS the rows. It used to be read as `matchStats[1]`, which is a
+      // mysql2 habit: with multipleStatements that index picked the second result set.
+      // The pg wrapper returns one flat array, so [1] took the SECOND ROW — a single
+      // object with no `.length`, and the template guards with
+      // `if (matchStats && matchStats.length)`. So the stats table silently vanished from
+      // every result email. Measured against fixture 7327: 12 rows, of which the email
+      // was being handed row 2.
+      const rows = Array.isArray(matchStats) ? matchStats : [];
       await mailer.send({
         template: 'website-updated',
         subject: 'Website updated: ' + zapObject.homeTeam + ' v ' + zapObject.awayTeam +
@@ -440,7 +441,14 @@ exports.full_fixture_post = async function(req, res, next) {
           homeScore: zapObject.homeScore,
           awayScore: zapObject.awayScore,
           matchStats: rows,
-          resultImageUrl: absoluteUrl('/static/beta/images/generated/' + generatedImage + '.jpg'),
+          // The card is rendered ON DEMAND by GET /resultImage/... — the same URL the
+          // Make.com webhook posts to Facebook. This used to point at a static file under
+          // /static/beta/images/generated/ named `HomeTeamAwayTeam.jpg`: spaces to
+          // dashes, and the two names concatenated with no separator. Nothing has written
+          // that name since the canvas job went in May — the files actually there are
+          // `20252026-College+Green+A-Syddal+Park+A.jpg` — so the src has 404'd in every
+          // result email since, showing a broken image.
+          resultImageUrl: absoluteUrl(resultImagePath(zapObject)),
         },
       });
       return true;

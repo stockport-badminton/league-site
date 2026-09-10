@@ -143,7 +143,20 @@ function setupFullFixtureMocks() {
   Fixture.getMatchPlayerOrderDetails.mockResolvedValue([]);
   Player.getPrevRating.mockResolvedValue(mockPrevScores);
   Player.getNominatedPlayers.mockResolvedValue([]);
-  Player.getMatchStats.mockResolvedValue([[], []]);
+  // The shape the model REALLY returns: one flat array of row objects. It was mocked as
+  // `[[], []]` — a mysql2 multi-statement shape this model has never produced — which is
+  // what let the results email lose its stats table behind a green suite. The controller
+  // read `matchStats[1]`, the mock made that an empty array with a `.length`, and the
+  // template's `if (matchStats && matchStats.length)` guard quietly said no. Against the
+  // real thing (fixture 7327) it returns 12 rows and `[1]` is a single player.
+  //
+  // Same lesson as `{ insertId: 42 }` in CLAUDE.md: a mock that invents its subject's
+  // return shape can only test itself.
+  Player.getMatchStats.mockResolvedValue([
+    { name: 'Darren Corner', teamName: 'Mellor B', gamesWon: 3, avgPtsFor: '20.2', avgPtsAgainst: '14.2' },
+    { name: 'Chris Jarvis',  teamName: 'Mellor B', gamesWon: 2, avgPtsFor: '19.0', avgPtsAgainst: '16.0' },
+    { name: 'Sam Whittaker', teamName: 'Tatton A', gamesWon: 1, avgPtsFor: '17.5', avgPtsAgainst: '19.5' },
+  ]);
   Game.calculateRating.mockReturnValue({
     updateObj: {
       homePlayer1Start: 1500, homePlayer2Start: 1500,
@@ -517,6 +530,53 @@ describe('POST /scorecard-beta', () => {
     it('triggers the Zapier webhook', async () => {
       await request(app).post('/scorecard-beta').send(validScorecard());
       expect(Fixture.sendResultZap).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // What the results email is actually HANDED. emails.test.js asserts the template
+  // renders correctly for given data; nothing asserted what the controller gives it, and
+  // both of these bugs lived in exactly that gap.
+  describe('the published-result email', () => {
+    const ejs = require('ejs');
+
+    async function templateDataFor(name) {
+      setupFullFixtureMocks();
+      await request(app).post('/scorecard-beta').send(validScorecard());
+      const call = ejs.renderFile.mock.calls.find(c => String(c[0]).includes(name));
+      return call && call[1];
+    }
+
+    it('hands the template every player stat row, not the second one', async () => {
+      const data = await templateDataFor('website-updated');
+
+      expect(Array.isArray(data.matchStats)).toBe(true);
+      expect(data.matchStats).toHaveLength(3);
+      expect(data.matchStats.map(r => r.name)).toContain('Darren Corner');
+    });
+
+    // The template guards with `if (matchStats && matchStats.length)`, so anything
+    // without a length silently removes the whole table. `matchStats[1]` was a single
+    // row object — no length — which is how the stats disappeared from every result
+    // email without a single test noticing.
+    it('hands it something with a length, so the table is not silently dropped', async () => {
+      const data = await templateDataFor('website-updated');
+      expect(data.matchStats.length).toBeGreaterThan(0);
+    });
+
+    // The card is generated on demand by GET /resultImage/... — the same URL Make.com
+    // posts to Facebook. It used to point at a static file under
+    // /static/beta/images/generated/ named `HomeTeamAwayTeam.jpg`, spaces to dashes and
+    // the two names run together with no separator. Nothing has written that name since
+    // May, so the src 404'd in every result email and showed a broken image.
+    it('points the social image at the on-demand card, with the segments encoded', async () => {
+      const data = await templateDataFor('website-updated');
+
+      expect(data.resultImageUrl).toContain('/resultImage/');
+      expect(data.resultImageUrl).not.toContain('/static/beta/images/generated/');
+      // Team names contain spaces; a raw one is not a legal URL character and is what
+      // Facebook rejected on the webhook side.
+      expect(data.resultImageUrl).not.toMatch(/ /);
+      expect(data.resultImageUrl).toMatch(/^https:\/\//);
     });
   });
 
