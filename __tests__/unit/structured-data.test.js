@@ -279,9 +279,22 @@ describe('sportsClub', () => {
     expect(SD.sportsClub({ ...club, name: 'Foo Badminton Club' }).name).toBe('Foo Badminton Club');
   });
 
-  it('drops non-http sameAs values', () => {
+  it('drops a sameAs value that is neither a url nor a handle', () => {
     const c = SD.sportsClub({ ...club, clubWebsite: '', facebook: 'not a url', instagram: null });
     expect(c.sameAs).toBeUndefined();
+  });
+
+  // sameAs is how a search engine ties this page to the club's own Facebook and
+  // Instagram, which is most of the value of having per-club pages at all. Every club
+  // stores a BARE handle, and this filtered on /^https?:\/\// — so for all seven clubs
+  // that have one, sameAs carried the website and nothing else.
+  it('builds sameAs profile urls from the bare handles the clubs actually store', () => {
+    const c = SD.sportsClub({ ...club, facebook: '61576463475674', instagram: 'ghapbadminton' });
+    expect(c.sameAs).toEqual([
+      'https://alderleyparkbc.wixsite.com/alderleyparkbc',
+      'https://www.facebook.com/61576463475674',
+      'https://www.instagram.com/ghapbadminton',
+    ]);
   });
 });
 

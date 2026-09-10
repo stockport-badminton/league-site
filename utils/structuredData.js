@@ -18,6 +18,7 @@
 //
 // Everything here returns a plain object; `jsonLd()` serialises it for a <script>.
 const { absoluteUrl, eventPath, clubPath, localYmd } = require('./canonical');
+const { socialLinksFor } = require('./socialLinks');
 
 const LEAGUE_NAME = 'Stockport & District Badminton League';
 const LOGO = '/static/beta/images/SDBLLogo.png';
@@ -261,9 +262,14 @@ function sportsClub(c) {
     if (geo) out.location.geo = geo;
   }
 
-  const sameAs = [c.clubWebsite, c.facebook, c.instagram, c.twitter]
-    .map(u => (u == null ? '' : String(u).trim()))
-    .filter(u => /^https?:\/\//i.test(u));
+  // sameAs is how a search engine ties this page to the club's own website and social
+  // profiles, which is most of the point of a per-club page. The social columns hold bare
+  // handles, so filtering them on /^https?:\/\// — as this did — silently emitted a
+  // sameAs containing only the website, for every club.
+  const website = String(c.clubWebsite == null ? '' : c.clubWebsite).trim();
+  const sameAs = [/^https?:\/\//i.test(website) ? website : null]
+    .concat(socialLinksFor(c).map(link => link.url))
+    .filter(Boolean);
   if (sameAs.length) out.sameAs = sameAs;
 
   const hours = openingHours(c.clubNight, c.clubNightText);

@@ -118,6 +118,7 @@ app.locals.eventPath = require('./utils/canonical').eventPath;
 // their SportsClub markup names them as `url`. One builder, so they cannot diverge.
 app.locals.clubPath = require('./utils/canonical').clubPath;
 app.locals.resultImagePath = require('./utils/canonical').resultImagePath;
+app.locals.socialLinksFor = require('./utils/socialLinks').socialLinksFor;
 
 // Honeypot field name and a freshly signed render timestamp, for views/spam-fields.ejs.
 // Per-request rather than app-wide because the stamp has to be the time this page was

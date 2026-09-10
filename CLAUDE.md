@@ -438,6 +438,17 @@ clubs sharing the single `/info/clubs` URL — one page cannot rank for 18 local
 intents. What makes them work is the town in the `<title>` plus machine-readable
 address and coordinates, so keep those.
 
+**The social columns hold bare handles, not URLs** — `ghapbadminton`, `ManorBadminton`,
+and one Facebook page id, `61576463475674`. Build links with `socialLinksFor()` /
+`socialUrl()` from `utils/socialLinks.js` (exposed to views as `app.locals.socialLinksFor`),
+never by testing the stored value for `^https?://`. Both consumers did exactly that — the
+visible links on the club page and the schema.org `sameAs` — which is correct, defensive
+and completely vacuous: it dropped every handle, so no club ever rendered a social link
+and `sameAs` never carried a profile. The helper still refuses anything that is not
+handle-shaped, because guessing a URL out of "ask us on facebook" gives a confident link
+to a page that does not exist. `sameAs` is the half that matters: it is how a search
+engine connects the club page to that club's own accounts.
+
 Two constraints on that page:
 - **No captain or secretary names or contact details.** It is indexable and they are
   volunteers; enquiries go via `/contact-us?club=<id>` (which preselects the club) or

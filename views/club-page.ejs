@@ -106,12 +106,12 @@
     <a class="btn btn-outline-primary" href="/contact-us?club=<%= club.id %>">Contact this club via the league</a>
   </p>
 
-  <% var social = [
-       { url: club.facebook, label: 'Facebook' },
-       { url: club.instagram, label: 'Instagram' },
-       { url: club.twitter, label: 'X / Twitter' }
-     ].filter(function(s){ return s.url && /^https?:\/\//i.test(s.url); });
-  %>
+  <%# Through the shared helper. This used to filter on /^https?:\/\// inline, which is
+      correct and was also completely vacuous: every club stores a bare handle
+      ("ghapbadminton", "61576463475674"), so the section rendered for nobody. The helper
+      builds the profile URL from a handle and still declines anything that is not
+      handle-shaped, so a free-text note never becomes a confident dead link. %>
+  <% var social = socialLinksFor(club); %>
   <% if (social.length) { %>
     <p>
       <% social.forEach(function(s, i){ %><% if (i) { %> &middot; <% } %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.label %></a><% }) %>
