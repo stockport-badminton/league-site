@@ -173,6 +173,89 @@ test.describe('/scorecard-beta', function () {
     guard.assertNoWrites();
   });
 
+  // Reading the photo and STORING it are separate jobs, and the auto-fill box has to do
+  // both.
+  //
+  // /api/analyse-scorecard stores the image only for a pdf/docx upload, on the stated
+  // assumption that "an image upload does its own presigned PUT". That is true of the
+  // step-13 box — its change handler calls ScorecardUpload.store — but the auto-fill box
+  // is a different input, and choosing a file in one never populates the other. So an
+  // image auto-filled at step 1 was analysed and then discarded: no object in the bucket,
+  // nothing in scoresheet-url, and a draft filed with no photo (2439, 9 Sep). Worse, the
+  // form then hid the upload box behind "Scorecard photo uploaded at the start of the
+  // form", so the captain was told the opposite of what had happened.
+  //
+  // Only a browser can see this: the bytes never reach our server on the image path.
+  //
+  // Every request here is stubbed. The stubs are registered AFTER readOnly(), and
+  // Playwright matches the most recently registered route first, so nothing leaves the
+  // browser — including the PUT, which would otherwise be a real write to the bucket.
+  test.describe('the auto-fill box', function () {
+    const ANALYSIS = { Game1homeScore: '21', Game1awayScore: '15' }; // no photoUrl: an image
+
+    async function stub(page, signResponse) {
+      const seen = { signS3: 0, put: 0 };
+      await page.route('**/api/analyse-scorecard', function (route) {
+        return route.fulfill({ status: 200, contentType: 'application/json',
+                               body: JSON.stringify(ANALYSIS) });
+      });
+      await page.route('**/sign-s3*', function (route) {
+        seen.signS3++;
+        return route.fulfill(signResponse);
+      });
+      await page.route('https://bucket.invalid/**', function (route) {
+        seen.put++;
+        return route.fulfill({ status: 200, body: '' });
+      });
+      return seen;
+    }
+
+    const OK_SIGN = {
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        signedUrl: 'https://bucket.invalid/put?sig=x',
+        url: 'https://bucket.invalid/scorecards/20262027/a-card.jpg',
+      }),
+    };
+
+    const photo = { name: 'card.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0]) };
+
+    test('uploads the photo it just read, and fills scoresheet-url', async function ({ page, baseURL }) {
+      const guard = await readOnly(page, baseURL);
+      const seen = await stub(page, OK_SIGN);
+      await page.goto('/scorecard-beta');
+
+      await page.setInputFiles('#scorecardPhoto', photo);
+      await expect.poll(function () { return seen.put; }).toBe(1);
+
+      expect(seen.signS3).toBe(1);
+      // One field per form; the value is the URL /sign-s3 handed back, not one rebuilt
+      // from the signature.
+      await expect(page.locator('#scoresheet-url')).toHaveValue(
+        'https://bucket.invalid/scorecards/20262027/a-card.jpg');
+      guard.assertNoWrites();
+    });
+
+    test('says so, and leaves the upload box open, when the photo cannot be stored',
+      async function ({ page, baseURL }) {
+        const guard = await readOnly(page, baseURL);
+        await stub(page, { status: 400, contentType: 'application/json',
+                           body: JSON.stringify({ error: 'That file type is not accepted.' }) });
+        await page.goto('/scorecard-beta');
+
+        await page.setInputFiles('#scorecardPhoto', photo);
+
+        // The prefill still happened, so the captain sees the form fill in — which is
+        // exactly why the failure has to be stated rather than implied.
+        await expect(page.locator('#photoAnalysisResult')).toContainText('could not be saved');
+        await expect(page.locator('#scoresheet-url')).toHaveValue('');
+        // And the box they need must still be there. Hiding it behind "uploaded at the
+        // start of the form" is what made the original bug unrecoverable from the page.
+        await expect(page.locator('#scorecardUploadDone')).toBeHidden();
+        guard.assertNoWrites();
+      });
+  });
+
   test('loads without console or page errors', async function ({ page, baseURL }) {
     const guard = await readOnly(page, baseURL);
     const errors = [];

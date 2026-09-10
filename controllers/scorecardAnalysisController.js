@@ -373,8 +373,17 @@ exports.analyse_scorecard = async function(req, res) {
       ...playerFields,
       ...mapScores(pointsPairs),
       // Only present for a document upload: the URL of the image pulled out of it, for
-      // the page to drop into its `scoresheet-url` field. An image upload does its own
-      // presigned PUT and does not need this.
+      // the page to drop into its `scoresheet-url` field.
+      //
+      // An image upload gets nothing here — this endpoint reads the bytes and discards
+      // them. **Storing it is then the page's job, and the page must actually do it.**
+      // This used to say "an image upload does its own presigned PUT and does not need
+      // this", which was true of the step-13 photo box and not of the auto-fill box that
+      // posts here: they are different inputs, and choosing a file in one does not
+      // populate the other. So an image auto-filled at step 1 was analysed and thrown
+      // away — no object in the bucket, nothing in scoresheet-url, and the draft filed
+      // with no photo, while the form told the captain it had one (draft 2439, 9 Sep).
+      // e2e/scorecard.spec.js 'the auto-fill box' now holds that end up.
       ...(isDocument ? {
         photoUrl: storedPhoto ? storedPhoto.url : null,
         photoStored: !!storedPhoto,

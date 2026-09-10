@@ -1696,31 +1696,67 @@
           data: fd,
           processData: false,
           contentType: false,
-          success: function(data) {
+          success: async function(data) {
             $('#photoAnalysisStatus').hide();
-            _photoUploaded = true;
-            // A document upload cannot use the presigned PUT below - /sign-s3 accepts
-            // images only - so the server stores the image it pulled out of the file and
-            // returns its URL. Dropping it into scoresheet-url here is what saves the
-            // captain uploading the same file twice, through an input that would refuse
-            // it the second time.
-            if (data.photoUrl) {
+
+            // Getting the photo INTO THE BUCKET is a separate job from reading it, and
+            // this handler has to do it for an image.
+            //
+            // `/api/analyse-scorecard` stores the photo only for a DOCUMENT upload — it
+            // pulls the image out of the pdf/docx, stores that, and returns `photoUrl`.
+            // For an image it analyses the bytes and discards them, on the assumption
+            // (stated in scorecardAnalysisController) that "an image upload does its own
+            // presigned PUT". That is true of the step-13 box, whose change handler calls
+            // ScorecardUpload.store — but this is a DIFFERENT input, and picking a file
+            // here never populates that one. So an image auto-filled here was analysed
+            // beautifully and then thrown away: no object in S3, nothing in
+            // scoresheet-url, and the draft filed with no photo (2439, 9 Sep).
+            var storedUrl = data.photoUrl || null;
+            var storeError = null;
+
+            if (!storedUrl && !ScorecardUpload.isDocument(file)) {
+              try {
+                // No hint: the fixture may not be chosen yet — filling it in is what this
+                // upload is FOR — and the server generates the key regardless.
+                storedUrl = await ScorecardUpload.store(file);
+              } catch (error) {
+                storeError = error.message;
+              }
+            }
+
+            // Drives the step-13 prompt/done toggle in prefillFromAnalysis. It used to be
+            // set to true on any successful ANALYSIS, which is the lie that made this
+            // silent: the form told the captain "Scorecard photo uploaded at the start of
+            // the form" and hid the box they would have used, while nothing had been
+            // stored. It now means what it says.
+            _photoUploaded = !!storedUrl;
+
+            if (storedUrl) {
               document.querySelectorAll('#scoresheet-url').forEach(function(el) {
-                el.value = data.photoUrl;
+                el.value = storedUrl;
               });
               // Deliberately not setting #scoresheet-img here: objects are private
-              // (HARD-02b) so the bucket URL is a broken image, and the file in hand is
-              // a pdf, which an <img> will not render either. The field that matters is
-              // scoresheet-url; the confirmation page shows the photo through
-              // GET /scorecard-photo/:id once the draft exists.
+              // (HARD-02b) so the bucket URL is a broken image, and for a document the
+              // file in hand is a pdf, which an <img> will not render either. The field
+              // that matters is scoresheet-url; the confirmation page shows the photo
+              // through GET /scorecard-photo/:id once the draft exists.
             }
+
             prefillFromAnalysis(data);
-            // Say so explicitly when it did NOT save, because the prefill working makes
-            // it look like everything did.
-            if (data.photoStored === false) {
+
+            // ONE place reports a photo that did not get stored, whichever path failed —
+            // the server's own store for a document, or the presigned PUT for an image.
+            //
+            // It has to run AFTER prefillFromAnalysis, which writes #photoAnalysisResult
+            // itself: put this before, and the "N fields auto-filled" message overwrites
+            // it and the captain is told only the good half. Which is the whole problem
+            // this handler keeps having — the prefill working makes it look as though
+            // everything did.
+            if (!storedUrl) {
               $('#photoAnalysisResult').html('<small class="text-warning">' +
-                'The form has been filled in, but the photo could not be saved. ' +
-                'Please attach a photo below before submitting.</small>').show();
+                'The form has been filled in, but the photo could not be saved' +
+                (storeError ? ': ' + $('<div>').text(storeError).html() : '.') +
+                ' Please attach a photo at the upload step before submitting.</small>').show();
             }
           },
           error: function(xhr) {
@@ -1759,9 +1795,14 @@
           if (h !== undefined && a !== undefined) validateGamePair(i, false);
         }
 
-        // Step 13: suppress the upload prompt since we already have the photo
-        $('#scorecardUploadPrompt').hide();
-        $('#scorecardUploadDone').show();
+        // Step 13: suppress the upload prompt only if the photo really is in the bucket.
+        // Unconditionally is how a captain came to be told "Scorecard photo uploaded at
+        // the start of the form" while nothing had been uploaded — and the box that would
+        // have fixed it was hidden behind that message.
+        if (_photoUploaded) {
+          $('#scorecardUploadPrompt').hide();
+          $('#scorecardUploadDone').show();
+        }
 
         var msg = filled > 0
           ? '<small class="text-success">&#10003; ' + filled + ' fields auto-filled. Please review before submitting.</small>'
