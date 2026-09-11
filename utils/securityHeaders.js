@@ -28,6 +28,23 @@
 //              results, so it observes first.
 //
 // -------------------------------------------------------------------------------
+// ENFORCING since 11 Sep 2026. The four prerequisites below were met and re-verified on
+// the morning of the flip; they are kept because they are the checklist for any FUTURE
+// change to the allowlist, not just for the original switch. Adding a host is now a change
+// to an enforcing policy: get it wrong and the resource is blocked, not reported.
+//
+// To roll back: `gcloud run services update league-site --region europe-west2 \
+//   --project stockport-badminton-map --remove-env-vars CSP_ENFORCE`. One redeploy.
+//
+// What the flip did: the allowlist moved OUT of Content-Security-Policy-Report-Only and
+// INTO Content-Security-Policy, and the report-only header is gone. `report-uri
+// /csp-report` survives on the enforcing header, so violations are still reported — which
+// is the only reason a blocked resource is visible at all now.
+//
+// Verified immediately after, in a real browser against production: eleven public pages —
+// homepage, results, tables, info/clubs, a club page, contact-us, messer rules and draw,
+// rules, venues and an event page — produced ZERO securitypolicyviolation events.
+//
 // Before setting CSP_ENFORCE=true
 // -------------------------------------------------------------------------------
 //
