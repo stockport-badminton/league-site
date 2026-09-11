@@ -1,0 +1,36 @@
+# A local Postgres for development, so `npm run dev` stops writing to production.
+#
+# dev.env has always carried the SAME connection string as .env, which means every local
+# run has talked to the live Supabase database. That is not theoretical: three
+# messer_scorecard rows in production were written from somebody's dev server, and
+# because a dev server logs nothing to Cloud Run they exist with no request behind them —
+# which also made a route-usage audit report the whole Messer flow as dead. See HARD-13.
+#
+#   scripts/local-db.sh up      start it
+#   scripts/local-db.sh load    schema + seed
+#   scripts/local-db.sh down    stop, keep the data
+#   scripts/local-db.sh nuke    stop and delete the data
+#
+# Port 5433, not 5432, so it cannot collide with a Postgres already on this machine — and
+# so a connection string that has drifted back to production fails loudly rather than
+# quietly finding something local.
+services:
+  db:
+    image: postgres:17          # production is 17.6 on Supabase
+    container_name: sdbl-local-db
+    environment:
+      POSTGRES_USER: sdbl
+      POSTGRES_PASSWORD: sdbl
+      POSTGRES_DB: sdbl
+    ports:
+      - "5433:5432"
+    volumes:
+      - sdbl-local-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdbl -d sdbl"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  sdbl-local-pgdata:

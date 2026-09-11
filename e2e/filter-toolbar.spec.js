@@ -11,8 +11,21 @@
 
 const { test, expect } = require('@playwright/test');
 const { readOnly } = require('./helpers/read-only');
+const { pastSeasonName } = require('./helpers/db');
 
-const FILTERED = '/player-stats/Division-1/20252026/gender-Male';
+// Derived, not hardcoded. These used to name '20252026', which is a PAST season in
+// production and the CURRENT one in the local development database — where it is the
+// empty-value option, so the same assertion passed against one and failed against the
+// other. Which season is current belongs to the data, not to the page under test.
+let SEASON;
+let FILTERED;
+
+// File scope, not inside a describe: the DataTables band below uses FILTERED too, and a
+// beforeAll scoped to the first describe leaves it undefined for the second.
+test.beforeAll(async function () {
+  SEASON = await pastSeasonName();
+  FILTERED = `/player-stats/Division-1/${SEASON}/gender-Male`;
+});
 
 test.describe('filter toolbar', function () {
 
@@ -24,7 +37,7 @@ test.describe('filter toolbar', function () {
     // their defaults and applying a second filter read those defaults back and
     // dropped the first.
     await expect(page.locator('#divisionSelect')).toHaveValue('Division-1');
-    await expect(page.locator('#seasonSelect')).toHaveValue('20252026');
+    await expect(page.locator('#seasonSelect')).toHaveValue(SEASON);
     await expect(page.locator('#gender')).toHaveValue('Male');
 
     guard.assertNoWrites();
@@ -55,9 +68,9 @@ test.describe('filter toolbar', function () {
 
     const hrefs = await chips.evaluateAll(els => els.map(e => e.getAttribute('href')));
     expect(hrefs).toEqual([
-      '/player-stats/20252026/gender-Male',   // division dropped
-      '/player-stats/Division-1/gender-Male', // season dropped
-      '/player-stats/Division-1/20252026',    // gender dropped
+      `/player-stats/${SEASON}/gender-Male`,   // division dropped
+      '/player-stats/Division-1/gender-Male',  // season dropped
+      `/player-stats/Division-1/${SEASON}`,    // gender dropped
     ]);
 
     await expect(page.locator('.filter-clear')).toHaveAttribute('href', '/player-stats');
@@ -72,7 +85,7 @@ test.describe('filter toolbar', function () {
     await page.locator('.filter-chip', { hasText: 'Male' }).click();
     await page.waitForURL(/player-stats/);
 
-    expect(new URL(page.url()).pathname).toBe('/player-stats/Division-1/20252026');
+    expect(new URL(page.url()).pathname).toBe(`/player-stats/Division-1/${SEASON}`);
     await expect(page.locator('.filter-chip')).toHaveCount(2);
     await expect(page.locator('#gender')).toHaveValue('0');
 
@@ -86,10 +99,12 @@ test.describe('filter toolbar', function () {
     const options = await page.locator('#seasonSelect option').evaluateAll(
       els => els.map(e => ({ value: e.value, label: e.textContent.trim() })));
 
-    // The list used to stop at 2024-2025, which made 2025-2026 and the current
-    // season unreachable from the UI entirely.
-    expect(options.some(o => o.value === '20252026'),
-      '2025-2026 should be reachable').toBe(true);
+    // The list used to stop two seasons short, which made the most recent archived
+    // season and the current one unreachable from the UI entirely. Asserted against the
+    // season the database says is most recently archived, so the test keeps its meaning
+    // as seasons roll over.
+    expect(options.some(o => o.value === SEASON),
+      `the most recent archived season (${SEASON}) should be reachable`).toBe(true);
     expect(options[0].label, 'the current season is the empty-value option')
       .toMatch(/^Current season/);
 

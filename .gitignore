@@ -4,6 +4,7 @@ node_modules/
 # Environment / secrets
 .env
 dev.env
+dev.env.*
 *.pem
 client_id.json
 

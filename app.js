@@ -453,6 +453,14 @@ function shutdown(signal, server) {
 }
 
 if (require.main === module) {
+  // Before anything connects. See utils/devDatabaseGuard.js — a dev server has written to
+  // the live database before, and a warning here would be read once and then scroll past.
+  const devDbRefusal = require('./utils/devDatabaseGuard').refusalReason(process.env);
+  if (devDbRefusal) {
+    console.error(devDbRefusal);
+    process.exit(1);
+  }
+
   try {
     db.connect();
     // Resolve the current/previous season from the DB (cached) before serving,

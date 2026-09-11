@@ -39,7 +39,7 @@ module.exports = defineConfig({
   // DEV_MODE injects the mock superadmin so the secured routes render without
   // Auth0. It only works outside production (see middleware/secured.js).
   webServer: {
-    command: 'DEV_MODE=true NODE_ENV=development node -r dotenv/config app.js dotenv_config_path=./dev.env',
+    command: 'DEV_MODE=true NODE_ENV=development GLOBAL_RATE_LIMIT=100000 node -r dotenv/config app.js dotenv_config_path=./dev.env',
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 60 * 1000,

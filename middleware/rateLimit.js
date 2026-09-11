@@ -123,9 +123,20 @@ function skipCrawlSurface(req) {
     && (req.path === '/sitemap.xml' || req.path === '/robots.txt');
 }
 
+// The sitewide backstop: 600 requests per quarter hour from one IP.
+//
+// Overridable ONLY so the browser suite can raise it for its own dev server. That suite
+// drives a real browser through 71 specs from a single address, and at 600 it exhausts
+// the budget partway through — after which every page is a 429 that renders without the
+// elements the tests are looking for, so the failures name a missing locator and say
+// nothing about a rate limit. It has happened twice: once when the limiter sat above the
+// static handlers and one page view cost a dozen requests, and again here simply because
+// the suite grew from 44 specs to 71.
+//
+// Production never sets it, so production gets 600.
 const globalLimiter = makeLimiter({
   windowMs: 15 * 60 * 1000,
-  limit: 600,
+  limit: Number(process.env.GLOBAL_RATE_LIMIT) || 600,
   skip: skipCrawlSurface,
 });
 

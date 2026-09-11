@@ -67,6 +67,22 @@ async function draftHasScores(table, id) {
   return rows[0].Game1homeScore !== null || rows[0].Game1awayScore !== null;
 }
 
+/**
+ * The newest season that is NOT the current one — i.e. one the archive actually serves,
+ * and which appears in the season dropdown with a real value.
+ *
+ * Tests used to hardcode '20252026'. That is a past season in production and the CURRENT
+ * season in the local development database, where it is therefore the empty-value option
+ * — so the same assertion passed against one and failed against the other. Which season
+ * is current is a property of the data, not of the page under test.
+ */
+async function pastSeasonName() {
+  const rows = await query(
+    'SELECT name FROM season ORDER BY "startDate" DESC LIMIT 2');
+  return rows.length > 1 ? String(rows[1].name) : null;
+}
+
 module.exports = {
+  pastSeasonName,
   query, latestScorecardDraftId, latestScorecardDraftPath, latestMesserDraftId, draftHasScores
 };

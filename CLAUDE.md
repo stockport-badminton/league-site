@@ -265,6 +265,53 @@ One lesson already encoded there: **a data check must not inner-join to the data
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was
 changed to a `LEFT JOIN`, because six of them reference teams that no longer exist.
 
+## The local development database
+
+`npm run dev` talks to a Postgres in Docker, not to production.
+
+```bash
+tools/local-db.sh up && tools/local-db.sh load   # ~5 seconds from nothing
+tools/local-db.sh status                          # what is in it
+tools/local-db.sh psql                            # a shell on it
+tools/local-db.sh down                            # stop, keep the data
+tools/local-db.sh nuke                            # stop and delete it
+```
+
+`load` is destructive and idempotent: it drops the schema and rebuilds, because a
+half-applied load is worse than none and throwing a local database away costs nothing.
+
+- **Schema comes from `migrations/001_initial.sql`** (60 tables — 12 live, 48 season
+  archives) plus the numbered migrations. Applied with `psql -f`, not
+  `tools/run-migration.js`, which splits on `;` without regard for comments (HARD-18).
+  Some migrations are no-ops replayed from nothing — 003 adds a column 002 now creates —
+  so an "already exists" is reported and skipped while **any other error stops the load**.
+- **Data comes from `migrations/data/002_data.sql`**, which is **gitignored**, so a fresh
+  clone gets a schema and no rows. Its newest archive is 2024/25.
+- **`tools/local-db/dev-fixtures.sql` supplies what that snapshot cannot**: outstanding
+  fixtures in the current season (without them the scorecard form has nothing to match a
+  result against), a draft carrying a `confirmToken`, and a messer draft. Six browser
+  specs skip without them.
+- **Contact details are replaced, never copied.** Every `playerEmail` becomes
+  `bigcoops+firstnamelastname@gmail.com` and every `playerTel` an `07700 900xxx` number
+  from Ofcom's reserved drama range, re-encrypted under a local `DB_PI_KEY`. A dev box
+  should not hold the league's contact list, and the production ciphertext would not
+  decrypt under a local key anyway.
+- **`ANALYZE` runs at the end of `load`.** Without statistics the planner sequential-scans
+  a 35,000-row `game` table and pages take seconds, which reads as browser-test flakiness.
+
+**`app.js` refuses to start a dev server against production** — `utils/devDatabaseGuard.js`,
+wired inside `if (require.main === module)` so the 35 suites that require `app.js` are
+unaffected. Override with `ALLOW_PRODUCTION_DB=i-know-what-i-am-doing`, which
+`npm run prodlocal` sets because running production config locally is its whole purpose.
+
+**The browser suite raises the sitewide rate limit for its own dev server**
+(`GLOBAL_RATE_LIMIT=100000` in `playwright.config.js`). At the production budget of 600
+per quarter hour, 71 specs from one address exhaust it partway through, and every page
+after that is a 429 that renders without the elements the tests look for — so the failure
+names a missing locator and says nothing about a rate limit. This has now bitten twice:
+once when the limiter sat above the static handlers, and again simply because the suite
+grew from 44 specs to 71.
+
 ## Asking production what is actually used
 
 Cloud Run request logs are the only honest answer to "does anybody use this route", and

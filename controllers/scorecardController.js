@@ -703,7 +703,6 @@ exports.fixture_populate_scorecard = async function(data, req, res, next) {
       Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.away_team, 'Female', data.away_lady_1, data.away_lady_2, data.away_lady_3),
     ]);
     const renderData = { divisionRows, divisionIdRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
-    console.log(renderData);
     res.render('populated-scorecard', {
       static_path: '/static',
       pageTitle: "Spreadsheet Upload Scorecard",
@@ -744,7 +743,6 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       Player.getEligiblePlayersAndSelectedById(rows[0].awayLady1, rows[0].awayLady2, rows[0].awayLady3, rows[0].awayTeam, 'Female'),
     ]);
     const renderData = { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
-    console.log(renderData);
     res.render('populated-scorecard', {
       static_path: '/static',
       pageTitle: "Spreadsheet Upload Scorecard",
