@@ -34,15 +34,19 @@ function refusalReason(env) {
   // Production is production: Cloud Run sets K_SERVICE, and NODE_ENV is production there.
   if (e.NODE_ENV === 'production' || e.K_SERVICE) return null;
 
+  const host = hostOf(e.DATABASE_URL);
+  if (!host) return null;
+  if (!PRODUCTION_HOSTS.some(h => host.endsWith(h))) return null;
+
   // The deliberate escape hatch. Reading production locally is sometimes the right thing
   // — that is what tools/dbq.js is for, and it refuses anything that is not a single
   // read. This exists for the rare case that needs the whole app, and it has to be typed
   // out, which is the point.
+  //
+  // Checked AFTER the host test so that overrideWarning() only fires when the override is
+  // actually doing something. And it is returned rather than swallowed: an escape hatch
+  // nobody can see they are standing on is just the original hazard with extra steps.
   if (e.ALLOW_PRODUCTION_DB === 'i-know-what-i-am-doing') return null;
-
-  const host = hostOf(e.DATABASE_URL);
-  if (!host) return null;
-  if (!PRODUCTION_HOSTS.some(h => host.endsWith(h))) return null;
 
   return [
     '',
@@ -68,4 +72,27 @@ function refusalReason(env) {
   ].join('\n');
 }
 
-module.exports = { refusalReason, hostOf, PRODUCTION_HOSTS };
+/**
+ * The banner to print when the override is in force and actually bypassing something.
+ * @returns {string|null} null when the override is not in play.
+ */
+function overrideWarning(env) {
+  const e = env || process.env;
+  if (e.NODE_ENV === 'production' || e.K_SERVICE) return null;
+  if (e.ALLOW_PRODUCTION_DB !== 'i-know-what-i-am-doing') return null;
+
+  const host = hostOf(e.DATABASE_URL);
+  if (!host || !PRODUCTION_HOSTS.some(h => host.endsWith(h))) return null;
+
+  return [
+    '',
+    '  ****************************************************************',
+    '  *  THIS SERVER IS WRITING TO THE PRODUCTION DATABASE           *',
+    '  *  ALLOW_PRODUCTION_DB is set, so the guard was bypassed.      *',
+    '  *  host: ' + host.padEnd(54) + '*',
+    '  ****************************************************************',
+    '',
+  ].join('\n');
+}
+
+module.exports = { refusalReason, overrideWarning, hostOf, PRODUCTION_HOSTS };

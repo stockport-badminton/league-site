@@ -46,6 +46,34 @@ describe('the dev database guard', () => {
     expect(refusalReason({ DATABASE_URL: PRODUCTION, ALLOW_PRODUCTION_DB: '1' })).toMatch(/Refusing/);
   });
 
+  // The brief asks that the override be "logged loudly on every request or at least at
+  // boot". Silently allowing it would leave an escape hatch nobody can see they are
+  // standing on — the original hazard with extra steps.
+  describe('the override banner', () => {
+    const { overrideWarning } = require('../../utils/devDatabaseGuard');
+    const ON = { DATABASE_URL: PRODUCTION, ALLOW_PRODUCTION_DB: 'i-know-what-i-am-doing' };
+
+    it('announces itself when the override is actually bypassing the guard', () => {
+      const banner = overrideWarning(ON);
+      expect(banner).toMatch(/WRITING TO THE PRODUCTION DATABASE/);
+      expect(banner).toContain('aws-0-eu-west-1.pooler.supabase.com');
+    });
+
+    it('stays silent when there is nothing to bypass', () => {
+      // Override set but pointed at the local database: nothing is being bypassed, so a
+      // banner would be noise — and a banner that cries wolf stops being read.
+      expect(overrideWarning({ DATABASE_URL: LOCAL, ALLOW_PRODUCTION_DB: 'i-know-what-i-am-doing' })).toBeNull();
+      expect(overrideWarning({ DATABASE_URL: PRODUCTION })).toBeNull();
+      expect(overrideWarning({ DATABASE_URL: PRODUCTION, K_SERVICE: 'league-site',
+                               ALLOW_PRODUCTION_DB: 'i-know-what-i-am-doing' })).toBeNull();
+    });
+
+    it('lines up, because a banner that does not is one you skim', () => {
+      const lengths = new Set(overrideWarning(ON).split('\n').filter(l => l.trim()).map(l => l.length));
+      expect(lengths.size).toBe(1);
+    });
+  });
+
   it('says what to do instead, not just no', () => {
     const message = refusalReason({ DATABASE_URL: PRODUCTION });
     expect(message).toContain('tools/local-db.sh');

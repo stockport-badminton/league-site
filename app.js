@@ -455,11 +455,16 @@ function shutdown(signal, server) {
 if (require.main === module) {
   // Before anything connects. See utils/devDatabaseGuard.js — a dev server has written to
   // the live database before, and a warning here would be read once and then scroll past.
-  const devDbRefusal = require('./utils/devDatabaseGuard').refusalReason(process.env);
+  const devDbGuard = require('./utils/devDatabaseGuard');
+  const devDbRefusal = devDbGuard.refusalReason(process.env);
   if (devDbRefusal) {
     console.error(devDbRefusal);
     process.exit(1);
   }
+  // And when the override IS in force, say so unmissably. An escape hatch nobody can see
+  // they are standing on is the original hazard with extra steps.
+  const devDbOverride = devDbGuard.overrideWarning(process.env);
+  if (devDbOverride) console.warn(devDbOverride);
 
   try {
     db.connect();
