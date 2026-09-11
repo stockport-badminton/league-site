@@ -203,7 +203,13 @@ test.describe('/scorecard-beta', function () {
         seen.signS3++;
         return route.fulfill(signResponse);
       });
-      await page.route('https://bucket.invalid/**', function (route) {
+      // The REAL bucket host, not an invented one. `connect-src` allows this host
+      // (derived from S3_BUCKET_NAME in utils/securityHeaders.js) and would refuse a
+      // made-up one — so a stub on bucket.invalid passed in report-only mode and failed
+      // the moment the policy was enforced, testing a path the browser will never take.
+      // Nothing leaves the browser: this route fulfils, and read-only.js would abort a
+      // cross-origin PUT even if it did not.
+      await page.route('https://badmintontemp.s3.eu-west-1.amazonaws.com/**', function (route) {
         seen.put++;
         return route.fulfill({ status: 200, body: '' });
       });
@@ -213,8 +219,8 @@ test.describe('/scorecard-beta', function () {
     const OK_SIGN = {
       status: 200, contentType: 'application/json',
       body: JSON.stringify({
-        signedUrl: 'https://bucket.invalid/put?sig=x',
-        url: 'https://bucket.invalid/scorecards/20262027/a-card.jpg',
+        signedUrl: 'https://badmintontemp.s3.eu-west-1.amazonaws.com/put?sig=x',
+        url: 'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/a-card.jpg',
       }),
     };
 
@@ -232,7 +238,7 @@ test.describe('/scorecard-beta', function () {
       // One field per form; the value is the URL /sign-s3 handed back, not one rebuilt
       // from the signature.
       await expect(page.locator('#scoresheet-url')).toHaveValue(
-        'https://bucket.invalid/scorecards/20262027/a-card.jpg');
+        'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/a-card.jpg');
       guard.assertNoWrites();
     });
 
