@@ -103,3 +103,43 @@ that variable. Renaming it makes those tests wrong rather than safer.
   that is the dev *server*; this is the test *process*).
 - Setting up CI (HARD-08).
 - Building a staging environment.
+
+---
+
+## Correction: what the SendGrid credentials turned out to be (12 Sep 2026)
+
+This brief said the three `SENDGRID_*` variables were "dead credentials, still live at the
+provider". Half of that was wrong, and the half that was right was inert.
+
+The account was provisioned by the Heroku add-on, and Heroku was cancelled in May 2026 —
+which took the login with it, so the credentials could not be revoked through the UI. They
+could still be **tested**, which is the better question anyway: the point was never whether
+anyone can log in, it is whether the credential can still send mail.
+
+| Credential | Probe | Result |
+|---|---|---|
+| `SENDGRID_USERNAME` / `SENDGRID_PASSWORD` (SMTP) | `AUTH` against `smtp.sendgrid.net:587`, no message | **`535 Bad username / password`** — dead |
+| `SENDGRID_API_KEY` | `GET /v3/scopes` | **`200`** — still authenticates |
+
+So the API key survived the cancellation. What did not survive is its permissions: the only
+scope left is `sender_verification_eligible`, and `/v3/user/profile`, `/v3/user/account`,
+`/v3/api_keys`, `/v3/mail_settings` and `/v3/suppression/bounces` all answer `403`. There is
+no `mail.send`. **Neither credential could send mail from the league's domain**, which is
+the risk this line item existed for.
+
+The account itself is unrecoverable rather than secured: the owner address is
+`app148495330@heroku.com`, which went with Heroku. Nobody can recover or re-scope it,
+including whoever might find the key — which is a backwards sort of safety, but it does mean
+chasing SendGrid support to close an account whose key cannot send is not worth the time.
+
+**Resolution.** "Revoked at the provider" is unreachable, so the achievable half was done
+instead: the key is off the Cloud Run service (revision `league-site-00211-227`) and all
+three variables are out of `.env`. A valid credential that exists nowhere is equivalent to a
+revoked one for every purpose this package cared about.
+
+**The general lesson is the probe, not the credential.** A credential's state is a question
+you can ask the provider directly, with the credential itself, without an account — and the
+answer distinguishes "cannot log in to revoke it" from "it cannot do anything", which are
+very different findings. Both halves here would otherwise have been guessed, and both
+guesses would have been wrong: the SMTP pair was assumed live and is dead, the API key was
+assumed dead-and-live-at-the-provider and is live-but-declawed.
