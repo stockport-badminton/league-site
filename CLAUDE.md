@@ -2,19 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Architecture Overview
-
-**Stockport Badminton League Website** — A full-stack Node.js app using:
-- **Backend**: Express.js server (Node 22.x)
-- **Database**: PostgreSQL (Supabase) — uses `DATABASE_URL` connection string
-- **Authentication**: Auth0 (OAuth 2.0 with Auth0 hosted login)
-- **Session Store**: PostgreSQL (via `connect-pg-simple`)
-- **Rendering**: EJS templates
-- **Storage**: AWS S3 for scorecard images and generated assets
-- **Email**: AWS SES for transactional emails
-
-**Key URL Routing**: `/routes/index.js` — imports all controllers and establishes routes
-
 ## Critical Database Details
 
 ### PostgreSQL with MySQL-Compatible Wrapper
@@ -116,25 +103,6 @@ NODE_ENV=development
 
 Injects a mock `req.user` with superadmin + messeradmin roles. **SAFE** — only works outside production.
 
-## Model/Controller/Route Structure
-
-### Models (`/models/*.js`)
-- Pure data layer; export async functions
-- Handle SQL queries via `db.otherConnect()`
-- Example: `fixture.js` exports `create()`, `getScorecardById()`, `createScorecard()`, etc.
-- Pattern: `const [result] = await (await db.otherConnect()).query(sql, params)`
-
-### Controllers (`/controllers/*.js`)
-- Handle HTTP request/response logic
-- Validate input (express-validator rules)
-- Call models for data operations
-- Render EJS views or return JSON
-
-### Routes (`/routes/index.js`)
-- Declare all endpoints
-- Mount controllers
-- Apply middleware (secured, JWT checks, etc.)
-
 ## Testing
 
 ### The test process holds no production credential
@@ -166,23 +134,6 @@ Declaring an environment means deciding, per variable, whether **absence is mean
 live is present. It checks **shapes, not names** — a `supabase` host, an `AKIA`/`ASIA` key
 id, a set cron token — which is what stops it going one variable out of date the way the
 patches did. Demonstrated by removing a line from `setup.js` and confirming it fires.
-
-### Setup
-- **Framework**: Jest
-- **Setup file**: `__tests__/setup.js` — sets required env vars before modules load
-- **Test files**: Match `__tests__/**/*.test.js`
-
-### Commands
-```bash
-npm test           # Run all tests once
-npm run test:watch # Watch mode
-```
-
-### Test Patterns
-- Unit tests: Mock dependencies, test middleware/pure functions in isolation
-- Integration tests: Test full request/response flow (e.g., scoring endpoints)
-- Mock `req`, `res`, `next` for middleware tests
-- Use `supertest` for HTTP integration tests (see `__tests__/integration/`)
 
 ### supertest binds 127.0.0.1, and that is load-bearing
 
@@ -461,27 +412,6 @@ worth reading before touching a file it owned. A package whose *code* is finishe
 still needs a human to do something — set an env var, change a bucket policy, flip a
 switch — stays at the top level until that happens.
 
-## Common Commands
-
-### Development
-```bash
-npm run dev          # Development server (nodemon, dev.env)
-npm start            # Production server (app.js with .env)
-npm run prodlocal    # Prod-like server locally (prod build, .env)
-```
-
-### Testing
-```bash
-npm run test:e2e     # Browser tests (Playwright) — read-only, see Testing above
-npm test             # Run once
-npm run test:watch   # Watch mode
-```
-
-### Other
-```bash
-npm run gallery      # Run beta gallery tool
-```
-
 ## Project-Specific Patterns
 
 ### Form Validation (express-validator)
@@ -515,15 +445,6 @@ const postBuffer = await sharp(bgPath)
 ```
 
 SVG elements use XML escaping to avoid injection (see `utils/` for helpers).
-
-### Video Generation (FFmpeg)
-
-Phase 8a: Weekly video generation from fixture results
-- Endpoint: `GET /api/social/generate-weekly-video?duration=2&aspect=both`
-- Queries real fixture results from database
-- Generates slideshow video using FFmpeg
-- Supports 16-9 (1920×1080) and 1-1 (1080×1080) aspect ratios
-- Creates temporary image sequences, outputs to `static/beta/videos/generated/`
 
 ### Scorecard confirmation links and the photo endpoint
 
@@ -624,80 +545,10 @@ Two things worth keeping from it:
 
 ### Search / crawlability
 
-`GET /sitemap.xml` is **generated per request** by `controllers/sitemapController.js`
-(~718 URLs: public static pages, tables/results per division, the archived seasons'
-All views, and the last 18 months of `/event/` pages). It replaced a hand-written
-`rootfiles/sitemap.xml` from 2018. Two things to keep in mind:
-
-- `express.static('rootfiles')` is mounted in `app.js` **well before** the router, so
-  re-adding a `rootfiles/sitemap.xml` would silently shadow the route. Same trap as
-  `/sw.js`, which is registered early for this reason.
-- Only list URLs that answer 200 to an anonymous request. Anything behind `secured`
-  (`/player-stats`, `/pair-stats`, `/messer-results`, `/manage-players`,
-  `/shuttle-prices`, all of `/admin`) must stay out — a login redirect in a sitemap
-  reads as a soft 404. There's a test asserting this.
-
-Event-page URLs come from `eventPath()` in `utils/canonical.js`, exposed to views as
-`app.locals.eventPath`. `homepage.ejs` and the sitemap both call it: only `:id` is
-read from `/event/:id/:date-:homeTeam-:awayTeam`, so a second spelling of the
-decorative part would be a duplicate URL for a page that self-canonicalises. Club
-pages work the same way through `clubPath()` / `app.locals.clubPath`.
-
-**Club pages** — `/clubs/:slug` (`club_public_page`, view `club-page.ejs`), matched
-by name slug against `Club.getPublicClubs()`, with `clubSlug()` dropping punctuation
-rather than hyphenating it so "G.H.A.P" is `ghap`. They exist because Search Console
-showed `badminton club near me` at position 24.5 on 1,387 impressions with all 18
-clubs sharing the single `/info/clubs` URL — one page cannot rank for 18 local
-intents. What makes them work is the town in the `<title>` plus machine-readable
-address and coordinates, so keep those.
-
-**The social columns hold bare handles, not URLs** — `ghapbadminton`, `ManorBadminton`,
-and one Facebook page id, `61576463475674`. Build links with `socialLinksFor()` /
-`socialUrl()` from `utils/socialLinks.js` (exposed to views as `app.locals.socialLinksFor`),
-never by testing the stored value for `^https?://`. Both consumers did exactly that — the
-visible links on the club page and the schema.org `sameAs` — which is correct, defensive
-and completely vacuous: it dropped every handle, so no club ever rendered a social link
-and `sameAs` never carried a profile. The helper still refuses anything that is not
-handle-shaped, because guessing a URL out of "ask us on facebook" gives a confident link
-to a page that does not exist. `sameAs` is the half that matters: it is how a search
-engine connects the club page to that club's own accounts.
-
-Two constraints on that page:
-- **No captain or secretary names or contact details.** It is indexable and they are
-  volunteers; enquiries go via `/contact-us?club=<id>` (which preselects the club) or
-  the club's own site. There's a test asserting this.
-- It must stay linked from `/info/clubs`, which is in the sitewide nav. A sitemap
-  entry alone is weak — before this, the club names on that page linked straight out
-  to the clubs' own websites, so nothing on the site linked to our own club pages at
-  all. The outbound link is still there, just beside rather than instead.
-
-**Structured data (JSON-LD) is built in `utils/structuredData.js`, never in a
-template.** Controllers pass a `jsonLd` local — an array of already-serialised
-blocks — and `header.ejs` emits them with `<%- %>`. To add markup to a page, build
-an object there and pass it; do not write JSON into an EJS file.
-
-That rule exists because the previous approach failed in two ways that could not
-error: escaped-output tags escape for HTML, not JSON (a club called Mulberry's
-shipped as `Mulberry&#39;s`, and a double quote would have broken the block), and
-several property names were not schema.org at all — `competitor: [{"@type":
-"SportsTeam", "homeTeam": "..."}]`, `"type"` instead of `"@type"` on the address,
-`Lat`/`Lng` instead of `geo` — so the team names, the whole postal address and the
-coordinates were silently discarded. Invalid JSON-LD is ignored, not reported.
-
-Notes on the helpers:
-- `parseUkAddress` recovers streetAddress/locality/postcode from the single freetext
-  `venue.address` column by splitting on the postcode. It replaced a regex against a
-  hardcoded town list that emitted match *arrays*
-  (`"addressLocality": "Cheadle Hulme,Cheadle Hulme"`) and picked "Manchester" out of
-  "Manchester Road". `addressRegion` is deliberately omitted — it was hardcoded
-  "Cheshire" for every club including the Greater Manchester ones.
-- `geoOf` drops coordinates outside a bounding box for the league's catchment,
-  because one venue is stored ~110km north of it. A wrong location is worse than
-  none for a "near me" query.
-- `londonOffset` asks `Intl` for the offset instead of `getTimezoneOffset()`, which
-  is 0 on Cloud Run — so production used to emit `startDate` with no offset at all.
-- Times come from `to24h`. Check am/pm **before** treating `H:MM` as 24-hour, or
-  "7:30pm" reads as 07:30.
+**Load the `seo` skill** before touching `controllers/sitemapController.js`,
+`utils/canonical.js`, `utils/structuredData.js`, `utils/socialLinks.js` or the club pages.
+It holds the sitemap's exclusion rule, the URL helpers every page must build links with,
+and why JSON-LD is never written in a template — all of which failed silently before.
 
 ### Spam and abuse controls
 
@@ -799,441 +650,39 @@ Two CSP headers go out, and the split is the design:
 
 ### Team management (rosters)
 
-Two pages, two audiences — they used to be one template switching on a
-`superadmin` boolean, which is why the captain's view was laid out around drag
-targets she couldn't use.
-
-| Route | Who | View |
-|---|---|---|
-| `/manage-players` | superadmin picks a club; a club admin is redirected to their own | `roster-clubs.ejs` |
-| `/manage-players/club-:club` | captains and admins — read-only | `roster.ejs` |
-| `/manage-players/club-:club/edit` | reordering, moves, add/transfer | `roster-edit.ejs` |
-| `/manage-players/club-:club/registration.docx` | the league's registration table, streamed | — |
-
-`roster-team-card.ejs` and `roster-row.ejs` are shared by both pages so they can't
-drift. Editor behaviour lives in `static/beta/js/roster-edit.js`; styles in
-`static/beta/css/roster.css`, opted into with
-`include('header.ejs', { useRosterCss: true })`.
-
-**player.rank is the nominated order AND the reserve flag**, per `(team, gender)`:
-
-```
-rank 1..N   nominated, in strength order
-rank >= 99  reserve, in order (99 = first reserve, 100 = second, ...)
-NULL        treated as nominated; gets a real rank on the next save
-```
-
-Reserves were previously all written a flat `rank = 99`, so their order could be
-dragged but never saved. Anything asking "is this a reserve" must use
-`Roster.isReserve(rank)` (i.e. `>= 99`), never `=== 99`. Ranks are per-gender
-because a fixture picks 3 men and 3 ladies independently — a team's number 1 man
-and number 1 lady both hold rank 1. Display position is recomputed from list order,
-so a team whose stored ranks have gaps (there are several, left by the old
-client-side renumbering) still reads 1, 2, 3 and is normalised on its next save.
-
-**Writes take intent, never SQL.** `POST /player/batch-update` used to accept
-`tablename` and `fields` from the request body and interpolate both into an
-`UPDATE`, behind `secured` only — any logged-in captain could write any column of
-any table, including their own `player.role`. It is gone. Use:
-
-```
-POST /api/teams/:id/order        { sections: [{ gender, section, playerIds: [...] }] }
-POST /api/players/:id/move       { teamId, section }
-POST /api/players/:id/release
-GET  /api/roster/club-:club/candidates?term=
-POST /api/roster/club-:club/players | /attach | /transfer
-```
-
-`models/roster.js` renumbers **both ends of a move in one transaction** via
-`db.withTransaction` (added for this — `otherConnect()` takes a connection per
-query, so it cannot hold a transaction). Never renumber client-side: doing so is
-what left teams ranked 1, 2, 4, 6.
-
-**`saveTeamOrder` takes section membership from the payload, and settles a gender's
-two lists together** (`renumberGender`). Whether someone is nominated is what the
-save is *changing*, so it cannot also be the thing that decides which list they
-belong to. Reading it from the rank already stored meant a promoted reserve was
-dropped from the nominated list for not already being nominated, then re-appended to
-the reserve list as a member the payload hadn't named: the save wrote **nothing**,
-answered `ok: true`, and the refresh put them back. It was live for a month and no
-test caught it — every case posted one section, or four with nobody crossing.
-`renumberSection` still derives membership from the ranks, and is only for closing
-the gap a departing player leaves behind in `movePlayer` / `releasePlayer`.
-
-**Authorization**: `secured` only proves someone is logged in. Anything scoped to a
-club also needs `middleware/requireClubAccess` — as route middleware where the path
-carries `:club`, or `assertClubAccess(req, clubName)` inside a handler that has to
-look the club up first. Id-keyed endpoints resolve the club from the row's real
-owner (`Roster.getTeamOwner` / `getPlayerOwner`), never from the request.
-
-**`/api/` errors answer in JSON**, via a handler that runs before the HTML one in
-`routes/index.js`. 4xx messages are passed through to the client (the editor shows
-them in its toast); 5xx messages are not, since they can carry SQL.
-
-Gotchas:
-- `custom.css` styles `.fa` globally for the footer's social icons (`font-size: 30px;
-  float: right`), and `nav.ejs` wraps every page in `.starter-template` which sets
-  `text-align: center`. `roster.css` undoes both for `.roster-page` — don't "fix"
-  them centrally, 40-odd other pages depend on them.
-- Drag uses **Pointer Events** plus `touch-action: none` on the handle. Both are
-  needed; the old page bound only `dragstart`/`drop`, which mobile browsers never
-  fire from touch, so nothing on it worked on a phone. `touch-action: none` also
-  means the dragging finger can't scroll, which is why the drag runs its own
-  edge auto-scroll off `requestAnimationFrame`.
-- **The dragged row is positioned in document coordinates**, from the pointer's
-  offset within it, re-derived after every DOM move (`reanchor()`). Don't go back to
-  a running delta with the transform reset to zero on each swap: that snaps the row
-  into its new slot out from under the finger, and the asymmetric hysteresis it
-  leaves behind is what made the drag feel like it was catching.
-- **The drop target is the list the pointer is in**, chosen by distance
-  (`listUnder()`), not the first list that would accept an insert. A pointer *above*
-  a list also tests as "before its first row", so first-match-wins meant a nominated
-  player dragged up from the bottom of the list landed at the top of the reserves.
-- **`.roster-card` must not clip** (no `overflow: hidden`). The row menu is absolutely
-  positioned inside its row, so clipping the card cut the menu in half for everyone in
-  the bottom half of a team. The head's rounded corners are set explicitly instead, and
-  the menu flips to `.drop-up` near the foot of the window.
-- `models/players.js:create` has no `RETURNING`, so its `insertId` is always
-  `undefined`. Use `Roster.createPlayer` when you need the new id.
-- Club 63 is `No Club` and team 52 is `No Team` — the sentinels a released player is
-  parked on. Named as `Roster.NO_CLUB_ID` / `NO_TEAM_ID`.
+**Load the `rosters` skill** before touching `rosterController.js`, `models/roster.js`,
+`views/roster*.ejs`, `static/beta/js/roster-edit.js` or the `/api/teams`, `/api/players`
+and `/api/roster` endpoints. Two things in it are easy to get wrong and expensive:
+`player.rank` is the nominated order *and* the reserve flag (`>= 99`, never `=== 99`), and
+club-scoped endpoints need `requireClubAccess` — `secured` alone only proves someone is
+logged in.
 
 ### The league's registration forms
 
-Two different documents, easily confused:
+**Load the `registrations` skill** before touching `utils/teamRegistrationDoc.js`,
+`documentsController`, `registrationController`, the `/forms/*` routes or
+`/admin/registrations`. Three different documents are easy to confuse, the docx table
+geometry has to be given DXA widths or it collapses, and the chase flow's status is keyed
+by season on purpose.
 
-| Route | What |
-|---|---|
-| `/manage-players/club-:club/registration.docx` | the roster page's own export, built by `buildRegistrationDoc` in `rosterController.js` |
-| `/forms/team-registration.docx` + `/forms/team-registration/:club/prefilled.docx` | **the league's official player registration form** |
-| `/forms/club-registration` + `/:club/prefilled` | the club form — still a PDF |
+### Emails, inbound mail and deliverability
 
-**The team registration form is a Word document, not a PDF** (Sep 2026). It was a
-prefilled `pdf-lib` AcroForm, and the reason that failed is worth keeping: an AcroForm
-has a **fixed set of named fields**, so a club secretary could type into the twelve rows
-but could not add a thirteenth or delete one for a player who had left — which is the
-entire job. The workaround had grown into three code paths (fill the static 12 rows;
-tack a "(continued)" page on for reserve overflow; blank page 1 and redraw both tables
-when nominated overflowed). A Word table just grows, so **all of that is gone from the
-docx path**.
+**Load the `emails` skill** before touching `emails/`, `views/emails/`, `utils/mailer.js`,
+`utils/ses.js`, `utils/dmarcReports.js`, `contactusController`'s `distribution_list`, or
+the `/mail` and `/ses-events` routes. It covers the MJML build (three traps that all fail
+silently), the `mailer.send` contract, the SES event feed that is the only honest answer to
+"did our mail arrive", the forwarder's rate budget, and DMARC.
 
-- Built in **`utils/teamRegistrationDoc.js`** with the `docx` package. `seasonLabel`,
-  `teamLabel`, `alignTeamRows` and `splitRoster` live there and are shared with the PDF
-  controller so the two renderings cannot drift.
-- **The PDF routes still answer** (`/forms/team-registration`, `.../prefilled`) for
-  anyone holding an old link. Nothing links to them.
-- Pass **`columnWidths` with DXA widths**, not the `PERCENTAGE` convention used by
-  `rosterController.buildRegistrationDoc`. `docx` defaults `<w:tblGrid>` to 100 twips
-  per column when you omit it, which under `layout: FIXED` collapses the table; and
-  percentages are an autofit instruction, so a long name widens the Ladies column out
-  of register with the paper form.
-- Header rows carry `tableHeader: true` so they repeat across pages, and every row
-  carries `cantSplit`.
-- The logo is `static/beta/docs/sdbl-logo.png`, cropped from a 300 dpi render of the
-  PDF template — the template's two embedded objects are a transparent figure and a
-  JPEG swoosh that only compose correctly together, so extracting them individually
-  gives you half a logo.
-- Colours and fonts were measured from the template, not guessed: fill and heading
-  text are **`#002060`** (the old dynamic PDF renderer used `#0B2D6D`, which was
-  slightly wrong), Calibri throughout, 22pt masthead / 14pt headings / 12pt table
-  headers / 11pt body.
-- Tests unzip the response and assert against `word/document.xml`. Asserting on the
-  buffer or on which function was called would not have caught the geometry bugs.
+Three rules from it are general enough to stay here:
 
-### Emails: one MJML pipeline
-
-```
-emails/*.mjml  --  npm run build:email  ->  views/emails/*.ejs  --  utils/mailer.js  ->  SES
-```
-
-**The compiled `.ejs` is committed, and that is deliberate.** The Dockerfile runs
-`npm ci --omit=dev` and `mjml` is a devDependency, so it never reaches the image;
-production renders a plain EJS template with the `ejs` it already had. Compiling in the
-image instead would make `mjml` a production dependency for the sake of a build step.
-`npm run build:email:check` fails if the committed output is stale, and a test asserts it,
-so editing a `views/emails/*.ejs` by hand is caught rather than silently overwritten.
-
-**Every send goes through `mailer.send({ template, data, subject, text, whyReceiving, to })`.**
-Two of its arguments are **required and have no default**, because both were missing
-everywhere before:
-
-- `text` — a plain-text alternative. No previous sender set one, and a message without it
-  scores worse with spam filters and shows an empty body in a text-only client.
-- `whyReceiving` — the footer's "why you got this" line, per email because the audiences
-  differ. With SES a complaint counts against the domain's reputation, which is shared
-  with the invoices.
-
-**Three MJML 5 traps, all of which fail silently** (`tools/build-emails.js` documents them
-at length and guards the third):
-
-1. **The API is async.** Treating `mjml2html()` as synchronous gives an object with no
-   `html` and a template containing only the banner comment.
-2. **`mj-include` is disabled by default.** `filePath` alone is not enough — without
-   `ignoreIncludes: false` the partials are dropped with no error, so you get a template
-   with no header, footer or theme.
-3. **An EJS tag *between* two MJML components is discarded**, and the content it guarded
-   then renders unconditionally — `<% if (photoUrl) { %>` around an `<mj-text>` becomes a
-   photo link that always shows. Wrap it in `<mj-raw>`. The build counts EJS tags in the
-   source and its includes against the output and **fails** if any were eaten.
-
-Two more that cost time here:
-
-- **`ejs.renderFile` must be called in its promise form** in `utils/mailer.js`.
-  `scorecard.test.js` mocks `ejs` with `renderFile: jest.fn().mockResolvedValue(...)`,
-  which never invokes a callback — so a callback-wrapped promise never settles, and 21
-  tests sat until Jest's timeout instead of failing.
-- **In `mj-section`, give *every* column an explicit width or none.** With one `44px`
-  column and one `auto`, MJML splits the section 50/50 rather than letting the second take
-  the remainder.
-
-`npm run preview:email` renders each template with sample data, including the no-photo and
-no-stats variants that exercise the `mj-raw` conditionals. A preview is not proof: it
-renders in a browser and an email renders in Outlook, which lays out through Word.
-
-**Twelve templates**: `scorecard-received`, `website-updated`, `registration-reminder`,
-`registration-digest`, `contact-us`, `scorecard-reminder`, `missing-scorecards`,
-`transfer-request`, `access-approved`, `access-request`, `scorecard-photo-added` and
-`messer-result`.
-
-**Two sends are deliberately not on it, and both are listed in
-`__tests__/unit/mail-sends-use-mailer.test.js` with their reason:**
-
-| Send | Why not |
-|---|---|
-| the annual club invoice | still on its own hand-written `views/emails/clubInvoice.ejs` from June 2025 — off-brand (`#1188E6`, no navy) and its own piece of work |
-| the weekly data-integrity digest | renders `views/emails/weekly-anomalies.ejs`, internal to the results secretary rather than member-facing |
-
-That guard exists because this section used to say *"Every send is on the pipeline. Eleven
-templates"* and it was **not true**. The signup notification (`POST /new-users-v2`) built
-its HTML by string concatenation in `routes/index.js`, so it went out unstyled, with no
-plain-text part and no "why you got this" line, for as long as the pipeline existed. It
-was missed because it lives in a **route rather than a controller** — there was no
-unstyled file in `views/emails/` to be conspicuous — and then this file asserted it had
-been done, which is exactly the sort of claim that stops the next person looking.
-
-The guard counts **call sites, not mentions**: it strips comments and strings first,
-because `controllers/fixtureController.js` carries a note about `ses.sendEmail(undefined)`
-that is not a send. Getting that stripping right matters more than it sounds — the first
-version desynchronised on `.replace(/"/g, …)`, a regex literal containing a quote, and
-reported `routes/index.js` **clean while it held the very send being hunted**. A
-desynchronised scanner under-reports, so it fails in the direction that looks fine. It now
-throws if a `'`/`"` run contains a raw newline, which a JS string literal cannot.
-
-So the old rule — escape by hand with `utils/html.js` when concatenating — is **retired**
-for outbound mail: a template escapes by default. The escaping tests moved with it, and
-assert the *property* (a hostile URL cannot alter the message's structure) rather than an
-entity spelling, since EJS writes `&#34;` where the hand-rolled escaper wrote `&quot;`.
-
-The concatenated builders are gone with them — `generateContactUsHTML` alone was 6,966
-characters of Mailchimp chrome, including dead "Unsubscribe Preferences" links, wrapped
-around three lines of content. Deleting them is what most of that change is by volume, and
-it is worth knowing that it took three attempts: the bodies are template literals full of
-CSS, so both a `}`-at-column-0 rule and a nearest-blank-line rule cut in the wrong place.
-What worked was walking the braces while skipping strings, template literals and comments.
-Do that, or leave them.
-
-Design: navy `#002060` is the league's own colour, measured off the printed registration
-form, and the navy table header with white bold text is that form's own treatment — so an
-emailed invoice and a posted one look related. Calibri first, then Segoe UI, then Arial,
-all **system** fonts: Outlook renders through Word and ignores `@font-face`, so a webfont
-would apply for some readers and not others. Size text so it fits in the *fallback*, not
-just the intended face.
-
-### Knowing whether our email arrived
-
-`POST /ses-events` records what SES says happened to every message, into `email_event`
-(migration 014). Two audit checks read it, so a failed send lands in the weekly digest:
-`email-delivery-failures` (bounces, complaints, rejections in the last 7 days) and
-`email-delivery-delays` (still being retried — the shape a failure has before it finishes).
-
-It exists because of 27 Aug 2026, and the shape of that miss is the point:
-
-- a distribution-list mail had **all eleven of its gmail.com recipients rejected** — Gmail
-  rate-limited the sending domain, SES retried for 840 minutes and gave up
-- **nobody knew for eight days**
-- **`GetSendStatistics` reported 0 bounces**, because it was `bounceType: Transient` and
-  that API counts only bounces that damage your sending reputation. Do not use it to
-  answer "did our email arrive"; it answers "is our reputation at risk"
-- `/admin/audit` said nothing because it only read the database
-
-The events come from the **`baddersEmail` configuration set, which is set as the default
-configuration set on the SES identity** — not in any code. Grepping for
-`ConfigurationSetName` finds nothing and proves nothing.
-
-- **One row per recipient per event.** A bounce naming eleven addresses is eleven rows,
-  because the question is always "who did not get it".
-- **`verifySns` gates it**, exactly as it gates `/mail`. Without it anyone could POST
-  invented bounces and they would appear in the results secretary's weekly email as fact.
-- **It answers 200 to a message it cannot parse.** SNS retries anything that is not 2xx,
-  so a malformed notification would otherwise be retried for ever.
-- The natural key `(message_id, email, event_type)` carries `ON CONFLICT DO NOTHING`,
-  because SNS delivers at least once.
-
-`tools/dbq.js` exports `assertReadOnly` and it is tested directly — including a case
-asserting **every audit check passes the guard**, since a check that cannot be run by name
-is otherwise only discovered by someone trying. The guard used to reject a semicolon inside
-a `--` comment as "multiple statements", the same blind spot HARD-18 records for
-`run-migration.js`.
-
-### Knowing whether our mail is being spoofed (DMARC)
-
-DMARC is published at `_dmarc.stockport-badminton.co.uk` with
-`rua=mailto:dmarc@stockport-badminton.co.uk`, so the aggregate reports arrive as ordinary
-inbound mail — Google and Microsoft send one a day each.
-
-```bash
-node tools/dmarc.js                 # the last 30 days, rolled up per sending source
-node tools/dmarc.js --days 90       # a wider window
-node tools/dmarc.js --raw --json    # the individual reports / machine-readable
-```
-
-Parsing lives in **`utils/dmarcReports.js`**, shared by that tool and the weekly audit
-check so the two cannot drift.
-
-- **The bucket and prefix come from an SES receipt rule in AWS, not from any code.**
-  `inbound-badders-email` → S3 `badmintontemp/inbound-email/`. Grepping the repo proves
-  nothing, exactly as it does not for the `baddersEmail` configuration set.
-- **Header order varies between reporters.** Microsoft puts `Content-Disposition` *after*
-  `Content-Transfer-Encoding`; Google does not. A regex anchored on the encoding header
-  matches Google and silently skips Microsoft — and the symptom is "Microsoft isn't
-  reporting", which reads as a DNS problem rather than a parsing bug. Find the blank line
-  that ends the part's headers instead. Google sends `.zip`, Microsoft `.gz`; handle both.
-- **DMARC passes on *either* aligned leg**, so the verdict is an OR. Read as an AND, every
-  SPF-broken forward — normal and harmless — reports as a failure.
-- **`aspf=r` is load-bearing, do not "harden" it to `s`.** SPF authenticates
-  `mail.stockport-badminton.co.uk` (the SES custom MAIL FROM) while `From:` is the apex;
-  strict alignment would fail SPF on every message we send.
-- The policy is **`p=none`** — monitoring only, enforcing nothing. The point of the reports
-  is to leave it: `p=quarantine; pct=25` → `pct=100` → `p=reject`. What blocks that is a
-  legitimate sender that does not authenticate, which is what the check below looks for.
-  Note `fo=1` in the record is inert while there is no `ruf=`.
-
-**The weekly digest reports only the failures** (`dmarc-unauthenticated-senders`, in
-`tools/audit/checks.js`). A row means either somebody is sending as our domain and is not
-us, or a real sender that tightening the policy would start binning. The passing rows stay
-in `tools/dmarc.js`: a weekly "26 of 26 passed" is the noise the digest exists to avoid.
-
-**This is the one audit check that is not SQL.** It brings a `run()` instead of a `sql`,
-because the question — did the receiving world accept our mail as authentic — cannot be
-answered from our own tables at all. `checks.runAll` and `dbq --check <name>` handle both
-shapes; `__tests__/unit/dbq-guard.test.js` skips the read-only guard for a `run()` check
-but asserts it really is one, so a SQL check whose query went missing still fails.
-
-### Forwarding inbound mail (`POST /mail`)
-
-A reply to `results@stockport-badminton.co.uk` arrives via SES inbound and is forwarded to
-the league's distribution lists by `distribution_list` in `contactusController.js`.
-
-**The From header stays ours, and it has to.** This is a forwarder: sending as
-`someone@gmail.com` out of our SES account fails SPF and DKIM alignment for *their* domain,
-and a sender whose domain is on `p=reject` would have the forward binned rather than
-delivered. So the sender's identity travels in the two places it can:
-
-- **display name** — `From: "Anne Secretary" <results@stockport-badminton.co.uk>`, falling
-  back to their address when they set no display name
-- **`Reply-To`** — the original sender, or the original `Reply-To` if they set one
-
-This is what a mailing list's "via" means. Before it, `from` was the flat league address and
-`sender` was computed and never used, so every forwarded message looked as though the league
-had written it and Reply went back to the league — a loop, with the correspondent's address
-lost unless you dug through the body. `X-Original-From` carries it for the record.
-
-`text` was also a debug string (`"Email from sengrid parse send to <list>"`), so the plain-text
-alternative of every forwarded message was that sentence — which is what a text-only client
-and most spam scorers read.
-
-**A list send is spread over time, and the budget is SNS's.** On 27 Aug 2026 a list mail
-to 30 recipients had **all eleven of its gmail.com addresses** rejected with
-`421-4.7.28 unusual rate of mail originating from your SPF domain`; SES retried for 840
-minutes and gave up, so eleven people never got a fixture withdrawal notice. The complaint
-is about **rate** — the same eleven messages reach Gmail whether it is one Bcc blast or
-eleven sends, because SES expands Bcc into one delivery each — so only spreading them over
-time answers it. `sendSpread` chunks the recipients and fits the gaps to a budget
-(`LIST_SEND_CHUNK`, `LIST_SEND_BUDGET_MS`), because **SNS gives an HTTP endpoint ~15
-seconds** before it calls the delivery failed and retries, and a retry means sending the
-whole list again. A long list gets bigger chunks, not a longer wall clock. Doing it after
-the response would dodge the budget but Cloud Run throttles CPU once a request is answered.
-It is a mitigation, not a guarantee: Gmail publishes no threshold, which is why both knobs
-are env vars.
-
-**That bounce is invisible to `GetSendStatistics`.** It was `bounceType: Transient`, and
-that API counts only bounces that hurt reputation — so "0 bounces in 14 days" from it means
-"none that count", not "everything arrived". The SNS event destination is where the truth
-is: `baddersEmail` is set as the **default configuration set on the SES identity**, not in
-any code, so grepping the codebase for `ConfigurationSetName` finds nothing and proves
-nothing.
-
-**`List-Unsubscribe` is the `mailto:` form, deliberately.** These lists are not
-subscriptions — membership is computed at send time from role flags in `player`
-(`Player.getEmails`), so nobody opted in, and unsubscribing a club secretary from
-`clubSecretaries@` means they stop receiving league business. That is a decision for a
-person, not a one-click POST. One-click would also force the rest of the redesign: its
-token identifies ONE recipient, so the header differs per person and the message can no
-longer be one blast with everyone in Bcc, and `getEmails` would have to return ids rather
-than bare address strings (HARD-27).
-
-**List matching is case-sensitive and by substring** — `roles` are spelled
-`clubSecretaries`, divisions `division3`. A lowercase `clubsecretaries@` matches nothing
-and falls through to the default branch, which mails only the league's own address.
-
-Testing it: build the MIME by hand and post it base64'd inside the SNS `Message`. Two traps,
-both of which parse far enough to look fine and then lose the body — **send it as JSON, not
-form-encoded** (form encoding turns the base64's `+` into a space), and **do not
-`.filter(Boolean)` the lines** (the empty strings are the blank lines that terminate a
-header block).
-
-### Chasing player registrations
-
-Every club returns the league's registration form before its first fixture, and that used
-to be chased from memory. `/admin/registrations` (superadmin, in the Admin nav) lists every
-club with a fixture this season, its first match, and whether the form is in.
-
-| | |
-|---|---|
-| `GET /admin/registrations` | the working page — chase, mark received, download the form |
-| `POST /admin/registrations/:club/chase` | emails the club its prefilled form |
-| `POST /admin/registrations/:club/received` | mark received (`received=false` to undo) |
-| `GET /admin/registrations/digest` | preview the daily email, sends nothing |
-| `POST /admin/registrations/run` | the daily send, for Cloud Scheduler |
-
-**Status is keyed by season, and that is the whole design** (`club_registration`, migration
-013). The job runs once a season, so the status has to reset every season — and the
-cheapest correct reset is none at all: a new season simply has no rows, which reads as
-"nothing received, nothing chased". No cron to clear it, nothing to remember in July, and
-last season's record is still there. A `received` boolean on `club` would have needed
-exactly the annual wipe nobody would remember to run.
-
-- **Recipients are derived server-side** from the club's own officers — club secretary, cc
-  match secretary, falling back to whoever has an address. Never from the request:
-  `/fixture/reminder` took its address from the body and was an open relay from our own
-  verified domain.
-- **The attached form is built in-process** by `documentsController.buildPrefilledRegistrationDocx`.
-  Fetching our own `secured` URL over HTTP would have needed a server-side credential that
-  need not exist.
-- **A chase is blind-copied to `REGISTRATION_EMAIL_TO`** (falling back to the results
-  mailbox), so there is a filed record of what went out without waiting on SES's own
-  notifications. Bcc rather than Cc — the reply-to is already the results mailbox.
-- **`sendRawEmail` passes `Destinations` explicitly, and must keep doing so.**
-  `MailComposer` strips the `Bcc` header (correctly), and with no `Destinations` SES works
-  out delivery from the headers — so a blind copy is silently dropped: the send succeeds,
-  SES reports success, To and Cc get their mail, and the copy never exists.
-- **An attachment cannot go through SES's `SendEmail`** — SES only accepts one as a complete
-  MIME message. `utils/ses.sendRawEmail` composes it with nodemailer's `MailComposer` (already
-  a dependency) and posts it with `SendRawEmailCommand`. `mailer.send` picks the transport
-  from whether `attachments` is non-empty, so templates, the required `text`/`whyReceiving`
-  and the rendering stay shared.
-- **The digest sends nothing when nothing is outstanding.** A daily "nothing to do" trains
-  the reader to ignore it.
-- `fixture.date` is a `timestamp without time zone` holding **local midnight**
-  (`2026-09-03 00:00:00`), so compare it to `CURRENT_DATE` directly. Converting
-  `AT TIME ZONE 'Europe/London'` shifts every match a day earlier and puts league nights on
-  a Sunday. Note `tools/dbq.js` **prints** these an hour early — it renders through a JS
-  `Date` — so ask SQL for `to_char(...)` when you need to know what is really stored.
-- **A moved match does not set the deadline.** The status query excludes `rearranged`
-  *and* `rearranging` — the club is not playing that night, so registrations are not due
-  by it. Written as `(f.status IS NULL OR f.status NOT IN (...))`, deliberately: a bare
-  `NOT IN` evaluates to NULL for a NULL status and drops the row, which would take a
-  club's earliest fixture and its deadline with it.
+- **Every send goes through `mailer.send(...)`**, and its `text` and `whyReceiving`
+  arguments are required with no default — both were missing everywhere before.
+- **Anything unauthenticated that sends email must derive its recipients server-side.**
+  `/fixture/reminder` took the address from the request body and was an open relay from our
+  own verified domain.
+- **`GetSendStatistics` does not answer "did our email arrive"** — it answers "is our
+  reputation at risk". A transient bounce is invisible to it; eleven people once missed a
+  fixture withdrawal notice for eight days behind that distinction.
 
 ### A lazy require is a deploy-time bug that waits
 
@@ -1254,13 +703,6 @@ is the exact symptom HARD-01 was written to fix.
 `routes/`, `middleware/` and the entry files and asserts every bare `require()` names a
 **production** dependency — `dependencies`, not `devDependencies`, because the Dockerfile
 runs `npm ci --omit=dev` and a devDependency required at runtime is exactly as missing.
-
-## Docker & Deployment
-
-- **Dockerfile**: Alpine Node 22 + ffmpeg + fontconfig + ttf-liberation
-- **Target**: Google Cloud Run (requires `__session` cookie name, `PORT` env var)
-- **Build**: `npm ci --omit=dev` (clean install, no dev dependencies)
-- **Entry**: `node app.js`
 
 ## Environment Variables
 
@@ -1412,23 +854,3 @@ Key vars (see `.env` for examples):
 6. **Model exports are async**: Always await model calls — they return promises.
 7. **Test setup**: `__tests__/setup.js` runs before any test, sets env vars (don't rely on .env in tests).
 
-## File Organization
-
-```
-league-site/
-├── app.js              # Main entry point
-├── db_connect.js       # PostgreSQL wrapper (MySQL-like API)
-├── package.json        # Dependencies & scripts
-├── controllers/        # HTTP handlers
-├── middleware/         # Express middleware (auth, dev mode)
-├── models/             # Data layer
-├── routes/             # Route definitions
-├── views/              # EJS templates
-├── __tests__/          # Jest tests
-│   ├── setup.js
-│   ├── unit/
-│   └── integration/
-├── static/             # Static assets (CSS, images, generated videos)
-├── migrations/         # Database schema (SQL)
-└── Dockerfile          # Container config
-```

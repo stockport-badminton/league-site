@@ -349,8 +349,8 @@ describe('POST /api/analyse-scorecard — a card the reader cannot line up', () 
   });
 
   // The other half of the same rule: an UNEXPECTED throw is still a 500, and its message
-  // must not reach the client. CLAUDE.md's /api/ rule — 4xx messages pass through, 5xx
-  // ones do not, since they can carry SQL.
+  // must not reach the client. The /api/ rule in the `rosters` skill — 4xx messages pass
+  // through, 5xx ones do not, since they can carry SQL.
   it('still answers 500 for an unexpected failure, without leaking its message', async () => {
     analyseImage.mockRejectedValueOnce(new Error('relation "player" does not exist'));
     const res = await request(app).post('/api/analyse-scorecard')
