@@ -407,10 +407,31 @@ exports.full_fixture_post = async function(req, res, next) {
 
     const notified = await afterCommit('results email', async () => {
 
-      // RECIPIENT UNCHANGED, deliberately. `req.body.email` is a caller-supplied address
-      // — the same shape as the /fixture/reminder open relay — and moving it server-side
-      // changes who gets this email, so it belongs to HARD-24 rather than to a redesign.
-      const toAddresses = (typeof req.body.email !== 'undefined' ? (req.body.email.indexOf('@') > 1 ? [req.body.email] : ['stockport.badders.results@gmail.com']) : ['stockport.badders.results@gmail.com']);
+      // The recipient is derived server-side, from the stored draft (HARD-24). It used to
+      // be `req.body.email` — a caller-supplied address on an unauthenticated endpoint
+      // sending from our own verified domain, the same shape as the `/fixture/reminder`
+      // open relay. Narrower than that one (a single recipient, and you had to post a
+      // valid 18-game scorecard first), but the rule in CLAUDE.md is unconditional:
+      // anything that sends email must derive its recipients server-side.
+      //
+      // This is behaviour-preserving for the real flow rather than a redesign. The form's
+      // hidden `email` field was ALREADY rendered from the draft row
+      // (`value="<%= data.email %>"` in populated-scorecard.ejs), so the legitimate
+      // submission was posting this exact address back to us. Reading the row instead of
+      // trusting the round trip changes nothing about who is written to, and removes the
+      // one thing that made it forgeable.
+      //
+      // Falls back to the results mailbox when there is no draft id (a superadmin
+      // publishing a page that predates the hidden fields) or the draft stored no usable
+      // address — which is exactly what the old expression did with a missing field.
+      const toAddresses = await (async () => {
+        const fallback = [mailer.RESULTS_MAILBOX];
+        const draftId = req.body && req.body.draftId;
+        if (!draftId) return fallback;
+        const draftRows = await Fixture.getScorecardById(draftId);
+        const stored = String((draftRows && draftRows[0] && draftRows[0].email) || '').trim();
+        return stored.indexOf('@') > 1 ? [stored] : fallback;
+      })();
 
       // `matchStats` IS the rows. It used to be read as `matchStats[1]`, which is a
       // mysql2 habit: with multipleStatements that index picked the second result set.
@@ -764,6 +785,13 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       // the worst a forged `?notified=0` does is tell its own author to email the results
       // secretary.
       notificationFailed: req.query.notified === '0',
+      // Carried into the publish form as hidden fields, so a results secretary following
+      // the emailed link can publish without a session (HARD-24). Not a new disclosure:
+      // whoever is reading this page has already presented this exact token to open it.
+      // A tokenless draft renders an empty string here and is publishable by a superadmin
+      // session only — `mayPublishDraft` does not grandfather the way `mayOpenDraft` does.
+      draftId: req.params.id,
+      draftToken: String(rows[0].confirmToken || ''),
       // The scorecard photo, through GET /scorecard-photo/:id rather than from the
       // bucket (HARD-02b). This is the only page that shows a photo to a human, and it
       // is the right one: it already has the draft row and already checks the token, so

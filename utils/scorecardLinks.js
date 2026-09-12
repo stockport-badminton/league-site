@@ -64,6 +64,27 @@ function mayOpenDraft(storedToken, providedToken) {
   return tokenMatches(storedToken, providedToken);
 }
 
+// True when whoever presented `providedToken` may PUBLISH this draft — write the result
+// to the league table, insert 18 game rows and fire the social post.
+//
+// This is deliberately STRICTER than `mayOpenDraft`, and the difference is the whole
+// point of having two functions. `mayOpenDraft` grandfathers a tokenless draft open
+// (HARD-03: links filed before migration 011 are already sitting in captains' inboxes,
+// and minting tokens for those rows is exactly what would break them). Reading an old
+// draft is the behaviour we promised to keep. **Publishing one is not.**
+//
+// Reusing `mayOpenDraft` here would have been the obvious move and would have left the
+// hole almost exactly as wide as it was found: at the time of writing 1,557 of 1,562
+// drafts are tokenless, so a gate built on it would have admitted anonymous publishes
+// for 99.7% of them while looking, in review and in a passing test, like a fix.
+//
+// So: no token on the row means nobody publishes it by token. A superadmin session still
+// can, which is who publishes today and how every one of those 1,557 was published.
+function mayPublishDraft(storedToken, providedToken) {
+  if (!draftRequiresToken(storedToken)) return false;
+  return tokenMatches(storedToken, providedToken);
+}
+
 function confirmationPath(draftId, token) {
   const base = '/populated-scorecard-beta/' + encodeURIComponent(String(draftId));
   return draftRequiresToken(token) ? base + '?t=' + encodeURIComponent(token) : base;
@@ -178,6 +199,7 @@ module.exports = {
   draftRequiresToken,
   tokenMatches,
   mayOpenDraft,
+  mayPublishDraft,
   confirmationPath,
   confirmationUrl,
   photoPath,

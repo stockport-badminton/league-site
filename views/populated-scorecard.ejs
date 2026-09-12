@@ -107,6 +107,15 @@
        <div class="modal fade multi-step" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModal" aria-hidden="true">
          <div class="modal-dialog">
          <form id="signupForm" role="form" action="/scorecard-beta" method="post">
+           <%# Who may publish this result (HARD-24). A superadmin session needs neither of
+               these; they are what lets the results secretary publish from the emailed
+               link on a device with no session. Empty for a draft filed before migration
+               011 — those are publishable by a superadmin session only, deliberately:
+               `mayPublishDraft` does not grandfather the way `mayOpenDraft` does. %>
+           <% if (locals.draftId) { %>
+             <input type="hidden" name="draftId" value="<%= draftId %>">
+             <input type="hidden" name="t" value="<%= locals.draftToken || '' %>">
+           <% } %>
            <div class="modal-content">
              <div class="modal-header">
                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

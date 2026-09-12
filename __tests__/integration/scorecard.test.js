@@ -6,6 +6,28 @@ jest.mock('../../middleware/secured', () => (req, res, next) => {
   next();
 });
 
+// `POST /scorecard-beta` is NOT `secured` — it takes either a superadmin session or a
+// valid draft token (HARD-24) — so the mock above does not reach it and every publish
+// here would be a 403. `req.user` on that path comes from the global `passport.session()`
+// in app.js, so that is what supplies it. This file is about what publishing DOES;
+// __tests__/integration/scorecard-publish-authority.test.js is about who may do it, and
+// it exercises anonymous, captain and token against this same route.
+jest.mock('passport', () => {
+  const actual = jest.requireActual('passport');
+  actual.session = () => (req, res, next) => {
+    req.user = {
+      id: 'auth0|boss',
+      _json: {
+        'https://my-app.example.com/role': 'superadmin',
+        'https://my-app.example.com/club': 'All',
+      },
+    };
+    req.isAuthenticated = () => true;
+    next();
+  };
+  return actual;
+});
+
 // Model mocks
 jest.mock('../../models/division');
 jest.mock('../../models/teams');
@@ -541,6 +563,38 @@ describe('GET /populated-scorecard-beta/:id', () => {
     expect(res.status).toBe(200);
     expect(res.text).toMatch(/couldn't email the results secretary/i);
     expect(res.text).toMatch(/scorecard is saved/i);
+  });
+
+  // The publish gate (HARD-24) accepts a superadmin session OR a valid draft token, and
+  // the token has to reach it somehow: the results secretary following the emailed link
+  // may have no session at all. These two assertions are the other half of that gate —
+  // without the hidden fields it would be superadmin-only in practice, and the secretary
+  // would discover that mid-validation with a POST body already lost to a /login redirect.
+  //
+  // Asserted on the rendered HTML rather than on the render locals, for the reason
+  // CLAUDE.md gives: the older tests in this repo mocked `res.render` and checked only
+  // which view was chosen, which is how a blank form stayed green.
+  it('carries the draft id and token into the publish form as hidden fields', async () => {
+    Fixture.getScorecardById.mockResolvedValue([
+      { ...mockScorecardRow[0], confirmToken: 'c'.repeat(64) },
+    ]);
+
+    const res = await request(app).get('/populated-scorecard-beta/42?t=' + 'c'.repeat(64));
+
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/<input type="hidden" name="draftId" value="42">/);
+    expect(res.text).toMatch(new RegExp('<input type="hidden" name="t" value="' + 'c'.repeat(64) + '">'));
+  });
+
+  // A draft filed before migration 011 has no token, and 1,557 of them are in that state.
+  // The page still opens — that is HARD-03's grandfather clause, and the links are already
+  // in captains' inboxes — but it must not hand out a token that would publish it. Those
+  // are publishable by a superadmin session only, which is how all 1,557 were published.
+  it('renders an empty token for a tokenless draft, which cannot publish by token', async () => {
+    const res = await request(app).get('/populated-scorecard-beta/42');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/<input type="hidden" name="t" value="">/);
   });
 
   it('says nothing of the sort on an ordinary visit', async () => {

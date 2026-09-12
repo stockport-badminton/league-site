@@ -44,6 +44,7 @@ const { buildUploadKey, objectUrl } = require('../utils/uploads');
 // The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
 const { photoKeyFromStored, contentTypeFor, downloadTypeFor, downloadNameFor } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
+const requirePublishAuthority = require('../middleware/requirePublishAuthority');
 const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
@@ -184,7 +185,10 @@ router.post('/ses-events', webhookLimiter, multer().none(), verifySns,
   email_event_controller.ses_events);
 
 // Scorecard routes
-router.post('/scorecard-beta', publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
+// The gate goes BEFORE validation so an unauthorized caller is refused without the
+// fixture lookups that validation and resolution would otherwise run. See
+// middleware/requirePublishAuthority.js for who may publish and why `secured` is not it.
+router.post('/scorecard-beta', publicFormLimiter, requirePublishAuthority, scorecard_controller.validateScorecard, scorecard_controller.full_fixture_post);
 router.post('/email-scorecard', publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.fixture_populate_scorecard_errors);
 router.post('/add-scorecard-photo/:id', publicFormLimiter, scorecard_controller.add_scorecard_photo);
 router.post('/submit-form', publicFormLimiter, (req, res, next) => {

@@ -463,6 +463,17 @@ scorecard ever filed could be walked by counting, and confirmed by an outsider.
   removes it.
 - **Emailed links go through `confirmationUrl()`/`absoluteUrl()`**, never
   `req.headers.host` — see gotcha 1b.
+- **`POST /scorecard-beta` — the publish step — takes a superadmin session OR a valid
+  draft token** (`middleware/requirePublishAuthority.js`, Sep 2026). It used to carry a
+  rate limiter and nothing else, while the `GET` was `secured` and the messer `POST` was
+  too. `secured` alone is the wrong gate in both directions: it would let any logged-in
+  member publish any outstanding fixture, and it would break the results secretary
+  publishing from the emailed link on a device with no session.
+  **The token test is `mayPublishDraft`, not `mayOpenDraft`.** Reading a tokenless draft
+  is grandfathered open (HARD-03); publishing one is not. Reusing `mayOpenDraft` here
+  would have left 1,557 of 1,562 drafts anonymously publishable while passing review and
+  its own tests — which is why the two rules sit next to each other in
+  `utils/scorecardLinks.js`, each saying why it is not the other.
 - **`POST /add-scorecard-photo/:id` is unauthenticated**, so it takes four checks: the URL
   must be an object in our own S3 bucket, it is HTML-escaped into the email regardless,
   the draft must exist and have no photo yet, and a draft with a token must present it. It

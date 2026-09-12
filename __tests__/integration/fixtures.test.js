@@ -1,5 +1,25 @@
 const request = require('supertest');
 
+// `POST /scorecard-beta` takes either a superadmin session or a valid draft token
+// (HARD-24) and is deliberately not `secured`, so `req.user` comes from the global
+// `passport.session()` in app.js. These tests are about what the route DOES with a body;
+// who may call it is __tests__/integration/scorecard-publish-authority.test.js.
+jest.mock('passport', () => {
+  const actual = jest.requireActual('passport');
+  actual.session = () => (req, res, next) => {
+    req.user = {
+      id: 'auth0|boss',
+      _json: {
+        'https://my-app.example.com/role': 'superadmin',
+        'https://my-app.example.com/club': 'All',
+      },
+    };
+    req.isAuthenticated = () => true;
+    next();
+  };
+  return actual;
+});
+
 jest.mock('../../models/fixture');
 jest.mock('../../models/division');
 jest.mock('../../models/players');
