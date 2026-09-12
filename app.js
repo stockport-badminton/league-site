@@ -2,7 +2,15 @@
 require('./instrument');
 const Sentry = require('@sentry/node');
 
-require('dotenv').config();
+// Not under test. __tests__/setup.js declares the whole environment instead, so a
+
+// variable a test needs is stated rather than inherited from production — see
+
+// docs/hardening/done/HARD-26. Without this the 31 suites that require app.js load
+
+// the real DATABASE_URL, DB_PI_KEY and both cron tokens.
+
+if (process.env.NODE_ENV !== 'test') require('dotenv').config();
 
 var express = require('express');
 var session = require('express-session');

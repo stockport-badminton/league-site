@@ -2,7 +2,11 @@
 // MUST be required first in app.js (before express and other modules) so Sentry
 // can auto-instrument them. If SENTRY_DSN is unset, Sentry.init is a no-op — so
 // this is safe to run locally / in any environment without extra config.
-require('dotenv').config();
+// Not under test. __tests__/setup.js declares the whole environment instead, so a
+// variable a test needs is stated rather than inherited from production — see
+// docs/hardening/done/HARD-26. Without this the 31 suites that require app.js load
+// the real DATABASE_URL, DB_PI_KEY and both cron tokens.
+if (process.env.NODE_ENV !== 'test') require('dotenv').config();
 const Sentry = require('@sentry/node');
 
 Sentry.init({

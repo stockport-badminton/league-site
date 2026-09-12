@@ -128,6 +128,36 @@ Injects a mock `req.user` with superadmin + messeradmin roles. **SAFE** — only
 
 ## Testing
 
+### The test process holds no production credential
+
+`app.js` and `instrument.js` skip `dotenv.config()` under `NODE_ENV=test`, so
+`__tests__/setup.js` **declares the whole environment** rather than inheriting it. A
+variable a test needs must be stated there.
+
+That inverts the old default, which had been patched three times variable by variable —
+Sentry reporting our own test runs as production errors, then `npm test` writing **two real
+objects into the production bucket** — each patch one variable behind whatever went into
+`.env` next. Of the 40 variables the code reads, `setup.js` used to set 15.
+
+Declaring an environment means deciding, per variable, whether **absence is meaningful**:
+
+- **credentials** get obviously-fake values that resolve nowhere;
+- **some variables are safe *because* they are unset** and are `delete`d, not assigned —
+  an unset `AUDIT_EMAIL_TO` is what makes the suite incapable of emailing the results
+  secretary, an unset cron token *closes* that path, an unset `SNS_TOPIC_ARN` skips the
+  topic check the signature fixtures rely on, and an unset `AUDIT_EMAIL_FROM` falls back to
+  the league address the digest test asserts. Declaring fakes for those last two is the
+  mistake that broke three tests when this was written;
+- **`S3_BUCKET_NAME` keeps its real value on purpose** — tests build URLs from it and
+  compare against `normalisePhotoUrl`, which checks the host against it. Renaming it makes
+  those tests wrong rather than safer; the dead credentials are what make the bucket
+  unreachable.
+
+`utils/testEnvGuard.js`, wired into `setupAfterEnv.js`, refuses the whole run if anything
+live is present. It checks **shapes, not names** — a `supabase` host, an `AKIA`/`ASIA` key
+id, a set cron token — which is what stops it going one variable out of date the way the
+patches did. Demonstrated by removing a line from `setup.js` and confirming it fires.
+
 ### Setup
 - **Framework**: Jest
 - **Setup file**: `__tests__/setup.js` — sets required env vars before modules load

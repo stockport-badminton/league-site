@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Nothing in this process may reach production (HARD-26)
+// ---------------------------------------------------------------------------
+//
+// setup.js declares the whole environment and app.js skips dotenv under NODE_ENV=test, so
+// this should never fire. It is here because the exposure it closes was patched three
+// times variable by variable before anyone looked at the shape of the problem — and the
+// second of those patches came after a test wrote two real objects into the production
+// bucket. A guard that checks what is actually present is the thing that does not go one
+// variable out of date.
+const { liveCredentials, refusalMessage } = require('../utils/testEnvGuard');
+const live = liveCredentials(process.env);
+if (live.length) {
+  throw new Error(refusalMessage(live));
+}
+
 // Runs after the test framework is installed, so beforeEach is available. Env vars are
 // set earlier, in setup.js (a `setupFiles` entry).
 
