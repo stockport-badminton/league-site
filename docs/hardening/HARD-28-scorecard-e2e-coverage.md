@@ -153,8 +153,10 @@ with them returns **200**. Two consequences, and the second is the dangerous one
   in that bucket.
 
 So **HARD-26 declared the Jest environment and nothing has done the same for the browser
-one.** `dev.env` is now the last place a test run holds a live credential. That is
-**HARD-33**, and it gates the submission tests below — not the rest of them.
+one.** `dev.env` is now the last place a test run holds a live credential. That was
+**HARD-33**, and it **landed on 12 Sep** — `e2e/server-env.js` now gives the suite's server dead
+credentials and refuses to start otherwise, and `e2e/global-setup.js` refuses to run against a
+server it did not configure. So the submission tests below are unblocked.
 
 One more sharp edge found while checking this: `reuseExistingServer: !process.env.CI`
 means the suite adopts whatever server is already on the port. `npm run prodlocal` loads
@@ -170,8 +172,8 @@ stray input fails it.
 
 Since HARD-13 this can **submit** rather than serialise, against the local database, which
 proves the server accepts the shape as well as that the DOM produces it. Do the serialising
-version first — it needs nothing from HARD-33 and catches the duplicate-field class on its
-own — then the posting version once the dev server's credentials are dead.
+version first — it catches the duplicate-field class on its own and needs no fixture
+cleanup — then the posting version, which HARD-33 has now made safe.
 
 **2. What the captain is told (holds contract 2).** For each failure the flow can hit —
 unreadable card, refused file type, failed upload, unmatched fixture — assert the message
@@ -214,7 +216,6 @@ and captains file results on phones at the end of a match night.
 
 - ~~Submitting a real scorecard.~~ **Lifted 12 Sep** — HARD-13 gives the browser suite a
   disposable database. Submission tests are in scope, behind HARD-33.
-- Neutralising `dev.env`. That is HARD-33, and it is a prerequisite rather than part of
-  this.
+- Neutralising the dev server's credentials. That was HARD-33 and is **done**.
 - The server-side handlers, which are well covered by Jest already.
 - Anything requiring the OCR to actually run: the analysis endpoint is stubbed.

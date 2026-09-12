@@ -252,30 +252,36 @@ npm run test:all      # jest, then playwright
   `require('express').response.render.mockRestore()` and matches on the HTML. Use
   that pattern when the bug you care about is in the template's data contract.
 
-**⚠️ Read-only by default, and the reason has changed — read this before relying on
-either half.** It used to be that `dev.env` carried the *same* `DATABASE_URL` as `.env`,
-so the dev server the suite starts was talking to **production** Postgres. Since HARD-13
-that is no longer true: `dev.env` points at the local database, and the browser suite has
-been running against it ever since. The warning above sat here saying the opposite for
-days, which is worth more than the fact — **a warning that has quietly inverted is worse
-than no warning**, because it is what a careful person checks instead of looking.
+**The server the suite starts is configured by `e2e/server-env.js`** — the browser
+counterpart of `__tests__/setup.js`, preloaded with `node -r ./e2e/server-env.js app.js`.
+It takes the local database and `DB_PI_KEY` from `dev.env`, assigns dead credentials for
+everything outbound, deletes the variables that are safe *because* they are unset, and
+**refuses to start** if anything live survives. `npm run dev` is untouched and still has
+real credentials for actual local work.
 
-What is still true is that **`dev.env` holds a live `AKIA` key and the real bucket name**
-(`HeadBucket` on `badmintontemp` returns 200), and that `e2e/helpers/read-only.js`
-**cannot see a server-side write** — it intercepts browser requests, so it blocks a
-presigned PUT from the page but not a PUT made from inside the Node process, which is what
-`POST /api/analyse-scorecard` does. That is HARD-33. Until it lands, keep tests read-only.
+Two traps it closes, neither of which was obvious (HARD-33):
 
-Note also `reuseExistingServer: !process.env.CI` — the suite adopts whatever server is
-already on the port, so running it while `npm run prodlocal` is up points every spec at
-production.
+- **`e2e/helpers/read-only.js` cannot see a write the server makes.** It intercepts
+  *browser* requests, so it stops a presigned PUT from the page and aborts anything
+  cross-origin — but `POST /api/analyse-scorecard` and `/api/convert-scorecard-document`
+  store their converted image from inside Node, where the guard has no visibility at all.
+  Until Sep 2026 `dev.env` held a live `AKIA` key, so that write would have landed in the
+  **production** bucket with the suite reporting no writes. Both layers are needed: the
+  environment makes it harmless, the helper keeps the page honest.
+- **`reuseExistingServer` means the suite adopts whatever is on port 8080**, `npm run
+  prodlocal` included — which loads `.env` and is pointed at production. `/health` reports
+  `e2e: true` only when `E2E_SERVER` is set, and `e2e/global-setup.js` refuses to run
+  without it. Checking for *our* marker rather than for evidence of production is
+  deliberate: production can never emit it, so the check fails closed.
 
-`e2e/helpers/read-only.js` enforces this at the network layer rather than
-trusting each test: it aborts any mutating request and `assertNoWrites()` then
-fails the test. Call it at the end of every test. `POST /teams` is allowlisted
-because `team_search()` only SELECTs despite the verb. If you need coverage of
-actual submission, point the tests at a separate database first — don't widen the
-allowlist.
+An earlier version of this section said the opposite of the truth — that `dev.env` carried
+the same `DATABASE_URL` as `.env`, so the suite hit production Postgres. True when written,
+false from the moment HARD-13 landed, and nobody noticed for days. **A warning that has
+quietly inverted is worse than no warning**, because it is what a careful person checks
+instead of looking.
+
+Keep tests read-only anyway unless a spec deliberately writes: the local database is
+disposable, but a spec that only passes against a freshly loaded one will get skipped.
 
 Gotchas the specs already encode:
 - Score/player dropdowns lead with `<option disabled selected>Choose …</option>`
@@ -372,6 +378,14 @@ half-applied load is worse than none and throwing a local database away costs no
   from Ofcom's reserved drama range, re-encrypted under a local `DB_PI_KEY`. A dev box
   should not hold the league's contact list, and the production ciphertext would not
   decrypt under a local key anyway.
+- **Stored scorecard photographs are cleared too**, and for a stronger version of the same
+  reason: `scorecardstore."scoresheet-url"` pointed at 1,479 real objects in the production
+  bucket, and a scorecard photo is a picture of a team sheet carrying twelve players' names
+  and both captains' signatures. It also meant the **browser suite read production storage
+  on every run** — the populated-scorecard page renders `/scorecard-photo/:id`, the server
+  fetched the object, and `read-only.js` was content because it is a same-origin GET.
+  Nobody had noticed. Cleared rather than pointed at a placeholder: a draft with no photo is
+  an ordinary state with a whole flow built for it, so NULL exercises a real path.
 - **`ANALYZE` runs at the end of `load`.** Without statistics the planner sequential-scans
   a 35,000-row `game` table and pages take seconds, which reads as browser-test flakiness.
 

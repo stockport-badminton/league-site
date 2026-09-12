@@ -235,7 +235,15 @@ async function healthCheck(req, res) {
   try {
     const conn = await db.otherConnect();
     await conn.query('SELECT 1');
-    res.status(200).json({ ok: true, uptime: Math.round(process.uptime()) });
+    const body = { ok: true, uptime: Math.round(process.uptime()) };
+    // Marker for the browser suite, and ONLY ever present when e2e/server-env.js started
+    // this process. playwright.config.js has reuseExistingServer, so the suite adopts
+    // whatever is already on the port — `npm run prodlocal` included, which is pointed at
+    // the production database and bucket. e2e/global-setup.js refuses to run without this
+    // field. Nothing in production sets E2E_SERVER, so production can never emit it, and
+    // its ABSENCE is what fails the check — which is the right way round.
+    if (process.env.E2E_SERVER === '1') body.e2e = true;
+    res.status(200).json(body);
   } catch (err) {
     console.error('health: database unreachable:', err.message);
     res.status(503).json({ ok: false, error: 'database unreachable' });

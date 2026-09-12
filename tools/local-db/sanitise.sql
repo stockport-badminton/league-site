@@ -60,3 +60,22 @@ BEGIN
     RAISE NOTICE 'sanitised player.authEmail (% rows)', n;
   END IF;
 END $$;
+
+-- ── Stored scorecard photographs ────────────────────────────────────────────────────
+--
+-- `scorecardstore."scoresheet-url"` holds an https URL to an object in the PRODUCTION
+-- bucket, and the seed carries 1,479 of them. They are not contact details, but the same
+-- argument applies more strongly: a scorecard photograph is a picture of a team sheet
+-- carrying twelve players' names and both captains' signatures (HARD-25 found this out by
+-- nearly committing one as a test fixture).
+--
+-- Leaving them also made the BROWSER SUITE read production storage on every run. The
+-- populated-scorecard page renders GET /scorecard-photo/:id, the server fetches the object
+-- with whatever AWS credentials it has, and `e2e/helpers/read-only.js` is content because
+-- it is a same-origin GET. Nothing said this was happening. Found 12 Sep 2026 while doing
+-- HARD-33, when the credentials went dead and the fetch started 404ing.
+--
+-- Cleared rather than rewritten to a local placeholder: a draft with no photo is an
+-- ordinary, well-supported state — the whole "add a photo later" flow exists for it — so
+-- NULL exercises a real path, while a made-up URL would exercise a path that cannot work.
+UPDATE scorecardstore SET "scoresheet-url" = NULL WHERE "scoresheet-url" IS NOT NULL;
