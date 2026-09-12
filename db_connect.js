@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { regionEnd } = require('./utils/sqlScan');
 // Safe to require here even though instrument.js owns Sentry.init: an
 // uninitialised Sentry no-ops, so this stays inert under Jest (which mocks this
 // module anyway) and in any process that never calls init.
@@ -99,12 +100,9 @@ exports.end = async function() {
 // the audit has been printing `$1#44` where it meant `?#44` for as long as it has
 // existed.
 //
-// So the scan tracks what it is inside and rewrites only outside:
-//   'literal'        with '' as the escape
-//   "identifier"     with "" as the escape
-//   $tag$ ... $tag$  dollar quoting
-//   -- to end of line
-//   /* ... */        nestable, as Postgres allows
+// So the scan tracks what it is inside and rewrites only outside. That scanner is
+// `utils/sqlScan.js` — shared with the migration runner, which had the identical bug one
+// layer up (splitting statements on a semicolon inside a comment, HARD-18).
 //
 // Note the one thing this deliberately does not solve: Postgres' jsonb operators are
 // spelled `?`, `?|` and `?&`, and a bare `?` outside a literal is genuinely ambiguous
@@ -117,68 +115,21 @@ function pgify(sql) {
   let i = 0;
 
   while (i < sql.length) {
-    const ch = sql[i];
-    const next = sql[i + 1];
-
-    // -- line comment
-    if (ch === '-' && next === '-') {
-      const end = sql.indexOf('\n', i);
-      const stop = end === -1 ? sql.length : end;
+    // Inside a literal, identifier, dollar-quote or comment? Copy it through untouched.
+    const stop = regionEnd(sql, i);
+    if (stop > i) {
       out += sql.slice(i, stop);
       i = stop;
       continue;
     }
 
-    // /* block comment */, which Postgres allows to nest
-    if (ch === '/' && next === '*') {
-      let depth = 0;
-      const start = i;
-      while (i < sql.length) {
-        if (sql[i] === '/' && sql[i + 1] === '*') { depth++; i += 2; continue; }
-        if (sql[i] === '*' && sql[i + 1] === '/') { depth--; i += 2; if (!depth) break; continue; }
-        i++;
-      }
-      out += sql.slice(start, i);
-      continue;
-    }
-
-    // $tag$ dollar-quoted string. The tag may be empty ($$) or a bare identifier.
-    if (ch === '$') {
-      const tag = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(sql.slice(i));
-      if (tag) {
-        const marker = tag[0];
-        const close = sql.indexOf(marker, i + marker.length);
-        const stop = close === -1 ? sql.length : close + marker.length;
-        out += sql.slice(i, stop);
-        i = stop;
-        continue;
-      }
-    }
-
-    // 'string literal' or "quoted identifier"; a doubled quote is an escaped one.
-    if (ch === "'" || ch === '"') {
-      const quote = ch;
-      const start = i;
-      i++;
-      while (i < sql.length) {
-        if (sql[i] === quote) {
-          if (sql[i + 1] === quote) { i += 2; continue; }
-          i++;
-          break;
-        }
-        i++;
-      }
-      out += sql.slice(start, i);
-      continue;
-    }
-
-    if (ch === '?') {
+    if (sql[i] === '?') {
       out += '$' + (++idx);
       i++;
       continue;
     }
 
-    out += ch;
+    out += sql[i];
     i++;
   }
 

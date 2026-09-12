@@ -112,7 +112,17 @@ case "${1:-}" in
       echo "  (none decryptable — has load run?)"
     ;;
 
-  psql)    wait_healthy; docker exec -it "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" ;;
+  # With no extra arguments this is an interactive shell. With them it is a one-shot:
+  # `local-db.sh psql -c 'DROP ...'`. The -t is dropped in that case, because `docker exec
+  # -it` with no terminal fails with "the input device is not a TTY" — which is what made
+  # the one-shot form appear to succeed while doing nothing.
+  psql)    wait_healthy
+           shift
+           if [ "$#" -gt 0 ]; then
+             docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" "$@"
+           else
+             docker exec -it "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME"
+           fi ;;
   url)     echo "postgresql://$DB_USER:$DB_USER@127.0.0.1:$PORT/$DB_NAME" ;;
   key)     echo "$LOCAL_DB_PI_KEY" ;;
   down)    $COMPOSE down ;;

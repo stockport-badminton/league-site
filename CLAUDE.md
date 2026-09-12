@@ -339,8 +339,13 @@ run is now harmless — but check the top of any script before trusting what it 
 half-applied load is worse than none and throwing a local database away costs nothing.
 
 - **Schema comes from `migrations/001_initial.sql`** (60 tables — 12 live, 48 season
-  archives) plus the numbered migrations. Applied with `psql -f`, not
-  `tools/run-migration.js`, which splits on `;` without regard for comments (HARD-18).
+  archives) plus the numbered migrations. Applied with `psql -f`, which is still the right
+  tool for a bulk load. For a single migration use `node run-migration.js <file> [--local]`
+  (repo root, not `tools/`). It used to split the file on `;` with `String.split`, so a
+  semicolon in a comment was a statement boundary and the statement behind it never ran —
+  fixed in HARD-18 by sharing `utils/sqlScan.js` with `pgify`, which had the identical bug
+  one layer down. **`--local` is how you rehearse**; without it the runner targets
+  production, like every other tool.
   Some migrations are no-ops replayed from nothing — 003 adds a column 002 now creates —
   so an "already exists" is reported and skipped while **any other error stops the load**.
 - **Data comes from `migrations/data/002_data.sql`**, which is **gitignored**, so a fresh
