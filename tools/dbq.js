@@ -19,8 +19,10 @@
 // multiple statements. Writes belong in a reviewed script under scripts/, with a
 // dry run, the way scripts/backfill-contact-emails.js does it.
 
-require('dotenv').config({ path: require('path').join(__dirname, '../dev.env') });
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+// PRODUCTION by default — that is what this tool is for, and what every audit check is
+// about. `--local` asks for the development database from HARD-13 instead. The ordering
+// subtlety that makes this matter lives in tools/lib/loadEnv.js.
+require('./lib/loadEnv').loadEnv({ local: process.argv.includes('--local') });
 
 const fs = require('fs');
 const db = require('../db_connect.js');
@@ -78,7 +80,7 @@ function renderTable(rows) {
 }
 
 async function main() {
-  const argv = process.argv.slice(2);
+  const argv = process.argv.slice(2).filter(a => a !== '--local');
   const json = argv.includes('--json');
   const rest = argv.filter(a => a !== '--json');
 

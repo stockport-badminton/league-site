@@ -18,8 +18,8 @@
 //   node tools/scorecard-photo-audit.js
 //   node tools/scorecard-photo-audit.js --json out.json   # full per-row detail
 //
-require('dotenv').config({ path: require('path').join(__dirname, '../dev.env') });
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+// Production by default; see tools/lib/loadEnv.js for why the order matters.
+require('./lib/loadEnv').loadEnv();
 
 const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const db = require('../db_connect.js');

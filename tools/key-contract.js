@@ -33,8 +33,8 @@
 // Read-only. It calls nothing whose name suggests a write, because DATABASE_URL is
 // production. Model stdout is silenced: models/players.js logs its SQL and that SQL has
 // DB_PI_KEY interpolated as a literal (HARD-27), so running it would print the key.
-require('dotenv').config({ path: require('path').join(__dirname, '../dev.env') });
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+// Production by default; see tools/lib/loadEnv.js for why the order matters.
+require('./lib/loadEnv').loadEnv();
 
 const fs = require('fs');
 const path = require('path');

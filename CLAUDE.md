@@ -277,6 +277,25 @@ tools/local-db.sh down                            # stop, keep the data
 tools/local-db.sh nuke                            # stop and delete it
 ```
 
+**Tools read PRODUCTION, not the local database.** `tools/lib/loadEnv.js` decides, and
+every tool goes through it — `dbq`, `key-contract`, `dmarc`, `scorecard-photo-audit`,
+`check-inbound-email`. `node tools/dbq.js --local "…"` asks for the development one
+deliberately.
+
+That is a one-place decision because it silently went wrong the day the local database
+arrived: dotenv does not overwrite a variable that is already set, so whichever env file
+loads FIRST wins, and every tool loaded `dev.env` first. Harmless while `dev.env` carried
+the same connection string as `.env`; wrong the instant it did not. `dbq --check all` went
+on running and printing counts — against a two-year-old local seed. It surfaced only
+because a query returned "no rows" for drafts that plainly existed, and it could as easily
+have been a data decision taken on the wrong numbers.
+`__tests__/unit/tool-env-order.test.js` fails if a tool calls `dotenv` directly again.
+
+**The write scripts under `scripts/` have the same shape and are gitignored**, so they are
+not covered by that test. They load `dev.env` then `.env`, which now means a script
+written to fix production data will target the LOCAL one. Cuts both ways — an accidental
+run is now harmless — but check the top of any script before trusting what it reports.
+
 `load` is destructive and idempotent: it drops the schema and rebuilds, because a
 half-applied load is worse than none and throwing a local database away costs nothing.
 

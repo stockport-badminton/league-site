@@ -18,8 +18,8 @@
 // FAIL: either someone spoofing us, or a real sender that moving to p=reject would start
 // binning. A clean run is the evidence for that move.
 
-require('dotenv').config({ path: require('path').join(__dirname, '../dev.env') });
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+// Production by default; see tools/lib/loadEnv.js for why the order matters.
+require('./lib/loadEnv').loadEnv();
 
 const dmarc = require('../utils/dmarcReports');
 
