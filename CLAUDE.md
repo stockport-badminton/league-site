@@ -65,7 +65,16 @@ LEFT JOIN division d ON ht."division" = d.id
 ### Two email columns on `player`, and they are not interchangeable
 
 Both are `pgp_sym_encrypt`'d bytea — always bind `DB_PI_KEY` as a `?` parameter,
-never inline it (one query had it as a string literal until Aug 2026).
+never inline it. `__tests__/unit/no-secrets-in-sql.test.js` enforces that, because the
+Aug 2026 sweep that was recorded here as finished had in fact fixed one query and left
+**three functions in `models/players.js`**: `getEmails` (five times, once per UNION
+branch, with `console.log(sql)` above it — so the key went to Cloud Logging on every
+distribution-list send), `getById` (twice) and `updateBulk`. Note the last one used a
+**template literal**, so the obvious grep for `+ process.env.DB_PI_KEY` does not find it;
+the guard matches both spellings and self-tests that it still does. Closed Sep 2026
+(HARD-27). **The key was in the logs for as long as that `console.log` existed, so
+whether to rotate is a decision to take knowingly** — rotating means re-encrypting every
+`pgp_sym_encrypt` value, which is why it should be decided rather than deferred.
 
 - **`authEmail`** — the login identity, written only when a superadmin approves a
   signup (`Player.setAuthRole`). Read by `getAuthRoleByEmail` at login to enrich

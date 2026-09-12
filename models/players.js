@@ -79,8 +79,9 @@ exports.updateBulk = async function(BatchObj) {
       if (BatchObj.fields[y] === 'id') {
         whereId = row[y]
       } else if (BatchObj.fields[y] === 'playerTel' || BatchObj.fields[y] === 'playerEmail') {
-        setClauses.push(`"${BatchObj.fields[y]}" = pgp_sym_encrypt(?, '${process.env.DB_PI_KEY}')`)
-        params.push(String(row[y]))
+        // Two binds, value then key, in the order the placeholders appear in the clause.
+        setClauses.push(`"${BatchObj.fields[y]}" = pgp_sym_encrypt(?, ?)`)
+        params.push(String(row[y]), process.env.DB_PI_KEY)
       } else {
         setClauses.push(`"${BatchObj.fields[y]}" = ?`)
         params.push(row[y])
@@ -860,25 +861,30 @@ exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail })
 }
 
 exports.getEmails = async function(searchTerms) {
-  var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
+  const key = process.env.DB_PI_KEY
+  var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
+  // One bind per UNION branch, in the order the placeholders appear, then one per WHERE
+  // term. The key used to be pasted in as a string literal five times, which put it in the
+  // query TEXT — and so into anything that writes a statement down: the console.log that
+  // used to sit below this line (Cloud Logging, on every distribution-list send), a
+  // slow-query log, the message of a failed query.
+  const params = [key, key, key, key, key];
+
   var whereTerms = [];
-  if (searchTerms.role) whereTerms.push("b.role = '" + searchTerms.role + "'")
-  if (searchTerms.division) whereTerms.push('b.division = ' + searchTerms.division)
-  if (searchTerms.club) whereTerms.push("b.id = '" + searchTerms.club + "'")
-  if (searchTerms.teamName) whereTerms.push("b.teamName = '" + searchTerms.teamName + "'")
+  if (searchTerms.role) { whereTerms.push('b.role = ?'); params.push(searchTerms.role) }
+  if (searchTerms.division) { whereTerms.push('b.division = ?'); params.push(searchTerms.division) }
+  if (searchTerms.club) { whereTerms.push('b.id = ?'); params.push(searchTerms.club) }
+  // b.teamname, not b.teamName. The subquery aliases `team.name AS teamname`, and an
+  // unquoted camelCase reference folds to lowercase anyway — so this spelling is what
+  // Postgres has always been given. CLAUDE.md's alias rule, applied to a reference.
+  if (searchTerms.teamName) { whereTerms.push('b.teamname = ?'); params.push(searchTerms.teamName) }
 
   if (whereTerms.length > 0) {
     sql = sql + ' WHERE ' + whereTerms.join(' AND ')
   }
-  // DO NOT log `sql` here. This query still interpolates DB_PI_KEY as a string literal —
-  // five times, once per UNION branch — so printing it writes the key that encrypts every
-  // player's email and phone number into Cloud Logging, on every distribution-list send.
-  //
-  // That is not hypothetical: running this function during an audit on 7 Sep 2026 printed
-  // the key thirteen times into a terminal. HARD-27 is to bind the key as a parameter,
-  // after which logging the statement would be harmless again — until then this line is
-  // the difference between the key being in the logs and not.
-  const [result] = await (await db.otherConnect()).query(sql)
+  // Logging `sql` would now be harmless — it carries placeholders where the key used to be.
+  // It is still not logged: it is 1.5KB of five-way UNION and nothing reads it.
+  const [result] = await (await db.otherConnect()).query(sql, params)
   var emailArray = result.map(row => row.playerEmail)
   emailArray = emailArray.filter(email => email && email.indexOf("@") != -1)
   return emailArray
@@ -1002,8 +1008,9 @@ exports.getByNameAndTeam = async function(playerName, teamId, distance) {
 
 exports.getById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
-    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", '" + process.env.DB_PI_KEY + "')::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", '" + process.env.DB_PI_KEY + "')::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, \"otherComms\", junior, role, \"messerAdmin\" FROM player WHERE id = ?",
-    playerId
+    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", ?)::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", ?)::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, \"otherComms\", junior, role, \"messerAdmin\" FROM player WHERE id = ?",
+    // Two binds: "playerEmail" then "playerTel", then the id.
+    [process.env.DB_PI_KEY, process.env.DB_PI_KEY, playerId]
   )
   return result
 }
