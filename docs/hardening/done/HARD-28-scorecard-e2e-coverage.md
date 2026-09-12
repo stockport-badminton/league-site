@@ -219,3 +219,74 @@ and captains file results on phones at the end of a match night.
 - Neutralising the dev server's credentials. That was HARD-33 and is **done**.
 - The server-side handlers, which are well covered by Jest already.
 - Anything requiring the OCR to actually run: the analysis endpoint is stubbed.
+
+## What landed, 12 Sep
+
+Gaps 1 (serialising half) and 3 were already in: `e2e/form-contract.spec.js` and
+`e2e/scorecard-wizard.spec.js`. This pass closed the rest, and the two bugs it turned up
+are the more useful part of the record.
+
+### Two bugs, both found by writing the tests
+
+**Messer had no gate.** The league card's `sendEvent` wrapper went in on 18 May 2026
+(`7c682c8`); messer got `validateGamePair` and the inline feedback and never the wrapper,
+so every rule it stated was advisory. That matters more here than it would elsewhere:
+step 14 derives the match score by comparing `value * 1` on each pair, and an empty box is
+`0`, so `0 > 0` is false and **every unfilled game was counted as an away win**. A card
+filed nine games in reads as a plausible 6-9 and nothing says a score is missing. There is
+no "all 15 games present" check anywhere on either side of the wire — the gate is the only
+thing there has ever been.
+
+Its range message said "Scores must be between 0 and 30" while the inputs carry
+`min="-10"` and the server validates `isInt({ min: -10, max: 30 })`. Messer is handicapped,
+so a side can finish below zero: **the one rule a messer captain cannot guess was the one
+the form stated wrongly**, and it was wrong because it was copied from the league card,
+where it is true.
+
+The step→games map is now read off the markup rather than hardcoded. Messer's three mixed
+steps hold ONE game where its other six hold two, so a map copied from the league card's
+nine pairs is wrong in three places — which is the same drift that produced the message
+above.
+
+**Filing a draft 500'd on a failed email.** `POST /email-scorecard` awaited `mailer.send`
+bare inside its `try`, *after* `Fixture.createScorecard` had committed, so an SES failure
+sent the captain to the 500 page — whose entire message is that nothing was recorded, which
+is false. What a captain does about that is file the card again: one match, two drafts, and
+the results secretary left to work out which is real. HARD-01's `afterCommit` was sitting
+in the same file, guarding the publish path only, while this is the path captains actually
+use every week.
+
+It now lives in `utils/afterCommit.js`. The draft path redirects with `notified=0` when the
+send failed and `populated-scorecard.ejs` says so, because "filed and announced" and
+"filed, and nobody has been told" are different situations and only one needs the captain
+to do anything.
+
+The messer sends were the mirror image: each helper caught its own failure and
+`console.error`'d it, so a failed send produced no Sentry event and the approver was
+answered "Result approved" whether the captain had heard or not. They report now.
+
+**It was the submission test that found it.** The suite's server has dead SES credentials
+(HARD-33), so every submission through it exercises the failed-notification path — which is
+exactly why that half of the brief was worth doing rather than serialising forever.
+
+### The specs
+
+| Spec | Holds |
+|---|---|
+| `scorecard-submit.spec.js` | the form is filled and POSTed, the row is read back out of `scorecardstore`, and the confirmation page plays it back. **The one spec that writes** — one row per test, no updates or deletes, declared through `readOnly(page, baseURL, { allowWrites: [...] })`, and re-runnable without `local-db.sh load` because nothing in it depends on what is already in the table |
+| `messer-wizard.spec.js` | messer's rules, its gate, its single-game mixed steps, Back never being gated, and the 15-game derived total |
+| `scorecard-messages.spec.js` | one test per captain-visible failure: unreadable card, refused file, our own 500, a dead network, and a 200 that extracted nothing. Each also asserts the recovery is *there* — the photo box still offered and the "already uploaded" note not showing |
+| `scorecard-prefill.spec.js` | the prefill beyond the photo: date, division, both teams, twelve players, thirty-six scores — the chain of deferred writes through `POST /teams` and `GET /eligiblePlayers`, where a break leaves everything after it silently empty |
+
+`readOnly()` grew an `allowWrites` option rather than the submission spec going unguarded.
+Cross-origin is still aborted unconditionally, and a same-origin write the test did not
+name still fails `assertNoWrites()` — so "this test writes" stays a statement in the test.
+
+### Left open
+
+**Gap 6, mobile**, which is in the gap list above and not in the acceptance criteria. It is
+now [HARD-34](../HARD-34-scorecard-on-a-phone.md): captains file results on a phone and
+every assertion here was made at desktop width.
+
+Also corrected: four comments in `e2e/` still saying `dev.env` carries production's
+`DATABASE_URL`. Same inverted warning this brief's own re-scoping was about.

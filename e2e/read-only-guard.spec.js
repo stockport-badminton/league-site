@@ -1,9 +1,9 @@
 // Self-test for e2e/helpers/read-only.js.
 //
-// The other specs depend on that guard to keep them from writing to the
-// production database (dev.env carries the same DATABASE_URL as .env). A guard
-// that silently stopped firing would be worse than no guard, because the suite
-// would still look green while a test wrote real rows. So prove it works.
+// The other specs depend on that guard to keep them from writing to the database the
+// suite's server is pointed at — the local one since HARD-13, production before that. A
+// guard that silently stopped firing would be worse than no guard, because the suite would
+// still look green while a test wrote rows. So prove it works.
 
 const { test, expect } = require('@playwright/test');
 const { readOnly } = require('./helpers/read-only');

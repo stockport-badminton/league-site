@@ -72,6 +72,20 @@
         <% if (hasResult && !hasErrors) { %>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>
         <% } %>
+        <%# The draft is written before the results secretary is emailed, and the email is
+            not allowed to fail the submission (utils/afterCommit.js). So this page is
+            reached in two different states, and it has to tell them apart: a captain
+            whose draft is filed and announced needs to do nothing, a captain whose draft
+            is filed but unannounced may want to say so by hand. Silence here would leave
+            the second one believing the first. %>
+        <% if (locals.notificationFailed) { %>
+          <p class="text-warning">
+            Your scorecard is saved &mdash; but we couldn't email the results secretary
+            just now. That's our end, not yours. If you'd like to be sure it's been seen,
+            drop a note to
+            <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>.
+          </p>
+        <% } %>
         <%
         // The scorecard photo, served by GET /scorecard-photo/:id and not from the S3
         // bucket (HARD-02b). The path is built in the controller so the draft's

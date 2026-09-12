@@ -7,9 +7,9 @@
 // listener at all. Both of those are JavaScript-only failures — the server-side
 // tests were perfectly happy.
 //
-// READ-ONLY. dev.env carries the same DATABASE_URL as .env, so this is talking to
-// the production database. Reordering here only moves DOM nodes; nothing is written
-// until Save, which these tests never press. The network guard aborts any mutating
+// READ-ONLY. Reordering here only moves DOM nodes; nothing is written until Save, which
+// these tests never press. (This note used to say the dev server talks to production —
+// true until HARD-13 pointed dev.env at the local Postgres, and stale from that moment.) The network guard aborts any mutating
 // request and assertNoWrites() fails the test if one was attempted, so "we didn't
 // save" is enforced rather than assumed.
 

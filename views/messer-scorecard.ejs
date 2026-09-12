@@ -847,8 +847,13 @@
         }
 
         var h = parseInt(hv, 10), a = parseInt(av, 10), err = null;
+        // -10, not 0. Messer is handicapped: a side starts on a negative score and can
+        // finish there, which is why the inputs carry min="-10" and the server validates
+        // isInt({ min: -10, max: 30 }). This message said "between 0 and 30" — copied from
+        // the league card, where it is true — so the one rule a messer captain cannot
+        // guess was stated wrongly by the only thing that tells them what it is.
         if (isNaN(h) || h < -10 || h > 30 || isNaN(a) || a < -10 || a > 30) {
-          err = 'Scores must be between 0 and 30.';
+          err = 'Scores must be between -10 and 30.';
         } else if (h < 21 && a < 21) {
           err = 'One team must score at least 21.';
         } else if (Math.abs(h - a) < 1 && h < 30 && a < 30) {
@@ -869,6 +874,47 @@
         var match = this.id.match(/Game(\d+)/);
         if (match) validateGamePair(parseInt(match[1], 10), false);
       });
+
+      // ── The gate on forward navigation ──────────────────────────────────────
+      //
+      // The league card has had this since May 2026 (7c682c8); messer got the inline
+      // feedback above and never the gate, so every rule it states was advisory. A messer
+      // captain could Continue past a game with nothing in it — and step 14 does not
+      // notice, because it derives the match score by comparing `value * 1` on each pair:
+      // an empty box is 0, `0 > 0` is false, and the blank game is silently counted as an
+      // AWAY win. A card filed nine games in reads as 6-9 to the away side, and nothing
+      // anywhere says a score is missing.
+      //
+      // Which step holds which games is read off the markup rather than hardcoded: the
+      // three mixed steps carry ONE game where the other six carry two, and a hand-copied
+      // map is a second place for that to be wrong. 15 games, not 18 — copying the league
+      // card's literal is exactly the drift this whole form keeps suffering from.
+      var scoreStepGames = {};
+      $('.scoreInput').each(function() {
+        var game = (this.id.match(/^Game(\d+)/) || [])[1];
+        var group = this.closest('.form-group');
+        var step = group && (group.className.match(/\bstep-(\d+)\b/) || [])[1];
+        if (!game || !step) return;
+        var n = parseInt(game, 10);
+        scoreStepGames[step] = scoreStepGames[step] || [];
+        if (scoreStepGames[step].indexOf(n) === -1) scoreStepGames[step].push(n);
+      });
+
+      var currentWizardStep = 1;
+      var _origSendEvent = sendEvent;
+      sendEvent = function(targetStep) {
+        var target = parseInt(targetStep, 10);
+        // Forward only. Back must always work, or a captain who mistyped a score on an
+        // earlier step is trapped on this one.
+        if (target > currentWizardStep && scoreStepGames[currentWizardStep]) {
+          var results = scoreStepGames[currentWizardStep].map(function(n) {
+            return validateGamePair(n, true);
+          });
+          if (results.some(function(r) { return r !== true; })) return;
+        }
+        currentWizardStep = target;
+        _origSendEvent(targetStep);
+      };
 
       $(".scoreInput").change(function(){
         var inputScore = $(this)[0]

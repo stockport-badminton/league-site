@@ -13,6 +13,7 @@ var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
 const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
 const { escapeHtml } = require('../utils/html');
+const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
   // `photoUrl` is aliased because full_fixture_post already has a local of that name
@@ -474,23 +475,13 @@ exports.full_fixture_post = async function(req, res, next) {
   }
 }
 
-// Runs a post-commit step that must not be able to undo a saved result. Returns the
-// step's value, or null if it threw — the caller carries on either way.
-//
-// The result is already in the database by the time any of these run. Letting one of
-// them reject would send the captain to the 500 page, which tells them nothing was
-// recorded, which is false. That is how a momentary SES outage used to turn into a
-// captain re-submitting a result that was already saved — and getting "no matching
-// fixtures" for their trouble.
-async function afterCommit(label, fn) {
-  try {
-    return await fn();
-  } catch (err) {
-    console.error(`scorecard: ${label} failed after the result was saved:`, err.message);
-    Sentry.captureException(err, { tags: { stage: 'scorecard-post-commit', step: label } });
-    return null;
-  }
-}
+// Runs a post-commit step that must not be able to undo a saved result — see
+// utils/afterCommit.js for why. It moved there when the draft path needed it too: this
+// was the only caller, guarding the publish flow, while the flow captains actually use
+// every week — filing a draft, below — awaited its email and passed the rejection to
+// next(err).
+const afterCommit = (label, fn) =>
+  runAfterCommit(label, fn, { stage: 'scorecard-post-commit' });
 
 // What a captain sees when their submission cannot be matched to an open fixture.
 //
@@ -655,7 +646,17 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         ? 'A scorecard has been entered, with a photo attached.'
         : 'A scorecard has been entered, with no photo attached.';
 
-      await mailer.send({
+      // The draft is already written. Notifying the results secretary is the next thing
+      // that should happen, not a condition of the captain's submission having worked —
+      // so a failure here is reported, not thrown. Before this it was awaited bare inside
+      // the try, so an SES outage took a draft that was safely in `scorecardstore` and
+      // showed the captain the 500 page, whose whole message is that nothing was
+      // recorded. The captain then re-files, and the results secretary gets two drafts
+      // for one match — or, with the notification broken both times, none.
+      //
+      // The publish path has had this since HARD-01. Filing a draft is the path captains
+      // actually use, and it did not.
+      const notified = await afterCommit('draft received email', () => mailer.send({
         template: 'scorecard-received',
         subject: 'Scorecard received: ' + homeTeamName + ' v ' + awayTeamName,
         to: mailer.RESULTS_MAILBOX,
@@ -678,10 +679,18 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
           photoUrl: photoLink,
           photoLine,
         },
-      });
+      }));
       // The captain gets the token too, or the page they are redirected to would refuse
       // the draft they have just this moment filed.
-      res.redirect(confirmationPath(scorecardId, confirmToken));
+      //
+      // `notified=0` rides along when the email did not go, and the confirmation page
+      // says so. Saying nothing would be the other half of the same bug: the captain's
+      // draft is safe either way, but "filed AND the results secretary knows" and "filed,
+      // and nobody has been told" are different situations and only one of them needs a
+      // nudge by hand.
+      const confirmPath = confirmationPath(scorecardId, confirmToken);
+      res.redirect(notified ? confirmPath
+        : confirmPath + (confirmPath.indexOf('?') === -1 ? '?' : '&') + 'notified=0');
     } catch (err) { next(err); }
   }
 }
@@ -749,6 +758,12 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       pageDescription: "Show result of uploading scorecard",
       result: renderData,
       data: rows[0],
+      // Set by the redirect from POST /email-scorecard when the "we have your scorecard"
+      // email could not be sent. A query parameter because this is a fresh request after
+      // a redirect — there is no other way to carry it — and it is safe to take from one:
+      // the worst a forged `?notified=0` does is tell its own author to email the results
+      // secretary.
+      notificationFailed: req.query.notified === '0',
       // The scorecard photo, through GET /scorecard-photo/:id rather than from the
       // bucket (HARD-02b). This is the only page that shows a photo to a human, and it
       // is the right one: it already has the draft row and already checks the token, so

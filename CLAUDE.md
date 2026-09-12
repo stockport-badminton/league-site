@@ -233,6 +233,14 @@ npm run test:all      # jest, then playwright
   that's already running.
 - **Specs**: `scorecard.spec.js` (18-game), `messer-scorecard.spec.js` (15-game),
   `populated-scorecard.spec.js` (the confirmation view for both),
+  `form-contract.spec.js` (what each of the five scorecard forms *serialises to* — no
+  field name twice, and the right number of game pairs),
+  `scorecard-wizard.spec.js` / `messer-wizard.spec.js` (the score rules and the gate that
+  blocks Continue, 18-game and 15-game),
+  `scorecard-messages.spec.js` (one test per captain-visible failure message, each also
+  asserting the recovery it points at is on the page),
+  `scorecard-prefill.spec.js` (what the auto-fill fills in beyond the photo),
+  `scorecard-submit.spec.js` (**the one spec that writes** — see below),
   `filter-toolbar.spec.js` (filters/chips/DataTables controls),
   `roster-edit.spec.js` (team-management: pointer and **real touch** drag, drag
   *precision* — the row tracking the pointer and not falling into the wrong list —
@@ -240,6 +248,16 @@ npm run test:all      # jest, then playwright
   stacking; the reordering is JavaScript-only behaviour that no server-side test can
   reach),
   `read-only-guard.spec.js` (self-test for the guard below).
+- **One spec writes, and it says so.** `scorecard-submit.spec.js` fills the captain's form
+  in the browser, POSTs it, and reads the row back out of `scorecardstore` — one row per
+  test, no updates or deletes. It is declared:
+  `readOnly(page, baseURL, { allowWrites: [/^\/email-scorecard$/] })`. Cross-origin is
+  still aborted unconditionally and any same-origin write the test did not name still
+  fails `assertNoWrites()`, so "this test writes" stays a statement in the test rather than
+  a property of the helper. **Do not widen `READ_ONLY_POSTS`** to make a write pass; name
+  it in `allowWrites` instead.
+  It must also stay re-runnable without `tools/local-db.sh load` in between — a spec that
+  only passes against a freshly loaded database is a spec that gets skipped.
 - **Known bugs** are recorded with `test.fail()` *inside* the test body (at
   describe level the modifier applies to every test in the group). The suite stays
   green, and if the bug gets fixed the run says "expected to fail, but passed" —
@@ -396,11 +414,11 @@ unaffected. Override with `ALLOW_PRODUCTION_DB=i-know-what-i-am-doing`, which
 
 **The browser suite raises the sitewide rate limit for its own dev server**
 (`GLOBAL_RATE_LIMIT=100000` in `playwright.config.js`). At the production budget of 600
-per quarter hour, 71 specs from one address exhaust it partway through, and every page
+per quarter hour, 89 specs from one address exhaust it partway through, and every page
 after that is a 429 that renders without the elements the tests look for — so the failure
 names a missing locator and says nothing about a rate limit. This has now bitten twice:
 once when the limiter sat above the static handlers, and again simply because the suite
-grew from 44 specs to 71.
+grew from 44 specs to 71, and again to 89.
 
 ## Asking production what is actually used
 
@@ -532,6 +550,37 @@ scorecard ever filed could be walked by counting, and confirmed by an outsider.
   from our own verified domain, to the inbox expecting that exact email.
 - **Hand-built email HTML escapes with `utils/html.js`.** EJS escapes; string
   concatenation does not, and every outbound email in this codebase is concatenated.
+
+### A notification must not be able to fail the write it is reporting
+
+`utils/afterCommit.js`. Anything that runs after a row is committed — the notification
+email, the social webhook, extra data for the page about to be rendered — is courtesy, and
+letting it reject sends the captain to the 500 page, **whose entire message is that nothing
+was recorded**. What a captain does about that is submit the same result again.
+
+```js
+const notified = await afterCommit('draft received email', () => mailer.send({...}));
+```
+
+It returns the step's value or `null`, reports to Sentry as a **handled** event, and the
+caller carries on. Two rules around it:
+
+- **Then say which of the two happened.** "Filed, and the results secretary knows" and
+  "filed, and nobody has been told" are different situations and only one needs the captain
+  to do anything. The publish page has `notificationFailed`; the draft redirect carries
+  `notified=0` and `populated-scorecard.ejs` reads it. Reporting only success makes a
+  half-failure indistinguishable from a success — the same mistake as a rejection that
+  looks like an acceptance in `POST /fixture/rearrangement`.
+- **Swallowing inside the helper being called is not the same thing.** The three messer
+  send helpers each caught their own failure and `console.error`'d it, so a failed send
+  produced no Sentry event *and* the approver was answered "Result approved" either way.
+  The catch belongs at the call site, where the caller can tell its user.
+
+This was HARD-01's fix, and for four months it guarded `POST /scorecard-beta` — the publish
+path — while `POST /email-scorecard`, the path captains actually use every week, awaited
+`mailer.send` bare inside its `try` after the draft was already written. The same shape sat
+in the messer submit and approve/reject handlers. **A fix that lives inside one handler
+protects one handler**; the second caller is what turns it into a rule.
 
 ### Messer Knockout Tournament
 

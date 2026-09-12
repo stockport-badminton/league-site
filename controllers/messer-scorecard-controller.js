@@ -7,6 +7,13 @@ const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
 const { body, validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
+const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
+
+// Anything that runs after a messer write has committed — the notification emails below —
+// reports its own failure instead of failing the request. See utils/afterCommit.js: the
+// draft (or the approval) is already in the database, so a 500 here tells the captain the
+// opposite of what happened, and what they do about it is file the same card again.
+const afterCommit = (label, fn) => runAfterCommit(label, fn, { stage: 'messer-post-commit' });
 
 // Validation rules for 15-game messer format
 function greaterThan21(value, { req, path }) {
@@ -347,8 +354,11 @@ exports.full_messer_fixture_post = async function(req, res, next) {
     const result = await Fixture.createMesserScorecard(scorecardData);
     const scorecardId = result[0]?.id;
 
-    // Send email to results secretary
-    await sendMesserSubmissionEmail(req, scorecardData, scorecardId);
+    // Email the organiser. Not a condition of the card having been filed — the row is
+    // written by the line above, and a captain sent to the 500 page by a failed send
+    // would reasonably file it again.
+    await afterCommit('messer submission email',
+      () => sendMesserSubmissionEmail(req, scorecardData, scorecardId));
 
     // Redirect to confirmation page
     res.redirect(`/populated-messer-scorecard/${scorecardId}`);
@@ -646,8 +656,12 @@ exports.messer_result_approve = async function(req, res, next) {
     // and kept reappearing for approval.)
     await Fixture.updateMesserScorecardStatus(scorecardId, 'approved');
 
-    // Send approval email to captain
-    await sendMesserApprovalEmail(data);
+    // Send approval email to captain. The result is recorded, the bracket may already
+    // have been advanced and the draft marked approved — a failed email cannot be allowed
+    // to answer 500 over all of that, because the obvious response to a 500 is to approve
+    // it again, and approving twice writes a second result row.
+    const captainTold = await afterCommit('messer approval email',
+      () => sendMesserApprovalEmail(data));
 
     let message = 'Result approved and messer table updated';
     if (advanceResult && advanceResult.advanced) {
@@ -655,7 +669,10 @@ exports.messer_result_approve = async function(req, res, next) {
     } else if (advanceResult && advanceResult.reason === 'target-already-played') {
       message += '; next round already has a result, winner NOT auto-advanced';
     }
-    res.json({ success: true, message, advance: advanceResult });
+    // Reported rather than hidden: whoever approved this is the one person who can pass
+    // the word on by hand, and they are looking at this response right now.
+    if (!captainTold) message += '; the captain could NOT be emailed';
+    res.json({ success: true, message, advance: advanceResult, captainNotified: !!captainTold });
   } catch (err) {
     console.error('messer_result_approve error:', err);
     res.status(500).json({ error: err.message });
@@ -733,10 +750,16 @@ exports.messer_result_reject = async function(req, res, next) {
     // (single source of truth: ms.status, same as the approve path).
     await Fixture.updateMesserScorecardStatus(scorecardId, 'rejected');
 
-    // Send rejection email to captain
-    await sendMesserRejectionEmail(data);
+    // Send rejection email to captain — same reasoning as the approval above: the draft
+    // is already marked rejected, so a failed send must not read as a failed rejection.
+    const captainTold = await afterCommit('messer rejection email',
+      () => sendMesserRejectionEmail(data));
 
-    res.json({ success: true, message: 'Result rejected' });
+    res.json({
+      success: true,
+      message: 'Result rejected' + (captainTold ? '' : '; the captain could NOT be emailed'),
+      captainNotified: !!captainTold,
+    });
   } catch (err) {
     console.error('messer_result_reject error:', err);
     res.status(500).json({ error: err.message });
@@ -857,108 +880,106 @@ exports.messer_bracket_save = async function(req, res, next) {
   }
 };
 
-// Helper: Send submission email to results secretary
+// Helper: Send submission email to results secretary.
+//
+// These three used to catch their own failure and `console.error` it, which is why a
+// messer send that failed was invisible: no Sentry event, and the caller went on to
+// answer "Result approved" whether or not the captain had been told. They throw now, and
+// every call site runs them through afterCommit — so the failure is a HANDLED Sentry
+// event, the write still stands, and the one person who can pass the word on by hand is
+// told that they need to. Returns true so a caller can tell "sent" from "swallowed".
 async function sendMesserSubmissionEmail(req, scorecardData, scorecardId) {
-  try {
-    const homeTeam = await Team.getById(scorecardData.homeTeam);
-    const awayTeam = await Team.getById(scorecardData.awayTeam);
+  const homeTeam = await Team.getById(scorecardData.homeTeam);
+  const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    await mailer.send({
-      template: 'messer-result',
-      to: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
-      replyTo: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
-      subject: `Messer Result Submitted: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-      whyReceiving: 'You administer the Messer knockout for the league.',
-      text: [
-        'A new messer result has been submitted.',
-        '',
-        `  Match:        ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        `  Date:         ${scorecardData.date}`,
-        `  Submitted by: ${scorecardData.email}`,
-        '',
-        'Review and approve it:',
-        absoluteUrl('/messer-result/' + scorecardId),
-      ].join('\n'),
-      data: {
-        state: 'submitted',
-        homeTeam: homeTeam[0]?.name || 'Home',
-        awayTeam: awayTeam[0]?.name || 'Away',
-        matchDate: scorecardData.date,
-        submittedBy: scorecardData.email,
-        actionUrl: absoluteUrl('/messer-result/' + scorecardId),
-        actionLabel: 'Review and approve',
-      },
-    });
-  } catch (err) {
-    console.error('sendMesserSubmissionEmail error:', err);
-  }
+  await mailer.send({
+    template: 'messer-result',
+    to: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
+    replyTo: ['stockport.badders.results@gmail.com', 'stockportbadminton18@btinternet.com'],
+    subject: `Messer Result Submitted: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+    whyReceiving: 'You administer the Messer knockout for the league.',
+    text: [
+      'A new messer result has been submitted.',
+      '',
+      `  Match:        ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      `  Date:         ${scorecardData.date}`,
+      `  Submitted by: ${scorecardData.email}`,
+      '',
+      'Review and approve it:',
+      absoluteUrl('/messer-result/' + scorecardId),
+    ].join('\n'),
+    data: {
+      state: 'submitted',
+      homeTeam: homeTeam[0]?.name || 'Home',
+      awayTeam: awayTeam[0]?.name || 'Away',
+      matchDate: scorecardData.date,
+      submittedBy: scorecardData.email,
+      actionUrl: absoluteUrl('/messer-result/' + scorecardId),
+      actionLabel: 'Review and approve',
+    },
+  });
+  return true;
 }
 
 // Helper: Send approval email to captain
 async function sendMesserApprovalEmail(scorecardData) {
-  try {
-    const homeTeam = await Team.getById(scorecardData.homeTeam);
-    const awayTeam = await Team.getById(scorecardData.awayTeam);
+  const homeTeam = await Team.getById(scorecardData.homeTeam);
+  const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    await mailer.send({
-      template: 'messer-result',
-      to: scorecardData.email,
-      replyTo: 'stockport.badders.results@gmail.com',
-      subject: `Messer Result Approved: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-      whyReceiving: 'You submitted this Messer result to the league.',
-      text: [
-        'Your messer result has been approved and entered into the system.',
-        '',
-        `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        '',
-        'The messer draw and standings have been updated.',
-      ].join('\n'),
-      data: {
-        state: 'approved',
-        homeTeam: homeTeam[0]?.name || 'Home',
-        awayTeam: awayTeam[0]?.name || 'Away',
-        matchDate: scorecardData.date,
-        submittedBy: '',
-        actionUrl: '',
-        actionLabel: '',
-      },
-    });
-  } catch (err) {
-    console.error('sendMesserApprovalEmail error:', err);
-  }
+  await mailer.send({
+    template: 'messer-result',
+    to: scorecardData.email,
+    replyTo: 'stockport.badders.results@gmail.com',
+    subject: `Messer Result Approved: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+    whyReceiving: 'You submitted this Messer result to the league.',
+    text: [
+      'Your messer result has been approved and entered into the system.',
+      '',
+      `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      '',
+      'The messer draw and standings have been updated.',
+    ].join('\n'),
+    data: {
+      state: 'approved',
+      homeTeam: homeTeam[0]?.name || 'Home',
+      awayTeam: awayTeam[0]?.name || 'Away',
+      matchDate: scorecardData.date,
+      submittedBy: '',
+      actionUrl: '',
+      actionLabel: '',
+    },
+  });
+  return true;
 }
 
 async function sendMesserRejectionEmail(scorecardData) {
-  try {
-    const homeTeam = await Team.getById(scorecardData.homeTeam);
-    const awayTeam = await Team.getById(scorecardData.awayTeam);
+  const homeTeam = await Team.getById(scorecardData.homeTeam);
+  const awayTeam = await Team.getById(scorecardData.awayTeam);
 
-    await mailer.send({
-      template: 'messer-result',
-      to: scorecardData.email,
-      replyTo: 'stockport.badders.results@gmail.com',
-      subject: `Messer Result Rejected: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-      whyReceiving: 'You submitted this Messer result to the league.',
-      text: [
-        'Your messer result submission was not entered into the system.',
-        '',
-        `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
-        '',
-        'Please review the scores and submit it again.',
-      ].join('\n'),
-      data: {
-        state: 'rejected',
-        homeTeam: homeTeam[0]?.name || 'Home',
-        awayTeam: awayTeam[0]?.name || 'Away',
-        matchDate: scorecardData.date,
-        submittedBy: '',
-        actionUrl: '',
-        actionLabel: '',
-      },
-    });
-  } catch (err) {
-    console.error('sendMesserRejectionEmail error:', err);
-  }
+  await mailer.send({
+    template: 'messer-result',
+    to: scorecardData.email,
+    replyTo: 'stockport.badders.results@gmail.com',
+    subject: `Messer Result Rejected: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+    whyReceiving: 'You submitted this Messer result to the league.',
+    text: [
+      'Your messer result submission was not entered into the system.',
+      '',
+      `  Match: ${homeTeam[0]?.name || 'Home'} vs ${awayTeam[0]?.name || 'Away'}`,
+      '',
+      'Please review the scores and submit it again.',
+    ].join('\n'),
+    data: {
+      state: 'rejected',
+      homeTeam: homeTeam[0]?.name || 'Home',
+      awayTeam: awayTeam[0]?.name || 'Away',
+      matchDate: scorecardData.date,
+      submittedBy: '',
+      actionUrl: '',
+      actionLabel: '',
+    },
+  });
+  return true;
 }
 
 // Helper: Get messer match ID by teams and date

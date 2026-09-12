@@ -176,6 +176,7 @@ function setupFullFixtureMocks() {
 // only record of what a captain tried to upload — worth asserting on.
 const Sentry = require('@sentry/node');
 jest.spyOn(Sentry, 'captureMessage').mockImplementation(() => {});
+jest.spyOn(Sentry, 'captureException').mockImplementation(() => {});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -427,6 +428,67 @@ describe('POST /email-scorecard', () => {
     });
   });
 
+  // A draft is written BEFORE the results secretary is emailed, so a failed send is not a
+  // failed submission — the row is in `scorecardstore` either way. It used to be awaited
+  // bare inside the try, so an SES outage sent the captain to the 500 page, whose whole
+  // message is "nothing was recorded". What a captain does about that is file the card
+  // again: one match, two drafts, and the results secretary left to work out which is
+  // real. The publish path has been safe since HARD-01; this is the path captains
+  // actually use, and it was not. Found by HARD-28's browser submission test, where the
+  // dev server's deliberately dead SES credentials made every submission a 500.
+  describe('when the results-secretary email cannot be sent', () => {
+    beforeEach(() => {
+      Fixture.createScorecard.mockResolvedValue([{ id: 42 }]);
+      ses.sendEmail.mockRejectedValue(new Error('SES is having a moment'));
+    });
+
+    it('still lands the captain on the draft they just filed', async () => {
+      const res = await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard());
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toMatch(/^\/populated-scorecard-beta\/42(\?|$)/);
+    });
+
+    it('does not lose the draft', async () => {
+      await request(app).post('/email-scorecard').send(validScorecard());
+      expect(Fixture.createScorecard).toHaveBeenCalledTimes(1);
+    });
+
+    // The other half of it: "filed, and the results secretary knows" and "filed, and
+    // nobody has been told" are different situations, and only one of them needs the
+    // captain to do anything. The confirmation page reads this off the query string.
+    it('tells the confirmation page the email did not go', async () => {
+      const res = await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard());
+
+      expect(res.headers.location).toMatch(/[?&]notified=0(&|$)/);
+    });
+
+    it('reports the failure as handled rather than losing it', async () => {
+      await request(app).post('/email-scorecard').send(validScorecard());
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          tags: expect.objectContaining({ stage: 'scorecard-post-commit' }),
+        })
+      );
+    });
+
+    // And a send that works must not raise the warning — the flag has to mean something.
+    it('says nothing when the email did go', async () => {
+      ses.sendEmail.mockResolvedValue({});
+      const res = await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard());
+
+      expect(res.headers.location).not.toContain('notified=0');
+    });
+  });
+
   // If RETURNING is ever dropped from the INSERT again, this is what it looks like:
   // the write may have landed but there is no way to tell anyone where. Fail
   // visibly rather than send another dead link.
@@ -468,6 +530,22 @@ describe('GET /populated-scorecard-beta/:id', () => {
   it('fetches the scorecard by the ID in the URL', async () => {
     await request(app).get('/populated-scorecard-beta/42');
     expect(Fixture.getScorecardById).toHaveBeenCalledWith('42');
+  });
+
+  // Reached with ?notified=0 when POST /email-scorecard could not email the results
+  // secretary. Rendering nothing would leave a captain whose draft nobody has been told
+  // about believing it had been announced.
+  it('warns the captain when the draft was filed but not announced', async () => {
+    const res = await request(app).get('/populated-scorecard-beta/42?notified=0');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/couldn't email the results secretary/i);
+    expect(res.text).toMatch(/scorecard is saved/i);
+  });
+
+  it('says nothing of the sort on an ordinary visit', async () => {
+    const res = await request(app).get('/populated-scorecard-beta/42');
+    expect(res.text).not.toMatch(/couldn't email the results secretary/i);
   });
 
   it('returns 500 when scorecard is not found', async () => {

@@ -47,6 +47,7 @@ const Division = require('../../models/division');
 const Team = require('../../models/teams');
 const Player = require('../../models/players');
 const Fixture = require('../../models/fixture');
+const ses = require('../../utils/ses');
 const app = require('../../app');
 
 // Set up common mocks
@@ -281,6 +282,51 @@ describe('Messer Scorecard Routes', () => {
       const res = await request(app).post('/messer-result/999/approve');
       expect([404, 403]).toContain(res.status);
     });
+
+    // The result is written, the bracket may already have been advanced and the draft
+    // marked approved before the captain is emailed. The send used to be wrapped in its
+    // own try/catch that console.error'd and returned — so a failed one was invisible:
+    // no Sentry event, and this endpoint answered a flat "Result approved" whether the
+    // captain had heard or not. The approver is the one person who can pass the word on
+    // by hand, and they are reading this response.
+    describe('when the captain cannot be emailed', () => {
+      beforeEach(() => {
+        Fixture.getMesserScorecardById.mockResolvedValue([{
+          id: 1, date: '2026-01-15', homeTeam: 1, awayTeam: 2, email: 'captain@example.com',
+          Game1homeScore: 21, Game1awayScore: 15,
+        }]);
+        Fixture.createMesserResult.mockResolvedValue({ id: 1 });
+        Fixture.updateMesserTable.mockResolvedValue({});
+        Fixture.updateMesserScorecardStatus.mockResolvedValue({});
+        // The team lookup the email does for its subject line. Its absence used to be
+        // swallowed by the helper's own catch along with everything else.
+        Team.getById.mockResolvedValue([{ id: 1, name: 'Team A' }]);
+        ses.sendEmail.mockRejectedValue(new Error('SES is having a moment'));
+      });
+
+      it('still approves the result', async () => {
+        const res = await request(app).post('/messer-result/1/approve');
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(Fixture.updateMesserScorecardStatus).toHaveBeenCalledWith('1', 'approved');
+      });
+
+      it('says the captain was not told', async () => {
+        const res = await request(app).post('/messer-result/1/approve');
+
+        expect(res.body.captainNotified).toBe(false);
+        expect(res.body.message).toMatch(/could NOT be emailed/);
+      });
+
+      it('reports it as sent when it was', async () => {
+        ses.sendEmail.mockResolvedValue({});
+        const res = await request(app).post('/messer-result/1/approve');
+
+        expect(res.body.captainNotified).toBe(true);
+        expect(res.body.message).not.toMatch(/could NOT be emailed/);
+      });
+    });
   });
 
   describe('POST /messer-result/:id/reject (admin rejection)', () => {
@@ -289,6 +335,24 @@ describe('Messer Scorecard Routes', () => {
       Fixture.updateMesserScorecardStatus.mockResolvedValue({});
       const res = await request(app).post('/messer-result/1/reject');
       expect([200, 302, 403]).toContain(res.status);
+    });
+
+    // Same shape as the approval: the draft is already marked rejected, so the send
+    // cannot decide whether the rejection happened — only whether the captain knows.
+    it('reports a rejection the captain was not told about', async () => {
+      Fixture.getMesserScorecardById.mockResolvedValue([
+        { id: 1, homeTeam: 1, awayTeam: 2, email: 'captain@example.com' },
+      ]);
+      Fixture.createMesserResult.mockResolvedValue({ id: 1 });
+      Fixture.updateMesserScorecardStatus.mockResolvedValue({});
+      ses.sendEmail.mockRejectedValue(new Error('SES is having a moment'));
+
+      const res = await request(app).post('/messer-result/1/reject');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.captainNotified).toBe(false);
+      expect(Fixture.updateMesserScorecardStatus).toHaveBeenCalledWith('1', 'rejected');
     });
   });
 
