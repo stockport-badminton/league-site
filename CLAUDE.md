@@ -252,10 +252,23 @@ npm run test:all      # jest, then playwright
   `require('express').response.render.mockRestore()` and matches on the HTML. Use
   that pattern when the bug you care about is in the template's data contract.
 
-**⚠️ These tests MUST stay read-only.** `dev.env` carries the *same*
-`DATABASE_URL` as `.env`, so a local dev server is talking to the **production**
-Supabase instance. A test that submitted a scorecard would create real rows in
-`scorecardstore` / `messer_scorecard` / `fixture`.
+**⚠️ Read-only by default, and the reason has changed — read this before relying on
+either half.** It used to be that `dev.env` carried the *same* `DATABASE_URL` as `.env`,
+so the dev server the suite starts was talking to **production** Postgres. Since HARD-13
+that is no longer true: `dev.env` points at the local database, and the browser suite has
+been running against it ever since. The warning above sat here saying the opposite for
+days, which is worth more than the fact — **a warning that has quietly inverted is worse
+than no warning**, because it is what a careful person checks instead of looking.
+
+What is still true is that **`dev.env` holds a live `AKIA` key and the real bucket name**
+(`HeadBucket` on `badmintontemp` returns 200), and that `e2e/helpers/read-only.js`
+**cannot see a server-side write** — it intercepts browser requests, so it blocks a
+presigned PUT from the page but not a PUT made from inside the Node process, which is what
+`POST /api/analyse-scorecard` does. That is HARD-33. Until it lands, keep tests read-only.
+
+Note also `reuseExistingServer: !process.env.CI` — the suite adopts whatever server is
+already on the port, so running it while `npm run prodlocal` is up points every spec at
+production.
 
 `e2e/helpers/read-only.js` enforces this at the network layer rather than
 trusting each test: it aborts any mutating request and `assertNoWrites()` then

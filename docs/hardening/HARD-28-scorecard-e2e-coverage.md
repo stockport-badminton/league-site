@@ -7,6 +7,10 @@
 > **Answered by Neil, 10 Sep.** The seven open assumptions are settled below and the
 > priorities re-ordered accordingly — Messer moved to the top, because the audit that put
 > it at the bottom was wrong (see "A correction").
+>
+> **Re-scoped 12 Sep**, because HARD-13 landed and this brief's central constraint — "the
+> suite runs against production data, so serialise the form rather than posting it" — is
+> no longer true. See "What HARD-13 changed".
 
 ## Why
 
@@ -115,13 +119,59 @@ happened to be there, not method. **Never delete on log silence alone**, and not
 dev server writes to the production database while logging nothing to Cloud Run, so a row
 can exist with no request behind it. Recorded in CLAUDE.md.
 
+## What HARD-13 changed, and what it did not (12 Sep)
+
+**The browser suite has been running against the local database since HARD-13 landed, and
+nobody said so.** `playwright.config.js` starts its dev server with
+`dotenv_config_path=./dev.env`, and `dev.env`'s `DATABASE_URL` now points at `127.0.0.1`.
+Confirmed by the suite itself: six specs skip without `tools/local-db/dev-fixtures.sql`,
+which exists only locally, and the last full run reported 71 passed and none skipped.
+
+So the reason this brief said *serialise the form, do not post it* is gone. A submitted
+scorecard now writes a row into a Postgres that `tools/local-db.sh load` rebuilds from
+nothing in about five seconds. **Gap 1 should submit, not serialise** — and that is
+strictly better, because serialising asserts what the DOM *would* send, while submitting
+also proves the server accepts it, which is the other half of a shape contract.
+
+CLAUDE.md said the opposite until today ("`dev.env` carries the *same* `DATABASE_URL` as
+`.env`, so a local dev server is talking to the **production** Supabase instance"). It was
+true when written and became false without anyone noticing, which is the more useful
+lesson: a warning that has quietly inverted is worse than no warning, because it is the
+one thing a careful person will check.
+
+**What it did not change: the dev server still holds live credentials.** `dev.env` carries
+a real `AKIA…` key and the real bucket name, and a `HeadBucket` against `badmintontemp`
+with them returns **200**. Two consequences, and the second is the dangerous one:
+
+- The browser-side guard already aborts any request whose host is not the app's
+  (`e2e/helpers/read-only.js`), so a presigned PUT from the page cannot reach S3.
+- **The guard cannot see a server-side effect at all.** `POST /api/analyse-scorecard` and
+  `POST /api/convert-scorecard-document` store the converted image from inside the Node
+  process. A submission test that attaches a document would write real objects into the
+  production bucket, and Playwright would report nothing wrong, because no browser request
+  went anywhere near it. That is exactly how HARD-25's first Jest run put two real objects
+  in that bucket.
+
+So **HARD-26 declared the Jest environment and nothing has done the same for the browser
+one.** `dev.env` is now the last place a test run holds a live credential. That is
+**HARD-33**, and it gates the submission tests below — not the rest of them.
+
+One more sharp edge found while checking this: `reuseExistingServer: !process.env.CI`
+means the suite adopts whatever server is already on the port. `npm run prodlocal` loads
+`.env`, so running the browser suite while that is up silently points all 71 specs at the
+**production** database and bucket. Worth an assertion at suite startup rather than a note.
+
 ## Gaps, in the order I would close them
 
-**1. What the form submits (holds contract 1).** Fill the rendered form in the browser,
-serialise it, and assert the payload — field set, and that no name carries more than one
-value. This is the single check that would have caught the duplicate-field bug, and it
-generalises: any future stray input fails it. The read-only guard blocks the POST, so
-serialise rather than submit.
+**1. What the form submits (holds contract 1).** Fill the rendered form in the browser and
+assert the payload — field set, and that no name carries more than one value. This is the
+single check that would have caught the duplicate-field bug, and it generalises: any future
+stray input fails it.
+
+Since HARD-13 this can **submit** rather than serialise, against the local database, which
+proves the server accepts the shape as well as that the DOM produces it. Do the serialising
+version first — it needs nothing from HARD-33 and catches the duplicate-field class on its
+own — then the posting version once the dev server's credentials are dead.
 
 **2. What the captain is told (holds contract 2).** For each failure the flow can hit —
 unreadable card, refused file type, failed upload, unmatched fixture — assert the message
@@ -152,12 +202,19 @@ and captains file results on phones at the end of a match night.
 - The wizard walked end to end, with the score-gating behaviour of assumption 4 pinned.
 - The prefill asserted beyond the photo.
 - Messer at parity with the standard card, if assumption 7 says so.
-- Everything read-only: `guard.assertNoWrites()` in every test, stubs registered after
-  `readOnly()` so nothing reaches S3 or the database.
+- Every test that does not deliberately submit stays read-only: `guard.assertNoWrites()`,
+  stubs registered after `readOnly()`.
+- A submission test names the rows it writes and the suite can be re-run without
+  `local-db.sh load` in between — a test that only passes against a fresh database is a
+  test that will be skipped.
+- The suite refuses to run against a production `DATABASE_URL` or bucket, rather than
+  trusting whoever started the dev server (see `reuseExistingServer`).
 
 ## Out of scope
 
-- Submitting a real scorecard. The suite runs against production data; a separate database
-  is HARD-13, and until then the payload is asserted by serialising, not posting.
+- ~~Submitting a real scorecard.~~ **Lifted 12 Sep** — HARD-13 gives the browser suite a
+  disposable database. Submission tests are in scope, behind HARD-33.
+- Neutralising `dev.env`. That is HARD-33, and it is a prerequisite rather than part of
+  this.
 - The server-side handlers, which are well covered by Jest already.
 - Anything requiring the OCR to actually run: the analysis endpoint is stubbed.
