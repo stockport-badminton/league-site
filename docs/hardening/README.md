@@ -49,9 +49,18 @@ node tools/dbq.js --check orphan-results                 # the offending rows
 `tools/audit/checks.js` holds the checks. **Every package below that changes data or
 data-handling must run `--check all` before and after, and report the difference.**
 
-`DATABASE_URL` is production — `dev.env` carries the same connection string as `.env`.
-`dbq.js` refuses anything that is not a single read. A write belongs in a reviewed
-script under `scripts/` with a dry run, modelled on `scripts/backfill-contact-emails.js`.
+**`dbq.js` reads production.** `tools/lib/loadEnv.js` loads `.env` ahead of `dev.env` for
+every tool, so an ad-hoc query answers about the live database; `--local` asks for the
+development one deliberately. `dev.env` itself has pointed at a local Postgres in Docker
+since HARD-13 — the tools do not follow it, on purpose, and that one-place decision exists
+because it silently went wrong the day the local database arrived (dotenv does not
+overwrite an already-set variable, so whichever file loads first wins, and every tool
+loaded `dev.env` first — `--check all` ran for days against a two-year-old local seed).
+
+`dbq.js` refuses anything that is not a single read. A write belongs in a reviewed script
+under `scripts/` with a dry run, modelled on `scripts/backfill-contact-emails.js`. Those
+scripts are gitignored and load `dev.env` FIRST, so a script written to fix production data
+will target the LOCAL one — check the top of any script before trusting what it reports.
 
 ## Rules of engagement
 
@@ -60,16 +69,21 @@ script under `scripts/` with a dry run, modelled on `scripts/backfill-contact-em
    this codebase: write the test, stash the fix (`git stash push <files>`), confirm the
    test fails, `git stash pop`, confirm it passes. Three of this year's bugs lived
    behind a green suite because nobody did this.
-3. **Run `npm test` before you claim done.** 720 Jest tests, ~25s. If you touched
-   anything the browser drives, `npm run test:e2e` too (48 specs + 1 skipped, ~60s,
-   read-only) — but see rule 7 if you are one of several agents.
+3. **Run `npm test` before you claim done.** 1102 tests in 79 suites, ~50s as of
+   12 Sep 2026. If you touched anything the browser drives, `npm run test:e2e` too
+   (89 tests in 12 spec files) — but see rule 7 if you are one of several agents.
 4. **Read `CLAUDE.md` first.** It documents the Postgres quoting rules, the missing
    `insertId`, the canonical-URL trap and the roster rank convention. Most of the
    listed gotchas were expensive to learn.
 5. **Stay in scope.** Each package has an *Out of scope* section. If you find something
    else, add it to this backlog rather than fixing it.
 6. **Do not widen the Playwright read-only allowlist** (`e2e/helpers/read-only.js`).
-   The e2e suite runs against production data.
+   Since HARD-33 the browser suite runs against the local database with dead outbound
+   credentials (`e2e/server-env.js`, which refuses to start if anything live survives), so
+   this is no longer the last line of defence it once was — but it is still the thing that
+   keeps "this spec writes" a statement a spec has to make. `scorecard-submit.spec.js` is
+   the one that makes it, through `readOnly(..., { allowWrites })`. Name a write there;
+   never widen `READ_ONLY_POSTS` to let one through.
 7. **If you are working in parallel with other agents, do not run Playwright**, and do
    not trust a single loaded Jest run. Playwright starts its own dev server on a fixed
    port, so two agents racing it produce nonsense. Jest is safe per-worktree (a worktree

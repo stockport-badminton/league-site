@@ -34,8 +34,9 @@ Recommend one package; don't summarise all of them.
 - **Every fix needs a test that fails without it.** Write the test, `git stash push`
   the fix, confirm it fails, `git stash pop`, confirm it passes. Three of this year's
   bugs lived behind a green suite because this was skipped.
-- **`npm test` before claiming done** (391 tests, ~13s). Add `npm run test:e2e` if you
-  touched anything the browser drives (48 specs, ~20s, read-only).
+- **`npm test` before claiming done** (1102 tests in 79 suites, ~50s as of 12 Sep 2026).
+  Add `npm run test:e2e` if you touched anything the browser drives (89 tests in 12 spec
+  files). One of those specs writes, deliberately and by name — see CLAUDE.md.
 - **Never hand-write database boilerplate.** Use `tools/dbq.js`:
   ```bash
   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"
@@ -43,10 +44,14 @@ Recommend one package; don't summarise all of them.
   node tools/dbq.js --check all          # integrity checks, before and after data work
   node tools/dbq.js --check orphan-results
   ```
-  It refuses anything that is not a single read. `DATABASE_URL` is **production** —
-  `dev.env` carries the same connection string as `.env`. A write belongs in a reviewed
-  script under `scripts/` with a dry run, modelled on
-  `scripts/backfill-contact-emails.js`.
+  It refuses anything that is not a single read, and **it reads production**:
+  `tools/lib/loadEnv.js` loads `.env` ahead of `dev.env` for every tool, so `dbq` answers
+  about the live database unless you pass `--local`. (`dev.env` itself points at the local
+  Postgres — that has been true since HARD-13, and the tools deliberately do not follow
+  it.) A write belongs in a reviewed script under `scripts/` with a dry run, modelled on
+  `scripts/backfill-contact-emails.js` — but note those scripts load `dev.env` FIRST and
+  so target the LOCAL database. Check the top of any script before trusting what it
+  reports.
 - **Do not widen the Playwright read-only allowlist** (`e2e/helpers/read-only.js`).
 - Anything hard to reverse — a production data write, a deploy — gets confirmed with
   the user first.
