@@ -1,6 +1,6 @@
 ---
 name: emails
-description: Everything about outbound and inbound mail — the MJML build pipeline and mailer.send contract, the SES event feed that says whether a message actually arrived, the POST /mail forwarder and its rate budget, and the DMARC reports. Use when touching emails/, views/emails/, utils/mailer.js, utils/ses.js, utils/dmarcReports.js, tools/build-emails.js, tools/dmarc.js, contactusController's distribution_list, or the /mail and /ses-events routes.
+description: Everything about outbound and inbound mail — the MJML build pipeline and mailer.send contract, the SES event feed that says whether a message actually arrived, the POST /mail forwarder and its rate budget, and the DMARC reports. Use when touching emails/, views/emails/, utils/mailer.js, utils/ses.js, utils/dmarcReports.js, tools/build-emails.js, tools/dmarc.js, contactusController's distribution_list or its annual club invoice send, views/emails/clubInvoice.ejs, or the /mail and /ses-events routes.
 ---
 
 # Email

@@ -263,6 +263,55 @@ Gotchas the specs already encode:
   section change, so "the list changed" is not a valid assertion for whichever
   section holds them all. Assert against the API payload instead.
 
+## Delegate the mechanical work to subagents
+
+**This section is the authorisation.** The default session instruction is not to use the
+Agent tool unless the user, a CLAUDE.md file, or a skill asks for it. This file is asking.
+
+The reason is cost, not capability. Running the suite and reading logs produces thousands
+of lines whose *content* is irrelevant once it has been summarised — the answer is "1130
+passed" or "these three failed and here is why". Spending the main model's context window
+on the other 1,127 lines is waste, and it is waste that compounds: every later turn carries
+it. Delegate the reading, keep the deciding.
+
+| Delegate | To | Why |
+|---|---|---|
+| Running `npm test` / a single suite | `test-runner` | It reports failures only. A full run is ~80 suites of output. |
+| Searching Cloud Logging, or any large log | `log-trawler` | Log queries return pages; you want the three lines that matter. |
+| "Where is X used", "what calls Y" across the repo | `Explore` | Read-only, and a wide grep is most of a context window. |
+| "How does the scorecard flow work end to end" | `code-cartographer` | Tracing a subsystem means opening a dozen files to keep two facts. |
+
+Pass a cheaper model for these — `model: 'haiku'` for mechanical runs and searches,
+`model: 'sonnet'` when the task needs some judgement about what is relevant. The default
+is to inherit, which is the expensive choice and rarely the right one here.
+
+**What must NOT be delegated**, because this codebase has been burned by each:
+
+- **The judgement about whether a test proves anything.** The rule is that a fix needs a
+  test that fails without it, verified by removing the fix and watching it fail. A
+  subagent reporting "tests pass" is precisely the evidence that has been wrong here
+  before — a mock inventing `{insertId: 42}`, a green suite over a blank page, an
+  assertion that passed because a foreign process answered `200 ok`. Run the
+  before-and-after yourself.
+- **Deciding what a failure means.** "Three tests failed" is a fact worth delegating;
+  which of them is a real bug and which is contention is not.
+- **Anything that writes.** Subagents inherit tool access; a delegated task should be
+  read-only unless you have a specific reason otherwise.
+
+Two repo-specific traps, both of which make a delegated run lie rather than fail:
+
+- **`npm test` inside a git worktree collects nothing at all.** `testPathIgnorePatterns`
+  carries `<rootDir>/\.claude/`, which matches the worktree's own path, so Jest finds zero
+  suites and exits 0. An agent in a worktree will report success having run nothing. Use
+  `npx jest --testPathIgnorePatterns=/node_modules/` there, or do not delegate the run.
+- **Never run Playwright in two places at once.** `playwright.config.js` starts its dev
+  server on a fixed port with `reuseExistingServer`, so a second run adopts the first's
+  server and the two interleave. One browser run at a time, by whoever merges.
+
+And concurrent Jest processes contend: `testTimeout` is 15s to absorb it, but a test that
+fails with `Exceeded timeout` on a busy machine should be re-run alone before it is
+believed. A wrong *status* is a real bug; a timeout usually is not.
+
 ## Querying the database
 
 **Don't hand-write dotenv/db.connect boilerplate for a one-off query.** Use:

@@ -139,7 +139,21 @@ Packages in the same wave touch disjoint handlers and can run in parallel. Addin
 
 ## Priority
 
-If you are doing this alone and in order, the combined top of both passes is:
+**This list is historical and is not a queue.** It ranked the top of the two original audit
+passes, all four of which are long done, and it has deliberately not been renumbered as work
+landed — renumbering a list like this is how it comes to be trusted after it has gone stale.
+It is kept because the *reasoning* is still worth reading: why discovery outranks most
+individual faults, and why HARD-26 had to precede HARD-08.
+
+**What is open is what `ls docs/hardening/*.md` lists.** Landed packages move to `done/`, so
+the directory listing is the backlog and the status table below is the current state. To
+choose between what is left, the `/hardening` skill has the ranking questions worth asking;
+the short version is that a finding with a dated incident behind it beats a hypothetical, a
+fault on a path that is live this season beats one that costs something in a year, and a
+package whose code is done but which still needs a human step is usually worth finishing
+before starting another.
+
+The original list, as written:
 
 1. **HARD-01** — the only finding that has already lost league data. Three results from
    last season sit in the table with no games behind them.

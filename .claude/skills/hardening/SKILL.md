@@ -1,6 +1,6 @@
 ---
 name: hardening
-description: Pick up a work package from the August 2026 hardening audit (docs/hardening). Use when the user names a package (HARD-01 … HARD-19), asks what to work on next from the audit/backlog, or asks for the status of the hardening work. Loads only the one package's brief plus the rules of engagement, so a session starts with the right context instead of exploring for it.
+description: Pick up a work package from the August 2026 hardening audit (docs/hardening). Use when the user names any package by its HARD-nn number, asks what to work on next from the audit/backlog, or asks for the status of the hardening work. Loads only the one package's brief plus the rules of engagement, so a session starts with the right context instead of exploring for it.
 ---
 
 # Working a hardening package
@@ -26,8 +26,41 @@ than fixing it.
 
 ## If the user asked what to work on
 
-Read only `docs/hardening/README.md`. Its status table and priority list answer this.
-Recommend one package; don't summarise all of them.
+Read `docs/hardening/README.md` first — the status table is the current state and is kept
+up to date as packages land.
+
+**Its numbered priority list is historical.** It ranks the original top four, and all four
+are long done; it has not been renumbered as work landed, and it is not going to be. Do not
+read it as a queue and do not report "everything is done" from it. What is still open is
+whatever `ls docs/hardening/*.md` lists — landed packages move to `done/`, so the directory
+listing IS the backlog.
+
+To choose between them without reading all of the briefs:
+
+1. `ls docs/hardening/*.md` for what is open.
+2. Read the **conflict-map row** for each (one line, in the README): it gives the severity,
+   the wave and what the package owns.
+3. Read the **first 9 lines only** of the two or three that look strongest — the header
+   block carries severity, blocked-by and the opening of *Why*. That is enough to rank
+   them and it is a fraction of reading a brief.
+4. Recommend **one**, with a sentence each on value, effort and risk. Name a runner-up if
+   there is an obvious one; do not summarise the rest.
+
+Weight these, in roughly this order:
+
+- **Has it already fired?** A finding with a dated incident behind it beats a hypothetical.
+- **Is it live this season?** Captains file results from September; a fault on that path
+  costs something now, and one on the invoice path costs something in a year.
+- **Is the fix shaped like one already in the codebase?** A package that reuses an
+  established pattern is cheaper and much less likely to introduce a new mistake.
+- **Is it investigation-first?** A brief that says "agree the diagnosis before writing
+  anything" is unbounded, whatever its severity. Say so rather than recommending it as a
+  quick win.
+
+**A package whose code is done but which still needs a human — an env var, a bucket policy,
+a switch flipped — stays at the top level and is not finished.** Check the status table for
+that state before recommending something new; getting an almost-done package over the line
+is usually worth more than starting another.
 
 ## Rules that apply to every package
 
