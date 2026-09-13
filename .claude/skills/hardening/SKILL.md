@@ -95,4 +95,13 @@ is usually worth more than starting another.
 2. Update the status table at the foot of `docs/hardening/README.md` — package, status,
    commit. That table is how the next session knows where things stand without reading
    git log.
+2b. **Ask what this change just made false.** You are the only person who knows, and only
+   right now. If you renamed or deleted a file, changed an env var, a route, a header name,
+   a token, or a documented count, grep `CLAUDE.md docs/ .claude/skills/` for it before you
+   commit. This is not hypothetical: CLAUDE.md described `dev.env` as pointing at
+   production for days after HARD-13 made that false, HARD-27's brief still claimed a
+   deleted guard was in force, and a skill's trigger list went stale the day a package
+   moved. `__tests__/unit/docs-references.test.js` catches the mechanical half — a path
+   that no longer resolves — and cannot catch a sentence that has quietly inverted. That
+   half is this step.
 3. Report the acceptance criteria one by one: met, or not, and why.

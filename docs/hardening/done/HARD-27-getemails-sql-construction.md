@@ -52,10 +52,15 @@ that its arguments must be trusted.
 2. Bind the four `WHERE` terms.
 3. ~~Remove the `console.log(sql)`.~~ **Done 7 Sep 2026.** It printed the key thirteen
    times into a terminal during an audit, which is how this package stopped being
-   theoretical. `__tests__/unit/no-sql-logging.test.js` now fails if any file that
-   interpolates `DB_PI_KEY` also logs a variable holding a statement — and its second
-   assertion exists to be deleted along with the first once step 1 lands, since logging a
-   statement with no secret in it is fine.
+   theoretical. A guard was added the same day —
+   `no-sql-logging.test.js`, since **deleted** — which failed if any file that
+   interpolated `DB_PI_KEY` also logged a variable holding a statement. It was always
+   meant to be temporary: it carried a second assertion whose only job was to confirm the
+   bug still existed, i.e. a test that fails when you fix something. Step 1 landing is what
+   retired it. The rule in force now is the stronger one that does not expire —
+   `__tests__/unit/no-secrets-in-sql.test.js`: the key is never interpolated at all. That
+   also catches what the old one could not, since `updateBulk` pasted the key into a
+   **template literal** and `+ process.env.DB_PI_KEY` never matched it.
    **The key was in the logs for as long as that line existed**, so whether to rotate it
    is a decision to take knowingly rather than by default. Rotating is not small (every
    `pgp_sym_encrypt` value has to be re-encrypted), which is exactly why it should be
