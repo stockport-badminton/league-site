@@ -43,7 +43,7 @@ function liveCredentials(env) {
   // The cron tokens are compared with timingSafeEqual and are the only thing standing
   // between the public internet and the audit and registration runs. Unset closes those
   // paths; a value in a test process is a live secret with nothing to gain from it.
-  for (const name of ['AUDIT_CRON_TOKEN', 'REGISTRATION_CRON_TOKEN']) {
+  for (const name of ['AUDIT_CRON_TOKEN', 'REGISTRATION_CRON_TOKEN', 'INVOICE_CRON_TOKEN']) {
     if (e[name]) found.push(`${name} is set`);
   }
 

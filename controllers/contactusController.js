@@ -91,6 +91,31 @@ const { canonicalFor } = require('../utils/canonical');
 
 const FIRSTYEAR = new Date().getMonth() < 7 ? `${new Date().getFullYear() - 1}` : `${new Date().getFullYear()}`
 
+// How far either side of 1 September the annual invoice run may still fire. A run that
+// failed on the day used to have no second chance until the next year (HARD-23).
+const INVOICE_WINDOW_DAYS = 3;
+
+// Where today sits relative to the annual invoice date. Shared by the run and the admin
+// page so the two cannot tell the treasurer different things.
+function invoiceWindow(now) {
+  const invoiceDate = new Date(`09-01-${FIRSTYEAR}`);
+  const today = now || new Date();
+  const daysOut = Math.round((today - invoiceDate) / 86400000);
+  return {
+    invoiceDate,
+    today,
+    daysOut,
+    inWindow: Math.abs(daysOut) <= INVOICE_WINDOW_DAYS,
+    windowDays: INVOICE_WINDOW_DAYS,
+  };
+}
+
+// An explicit override, honoured only for a superadmin session — see send_invoices.
+function wantsForce(req) {
+  const v = (req.body && req.body.force) || (req.query && req.query.force);
+  return v === 'true' || v === '1' || v === true;
+}
+
 // oldValidCaptcha lived here. It was already unused, and it never worked: an async
 // axios chain inside a synchronous validator, so it returned undefined before the
 // verification resolved. validCaptcha below is the one wired up, and it awaits.
@@ -345,125 +370,165 @@ exports.contactus = async function(req, res, next) {
     return next(new Error('Sorry something went wrong sending your email.'));
   }
 }
-exports.send_invoices = async function(req, res, next) {
-  try {
-    const rows = await League.getAnnualInvoices(req.params.club);
-    let invoiceDate = new Date(`09-01-${FIRSTYEAR}`);
-    let today = new Date();
-    let dateCheck = today.getMonth() === invoiceDate.getMonth() && today.getFullYear() === invoiceDate.getFullYear() && today.getDate() === invoiceDate.getDate();
+// The invoice run itself, separated from how it is reported.
+//
+// Two callers need it and must not drift apart: `POST /league/sendInvoices` (Cloud
+// Scheduler, and the recovery path a superadmin can curl) and the Admin → Invoices page.
+// Returns `{ status, lines }` rather than writing a response, so the JSON endpoint and the
+// HTML page render the same outcome — including the refusals, which is the half that was
+// previously indistinguishable from success.
+async function runInvoiceSend(req) {
+  const rows = await League.getAnnualInvoices(req.params.club);
 
-    console.log(`today: ${today} invoiceDate: ${invoiceDate} dateCheck:${dateCheck}`);
-    console.log(JSON.stringify(rows))
+  // Nothing to invoice is a refusal, not a success. It used to fall through the loop
+  // and answer `200 []`, which any caller checking only the status reads as "invoices
+  // sent".
+  if (!rows || !rows.length) {
+    return { status: 409, lines: ['No clubs to invoice — nothing was sent.'] };
+  }
 
-    const ejs = require('ejs');
-    let allData = [];
-    let outputs = [];
+  // The date guard, hoisted out of the loop.
+  //
+  // Three things lined up to make the 1 Sep 2026 failure invisible for a year, and this
+  // is two of them. It used to answer `res.send(["not the right date for invoices"])` —
+  // a **200** whose body is the error — from inside the club loop, after the first club
+  // had already been pushed onto `allData`. Make.com does not parse the body, so a
+  // refusal and a successful run were the same event to it.
+  //
+  // And `dateCheck` required today to BE 1 September. A run that failed for any reason
+  // had no second chance for a year, and the endpoint actively refused in the meantime,
+  // so the recovery on the night was a POST from a logged-in browser's devtools. The
+  // window is now +/- 3 days, and a superadmin session may override it outright. The
+  // scheduler may not: a token-authenticated caller firing on the wrong day is a
+  // misconfiguration, and letting it force would hide exactly that.
+  const { invoiceDate, daysOut, inWindow } = invoiceWindow();
+  const forced = wantsForce(req) && req.invoiceCaller === 'superadmin';
 
-    for (let club of rows) {
-      let data = {};
-      data.fines = [];
-      data.season = seasonModel.current();
-      data.firstYear = FIRSTYEAR;
-      data.name = club.clubName;
-      data.teamsCount = club.teamsCount;
-      data.secretary = club.secretary;
-      data.email = club.playerEmail;
+  if (!inWindow && !forced) {
+    console.warn(`[invoices] refused: ${daysOut} days from the invoice date, caller=${req.invoiceCaller}`);
+    return {
+      status: 409,
+      lines: [
+      `Not the right date for invoices — ${invoiceDate.toDateString()} is the annual ` +
+      `date and today is ${Math.abs(daysOut)} day(s) ${daysOut > 0 ? 'after' : 'before'} it. ` +
+      `Nothing was sent. The results secretary can override this from Admin \u2192 Invoices.`,
+      ],
+    };
+  }
 
-      // `clubFee`, not `teamFee`. The column is season."clubFee" and has been since
-      // b3b8efd ("rule and fee changes", 21 May 2026), which renamed it in the query and
-      // left this reading the old name. `undefined` multiplied by anything is NaN, EJS
-      // renders NaN as the string "NaN", and the invoices went out reading
-      // "2 league team(s): £NaN ... TOTAL: £NaN" to all 18 clubs on 1 Sep 2026.
-      //
-      // It survived four months because this runs once a year: the date guard below
-      // means the only execution that matters is the annual send, so a rename in May is
-      // not exercised until September. Despite the name, the fee is per *team* — the
-      // multiplication is the long-standing behaviour and is not what was wrong.
-      let clubTotal = club.teamsCount * club.clubFee;
+  console.log(`[invoices] running: caller=${req.invoiceCaller} daysOut=${daysOut} forced=${forced} clubs=${rows.length}`);
 
-      let fineRows = rows.filter(fine => fine.clubId === club.clubId);
-      for (let fine of fineRows) {
-        if (fine.desc !== null) {
-          data.fines.push({ desc: fine.desc, amount: fine.amount });
-          clubTotal += fine.amount;
-        }
-      }
+  const ejs = require('ejs');
+  let allData = [];
+  let outputs = [];
 
-      data.teamsCost = club.teamsCount * club.clubFee;
-      data.feesTotal = clubTotal;
+  for (let club of rows) {
+    let data = {};
+    data.fines = [];
+    data.season = seasonModel.current();
+    data.firstYear = FIRSTYEAR;
+    data.name = club.clubName;
+    data.teamsCount = club.teamsCount;
+    data.secretary = club.secretary;
+    data.email = club.playerEmail;
 
-      // Never mail a number we cannot compute. A missing or renamed column yields NaN
-      // rather than throwing, EJS prints it happily, and the result is an invoice asking
-      // a club for £NaN — which is worse than no invoice, because it is authoritative,
-      // it reaches every club at once, and it only happens on the one day a year anybody
-      // would notice. Fail this club loudly and keep going for the rest.
-      if (!Number.isFinite(Number(data.teamsCost)) || !Number.isFinite(Number(data.feesTotal))) {
-        const detail = `teamsCount=${JSON.stringify(club.teamsCount)} clubFee=${JSON.stringify(club.clubFee)}`;
-        console.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
-        outputs.push(`${data.name} invoice NOT sent: total did not compute (${detail})`);
-        continue;
-      }
+    // `clubFee`, not `teamFee`. The column is season."clubFee" and has been since
+    // b3b8efd ("rule and fee changes", 21 May 2026), which renamed it in the query and
+    // left this reading the old name. `undefined` multiplied by anything is NaN, EJS
+    // renders NaN as the string "NaN", and the invoices went out reading
+    // "2 league team(s): £NaN ... TOTAL: £NaN" to all 18 clubs on 1 Sep 2026.
+    //
+    // It survived four months because this runs once a year: the date guard below
+    // means the only execution that matters is the annual send, so a rename in May is
+    // not exercised until September. Despite the name, the fee is per *team* — the
+    // multiplication is the long-standing behaviour and is not what was wrong.
+    let clubTotal = club.teamsCount * club.clubFee;
 
-      if (!allData.some(row => row.name === data.name)) {
-        allData.push(data);
-
-        if (!dateCheck) {
-          return res.send(["not the right date for invoices"]);
-        }
-
-        const currentData = JSON.parse(JSON.stringify(data));
-        try {
-          // A club with no flagged secretary now reaches here (the officer join in
-          // getAnnualInvoices is LEFT, so the club is no longer dropped from the run).
-          // It must not be handed to SES as `ToAddresses: [null]`, which fails the whole
-          // call for that club. Reported and skipped instead, so the invoice run
-          // continues and the gap is visible.
-          if (!currentData.email || !String(currentData.email).includes('@')) {
-            console.warn(`invoices: no club secretary address for ${currentData.name} — skipped`);
-            Sentry.captureMessage('invoices: club has no secretary address', {
-              level: 'warning', tags: { club: String(currentData.name) },
-            });
-            // Reported through `outputs`, which is what the response body is, so the
-            // treasurer sees the gap in the same list as the successes rather than
-            // having to notice an absence.
-            outputs.push(`${currentData.name} invoice NOT sent: no club secretary email on file`);
-            continue;
-          }
-          const str = await ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false });
-          const params = {
-            Destination: {
-              ToAddresses: [currentData.email],
-              CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
-              BccAddresses: [
-                'bigcoops@outlook.com',
-                'bigcoops@gmail.com',
-                `stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`
-              ]
-            },
-            Message: {
-              Body: {
-                Html: {
-                  Charset: 'UTF-8',
-                  Data: str
-                }
-              },
-              Subject: {
-                Charset: 'UTF-8',
-                Data: `Annual Invoice for ${currentData.name}`
-              }
-            },
-            Source: 'results@stockport-badminton.co.uk',
-            ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
-          };
-          await sesUtil.sendEmail(params);
-          outputs.push(`${currentData.name} invoice sent successfully`);
-        } catch (sendErr) {
-          console.log(sendErr.toString());
-          outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
-        }
+    let fineRows = rows.filter(fine => fine.clubId === club.clubId);
+    for (let fine of fineRows) {
+      if (fine.desc !== null) {
+        data.fines.push({ desc: fine.desc, amount: fine.amount });
+        clubTotal += fine.amount;
       }
     }
-    res.send(outputs);
+
+    data.teamsCost = club.teamsCount * club.clubFee;
+    data.feesTotal = clubTotal;
+
+    // Never mail a number we cannot compute. A missing or renamed column yields NaN
+    // rather than throwing, EJS prints it happily, and the result is an invoice asking
+    // a club for £NaN — which is worse than no invoice, because it is authoritative,
+    // it reaches every club at once, and it only happens on the one day a year anybody
+    // would notice. Fail this club loudly and keep going for the rest.
+    if (!Number.isFinite(Number(data.teamsCost)) || !Number.isFinite(Number(data.feesTotal))) {
+      const detail = `teamsCount=${JSON.stringify(club.teamsCount)} clubFee=${JSON.stringify(club.clubFee)}`;
+      console.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
+      outputs.push(`${data.name} invoice NOT sent: total did not compute (${detail})`);
+      continue;
+    }
+
+    if (!allData.some(row => row.name === data.name)) {
+      allData.push(data);
+
+      const currentData = JSON.parse(JSON.stringify(data));
+      try {
+        // A club with no flagged secretary now reaches here (the officer join in
+        // getAnnualInvoices is LEFT, so the club is no longer dropped from the run).
+        // It must not be handed to SES as `ToAddresses: [null]`, which fails the whole
+        // call for that club. Reported and skipped instead, so the invoice run
+        // continues and the gap is visible.
+        if (!currentData.email || !String(currentData.email).includes('@')) {
+          console.warn(`invoices: no club secretary address for ${currentData.name} — skipped`);
+          Sentry.captureMessage('invoices: club has no secretary address', {
+            level: 'warning', tags: { club: String(currentData.name) },
+          });
+          // Reported through `outputs`, which is what the response body is, so the
+          // treasurer sees the gap in the same list as the successes rather than
+          // having to notice an absence.
+          outputs.push(`${currentData.name} invoice NOT sent: no club secretary email on file`);
+          continue;
+        }
+        const str = await ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false });
+        const params = {
+          Destination: {
+            ToAddresses: [currentData.email],
+            CcAddresses: [`treasurer.sdbl+${currentData.name.replace(/ |\./g, '')}@hotmail.com`],
+            BccAddresses: [
+              'bigcoops@outlook.com',
+              'bigcoops@gmail.com',
+              `stockport.badders.results+${currentData.name.replace(/ |\./g, '')}@gmail.com`
+            ]
+          },
+          Message: {
+            Body: {
+              Html: {
+                Charset: 'UTF-8',
+                Data: str
+              }
+            },
+            Subject: {
+              Charset: 'UTF-8',
+              Data: `Annual Invoice for ${currentData.name}`
+            }
+          },
+          Source: 'results@stockport-badminton.co.uk',
+          ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
+        };
+        await sesUtil.sendEmail(params);
+        outputs.push(`${currentData.name} invoice sent successfully`);
+      } catch (sendErr) {
+        console.log(sendErr.toString());
+        outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
+      }
+    }
+  }
+  return { status: 200, lines: outputs };
+}
+
+exports.send_invoices = async function(req, res, next) {
+  try {
+    const { status, lines } = await runInvoiceSend(req);
+    res.status(status).json(lines);
   } catch (err) {
     next(err);
   }
@@ -1115,3 +1180,70 @@ exports.generateWebsiteUpdateHTML = function(){
     </html>
   `
 }
+
+// ---------------------------------------------------------------------------
+// Admin → Invoices (HARD-23)
+// ---------------------------------------------------------------------------
+//
+// There was no button for this anywhere — `grep -rn "sendInvoice" views/` returned
+// nothing — so when the 1 Sep 2026 run failed, the only recovery was a `fetch()` typed
+// into a logged-in browser's devtools. That turned a two-hour investigation into
+// something only the person who wrote it could do.
+
+exports.admin_invoices_form = async function(req, res, next) {
+  try {
+    res.render('admin/invoices', {
+      static_path: '/static',
+      pageTitle: 'Annual Invoices',
+      pageDescription: 'Send the annual club invoices',
+      window: invoiceWindow(),
+      season: seasonModel.current(),
+      results: null,
+      ranStatus: null,
+      canonical: canonicalFor(req),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.admin_invoices_run = async function(req, res, next) {
+  try {
+    // The route is already `secured` + `requireSuperAdmin`; say so explicitly, because
+    // that is what `wantsForce` checks before honouring an override.
+    req.invoiceCaller = 'superadmin';
+
+    // Deliberate friction. This mails every club in the league at once from our own
+    // verified domain, and a duplicate run is a credibility problem with the treasurers
+    // rather than a technical one — it has already happened once, on 1 Sep 2026, when the
+    // corrected invoices had to go out behind the £NaN ones. A button that does that on a
+    // stray double-click is not a button worth adding.
+    if (req.body.confirm !== 'SEND') {
+      return res.status(400).render('admin/invoices', {
+        static_path: '/static',
+        pageTitle: 'Annual Invoices',
+        pageDescription: 'Send the annual club invoices',
+        window: invoiceWindow(),
+        season: seasonModel.current(),
+        results: ['Nothing was sent — type SEND in the confirmation box to run it.'],
+        ranStatus: 400,
+        canonical: canonicalFor(req),
+      });
+    }
+
+    const { status, lines } = await runInvoiceSend(req);
+
+    res.status(status).render('admin/invoices', {
+      static_path: '/static',
+      pageTitle: 'Annual Invoices',
+      pageDescription: 'Send the annual club invoices',
+      window: invoiceWindow(),
+      season: seasonModel.current(),
+      results: lines,
+      ranStatus: status,
+      canonical: canonicalFor(req),
+    });
+  } catch (err) {
+    next(err);
+  }
+};

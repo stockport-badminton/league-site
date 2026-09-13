@@ -751,6 +751,15 @@ Key vars (see `.env` for examples):
   to `POST /admin/registrations/run`, compared with `timingSafeEqual` over SHA-256 of both
   sides. **Unset closes the token path rather than opening it.** A superadmin session also
   works. `GET /admin/registrations/digest` previews the same email and sends nothing.
+- `INVOICE_CRON_TOKEN` — shared secret the scheduled caller presents as `X-Invoice-Token`
+  to `POST /league/sendInvoices`, compared with `timingSafeEqual` over SHA-256 of both
+  sides. **Unset closes the token path rather than opening it.** A superadmin session also
+  works, and `/admin/invoices` (Admin → Annual Invoices) is the button — there was no
+  trigger anywhere in the app before HARD-23, so the recovery when the 2026 run failed was
+  a `fetch()` typed into devtools. The gate is `middleware/requireCronCaller.js`, shared
+  with the audit and registration tokens; it answers **403, never a redirect**, because
+  `secured`'s 302 to `/login` is what Make.com recorded as a successful run while the
+  invoices went unsent for a year.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

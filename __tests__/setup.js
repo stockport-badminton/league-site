@@ -80,6 +80,7 @@ delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
 delete process.env.AUDIT_CRON_TOKEN;
 delete process.env.REGISTRATION_CRON_TOKEN;
+delete process.env.INVOICE_CRON_TOKEN;
 delete process.env.SENTRY_DSN;
 // An unset SNS_TOPIC_ARN means verifySns does not enforce a topic, which is what the
 // signature fixtures expect — they carry their own TopicArn, and the one test that wants

@@ -13,13 +13,12 @@
 // controllers/auditController.js, deliberately: a second, subtly different way of
 // authenticating a scheduler is how one of them ends up wrong.
 
-const crypto = require('crypto');
 const Registration = require('../models/clubRegistration');
 const seasonModel = require('../models/season');
 const documents = require('./documentsController');
 const mailer = require('../utils/mailer');
 const { absoluteUrl, canonicalFor } = require('../utils/canonical');
-const { isSuperAdmin } = require('../utils/authz');
+const requireCronCaller = require('../middleware/requireCronCaller');
 const { seasonLabel } = require('../utils/teamRegistrationDoc');
 
 const TOKEN_HEADER = 'x-registration-token';
@@ -41,29 +40,14 @@ function digestRecipients() {
 // Who may run the scheduled send
 // ---------------------------------------------------------------------------
 
-function cronTokenOk(req) {
-  // An unset token closes the path rather than opening it: "empty secret matches empty
-  // header" is how an unconfigured deploy becomes a public endpoint.
-  const expected = process.env.REGISTRATION_CRON_TOKEN || '';
-  if (!expected) return false;
-  const presented = req.get(TOKEN_HEADER) || '';
-  if (!presented) return false;
-  // Hashed first so timingSafeEqual gets equal-length buffers; comparing raw strings
-  // means either leaking the length or throwing on a mismatch.
-  const a = crypto.createHash('sha256').update(expected).digest();
-  const b = crypto.createHash('sha256').update(presented).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
-// Not `secured`: that redirects an anonymous caller to /login, and a scheduler following
-// a 302 to Auth0 reports the job as a success.
-function requireReminderCaller(req, res, next) {
-  if (cronTokenOk(req)) { req.reminderCaller = 'scheduler'; return next(); }
-  if (isSuperAdmin(req)) { req.reminderCaller = 'superadmin'; return next(); }
-  const err = new Error('Not authorised to run the registration reminder');
-  err.status = 403;
-  next(err);
-}
+// The gate — token, then superadmin session, then 403 — is shared with the weekly audit
+// and the annual invoice run: middleware/requireCronCaller.js.
+const requireReminderCaller = requireCronCaller({
+  envVar: 'REGISTRATION_CRON_TOKEN',
+  header: TOKEN_HEADER,
+  describe: 'the registration reminder',
+  callerProp: 'reminderCaller',
+});
 
 // ---------------------------------------------------------------------------
 // The chase email

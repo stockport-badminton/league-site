@@ -74,6 +74,7 @@ delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
 delete process.env.AUDIT_CRON_TOKEN;
 delete process.env.REGISTRATION_CRON_TOKEN;
+delete process.env.INVOICE_CRON_TOKEN;
 delete process.env.SENTRY_DSN;
 delete process.env.SNS_TOPIC_ARN;
 delete process.env.CSP_ENFORCE;

@@ -45,6 +45,15 @@ const { buildUploadKey, objectUrl } = require('../utils/uploads');
 const { photoKeyFromStored, contentTypeFor, downloadTypeFor, downloadNameFor } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
 const requirePublishAuthority = require('../middleware/requirePublishAuthority');
+const requireCronCaller = require('../middleware/requireCronCaller');
+// The annual invoice run (HARD-23). Same gate as the weekly audit and the daily
+// registration reminder — a scheduler token or a superadmin session, never a redirect.
+const requireInvoiceCaller = requireCronCaller({
+  envVar: 'INVOICE_CRON_TOKEN',
+  header: 'x-invoice-token',
+  describe: 'the annual invoice run',
+  callerProp: 'invoiceCaller',
+});
 const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
@@ -388,13 +397,19 @@ router.get('/league/:id/delete', league_controller.league_delete_get);
 router.delete('/league/:id', checkJwt, league_controller.league_delete);
 router.get('/league/:id/update', league_controller.league_update_get);
 router.patch('/league/:id', checkJwt, league_controller.league_update);
-// Superadmin only. These were unauthenticated, protected by nothing but a check that
-// today is the annual invoice date — so on that one day of the year any caller could
-// send every club its invoice, repeatedly, from our own verified domain. The date check
-// stays, but as a safety net rather than as the only control.
-router.post('/league/sendInvoices', secured, requireClubAccess.requireSuperAdmin,
+// A superadmin session OR the Cloud Scheduler token. These were unauthenticated,
+// protected by nothing but a check that today is the annual invoice date — so on that one
+// day of the year any caller could send every club its invoice, repeatedly, from our own
+// verified domain. The date check stays, but as a safety net rather than the only control.
+//
+// SEC-3 fixed that with `secured` + `requireSuperAdmin` and, by not checking who was
+// already calling, broke the thing that actually ran it: `secured` redirected Make.com to
+// /login, Make followed the 302, got a 200 from Auth0 and recorded a successful job. The
+// 1 Sep 2026 invoices never went out and nothing said so (HARD-23). `requireInvoiceCaller`
+// answers a 403 instead of redirecting, for exactly that reason.
+router.post('/league/sendInvoices', requireInvoiceCaller,
   publicFormLimiter, contact_controller.send_invoices);
-router.post('/league/sendInvoice/:club', secured, requireClubAccess.requireSuperAdmin,
+router.post('/league/sendInvoice/:club', requireInvoiceCaller,
   publicFormLimiter, contact_controller.send_invoices);
 router.get('/league/:id', league_controller.league_detail);
 router.get('/leagues', checkJwt, league_controller.league_list);
@@ -669,6 +684,14 @@ const registration_controller = require('../controllers/registrationController')
 // secret in X-Audit-Token, for Cloud Scheduler, and deliberately does *not* use
 // `secured`: `secured` answers an anonymous caller with a 302 to /login, which a
 // scheduler would record as a successful job.
+// Admin → Invoices (HARD-23). A browser page, so `secured` is right here: a redirect to
+// /login is the correct answer for a human. The machine path is POST /league/sendInvoices,
+// which must NOT redirect — see the note there.
+router.get('/admin/invoices', secured, requireClubAccess.requireSuperAdmin,
+  contact_controller.admin_invoices_form);
+router.post('/admin/invoices', secured, requireClubAccess.requireSuperAdmin,
+  contact_controller.admin_invoices_run);
+
 router.get('/admin/audit', secured, requireClubAccess.requireSuperAdmin, audit_controller.audit_preview);
 router.post('/admin/audit/run', audit_controller.requireAuditCaller, audit_controller.audit_run);
 

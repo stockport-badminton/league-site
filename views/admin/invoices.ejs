@@ -1,0 +1,80 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Annual Invoices</h1>
+
+  <p>
+    Emails every club in the league its annual invoice for season <strong><%= season %></strong>,
+    from <code>results@stockport-badminton.co.uk</code>, copying the treasurer.
+    <strong>This sends to every club at once.</strong>
+  </p>
+
+  <% if (window.inWindow) { %>
+    <div class="alert alert-success">
+      Today is within the annual invoice window
+      (<%= window.invoiceDate.toDateString() %>, give or take <%= window.windowDays %> days).
+    </div>
+  <% } else { %>
+    <div class="alert alert-warning">
+      <strong>Outside the invoice window.</strong>
+      The annual date is <%= window.invoiceDate.toDateString() %> and today is
+      <%= Math.abs(window.daysOut) %> day(s)
+      <%= window.daysOut > 0 ? 'after' : 'before' %> it.
+      The run will refuse unless you tick the override below.
+    </div>
+  <% } %>
+
+  <% if (results) { %>
+    <h2>Result</h2>
+    <%
+      // 200 means the run completed. It does NOT mean every club was invoiced — a club
+      // whose total would not compute, or which has no secretary address on file, is
+      // reported here as NOT sent and the run continues. That distinction is the whole
+      // point of listing per-club lines rather than printing "done".
+      var ok = ranStatus === 200;
+    %>
+    <div class="alert <%= ok ? 'alert-info' : 'alert-danger' %>">
+      <%= ok ? 'The run completed. Check each line below.' : 'Nothing was sent.' %>
+    </div>
+    <ul class="list-group mb-4">
+      <% results.forEach(function (line) { %>
+        <li class="list-group-item<%= /NOT sent|failed/i.test(line) ? ' list-group-item-danger' : '' %>">
+          <%= line %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <form method="post" action="/admin/invoices">
+    <div class="form-group">
+      <label for="confirm">Type <strong>SEND</strong> to confirm</label>
+      <input type="text" class="form-control" id="confirm" name="confirm" autocomplete="off" value="">
+      <small class="form-text text-muted">
+        Deliberate friction: the invoices went out twice on 1&nbsp;September 2026 and the
+        treasurers had to be told about the duplicate.
+      </small>
+    </div>
+
+    <% if (!window.inWindow) { %>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="force" name="force" value="true">
+        <label class="form-check-label" for="force">
+          Send anyway, outside the annual window
+        </label>
+      </div>
+    <% } %>
+
+    <button type="submit" class="btn btn-danger">Send annual invoices to every club</button>
+  </form>
+
+  <p class="mt-4">
+    <small class="text-muted">
+      Cloud Scheduler runs this on 1 September by presenting <code>X-Invoice-Token</code>.
+      A scheduler cannot use the override above — a scheduled run firing on the wrong day
+      is a misconfiguration worth seeing, not one to paper over.
+    </small>
+  </p>
+</div>
+
+<%- include('../footer.ejs') %>

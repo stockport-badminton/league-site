@@ -28,14 +28,13 @@
 //    fails answers 200 with the reason rather than a 500, because a 500 to Cloud
 //    Scheduler produces a retry storm against a job whose whole output is one email.
 
-const crypto = require('crypto');
 const ejs = require('ejs');
 const db = require('../db_connect.js');
 const checks = require('../tools/audit/checks');
 const { buildDigest } = require('../utils/auditDigest');
 const { absoluteUrl } = require('../utils/canonical');
 const ses = require('../utils/ses');
-const { isSuperAdmin } = require('../utils/authz');
+const requireCronCaller = require('../middleware/requireCronCaller');
 
 const VIEW = 'views/emails/weekly-anomalies.ejs';
 const DEFAULT_SOURCE = 'results@stockport-badminton.co.uk';
@@ -64,40 +63,16 @@ function source() {
 // Who may run it
 // ---------------------------------------------------------------------------
 
-// Cloud Scheduler has no session, so it presents a shared secret in a header.
-//
-// Both sides are hashed before comparison so timingSafeEqual gets two equal-length
-// buffers: comparing the raw strings means either a length check that leaks the secret's
-// length, or a throw on mismatched lengths. And an unset AUDIT_CRON_TOKEN closes the
-// token path rather than opening it — the failure mode of "empty secret matches an empty
-// header" is exactly how an unconfigured deploy becomes a public endpoint.
-function cronTokenOk(req) {
-  const expected = process.env.AUDIT_CRON_TOKEN || '';
-  if (!expected) return false;
-  const presented = req.get(TOKEN_HEADER) || '';
-  if (!presented) return false;
-  const a = crypto.createHash('sha256').update(expected).digest();
-  const b = crypto.createHash('sha256').update(presented).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
-// Route middleware for the send endpoint. Deliberately not `secured`: `secured` redirects
-// an anonymous caller to /login, and a scheduler following a 302 to Auth0 would be
-// reported as a successful job. A superadmin session still works — req.user is put there
-// by passport's session deserialisation, not by `secured`.
-function requireAuditCaller(req, res, next) {
-  if (cronTokenOk(req)) {
-    req.auditCaller = 'scheduler';
-    return next();
-  }
-  if (isSuperAdmin(req)) {
-    req.auditCaller = 'superadmin';
-    return next();
-  }
-  const err = new Error('Not authorised to run the league data audit');
-  err.status = 403;
-  next(err);
-}
+// Cloud Scheduler has no session, so it presents a shared secret in a header. The gate
+// itself — token, then superadmin session, then 403 — lives in
+// middleware/requireCronCaller.js, shared with the registration reminder and the annual
+// invoice run. It was duplicated between the first two before HARD-23 needed a third.
+const requireAuditCaller = requireCronCaller({
+  envVar: 'AUDIT_CRON_TOKEN',
+  header: TOKEN_HEADER,
+  describe: 'the league data audit',
+  callerProp: 'auditCaller',
+});
 
 // ---------------------------------------------------------------------------
 // Building the report
