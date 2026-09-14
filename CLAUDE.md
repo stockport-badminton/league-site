@@ -764,6 +764,37 @@ is the exact symptom HARD-01 was written to fix.
 **production** dependency — `dependencies`, not `devDependencies`, because the Dockerfile
 runs `npm ci --omit=dev` and a devDependency required at runtime is exactly as missing.
 
+## `sanitize-html` is pinned to an exact version, and it is the only one
+
+`package.json` says `"sanitize-html": "2.17.5"` with no caret. Every other dependency
+carries a range; this one does not, and the reason is not style.
+
+**2.17.6 and 2.17.7 break the Jest suite** — 34 of 35 integration suites fail on
+`require('sanitize-html')` with:
+
+```
+sanitize-html/node_modules/htmlparser2/dist/index.js:1
+SyntaxError: Cannot use import statement outside a module
+```
+
+A nested `htmlparser2` ships ESM that Jest will not load. A caret range **allows** those
+versions, so `npm ci` was safe only because the lockfile happened to hold 2.17.5 — and a
+single `npm update` would have taken the whole suite out. The exact pin is what makes the
+constraint deliberate rather than lucky. Verified by installing 2.17.7 and watching it
+happen (Sep 2026).
+
+**This costs us a real advisory, knowingly.** Two sanitize-html XSS advisories are open,
+and 2.17.7 fixes both. What makes the trade acceptable rather than lazy is the reach:
+`sanitize-html` is used in exactly one place, `controllers/homepageContentController.js`,
+so the person supplying the HTML it sanitises is a **superadmin** editing site content.
+There is no member-facing input path into it. Check that is still true before renewing the
+decision — the moment it sanitises anything a captain or the public can submit, the
+calculation changes and the suite is the thing that has to give.
+
+Note also that Dependabot names **2.17.6** as the fix. That is wrong for us: the SVG/SMIL
+advisory covers `<= 2.17.6`, so 2.17.6 closes one of the two and leaves the other. If this
+is ever revisited, 2.17.7 is the floor.
+
 ## Environment Variables
 
 Key vars (see `.env` for examples):
