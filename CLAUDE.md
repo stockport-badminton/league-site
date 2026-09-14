@@ -423,7 +423,16 @@ grew from 44 specs to 71, and again to 89.
 ## Asking production what is actually used
 
 Cloud Run request logs are the only honest answer to "does anybody use this route", and
-they go back about four months. **Always put a `timestamp>=` constraint in the filter:**
+they go back **30 days, not four months**. Measured 14 Sep 2026: the `_Default` log bucket
+has 30-day retention and the oldest request log was exactly 30 days old. The four-month
+figure that used to be here came from reading the oldest entry for the service, which is a
+Cloud **Audit** log — those live in `_Required` at 400 days and record admin activity like
+deploys, not requests. Two buckets, two retentions, one `resource.type`.
+
+That makes the rule below more important rather than less: a month is a short window to
+conclude "nobody uses this" from, and a season that started three weeks ago is most of it.
+
+**Always put a `timestamp>=` constraint in the filter:**
 
 ```bash
 gcloud logging read \
