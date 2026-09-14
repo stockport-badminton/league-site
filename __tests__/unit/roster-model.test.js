@@ -57,10 +57,26 @@ function queue(...resultSets) {
   db.__state.rows = resultSets;
 }
 
+// The ranks a call wrote, in order, whatever statement carried them.
+//
+// This used to read one row per query — `UPDATE player SET rank = ? WHERE id = ?`,
+// `{rank: params[0], id: params[1]}` — because that is what the model issued: one write
+// per player. Sentry flagged that as an N+1 (NODE-13) and it is now a single
+// `UPDATE ... FROM unnest(?::int[], ?::int[])` per renumber.
+//
+// Worth being clear about what changed and what did not: every assertion below still
+// checks the same thing, which ranks were written to which players and in what order.
+// Only the decoding moved. The lesson is that the old helper had the N+1 baked into it as
+// its observation mechanism, so fixing the query broke thirteen tests that were not about
+// the query — assert on the behaviour, and keep the mechanism in one place where it can
+// be changed once.
 function updates() {
   return db.__state.log
-    .filter(e => e.sql.startsWith('UPDATE player SET rank'))
-    .map(e => ({ rank: e.params[0], id: e.params[1] }));
+    .filter(e => /^UPDATE player AS p SET rank/.test(e.sql))
+    .flatMap(e => {
+      const [ids, ranks] = e.params;
+      return ids.map((id, i) => ({ rank: ranks[i], id }));
+    });
 }
 
 beforeEach(() => {

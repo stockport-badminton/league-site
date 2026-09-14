@@ -40,6 +40,32 @@
     window.sentryOnLoad = function () {
       // in here, Sentry is ensured to be loaded & fully available
 
+      // Are we actually the ones serving this page?
+      //
+      // The `sentryEnabled` gate above is decided when the page is RENDERED, which keeps
+      // dev and test renders out but cannot keep a *production* render from being saved
+      // and reopened elsewhere. A saved page carries this snippet, the DSN, and the
+      // `Sentry.setUser` id baked in, and goes on reporting as `environment: production`
+      // for as long as the file exists.
+      //
+      // 14 Sep 2026: a saved copy of `/email-scorecard` — a `secured` page, so whoever
+      // saved it was logged in — opened off a Windows network share at
+      // `file://server/Data/.../stockport-badminton.co.uk/email-scorecard.html` and
+      // reported `ReferenceError: $ is not defined`, because jQuery cannot load over
+      // `file://`. Nothing was wrong with the site; the page had not been served by us in
+      // days. Two events and one "user" who was a file path.
+      //
+      // So the runtime check: a real scheme, and a host we recognise. `.run.app` is
+      // allowed because Firebase rewrites to Cloud Run and that hostname serves the whole
+      // site publicly (CLAUDE.md gotcha 1b). An optional `www.` is allowed so a visitor
+      // arriving that way is not silently unmonitored.
+      var expectedHost = '<%= siteOrigin().replace(/^https?:\/\//, "") %>';
+      var h = location.hostname;
+      var servedByUs =
+        (location.protocol === 'https:' || location.protocol === 'http:') &&
+        (h === expectedHost || h === 'www.' + expectedHost || /\.run\.app$/.test(h));
+      if (!servedByUs) return;
+
       // Session Replay is quota-limited (50/month once the free trial ends), so
       // only record it where it earns its keep, and never spend the budget on
       // noise. A replay is enabled only when ALL of these hold:

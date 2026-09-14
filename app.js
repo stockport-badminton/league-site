@@ -126,6 +126,9 @@ app.locals.eventPath = require('./utils/canonical').eventPath;
 // their SportsClub markup names them as `url`. One builder, so they cannot diverge.
 app.locals.clubPath = require('./utils/canonical').clubPath;
 app.locals.resultImagePath = require('./utils/canonical').resultImagePath;
+// Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
+// which host is legitimately ours at runtime — see the note there.
+app.locals.siteOrigin = require('./utils/canonical').siteOrigin;
 app.locals.socialLinksFor = require('./utils/socialLinks').socialLinksFor;
 
 // Honeypot field name and a freshly signed render timestamp, for views/spam-fields.ejs.

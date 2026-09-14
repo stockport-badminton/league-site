@@ -190,6 +190,31 @@ exports.getPlayerOwner = async function(playerId, conn) {
 // Writes
 // ---------------------------------------------------------------------------
 
+// Write a settled list of ranks in one statement instead of one per player.
+//
+// Both renumber paths decide *which* rows to write first — the no-op skip above means an
+// unchanged player is never in this list — so batching changes only how they are sent, not
+// what is written or what is returned.
+//
+// It was a query per player inside the transaction, which Sentry flagged as an N+1 on
+// `POST /api/teams/:id/order` (NODE-13, 9 occurrences 9–13 Sep 2026). A squad is 8–12
+// players, so a single reorder was 8–12 sequential round trips to Supabase, each paying
+// the pooler's latency, while holding a transaction open. Nobody reported it as slow; it
+// is the holding-a-transaction-open part that makes it worth fixing rather than the
+// milliseconds.
+//
+// `unnest` rather than a generated `VALUES` list: the placeholder count is fixed at two
+// whatever the batch size, so there is no SQL built from a length — the ids and ranks are
+// bound as arrays. The ?-to-$n wrapper passes JS arrays through unchanged.
+async function applyRanks(conn, updated) {
+  if (!updated.length) return
+  await conn.query(
+    'UPDATE player AS p SET rank = u.rank ' +
+    'FROM unnest(?::int[], ?::int[]) AS u(id, rank) WHERE p.id = u.id',
+    [updated.map(u => Number(u.id)), updated.map(u => Number(u.rank))]
+  )
+}
+
 // Renumbers one (team, gender, section) list to exactly `orderedIds`, taking
 // section membership from the ranks already in the database.
 //
@@ -242,9 +267,9 @@ async function renumberSection(conn, teamId, gender, section, orderedIds) {
     const rank = base + i
     const existing = inSection.find(r => Number(r.id) === finalOrder[i])
     if (existing && Number(existing.rank) === rank) continue // no-op, skip the write
-    await conn.query('UPDATE player SET rank = ? WHERE id = ?', [rank, finalOrder[i]])
     updated.push({ id: finalOrder[i], rank })
   }
+  await applyRanks(conn, updated)
   return updated
 }
 
@@ -300,10 +325,12 @@ async function renumberGender(conn, teamId, gender, wanted) {
       const rank = base + i
       const existing = byId.get(id)
       if (existing && Number(existing.rank) === rank) continue // no-op, skip the write
-      await conn.query('UPDATE player SET rank = ? WHERE id = ?', [rank, id])
       updated.push({ id, rank })
     }
   }
+  // One statement for both sections of the gender — they are renumbered together on
+  // purpose (see the note on renumberGender), so they are written together too.
+  await applyRanks(conn, updated)
   return updated
 }
 
