@@ -15,8 +15,10 @@
 //     players are parked — carries division 0, which no division row has, so that
 //     join alone hid 490 players. A returning member could not be found.
 //
-// dev.env carries the same DATABASE_URL as .env, so the only database reachable
-// locally is production. The db layer is faked to capture the exact SQL and params.
+// The db layer is faked to capture the exact SQL and params, which is what this test is
+// about — the shape of the query, not the rows it returns.
+// (This used to justify the fake by saying dev.env carried the same DATABASE_URL as .env.
+// False since HARD-13 landed a local Postgres, and `tools/local-db.sh` runs it.)
 
 jest.mock('../../db_connect.js', () => {
   const state = { log: [], rows: [] };

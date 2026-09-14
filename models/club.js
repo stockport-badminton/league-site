@@ -70,7 +70,7 @@ exports.getTeamsForClub = async function(clubId, excludeTeamId) {
     FROM team t
     LEFT JOIN division d ON t.division = d.id
     LEFT JOIN venue v ON t.venue = v.id
-    WHERE t.club = ? AND t.id <> ?
+    WHERE t.club = ? AND t.id <> ? AND t.withdrawn IS NULL
     ORDER BY t.name ASC`, [clubId, excludeTeamId])
   return result
 }

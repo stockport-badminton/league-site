@@ -1,9 +1,14 @@
 // Rank arithmetic for the roster writes.
 //
-// These matter more than usual: dev.env carries the same DATABASE_URL as .env, so
-// the only database available locally is production and the write paths cannot be
-// exercised against it. The db layer is faked here so the exact statements and
-// parameters can be asserted.
+// These matter more than usual because the write paths cannot be exercised against a real
+// database from Jest. The db layer is faked here so the exact statements and parameters can
+// be asserted.
+//
+// (This used to say "dev.env carries the same DATABASE_URL as .env, so the only database
+// available locally is production". True when written, false from the moment HARD-13
+// landed — there has been a local Postgres since, and `tools/local-db.sh` runs it. Left
+// corrected rather than deleted because that sentence is exactly the kind a careful person
+// checks instead of looking.)
 //
 // The bugs being pinned down, all of which were live:
 //   - moving a player between teams renumbered only the destination, leaving the

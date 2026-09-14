@@ -114,6 +114,13 @@ exports.getClubRoster = async function(clubName) {
 // Teams at a club, in the club's own pecking order — the destination list for
 // "Move to…". Kept separate from the roster read so a club whose newest team has
 // no players yet still offers it as a destination.
+//
+// **Withdrawn teams are excluded, and this is the one that matters.** HARD-10 added the
+// `withdrawn` columns and the convention that such a team has a NULL division, which keeps
+// it out of the league table — but nothing filtered it here, so a withdrawn (or, once
+// HARD-11's orphans are reinstated, a long-defunct) team would be offered as a live
+// destination and a captain could move a real player onto it. Filtering three queries is
+// the precondition for reinstating those teams at all.
 exports.getClubTeams = async function(clubName) {
   const [rows] = await (await db.otherConnect()).query(
     `SELECT team.id, team.name, team.rank AS "teamRank",
@@ -121,7 +128,7 @@ exports.getClubTeams = async function(clubName) {
      FROM team
      JOIN club ON club.id = team.club
      LEFT JOIN division ON division.id = team.division
-     WHERE club.name = ?
+     WHERE club.name = ? AND team.withdrawn IS NULL
      ORDER BY team.rank NULLS LAST, team.name`,
     clubName
   )
@@ -137,10 +144,11 @@ exports.getClubTeams = async function(clubName) {
 exports.getClubSummaries = async function() {
   const [rows] = await (await db.otherConnect()).query(
     `SELECT club.id, club.name,
-            (SELECT COUNT(*) FROM team WHERE team.club = club.id) AS teams,
+            (SELECT COUNT(*) FROM team
+              WHERE team.club = club.id AND team.withdrawn IS NULL) AS teams,
             (SELECT COUNT(*) FROM player
              JOIN team t2 ON t2.id = player.team
-             WHERE t2.club = club.id) AS players
+             WHERE t2.club = club.id AND t2.withdrawn IS NULL) AS players
      FROM club
      WHERE club.id <> ?
      ORDER BY club.name`,

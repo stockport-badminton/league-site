@@ -9,8 +9,11 @@
 // connection actually drops: the pool works perfectly in dev, in tests, and under
 // any load that keeps its connections busy. So assert the wiring directly.
 //
-// `pg` is faked here rather than connected to. dev.env carries the same
-// DATABASE_URL as .env, so the only reachable database locally is production.
+// `pg` is faked here rather than connected to, because the failure being pinned down is an
+// EventEmitter wiring detail rather than anything a real connection would show.
+// (This used to justify the fake by saying dev.env carried the same DATABASE_URL as .env.
+// That stopped being true when HARD-13 landed a local Postgres; the reason above is the
+// one that still holds.)
 
 const { EventEmitter } = require('events');
 
