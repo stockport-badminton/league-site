@@ -321,10 +321,28 @@ exports.getNamesClubsTeams = async function(searchTerms) {
 }
 
 exports.getPlayerGameData = async function(id) {
-  let sql = `WITH playerGames AS (SELECT game.*, fixture.date, homeTeam.name AS hometeamname, homeTeam.rank AS hometeamrank, awayTeam.name AS awayteamname, awayTeam.rank AS awayteamrank FROM game
+  // LEFT JOIN, not INNER, and this is not a style preference (HARD-11).
+  //
+  // There are no foreign keys on fixture."homeTeam"/"awayTeam", and 2,132 fixtures across
+  // every season point at team ids that are no longer in `team`. An inner join here drops
+  // those games from the player's history silently: **10,422 of 35,244 game rows, 30% of
+  // everything ever recorded, affecting 677 of 904 players.** Measured 14 Sep 2026. Susan
+  // Forbes played 716 rated games and this page showed her 256 of them.
+  //
+  // The team name falls back rather than the row vanishing. Note ~half of those names are
+  // still recoverable from the season archives (team20212022 and friends — 9 of the 19
+  // orphaned ids), but reading them would mean hardcoding a list of archive tables that
+  // goes stale the moment a new season is archived, with nothing to catch it. Recorded as
+  // a possible follow-up instead.
+  //
+  // `hometeamrank` stays NULL for a missing team, so `teamAdjustment` below is NULL and
+  // the view's `teamAdjustment > 0` guard simply renders no bracket. Checked.
+  let sql = `WITH playerGames AS (SELECT game.*, fixture.date,
+COALESCE(homeTeam.name, 'Former team') AS hometeamname, homeTeam.rank AS hometeamrank,
+COALESCE(awayTeam.name, 'Former team') AS awayteamname, awayTeam.rank AS awayteamrank FROM game
 JOIN fixture ON game.fixture = fixture.id
-JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
-JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
+LEFT JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
+LEFT JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
 WHERE
 (? IN("homePlayer1","homePlayer2","awayPlayer1","awayPlayer2") AND (
   "homePlayer1End" IS NOT NULL AND
