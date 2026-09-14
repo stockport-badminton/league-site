@@ -1428,3 +1428,96 @@ describe('POST /scorecard-beta — recording which draft produced the result', (
     expect(Game.createBatch).toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// A later submission replaces an earlier one — HARD-17, migration 016
+// ---------------------------------------------------------------------------
+//
+// 140 of 1,373 matches hold more than one draft. They are not a data error: a captain who
+// mistypes a score files the scorecard again, and that is the correction route the site
+// has always had. What was missing was any record of which one is current, so both sat
+// there looking equally authoritative — and the confirmation link for the stale one still
+// published, which meant publishing the older version could undo the correction.
+//
+// Decided 14 Sep 2026 with the league secretary: the later submission wins.
+
+describe('POST /email-scorecard — superseding an earlier draft', () => {
+  beforeEach(() => {
+    sesWorks();
+    setupFullFixtureMocks();
+    Fixture.createScorecard.mockResolvedValue([{ id: 77 }]);
+    Fixture.supersedeEarlierDrafts.mockResolvedValue(1);
+  });
+
+  it('marks earlier drafts for the same match as replaced by this one', async () => {
+    await request(app)
+      .post('/email-scorecard')
+      .send(validScorecard({ homeTeam: '10', awayTeam: '20', date: '2026-01-15' }));
+
+    expect(Fixture.supersedeEarlierDrafts).toHaveBeenCalledWith(
+      77,
+      { homeTeam: '10', awayTeam: '20', date: '2026-01-15' }
+    );
+  });
+
+  // Bookkeeping about other rows must not be able to fail the draft that was just saved.
+  // CLAUDE.md's rule: what a captain does about "nothing was recorded" is file it again.
+  it('still files the draft when superseding fails', async () => {
+    Fixture.supersedeEarlierDrafts.mockRejectedValue(new Error('db went away'));
+
+    const res = await request(app).post('/email-scorecard').send(validScorecard());
+
+    expect(res.status).toBe(302);
+    expect(Fixture.createScorecard).toHaveBeenCalled();
+  });
+});
+
+describe('POST /scorecard-beta — refusing to publish a superseded draft', () => {
+  beforeEach(() => {
+    sesWorks();
+    setupFullFixtureMocks();
+  });
+
+  it('answers 409 and writes nothing when the draft has been replaced', async () => {
+    Fixture.getDraftSupersession.mockResolvedValue({ id: 42, supersededBy: 77 });
+
+    const res = await request(app)
+      .post('/scorecard-beta')
+      .send(validScorecard({ draftId: '42', t: 'a'.repeat(64) }));
+
+    expect(res.status).toBe(409);
+    expect(res.text).toMatch(/later scorecard replaced this one/i);
+    expect(Fixture.updateById).not.toHaveBeenCalled();
+    expect(Game.createBatch).not.toHaveBeenCalled();
+  });
+
+  // The replacement's confirmation link carries its own token. Putting it on a page that
+  // the OLD token opens would hand out access the old token never had.
+  it('does not leak the replacement draft’s link', async () => {
+    Fixture.getDraftSupersession.mockResolvedValue({ id: 42, supersededBy: 77 });
+
+    const res = await request(app)
+      .post('/scorecard-beta')
+      .send(validScorecard({ draftId: '42', t: 'a'.repeat(64) }));
+
+    expect(res.text).not.toMatch(/populated-scorecard-beta\/77/);
+  });
+
+  it('publishes normally when the draft is still current', async () => {
+    Fixture.getDraftSupersession.mockResolvedValue({ id: 42, supersededBy: null });
+
+    const res = await request(app)
+      .post('/scorecard-beta')
+      .send(validScorecard({ draftId: '42', t: 'a'.repeat(64) }));
+
+    expect(res.status).toBe(200);
+    expect(Fixture.updateById).toHaveBeenCalled();
+  });
+
+  it('does not ask about supersession when no draft id was posted', async () => {
+    await request(app).post('/scorecard-beta').send(validScorecard());
+
+    expect(Fixture.getDraftSupersession).not.toHaveBeenCalled();
+    expect(Fixture.updateById).toHaveBeenCalled();
+  });
+});

@@ -69,6 +69,28 @@
   </p>
   <p><a class="btn btn-success" href="/scorecard-beta">Back to the scorecard</a></p>
 
+<% } else if (conflict.reason === 'superseded') { %>
+  <h1>A later scorecard replaced this one</h1>
+  <p class="lead">
+    This confirmation link is for a scorecard that has since been filed again for the same
+    match, so it is no longer the current record. Nothing has been changed.
+  </p>
+  <p>
+    Filing again is how a scorecard gets corrected, and the most recent one wins &mdash;
+    so publishing this older version would undo whatever the second submission put right.
+    Open the <strong>most recent</strong> confirmation email for this match and use the
+    link in that one.
+  </p>
+  <%# Deliberately not a link to the replacement: its confirmation link carries its own
+      token, and putting that token on a page reachable with the OLD one would hand out
+      access that the old token was never granted. The newest email already has it. %>
+  <p>
+    If you can't find it, email
+    <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>
+    and say which match it is.
+  </p>
+  <p><a class="btn btn-success" href="/scorecard-beta">Back to the scorecard</a></p>
+
 <% } else if (conflict.reason === 'bad-total') { %>
   <h1>Those scores don't add up to a match</h1>
   <p class="lead">

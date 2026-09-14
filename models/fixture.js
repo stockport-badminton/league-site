@@ -45,6 +45,42 @@ exports.createScorecard = async function(fixtureObj) {
   return result
 }
 
+// Mark every other draft for the same match as replaced by this one (HARD-17).
+//
+// A captain who mistypes a score files the scorecard again — that is the correction route
+// the site has always had. What was missing was any record that the second filing replaces
+// the first, so 140 of 1,373 matches hold several drafts, all looking equally
+// authoritative, and the confirmation link for a stale one would still publish it.
+//
+// Decided with the league secretary: the later submission wins. Nothing is deleted — the
+// superseded rows are the record of what a captain actually filed and when.
+//
+// Every earlier draft is pointed at the NEWEST one rather than at its immediate successor,
+// so finding the current record is one hop from anywhere in a chain rather than a walk.
+// `supersededBy IS NULL` is therefore exactly "this is the current draft for its match".
+//
+// Matched on the exact pairing and date rather than on the ±3-day window the audit checks
+// use, deliberately: superseding the WRONG draft would hide a real scorecard, so the safe
+// direction to be wrong in is to supersede too few. A captain who also corrects the date
+// leaves two current drafts, which is the state we already live with.
+exports.supersedeEarlierDrafts = async function(newId, match, conn) {
+  const c = conn || await db.otherConnect()
+  const [result] = await c.query(
+    `UPDATE scorecardstore SET "supersededBy" = ?
+      WHERE "homeTeam" = ? AND "awayTeam" = ? AND date = ? AND id <> ?`,
+    [newId, match.homeTeam, match.awayTeam, match.date, newId]
+  )
+  return result.affectedRows || 0
+}
+
+// Is this draft still the current one for its match, and if not, which replaced it?
+exports.getDraftSupersession = async function(draftId) {
+  const [rows] = await (await db.otherConnect()).query(
+    'SELECT id, "supersededBy" FROM scorecardstore WHERE id = ?', [draftId]
+  )
+  return rows[0] || null
+}
+
 exports.createBatch = async function(batchObj) {
   if (!db.isObject(batchObj)) throw new Error('not object')
   const fields = batchObj.fields.map(f => `"${f}"`).join(',')

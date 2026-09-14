@@ -311,6 +311,28 @@ exports.full_fixture_post = async function(req, res, next) {
     const draftId = Number(req.body && req.body.draftId);
     if (Number.isInteger(draftId) && draftId > 0) fixtureObject.draftId = draftId;
 
+    // A superseded draft must not publish (HARD-17).
+    //
+    // A captain correcting a mistyped score files again, and the later submission wins.
+    // But the earlier confirmation link is still sitting in an inbox, still valid, and
+    // still carries its own token — so without this the stale version publishes, and the
+    // correction is the thing that gets lost. That is the reverse of what filing again is
+    // for.
+    //
+    // Checked here rather than in requirePublishAuthority: that middleware answers "may
+    // you publish", and the answer here is yes-but-not-this-one, which is a conflict in
+    // the same family as `already-recorded` and belongs with them.
+    if (Number.isInteger(draftId) && draftId > 0) {
+      const draft = await Fixture.getDraftSupersession(draftId);
+      if (draft && draft.supersededBy) {
+        return renderSubmissionConflict(req, res, {
+          reason: 'superseded',
+          draftId,
+          supersededBy: draft.supersededBy,
+        });
+      }
+    }
+
     let prevScores = {};
     prevScores[req.body.homeMan1] = {};
     prevScores[req.body.homeMan2] = {};
@@ -654,6 +676,19 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         // where it is. Better to fail visibly than to send another broken link.
         throw new Error('scorecard was saved but no id came back, so no confirmation link could be built');
       }
+
+      // This filing replaces any earlier one for the same match (HARD-17). A captain
+      // correcting a mistyped score files again, and until now both drafts sat there
+      // looking equally authoritative — 140 of 1,373 matches are in that state.
+      //
+      // Through afterCommit because the draft is already written: this is bookkeeping
+      // about other rows, and CLAUDE.md's rule is that nothing which runs after a commit
+      // may reject the write it is reporting. If it fails, the captain still has their
+      // scorecard and the worst case is the state we were already in.
+      await afterCommit('supersede earlier drafts', () => Fixture.supersedeEarlierDrafts(
+        scorecardId,
+        { homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, date: req.body.date }
+      ));
       // Built from the site's own origin, never from req.headers.host: behind Firebase
       // that header is the Cloud Run hostname, so this link used to point at
       // league-site-…-nw.a.run.app. See utils/canonical.js.
