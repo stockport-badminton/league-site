@@ -136,3 +136,86 @@ as the acceptance criteria require.
 a deleted team and were invisible to the player search. They are now parked on the No Club /
 No Team sentinels. That is `player.team`, which this brief does not survey — it covers the
 `fixture` side only.
+
+---
+
+# Steps 3 and 4, 14 Sep 2026 — **DONE**
+
+## Step 3: the 19 teams reinstated
+
+`--check orphan-team-refs`: **2132 → 0**.
+
+Names: 9 recovered from the season archives, 9 identified by the league secretary from old
+correspondence (Carrington A and B, CAP, GHAP, New Mills, Manor C, Bramhall Village B,
+Disley D, Blue Triangle), and **58 left as "Unknown team"** — it ran 8 home fixtures across
+2012-13 and has no game rows at all, so nothing names it.
+
+The method that narrowed it is worth keeping: for each orphaned id, the players who turned
+out for it and **which club those players belong to now**. It narrows but does not identify
+— 11 and 17 looked like Shell because six of their players are at Shell today, and they
+were Carrington.
+
+Inserted as **withdrawn rows on club 63 with a NULL division** (HARD-10's convention, which
+keeps them out of the league table and both audit checks, each of which JOINs division).
+`venue = 0` matches the existing `No Team` sentinel; there is no venue with that id, so
+`LEFT JOIN venue` yields NULL cleanly.
+
+## Five queries had to learn about `withdrawn` first, and one was load-bearing
+
+`findTeamIdsByName` builds `new Map(rows.map(r => [r.name, r.id]))`, which silently keeps
+the **last** row for a duplicated key. Four of these names are already held by a live team,
+because the club's team was deleted and re-created with a new id — Syddal Park B, Disley A,
+Manor B, Mellor B. Without the filter, a rearrangement could resolve to the 2014 team and
+write a fixture pointing at it: **a new orphan, created by the thing meant to stop them.**
+
+The others: the roster's "Move to…" destination list (a captain could have moved a live
+player onto a team that folded in 2014), the club picker's counts, the club page listing,
+and `getReminderRecipients`. All latent before this — no team had `withdrawn` set, because
+Parrswood C was withdrawn in real life rather than through the mechanism.
+
+## Public pages: deliberately not granted
+
+Owner's call. Reinstating would otherwise have given ~2,132 fixtures an `/event/` page,
+rendering with no club, no division and no venue — all three reached through the team — and
+put 14 of them in the sitemap. `getFixtureEventById` and `getForSitemap` both exclude
+withdrawn teams, and **they have to agree**: a sitemap entry whose page does not render is a
+soft 404. Verified after the write — `/event/` returns 0 rows for such a fixture, sitemap
+holds 611 of 625.
+
+## Step 4: the foreign keys
+
+`migrations/017`, applied 14 Sep 2026. `fixture_home_team_fkey` and
+`fixture_away_team_fkey`, both **NO ACTION**.
+
+Not CASCADE, emphatically: that would delete the fixtures, and with them the game rows and
+every player's record of having played them — far worse than the problem. SET NULL
+recreates the same orphan under another name. **Failing is the behaviour that is wanted.**
+
+Confirmed enforcing against production, inside a rolled-back transaction: deleting a team
+that has fixtures now raises `violates foreign key constraint`. The loop is closed.
+
+What that makes fail, deliberately: `DELETE /team/:id` (JWT-gated, `Team.deleteById`, no
+usage in the whole retained log window). The correct action for a team that stops playing is
+HARD-10's withdrawal flow, which keeps the row and therefore keeps the history readable.
+
+## The rehearsals both earned their keep
+
+- Migration 017 **failed locally, on purpose**: that seed still holds orphans, so the
+  constraint refused. A database with orphans cannot take it — which is the rehearsal.
+- The reinstatement script failed locally on `venue` being NOT NULL, because its column list
+  had been written from the columns the query needed rather than the ones the table demands.
+- And its in-transaction verification refused to commit against the local seed, which is two
+  years old and holds two orphans production does not (56 and 57 are live there). The
+  staleness guard working rather than papering over a partial fix.
+
+## What this was actually worth
+
+Not the 2,132 rows. `Player.getPlayerGameData` inner-joined both teams, so **10,422 of
+35,244 game rows — 30% of everything ever recorded — were missing from players' history
+pages**, across 677 of 904 players. One member had played 716 rated games and her page
+showed 256. It now shows 716, every one with its real team name.
+
+This sat in the backlog as "medium, dormant, suppressed by design" with a `TRACKED` baseline
+collapsing it to one line in the weekly digest. That suppression was **correct about the
+symptom and silent about the consequence**. Worth remembering the next time something is
+tracked and stable: the baseline tracks the data, not what the data does to the pages.
