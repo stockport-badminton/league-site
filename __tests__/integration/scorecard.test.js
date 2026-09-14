@@ -1361,3 +1361,70 @@ describe('the results-secretary emails link the photo through the proxy', () => 
     expect(Fixture.updateScorecardPhoto).toHaveBeenCalledWith('7', bucketUrl);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Which draft produced the result — HARD-17, migration 015
+// ---------------------------------------------------------------------------
+//
+// A fixture's `game` rows and the draft they came from were never linked, so everything
+// that needed to pair them guessed: team ids plus a date within ±3 days. 140 of 1,373
+// matches have more than one draft, so for those the window offers a shortlist, not an
+// answer — and every measurement in HARD-17 had to work around that.
+//
+// The id is in the request already, because HARD-24 put it in the publish form for the
+// token gate. This asserts the publish records it.
+//
+// `sesWorks()` is not decoration: a describe block above leaves ses.sendEmail rejecting,
+// and jest.clearAllMocks() resets calls but not implementations, so without it these run
+// against a rejecting mailer. The trap is recorded in this file for that reason.
+
+describe('POST /scorecard-beta — recording which draft produced the result', () => {
+  beforeEach(() => {
+    sesWorks();
+    setupFullFixtureMocks();
+  });
+
+  it('writes the draft id onto the fixture', async () => {
+    await request(app)
+      .post('/scorecard-beta')
+      .send(validScorecard({ draftId: '42', t: 'a'.repeat(64) }));
+
+    expect(Fixture.updateById).toHaveBeenCalled();
+    const [fixtureObj] = Fixture.updateById.mock.calls[0];
+    expect(fixtureObj.draftId).toBe(42);
+    // As a number, because the column is INTEGER and the form posts strings.
+    expect(typeof fixtureObj.draftId).toBe('number');
+  });
+
+  it('leaves the column alone when the publish carries no draft id', async () => {
+    await request(app).post('/scorecard-beta').send(validScorecard());
+
+    const [fixtureObj] = Fixture.updateById.mock.calls[0];
+    // Absent, not null: `updateById` builds its SET clause from the object's keys, so a
+    // null would overwrite whatever provenance the row already had with nothing.
+    expect('draftId' in fixtureObj).toBe(false);
+  });
+
+  it('ignores a draft id that is not a positive integer', async () => {
+    for (const bad of ['0', '-3', 'abc', '1.5']) {
+      Fixture.updateById.mockClear();
+      await request(app).post('/scorecard-beta').send(validScorecard({ draftId: bad }));
+      const [fixtureObj] = Fixture.updateById.mock.calls[0];
+      expect('draftId' in fixtureObj).toBe(false);
+    }
+  });
+
+  // The result itself must not change. This package is provenance only — HARD-17's
+  // diagnosis is explicit that the divergence needs no data fix.
+  it('changes nothing else about the recorded result', async () => {
+    await request(app)
+      .post('/scorecard-beta')
+      .send(validScorecard({ draftId: '42', t: 'a'.repeat(64) }));
+
+    const [fixtureObj] = Fixture.updateById.mock.calls[0];
+    expect(fixtureObj.status).toBe('complete');
+    expect(fixtureObj.homeScore).toBe('18');
+    expect(fixtureObj.awayScore).toBe('0');
+    expect(Game.createBatch).toHaveBeenCalled();
+  });
+});

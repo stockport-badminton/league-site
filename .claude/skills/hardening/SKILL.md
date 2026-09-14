@@ -67,9 +67,11 @@ is usually worth more than starting another.
 - **Every fix needs a test that fails without it.** Write the test, `git stash push`
   the fix, confirm it fails, `git stash pop`, confirm it passes. Three of this year's
   bugs lived behind a green suite because this was skipped.
-- **`npm test` before claiming done** (1102 tests in 79 suites, ~50s as of 12 Sep 2026).
-  Add `npm run test:e2e` if you touched anything the browser drives (89 tests in 12 spec
-  files). One of those specs writes, deliberately and by name — see CLAUDE.md.
+- **`npm test` before claiming done.** Roughly 1150 tests across 80-odd suites, ~40s; take
+  the exact numbers from the run rather than from here, because a figure written down is
+  wrong by the next package (this line has now been stale three times). Add
+  `npm run test:e2e` if you touched anything the browser drives — 89 specs, one of which
+  writes, deliberately and by name; see CLAUDE.md.
 - **Never hand-write database boilerplate.** Use `tools/dbq.js`:
   ```bash
   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"

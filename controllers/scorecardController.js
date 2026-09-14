@@ -295,6 +295,22 @@ exports.full_fixture_post = async function(req, res, next) {
       awayScore: req.body.awayScore
     };
 
+    // Which draft produced this result (HARD-17, migration 015).
+    //
+    // Nothing linked the two before, so everything that needed to pair a fixture with the
+    // draft behind it guessed — team ids plus a date within ±3 days. That is unreliable by
+    // construction: 140 of 1,373 matches have more than one draft, so for those the window
+    // returns a shortlist rather than an answer.
+    //
+    // The id is already in the request. It is there because HARD-24 put it in the publish
+    // form so the token gate could check it, which means recording provenance costs one
+    // key rather than a research problem.
+    //
+    // Set only when we actually have one: a publish with no draft id must leave the column
+    // alone rather than blanking what is already recorded there.
+    const draftId = Number(req.body && req.body.draftId);
+    if (Number.isInteger(draftId) && draftId > 0) fixtureObject.draftId = draftId;
+
     let prevScores = {};
     prevScores[req.body.homeMan1] = {};
     prevScores[req.body.homeMan2] = {};

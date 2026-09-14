@@ -177,8 +177,18 @@ steady human process.
   with their own token; no second party is notified. A comment in
   `messer-scorecard-controller.js:379` describes "the page the away captain lands on from
   the confirmation email", but that email does not exist. Corroborated in the data:
-  **zero rows in `scorecardstore` carry a `confirmToken`**, so the tokened link has never
-  been exercised in production at all.
+  **zero rows in `scorecardstore` carried a `confirmToken`**, so the tokened link had
+  never been exercised in production at all.
+  
+  **Updated 14 Sep 2026: that is no longer true, and the reasoning above survives it.**
+  Five drafts now carry a token — every draft filed since migration 011 was applied on
+  31 Aug — out of 1,562. So the tokened link *is* exercised, weekly, this season. What has
+  not changed is who receives it: the submitting captain, with their own token, and still
+  nobody else. No away captain is emailed, because nothing resolves an away captain's
+  address. The conclusion therefore stands as written — this is a precondition on rolling
+  the feature out, not a live exposure — but it now rests on the recipient list rather than
+  on the token being unused, and those are different facts. Check the recipients, not the
+  token count, before renewing it.
   
   So nobody is being asked to agree to anything they cannot see. What this becomes is a
   **precondition on rolling the feature out**: an away captain shown the draft *as filed*

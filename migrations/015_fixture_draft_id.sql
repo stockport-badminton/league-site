@@ -1,0 +1,61 @@
+-- Which draft produced this fixture's result (HARD-17).
+--
+-- A fixture's `game` rows and the `scorecardstore` draft they came from have never been
+-- linked. Everything that needed to pair them guessed, by matching team ids and a date
+-- within a window — `tools/audit/checks.js` uses ±3 days, and the HARD-17 measurement had
+-- to do the same. That guess is unreliable by construction: **140 of 1,373 matches have
+-- more than one draft**, so for those the window does not identify a record, it offers a
+-- shortlist.
+--
+-- HARD-17's diagnosis is that the divergence it was chasing is not corruption — results
+-- are corrected during validation, the `game` rows are rewritten, and the draft is left
+-- exactly as filed, so only one of the two records is ever corrected. Nothing needs
+-- repairing. What is worth removing is the guessing, which is this column: an id, not a
+-- date match.
+--
+-- NULLable and NOT backfilled, for the same reason 011 was not. There is no reliable way
+-- to assign a draft to a historical fixture — that unreliability is the finding — so a
+-- backfill would be inventing the exact association this column exists to stop inventing.
+-- NULL means "filed before this column existed, or published without a draft id", and
+-- consumers must keep their date-window fallback for those rows rather than treating NULL
+-- as "no draft".
+--
+-- **No foreign key, deliberately.** A published result is the league's authoritative
+-- record and must not acquire a dependency on a draft's continued existence: with a FK,
+-- deleting or archiving a draft would either fail or silently blank a fixture's
+-- provenance, and the publish itself could fail on a row that has nothing to do with the
+-- result being recorded. (Note also that this codebase has no foreign keys anywhere and
+-- 2,132 fixtures already point at deleted teams — adding referential integrity is HARD-11's
+-- job, with a decision behind it, not a side effect of this one.)
+--
+-- ⚠️ This must be applied BEFORE the code that writes it is deployed — the same ordering
+-- 011 needed, and for the same reason. `Fixture.updateById` builds its SET clause from the
+-- object's keys, so a publish carrying a draft id issues
+-- `UPDATE fixture SET "draftId" = ? ...`; against a table without the column that throws
+-- `column "draftId" of relation "fixture" does not exist`, the transaction rolls back, and
+-- the captain gets the 500 page whose entire message is that nothing was recorded. Which
+-- is the one failure this codebase has worked hardest to eliminate.
+--
+-- (An earlier draft of this header claimed the opposite — "safe to apply before or after"
+-- — on the reasoning that the column is only ever set, never read. That reasoning is
+-- wrong: writing a column that does not exist is not a no-op. Kept as a note because a
+-- migration header is exactly the kind of instruction that gets followed without
+-- checking.)
+--
+-- Applying it after the code is deployed is still recoverable — no result is lost, the
+-- captain re-files — but there is no reason to choose that.
+--
+--   node run-migration.js 015_fixture_draft_id.sql --local   # rehearse
+--   node run-migration.js 015_fixture_draft_id.sql           # production
+--
+-- Quoted, because an unquoted camelCase identifier is folded to lowercase by Postgres and
+-- `row.draftId` would then be undefined — see CLAUDE.md gotcha 1.
+
+ALTER TABLE fixture ADD COLUMN IF NOT EXISTS "draftId" INTEGER;
+
+-- The lookup this exists to serve is "which fixture did draft N produce", asked by the
+-- audit checks over the whole table. Partial, because the column is NULL for every
+-- historical row and those are never the ones being looked up.
+CREATE INDEX IF NOT EXISTS fixture_draft_id_idx
+  ON fixture ("draftId")
+  WHERE "draftId" IS NOT NULL;
