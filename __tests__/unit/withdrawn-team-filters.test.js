@@ -68,6 +68,29 @@ describe('queries that hand out teams exclude withdrawn ones', () => {
   });
 });
 
+describe('a reinstated team gets no public page', () => {
+  // HARD-11 reinstates 19 deleted teams as withdrawn rows so that 2,132 historical
+  // fixtures resolve and the foreign key becomes possible. Those rows exist for
+  // referential integrity, NOT so their fixtures gain public /event/ pages — which would
+  // render with no club, no division and no venue, since all three are reached through
+  // the team. Owner's call, 14 Sep 2026.
+  //
+  // The two must agree: a sitemap entry whose page does not render is a soft 404, which
+  // the seo skill forbids in terms. Verified behaviourally against the local Postgres —
+  // withdrawing a live team removed both, restoring it put both back.
+  const Fixture = require('../../models/fixture.js');
+
+  it('getFixtureEventById excludes a fixture whose team is withdrawn', async () => {
+    await Fixture.getFixtureEventById(1);
+    expect(lastSql()).toMatch(/homeTeam\.withdrawn IS NULL AND awayTeam\.withdrawn IS NULL/);
+  });
+
+  it('getForSitemap excludes them too, so the two cannot disagree', async () => {
+    await Fixture.getForSitemap(18);
+    expect(lastSql()).toMatch(/homeTeam\.withdrawn IS NULL AND awayTeam\.withdrawn IS NULL/);
+  });
+});
+
 describe('the league table path already handled it, and must keep doing so', () => {
   // Not a new filter — evidence that the NULL-division convention is what the league table
   // relies on, so these three filters are additive rather than a second mechanism.

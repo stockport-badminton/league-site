@@ -29,7 +29,7 @@ function fakeConn({ teams = TEAMS, fixtureId = 7200, insertedId = 7401 } = {}) {
     calls,
     query: jest.fn(async (sql, params) => {
       calls.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-      if (/FROM team WHERE name/.test(sql)) {
+      if (/FROM team WHERE/.test(sql)) {
         return [teams.filter(t => params.includes(t.name))];
       }
       if (/FROM fixture f/.test(sql)) {
@@ -185,7 +185,31 @@ describe('the two outcomes', () => {
     await Fixture.rearrangeByTeamNames({
       homeTeam: '  Mellor A ', awayTeam: '\nAerospace A\t', date: '2026-11-05',
     });
-    const lookup = conn.calls.find(c => /FROM team WHERE name/.test(c.sql));
+    const lookup = conn.calls.find(c => /FROM team WHERE/.test(c.sql));
     expect(lookup.params).toEqual(['Mellor A', 'Aerospace A']);
+  });
+});
+
+// A rearrangement must never resolve to a team that has been withdrawn.
+//
+// `findTeamIdsByName` builds `new Map(rows.map(r => [r.name, r.id]))`, which silently keeps
+// the LAST row for a duplicated key. Team names are reused — a club's team is deleted and
+// re-created under the same name with a new id, and four such pairs exist (Syddal Park B,
+// Disley A, Manor B, Mellor B). Once HARD-11's orphaned teams are reinstated as withdrawn
+// rows, those names exist twice in `team`, and without the filter a rearrangement could
+// resolve to the 2014 team and write a fixture pointing at it: a NEW orphan, created by
+// the very thing meant to stop them.
+//
+// This function writes, which is why it matters more than the other by-name lookups.
+describe('team resolution ignores withdrawn teams', () => {
+  it('filters them in SQL rather than after the fact', async () => {
+    const conn = fakeConn();
+    runWith(conn);
+    await Fixture.rearrangeByTeamNames({
+      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
+    });
+    const lookup = conn.calls.find(c => /FROM team WHERE/.test(c.sql));
+    expect(lookup).toBeDefined();
+    expect(lookup.sql).toMatch(/withdrawn IS NULL/);
   });
 });

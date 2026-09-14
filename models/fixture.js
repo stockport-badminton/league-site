@@ -523,7 +523,12 @@ FROM
         LEFT JOIN
     division ON homeTeam.division = division.id
 WHERE
-    fixture.id = ?`, fixtureId)
+    fixture.id = ?
+      -- A reinstated team is a withdrawn row that exists only so historical fixtures
+      -- resolve (HARD-11). Its fixtures must not gain a public /event/ page: they would
+      -- render with no club, no division and no venue, all of which are reached through
+      -- the team, and the sitemap would then list ~14 of them. Owner's call, 14 Sep 2026.
+      AND homeTeam.withdrawn IS NULL AND awayTeam.withdrawn IS NULL`, fixtureId)
   return result
 }
 
@@ -548,6 +553,11 @@ exports.getForSitemap = async function(monthsBack = 18) {
       JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
       JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
     WHERE fixture.date >= NOW() - (? || ' months')::interval
+      -- Withdrawn teams are HARD-11's reinstated rows: they exist so historical fixtures
+      -- resolve, not so those fixtures gain public pages. getFixtureEventById excludes
+      -- them too, and the two must agree — a sitemap entry whose page does not render is
+      -- a soft 404, which the seo skill forbids in terms.
+      AND homeTeam.withdrawn IS NULL AND awayTeam.withdrawn IS NULL
     ORDER BY fixture.date DESC`, [String(monthsBack)])
   return result
 }
@@ -600,6 +610,7 @@ exports.getReminderRecipients = async function(homeTeamName, awayTeamName) {
       LEFT JOIN player ms ON (ms.club = ht.club AND ms."matchSecrertary" = 1
                               AND ms."playerEmail" IS NOT NULL)
     WHERE ht.name = ? AND at.name = ?
+      AND ht.withdrawn IS NULL AND at.withdrawn IS NULL
       AND f.date > NOW() - INTERVAL '1 year'`,
     [process.env.DB_PI_KEY, process.env.DB_PI_KEY, homeTeamName, awayTeamName]
   )
@@ -704,9 +715,19 @@ function badRequest(message) {
   return err;
 }
 
+// Resolving a team by NAME must only ever find a live one.
+//
+// `new Map(rows.map(...))` keeps the LAST row for a duplicated key, silently. Team names
+// are reused: a club's team is deleted and re-created under the same name with a new id —
+// four such pairs exist (Syddal Park B, Disley A, Manor B, Mellor B). Once HARD-11's
+// orphaned teams are reinstated as withdrawn rows those names exist twice in `team`, and
+// without this filter a rearrangement could resolve to the defunct one and write a fixture
+// pointing at it. That is a NEW orphan, created by the very thing meant to stop them.
+//
+// This function writes, which is why it matters more than the other by-name lookups.
 async function findTeamIdsByName(conn, homeTeam, awayTeam) {
   const [rows] = await conn.query(
-    'SELECT id, name FROM team WHERE name = ? OR name = ?',
+    'SELECT id, name FROM team WHERE (name = ? OR name = ?) AND withdrawn IS NULL',
     [homeTeam, awayTeam]
   );
   const byName = new Map(rows.map(r => [r.name, r.id]));
