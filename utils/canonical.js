@@ -111,7 +111,9 @@ function resultImagePath(result) {
   ];
   // A team name containing a slash would otherwise open a new path segment and match a
   // different route (or nothing), so encode rather than merely replacing spaces.
-  return '/resultImage/' + parts.map(p => encodeURIComponent(String(p ?? ''))).join('/');
+  // Ends `.jpg` for the same reason the tables URLs do — see below. The route strips it,
+  // so a link Make.com already holds without it still resolves.
+  return '/resultImage/' + parts.map(p => encodeURIComponent(String(p ?? ''))).join('/') + '.jpg';
 }
 
 // The weekly social images, on demand, for the same reason the result card is on demand.
@@ -131,12 +133,17 @@ function resultImagePath(result) {
 // ("Division 1", and the view used to link to `.../league-table-Division 1.png` raw) and a
 // raw space is not a legal URL character — the same mistake that had Facebook answering
 // `Missing or invalid image file (324, OAuthException)` on the result card.
+// The `.jpg` is load-bearing, not decoration. Instagram inspects the bytes rather than the
+// extension, so an extensionless URL is accepted — but then nothing upstream can tell a
+// JPEG URL from the PNG one that broke the carousel, and `metaPublisher`'s guard has to
+// choose between crying wolf and being useless. A self-describing URL lets the guard stay
+// strict. The route accepts it with or without.
 function leagueTableImagePath(divisionName) {
-  return '/league-table-image/' + encodeURIComponent(String(divisionName ?? ''));
+  return '/league-table-image/' + encodeURIComponent(String(divisionName ?? '')) + '.jpg';
 }
 
 function tournamentImagePath(poster) {
-  return '/tournament-image/' + encodeURIComponent(String(poster ?? ''));
+  return '/tournament-image/' + encodeURIComponent(String(poster ?? '')) + '.jpg';
 }
 
 // A club's own public page. Same reasoning as eventPath: it is built in one place so

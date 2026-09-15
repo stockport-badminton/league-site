@@ -63,7 +63,7 @@ describe('GET /league-table-image/:division', () => {
     // it, which is not a legal URL character — the same mistake that had Facebook
     // answering `Missing or invalid image file (324)` on the result card.
     const path = leagueTableImagePath('Division 1');
-    expect(path).toBe('/league-table-image/Division%201');
+    expect(path).toBe('/league-table-image/Division%201.jpg');
 
     const res = await request(app).get(path);
     expect(res.status).toBe(200);
@@ -79,6 +79,16 @@ describe('GET /league-table-image/:division', () => {
     expect(b.status).toBe(200);
     expect(a.body.length).toBeGreaterThan(1000);
     expect(b.body.length).toBe(a.body.length);
+  });
+
+  // The extension is optional on the way in: it exists so the URL is self-describing for
+  // Meta's sake, but a link filed before it existed must keep working.
+  it('serves the same picture with or without the .jpg', async () => {
+    const withExt = await request(app).get('/league-table-image/Premier.jpg');
+    const without = await request(app).get('/league-table-image/Premier');
+    expect(withExt.status).toBe(200);
+    expect(without.status).toBe(200);
+    expect(withExt.body.length).toBe(without.body.length);
   });
 
   it('404s an unknown division rather than answering 200', async () => {
@@ -165,7 +175,7 @@ describe('the preview page links through the helpers', () => {
     expect(res.status).toBe(200);
     // The whole defect in one assertion: a link at a file on the container's disk.
     expect(res.text).not.toMatch(/images\/generated\//);
-    expect(res.text).toContain('/league-table-image/Division%201');
-    expect(res.text).toContain('/tournament-image/handicap');
+    expect(res.text).toContain('/league-table-image/Division%201.jpg');
+    expect(res.text).toContain('/tournament-image/handicap.jpg');
   });
 });

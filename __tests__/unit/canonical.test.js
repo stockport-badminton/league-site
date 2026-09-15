@@ -137,7 +137,7 @@ describe('resultImagePath', () => {
 
   it('percent-encodes the spaces in team and division names', () => {
     expect(resultImagePath(RESULT))
-      .toBe('/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203');
+      .toBe('/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203.jpg');
   });
 
   it('leaves no raw space anywhere in the path', () => {
@@ -151,17 +151,23 @@ describe('resultImagePath', () => {
   // nothing at all — so encode rather than merely swapping spaces for something.
   it('encodes a slash in a name instead of letting it split the path', () => {
     const path = resultImagePath(Object.assign({}, RESULT, { homeTeam: 'A/B' }));
-    expect(path).toBe('/resultImage/A%2FB/Mellor%20B/11/7/Division%203');
+    expect(path).toBe('/resultImage/A%2FB/Mellor%20B/11/7/Division%203.jpg');
     expect(path.split('/')).toHaveLength(7); // '', resultImage, and the five segments
   });
 
   it('survives a missing segment without emitting "undefined"', () => {
     expect(resultImagePath({ homeTeam: 'A', awayTeam: 'B', homeScore: 1, awayScore: 2 }))
-      .toBe('/resultImage/A/B/1/2/');
+      .toBe('/resultImage/A/B/1/2/.jpg');
   });
 
   it('round-trips: decoding each segment gives the original values back', () => {
     const segments = resultImagePath(RESULT).split('/').slice(2).map(decodeURIComponent);
-    expect(segments).toEqual(['Tatton A', 'Mellor B', '11', '7', 'Division 3']);
+    // The last segment carries the `.jpg` the URL ends with. It is there so the URL says
+    // what it serves — `metaPublisher` refuses a non-JPEG URL for Instagram, and an
+    // extensionless one cannot be told apart from the PNG that broke the carousel. The
+    // route strips it before the division name is used to pick a background file, so
+    // asserting the strip here is asserting the contract the two sides share.
+    expect(segments).toEqual(['Tatton A', 'Mellor B', '11', '7', 'Division 3.jpg']);
+    expect(segments[4].replace(/\.jpe?g$/i, '')).toBe('Division 3');
   });
 });

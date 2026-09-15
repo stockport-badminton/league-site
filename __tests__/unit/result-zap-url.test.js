@@ -36,7 +36,7 @@ describe('the result webhook sent to Make.com', () => {
   it('sends an image url with every segment encoded', async () => {
     const body = await postedBody();
     expect(body.imgGen).toBe(
-      'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203');
+      'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203.jpg');
   });
 
   // The property, not the spelling: a raw space is not a legal URL character, and what a

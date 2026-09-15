@@ -20,12 +20,26 @@ function svgOverlay(width, height, elements) {
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${els}</svg>`);
 }
 
+// `/league-table-image/Division 1.jpg` and `/league-table-image/Division 1` are the same
+// picture. The extension exists so the URL says what it serves — see the note beside
+// leagueTableImagePath in utils/canonical.js — and is stripped here rather than being part
+// of the lookup, so an old link without it keeps working.
+function stripImageExt(v) {
+  return String(v || '').replace(/\.jpe?g$/i, '');
+}
+
 exports.resultImage = async function(req, res, next) {
   try {
     const generatedDir = 'static/beta/images/generated';
     await fs.mkdir(generatedDir, { recursive: true });
 
-    const { homeTeam, awayTeam, homeScore, awayScore, division } = req.params;
+    const { homeTeam, awayTeam, homeScore, awayScore } = req.params;
+    // The trailing `.jpg` is optional and must come off before the division name is used —
+    // it picks the background file, so `Division 1.jpg` would look for
+    // `social-Division-1.jpg.png` and fail. Same reasoning as the tables route: the URL is
+    // self-describing so `metaPublisher`'s JPEG guard can stay strict, and links filed
+    // before the extension existed keep working.
+    const division = stripImageExt(req.params.division);
     const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
     const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
 
@@ -149,7 +163,7 @@ const SOCIAL_IMAGE_CACHE_CONTROL = 'public, max-age=86400';
 // GET /league-table-image/:division — one division's table, as a JPEG, built now.
 exports.leagueTableImage = async function (req, res, next) {
   try {
-    const wanted = String(req.params.division || '').trim().toLowerCase();
+    const wanted = stripImageExt(req.params.division).trim().toLowerCase();
     const result = await getAllLeagueTables(req.params.season);
 
     // Matched on the division's NAME, not its id, so the URL says what it shows and stays
@@ -176,7 +190,7 @@ exports.leagueTableImage = async function (req, res, next) {
 // GET /tournament-image/:poster — one tournament poster, as a JPEG, built now.
 exports.tournamentImage = async function (req, res, next) {
   try {
-    const key = String(req.params.poster || '').trim().toLowerCase();
+    const key = stripImageExt(req.params.poster).trim().toLowerCase();
     const poster = Object.prototype.hasOwnProperty.call(TOURNAMENT_POSTERS, key)
       ? TOURNAMENT_POSTERS[key]
       : null;
