@@ -126,6 +126,8 @@ app.locals.eventPath = require('./utils/canonical').eventPath;
 // their SportsClub markup names them as `url`. One builder, so they cannot diverge.
 app.locals.clubPath = require('./utils/canonical').clubPath;
 app.locals.resultImagePath = require('./utils/canonical').resultImagePath;
+app.locals.leagueTableImagePath = require('./utils/canonical').leagueTableImagePath;
+app.locals.tournamentImagePath = require('./utils/canonical').tournamentImagePath;
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;

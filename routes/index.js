@@ -124,6 +124,16 @@ router.get('/tables-social', social_controller.tablesSocial);
 router.get('/tournament-social', social_controller.tournamentSocial);
 router.get('/handicap-tournament-social', social_controller.handicapTournamentSocial);
 
+// The same pictures, generated per request and returned as JPEG, rather than written to a
+// container's disk and fetched back by URL. See the header block in socialController.
+//
+// Public and unauthenticated on purpose: Meta fetches `image_url` from its own servers
+// when building a post, so anything gated here cannot be posted. They are pure functions
+// of data that is already public on the league tables page.
+router.get('/league-table-image/:division', social_controller.leagueTableImage);
+router.get('/league-table-image/:division/:season', social_controller.leagueTableImage);
+router.get('/tournament-image/:poster', social_controller.tournamentImage);
+
 
 // Social video generation
 router.get('/api/social/generate-weekly-video', social_video_controller.generateWeeklyVideo);

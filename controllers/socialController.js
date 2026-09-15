@@ -64,7 +64,136 @@ exports.resultImage = async function(req, res, next) {
   }
 };
 
-async function createDivisionTableImage(bgPath, divisionName, rows) {
+// ---------------------------------------------------------------------------
+// The weekly social images, served on demand
+// ---------------------------------------------------------------------------
+//
+// The originals are written to `static/beta/images/generated/` and fetched back by URL.
+// That is a Cloud Run container's own disk: it belongs to one instance, does not outlive
+// it, and is invisible to every other instance. Measured 15 Sep 2026 — every one of those
+// URLs answered 404, which means the weekly Instagram carousel has been posting nothing.
+//
+// These routes generate the same picture per request and return the bytes, exactly as
+// `resultImage` already does, so there is no file to go missing and no instance to hit.
+// **JPEG, not PNG**: Instagram's publishing API accepts JPEG and nothing else, and Meta
+// fetches `image_url` itself, server-side, minutes after the container that could have
+// served a temp file has gone.
+//
+// The file-writing routes are deliberately left alone. The live Make.com scenario still
+// calls them, and removing them before it is repointed would break the weekly post on the
+// Facebook side, which does currently work.
+
+// The division ids the weekly post covers, in the order they should read.
+const SOCIAL_DIVISION_IDS = [7, 8, 9, 10];
+
+// The tournament posters, lifted out of the two handlers that had them inline so a route
+// can render any one by name. Content unchanged.
+const TOURNAMENT_POSTERS = {
+  open: { file: 'open-tournament-social.png', title: 'Open Tournament', lines: [
+    { text: '11th November', bold: true },
+    { text: 'Mens & Womens Doubles', bold: false },
+    { text: '18th November', bold: true },
+    { text: 'Mens & Womens Singles', bold: false },
+    { text: 'Mixed Doubles', bold: false, gap: 50 },
+    { text: 'Entry form and details on the website', bold: false },
+    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+  ] },
+  b: { file: 'B-tournament-social.png', title: '`B` Tournament', lines: [
+    { text: '11th November', bold: true },
+    { text: 'Mens & Womens Doubles', bold: false },
+    { text: '18th November', bold: true },
+    { text: 'Singles', bold: false },
+    { text: 'Mixed Doubles', bold: false, gap: 50 },
+    { text: 'Entry form and details on the website', bold: false },
+    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+  ] },
+  c: { file: 'c-tournament-social.png', title: '`C` Tournament', lines: [
+    { text: '11th November', bold: true },
+    { text: 'Mens & Womens Doubles', bold: false },
+    { text: '18th November', bold: true },
+    { text: 'Mixed Doubles', bold: false },
+    { text: 'Entry form and details on the website', bold: false },
+    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+  ] },
+  supervet: { file: 'supervet-tournament-social.png', title: 'Supervet Tournament', lines: [
+    { text: '11th November', bold: true },
+    { text: 'Mixed Doubles', bold: false },
+    { text: '18th November', bold: true },
+    { text: 'Mens Doubles', bold: false },
+    { text: 'Womens Doubles', bold: false, gap: 50 },
+    { text: 'Entry form and details on the website', bold: false },
+    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+  ] },
+  handicap: { file: 'handicap-tournament-social.png', title: 'Handicap Tournaments', lines: [
+    { text: 'Didsbury High School', bold: false },
+    { text: '4 The Avenue, Didsbury, M20 2ET', bold: false, gap: 50 },
+    { text: '2nd March', bold: true },
+    { text: 'Handicap Mens & Womens Singles', bold: false, gap: 50 },
+    { text: 'Handicap Mixed Doubles', bold: false, gap: 50 },
+    { text: 'Veteran Mens & Womens Doubles', bold: false, gap: 50 },
+    { text: '9th March', bold: true },
+    { text: 'Handicap Mens & Womens Doubles', bold: false, gap: 50 },
+    { text: 'Veteran Singles', bold: false, gap: 50 },
+    { text: 'Entry form and details on the website', bold: false },
+    { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
+  ] },
+};
+
+exports.TOURNAMENT_POSTERS = TOURNAMENT_POSTERS;
+
+// A day of caching. The tables change when a result is published, and the weekly post is
+// the only automated consumer — but Meta may fetch the same URL several times while
+// building a carousel, and regenerating a 1080x1080 composite each time is pure waste.
+const SOCIAL_IMAGE_CACHE_CONTROL = 'public, max-age=86400';
+
+// GET /league-table-image/:division — one division's table, as a JPEG, built now.
+exports.leagueTableImage = async function (req, res, next) {
+  try {
+    const wanted = String(req.params.division || '').trim().toLowerCase();
+    const result = await getAllLeagueTables(req.params.season);
+
+    // Matched on the division's NAME, not its id, so the URL says what it shows and stays
+    // readable in a Make scenario or a caption. Names carry spaces, hence the helper in
+    // utils/canonical.js that percent-encodes them.
+    const rows = result.filter(r => SOCIAL_DIVISION_IDS.includes(Number(r.division)))
+      .filter(r => String(r.divisionName || '').trim().toLowerCase() === wanted);
+
+    if (!rows.length) {
+      // 404, explicitly. `res.send(err)` serialises an Error to `{}` and goes out as 200,
+      // which a crawler banks as a real page — gotcha 1c.
+      return res.status(404).type('text/plain').send('No league table for that division');
+    }
+
+    const buf = await createDivisionTableImage(
+      'static/beta/images/bg/social.png', rows[0].divisionName, rows, 'jpeg');
+
+    res.type('image/jpeg').set('Cache-Control', SOCIAL_IMAGE_CACHE_CONTROL).send(buf);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /tournament-image/:poster — one tournament poster, as a JPEG, built now.
+exports.tournamentImage = async function (req, res, next) {
+  try {
+    const key = String(req.params.poster || '').trim().toLowerCase();
+    const poster = Object.prototype.hasOwnProperty.call(TOURNAMENT_POSTERS, key)
+      ? TOURNAMENT_POSTERS[key]
+      : null;
+
+    if (!poster) {
+      return res.status(404).type('text/plain').send(
+        'No such tournament poster. Known: ' + Object.keys(TOURNAMENT_POSTERS).join(', '));
+    }
+
+    const buf = await drawTournamentBuffer(poster.title, poster.lines, 'jpeg');
+    res.type('image/jpeg').set('Cache-Control', SOCIAL_IMAGE_CACHE_CONTROL).send(buf);
+  } catch (err) {
+    next(err);
+  }
+};
+
+async function createDivisionTableImage(bgPath, divisionName, rows, format = 'png') {
   const W = 1080, H = 1080;
   const elements = [
     { text: divisionName, x: 230, y: 120, size: 65, weight: 'bold' },
@@ -85,11 +214,11 @@ async function createDivisionTableImage(bgPath, divisionName, rows) {
     posY += 90;
   }
 
-  return sharp(bgPath)
+  const pipeline = sharp(bgPath)
     .resize(W, H, { fit: 'cover' })
-    .composite([{ input: svgOverlay(W, H, elements) }])
-    .png()
-    .toBuffer();
+    .composite([{ input: svgOverlay(W, H, elements) }]);
+
+  return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
 }
 
 exports.tablesSocial = async function(req, res, next) {
@@ -133,10 +262,9 @@ exports.tablesSocial = async function(req, res, next) {
   }
 };
 
-async function drawTournamentImage(title, lines, filename) {
-  const generatedDir = 'static/beta/images/generated';
-  await fs.mkdir(generatedDir, { recursive: true });
-
+// The drawing, with no opinion about where it goes. Split out so the on-demand route and
+// the file-writing route cannot drift into producing two different posters.
+async function drawTournamentBuffer(title, lines, format = 'png') {
   const W = 1080, H = 1080;
   const elements = [{ text: title, x: 540, y: 120, size: 65, weight: 'bold' }];
   let posY = 120;
@@ -144,52 +272,31 @@ async function drawTournamentImage(title, lines, filename) {
     posY += line.gap || 100;
     elements.push({ text: line.text, x: 540, y: posY, size: 40, weight: line.bold ? 'bold' : 'normal' });
   }
-  await sharp('static/beta/images/bg/social.png')
+
+  const pipeline = sharp('static/beta/images/bg/social.png')
     .resize(W, H, { fit: 'cover' })
-    .composite([{ input: svgOverlay(W, H, elements) }])
-    .png()
-    .toFile(`static/beta/images/generated/${filename}`);
+    .composite([{ input: svgOverlay(W, H, elements) }]);
+
+  return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
+}
+
+async function drawTournamentImage(title, lines, filename) {
+  const generatedDir = 'static/beta/images/generated';
+  await fs.mkdir(generatedDir, { recursive: true });
+  const buf = await drawTournamentBuffer(title, lines, 'png');
+  await fs.writeFile(`static/beta/images/generated/${filename}`, buf);
 }
 
 exports.tournamentSocial = async function(req, res, next) {
   try {
-    await Promise.all([
-      drawTournamentImage('Open Tournament', [
-        { text: '11th November', bold: true },
-        { text: 'Mens & Womens Doubles', bold: false },
-        { text: '18th November', bold: true },
-        { text: 'Mens & Womens Singles', bold: false },
-        { text: 'Mixed Doubles', bold: false, gap: 50 },
-        { text: 'Entry form and details on the website', bold: false },
-        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
-      ], 'open-tournament-social.png'),
-      drawTournamentImage('`B` Tournament', [
-        { text: '11th November', bold: true },
-        { text: 'Mens & Womens Doubles', bold: false },
-        { text: '18th November', bold: true },
-        { text: 'Singles', bold: false },
-        { text: 'Mixed Doubles', bold: false, gap: 50 },
-        { text: 'Entry form and details on the website', bold: false },
-        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
-      ], 'B-tournament-social.png'),
-      drawTournamentImage('`C` Tournament', [
-        { text: '11th November', bold: true },
-        { text: 'Mens & Womens Doubles', bold: false },
-        { text: '18th November', bold: true },
-        { text: 'Mixed Doubles', bold: false },
-        { text: 'Entry form and details on the website', bold: false },
-        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
-      ], 'c-tournament-social.png'),
-      drawTournamentImage('Supervet Tournament', [
-        { text: '11th November', bold: true },
-        { text: 'Mixed Doubles', bold: false },
-        { text: '18th November', bold: true },
-        { text: 'Mens Doubles', bold: false },
-        { text: 'Womens Doubles', bold: false, gap: 50 },
-        { text: 'Entry form and details on the website', bold: false },
-        { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
-      ], 'supervet-tournament-social.png'),
-    ]);
+    // Content comes from TOURNAMENT_POSTERS, the same object GET /tournament-image reads,
+    // so the file on disk and the image served on demand cannot say different things.
+    await Promise.all(
+      ['open', 'b', 'c', 'supervet'].map(key => {
+        const p = TOURNAMENT_POSTERS[key];
+        return drawTournamentImage(p.title, p.lines, p.file);
+      })
+    );
     res.sendStatus(200);
   } catch (err) {
     next(err);
@@ -198,19 +305,8 @@ exports.tournamentSocial = async function(req, res, next) {
 
 exports.handicapTournamentSocial = async function(req, res, next) {
   try {
-    await drawTournamentImage('Handicap Tournaments', [
-      { text: 'Didsbury High School', bold: false },
-      { text: '4 The Avenue, Didsbury, M20 2ET', bold: false, gap: 50 },
-      { text: '2nd March', bold: true },
-      { text: 'Handicap Mens & Womens Singles', bold: false, gap: 50 },
-      { text: 'Handicap Mixed Doubles', bold: false, gap: 50 },
-      { text: 'Veteran Mens & Womens Doubles', bold: false, gap: 50 },
-      { text: '9th March', bold: true },
-      { text: 'Handicap Mens & Womens Doubles', bold: false, gap: 50 },
-      { text: 'Veteran Singles', bold: false, gap: 50 },
-      { text: 'Entry form and details on the website', bold: false },
-      { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
-    ], 'handicap-tournament-social.png');
+    const p = TOURNAMENT_POSTERS.handicap;
+    await drawTournamentImage(p.title, p.lines, p.file);
     res.sendStatus(200);
   } catch (err) {
     next(err);

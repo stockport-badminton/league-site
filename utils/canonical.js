@@ -85,9 +85,6 @@ function clubSlug(name) {
     .replace(/[\s-]+/g, '-');
 }
 
-// A club's own public page. Same reasoning as eventPath: it is built in one place so
-// the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
-// markup cannot disagree.
 // Path for the on-demand social result card:
 // /resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division
 //
@@ -117,6 +114,34 @@ function resultImagePath(result) {
   return '/resultImage/' + parts.map(p => encodeURIComponent(String(p ?? ''))).join('/');
 }
 
+// The weekly social images, on demand, for the same reason the result card is on demand.
+//
+// Until Sep 2026 these were PNGs written into `static/beta/images/generated/` and then
+// fetched back by URL. That directory is the *container's* filesystem: on Cloud Run it
+// belongs to one instance and does not outlive it, so "generate, then fetch" only works if
+// the same instance answers both — and when Instagram is the one fetching, the request
+// arrives later still, from Meta's servers. Checked live on 15 Sep 2026, every one of
+// those URLs returned 404.
+//
+// They are also JPEG now, not PNG, because **Instagram's publishing API accepts JPEG and
+// nothing else**. The weekly carousel had been handing it `.png` URLs since it was built,
+// which is the second independent reason that post cannot have been landing.
+//
+// Every segment is percent-encoded. Every division name in this league contains a space
+// ("Division 1", and the view used to link to `.../league-table-Division 1.png` raw) and a
+// raw space is not a legal URL character — the same mistake that had Facebook answering
+// `Missing or invalid image file (324, OAuthException)` on the result card.
+function leagueTableImagePath(divisionName) {
+  return '/league-table-image/' + encodeURIComponent(String(divisionName ?? ''));
+}
+
+function tournamentImagePath(poster) {
+  return '/tournament-image/' + encodeURIComponent(String(poster ?? ''));
+}
+
+// A club's own public page. Same reasoning as eventPath: it is built in one place so
+// the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
+// markup cannot disagree.
 function clubPath(club) {
   return '/clubs/' + clubSlug(club && club.name);
 }
@@ -137,5 +162,6 @@ function localYmd(date) {
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
   eventPath, clubPath, clubSlug, localYmd, resultImagePath,
+  leagueTableImagePath, tournamentImagePath,
   DEFAULT_ORIGIN,
 };

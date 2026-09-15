@@ -1,15 +1,38 @@
 <%- include('./header.ejs'); -%>
 <%- include('./nav.ejs'); -%>
 
+<%
+  // Built through the helpers in utils/canonical.js, not written out by hand.
+  //
+  // This page used to link straight at `/static/beta/images/generated/league-table-Division 1.png`
+  // — a path with a raw space in it, pointing at a file on the container's own disk. Both
+  // halves were wrong: the space is not a legal URL character, and the file is gone as soon
+  // as the instance that wrote it is. Every one of those four links 404'd when checked on
+  // 15 Sep 2026.
+  var divisions = ['Premier', 'Division 1', 'Division 2', 'Division 3'];
+  var posters = ['handicap', 'open', 'b', 'c', 'supervet'];
+%>
 
+<div class="starter-template">
+  <h1>Social images</h1>
+  <p>Generated on demand as JPEG, which is the only format Instagram's publishing API accepts.</p>
 
-<a href="/static/beta/images/generated/league-table-Premier.png">Premier</a><br />
-<a href="/static/beta/images/generated/league-table-Division 1.png">Division 1</a><br />
-<a href="/static/beta/images/generated/league-table-Division 2.png">Division 2</a><br />
-<a href="/static/beta/images/generated/league-table-Division 3.png">Division 3</a>
+  <h2>League tables</h2>
+  <ul>
+    <% divisions.forEach(function (name) { %>
+      <li><a href="<%= leagueTableImagePath(name) %>"><%= name %></a></li>
+    <% }); %>
+  </ul>
+
+  <h2>Tournament posters</h2>
+  <ul>
+    <% posters.forEach(function (key) { %>
+      <li><a href="<%= tournamentImagePath(key) %>"><%= key %></a></li>
+    <% }); %>
+  </ul>
+</div>
 
 <%- include('footer.ejs') %>
-
 
 </body>
 </html>

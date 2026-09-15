@@ -612,6 +612,38 @@ Two things worth keeping from it:
   payload itself. A function that is only ever mocked is untested, however many tests
   mention it.
 
+### The weekly social images, and why they are on demand too
+
+`GET /league-table-image/:division` and `GET /tournament-image/:poster` render the weekly
+carousel's pictures per request and return the bytes. Build the URLs with
+`leagueTableImagePath()` / `tournamentImagePath()` from `utils/canonical.js` (exposed to
+views), never by interpolation — every division name bar Premier contains a space.
+
+They were added Sep 2026 because the originals could not work, for two independent reasons
+that had both been true since the weekly post was built:
+
+- **They were PNG, and Instagram's publishing API accepts JPEG and nothing else.** Meta's
+  documentation is explicit. The Make.com scenario hands Instagram `image_url` values
+  ending `.png`, so that carousel has never been accepted. The Facebook branch of the same
+  scenario is fine — Make fetches the bytes itself and uploads them as `data`, so it never
+  meets the format check. **One platform posting and the other silently not is what a
+  format constraint on the fetching side looks like.**
+- **They were files in `static/beta/images/generated/`**, which is the *container's* disk.
+  On Cloud Run it belongs to one instance, does not outlive it, and is invisible to every
+  other instance. The scenario's sequence is generate → sleep → fetch by URL; Instagram's
+  fetch is later still and comes from Meta's servers. Measured 15 Sep 2026: all four table
+  URLs returned **404**.
+
+**Anything Meta fetches must be public and unauthenticated**, because the fetch comes from
+Meta, not from a logged-in browser. Both routes are, and both are pure functions of data
+already public on the league tables page.
+
+The file-writing routes (`/tables-social`, `/tournament-social`,
+`/handicap-tournament-social`) are still there and still writing, deliberately: the live
+Make scenario calls them and its Facebook half works. They now take their content from
+`TOURNAMENT_POSTERS` in `socialController`, the same object the on-demand route reads, so
+the two cannot drift. Remove them once the scenario is repointed.
+
 ### Search / crawlability
 
 **Load the `seo` skill** before touching `controllers/sitemapController.js`,
@@ -849,6 +881,18 @@ Key vars (see `.env` for examples):
   with the audit and registration tokens; it answers **403, never a redirect**, because
   `secured`'s 302 to `/login` is what Make.com recorded as a successful run while the
   invoices went unsent for a year.
+- `LATE_SCORECARD_CRON_TOKEN` — shared secret Cloud Scheduler presents as
+  `X-Late-Scorecard-Token` to `GET /fixture/outstanding`, the daily missing-scorecard
+  reminder. Same gate, same `timingSafeEqual` over SHA-256 of both sides, and **unset
+  closes the token path rather than opening it**. A superadmin session also works.
+  Nothing in the app links to this route — it has no UI and never had one.
+  **It was completely ungated until 15 Sep 2026**, and that is the interesting part: the
+  handler sends mail, so anyone who knew the URL could make the league email itself at
+  will. It was open because the thing calling it was a Make.com scenario whose single HTTP
+  module cannot authenticate. **An automation that cannot present a credential is a reason
+  an endpoint is open**, so auditing what the automation platform calls is also a way of
+  finding ungated routes. The recipients were always derived server-side, which is what
+  kept this a free send rather than the open relay `/fixture/reminder` was.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
