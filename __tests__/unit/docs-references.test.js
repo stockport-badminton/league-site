@@ -22,10 +22,12 @@
 //
 // **What this can and cannot do.** It cannot tell that a sentence has become untrue; no
 // test can. It checks the mechanical half — that every file a document names still exists,
-// that every link resolves, and that the backlog and its status table still describe the
-// same set of packages. Every one of the failures above had a mechanical tell alongside the
-// semantic one. On its first run this found that HARD-27's brief claimed, in the present
-// tense, that a guard was in force which had been deliberately deleted.
+// that every link resolves, and that the hardening README's two tables are both well formed
+// and both describe the same set of packages the directory does. Every one of the failures
+// above had a mechanical tell alongside the semantic one. On its first run this found that
+// HARD-27's brief claimed, in the present tense, that a guard was in force which had been
+// deliberately deleted; on the first run after the table checks were added (15 Sep) it found
+// that HARD-32 had no status row at all.
 
 const fs = require('fs');
 const path = require('path');
@@ -122,25 +124,139 @@ describe('the documentation points at things that exist', () => {
     expect(broken).toEqual([]);
   });
 
-  // Landed packages move to done/, so the directory listing IS the backlog. If a package
-  // exists with no row, the status table is not the state of play it claims to be; if a row
-  // links to a package that has moved, the link is dead. Both have happened.
-  it('every hardening package has a status-table row, and no row is orphaned', () => {
-    const readme = fs.readFileSync(path.join(ROOT, 'docs/hardening/README.md'), 'utf8');
+  // ── The hardening README's two tables ───────────────────────────────────────
+  //
+  // The README carries a conflict map (Package / Owns / Wave / Blocked by) and a status
+  // table (Package / Status / Commit / Notes). They answer different questions and they
+  // have to be checked as two tables, which the first version of this guard did not do:
+  // it matched `^\|\s*\[(HARD-\d+)\]` anywhere in the file, so
+  //
+  //   - a conflict-map row satisfied "has a status row" and vice versa. A HARD-33 row had
+  //     been pasted bodily into the status table, giving it two status rows and none in
+  //     the map, and HARD-28 had no map row at all. Both passed;
+  //   - a row written WITHOUT a link was invisible. `| HARD-11 | not started | | |` sat
+  //     there for a day after HARD-11 landed, and it is the first HARD-11 row a reader
+  //     scanning top-down meets. Four of the stalest rows were unlinked ones.
+  //
+  // Reviewed 15 Sep 2026; every case below is one this file had already let through.
 
-    const onDisk = new Set();
+  const README = 'docs/hardening/README.md';
+
+  // Markdown cells may contain an escaped `\|`, and several notes do.
+  const splitRow = line => line.split(/(?<!\\)\|/).slice(1, -1);
+
+  // A table is its header row plus the unbroken run of `|` lines beneath it. Returning the
+  // line numbers as well, because "which row" is most of the value of the failure message.
+  function tableUnder(lines, headerStartsWith) {
+    const i = lines.findIndex(l => l.startsWith(headerStartsWith));
+    expect(i).toBeGreaterThan(-1);
+    const rows = [];
+    for (let k = i; k < lines.length && lines[k].startsWith('|'); k++) {
+      rows.push({ line: k + 1, text: lines[k], cells: splitRow(lines[k]) });
+    }
+    return { header: rows[0], body: rows.slice(2), all: rows, end: i + rows.length };
+  }
+
+  const readmeTables = () => {
+    const lines = fs.readFileSync(path.join(ROOT, README), 'utf8').split('\n');
+    return {
+      lines,
+      conflict: tableUnder(lines, '| Package | Owns | Wave'),
+      status: tableUnder(lines, '| Package | Status | Commit'),
+    };
+  };
+
+  const packagesOnDisk = () => {
+    const onDisk = new Map();
     for (const dir of ['docs/hardening', 'docs/hardening/done']) {
       for (const e of fs.readdirSync(path.join(ROOT, dir))) {
-        const m = e.match(/^(HARD-\d+)-/);
-        if (m) onDisk.add(m[1]);
+        const m = e.match(/^(HARD-\d+b?)-/);
+        if (m) onDisk.set(m[1], dir.endsWith('done') ? 'done' : 'open');
       }
     }
+    return onDisk;
+  };
 
-    const inTable = new Set();
-    for (const m of readme.matchAll(/^\|\s*\[(HARD-\d+)\]/gm)) inTable.add(m[1]);
+  // A package named in the first cell, linked or not. The unlinked spelling is the one the
+  // old guard could not see, and it is the spelling stale rows are written in.
+  const named = row => (row.cells[0].match(/HARD-\d+b?/) || [])[0];
 
-    expect([...onDisk].filter(p => !inTable.has(p)).sort()).toEqual([]);
-    expect([...inTable].filter(p => !onDisk.has(p)).sort()).toEqual([]);
+  // Landed packages move to done/, so the directory listing IS the backlog. A package with
+  // no row means the table is not the state of play it claims to be; a row naming a package
+  // that has moved is a dead link. Both have happened.
+  it('every hardening package has a row in BOTH README tables, and neither has an orphan', () => {
+    const { conflict, status } = readmeTables();
+    const onDisk = [...packagesOnDisk().keys()];
+
+    for (const [name, table] of [['conflict map', conflict], ['status table', status]]) {
+      const listed = new Set(table.body.map(named).filter(Boolean));
+      expect({ [`${name}: on disk, no row`]: onDisk.filter(p => !listed.has(p)).sort() })
+        .toEqual({ [`${name}: on disk, no row`]: [] });
+      expect({ [`${name}: row, not on disk`]: [...listed].filter(p => !onDisk.includes(p)).sort() })
+        .toEqual({ [`${name}: row, not on disk`]: [] });
+    }
+  });
+
+  // A row with the wrong number of cells silently shifts every column after the mistake:
+  // three status rows had an update appended as a fifth cell rather than joined to the
+  // note, and two had never closed their last cell at all. Both render as garbage and
+  // neither is visible in a diff of a 4,000-character line.
+  it('every README table row has the same number of cells as its header', () => {
+    const { conflict, status } = readmeTables();
+    const bad = [];
+    for (const [name, table] of [['conflict map', conflict], ['status table', status]]) {
+      const want = table.header.cells.length;
+      for (const row of table.all.slice(1)) {
+        if (row.cells.length !== want) {
+          bad.push(`${name} line ${row.line}: ${row.cells.length} cells, expected ${want} — ${row.text.slice(0, 70)}`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  // One blank line ends a markdown table. A stray one sat above the HARD-31 row, so the
+  // last five entries — including two of the three most recent — stopped being a table at
+  // all, while still reading fine in a text editor.
+  it('no blank line splits a README table', () => {
+    const { lines } = readmeTables();
+    const split = [];
+    for (let i = 1; i < lines.length - 1; i++) {
+      if (!lines[i].trim() && lines[i - 1].startsWith('|') && lines[i + 1].startsWith('|')) {
+        split.push(`line ${i + 1}, between two table rows`);
+      }
+    }
+    expect(split).toEqual([]);
+  });
+
+  // *Blocked by* names the package that must land first. It is not a status column, and
+  // nine rows had `done` in it — which is how it came to disagree with the status table it
+  // was duplicating. Progress belongs in one place.
+  it('the conflict map does not carry status in its Blocked by column', () => {
+    const { conflict } = readmeTables();
+    const blockedBy = conflict.header.cells.findIndex(c => /blocked by/i.test(c));
+    expect(blockedBy).toBeGreaterThan(-1);
+    const carrying = conflict.body
+      .filter(r => /\b(done|not started|in progress|landed)\b/i.test(r.cells[blockedBy]))
+      .map(r => `line ${r.line}: ${named(r)} — "${r.cells[blockedBy].trim()}"`);
+    expect(carrying).toEqual([]);
+  });
+
+  // A package may legitimately have several status rows: the table is kept as a chronology,
+  // and HARD-14/HARD-20's diagnosis took three entries to reach the truth. What it may not
+  // have is a superseded row still claiming to be the current state. A row for a package
+  // that has landed must either say so or say it has been superseded — `HARD-11 | not
+  // started` survived the move into done/ and was the first thing a fresh session read.
+  it('no status row says a landed package is unstarted', () => {
+    const { status } = readmeTables();
+    const onDisk = packagesOnDisk();
+    const statusCol = status.header.cells.findIndex(c => /status/i.test(c));
+    const lying = status.body
+      .filter(r => onDisk.get(named(r)) === 'done')
+      .filter(r => /not started|^\s*$|\bopen\b/i.test(r.cells[statusCol]))
+      .filter(r => !/supersed|historic/i.test(r.cells[statusCol]))
+      .map(r => `line ${r.line}: ${named(r)} is in done/ but its row reads "${r.cells[statusCol].trim()}"`);
+    expect(lying).toEqual([]);
   });
 
   it('the KNOWN_ABSENT list holds only things that really are absent', () => {
