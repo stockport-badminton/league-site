@@ -656,6 +656,29 @@ because `String(null)` is four characters and only the `avg` column was guarded.
 surfaced the moment the URL worked. When something has been unreachable, assume nothing
 about its contents.
 
+### Two leagues, one Make account, one Instagram account
+
+**Make.com is shared with the Tameside league**, and both of its remaining scenarios serve
+both leagues. Neither can be switched off for Stockport's benefit.
+
+- **`Post Results to Socials` carries both leagues off one webhook.** Route 1 is filtered on
+  `imgUrl` containing `stockport-badminton`, route 2 on `tameside-badminton`, and the
+  Tameside site posts its own webhook from its own codebase. So **stopping our webhook
+  disables only our route** — Tameside's is untouched, and no edit to the scenario is needed
+  to move Stockport off it. That is what `SOCIAL_POST_DIRECT` does.
+- **`League Tables` route 3 posts Tameside's tables**, fetching
+  `tameside-badminton.co.uk/tables-social` and its images. Moving Stockport's weekly post
+  in-house means removing routes 1 and 2 and the Stockport half of route 3, not disabling
+  the scenario.
+- **The Instagram module is deliberately unfiltered, and it is not a bug.** The two leagues
+  **share one Instagram account** — Meta refused a second one when Tameside's was set up —
+  so every result from either league goes to `stockport.badders.results` on purpose. Adding
+  a league filter there would silently stop Tameside appearing on Instagram at all.
+
+The Facebook Pages are in the same Business portfolio, so porting this work to Tameside is
+the same code against a different page id and token; `META_TAMESIDE_PAGE_TOKEN` is already
+in `.env` for it. `metaPublisher.targets()` returns all three.
+
 ### Posting to Meta directly: what was measured, Sep 2026
 
 Establishing whether the league can post without Make.com. `META_APP_ID` / `META_APP_SECRET`
@@ -989,6 +1012,11 @@ Key vars (see `.env` for examples):
 - `META_USER_TOKEN` — short-lived, and spent. Only needed to mint replacement Page tokens:
   exchange it for a long-lived user token (`grant_type=fb_exchange_token`, ~60 days) then
   `GET /me/accounts`. Nothing reads it at runtime.
+- `SOCIAL_POST_DIRECT` — `'true'` makes `Fixture.sendResultZap` post the result to Meta
+  itself rather than handing it to the Make.com webhook. **Unset keeps the Make path**, so
+  a rollback is one environment variable rather than one deploy — this runs when a captain
+  publishes a result, and a bad week is a week of missing posts nobody notices. Switching it
+  on needs no change in Make: see *Two leagues, one Make account* above.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

@@ -808,6 +808,35 @@ exports.rearrangeByTeamNames = async function(updateObj) {
   })
 }
 
+// Post one result to the league's own Facebook page and Instagram account.
+//
+// Each target succeeds or fails on its own — `publishEverywhere` collects rather than
+// throwing — because a post that reached Facebook and not Instagram has still reached
+// Facebook, and a retry that re-posted it would be worse than the gap.
+//
+// The caller is `afterCommit('result zap', ...)`, so the result is already committed and
+// nothing here can undo it. What is returned is an account of what happened, which is what
+// lets the log say "Facebook yes, Instagram no" rather than just "failed".
+async function publishResultToMeta({ imgGen, message }) {
+  const meta = require('../utils/metaPublisher')
+  const t = meta.targets()
+
+  const out = await meta.publishEverywhere([
+    t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
+    t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
+  ], { imageUrls: imgGen, message })
+
+  for (const f of out.failed) console.error(`result post to ${f.target} failed:`, f.error.message)
+  if (out.posted.length) console.log('result posted to', out.posted.map(p => p.target).join(', '))
+
+  // Thrown only when EVERY target failed, so `afterCommit` records one Sentry event for a
+  // post that went nowhere and stays quiet about a partial success it can do nothing about.
+  if (!out.posted.length && out.failed.length) {
+    throw out.failed[0].error
+  }
+  return out
+}
+
 exports.sendResultZap = async function(zapObject) {
   if (!db.isObject(zapObject)) throw new Error("you've not supplied an object")
   if (zapObject.host == '127.0.0.1:8080') {
@@ -842,6 +871,27 @@ exports.sendResultZap = async function(zapObject) {
   // actually be turned into mentions on a page post. Fixture.getResultMentions and
   // getClubSocialHandlesByTeamName existed for it and were only ever called from the
   // quick-results-entry flow deleted in 74c52d1, so no post has ever carried one.
+
+  // ── Direct, or through Make.com ────────────────────────────────────────────
+  //
+  // `SOCIAL_POST_DIRECT=true` posts to Meta from here instead of handing the job to a
+  // Make.com scenario. Unset keeps the old path, so a rollback is one environment variable
+  // rather than one deploy — which matters because this runs when a captain publishes a
+  // result and a bad week is a week of missing posts nobody notices.
+  //
+  // **Switching Stockport over needs no change to Make at all**, which is not obvious.
+  // That scenario serves BOTH leagues off one webhook, routed by whether `imgUrl` contains
+  // `stockport-badminton` or `tameside-badminton` — and Tameside posts its own webhook from
+  // its own site. So when we stop sending ours, route 1 simply never fires and Tameside's
+  // route is untouched.
+  //
+  // The Instagram module there is deliberately unfiltered, because **the two leagues share
+  // one Instagram account** — Meta refused a second one for Tameside. So Tameside results
+  // keep reaching Instagram through Make while Stockport's come from here, and neither
+  // duplicates the other.
+  if (process.env.SOCIAL_POST_DIRECT === 'true') {
+    return publishResultToMeta({ imgGen, message: webhookBody.message, zapObject })
+  }
 
   const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
 

@@ -265,13 +265,59 @@ function targets() {
   };
 }
 
+/**
+ * Post the same thing to several places, and let each succeed or fail on its own.
+ *
+ * Returns `{posted: [...], failed: [{target, error}]}` and does NOT throw. Three reasons,
+ * and the first is the one that matters:
+ *
+ * - **A post that lands on Facebook and not Instagram has still landed on Facebook.**
+ *   Throwing on the first failure would either lose that or, worse, make a retry
+ *   double-post to the platform that worked.
+ * - The caller is already inside `afterCommit`, so the write it reports is committed and
+ *   nothing here can undo it. What the caller needs is an account of what happened, not an
+ *   exception.
+ * - **And then say which of the two happened.** Reporting only success makes a half
+ *   failure indistinguishable from a whole one — the same rule `utils/afterCommit.js`
+ *   states for notification email, and the same one `POST /fixture/rearrangement` broke.
+ *
+ * `targets` entries are `{name, kind: 'page'|'instagram', id, token}`. A null entry is
+ * skipped rather than being an error: that is how an unset credential means "this league
+ * does not post there" instead of "crash".
+ */
+async function publishEverywhere(targets, { imageUrls, message, caption }) {
+  const posted = [];
+  const failed = [];
+
+  for (const t of (targets || []).filter(Boolean)) {
+    try {
+      if (t.kind === 'page') {
+        const r = await publishPageAlbum(t.id, t.token, { imageUrls, message });
+        posted.push({ target: t.name, kind: t.kind, id: r.postId });
+      } else if (t.kind === 'instagram') {
+        const urls = [].concat(imageUrls || []);
+        const r = urls.length > 1
+          ? await publishInstagramCarousel(t.id, t.token, { imageUrls: urls, caption: caption ?? message })
+          : await publishInstagramPhoto(t.id, t.token, { imageUrl: urls[0], caption: caption ?? message });
+        posted.push({ target: t.name, kind: t.kind, id: r.mediaId });
+      } else {
+        failed.push({ target: t.name, error: new MetaError(`Unknown target kind ${t.kind}`, { step: 'validate' }) });
+      }
+    } catch (err) {
+      failed.push({ target: t.name, error: err });
+    }
+  }
+
+  return { posted, failed, ok: failed.length === 0 };
+}
+
 module.exports = {
   MetaError,
   assertPublishableImage, ratioOk,
   uploadPagePhoto, publishPageAlbum,
   publishInstagramPhoto, publishInstagramCarousel,
   createContainer, publishContainer,
-  validateImages, publishingQuota,
+  validateImages, publishingQuota, publishEverywhere,
   targets,
   IG_MAX_CAROUSEL, IG_MIN_RATIO, IG_MAX_RATIO,
 };
