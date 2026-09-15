@@ -27,6 +27,12 @@ const [results] = await (await db.otherConnect()).query(`
 
 - **fixture**: `id, date, homeTeam (int), awayTeam (int), homeScore, awayScore, status ('complete'/'conceded'/etc)`
 - **team**: `id, name, division (int)`
+- **`pointsFor` / `pointsAgainst` are GAMES won and lost, not league points.** The league
+  ranks on games, not on a win/draw/loss table — every one of the 18 games in a fixture
+  counts towards the standing, which is why a team with 6 matches played shows 60 and 48.
+  The league table image captions the columns `P / W / L / Avg.` and is correct: P is
+  matches played, W and L are games. The column *names* are the misleading part, and they
+  read as though a team had won 60 of 6 matches.
 - **division**: `id, name, league (int)`
 - **scorecardstore**: Draft submissions — `(id, date, homeTeam, awayTeam, Game1homeScore, ..., Game18awayScore, homeMan1, homeMan2, ...)`
 - **messer_scorecard**: Messer knockout draft submissions — similar schema but Game1-Game15 (15 games, not 18)
