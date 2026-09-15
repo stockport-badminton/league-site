@@ -160,6 +160,18 @@ exports.TOURNAMENT_POSTERS = TOURNAMENT_POSTERS;
 // building a carousel, and regenerating a 1080x1080 composite each time is pure waste.
 const SOCIAL_IMAGE_CACHE_CONTROL = 'public, max-age=86400';
 
+// A 404 from these routes must NOT be cached, and saying so is not belt-and-braces.
+//
+// Firebase Hosting applies its own `max-age=600` to any response that does not set
+// Cache-Control, so a miss sticks for ten minutes — measured 15 Sep 2026, when three URLs
+// requested minutes before a deploy went on answering 404 after it while a fourth, which
+// nobody had asked for yet, returned 200. The same URL with a cache-buster worked.
+//
+// That is worse than untidy here. **Meta fetches these URLs itself and retries**, so a
+// transient 404 — a deploy in flight, a division renamed mid-season — gets cached and the
+// retry hits the cache rather than the fixed route. The window outlives the fault.
+const SOCIAL_IMAGE_MISS_CACHE_CONTROL = 'no-store';
+
 // GET /league-table-image/:division — one division's table, as a JPEG, built now.
 exports.leagueTableImage = async function (req, res, next) {
   try {
@@ -175,7 +187,7 @@ exports.leagueTableImage = async function (req, res, next) {
     if (!rows.length) {
       // 404, explicitly. `res.send(err)` serialises an Error to `{}` and goes out as 200,
       // which a crawler banks as a real page — gotcha 1c.
-      return res.status(404).type('text/plain').send('No league table for that division');
+      return res.status(404).set('Cache-Control', SOCIAL_IMAGE_MISS_CACHE_CONTROL).type('text/plain').send('No league table for that division');
     }
 
     const buf = await createDivisionTableImage(
@@ -196,7 +208,7 @@ exports.tournamentImage = async function (req, res, next) {
       : null;
 
     if (!poster) {
-      return res.status(404).type('text/plain').send(
+      return res.status(404).set('Cache-Control', SOCIAL_IMAGE_MISS_CACHE_CONTROL).type('text/plain').send(
         'No such tournament poster. Known: ' + Object.keys(TOURNAMENT_POSTERS).join(', '));
     }
 

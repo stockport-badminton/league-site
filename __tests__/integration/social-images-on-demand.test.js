@@ -97,6 +97,25 @@ describe('GET /league-table-image/:division', () => {
     const res = await request(app).get('/league-table-image/Division%209');
     expect(res.status).toBe(404);
   });
+
+  // Firebase Hosting caches any response that does not set Cache-Control for ten minutes.
+  // Measured: three URLs requested minutes before a deploy kept answering 404 afterwards
+  // while a fourth, never requested, returned 200 — and a cache-buster fixed all three.
+  // **Meta fetches these URLs itself and retries**, so a cached 404 outlives the fault that
+  // caused it and the retry never sees the fix.
+  it('never lets a 404 be cached', async () => {
+    for (const url of ['/league-table-image/Division%209', '/tournament-image/nonesuch']) {
+      const res = await request(app).get(url);
+      expect(res.status).toBe(404);
+      expect(res.headers['cache-control']).toBe('no-store');
+    }
+  });
+
+  it('does still cache a hit, which is the whole point of generating on demand', async () => {
+    const res = await request(app).get('/league-table-image/Premier.jpg');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toMatch(/max-age=86400/);
+  });
 });
 
 describe('a team with no results yet', () => {
