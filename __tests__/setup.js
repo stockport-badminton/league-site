@@ -82,6 +82,11 @@ delete process.env.AUDIT_CRON_TOKEN;
 delete process.env.REGISTRATION_CRON_TOKEN;
 delete process.env.INVOICE_CRON_TOKEN;
 delete process.env.LATE_SCORECARD_CRON_TOKEN;
+// Meta Graph API. The Page tokens never expire and can publish to the league's Facebook
+// Pages and Instagram account, so a test process must not be able to reach them at all.
+for (const k of Object.keys(process.env)) {
+  if (/^META_/.test(k)) delete process.env[k];
+}
 delete process.env.SENTRY_DSN;
 // An unset SNS_TOPIC_ARN means verifySns does not enforce a topic, which is what the
 // signature fixtures expect — they carry their own TopicArn, and the one test that wants

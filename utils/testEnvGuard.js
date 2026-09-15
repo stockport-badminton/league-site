@@ -54,6 +54,28 @@ function liveCredentials(env) {
     if (/_CRON_TOKEN$/.test(name) && e[name]) found.push(`${name} is set`);
   }
 
+  // Meta Graph API credentials (Sep 2026). A Page access token is the sharpest thing in
+  // `.env`: `debug_token` reports `expires: never`, and it can publish to the league's
+  // Facebook Pages and its Instagram account. There is no expiry to save us and no
+  // "sandbox" Meta to point it at — a test process holding one could post to 90 followers.
+  //
+  // Two rules, deliberately overlapping:
+  //
+  //   - by VALUE: every Meta access token starts `EAA`, which is distinctive enough to
+  //     catch one stored under a name nobody here anticipated;
+  //   - by NAME PATTERN, not a list: any `META_*TOKEN` or `META_*SECRET`. A pattern
+  //     survives a new variable; a list is one variable behind the next deploy, which is
+  //     the mistake the cron loop above made and `__tests__/setup.js` made three times.
+  //
+  // The ids (META_PAGE_ID, META_IG_USER_ID) are deliberately NOT flagged. They are public
+  // — they appear in page URLs — and a test that needs a plausible id should have one.
+  for (const [name, value] of Object.entries(e)) {
+    const v = String(value || '');
+    if (!v) continue;
+    if (/^EAA[A-Za-z0-9]/.test(v)) found.push(`${name} holds a Meta access token`);
+    else if (/^META_.+(TOKEN|SECRET)$/.test(name)) found.push(`${name} is set`);
+  }
+
   // Recipient lists: set means the weekly digest and the registration chaser will actually
   // send. Unset is what makes `npm test` incapable of emailing the results secretary.
   for (const name of ['AUDIT_EMAIL_TO', 'REGISTRATION_EMAIL_TO']) {

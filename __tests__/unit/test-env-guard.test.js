@@ -54,6 +54,27 @@ describe('the live-credential guard', () => {
     expect(liveCredentials({ SOME_FUTURE_CRON_TOKEN: '' })).toEqual([]);
   });
 
+  // A Page access token reports `expires: never` and can publish to the league's Facebook
+  // Pages and its Instagram account. There is no sandbox Meta and no clock to save us.
+  it('catches a Meta access token, by its value and by its name', () => {
+    // By value: every Meta token starts EAA, so one stored under an unexpected name is
+    // still caught.
+    expect(liveCredentials({ SOMETHING_UNEXPECTED: 'EAAabc123def' })).toHaveLength(1);
+    expect(liveCredentials({ META_PAGE_TOKEN: 'EAAabc123def' })).toHaveLength(1);
+    // By name pattern, for a value that does not look like a token.
+    expect(liveCredentials({ META_APP_SECRET: 'deadbeefdeadbeefdeadbeefdeadbeef' })).toHaveLength(1);
+    expect(liveCredentials({ META_TAMESIDE_PAGE_TOKEN: 'whatever' })).toHaveLength(1);
+    // A name nobody has added yet still matches the pattern.
+    expect(liveCredentials({ META_FUTURE_THING_TOKEN: 'x' })).toHaveLength(1);
+  });
+
+  it('does not flag the Meta ids, which are public', () => {
+    // They appear in page URLs. A test that needs a plausible id should be allowed one.
+    expect(liveCredentials({ META_PAGE_ID: '101950371354925' })).toEqual([]);
+    expect(liveCredentials({ META_IG_USER_ID: '17841409056774880' })).toEqual([]);
+    expect(liveCredentials({ META_APP_ID: '974832152294196' })).toEqual([]);
+  });
+
   it('passes a properly declared test environment', () => {
     expect(liveCredentials({
       DATABASE_URL: 'postgresql://test:test@127.0.0.1:1/nowhere',

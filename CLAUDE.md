@@ -942,6 +942,26 @@ Key vars (see `.env` for examples):
   an endpoint is open**, so auditing what the automation platform calls is also a way of
   finding ungated routes. The recipients were always derived server-side, which is what
   kept this a free send rather than the open relay `/fixture/reminder` was.
+- `META_APP_ID` / `META_APP_SECRET` — the league's own Meta app, *Badminton Results App*.
+  Only needed to mint or debug tokens; neither can publish anything on its own.
+- `META_PAGE_TOKEN` / `META_TAMESIDE_PAGE_TOKEN` — **Page access tokens, and they do not
+  expire.** `debug_token` reports `type: PAGE`, `expires: never`; a Page token has no clock
+  of its own and dies only if the granting user changes their Facebook password or loses
+  their role on the Page. Each can publish to that Page, and the Stockport one can publish
+  to the league's Instagram account, so **these are the sharpest credentials in `.env`** —
+  there is no sandbox Meta to point them at and no expiry to save us.
+  `__tests__/setup.js` deletes every `META_*` variable and `utils/testEnvGuard.js` refuses
+  the whole run if one survives, matching **both** by value (`EAA…`, which catches a token
+  stored under a name nobody anticipated) and by name pattern (`META_*TOKEN`/`*SECRET`,
+  which survives a variable being added). Demonstrated by planting a real one and watching
+  the suite abort with `Tests: 0 total`.
+- `META_PAGE_ID`, `META_TAMESIDE_PAGE_ID`, `META_IG_USER_ID` — ids, not secrets; they
+  appear in page URLs and are deliberately *not* flagged by the guard. `META_IG_USER_ID` is
+  recorded because discovering it needs `pages_read_engagement`, which the app cannot
+  currently request.
+- `META_USER_TOKEN` — short-lived, and spent. Only needed to mint replacement Page tokens:
+  exchange it for a long-lived user token (`grant_type=fb_exchange_token`, ~60 days) then
+  `GET /me/accounts`. Nothing reads it at runtime.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

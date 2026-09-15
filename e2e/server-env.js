@@ -72,10 +72,27 @@ for (const file of ['dev.env', '.env']) {
 // the mistake that broke three tests when HARD-26 was written.
 delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
-delete process.env.AUDIT_CRON_TOKEN;
-delete process.env.REGISTRATION_CRON_TOKEN;
-delete process.env.INVOICE_CRON_TOKEN;
 delete process.env.SENTRY_DSN;
+
+// By PATTERN, not by a list of names, and that is not tidiness.
+//
+// This block was a list, and on 15 Sep 2026 it went stale twice in one afternoon:
+// LATE_SCORECARD_CRON_TOKEN was added to `__tests__/setup.js` and not here, and then the
+// Meta credentials were too. The second one is what caught it — `assertNothingLive()`
+// below refused to start the browser server, which is the guard doing its job, but the
+// first had already slipped through silently because no guard was watching for it yet.
+//
+// **This file and `__tests__/setup.js` are counterparts and drift apart by default.** A
+// fix applied to one is a fix applied to one. Matching on shape is what makes a new
+// variable safe in both without anybody remembering.
+for (const name of Object.keys(process.env)) {
+  // Any scheduled-job secret. Unset CLOSES that path rather than opening it.
+  if (/_CRON_TOKEN$/.test(name)) delete process.env[name];
+  // Every Meta credential. The Page tokens do not expire and can publish to the league's
+  // Facebook Pages and its Instagram account — there is no sandbox Meta and no clock.
+  if (/^META_/.test(name)) delete process.env[name];
+}
+
 delete process.env.SNS_TOPIC_ARN;
 delete process.env.CSP_ENFORCE;
 delete process.env.K_SERVICE;
