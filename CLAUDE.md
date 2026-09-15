@@ -650,6 +650,49 @@ Make scenario calls them and its Facebook half works. They now take their conten
 `TOURNAMENT_POSTERS` in `socialController`, the same object the on-demand route reads, so
 the two cannot drift. Remove them once the scenario is repointed.
 
+**A broken link was hiding a broken picture.** The images had been unreachable for so long
+that nobody had seen what they said — and what they said was `0 null null` for every team,
+because `String(null)` is four characters and only the `avg` column was guarded. It
+surfaced the moment the URL worked. When something has been unreachable, assume nothing
+about its contents.
+
+### Posting to Meta directly: what was measured, Sep 2026
+
+Establishing whether the league can post without Make.com. `META_APP_ID` / `META_APP_SECRET`
+identify our own app; the durable credential is a **Page access token**, minted from a
+long-lived user token via `GET /me/accounts`.
+
+- **A Page access token does not expire.** Confirmed with `debug_token`: `type: PAGE`,
+  `expires: never`. It dies only if the granting user changes their password or loses their
+  role on the Page. The user token it came from lasts ~60 days and is then disposable.
+- **Instagram publishing needs no App Review, and works from an app in Development mode.**
+  Measured: a post published from a dev-mode app was fetched **unauthenticated** at its
+  permalink — HTTP 200, full `og:` tags, no login wall. Meta's "data created in Development
+  mode is only visible to role users" rule covers app-generated data; an Instagram post
+  belongs to the *account*, not the app. This is the single fact that makes leaving Make
+  viable, and it contradicts what the documentation appears to say, so re-measure rather
+  than trusting this line if it ever matters again.
+- **Creating a media container is not publishing, which makes it a free test.**
+  `POST /{ig-id}/media` asks Meta to fetch and validate the image and returns a
+  `creation_id`; nothing is visible until `POST /{ig-id}/media_publish`. Containers expire
+  on their own in 24 hours. Use this to check a URL is acceptable before posting anything —
+  it is how the PNG diagnosis was proved from Meta's side:
+
+  ```
+  new .jpg URL  -> CONTAINER CREATED
+  old .png URL  -> "The media could not be fetched from this URI"
+  ```
+
+- **`pages_manage_posts` and `pages_read_engagement` are gated behind a use case**, not just
+  app type: without "Manage everything on your Page" added in the App Dashboard, the login
+  dialog answers `Invalid Scopes` and the permission cannot be requested at all. Instagram
+  is a separate use case again, even though Instagram publishing runs on a Page token. The
+  Facebook half is therefore still unproven.
+- **A privacy policy URL is required to switch an app to Live mode** and is unset on ours.
+  `https://stockport-badminton.co.uk/privacy-policy` exists and answers 200.
+- `GET /{ig-id}/content_publishing_limit` reports quota: 100 posts per rolling 24 hours, a
+  carousel counting as one.
+
 ### Search / crawlability
 
 **Load the `seo` skill** before touching `controllers/sitemapController.js`,
