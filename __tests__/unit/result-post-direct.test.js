@@ -87,10 +87,28 @@ describe('with SOCIAL_POST_DIRECT=true', () => {
     await Fixture.sendResultZap({ ...RESULT });
 
     const [targets] = meta.publishEverywhere.mock.calls[0];
-    // The null is passed through and filtered downstream, so an unset token means "does
-    // not post there" and never "post to whatever is left in that slot".
-    expect(targets[0]).toBeNull();
-    expect(targets[1]).toMatchObject({ kind: 'instagram' });
+    // An unset token means "does not post there", never "post to whatever is left in that
+    // slot" — but the ones that ARE configured still go.
+    expect(targets).toHaveLength(1);
+    expect(targets[0]).toMatchObject({ kind: 'instagram' });
+  });
+
+  // This very nearly shipped as a silent success, and it is the most dangerous thing in
+  // the change. The flag lives in the Cloud Run service config; the credentials live in
+  // .env, which is gitignored and never deployed. Setting one without the other gives a
+  // service that takes the direct path, finds nothing to post to, posts nowhere — and
+  // reports success, because an empty target list produces neither a post nor a failure.
+  //
+  // Same shape as `secured`'s 302 that Make.com logged as a successful invoice run: a
+  // rejection that looks like an acceptance. A switch whose halves live in different
+  // places has to fail loudly when only one is set.
+  it('throws rather than posting nowhere when NO target is configured', async () => {
+    meta.targets.mockReturnValue({ stockportPage: null, instagram: null, tamesidePage: null });
+
+    await expect(Fixture.sendResultZap({ ...RESULT }))
+      .rejects.toThrow(/would have been posted nowhere/);
+    expect(meta.publishEverywhere).not.toHaveBeenCalled();
+    expect(axios.post).not.toHaveBeenCalled();   // and it does NOT fall back to Make
   });
 
   // A post that reached Facebook and not Instagram has still reached Facebook. Throwing

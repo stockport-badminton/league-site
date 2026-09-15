@@ -821,10 +821,31 @@ async function publishResultToMeta({ imgGen, message }) {
   const meta = require('../utils/metaPublisher')
   const t = meta.targets()
 
-  const out = await meta.publishEverywhere([
+  const configured = [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
-  ], { imageUrls: imgGen, message })
+  ].filter(Boolean)
+
+  // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
+  // latter. `SOCIAL_POST_DIRECT` lives in the Cloud Run service config; the credentials
+  // live in `.env`, which is gitignored and never deployed. Setting the flag without
+  // copying the credentials across left a service that took the direct path, found nothing
+  // to post to, posted nowhere — and reported success, because an empty target list
+  // produces neither a post nor a failure.
+  //
+  // That is the exact shape this codebase keeps getting caught by: a rejection that looks
+  // like an acceptance. `secured`'s 302 that Make.com logged as a successful invoice run;
+  // the rearrangement endpoint answering 200 to a pairing it had discarded. A switch whose
+  // two halves live in different places must fail loudly when only one of them is set.
+  if (!configured.length) {
+    throw new Error(
+      'SOCIAL_POST_DIRECT is set but no Meta credentials are configured, so this result ' +
+      'would have been posted nowhere. Set META_PAGE_ID, META_PAGE_TOKEN and ' +
+      'META_IG_USER_ID on the service, or unset SOCIAL_POST_DIRECT to go back through ' +
+      'Make.com.')
+  }
+
+  const out = await meta.publishEverywhere(configured, { imageUrls: imgGen, message })
 
   for (const f of out.failed) console.error(`result post to ${f.target} failed:`, f.error.message)
   if (out.posted.length) console.log('result posted to', out.posted.map(p => p.target).join(', '))
