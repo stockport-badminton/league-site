@@ -54,6 +54,23 @@ const requireInvoiceCaller = requireCronCaller({
   describe: 'the annual invoice run',
   callerProp: 'invoiceCaller',
 });
+// The daily missing-scorecard reminder. Fourth caller of the same gate.
+//
+// This one was NOT a scheduler endpoint that lacked a gate — it was an *ungated* endpoint
+// that a Make.com scenario had been GETting every morning since 2025. `getLateScorecards`
+// sends mail, so anyone who knew the URL could make the league email itself as often as
+// they liked. Not an open relay — the recipients are hardcoded, unlike the
+// `/fixture/reminder` bug — but the send is free and unattributable, which is enough.
+//
+// Found 15 Sep 2026 while surveying what Make.com is actually doing for us: the scenario
+// named "late scorecards" turned out to contain a single HTTP module pointed at this URL,
+// i.e. a Cloud Scheduler job wearing a costume.
+const requireLateScorecardCaller = requireCronCaller({
+  envVar: 'LATE_SCORECARD_CRON_TOKEN',
+  header: 'x-late-scorecard-token',
+  describe: 'the missing-scorecard reminder',
+  callerProp: 'lateScorecardCaller',
+});
 const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
@@ -448,7 +465,10 @@ router.get('/divisions', checkJwt, division_controller.division_list);
 // Fixture routes
 router.get('/fixture/create', fixture_controller.fixture_create_get);
 router.post('/fixture/reminder', publicFormLimiter, scorecard_controller.fixture_reminder_post);
-router.get('/fixture/outstanding', fixture_controller.getLateScorecards);
+// Kept as GET: Cloud Scheduler can issue either, and the Make.com scenario this replaces
+// used GET, so a token-carrying GET keeps a rollback one env var away rather than one
+// deploy away.
+router.get('/fixture/outstanding', requireLateScorecardCaller, fixture_controller.getLateScorecards);
 router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
 router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
 // Superadmin only. This was unauthenticated behind nothing but a rate limit until

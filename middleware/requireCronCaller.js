@@ -1,11 +1,17 @@
 // A scheduled job authenticating without a session.
 //
-// Three endpoints are driven by Cloud Scheduler — the weekly data audit (HARD-07), the
-// daily registration reminder, and now the annual invoice run (HARD-23). Each had, or
-// needed, the same gate, and the first two were near-identical copies of each other
-// differing only in an env var name, a header name and an error message. This is that gate
-// once. HARD-23 is the third caller, and CLAUDE.md's rule is that the second caller is
-// what turns a fix into a rule.
+// Four endpoints are driven by Cloud Scheduler — the weekly data audit (HARD-07), the
+// daily registration reminder, the annual invoice run (HARD-23) and the daily
+// missing-scorecard reminder. Each had, or needed, the same gate, and the first two were
+// near-identical copies of each other differing only in an env var name, a header name and
+// an error message. This is that gate once. HARD-23 is the third caller, and CLAUDE.md's
+// rule is that the second caller is what turns a fix into a rule.
+//
+// The fourth arrived differently and is worth noting: `GET /fixture/outstanding` was not a
+// scheduler endpoint missing a gate, it was an **ungated** endpoint that a Make.com
+// scenario had been calling every morning since 2025 — ungated precisely because the
+// caller could not present anything. Pulling a job out of Make is therefore also a
+// security fix, and that is the shape to look for in the ones still there.
 //
 // Three properties, and each one exists because of a specific way this has gone wrong:
 //

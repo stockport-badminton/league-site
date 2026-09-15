@@ -37,8 +37,21 @@ describe('the live-credential guard', () => {
   it('catches a cron token or a recipient list being set', () => {
     expect(liveCredentials({ AUDIT_CRON_TOKEN: 'x' })).toHaveLength(1);
     expect(liveCredentials({ REGISTRATION_CRON_TOKEN: 'x' })).toHaveLength(1);
+    expect(liveCredentials({ INVOICE_CRON_TOKEN: 'x' })).toHaveLength(1);
+    expect(liveCredentials({ LATE_SCORECARD_CRON_TOKEN: 'x' })).toHaveLength(1);
     expect(liveCredentials({ AUDIT_EMAIL_TO: 'a@b.com' })).toHaveLength(1);
     expect(liveCredentials({ REGISTRATION_EMAIL_TO: 'a@b.com' })).toHaveLength(1);
+  });
+
+  // The cron check used to be a hardcoded list of three names, which is the very failure
+  // this file's header says checking shapes avoids — and it HAD gone stale: the invoice
+  // token landed in September and was never added to it. A name-list guard is one variable
+  // behind whatever goes into the next deploy, exactly like the three `setup.js` patches
+  // that preceded it. So the rule is the suffix, and this is what says so.
+  it('catches a cron token nobody has thought of yet', () => {
+    expect(liveCredentials({ SOME_FUTURE_CRON_TOKEN: 'x' })).toHaveLength(1);
+    // and an empty one is not a finding — unset is the safe state, not a violation
+    expect(liveCredentials({ SOME_FUTURE_CRON_TOKEN: '' })).toEqual([]);
   });
 
   it('passes a properly declared test environment', () => {

@@ -41,10 +41,17 @@ function liveCredentials(env) {
   }
 
   // The cron tokens are compared with timingSafeEqual and are the only thing standing
-  // between the public internet and the audit and registration runs. Unset closes those
-  // paths; a value in a test process is a live secret with nothing to gain from it.
-  for (const name of ['AUDIT_CRON_TOKEN', 'REGISTRATION_CRON_TOKEN', 'INVOICE_CRON_TOKEN']) {
-    if (e[name]) found.push(`${name} is set`);
+  // between the public internet and the audit, registration, invoice and missing-scorecard
+  // runs. Unset closes those paths; a value in a test process is a live secret with nothing
+  // to gain from it.
+  //
+  // Matched by SHAPE, not by a list of names. This file's whole claim is that it checks
+  // shapes so it cannot go one variable out of date the way `__tests__/setup.js` did three
+  // times — and this loop was a hardcoded list of three, which is that same bug one layer
+  // in. It would have gone stale on 15 Sep 2026, when LATE_SCORECARD_CRON_TOKEN became the
+  // fourth. Any `*_CRON_TOKEN` now counts.
+  for (const name of Object.keys(e)) {
+    if (/_CRON_TOKEN$/.test(name) && e[name]) found.push(`${name} is set`);
   }
 
   // Recipient lists: set means the weekly digest and the registration chaser will actually
