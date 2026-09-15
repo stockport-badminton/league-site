@@ -12,9 +12,10 @@
 // webhook from its own site. Stop sending ours and route 1 never fires; Tameside's route is
 // untouched.
 //
-// The Instagram module there is deliberately unfiltered because **the two leagues share one
-// Instagram account** — Meta refused a second one for Tameside. So Tameside results keep
-// reaching Instagram through Make while Stockport's come from here.
+// Both of those are now history: Tameside ported on 15 Sep 2026 and every Make scenario is
+// disabled. The flag stays because it is the rollback path, and these tests stay because
+// they pin what the direct path sends — which is the thing no test covered when the same
+// job was done by a webhook nobody asserted on.
 
 jest.mock('axios');
 jest.mock('../../utils/metaPublisher', () => ({

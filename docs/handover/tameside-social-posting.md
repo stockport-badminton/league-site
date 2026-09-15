@@ -1,5 +1,11 @@
 # Handover: porting direct Facebook and Instagram posting to Tameside
 
+> **Superseded 15 Sep 2026, the day it was written.** Tameside was ported the same evening,
+> got its own Instagram account (`tameside.badminton`), and **every Make.com scenario is now
+> disabled**. So trap 1 below no longer applies, and the ordering describes work that is
+> done. Kept because the traps in it are why the port went the way it did — and because the
+> record of a document being wrong within hours is worth more than a tidy one.
+
 **Written 15 Sep 2026, for whoever picks up the
 [tameside](https://github.com/stockport-badminton/tameside) repo.** Assumes no context from
 the Stockport session that produced it. Everything here was measured against the live Meta
@@ -15,10 +21,13 @@ a straight copy are the ones that will cost you a double-posted week if you skim
 
 ## Read these three first
 
-### 1. The two leagues share ONE Instagram account
+### 1. ~~The two leagues share ONE Instagram account~~ — resolved 15 Sep 2026
 
-Meta refused a second Instagram account when Tameside's was set up. Both leagues post to
-`stockport.badders.results` (`17841409056774880`).
+**Tameside now has its own account, `tameside.badminton`.** Everything below was true until
+that evening and is kept because it explains why the Make scenario looks the way it does.
+
+Meta had refused a second Instagram account when Tameside's was first set up, so both
+leagues posted to `stockport.badders.results` (`17841409056774880`).
 
 This is why the Instagram module in the Make results scenario has **no league filter**. It
 looks like a bug. It is not. Adding a filter there stops Tameside appearing on Instagram at

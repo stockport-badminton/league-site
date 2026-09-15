@@ -906,10 +906,12 @@ exports.sendResultZap = async function(zapObject) {
   // its own site. So when we stop sending ours, route 1 simply never fires and Tameside's
   // route is untouched.
   //
-  // The Instagram module there is deliberately unfiltered, because **the two leagues share
-  // one Instagram account** — Meta refused a second one for Tameside. So Tameside results
-  // keep reaching Instagram through Make while Stockport's come from here, and neither
-  // duplicates the other.
+  // Historic note, kept because it explains the shape: that scenario's Instagram module
+  // carried no league filter, because the two leagues shared one Instagram account — Meta
+  // had refused a second one for Tameside. Anyone tidying that up would have silently
+  // stopped Tameside appearing on Instagram. Tameside got its own account on 15 Sep 2026
+  // and every Make scenario is now disabled, so neither the sharing nor the fallback is
+  // live; the flag remains as the rollback path it was built to be.
   if (process.env.SOCIAL_POST_DIRECT === 'true') {
     return publishResultToMeta({ imgGen, message: webhookBody.message, zapObject })
   }

@@ -656,28 +656,34 @@ because `String(null)` is four characters and only the `avg` column was guarded.
 surfaced the moment the URL worked. When something has been unreachable, assume nothing
 about its contents.
 
-### Two leagues, one Make account, one Instagram account
+### Make.com is gone, and what it taught us on the way out
 
-**Make.com is shared with the Tameside league**, and both of its remaining scenarios serve
-both leagues. Neither can be switched off for Stockport's benefit.
+**Every scenario in the Make account is disabled as of 15 Sep 2026.** Both leagues post to
+Facebook and Instagram from their own codebases, and the scheduled jobs that used to live
+there are Cloud Scheduler jobs hitting our own gated routes. Nothing depends on Make any
+more; the account is kept only so the disabled scenarios remain readable.
 
-- **`Post Results to Socials` carries both leagues off one webhook.** Route 1 is filtered on
-  `imgUrl` containing `stockport-badminton`, route 2 on `tameside-badminton`, and the
-  Tameside site posts its own webhook from its own codebase. So **stopping our webhook
-  disables only our route** — Tameside's is untouched, and no edit to the scenario is needed
-  to move Stockport off it. That is what `SOCIAL_POST_DIRECT` does.
-- **`League Tables` route 3 posts Tameside's tables**, fetching
-  `tameside-badminton.co.uk/tables-social` and its images. Moving Stockport's weekly post
-  in-house means removing routes 1 and 2 and the Stockport half of route 3, not disabling
-  the scenario.
-- **The Instagram module is deliberately unfiltered, and it is not a bug.** The two leagues
-  **share one Instagram account** — Meta refused a second one when Tameside's was set up —
-  so every result from either league goes to `stockport.badders.results` on purpose. Adding
-  a league filter there would silently stop Tameside appearing on Instagram at all.
+Three things from that migration are still load-bearing:
 
-The Facebook Pages are in the same Business portfolio, so porting this work to Tameside is
-the same code against a different page id and token; `META_TAMESIDE_PAGE_TOKEN` is already
-in `.env` for it. `metaPublisher.targets()` returns all three.
+- **Neither results scenario needed editing to retire.** It was webhook-triggered and routed
+  on whether `imgUrl` contained `stockport-badminton` or `tameside-badminton`, so each
+  league's route went dormant the moment that league stopped sending. The lesson generalises:
+  **a webhook-driven integration is retired by ceasing to call it**, and reaching into the
+  automation to remove routes is work you can usually decline.
+- **The weekly tables scenario was schedule-triggered**, so it fired every Saturday whatever
+  the two sites did. That one needed an atomic cutover — disable it and enable the scheduler
+  jobs the same day, or Saturday posts twice.
+- **Two of its three routes were dead**, gated on a `tournament` variable hardcoded to
+  `"false"`. Read an automation before reproducing it; a third of that scenario was features
+  nobody used.
+
+**The two leagues used to share one Instagram account**, because Meta refused a second one
+when Tameside's was set up — which is why that scenario's Instagram module carried no league
+filter, and why anyone tidying it up would have silently stopped Tameside appearing at all.
+**That stopped being true on 15 Sep 2026**, when `tameside.badminton` was finally created.
+The constraint it imposed — that two codebases posting to one account can double-post — is
+gone with it. Recorded because the previous version of this section said the opposite in the
+present tense, and a warning that has quietly inverted is worse than no warning.
 
 ### Posting to Meta directly: what was measured, Sep 2026
 
