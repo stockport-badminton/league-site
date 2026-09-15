@@ -1012,6 +1012,13 @@ Key vars (see `.env` for examples):
 - `META_USER_TOKEN` — short-lived, and spent. Only needed to mint replacement Page tokens:
   exchange it for a long-lived user token (`grant_type=fb_exchange_token`, ~60 days) then
   `GET /me/accounts`. Nothing reads it at runtime.
+- `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to
+  `POST /admin/social/weekly-tables`, the Saturday league-tables post. Same gate as the
+  other four; **unset closes the token path**. A superadmin session also works, and
+  `GET /admin/social/weekly-tables` previews the images and both captions and sends
+  nothing. `?dry=1` on the POST asks Meta whether it will accept the images and publishes
+  nothing — worth running before a season's first real post, since a scheduled job nobody
+  watches is exactly where a silent refusal hides.
 - `SOCIAL_POST_DIRECT` — `'true'` makes `Fixture.sendResultZap` post the result to Meta
   itself rather than handing it to the Make.com webhook. **Unset keeps the Make path**, so
   a rollback is one environment variable rather than one deploy — this runs when a captain

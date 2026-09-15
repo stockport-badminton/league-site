@@ -1,0 +1,42 @@
+<%- include('../header.ejs'); -%>
+<%- include('../nav.ejs'); -%>
+
+<div class="starter-template" style="text-align:left; max-width:900px; margin:0 auto;">
+  <h1>Weekly tables post</h1>
+  <p>What the Saturday post will contain. Nothing on this page sends anything.</p>
+
+  <% if (!targetsConfigured) { %>
+    <p><strong>No Meta credentials are configured on this service, so the post would go nowhere.</strong></p>
+  <% } %>
+
+  <h2>Images <small>(<%= images.length %>)</small></h2>
+  <div style="display:flex; flex-wrap:wrap; gap:10px;">
+    <% images.forEach(function (src) { %>
+      <a href="<%= src %>"><img src="<%= src %>" alt="" style="width:180px; height:auto; border:1px solid #ccc;"></a>
+    <% }); %>
+  </div>
+
+  <h2>Facebook</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.facebook %></pre>
+
+  <h2>Instagram</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.instagram %></pre>
+  <p>
+    Mentions come from each club's stored Instagram handle, editable in
+    <a href="/admin/clubs">Admin &rarr; Clubs</a>.
+    <% if (captions.mentioned.length) { %>
+      Currently: <%= captions.mentioned.join(', ') %>.
+    <% } else { %>
+      No club has a handle stored, so the post carries no mentions.
+    <% } %>
+  </p>
+
+  <h2>Tournament posters</h2>
+  <p>Off by default. Add them with <code>?posters=handicap,open</code>. Available:
+     <%= posters.join(', ') %>.</p>
+</div>
+
+<%- include('../footer.ejs') %>
+
+</body>
+</html>

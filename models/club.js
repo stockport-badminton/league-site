@@ -287,3 +287,28 @@ exports.updateFull = async function(clubObj, clubId) {
   const [result] = await (await db.otherConnect()).query(sql, [...Object.values(clubObj), clubId])
   return result
 }
+
+// The clubs whose Instagram handle we hold, for mentioning in a caption.
+//
+// Instagram turns a bare `@handle` in a caption into a real mention, so this is the one
+// place a mention costs nothing — Facebook page mentions need the Pages API and a reviewed
+// app, which is why `sendResultZap` has never carried any.
+//
+// Built from the database rather than written into the post, because the hardcoded list in
+// the Make.com scenario had drifted: it mentioned `@manor_badminton_club` where the club's
+// stored handle is `manorbadmintonclubwilmslow`, and `@collegegreenbadmintonclub` for a club
+// with no Instagram handle at all. A wrong handle either mentions a stranger or nothing, and
+// nobody would ever notice. Adding a handle in /admin/clubs now changes the next post.
+//
+// `socialUrl` in utils/socialLinks.js is the same idea for links, and shares the rule that
+// anything not handle-shaped is dropped rather than guessed at.
+exports.getInstagramHandles = async function() {
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT name, instagram FROM club
+      WHERE instagram IS NOT NULL AND TRIM(instagram) <> ''
+      ORDER BY name`
+  );
+  return rows
+    .map(r => ({ name: r.name, handle: String(r.instagram).trim().replace(/^@+/, '') }))
+    .filter(r => /^[A-Za-z0-9._]+$/.test(r.handle));
+};

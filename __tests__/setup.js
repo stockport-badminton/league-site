@@ -78,14 +78,19 @@ process.env.SITE_ORIGIN = 'https://stockport-badminton.co.uk';
 //    than left alone, so a value in the developer's shell cannot arm them either.
 delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
-delete process.env.AUDIT_CRON_TOKEN;
-delete process.env.REGISTRATION_CRON_TOKEN;
-delete process.env.INVOICE_CRON_TOKEN;
-delete process.env.LATE_SCORECARD_CRON_TOKEN;
-// Meta Graph API. The Page tokens never expire and can publish to the league's Facebook
-// Pages and Instagram account, so a test process must not be able to reach them at all.
+// Cron tokens and Meta credentials, by PATTERN rather than by name.
+//
+// A list here is one variable behind whatever goes into the next deploy — which is the
+// failure this whole file exists to fix, and it recurred twice on 15 Sep 2026 alone:
+// LATE_SCORECARD_CRON_TOKEN was added here and not to e2e/server-env.js, and then
+// SOCIAL_CRON_TOKEN arrived a few hours later. **This file and e2e/server-env.js are
+// counterparts and drift apart by default**, so both match on shape.
+//
+// An unset cron token CLOSES that path rather than opening it. The Meta Page tokens never
+// expire and can publish to the league's Facebook Pages and Instagram account, so a test
+// process must not be able to reach them at all.
 for (const k of Object.keys(process.env)) {
-  if (/^META_/.test(k)) delete process.env[k];
+  if (/_CRON_TOKEN$/.test(k) || /^META_/.test(k)) delete process.env[k];
 }
 delete process.env.SENTRY_DSN;
 // An unset SNS_TOPIC_ARN means verifySns does not enforce a topic, which is what the

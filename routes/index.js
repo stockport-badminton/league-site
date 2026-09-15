@@ -65,6 +65,14 @@ const requireInvoiceCaller = requireCronCaller({
 // Found 15 Sep 2026 while surveying what Make.com is actually doing for us: the scenario
 // named "late scorecards" turned out to contain a single HTTP module pointed at this URL,
 // i.e. a Cloud Scheduler job wearing a costume.
+// The weekly league-tables post (Sep 2026), replacing the Stockport half of the Make.com
+// "League Tables" scenario. Fifth caller of the same gate.
+const requireSocialCaller = requireCronCaller({
+  envVar: 'SOCIAL_CRON_TOKEN',
+  header: 'x-social-token',
+  describe: 'the weekly social post',
+  callerProp: 'socialCaller',
+});
 const requireLateScorecardCaller = requireCronCaller({
   envVar: 'LATE_SCORECARD_CRON_TOKEN',
   header: 'x-late-scorecard-token',
@@ -133,6 +141,13 @@ router.get('/handicap-tournament-social', social_controller.handicapTournamentSo
 router.get('/league-table-image/:division', social_controller.leagueTableImage);
 router.get('/league-table-image/:division/:season', social_controller.leagueTableImage);
 router.get('/tournament-image/:poster', social_controller.tournamentImage);
+
+// The weekly tables post. GET previews and sends nothing; POST publishes and is gated by a
+// scheduler token or a superadmin session — 403, never a redirect.
+const weekly_tables_controller = require('../controllers/weeklyTablesController');
+router.get('/admin/social/weekly-tables', secured, requireClubAccess.requireSuperAdmin,
+  weekly_tables_controller.preview);
+router.post('/admin/social/weekly-tables', requireSocialCaller, weekly_tables_controller.run);
 
 
 // Social video generation
