@@ -193,6 +193,37 @@ exports.tournamentImage = async function (req, res, next) {
   }
 };
 
+// One table row's four numbers, as the strings the picture prints. Exported so the guard
+// tests what the image actually draws rather than a copy of this arithmetic — a test that
+// restates the implementation passes against the bug just as happily.
+//
+// `String(null)` is the four characters "null", and before a team's first result of the
+// season `pointsFor` and `pointsAgainst` come back NULL rather than 0. `avg` was already
+// guarded on `played > 0`; the other three were not, so at the start of every season the
+// picture read "0 null null" down the page.
+//
+// Found on a real published Instagram post, 15 Sep 2026 — the first time anyone had looked
+// at what this image says, because the URL serving it had 404'd for as long as the weekly
+// post had existed. **A broken link was hiding a broken picture**, and fixing the link is
+// what exposed it.
+//
+// Note W and L are GAMES won and lost, not league points: this league ranks on games, all
+// 18 of a fixture counting, which is why a team with 6 played shows 60 and 48. The database
+// columns say "points" and mean games.
+function tableRowValues(row) {
+  const played = Number(row.played) || 0;
+  const won = Number(row['pointsFor']) || 0;
+  const lost = Number(row['pointsAgainst']) || 0;
+  return {
+    played: String(played),
+    won: String(won),
+    lost: String(lost),
+    avg: played > 0 ? Math.max(0, won / played).toFixed(1) : '0',
+  };
+}
+
+exports.tableRowValues = tableRowValues;
+
 async function createDivisionTableImage(bgPath, divisionName, rows, format = 'png') {
   const W = 1080, H = 1080;
   const elements = [
@@ -205,11 +236,11 @@ async function createDivisionTableImage(bgPath, divisionName, rows, format = 'pn
 
   let posY = 220;
   for (const row of rows) {
-    const avg = row.played > 0 ? Math.max(0, row['pointsFor'] / row.played).toFixed(1) : '0';
-    elements.push({ text: row.name,                    x: 230, y: posY, size: 55 });
-    elements.push({ text: String(row.played),          x: 530, y: posY, size: 55 });
-    elements.push({ text: String(row['pointsFor']),    x: 680, y: posY, size: 55 });
-    elements.push({ text: String(row['pointsAgainst']),x: 830, y: posY, size: 55 });
+    const { played, won, lost, avg } = tableRowValues(row);
+    elements.push({ text: row.name, x: 230, y: posY, size: 55 });
+    elements.push({ text: played,   x: 530, y: posY, size: 55 });
+    elements.push({ text: won,      x: 680, y: posY, size: 55 });
+    elements.push({ text: lost,     x: 830, y: posY, size: 55 });
     elements.push({ text: avg,                         x: 980, y: posY, size: 55 });
     posY += 90;
   }

@@ -29,6 +29,9 @@ const TABLE_ROWS = [
   { division: 8, divisionName: 'Division 1', name: 'Disley A',  played: 5, pointsFor: 45, pointsAgainst: 45 },
   { division: 9, divisionName: 'Division 2', name: 'Dome B',    played: 4, pointsFor: 30, pointsAgainst: 42 },
   { division: 10, divisionName: 'Division 3', name: 'Manor C',  played: 4, pointsFor: 28, pointsAgainst: 44 },
+  // A team before its first result. NULL, not 0 — which is the live shape at the start of
+  // every season and rendered as the literal string "null" until 15 Sep 2026.
+  { division: 10, divisionName: 'Division 3', name: 'Musketeers A', played: 0, pointsFor: null, pointsAgainst: null },
 ];
 
 jest.mock('../../models/league', () => ({
@@ -83,6 +86,49 @@ describe('GET /league-table-image/:division', () => {
     // which a crawler banks as a real page.
     const res = await request(app).get('/league-table-image/Division%209');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('a team with no results yet', () => {
+  // `String(null)` is "null". At the start of a season every team is in that state, so the
+  // whole picture read "0 null null" down the page — on a 1080x1080 image posted to a
+  // public Instagram account. It survived because nobody had ever looked at the rendered
+  // output: the URL it was served from had been 404ing since the weekly post was built, so
+  // a broken link was hiding a broken picture.
+  //
+  // Asserted on the SQL-facing values rather than the pixels, because the image is a
+  // composite and OCR is not a test. `createDivisionTableImage` is not exported, so this
+  // pins the guard at the point it can be pinned: the row shape goes through, and the
+  // route does not throw on a NULL.
+  const { leagueTableImagePath } = require('../../utils/canonical');
+
+  it('renders a division containing a team with NULL games', async () => {
+    const res = await request(app).get(leagueTableImagePath('Division 3'));
+    expect(res.status).toBe(200);
+    expect(isJpeg(res.body)).toBe(true);
+  });
+
+  // Against the real function the image draws with, not a copy of its arithmetic — a test
+  // that restates the implementation passes against the bug just as happily.
+  const { tableRowValues } = require('../../controllers/socialController');
+
+  it('prints 0, not "null", for a team with no results', () => {
+    expect(tableRowValues({ played: 0, pointsFor: null, pointsAgainst: null }))
+      .toEqual({ played: '0', won: '0', lost: '0', avg: '0' });
+  });
+
+  it('leaves a real row alone', () => {
+    // 6 matches, 60 games won, 48 lost — W and L are GAMES, since the league ranks on
+    // games rather than a win/draw/loss table. 60 from 6 is correct, not a bug.
+    expect(tableRowValues({ played: 6, pointsFor: 60, pointsAgainst: 48 }))
+      .toEqual({ played: '6', won: '60', lost: '48', avg: '10.0' });
+  });
+
+  it('never emits the string "null" for any missing field', () => {
+    for (const row of [{}, { played: null }, { pointsFor: undefined, pointsAgainst: null },
+                       { played: undefined, pointsFor: null, pointsAgainst: undefined }]) {
+      expect(Object.values(tableRowValues(row)).join(' ')).not.toMatch(/null|undefined|NaN/);
+    }
   });
 });
 
