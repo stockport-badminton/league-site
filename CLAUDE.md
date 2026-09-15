@@ -665,24 +665,29 @@ long-lived user token via `GET /me/accounts`.
 - **A Page access token does not expire.** Confirmed with `debug_token`: `type: PAGE`,
   `expires: never`. It dies only if the granting user changes their password or loses their
   role on the Page. The user token it came from lasts ~60 days and is then disposable.
-- **Instagram and Facebook answer the Development-mode question differently, and that is
-  the whole shape of this.** Both were published from the *same* dev-mode app within an
-  hour of each other and fetched unauthenticated:
+- **Instagram publishing works from an app in Development mode, and the post is publicly
+  visible.** Measured: published from a dev-mode app, then fetched **unauthenticated** at
+  its permalink — HTTP 200, full `og:` tags, no login wall. Meta's "data created in
+  Development mode is only visible to role users" rule did not apply. An Instagram post
+  belongs to the *account*, not the app. That contradicts the plain reading of the docs, so
+  re-measure rather than trusting this line if it ever matters.
+- **Whether the same is true of Facebook Pages is UNKNOWN, and was briefly recorded here as
+  a finding when it was not one.** The reasoning failed in a way worth keeping:
 
-  | | Dev-mode post, fetched logged out | So |
-  |---|---|---|
-  | Instagram | HTTP 200, full `og:` tags, no login wall | **No App Review needed** |
-  | Facebook Page | "This content isn't available at the moment", no `og:` tags | **App Review + Live mode required** |
+  A Page post published from the dev-mode app did not render when fetched logged out, while
+  a post Make had published to the same page three days earlier did. That looked like a
+  clean controlled comparison, and the conclusion — "Pages enforce the dev-mode
+  restriction, Instagram does not" — was written up. **The post had been deleted.** Asking
+  the API settled it: the id returns "Object does not exist" while a later post returns
+  normally for the same token.
 
-  Meta's "data created in Development mode is only visible to role users" rule holds for
-  Pages and not for Instagram: an Instagram post belongs to the *account*, a Page post is
-  attributed to the *app*.
-
-  **The Facebook half needed a control to establish, and would have been read wrong without
-  one.** Facebook blocks logged-out post views aggressively regardless, so "not available"
-  on its own proves nothing. Fetching a post Make had published to the same page three days
-  earlier, by the same method, rendered fully — that comparison is what makes the result a
-  finding rather than a guess. Keep the control if this is ever re-run.
+  **A negative observation needs its other causes ruled out; a positive one does not.** The
+  Instagram result stands precisely because the post *rendered* — nothing but a live public
+  post produces `og:` tags. The Facebook result was "nothing came back", which deletion,
+  a login wall, caching and a genuine restriction all produce identically. The control
+  ruled out one of those and was mistaken for ruling out all of them.
+- **Facebook Page publishing works, with the app Live.** A multi-photo album posted with
+  the app in Live mode rendered publicly on an unauthenticated fetch, `og:image` included.
 - **Creating a media container is not publishing, which makes it a free test.**
   `POST /{ig-id}/media` asks Meta to fetch and validate the image and returns a
   `creation_id`; nothing is visible until `POST /{ig-id}/media_publish`. Containers expire
