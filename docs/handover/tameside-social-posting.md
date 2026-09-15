@@ -25,8 +25,15 @@ looks like a bug. It is not. Adding a filter there stops Tameside appearing on I
 all.
 
 **What it means for this port:** two codebases can post to the same Instagram account, so
-they can double-post. Move Tameside's Instagram posting and retire its Make route **in the
-same change**, never in two.
+they can double-post. For *results* that resolves itself — the scenario is webhook-triggered,
+so when Tameside stops sending its webhook the Instagram module stops firing for Tameside
+too, with no edit needed. For the *weekly tables* it is a real constraint, and step 6 below
+is the atomic cutover that handles it.
+
+One thing that is NOT currently shared: **Tameside's league tables have never gone to
+Instagram at all.** Route 3 posts them to Facebook only — the Instagram carousel alongside
+carries Stockport's image URLs, not Tameside's. So porting the weekly post gives Tameside an
+Instagram tables post it has never had, rather than reproducing one.
 
 ### 2. Instagram accepts JPEG and nothing else
 
@@ -109,30 +116,37 @@ crying wolf and being useless. The routes strip it before use, so old links keep
 
 ## The order to do it in
 
-Each step is safe to stop after. **Steps 4 and 6 can double-post**, which is why each is
-paired with its Make change in the same step.
+**The agreed plan is to leave both Make scenarios alone until Tameside is across too**, so
+that retiring them is a disable rather than surgery. That is the better call and it changes
+the ordering below — an earlier draft of this document paired each code change with a Make
+edit, which would have meant picking routes out of a live scenario twice.
+
+Each step is safe to stop after.
 
 1. **Serve table images on demand, as JPEG.** A route per division returning bytes, no file
-   writing. Worth doing alone: it makes the *existing* Make scenario's Instagram half work
-   for the first time, with none of the rest of this.
+   writing. Everything downstream needs it, and it is worth doing on its own merits: the
+   current PNGs on a container's disk are unfetchable by anything outside that instance.
+   (On the Stockport side this also unblocked its Make Instagram carousel — but only because
+   that scenario passes Stockport's URLs. Tameside's tables go to Facebook as *bytes*, so
+   nothing in Make changes for you here.)
 2. **Copy `metaPublisher` and wire the credentials.** Page id and token into the **service
    config**, not just `.env`. Verify by comparing hashes, not by eye — a malformed
    `gcloud --update-env-vars` delimiter can set one variable of seven and report success.
    That happened here.
 3. **Dry-run against Meta.** `validateImages` on the real URLs. Publishes nothing. This is
    where a wrong URL or a stray PNG shows up harmlessly.
-4. **Results posts, and stop sending the webhook — together.** Tameside's site posts its own
-   webhook to the shared Make scenario, routed by `imgUrl` containing `tameside-badminton`.
-   Stop sending it and that route stops firing; **no edit to the scenario is needed**. Do not
-   do one without the other: the Instagram module is unfiltered, so leaving the webhook on
-   means every Tameside result posts twice to the shared account.
-5. **Weekly tables post, paused.** Build it, create the Cloud Scheduler job, and
-   **pause it**. Make's route 3 still posts Tameside's tables.
-6. **Remove Tameside from Make's route 3, then unpause.** Route 3 fetches
-   `tameside-badminton.co.uk/tables-social`, its two table images, and posts to page
-   `413441425183665`. Remove those modules, then unpause — same day, or Saturday posts twice.
-
----
+4. **Results: switch to direct, and stop sending the webhook.** These are the same change —
+   the flag that turns one on turns the other off. **No Make edit is needed**, now or later:
+   that scenario is webhook-triggered and routes on `imgUrl` containing `tameside-badminton`,
+   so when Tameside stops sending, its route simply stops firing. Stockport's already has.
+   Once both leagues are off it, the whole scenario is a no-op that can be disabled.
+5. **Weekly tables: build it and create the scheduler job PAUSED.** Make's route 3 is still
+   posting both leagues' tables, so an enabled job means two posts on a Saturday. Stockport's
+   `sbl-weekly-tables-post` has been sitting paused since 15 Sep for exactly this reason.
+6. **The one cutover that has to be atomic.** League Tables is schedule-triggered, not
+   webhook — it fires every Saturday whatever the two sites do. So when both leagues are
+   ready: **disable the Make scenario and unpause both scheduler jobs on the same day.**
+   Either order within that day is fine; spanning a Saturday is not.
 
 ## Things that will not be in any brief
 
