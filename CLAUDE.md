@@ -665,13 +665,24 @@ long-lived user token via `GET /me/accounts`.
 - **A Page access token does not expire.** Confirmed with `debug_token`: `type: PAGE`,
   `expires: never`. It dies only if the granting user changes their password or loses their
   role on the Page. The user token it came from lasts ~60 days and is then disposable.
-- **Instagram publishing needs no App Review, and works from an app in Development mode.**
-  Measured: a post published from a dev-mode app was fetched **unauthenticated** at its
-  permalink — HTTP 200, full `og:` tags, no login wall. Meta's "data created in Development
-  mode is only visible to role users" rule covers app-generated data; an Instagram post
-  belongs to the *account*, not the app. This is the single fact that makes leaving Make
-  viable, and it contradicts what the documentation appears to say, so re-measure rather
-  than trusting this line if it ever matters again.
+- **Instagram and Facebook answer the Development-mode question differently, and that is
+  the whole shape of this.** Both were published from the *same* dev-mode app within an
+  hour of each other and fetched unauthenticated:
+
+  | | Dev-mode post, fetched logged out | So |
+  |---|---|---|
+  | Instagram | HTTP 200, full `og:` tags, no login wall | **No App Review needed** |
+  | Facebook Page | "This content isn't available at the moment", no `og:` tags | **App Review + Live mode required** |
+
+  Meta's "data created in Development mode is only visible to role users" rule holds for
+  Pages and not for Instagram: an Instagram post belongs to the *account*, a Page post is
+  attributed to the *app*.
+
+  **The Facebook half needed a control to establish, and would have been read wrong without
+  one.** Facebook blocks logged-out post views aggressively regardless, so "not available"
+  on its own proves nothing. Fetching a post Make had published to the same page three days
+  earlier, by the same method, rendered fully — that comparison is what makes the result a
+  finding rather than a guess. Keep the control if this is ever re-run.
 - **Creating a media container is not publishing, which makes it a free test.**
   `POST /{ig-id}/media` asks Meta to fetch and validate the image and returns a
   `creation_id`; nothing is visible until `POST /{ig-id}/media_publish`. Containers expire
@@ -686,8 +697,19 @@ long-lived user token via `GET /me/accounts`.
 - **`pages_manage_posts` and `pages_read_engagement` are gated behind a use case**, not just
   app type: without "Manage everything on your Page" added in the App Dashboard, the login
   dialog answers `Invalid Scopes` and the permission cannot be requested at all. Instagram
-  is a separate use case again, even though Instagram publishing runs on a Page token. The
-  Facebook half is therefore still unproven.
+  is a separate use case again, even though Instagram publishing runs on a Page token.
+  Once added, both came through and a **multi-photo album post worked first time**:
+  `POST /{page-id}/photos` with `published=false` for each image, then one
+  `POST /{page-id}/feed` carrying `attached_media[n]={"media_fbid":...}`.
+- **`published=false` is Facebook's free test, the same way a container is Instagram's.**
+  The photo uploads and nothing appears on the page until a feed post attaches it. Use it
+  to check Meta will accept a URL before anything is visible. Both platforms refused the
+  old PNGs and accepted the new JPEGs, in different words:
+
+  ```
+  Instagram : "The media could not be fetched from this URI"
+  Facebook  : "Make sure that your Page post includes an image that can be used in an ad"
+  ```
 - **A privacy policy URL is required to switch an app to Live mode** and is unset on ours.
   `https://stockport-badminton.co.uk/privacy-policy` exists and answers 200.
 - `GET /{ig-id}/content_publishing_limit` reports quota: 100 posts per rolling 24 hours, a
