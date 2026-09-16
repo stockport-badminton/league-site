@@ -172,3 +172,38 @@ describe('the dry run', () => {
     expect(res.body.refused[0].reason).toMatch(/JPEG only/);
   });
 });
+
+// The preview page is behind `secured` + superadmin, so supertest cannot reach it. It had
+// the same defect the fixtures preview was built with and fixed: absolute `<img src>`
+// values, which make the page show **production's** rendering of each table whatever
+// server it is running on. That hid here rather than failing, because these routes ARE
+// deployed — so the production picture loaded happily over the top of whatever the local
+// code would have drawn, and a renderer change looked like a no-op.
+describe('the preview page', () => {
+  const weekly = require('../../controllers/weeklyTablesController');
+
+  const renderPreview = async () => {
+    let captured;
+    const res = { render: (view, locals) => { captured = { view, locals }; } };
+    await weekly.preview({ query: {}, get: () => 'stockport-badminton.co.uk', headers: {}, protocol: 'https' }, res, e => { throw e; });
+    return new Promise((resolve, reject) => {
+      app.render(captured.view, captured.locals, (err, html) => err ? reject(err) : resolve(html));
+    });
+  };
+
+  it('displays the tables from this server, not from the production domain', async () => {
+    const html = await renderPreview();
+    const srcs = [...html.matchAll(/<img src="([^"]*league-table-image[^"]*)"/g)].map(m => m[1]);
+
+    expect(srcs).toHaveLength(4);
+    for (const src of srcs) {
+      expect(src.startsWith('/')).toBe(true);
+      expect(src).not.toMatch(/^https?:\/\//);
+    }
+  });
+
+  it('shows the absolute URL Meta will fetch, as text', async () => {
+    const html = await renderPreview();
+    expect(html).toContain('posts as https://stockport-badminton.co.uk/league-table-image/Premier.jpg');
+  });
+});

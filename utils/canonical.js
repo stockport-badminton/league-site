@@ -146,6 +146,14 @@ function tournamentImagePath(poster) {
   return '/tournament-image/' + encodeURIComponent(String(poster ?? '')) + '.jpg';
 }
 
+// One division's card for the weekly fixtures post. Same shape and the same reasons as
+// leagueTableImagePath above: the division's NAME so the URL says what it shows, every
+// name bar Premier carries a space, and the `.jpg` is load-bearing for metaPublisher's
+// format guard rather than decoration.
+function fixturesImagePath(divisionName) {
+  return '/fixtures-image/' + encodeURIComponent(String(divisionName ?? '')) + '.jpg';
+}
+
 // A club's own public page. Same reasoning as eventPath: it is built in one place so
 // the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
 // markup cannot disagree.
@@ -169,6 +177,6 @@ function localYmd(date) {
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
   eventPath, clubPath, clubSlug, localYmd, resultImagePath,
-  leagueTableImagePath, tournamentImagePath,
+  leagueTableImagePath, tournamentImagePath, fixturesImagePath,
   DEFAULT_ORIGIN,
 };

@@ -128,6 +128,7 @@ app.locals.clubPath = require('./utils/canonical').clubPath;
 app.locals.resultImagePath = require('./utils/canonical').resultImagePath;
 app.locals.leagueTableImagePath = require('./utils/canonical').leagueTableImagePath;
 app.locals.tournamentImagePath = require('./utils/canonical').tournamentImagePath;
+app.locals.fixturesImagePath = require('./utils/canonical').fixturesImagePath;
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;

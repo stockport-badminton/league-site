@@ -10,9 +10,17 @@
   <% } %>
 
   <h2>Images <small>(<%= images.length %>)</small></h2>
-  <div style="display:flex; flex-wrap:wrap; gap:10px;">
-    <% images.forEach(function (src) { %>
-      <a href="<%= src %>"><img src="<%= src %>" alt="" style="width:180px; height:auto; border:1px solid #ccc;"></a>
+  <%# The src is same-origin so the preview shows THIS server's rendering. The absolute
+      URL below it is what actually gets posted, and is the one Meta will fetch. %>
+  <div style="display:flex; flex-wrap:wrap; gap:16px;">
+    <% imagePaths.forEach(function (path, i) { %>
+      <figure style="margin:0; max-width:240px;">
+        <a href="<%= path %>"><img src="<%= path %>" alt=""
+           style="width:240px; height:auto; border:1px solid #ccc;"></a>
+        <figcaption style="font-size:11px; word-break:break-all; color:#666; margin-top:4px;">
+          posts as <%= images[i] %>
+        </figcaption>
+      </figure>
     <% }); %>
   </div>
 

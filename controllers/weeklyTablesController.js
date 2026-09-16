@@ -63,6 +63,25 @@ function imageUrls({ posters = [] } = {}) {
   return [...tables, ...extra];
 }
 
+/**
+ * The same images as same-origin paths, for the preview page to display.
+ *
+ * `imageUrls` is absolute because Meta fetches those from its own servers. An absolute URL
+ * in the preview's `<img src>` means the page shows **production's** rendering whatever
+ * server you are looking at — so a change to the renderer appears to do nothing locally.
+ * Found 16 Sep 2026 while building the fixtures post, whose route was not deployed yet and
+ * therefore showed no images at all; this page had the same defect and hid it, because its
+ * routes ARE deployed and the production picture loaded happily over the top of whatever
+ * the local code would have drawn.
+ */
+function imagePaths({ posters = [] } = {}) {
+  const tables = DIVISIONS.map(d => leagueTableImagePath(d));
+  const extra = posters
+    .filter(p => Object.prototype.hasOwnProperty.call(TOURNAMENT_POSTERS, p))
+    .map(p => tournamentImagePath(p));
+  return [...tables, ...extra];
+}
+
 function parsePosters(value) {
   return String(value || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 }
@@ -139,6 +158,7 @@ exports.preview = async function (req, res, next) {
       pageDescription: 'What the weekly league tables post will contain',
       canonical: canonicalFor(req),
       images: imageUrls({ posters }),
+      imagePaths: imagePaths({ posters }),
       captions: text,
       posters: Object.keys(TOURNAMENT_POSTERS),
       selectedPosters: posters,
@@ -151,4 +171,5 @@ exports.preview = async function (req, res, next) {
 
 exports.captions = captions;
 exports.imageUrls = imageUrls;
+exports.imagePaths = imagePaths;
 exports.DIVISIONS = DIVISIONS;

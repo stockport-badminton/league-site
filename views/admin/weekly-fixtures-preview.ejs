@@ -1,0 +1,56 @@
+<%- include('../header.ejs'); -%>
+<%- include('../nav.ejs'); -%>
+
+<div class="starter-template" style="text-align:left; max-width:900px; margin:0 auto;">
+  <h1>Weekly fixtures post</h1>
+  <p>What the Sunday evening post will contain. Nothing on this page sends anything.</p>
+
+  <% if (!targetsConfigured) { %>
+    <p><strong>No Meta credentials are configured on this service, so the post would go nowhere.</strong></p>
+  <% } %>
+
+  <% if (!fixtureCount) { %>
+    <p><strong>No fixtures in the coming seven days, so nothing would be posted.</strong>
+       That is the intended behaviour out of season and over Christmas &mdash; the job runs,
+       reports <code>skipped</code> and publishes nothing.</p>
+  <% } else { %>
+    <h2>Images <small>(<%= images.length %> of 4 divisions &mdash; <%= fixtureCount %> fixtures)</small></h2>
+    <p>Only divisions with a fixture this week get a card:
+       <%= divisions.join(', ') %>.</p>
+    <%# The src is same-origin so the preview shows THIS server's rendering. The absolute
+        URL below it is what actually gets posted, and is the one Meta will fetch. %>
+    <div style="display:flex; flex-wrap:wrap; gap:16px;">
+      <% imagePaths.forEach(function (path, i) { %>
+        <figure style="margin:0; max-width:240px;">
+          <a href="<%= path %>"><img src="<%= path %>" alt="<%= divisions[i] %> fixtures card"
+             style="width:240px; height:auto; border:1px solid #ccc;"></a>
+          <figcaption style="font-size:11px; word-break:break-all; color:#666; margin-top:4px;">
+            posts as <%= images[i] %>
+          </figcaption>
+        </figure>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <h2>Facebook</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.facebook %></pre>
+
+  <h2>Instagram</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.instagram %></pre>
+  <p>
+    Mentions come from each club's stored Instagram handle, editable in
+    <a href="/admin/clubs">Admin &rarr; Clubs</a>. Unlike the tables post, only the clubs
+    actually playing this week are named &mdash; a mention is a notification, and one about
+    a week a club is not playing in is how an account gets muted.
+    <% if (captions.mentioned.length) { %>
+      This week: <%= captions.mentioned.join(', ') %>.
+    <% } else { %>
+      None of the clubs playing this week has a handle stored, so the post carries no mentions.
+    <% } %>
+  </p>
+</div>
+
+<%- include('../footer.ejs') %>
+
+</body>
+</html>

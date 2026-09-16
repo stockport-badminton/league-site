@@ -1176,3 +1176,65 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
   return { advanced: true, targetId: target.id, slot: match.nextSlot }
 }
 
+
+// The coming week's fixtures, for the Sunday-evening social post.
+//
+// Deliberately NOT `getupComing`. That query starts at NOW() - 1 day so the homepage still
+// shows a match being played tonight, which is right for a page somebody is reading and
+// wrong for a post announcing what is still to come: a preview whose first line is a match
+// played the day before it went out reads as stale, and there is no way for a reader to
+// tell it from a fixture that has not happened.
+//
+// The two team joins are INNER on purpose, and that is a decision rather than a copy.
+// `--check ghost-teams` keeps finding fixtures pointing at teams that no longer exist, and
+// a card cannot draw one — "v Mellor B" with nothing on the left is worse than an absent
+// row. So they are dropped here, silently, because the integrity check is where that
+// belongs and it already reports them. The division join is LEFT for the opposite reason:
+// it is only used to group, and the caller decides what to do with a fixture that has no
+// division rather than having it vanish inside the SQL.
+//
+// The window is anchored to `date_trunc('day', NOW())`, not to `NOW()`, and that is not
+// tidiness. **Fixtures are stored at midnight** — every row in the table is `00:00:00`,
+// the date is the playing day and the start time lives on the team. So a plain
+// `date >= NOW()` drops TODAY'S fixtures, because today's midnight is already in the past,
+// and whether it does so depends on the time of day the job happens to run. At the
+// Sunday-18:00 schedule that is invisible and harmless; move the job to a morning — which
+// is a scheduler edit, with no code change and no test to fail — and the post silently
+// omits the matches being played that evening. Truncating to the day makes the window
+// exactly seven calendar days from today whenever it is asked.
+//
+// `dayLabel` is formatted in SQL rather than in JavaScript. `fixture.date` is `timestamp
+// without time zone`, so `to_char` prints exactly what is stored and no timezone is
+// involved at any point. Formatting it from a JS `Date` would work today and depends on
+// the container's TZ to do so, which is the shape of the BST off-by-one-day bug this
+// codebase already has a helper (`localYmd`) and a comment apologising for.
+exports.getUpcomingWeek = async function() {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+    fixture.id,
+    fixture.date,
+    to_char(fixture.date, 'Dy FMDD Mon') AS "dayLabel",
+    homeTeam.name AS "homeTeam",
+    awayTeam.name AS "awayTeam",
+    homeClub.name AS "homeClub",
+    awayClub.name AS "awayClub",
+    division.name AS "divisionName"
+FROM
+    fixture
+        JOIN
+    team homeTeam ON fixture."homeTeam" = homeTeam.id
+        JOIN
+    team awayTeam ON fixture."awayTeam" = awayTeam.id
+        LEFT JOIN
+    club homeClub ON homeTeam.club = homeClub.id
+        LEFT JOIN
+    club awayClub ON awayTeam.club = awayClub.id
+        LEFT JOIN
+    division ON homeTeam.division = division.id
+WHERE
+    fixture."homeScore" IS NULL
+        AND fixture.status NOT IN ('rearranged','rearranging')
+        AND fixture.date >= date_trunc('day', NOW())
+        AND fixture.date < date_trunc('day', NOW()) + INTERVAL '7 days'
+ORDER BY fixture.date, homeTeam.name`)
+  return result
+}

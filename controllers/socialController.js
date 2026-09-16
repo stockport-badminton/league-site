@@ -20,6 +20,21 @@ function svgOverlay(width, height, elements) {
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${els}</svg>`);
 }
 
+// What the league is called, and where to find it. On the card because the post is seen by
+// people who have never heard of it: an Instagram carousel headed "Premier" and nothing
+// else says neither which sport nor which town. The result card carries the URL already;
+// the league's own name was nowhere on any of them.
+const LEAGUE_NAME = 'Stockport & District Badminton League';
+const SITE_HOST = 'stockport-badminton.co.uk';
+
+// One `<text>`, for the cards that build their SVG themselves rather than handing
+// `svgOverlay` a flat list. Same escaping and the same defaults; `spacing` is the extra
+// letter-spacing that makes an all-caps line read as a label rather than a shout.
+function text(value, x, y, size, { weight = 'normal', fill = '#000', anchor = 'middle', spacing = 0, opacity = 1 } = {}) {
+  return `<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}"` +
+         ` fill="${fill}" text-anchor="${anchor}" letter-spacing="${spacing}" opacity="${opacity}">${escapeXml(value)}</text>`;
+}
+
 // `/league-table-image/Division 1.jpg` and `/league-table-image/Division 1` are the same
 // picture. The extension exists so the URL says what it serves — see the note beside
 // leagueTableImagePath in utils/canonical.js — and is stripped here rather than being part
@@ -214,6 +229,237 @@ exports.tournamentImage = async function (req, res, next) {
 
     const buf = await drawTournamentBuffer(poster.title, poster.lines, 'jpeg');
     res.type('image/jpeg').set('Cache-Control', SOCIAL_IMAGE_CACHE_CONTROL).send(buf);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// A day is right for a league table, which only changes when a result is published. It is
+// wrong here: this card's content is a function of NOW(), so a copy cached on Sunday
+// evening and served on Monday shows last week's window with nothing to say it is stale.
+// An hour bounds that and still spares us regenerating the composite for each of Meta's
+// repeat fetches, which is all the caching was ever for.
+const FIXTURES_IMAGE_CACHE_CONTROL = 'public, max-age=3600';
+
+// The lines the fixtures card prints, in order, grouped by the night each match is played.
+//
+// Grouped by night rather than listed flat because that is how a player reads a fixture
+// list — "am I out on Tuesday" before "who are Tatton A playing". Exported so the test can
+// assert on what the picture actually says rather than on a restatement of this arithmetic:
+// a test that re-implements the layout passes against the bug just as happily, which is the
+// lesson `tableRowValues` below exists to encode.
+//
+// Relies on the rows arriving in date order, which `getUpcomingWeek` guarantees with an
+// ORDER BY. Without one the planner's order is arbitrary and a night would repeat.
+function fixtureCardLines(fixtures) {
+  const lines = [];
+  let night = null;
+  for (const f of fixtures) {
+    const label = String(f.dayLabel || '').trim();
+    if (label !== night) {
+      night = label;
+      lines.push({ kind: 'date', text: label });
+    }
+    lines.push({
+      kind: 'fixture',
+      home: String(f.homeTeam || ''),
+      away: String(f.awayTeam || ''),
+    });
+  }
+  return lines;
+}
+
+exports.fixtureCardLines = fixtureCardLines;
+
+// The date range a card covers, from the SQL-formatted `dayLabel` ("Wed 16 Sep").
+//
+// Parsed out of that string rather than recomputed from `date`, for the same reason the
+// label is formatted in SQL: no JS Date, no timezone, no chance of the heading disagreeing
+// with the rows underneath it. Exported so the test reads what the card prints.
+//
+// It exists because **"Fixtures this week" means nothing to someone who finds the post
+// later**, or who does not follow the league and has no idea which week is being referred
+// to. The card has to stand on its own.
+function fixtureDateRange(fixtures) {
+  const parts = fixtures
+    .map(f => String(f.dayLabel || '').trim().split(/\s+/).slice(1).join(' '))
+    .filter(Boolean);
+  if (!parts.length) return '';
+
+  const first = parts[0], last = parts[parts.length - 1];
+  if (first === last) return first;
+
+  // "16 – 22 Sep" within a month, "28 Sep – 4 Oct" across one.
+  const [, firstMonth] = first.split(' ');
+  const [lastDay, lastMonth] = last.split(' ');
+  return firstMonth === lastMonth
+    ? `${first.split(' ')[0]} \u2013 ${lastDay} ${lastMonth}`
+    : `${first} \u2013 ${last}`;
+}
+
+exports.fixtureDateRange = fixtureDateRange;
+exports.fixturesBackground = (d) => fixturesBackground(d);
+
+// Each division has its own artwork, and it is the artwork the RESULT card already uses —
+// so a fixtures post and a result post for the same division look like the same league.
+// Falls back to the plain background rather than throwing: a division whose name has no
+// matching file (a rename, a new division, a friendly) should produce a duller card, not a
+// 500 on a route Meta is fetching.
+// Exported so the lookup can be tested directly. Comparing two RENDERED cards does not
+// work: the division name is printed on the picture, so Premier and Division 1 differ in
+// bytes whether or not their backgrounds do — a test that compared them passed happily
+// against a version that used one background for everything.
+async function fixturesBackground(divisionName) {
+  const named = `static/beta/images/bg/social-${String(divisionName).replace(/\s+/g, '-')}.png`;
+  try {
+    await fs.access(named);
+    return named;
+  } catch {
+    return 'static/beta/images/bg/social.png';
+  }
+}
+
+// The accent colour for a division's card, taken from that division's own artwork.
+//
+// Derived rather than hardcoded so it follows the artwork: swap the background files
+// (HARD-37) and the accent moves with them instead of becoming four stale hex values in a
+// controller. Sampled from the TOP strip, because these images fade to near-white across
+// the bottom third and `stats().dominant` over the whole picture returns that fade — which
+// is how an earlier draft of this produced white text on a near-white bar.
+//
+// The sample is then forced to a fixed lightness and a minimum saturation. The hue carries
+// the division's identity; the lightness is what makes it legible on the dark panel, and it
+// must not be left to whatever the artwork happens to average out at.
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? ((g - b) / d + (g < b ? 6 : 0))
+          : max === g ? (b - r) / d + 2
+          : (r - g) / d + 4;
+  return { h: h / 6, s, l };
+}
+
+function hslToRgb(h, s, l) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hue = t => {
+    t = (t + 1) % 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  return { r: Math.round(hue(h + 1/3) * 255), g: Math.round(hue(h) * 255), b: Math.round(hue(h - 1/3) * 255) };
+}
+
+// Bright enough to read as a highlight on #0d0d0f at 80%, saturated enough to still say
+// which division it is.
+const ACCENT_LIGHTNESS = 0.72;
+const ACCENT_MIN_SATURATION = 0.55;
+
+async function accentFor(bgPath) {
+  const strip = await sharp(bgPath)
+    .resize(1080, 1350, { fit: 'cover' })
+    .extract({ left: 0, top: 0, width: 1080, height: 330 })
+    .toBuffer();
+  const { dominant } = await sharp(strip).stats();
+  const { h, s } = rgbToHsl(dominant.r, dominant.g, dominant.b);
+  const { r, g, b } = hslToRgb(h, Math.max(s, ACCENT_MIN_SATURATION), ACCENT_LIGHTNESS);
+  return `rgb(${r},${g},${b})`;
+}
+
+exports.accentFor = (p) => accentFor(p);
+
+async function createFixturesImage(bgPath, divisionName, fixtures, format = 'png', accent = '#cccccc') {
+  // 1080x1350, not the tables' square. It is what the result card uses, so the two posts
+  // match; Instagram gives a 4:5 image more of the feed than a 1:1; and a list of fixtures
+  // wants the vertical room.
+  const W = 1080, H = 1350;
+  const lines = fixtureCardLines(fixtures);
+
+  // A DARK panel, at 0.80. A white one was tried first and does not work: to be legible it
+  // has to be near-opaque, and at that point the division artwork underneath it may as well
+  // not be there — which defeats the only reason for using the artwork. Dark lets the
+  // colour read through while white text sits on it comfortably, so the picture keeps its
+  // division identity and the fixtures stay readable.
+  const PANEL_FILL = '#0d0d0f';
+  const PANEL_OPACITY = 0.80;
+  const PANEL_BOTTOM = 1270;
+
+  // A long list buys room by moving the top of the panel up over the artwork, rather than
+  // shrinking the type further. The worst week this league has ever had is about six
+  // fixtures in one division, which with its night headings is eleven lines.
+  const panelTop = lines.length > 8 ? 200 : 270;
+  const listTop = panelTop + 380;
+  const listBottom = PANEL_BOTTOM - 95;
+
+  const step = lines.length ? Math.min(78, Math.floor((listBottom - listTop) / lines.length)) : 0;
+  const rowSize = Math.max(22, Math.min(46, Math.round(step * 0.58)));
+  const dateSize = Math.max(20, Math.round(rowSize * 0.80));
+
+  // Home right-aligned, away left-aligned, the "v" pinned to the centre — so the column of
+  // v's lines up and the eye runs down it. The widest pairing this league can produce is
+  // "Bramhall Village B v Altrincham Central"; at 46px each half clears the panel edge.
+  let y = listTop + Math.max(0, Math.round((listBottom - listTop - lines.length * step) / 2));
+  let rows = '';
+  for (const line of lines) {
+    if (line.kind === 'date') {
+      rows += text(line.text, 540, y, dateSize, { weight: 'bold', fill: accent, spacing: 2.2 });
+    } else {
+      rows += text(line.home, 515, y, rowSize, { anchor: 'end', fill: '#ffffff' });
+      rows += text('v', 540, y, rowSize, { fill: '#ffffff', opacity: 0.35 });
+      rows += text(line.away, 565, y, rowSize, { anchor: 'start', fill: '#ffffff' });
+    }
+    y += step;
+  }
+
+  const range = fixtureDateRange(fixtures);
+  const body = `
+    <rect x="56" y="${panelTop}" width="968" height="${PANEL_BOTTOM - panelTop}" rx="34"
+          fill="${PANEL_FILL}" opacity="${PANEL_OPACITY}"/>
+    ${text(LEAGUE_NAME.toUpperCase(), 540, panelTop + 74, 25, { fill: '#ffffff', spacing: 2.5, weight: 'bold', opacity: 0.7 })}
+    ${text(divisionName, 540, panelTop + 160, 68, { weight: 'bold', fill: '#ffffff' })}
+    ${text('Fixtures this week', 540, panelTop + 214, 36, { fill: accent })}
+    ${range ? text(range, 540, panelTop + 260, 29, { fill: '#ffffff', opacity: 0.55 }) : ''}
+    <line x1="340" y1="${panelTop + 302}" x2="740" y2="${panelTop + 302}" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+    ${rows}
+    ${text(SITE_HOST, 540, PANEL_BOTTOM - 42, 29, { fill: '#ffffff', weight: 'bold', opacity: 0.6 })}`;
+
+  const pipeline = sharp(bgPath)
+    .resize(W, H, { fit: 'cover' })
+    .composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${body}</svg>`) }]);
+
+  return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
+}
+// GET /fixtures-image/:division — one division's coming week, as a JPEG, built now.
+//
+// Public and unauthenticated, like the league table and tournament images and for the same
+// reason: Meta fetches it from Meta's servers, not from a logged-in browser. It shows
+// nothing that is not already on the fixtures page.
+exports.fixturesImage = async function (req, res, next) {
+  try {
+    const wanted = stripImageExt(req.params.division).trim().toLowerCase();
+    const rows = await Fixture.getUpcomingWeek();
+    const mine = rows.filter(r => String(r.divisionName || '').trim().toLowerCase() === wanted);
+
+    // A division with no matches this week is a 404 and NOT a blank card. The caller builds
+    // its carousel from the divisions that have fixtures, so it should never ask for one
+    // that does not — but if it does, an empty picture posted to Instagram is the failure
+    // that nobody notices, and a 404 is the one that shows up in the post's own report.
+    if (!mine.length) {
+      return res.status(404).set('Cache-Control', SOCIAL_IMAGE_MISS_CACHE_CONTROL)
+        .type('text/plain').send('No fixtures this week for that division');
+    }
+
+    const bg = await fixturesBackground(mine[0].divisionName);
+    const buf = await createFixturesImage(bg, mine[0].divisionName, mine, 'jpeg', await accentFor(bg));
+
+    res.type('image/jpeg').set('Cache-Control', FIXTURES_IMAGE_CACHE_CONTROL).send(buf);
   } catch (err) {
     next(err);
   }

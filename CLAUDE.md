@@ -656,6 +656,91 @@ because `String(null)` is four characters and only the `avg` column was guarded.
 surfaced the moment the URL worked. When something has been unreachable, assume nothing
 about its contents.
 
+### The weekly fixtures post, and the case where a scheduled job must publish nothing
+
+`POST /admin/social/weekly-fixtures` (Sunday 18:00, `sbl-weekly-fixtures-post`) posts the
+coming week's matches — one **1080x1350** card per division, as a Facebook album and an
+Instagram carousel. 4:5 rather than the tables post's square: it is what the result card
+uses, so the two match, and Instagram gives a 4:5 image more of the feed. `controllers/weeklyFixturesController.js`, and it deliberately mirrors
+`weeklyTablesController` next to it: same `publishEverywhere` call, same per-target
+reporting, same gate, same caption rules. The card is drawn by
+`GET /fixtures-image/:division`, built per request like the league tables are, for the same
+reason — Meta fetches it from Meta's servers, so it must be public and it must not be a
+file on a container's disk.
+
+It is a new post rather than a ported one: Make's scenario only ever looked backwards.
+
+Three things about it are not in the tables post, and each is the interesting half:
+
+- **Its content can legitimately be empty, and then it must publish nothing.** The league
+  plays September to April. A job that fires all year would spend the summer posting four
+  cards headed "Fixtures this week" with nothing underneath. So the division list is built
+  from the fixtures that exist, and an empty week answers **200 with `skipped` set and
+  `posted: []`** — 200 because nothing went wrong and a scheduler retrying a 4xx every
+  Sunday of the summer is noise, `skipped` because `ok: true` with nothing posted is
+  otherwise indistinguishable from a post that went out. That is the same rule as
+  `notificationFailed` on the publish page: **report which of the two happened.**
+- **The cards are chosen, not fixed.** A division always has a table; it can easily have no
+  fixtures in a given week while the other three do. The list is filtered through
+  `weeklyTablesController`'s `DIVISIONS` rather than built from whatever `divisionName`
+  values come back, so a friendly or a renamed division cannot quietly add a fifth card —
+  Instagram's carousel limit is 10 and a runaway list fails the whole post.
+- **Only the clubs playing are mentioned.** The tables post names every club with a stored
+  handle, because all four tables name them anyway. Here a mention is a notification, and
+  notifying a club about a week it is not playing in is how an account gets muted.
+
+Two smaller things worth not rediscovering:
+
+- **The card is drawn on the division's own artwork** — `social-Premier.png` and friends,
+  the same files `resultImage` uses, so a fixtures post and a result post for the same
+  division look like one league. `fixturesBackground()` is the single lookup and **falls
+  back to the plain background rather than throwing**: a division name with no matching
+  file is reachable (a rename, a friendly) and Meta is fetching this route.
+  That artwork has a fade and the division's letter baked into the pixels, which constrains
+  every layout drawn on it — **HARD-37**, blocked on clean source images.
+- **The panel is DARK, and that is the second attempt.** A white panel was built first and
+  does not work: to be legible over the busy backgrounds it has to be near-opaque, and at
+  that point the artwork underneath may as well not be there — which defeats the only
+  reason for using the artwork. Measured by rendering 0.93 / 0.97 / 1.0 and looking at
+  them. `#0d0d0f` at 0.80 lets the colour read through while white text sits on it
+  comfortably. **Don't "fix" a legibility complaint by raising the opacity**; that is the
+  road back to a white rectangle with a picture behind it.
+- **The accent colour is derived from the artwork, with a floor.** Sampled from the
+  artwork's TOP strip and then forced to a fixed lightness and minimum saturation. Derived
+  so it follows the artwork when HARD-37 lands rather than becoming four stale hex values;
+  floored because the first version sampled `stats().dominant` over the *whole* image,
+  which on these backgrounds is the bottom third's fade to near-white — producing an
+  invisible accent, and in an earlier layout white text on a near-white bar. The tests
+  assert every background yields something light enough to read **and** with chroma left in
+  it, which is what catches the wash-out.
+- **It names the league and the dates.** "Premier / Fixtures this week" tells someone who
+  does not follow the league neither the sport nor the town nor which week, and a card gets
+  seen by exactly those people. `fixtureDateRange` parses the range out of `dayLabel`
+  rather than recomputing from a `Date`, so the heading cannot disagree with the rows.
+- **`dayLabel` is formatted in SQL, with `to_char`.** `fixture.date` is `timestamp without
+  time zone`, so Postgres prints exactly what is stored and no timezone is involved at any
+  point. Formatting it from a JS `Date` works today *because* the container happens to be
+  UTC, which is the shape of the BST off-by-one-day bug `localYmd` exists to apologise for.
+- **The card caches for an hour, not the tables' day.** Its content is a function of
+  `NOW()`, so a copy taken Sunday evening and served on Monday shows last week's window
+  with nothing on it to say so.
+
+**A preview page must show its own server's pictures.** Both preview pages build the card
+URLs with `absoluteUrl()`, because that is what gets posted and Meta fetches it from Meta's
+servers. Putting those same absolute URLs in the page's `<img src>` means the preview
+always renders **production's** version of each card, whatever server you are looking at —
+so a change to the renderer appears to do nothing locally. Found 16 Sep 2026 on the
+fixtures preview, where it failed honestly (the route was not deployed, so the images were
+simply missing while the page reported "2 of 4 divisions"). The tables preview had the
+identical defect and **hid it**, because its routes *are* deployed and production's picture
+loaded over the top of whatever the local code would have drawn. Both now use a same-origin
+path for `src` and print the absolute URL beside it as text — the posted URL is information
+the preview exists to give, it just must not be the thing rendered.
+
+`getUpcomingWeek` is **not** `getupComing`. The latter starts at `NOW() - 1 day` so the
+homepage still shows a match being played tonight — right for a page someone is reading,
+wrong for a post announcing what is still to come.
+
 ### Make.com is gone, and what it taught us on the way out
 
 **Every scenario in the Make account is disabled as of 15 Sep 2026.** Both leagues post to
@@ -1054,13 +1139,19 @@ Key vars (see `.env` for examples):
 - `META_USER_TOKEN` — short-lived, and spent. Only needed to mint replacement Page tokens:
   exchange it for a long-lived user token (`grant_type=fb_exchange_token`, ~60 days) then
   `GET /me/accounts`. Nothing reads it at runtime.
-- `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to
-  `POST /admin/social/weekly-tables`, the Saturday league-tables post. Same gate as the
-  other four; **unset closes the token path**. A superadmin session also works, and
-  `GET /admin/social/weekly-tables` previews the images and both captions and sends
-  nothing. `?dry=1` on the POST asks Meta whether it will accept the images and publishes
-  nothing — worth running before a season's first real post, since a scheduled job nobody
-  watches is exactly where a silent refusal hides.
+- `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to the
+  two weekly social posts: `POST /admin/social/weekly-tables` (Saturday 13:00) and
+  `POST /admin/social/weekly-fixtures` (Sunday 18:00). Same gate as the other four;
+  **unset closes the token path**. A superadmin session also works, and the matching `GET`
+  on each previews the images and both captions and sends nothing. `?dry=1` on either POST
+  asks Meta whether it will accept the images and publishes nothing — worth running before
+  a season's first real post, since a scheduled job nobody watches is exactly where a
+  silent refusal hides.
+  **One secret for both, deliberately.** They are the same job done by the same caller,
+  both publishing content that is already public on the site. A sixth variable would mean
+  the new route stays shut until somebody remembers to set it on the service — *unset
+  closes the path* is a good default and a poor deployment plan, and the thing that gets
+  forgotten is never the code.
 - `SOCIAL_POST_DIRECT` — `'true'` makes `Fixture.sendResultZap` post the result to Meta
   itself rather than handing it to the Make.com webhook. **Unset keeps the Make path**, so
   a rollback is one environment variable rather than one deploy — this runs when a captain

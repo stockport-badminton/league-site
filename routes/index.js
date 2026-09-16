@@ -141,6 +141,7 @@ router.get('/handicap-tournament-social', social_controller.handicapTournamentSo
 router.get('/league-table-image/:division', social_controller.leagueTableImage);
 router.get('/league-table-image/:division/:season', social_controller.leagueTableImage);
 router.get('/tournament-image/:poster', social_controller.tournamentImage);
+router.get('/fixtures-image/:division', social_controller.fixturesImage);
 
 // The weekly tables post. GET previews and sends nothing; POST publishes and is gated by a
 // scheduler token or a superadmin session — 403, never a redirect.
@@ -148,6 +149,17 @@ const weekly_tables_controller = require('../controllers/weeklyTablesController'
 router.get('/admin/social/weekly-tables', secured, requireClubAccess.requireSuperAdmin,
   weekly_tables_controller.preview);
 router.post('/admin/social/weekly-tables', requireSocialCaller, weekly_tables_controller.run);
+
+// The weekly fixtures post — the same thing looking forwards, Sunday evening. It shares
+// SOCIAL_CRON_TOKEN with the tables post rather than taking a sixth secret of its own:
+// both are the weekly social post, called by the same scheduler as the same caller, and
+// both publish content that is already public. A new variable would mean the route stays
+// closed until somebody remembers to set it on the service, which is the step that gets
+// forgotten — `unset closes the path` is a good default and a poor deployment plan.
+const weekly_fixtures_controller = require('../controllers/weeklyFixturesController');
+router.get('/admin/social/weekly-fixtures', secured, requireClubAccess.requireSuperAdmin,
+  weekly_fixtures_controller.preview);
+router.post('/admin/social/weekly-fixtures', requireSocialCaller, weekly_fixtures_controller.run);
 
 
 // Social video generation
