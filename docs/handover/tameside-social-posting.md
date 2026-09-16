@@ -167,8 +167,11 @@ Each step is safe to stop after.
   handle at all. A wrong `@handle` mentions a stranger or nothing, and nobody ever notices.
   Build the caption from the database — `Club.getInstagramHandles()`.
 - **Facebook page mentions do not work as plain text.** The `@Shell Badminton Club` in
-  Make's message has been posting literal @-names for years. Page mentions need the Pages
-  API. Instagram mentions from a bare `@handle` **do** work.
+  Make's message has been posting literal @-names for years. Instagram mentions from a bare
+  `@handle` **do** work. Don't spend time on the Facebook half: measured 16 Sep 2026, the
+  `@[page-id]` syntax is silently stripped because the **Page Mentioning feature** is not
+  granted, and getting it needs App Review plus business verification. Read
+  `docs/plans/social-mentions.md` before touching this.
 - **Check what the images actually say once the URL works.** Stockport's tables rendered
   `0 null null` for every team at the start of a season — the games columns are NULL before
   a first result, and `String(null)` is four characters. Nobody had seen it because nobody
