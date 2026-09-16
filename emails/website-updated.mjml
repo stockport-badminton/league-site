@@ -38,6 +38,21 @@
             <th align="left" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Player</th>
             <th align="left" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Team</th>
             <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Won</th>
+<%
+  // Postgres AVG() over integers returns `numeric`, and node-postgres hands numeric back
+  // as a STRING to preserve precision — so `19.666666666666667` arrived and was printed
+  // verbatim, seventeen digits wide, in a table with two of these per row.
+  //
+  // One decimal place because that is the league's own convention: the standings and the
+  // weekly table image both show average points to 1dp, and an email that disagreed with
+  // the website about the same number would be worse than a long one.
+  //
+  // Anything non-numeric passes through untouched rather than becoming "NaN" — the row is
+  // still worth showing, and a visible oddity beats a confident wrong number.
+  function fmtAvg(v) {
+    return (v === null || v === undefined || v === '' || !isFinite(v)) ? v : Number(v).toFixed(1);
+  }
+%>
             <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Pts for</th>
             <th align="right" style="background:#002060; color:#ffffff; font-size:13px; padding:9px 10px; font-weight:bold;">Pts against</th>
           </tr>
@@ -46,8 +61,8 @@
             <td style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.name %></td>
             <td style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>; color:#626b7d;"><%= row.teamName %></td>
             <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.gamesWon %></td>
-            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.avgPtsFor %></td>
-            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= row.avgPtsAgainst %></td>
+            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= fmtAvg(row.avgPtsFor) %></td>
+            <td align="right" style="padding:10px; border-bottom:1px solid #dfe3ea; background:<%= i % 2 === 0 ? '#f5f7fa' : '#ffffff' %>;"><%= fmtAvg(row.avgPtsAgainst) %></td>
           </tr>
           <% }) %>
         </mj-table>

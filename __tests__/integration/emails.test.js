@@ -160,6 +160,56 @@ describe('the website-updated template', () => {
     expect(html).toContain('Jo Hilliard');
   });
 
+  // Postgres AVG() over integers returns `numeric`, and node-postgres hands numeric back
+  // as a STRING to preserve precision. So the real email carried `19.666666666666667` —
+  // seventeen digits, twice per row, in a table with a dozen rows — and the column wrapped
+  // its own heading ("Wo n") to make room. Reported 16 Sep 2026 from a real send.
+  it('shows averages to one decimal place, not seventeen', async () => {
+    await mailer.send(Object.assign({}, base, {
+      data: Object.assign({}, base.data, {
+        matchStats: [
+          // Exactly what the query returns: strings, full precision.
+          { name: 'Jo Woolley',  teamName: 'Manor B',  gamesWon: 3,
+            avgPtsFor: '19.6666666666666667', avgPtsAgainst: '18.6666666666666667' },
+          { name: 'Craig Browne', teamName: 'Manor B', gamesWon: 3,
+            avgPtsFor: '17.5000000000000000', avgPtsAgainst: '18.5000000000000000' },
+        ],
+      }),
+    }));
+    const html = htmlOf(sent());
+
+    expect(html).toContain('19.7');
+    expect(html).toContain('18.7');
+    expect(html).toContain('17.5');
+    expect(html).toContain('18.5');
+    // The thing actually complained about: no long tail anywhere in the message.
+    expect(html).not.toMatch(/\d+\.\d{3,}/);
+  });
+
+  // One decimal place because the standings and the weekly table image both use it. An
+  // email disagreeing with the website about the same number is worse than a long one.
+  it('keeps a whole number to one place too, so the column lines up', async () => {
+    await mailer.send(Object.assign({}, base, {
+      data: Object.assign({}, base.data, {
+        matchStats: [{ name: 'Chris Petty', teamName: 'Mellor A', gamesWon: 4, avgPtsFor: 21, avgPtsAgainst: 14 }],
+      }),
+    }));
+    const html = htmlOf(sent());
+    expect(html).toContain('21.0');
+    expect(html).toContain('14.0');
+  });
+
+  // A visible oddity beats a confident wrong number: NaN in a results email would be read
+  // as a scoring bug rather than a missing value.
+  it('passes a non-numeric average through rather than printing NaN', async () => {
+    await mailer.send(Object.assign({}, base, {
+      data: Object.assign({}, base.data, {
+        matchStats: [{ name: 'Chris Petty', teamName: 'Mellor A', gamesWon: 0, avgPtsFor: null, avgPtsAgainst: undefined }],
+      }),
+    }));
+    expect(htmlOf(sent())).not.toContain('NaN');
+  });
+
   it('escapes a player name rather than letting it become markup', async () => {
     await mailer.send(Object.assign({}, base, {
       data: Object.assign({}, base.data, {
