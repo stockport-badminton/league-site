@@ -11,7 +11,20 @@ const visionClient = new vision.ImageAnnotatorClient();
 // ── Corner anchors (fixed printed text on the scorecard template) ─────────────
 
 const CORNER_ANCHORS = {
-  DATE:      { pattern: /DATE\s*/i,       searchArea: { yMin: 0, yMax: 0.3 } },
+  // yMax was 0.3 until 16 Sep 2026, and DATE was by a distance the tightest anchor on the
+  // card: measured on a real photograph that PASSED, it sat at y=0.267 against that 0.3
+  // bound — 0.033 of headroom, where STOCKPORT had 0.125, LEAGUE 0.157 and SIGNATURE 0.170.
+  //
+  // That is structural rather than bad luck. `DATE:` is printed below the title block, so
+  // of the three anchors sharing the top band it is always the lowest, and `autoRotate`
+  // grows the canvas by about a quarter with white padding on a sideways photo — so the
+  // bound is measured against a padded frame rather than against the card.
+  //
+  // 0.45 costs nothing: exactly one word on the card matches this pattern, checked against
+  // the full OCR output, so a wider band cannot pick the wrong thing. It is insurance on
+  // the one anchor that had none, not a fix for a diagnosed failure — see the note on
+  // findAnchors for why that morning's failure could not be diagnosed at all.
+  DATE:      { pattern: /DATE\s*/i,       searchArea: { yMin: 0, yMax: 0.45 } },
   SIGNATURE: { pattern: /^Signature$/i,   searchArea: { yMin: 0.6, yMax: 1 } },
   STOCKPORT: { pattern: /^Stockport$/i,   searchArea: { yMin: 0, yMax: 0.3 } },
   LEAGUE:    { pattern: /^League$/i,      searchArea: { yMin: 0, yMax: 0.3, xMin: 0.5, xMax: 1 } },
@@ -71,19 +84,65 @@ function findMultiWordAnchor(blocks, anchor) {
   return null;
 }
 
+// Look for one anchor among the blocks it is allowed to be in.
+function matchIn(blocks, anchor) {
+  return anchor.multiWord
+    ? findMultiWordAnchor(blocks, anchor)
+    : blocks.find(b => anchor.pattern.test(b.text) && b.text.length <= 20) || null;
+}
+
+/**
+ * Locate every corner anchor, and say WHY each missing one is missing.
+ *
+ * The diagnostics half exists because "Missing corner anchors: DATE" is not enough to act
+ * on. It conflates two failures that want opposite fixes:
+ *
+ *   no-text-matched     the words are not on the card at all — a bad photo, glare, a
+ *                       crease, or an older version of the form. Nothing we can tune.
+ *   outside-search-area the text IS there and we refused it for being in the wrong part of
+ *                       the frame. That is our threshold being wrong, not the photo.
+ *
+ * On 16 Sep 2026 a captain's first two photos failed on DATE and the third worked, and
+ * telling those two cases apart afterwards meant re-running the whole pipeline by hand
+ * against a stored image that had, by definition, succeeded. The position is recorded
+ * normalised (0-1) so it can be read straight against the search area beside it.
+ */
 function findAnchors(textBlocks, imgW, imgH) {
   const found = {};
+  const diagnostics = {};
+
   for (const [name, anchor] of Object.entries(CORNER_ANCHORS)) {
-    const candidates = textBlocks.filter(b => inSearchArea(b, anchor.searchArea, imgW, imgH));
-    if (anchor.multiWord) {
-      const m = findMultiWordAnchor(candidates, anchor);
-      if (m) found[name] = m;
-    } else {
-      const m = candidates.find(b => anchor.pattern.test(b.text) && b.text.length <= 20);
-      if (m) found[name] = m;
-    }
+    const inArea = textBlocks.filter(b => inSearchArea(b, anchor.searchArea, imgW, imgH));
+    const m = matchIn(inArea, anchor);
+    if (m) { found[name] = m; continue; }
+
+    // Missing. Ask the cheaper question: is the text anywhere on the card at all?
+    const anywhere = matchIn(textBlocks, anchor);
+    diagnostics[name] = anywhere
+      ? {
+          reason: 'outside-search-area',
+          text: anywhere.text,
+          at: { x: +(anywhere.centerX / imgW).toFixed(3), y: +(anywhere.centerY / imgH).toFixed(3) },
+          searchArea: anchor.searchArea,
+        }
+      : { reason: 'no-text-matched' };
   }
-  return found;
+
+  return { found, diagnostics };
+}
+
+// One line per missing anchor, for the log. Deliberately terse: this ends up in Cloud
+// Logging next to the request, where the useful thing is a number to compare with a bound.
+function describeMissing(diagnostics, missing) {
+  return missing.map(name => {
+    const d = diagnostics[name];
+    if (!d) return name;
+    if (d.reason === 'no-text-matched') return `${name}=not-on-card`;
+    const a = d.searchArea || {};
+    const bounds = ['yMin', 'yMax', 'xMin', 'xMax']
+      .filter(k => a[k] !== undefined).map(k => `${k}=${a[k]}`).join(',');
+    return `${name}="${d.text}"@(${d.at.x},${d.at.y}) outside[${bounds}]`;
+  }).join(' ');
 }
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
@@ -249,7 +308,7 @@ async function analyseImage(imageBuffer) {
   const rotated = await autoRotate(imageBuffer);
   const { textBlocks, imgW, imgH } = await runOCR(rotated);
 
-  const anchors = findAnchors(textBlocks, imgW, imgH);
+  const { found: anchors, diagnostics } = findAnchors(textBlocks, imgW, imgH);
   const missing = REQUIRED_ANCHORS.filter(a => !anchors[a]);
   if (missing.length > 0) {
     // Not a fault. The reader locates every field by these four printed anchors, so a
@@ -269,7 +328,8 @@ async function analyseImage(imageBuffer) {
       'still attach the photo at the end.'
     );
     err.status = 422;
-    err.detail = `Missing corner anchors: ${missing.join(', ')}`;
+    err.detail = `Missing corner anchors: ${describeMissing(diagnostics, missing)}`;
+    err.anchorDiagnostics = diagnostics;
     throw err;
   }
 
@@ -299,4 +359,6 @@ async function analyseImage(imageBuffer) {
   };
 }
 
-module.exports = { analyseImage };
+// findAnchors, CORNER_ANCHORS and describeMissing are exported for the tests: the
+// diagnostic logic is worth testing without a Vision call and a real photograph.
+module.exports = { analyseImage, findAnchors, describeMissing, CORNER_ANCHORS, REQUIRED_ANCHORS };
