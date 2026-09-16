@@ -1193,7 +1193,7 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
 // it is only used to group, and the caller decides what to do with a fixture that has no
 // division rather than having it vanish inside the SQL.
 //
-// The window is anchored to `date_trunc('day', NOW())`, not to `NOW()`, and that is not
+// The window is anchored to the start of the day, not to `NOW()`, and that is not
 // tidiness. **Fixtures are stored at midnight** — every row in the table is `00:00:00`,
 // the date is the playing day and the start time lives on the team. So a plain
 // `date >= NOW()` drops TODAY'S fixtures, because today's midnight is already in the past,
@@ -1202,6 +1202,13 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
 // is a scheduler edit, with no code change and no test to fail — and the post silently
 // omits the matches being played that evening. Truncating to the day makes the window
 // exactly seven calendar days from today whenever it is asked.
+//
+// And the day is **Europe/London's**, not the database's. Supabase runs UTC, so under BST
+// `date_trunc('day', NOW())` is an hour behind the UK day: between 00:00 and 01:00 British
+// time it truncates to *yesterday*, and the card then shows a night of fixtures that has
+// already been played. Measured 17 Sep 2026 at 00:03 BST — `date_trunc('day', NOW())` gave
+// 16 Sep where the UK day was the 17th. `fixture.date` holds UK local midnight as a naive
+// timestamp, so converting NOW() to London and truncating compares like with like.
 //
 // `dayLabel` is formatted in SQL rather than in JavaScript. `fixture.date` is `timestamp
 // without time zone`, so `to_char` prints exactly what is stored and no timezone is
@@ -1233,8 +1240,8 @@ FROM
 WHERE
     fixture."homeScore" IS NULL
         AND fixture.status NOT IN ('rearranged','rearranging')
-        AND fixture.date >= date_trunc('day', NOW())
-        AND fixture.date < date_trunc('day', NOW()) + INTERVAL '7 days'
+        AND fixture.date >= date_trunc('day', NOW() AT TIME ZONE 'Europe/London')
+        AND fixture.date < date_trunc('day', NOW() AT TIME ZONE 'Europe/London') + INTERVAL '7 days'
 ORDER BY fixture.date, homeTeam.name`)
   return result
 }

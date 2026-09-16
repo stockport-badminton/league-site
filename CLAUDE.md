@@ -737,6 +737,15 @@ loaded over the top of whatever the local code would have drawn. Both now use a 
 path for `src` and print the absolute URL beside it as text — the posted URL is information
 the preview exists to give, it just must not be the thing rendered.
 
+**The seven-day window is anchored to Europe/London's day, not the database's.** Supabase
+runs UTC, so under BST `date_trunc('day', NOW())` is an hour behind the UK day: between
+00:00 and 01:00 British time it truncates to *yesterday*. Measured 17 Sep 2026 at 00:03
+BST — the UTC day was the 16th where the UK day was the 17th, and the card was showing a
+night of fixtures already played while cutting the seventh day off the far end. **Both
+boundaries were wrong at once**, which is what an off-by-one-day window looks like.
+`fixture.date` holds UK local midnight as a naive timestamp, so `NOW() AT TIME ZONE
+'Europe/London'` compares like with like.
+
 `getUpcomingWeek` is **not** `getupComing`. The latter starts at `NOW() - 1 day` so the
 homepage still shows a match being played tonight — right for a page someone is reading,
 wrong for a post announcing what is still to come.
