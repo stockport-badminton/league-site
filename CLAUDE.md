@@ -749,6 +749,42 @@ long-lived user token via `GET /me/accounts`.
 - `GET /{ig-id}/content_publishing_limit` reports quota: 100 posts per rolling 24 hours, a
   carousel counting as one.
 
+### What the bucket keeps, and for how long
+
+Two lifecycle rules on `badmintontemp`, both expiry-only. Read them back with
+`aws s3api get-bucket-lifecycle-configuration --bucket badmintontemp` rather than trusting
+this list — `put-bucket-lifecycle-configuration` **replaces the whole configuration**, so
+adding a rule means sending the existing ones again or silently deleting them.
+
+| Prefix | Expires | Why |
+|---|---|---|
+| `inbound-email/` | 30 days | SES drops the raw message here for the forwarder |
+| `scorecards/failed-analysis/` | **14 days** | An image the reader could not read (HARD-36) |
+| `scorecards/` (everything else) | never | The league's record of a result |
+
+**The failed-analysis prefix is the interesting one.** Until Sep 2026,
+`POST /api/analyse-scorecard` read the bytes and discarded them unless the analysis
+*succeeded*, so a failure left a log line and a request size and nothing else. On 16 Sep a
+captain's first two photos failed and the third worked, and diagnosing it meant working
+from the only image that survived — the one that had, by definition, succeeded. That
+cannot answer what was different about the two that did not.
+
+The message now distinguishes *we refused it* from *it was not there*
+(`cornerDetection.findAnchors`), and this is what makes that message checkable: a log line
+saying `outside[yMax=0.45]` is only believable if somebody can look at the photo it
+describes. The key is logged beside the failure so the two find each other.
+
+**Retention is the whole reason it is a separate prefix.** A scorecard photograph carries
+twelve players' names and both captains' signatures, which is why HARD-02b made every
+object here private. Diagnostic scrap does not earn the same permanence, and an expiry
+attached to the prefix means an object is expired *by virtue of being written there* —
+retention that depends on somebody remembering is not retention.
+
+**S3 versioning was considered and rejected**, because it is the obvious first thought: it
+protects an object that exists from being overwritten, and here none was ever created. It
+also retains *more*, indefinitely, unless a noncurrent-version expiry is added as well —
+the opposite of what this data wants.
+
 ### Search / crawlability
 
 **Load the `seo` skill** before touching `controllers/sitemapController.js`,

@@ -35,6 +35,15 @@ const ALLOWED_TYPES = {
 
 const PREFIX = 'scorecards';
 
+// Where an image goes when the reader could not make sense of it (HARD-36).
+//
+// Separate from `PREFIX` so the two have different lifetimes: a scorecard photo is the
+// league's record of a result and is kept, while one of these exists only to make a
+// failure diagnosable and is expired by an S3 lifecycle rule after 14 days. That rule is
+// attached to this prefix, so anything written here inherits the expiry by being here —
+// which is the point. Retention that depends on somebody remembering is not retention.
+const FAILED_PREFIX = 'scorecards/failed-analysis';
+
 // The season the upload belongs to, for a browsable prefix. Mirrors the rollover the
 // rest of the site uses (August), and falls back rather than throwing — a wrong folder
 // is not worth failing an upload over.
@@ -67,7 +76,7 @@ function sanitiseHint(raw) {
 // `hint` is advisory only and never trusted; the uniqueness comes entirely from the
 // random segment, so two uploads can never collide and an existing object can never be
 // targeted.
-function buildUploadKey(contentType, hint, now = new Date()) {
+function buildUploadKey(contentType, hint, now = new Date(), prefix = PREFIX) {
   const extension = ALLOWED_TYPES[String(contentType || '').toLowerCase().trim()];
   if (!extension) {
     const err = new Error(
@@ -79,7 +88,7 @@ function buildUploadKey(contentType, hint, now = new Date()) {
   const unique = crypto.randomUUID();
   const cleaned = sanitiseHint(hint);
   const name = cleaned ? `${unique}-${cleaned}` : unique;
-  return { key: `${PREFIX}/${seasonSegment(now)}/${name}.${extension}`, extension };
+  return { key: `${prefix}/${seasonSegment(now)}/${name}.${extension}`, extension };
 }
 
 // The public URL of an object, in the virtual-hosted style. One definition, because
@@ -106,8 +115,8 @@ function objectUrl(key) {
 // (a gif, say) is refused here exactly as it would be at `/sign-s3`. Deliberately sets
 // no ACL: HARD-02b made every object in this bucket private, served through
 // `GET /scorecard-photo/:id`, and a public-read object here would be a hole in that.
-async function storeImage({ buffer, contentType, hint }, deps = {}) {
-  const { key } = buildUploadKey(contentType, hint);
+async function storeImage({ buffer, contentType, hint, prefix }, deps = {}) {
+  const { key } = buildUploadKey(contentType, hint, new Date(), prefix || PREFIX);
   const {
     S3Client, PutObjectCommand,
   } = deps.s3 || require('@aws-sdk/client-s3');
@@ -123,6 +132,7 @@ async function storeImage({ buffer, contentType, hint }, deps = {}) {
 
 module.exports = {
   ALLOWED_TYPES,
+  FAILED_PREFIX,
   PREFIX,
   REGION,
   buildUploadKey,

@@ -1,7 +1,7 @@
 const multer   = require('multer');
 const Sentry   = require('@sentry/node');
 const { extractEmbeddedImage, isRefusedArchive } = require('../utils/documentImage');
-const { storeImage } = require('../utils/uploads');
+const { storeImage, FAILED_PREFIX } = require('../utils/uploads');
 const { distance } = require('fastest-levenshtein');
 const { analyseImage }         = require('./cornerDetection');
 const { extractScorecardData } = require('./scorecardExtraction');
@@ -296,7 +296,42 @@ exports.convert_scorecard_document = async function(req, res) {
 
 // ── POST /api/analyse-scorecard ───────────────────────────────────────────────
 
+// Store the image an analysis could not read, and never let that failure matter.
+//
+// Returns the key, or null. A failed store must not change what the captain sees: their
+// problem is that the auto-fill did not work, and "we also could not save your photo"
+// helps nobody and is not theirs to act on. Same rule `convertDocument` already follows
+// for the document path, and the same rule `utils/afterCommit.js` states at length.
+//
+// A document upload is skipped: `convertDocument` has already stored the extracted image
+// under the ordinary prefix, before the OCR, precisely so it survives a failure. Writing
+// a second copy here would keep the same photo twice under two different retentions.
+async function storeFailedImage(req, isDocument) {
+  if (isDocument) return null;
+  if (!req.file || !req.file.buffer || !req.file.buffer.length) return null;
+  try {
+    const { key } = await storeImage({
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype,
+      hint: req.file.originalname,
+      prefix: FAILED_PREFIX,
+    });
+    return key;
+  } catch (storeErr) {
+    // Deliberately not Sentry: the analysis failure is the event worth seeing, and a
+    // second exception beside every one of them is how a project stops being read.
+    console.warn('Could not keep the unreadable scorecard image:', storeErr.message);
+    return null;
+  }
+}
+
 exports.analyse_scorecard = async function(req, res) {
+  // Declared out here because the catch needs it: a document's image is already stored by
+  // convertDocument, before the OCR, so the failure path must not store a second copy of
+  // the same photo under a different retention. Scoped inside the try, it was simply not
+  // defined where it was read — a ReferenceError on every failure, which is the one path
+  // that had no test until this one.
+  let isDocument = false;
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
@@ -315,7 +350,7 @@ exports.analyse_scorecard = async function(req, res) {
     // Set when a document's image has been stored, so it is still reported if the OCR
     // below throws. The photo is the record; reading it is a bonus.
     let storedPhoto = null;
-    const isDocument = isDocumentUpload(req.file);
+    isDocument = isDocumentUpload(req.file);
     if (isDocument) {
       const { extracted, stored } = await convertDocument(req.file);
       if (!extracted) return res.status(400).json({ error: CANNOT_EXTRACT });
@@ -407,7 +442,26 @@ exports.analyse_scorecard = async function(req, res) {
     // CLAUDE.md's rule for /api/ routes — pass 4xx messages through, never 5xx ones,
     // since those can carry SQL — was being broken on every unexpected throw.
     const status = err.status || 500;
-    console.error('Scorecard analysis failed:', err.detail || err.message);
+
+    // Keep the image that could not be read (HARD-36).
+    //
+    // Until now this endpoint discarded the bytes unless the analysis SUCCEEDED, so a
+    // failure left only a log line and a request size. On 16 Sep a captain's first two
+    // photos failed and the third worked, and diagnosing it meant working from the one
+    // image that had, by definition, succeeded — which cannot answer what was different
+    // about the two that did not.
+    //
+    // The message already distinguishes "we refused it" from "it was not there"; this is
+    // what makes that message checkable, because `outside[yMax=0.45]` is only believable
+    // if somebody can look at the photo it describes.
+    //
+    // Its own prefix, carrying a 14-day S3 lifecycle expiry. A scorecard photo is the
+    // league's record of a result and is kept; this is diagnostic scrap with twelve
+    // players' names on it and is not.
+    const failedKey = await storeFailedImage(req, isDocument);
+    console.error(
+      'Scorecard analysis failed:', err.detail || err.message,
+      failedKey ? `[image: ${failedKey}]` : '[image: not stored]');
 
     if (status >= 500) {
       // Only the genuine faults. Reporting a photo of the wrong scorecard as an
