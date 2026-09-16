@@ -185,6 +185,18 @@ const SOCIAL_IMAGE_CACHE_CONTROL = 'public, max-age=86400';
 // That is worse than untidy here. **Meta fetches these URLs itself and retries**, so a
 // transient 404 — a deploy in flight, a division renamed mid-season — gets cached and the
 // retry hits the cache rather than the fixed route. The window outlives the fault.
+//
+// `no-store` only protects the 404s this file emits. **The dangerous one is a request made
+// before the route existed at all**, which Express answers with its default HTML 404 page —
+// carrying no Cache-Control, so Firebase applies `max-age=600` and the miss sticks for ten
+// minutes after the deploy that fixed it. Demonstrated 16 Sep 2026 on `/fixtures-image`:
+// the URL curled before deploying went on answering 404 afterwards while a sibling that
+// nobody had asked for returned 200, and the same URL with a cache-buster returned 200.
+//
+// So: **do not request a new public route before deploying it**, and if a route looks dead
+// after a deploy, tell the two apart before debugging the code — ours is `text/plain`, tens
+// of bytes, `no-store`, `x-cache: MISS`; the stale one is `text/html`, ~14KB, `max-age=600`,
+// `x-cache: HIT`.
 const SOCIAL_IMAGE_MISS_CACHE_CONTROL = 'no-store';
 
 // GET /league-table-image/:division — one division's table, as a JPEG, built now.
