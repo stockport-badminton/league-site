@@ -1,4 +1,5 @@
 const Spam = require('../models/spamControls');
+const { userEmail } = require('../utils/sessionUser');
 const { canonicalFor } = require('../utils/canonical');
 const { isSuperAdmin } = require('../utils/authz');
 
@@ -63,7 +64,10 @@ exports.add = async function(req, res, next) {
       kind,
       value,
       note,
-      createdBy: (req.user && req.user.email) || 'admin',
+      // utils/sessionUser, not req.user.email — that property does not exist on the
+      // passport-auth0 Profile, so every row written here has said 'admin' regardless of
+      // who added it.
+      createdBy: userEmail(req.user) || 'admin',
     });
     res.redirect('/admin/spam?msg=' + encodeURIComponent('Added ' + kind + ' ' + value));
   } catch (err) {

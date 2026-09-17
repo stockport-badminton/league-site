@@ -14,6 +14,7 @@
 // authenticating a scheduler is how one of them ends up wrong.
 
 const Registration = require('../models/clubRegistration');
+const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const seasonModel = require('../models/season');
 const documents = require('./documentsController');
 const mailer = require('../utils/mailer');
@@ -184,7 +185,7 @@ exports.mark_received = async function(req, res, next) {
   try {
     const season = seasonModel.current();
     const received = req.body.received !== 'false';
-    const who = (req.user && (req.user.displayName || req.user.email)) || 'unknown';
+    const who = (req.user && (userDisplayName(req.user) || userEmail(req.user))) || 'unknown';
     if (received) await Registration.markReceived(season, req.params.club, who);
     else await Registration.markNotReceived(season, req.params.club, who);
     res.redirect('/admin/registrations');
@@ -197,7 +198,7 @@ exports.send_chase = async function(req, res, next) {
     const club = await findClub(season, req.params.club);
     if (!club) { const e = new Error('Unknown club'); e.status = 404; throw e; }
 
-    const who = (req.user && (req.user.displayName || req.user.email)) || 'unknown';
+    const who = (req.user && (userDisplayName(req.user) || userEmail(req.user))) || 'unknown';
     const sent = await sendChase(club, who);
     res.redirect('/admin/registrations?sent=' + encodeURIComponent(sent.club));
   } catch (err) {

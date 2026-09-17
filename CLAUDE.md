@@ -872,9 +872,7 @@ hung its store off `analyse_scorecard`'s `catch`; the 4xx refusals return from i
 `POST /api/convert-scorecard-document` with a 400, and there was no log line, no Sentry
 event and no object — on the endpoint the package had just been written to make
 diagnosable. Every refusal now goes through `refuseUpload`, which keeps the file and names
-the check that fired. **A refusal that keeps nothing is still correct where the file would
-teach us nothing** — an image posted to the document endpoint is fully explained by its
-content type, and a scorecard photo carries twelve names and two signatures.
+the check that fired.
 
 **The failed-analysis prefix is the interesting one.** Until Sep 2026,
 `POST /api/analyse-scorecard` read the bytes and discarded them unless the analysis
@@ -1232,6 +1230,23 @@ Key vars (see `.env` for examples):
    The fix reads `clubsecemail`, because `controllers/clubController.js` and
    `views/club-contact.ejs` already read every column of that query in lowercase and work:
    quoting the alias would have fixed one caller and broken the club contact page.
+1a. **`req.user.email` does not exist.** `req.user` is the raw passport-auth0 `Profile`,
+   cached whole in the session by `passport.serializeUser`. It carries `displayName`, `id`,
+   `emails: [{ value }]` and `_json` — and **no `email`**. The login strategy in `app.js`
+   reads `profile.emails[0].value`, so the shape was never in doubt; the spelling just looks
+   obvious. It fails in the worst available way: `undefined` is falsy, so every call site
+   had a `||` fallback beside it and quietly took the other branch. Nothing threw, nothing
+   logged, the feature simply did not exist — `rosterController` had been putting the
+   requester in a transfer email's `replyTo` so the club could reply to them, and had
+   always sent the league address alone; every `blocked_entry` row said `admin` rather than
+   who added it. **Use `userEmail(req.user)` from `utils/sessionUser.js`**, which also has
+   `userDisplayName` and `userLabel`. `__tests__/unit/session-user.test.js` fails if
+   `.user.email` reappears in `controllers/`, `models/`, `utils/`, `routes/` or
+   `middleware/` — it strips comments and strings first and self-tests that the stripper
+   still works, because a desynchronised scanner under-reports and so fails in the
+   direction that looks fine. It also builds a real `Profile` from the dependency and
+   asserts `.email` is undefined, so the premise is checked against passport-auth0 rather
+   than against this paragraph.
 1b. **Never build a URL from `req.get('host')`.** Firebase Hosting rewrites `**` to
    Cloud Run and the Host header that arrives is the *Cloud Run* one — the requested
    host is passed separately, in `x-fh-requested-host`. Every canonical and `og:url`

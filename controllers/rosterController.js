@@ -7,6 +7,7 @@
 // write path was an arbitrary UPDATE.
 
 const Club = require('../models/club')
+const { userEmail, userDisplayName } = require('../utils/sessionUser')
 const Roster = require('../models/roster')
 const sesUtil = require('../utils/ses')
 const mailer = require('../utils/mailer')
@@ -515,8 +516,13 @@ exports.api_transfer_request = async function(req, res, next) {
     if (!dest) return next(Object.assign(new Error('No such team'), { status: 404 }))
     assertClubAccess(req, dest.clubName)
 
-    const requester = (req.user && (req.user.displayName || req.user.email)) || 'a club admin'
-    const requesterEmail = req.user && req.user.email
+    // Both read through utils/sessionUser. `req.user.email` does not exist — req.user is
+    // the raw passport-auth0 Profile, which carries `emails: [{ value }]` — so
+    // `requesterEmail` was undefined on every transfer request ever sent, and the replyTo
+    // below has always been the league address alone. The club could not reply to the
+    // person asking, which is the whole reason that second address is there.
+    const requester = (req.user && (userDisplayName(req.user) || userEmail(req.user))) || 'a club admin'
+    const requesterEmail = userEmail(req.user)
 
     // A superadmin asking for a transfer is the person who approves them, so do it
     // rather than emailing themselves about it.
