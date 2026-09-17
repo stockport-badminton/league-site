@@ -472,6 +472,83 @@
       
       <!--[if mso | IE]></td></tr></table><![endif]-->
     
+    <% } %><!-- And when there is NO photo, who to ask for one. Same mj-raw rule as above.
+         Read through `locals` so an omitted key is simply "nobody to name" rather than a
+         throw. Every other value here is required and referenced bare; this one is
+         optional by nature, and a bare reference would mean a caller that forgot it sends
+         NO EMAIL AT ALL — swallowed by afterCommit into a handled Sentry event while the
+         results secretary hears nothing. That is the failure this line is meant to help
+         with, not cause.
+         Only rendered without a photo: with one attached there is nothing to chase.
+         Absent entirely for an anonymous submission rather than guessed at from the
+         team, which would send the chase to the wrong person. --><% if (locals.submitterEmail) { %>
+      
+      <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+    
+      
+      <div  style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+        
+        <table
+           align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"
+        >
+          <tbody>
+            <tr>
+              <td
+                 style="direction:ltr;font-size:0px;padding:10px 0 0;text-align:center;"
+              >
+                <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
+            
+      <div
+         class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
+      >
+        
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"
+      >
+        <tbody>
+          <tr>
+            <td  style="vertical-align:top;padding:0;">
+              
+      <table
+         border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
+      >
+        <tbody>
+          
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:14px;line-height:21px;text-align:left;color:#626b7d;"
+      >No photo was attached. Ask
+          <a href="mailto:<%= locals.submitterEmail %>" style="color:#002060"><%= locals.submitterName || locals.submitterEmail %></a>
+          for the card.</div>
+    
+                </td>
+              </tr>
+            
+        </tbody>
+      </table>
+    
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    
+      </div>
+    
+          <!--[if mso | IE]></td></tr></table><![endif]-->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+      </div>
+    
+      
+      <!--[if mso | IE]></td></tr></table><![endif]-->
+    
     <% } %>
       
       <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->

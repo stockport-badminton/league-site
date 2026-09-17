@@ -37,6 +37,9 @@ const SAMPLES = {
     confirmUrl: 'https://stockport-badminton.co.uk/populated-scorecard-beta/2435?t=abc123',
     photoUrl: 'https://stockport-badminton.co.uk/scorecard-photo/2435?t=abc123',
     photoLine: 'A scorecard has been entered, with a photo attached.',
+    // Empty with a photo attached: the "ask them for the card" line only appears when
+    // there is no card to look at. The no-photo variant below is where it renders.
+    submitterEmail: '', submitterName: '',
   },
   'registration-reminder': {
     logoUrl,
@@ -141,7 +144,13 @@ const SAMPLES = {
   const variants = {
     'scorecard-received-no-photo': ['scorecard-received',
       Object.assign({}, SAMPLES['scorecard-received'], {
-        photoUrl: '', photoLine: 'A scorecard has been entered, with no photo attached.' })],
+        photoUrl: '', photoLine: 'A scorecard has been entered, with no photo attached.',
+        submitterEmail: 'jane.captain@example.com', submitterName: 'Jane Captain' })],
+    // The same, filed by somebody with no session — nobody to name, so no line at all.
+    'scorecard-received-no-photo-anonymous': ['scorecard-received',
+      Object.assign({}, SAMPLES['scorecard-received'], {
+        photoUrl: '', photoLine: 'A scorecard has been entered, with no photo attached.',
+        submitterEmail: '', submitterName: '' })],
     'website-updated-no-stats': ['website-updated',
       Object.assign({}, SAMPLES['website-updated'], { matchStats: [] })],
     // The overdue wording, which is the reminder's own mj-raw conditional.

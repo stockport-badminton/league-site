@@ -12,6 +12,7 @@ var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
 const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
+const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const {
@@ -718,6 +719,25 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         ? 'A scorecard has been entered, with a photo attached.'
         : 'A scorecard has been entered, with no photo attached.';
 
+      // Who filed it — but only when there is NO photo, because that is the only time it
+      // is actionable. With a photo attached there is nothing to chase; without one, the
+      // results secretary's next move is to ask this person for the card, and previously
+      // the email gave them no way to know who that was.
+      //
+      // `POST /email-scorecard` is not `secured` (the GET is), but `passport.session()` is
+      // mounted globally in app.js, so a logged-in captain's session populates `req.user`
+      // here anyway. An anonymous post has nobody to name and the line is simply omitted —
+      // never guessed at from the team, which would send the chase to the wrong person.
+      //
+      // This is the Auth0 login identity, which is deliberately NOT `player.playerEmail`:
+      // it is the address they are actually signed in as, so it is known to reach them.
+      // The two are different columns for a reason — see CLAUDE.md.
+      // Read through utils/sessionUser: `req.user.email` does not exist. req.user is the
+      // raw passport-auth0 Profile, which carries `emails: [{ value }]` and no `email` —
+      // so the obvious spelling is undefined on every request, silently.
+      const submitterEmail = photoUrl ? '' : userEmail(req.user);
+      const submitterName = submitterEmail ? userDisplayName(req.user) : '';
+
       // The draft is already written. Notifying the results secretary is the next thing
       // that should happen, not a condition of the captain's submission having worked —
       // so a failure here is reported, not thrown. Before this it was awaited bare inside
@@ -741,6 +761,10 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
           '',
           'Check the result: ' + scorecardUrlBeta,
           photoUrl ? 'Photo: ' + photoLink : '',
+          submitterEmail
+            ? 'No photo attached. Ask ' + (submitterName ? submitterName + ' ' : '') +
+              '<' + submitterEmail + '> for the card.'
+            : '',
         ].filter(Boolean).join('\n'),
         data: {
           homeTeamName,
@@ -750,6 +774,8 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
           confirmUrl: scorecardUrlBeta,
           photoUrl: photoLink,
           photoLine,
+          submitterEmail,
+          submitterName,
         },
       }));
       // The captain gets the token too, or the page they are redirected to would refuse

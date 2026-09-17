@@ -122,6 +122,45 @@ describe('the scorecard-received template', () => {
     expect(html).toContain('scorecard photo');
     expect(html).toContain('https://example.com/photo/1');
   });
+
+  // Asked for 17 Sep 2026: with no photo attached, the results secretary's next move is to
+  // ask whoever filed it for the card, and the email gave them no way to know who that was.
+  describe('when there is no photo, who to ask for one', () => {
+    const withSubmitter = extra => Object.assign({}, base, {
+      data: Object.assign({}, base.data, {
+        submitterEmail: 'jane.captain@example.com', submitterName: 'Jane Captain',
+      }, extra),
+    });
+
+    it('names them and links a mailto', async () => {
+      await mailer.send(withSubmitter());
+      const html = htmlOf(sent());
+      expect(html).toContain('No photo was attached');
+      expect(html).toContain('mailto:jane.captain@example.com');
+      expect(html).toContain('Jane Captain');
+    });
+
+    it('falls back to the address when there is no display name', async () => {
+      await mailer.send(withSubmitter({ submitterName: '' }));
+      const html = htmlOf(sent());
+      expect(html).toContain('mailto:jane.captain@example.com');
+      expect(html).toContain('jane.captain@example.com</a>');
+    });
+
+    it('says nothing at all when nobody is known', async () => {
+      await mailer.send(withSubmitter({ submitterEmail: '', submitterName: '' }));
+      expect(htmlOf(sent())).not.toContain('No photo was attached');
+    });
+
+    // The whole line is optional, so an omitted key must mean "nobody to name" and not a
+    // render error. A throw here would be swallowed by afterCommit into a handled Sentry
+    // event and the results secretary would get NO EMAIL — the failure this line exists
+    // to help with, caused by the line itself. Hence `locals.` in the template.
+    it('renders at all when the keys are absent entirely', async () => {
+      await expect(mailer.send(base)).resolves.toBeDefined();
+      expect(htmlOf(sent())).not.toContain('No photo was attached');
+    });
+  });
 });
 
 describe('the website-updated template', () => {

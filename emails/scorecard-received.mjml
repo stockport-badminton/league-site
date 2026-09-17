@@ -39,6 +39,28 @@
     </mj-section>
     <mj-raw><% } %></mj-raw>
 
+    <!-- And when there is NO photo, who to ask for one. Same mj-raw rule as above.
+         Read through `locals` so an omitted key is simply "nobody to name" rather than a
+         throw. Every other value here is required and referenced bare; this one is
+         optional by nature, and a bare reference would mean a caller that forgot it sends
+         NO EMAIL AT ALL — swallowed by afterCommit into a handled Sentry event while the
+         results secretary hears nothing. That is the failure this line is meant to help
+         with, not cause.
+         Only rendered without a photo: with one attached there is nothing to chase.
+         Absent entirely for an anonymous submission rather than guessed at from the
+         team, which would send the chase to the wrong person. -->
+    <mj-raw><% if (locals.submitterEmail) { %></mj-raw>
+    <mj-section padding="10px 0 0">
+      <mj-column>
+        <mj-text mj-class="muted">
+          No photo was attached. Ask
+          <a href="mailto:<%= locals.submitterEmail %>" style="color:#002060"><%= locals.submitterName || locals.submitterEmail %></a>
+          for the card.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
     <mj-section padding="16px 0 0">
       <mj-column>
         <mj-text mj-class="muted" padding="0 24px 26px">
