@@ -44,6 +44,23 @@ const PREFIX = 'scorecards';
 // which is the point. Retention that depends on somebody remembering is not retention.
 const FAILED_PREFIX = 'scorecards/failed-analysis';
 
+// What may be kept as DIAGNOSTIC SCRAP, which is deliberately wider than ALLOWED_TYPES
+// and must stay a separate list.
+//
+// ALLOWED_TYPES guards `/sign-s3`, where the content type is ATTACKER-CHOSEN: it decides
+// what the bucket will later serve, so it is a short list of things a camera produces and
+// adding `application/pdf` to it would be a security change. Nothing here is chosen by an
+// attacker in that sense — the bytes are already on the server, they arrived through
+// multer behind `secured`, the object is private, and it is deleted in 14 days. The whole
+// reason to keep it is that the reader could NOT make sense of it, so restricting it to
+// formats the reader understands would keep only the cases that need no diagnosis.
+const FAILED_UPLOAD_TYPES = {
+  ...ALLOWED_TYPES,
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/msword': 'doc',
+};
+
 // The season the upload belongs to, for a browsable prefix. Mirrors the rollover the
 // rest of the site uses (August), and falls back rather than throwing — a wrong folder
 // is not worth failing an upload over.
@@ -76,8 +93,8 @@ function sanitiseHint(raw) {
 // `hint` is advisory only and never trusted; the uniqueness comes entirely from the
 // random segment, so two uploads can never collide and an existing object can never be
 // targeted.
-function buildUploadKey(contentType, hint, now = new Date(), prefix = PREFIX) {
-  const extension = ALLOWED_TYPES[String(contentType || '').toLowerCase().trim()];
+function buildUploadKey(contentType, hint, now = new Date(), prefix = PREFIX, types = ALLOWED_TYPES) {
+  const extension = types[String(contentType || '').toLowerCase().trim()];
   if (!extension) {
     const err = new Error(
       'That file type is not accepted. Upload a photo of the scorecard — JPEG, PNG, WebP or HEIC.'
@@ -115,8 +132,8 @@ function objectUrl(key) {
 // (a gif, say) is refused here exactly as it would be at `/sign-s3`. Deliberately sets
 // no ACL: HARD-02b made every object in this bucket private, served through
 // `GET /scorecard-photo/:id`, and a public-read object here would be a hole in that.
-async function storeImage({ buffer, contentType, hint, prefix }, deps = {}) {
-  const { key } = buildUploadKey(contentType, hint, new Date(), prefix || PREFIX);
+async function storeImage({ buffer, contentType, hint, prefix, types }, deps = {}) {
+  const { key } = buildUploadKey(contentType, hint, new Date(), prefix || PREFIX, types || ALLOWED_TYPES);
   const {
     S3Client, PutObjectCommand,
   } = deps.s3 || require('@aws-sdk/client-s3');
@@ -132,6 +149,7 @@ async function storeImage({ buffer, contentType, hint, prefix }, deps = {}) {
 
 module.exports = {
   ALLOWED_TYPES,
+  FAILED_UPLOAD_TYPES,
   FAILED_PREFIX,
   PREFIX,
   REGION,

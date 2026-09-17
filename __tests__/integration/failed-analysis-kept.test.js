@@ -61,9 +61,16 @@ jest.mock('../../utils/uploads', () => {
 
 jest.mock('../../controllers/cornerDetection', () => ({ analyseImage: jest.fn() }));
 
+// Only reached for a document upload, so the image tests above are unaffected.
+jest.mock('../../utils/documentImage', () => {
+  const actual = jest.requireActual('../../utils/documentImage');
+  return { ...actual, extractEmbeddedImage: jest.fn() };
+});
+
 const request = require('supertest');
 const app = require('../../app');
-const { storeImage, FAILED_PREFIX } = require('../../utils/uploads');
+const { storeImage, FAILED_PREFIX, FAILED_UPLOAD_TYPES } = require('../../utils/uploads');
+const { extractEmbeddedImage } = require('../../utils/documentImage');
 const { analyseImage } = require('../../controllers/cornerDetection');
 
 // A real-enough JPEG: the two magic bytes are all any of this cares about.
@@ -157,5 +164,116 @@ describe('a genuine 500', () => {
     expect(res.status).toBe(500);
     expect(storeImage).toHaveBeenCalledTimes(1);
     expect(storeImage.mock.calls[0][0].prefix).toBe(FAILED_PREFIX);
+  });
+});
+
+// ── The same failure, on the document path — the hole HARD-36 left ───────────
+//
+// HARD-36 covered `analyse_scorecard`'s catch block. It could not cover a **4xx refusal**,
+// because those return from inside the try and never reach the catch, and it deliberately
+// skipped documents on the reasoning that `convertDocument` has already stored the image
+// before the OCR runs.
+//
+// That reasoning holds only when extraction SUCCEEDS. When no image can be pulled out,
+// nothing was stored under the ordinary prefix, the wrapper is discarded, and the refusal
+// logged nothing at all — so the one failure that most needs evidence kept none.
+//
+// Found in production on 17 Sep 2026. A captain's Aerospace card was refused:
+//
+//     13:41:21  400  41,713 bytes  POST /api/convert-scorecard-document
+//
+// and there was no log line, no Sentry event and no object anywhere. Three different
+// branches return 400 there and nothing recorded which one fired.
+const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const DOCX = Buffer.concat([Buffer.from([0x50, 0x4B, 0x03, 0x04]), Buffer.alloc(4096, 3)]);
+
+const uploadDoc = (route) => request(app)
+  .post(route)
+  .attach('scorecard', DOCX, { filename: 'aerospace-a-v-shell-c.docx', contentType: DOCX_TYPE });
+
+describe('when no image can be pulled out of a document', () => {
+  beforeEach(() => {
+    extractEmbeddedImage.mockReturnValue(null);
+    storeImage.mockResolvedValue({ key: `${FAILED_PREFIX}/20262027/abc-card.docx`, url: 'https://x/y.docx' });
+  });
+
+  it.each(['/api/convert-scorecard-document', '/api/analyse-scorecard'])(
+    'keeps the document itself, under the failed-analysis prefix: %s', async route => {
+      const res = await uploadDoc(route);
+
+      expect(res.status).toBe(400);
+      expect(storeImage).toHaveBeenCalledTimes(1);
+      const arg = storeImage.mock.calls[0][0];
+      expect(arg.prefix).toBe(FAILED_PREFIX);
+      // The WRAPPER, not an image — there is no image, which is the whole failure.
+      expect(arg.buffer.length).toBe(DOCX.length);
+      expect(arg.contentType).toBe(DOCX_TYPE);
+      // ALLOWED_TYPES has no docx and must not gain one: it guards the presigned PUT,
+      // where the content type is attacker-chosen.
+      expect(arg.types).toBe(FAILED_UPLOAD_TYPES);
+    });
+
+  it('says which check refused it, and where the file went', async () => {
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await uploadDoc('/api/convert-scorecard-document');
+
+    const logged = err.mock.calls.map(c => c.join(' ')).join('\n');
+    expect(logged).toMatch(/no image could be extracted/);
+    expect(logged).toMatch(new RegExp(FAILED_PREFIX));
+    err.mockRestore();
+  });
+
+  it('tells the captain the same thing as before, leaking nothing', async () => {
+    const res = await uploadDoc('/api/convert-scorecard-document');
+    expect(res.body.error).toMatch(/could not be pulled out of that file/i);
+    expect(JSON.stringify(res.body)).not.toMatch(/failed-analysis|s3|bucket|mimetype/i);
+  });
+
+  it('answers exactly the same when the store itself fails', async () => {
+    storeImage.mockRejectedValue(new Error('S3 is having a day'));
+    const res = await uploadDoc('/api/convert-scorecard-document');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/could not be pulled out of that file/i);
+  });
+});
+
+describe('a document that converts fine', () => {
+  it('is not also kept as diagnostic scrap', async () => {
+    extractEmbeddedImage.mockReturnValue({ buffer: JPEG, contentType: 'image/jpeg' });
+    storeImage.mockResolvedValue({ key: 'scorecards/20262027/real.jpg', url: 'https://x/real.jpg' });
+
+    const res = await uploadDoc('/api/convert-scorecard-document');
+
+    expect(res.status).toBe(200);
+    // Exactly one store, and it is the ordinary prefix — not a second copy under a
+    // 14-day expiry, which would quietly delete a photo the league is meant to keep.
+    expect(storeImage).toHaveBeenCalledTimes(1);
+    expect(storeImage.mock.calls[0][0].prefix).not.toBe(FAILED_PREFIX);
+  });
+});
+
+// The one refusal that keeps NOTHING, deliberately.
+//
+// This is a complaint about routing, not about content: an image posted to the document
+// endpoint. The content type explains it completely and is in the log line, so the bytes
+// would add nothing — and a scorecard photo carries twelve players' names and both
+// captains' signatures. "Keep everything we refused" is the easy rule and the wrong one.
+describe('a photo sent to the document endpoint', () => {
+  it('is refused and logged, but not kept', async () => {
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await request(app)
+      .post('/api/convert-scorecard-document')
+      .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/not a PDF or Word file/i);
+    expect(storeImage).not.toHaveBeenCalled();
+
+    const logged = err.mock.calls.map(c => c.join(' ')).join('\n');
+    expect(logged).toMatch(/not a document/);
+    expect(logged).toMatch(/image\/jpeg/);          // the whole diagnosis, in the line
+    expect(logged).toMatch(/nothing to learn from it/);
+    err.mockRestore();
   });
 });

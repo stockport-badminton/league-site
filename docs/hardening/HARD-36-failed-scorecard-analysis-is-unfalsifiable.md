@@ -108,3 +108,56 @@ retained log window — so this is a handful of objects a season, each deleted o
 The sibling finding is worth reading first: `controllers/cornerDetection.js`, the comment
 above `findAnchors` and the one above the `DATE` anchor. Between them they record what was
 measured on 16 Sep, and — more usefully — what was *not*, and why the difference mattered.
+
+---
+
+## Landed 16 Sep 2026 — and the first real failure went straight through the gap
+
+The code landed in `f8e5bf0` / `7445ab7`, the lifecycle rule is on the bucket
+(`expire-failed-scorecard-analysis`, `scorecards/failed-analysis/`, 14 days, verified
+17 Sep). Then on 17 Sep a captain's Aerospace card failed and **nothing was kept**.
+
+```
+13:41:21  400  41,713 bytes  POST /api/convert-scorecard-document
+```
+
+No log line, no Sentry event, no object anywhere — on the endpoint this package had just
+been written to make diagnosable. Two independent reasons, and both are worth keeping.
+
+### It only covered the catch block, and a refusal is not an exception
+
+`storeFailedImage` was called from `analyse_scorecard`'s `catch`. The **4xx refusals return
+from inside the `try`** and never reach it. Three separate branches in
+`convert_scorecard_document` return 400, and one more in `analyse_scorecard`, and none of
+them logged so much as which check had fired. A status code in the request log was the
+entire record.
+
+**Covering a catch block is not the same as covering the failures.** The path that throws
+is the one you think of; the path that politely declines is the one that actually runs.
+
+### The document exemption was right for a reason that did not hold
+
+`storeFailedImage` skipped documents deliberately: `convertDocument` stores the extracted
+image under the ordinary prefix *before* the OCR, so a second copy here would keep the same
+photo twice under two different retentions. True — **when extraction succeeds.**
+
+When no image can be pulled out, nothing was stored under the ordinary prefix, and the
+wrapper was discarded with the request. So the exemption was widest exactly where the
+evidence was scarcest: *we could not get an image out of your file* is the failure that most
+needs the file, and it was the one guaranteed to keep nothing.
+
+Fixed by `refuseUpload`, which keeps the upload **as it arrived** — the pdf or docx, not an
+image extracted from it, because on this path there is no image. `FAILED_UPLOAD_TYPES` is a
+separate list from `ALLOWED_TYPES` on purpose: the latter guards `/sign-s3`, where the
+content type is attacker-chosen and decides what the bucket will later serve, so adding
+`application/pdf` to it would be a security change. Nothing kept here is attacker-chosen in
+that sense — the bytes are already on the server, behind `secured`, private, deleted in 14
+days — and restricting it to formats the reader understands would keep only the cases that
+need no diagnosis.
+
+### Still true, and now asserted
+
+- A failed store never changes what the captain sees.
+- A document that converts fine is **not** also kept as scrap — that would put a photo the
+  league means to keep under a 14-day expiry.
+- Every refusal now says which check fired and where the file went.

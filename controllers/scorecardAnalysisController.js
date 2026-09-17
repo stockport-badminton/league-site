@@ -1,7 +1,7 @@
 const multer   = require('multer');
 const Sentry   = require('@sentry/node');
 const { extractEmbeddedImage, isRefusedArchive } = require('../utils/documentImage');
-const { storeImage, FAILED_PREFIX } = require('../utils/uploads');
+const { storeImage, FAILED_PREFIX, FAILED_UPLOAD_TYPES } = require('../utils/uploads');
 const { distance } = require('fastest-levenshtein');
 const { analyseImage }         = require('./cornerDetection');
 const { extractScorecardData } = require('./scorecardExtraction');
@@ -265,25 +265,85 @@ async function convertDocument(file) {
 //
 // Documents only. An image belongs on the presigned PUT from `/sign-s3`, which does not
 // pass the bytes through the server at all.
+// Keep whatever was uploaded, when we are about to refuse it.
+//
+// Wider than `storeFailedImage` below in two ways, and both matter. It keeps the file as
+// it ARRIVED — the pdf or docx, not an image pulled out of it — because on this path
+// there is no image: the failure IS that one could not be extracted. And it runs on the
+// **4xx refusals**, which return early and never reach the catch block, so nothing the
+// catch does could ever have covered them.
+//
+// Never throws and never changes what the captain sees. Their problem is the upload did
+// not work; "we also could not save your file" is not theirs to act on.
+async function keepUnreadableUpload(req) {
+  if (!req.file || !req.file.buffer || !req.file.buffer.length) return null;
+  try {
+    const { key } = await storeImage({
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype,
+      hint: req.file.originalname,
+      prefix: FAILED_PREFIX,
+      types: FAILED_UPLOAD_TYPES,
+    });
+    return key;
+  } catch (storeErr) {
+    console.warn('Could not keep the unreadable upload:', storeErr.message);
+    return null;
+  }
+}
+
+// Refuse an upload, keep it, and say which check refused it.
+//
+// Every one of these branches used to `return res.status(400).json(...)` and log nothing
+// at all, so a refusal left a status code in the request log and no other trace: not which
+// of the three checks fired, not the file. Measured 17 Sep 2026 — a captain's Aerospace
+// card was refused by this endpoint and there was no way to tell which branch did it, on
+// the very endpoint HARD-36 had just been written to make diagnosable.
+//
+// `reason` is for us and never reaches the captain; `error` is the captain's message and
+// is unchanged by any of this.
+//
+// `keep` is false where the file would tell us nothing. A refusal about ROUTING — an image
+// posted to the document endpoint — is completely explained by the content type, which is
+// in the log line; keeping the bytes would add nothing and a scorecard photo carries twelve
+// players' names and both captains' signatures. Only a refusal about CONTENT, where the
+// complaint is that we could not read the thing, needs the thing.
+async function refuseUpload(req, res, status, error, reason, { keep = true } = {}) {
+  const key = keep ? await keepUnreadableUpload(req) : null;
+  console.error(
+    'Scorecard upload refused:', reason,
+    key ? `[file: ${key}]` : keep ? '[file: not stored]' : '[file: not kept, nothing to learn from it]');
+  return res.status(status).json({ error });
+}
+
 exports.convert_scorecard_document = async function(req, res) {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) {
+      console.error('Scorecard upload refused: no file on the request [file: not stored]');
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
     if (!isDocumentUpload(req.file)) {
-      return res.status(400).json({
-        error: 'That is not a PDF or Word file. A photo does not need converting — ' +
-               'upload it directly.',
-      });
+      return refuseUpload(req, res, 400,
+        'That is not a PDF or Word file. A photo does not need converting — ' +
+        'upload it directly.',
+        `not a document (${req.file.mimetype})`,
+        { keep: false });
     }
 
     const { extracted, stored } = await convertDocument(req.file);
-    if (!extracted) return res.status(400).json({ error: CANNOT_EXTRACT });
+    if (!extracted) {
+      // The case this whole helper exists for. No image came out, so there is nothing
+      // under the ordinary prefix and the wrapper is the only evidence there will ever be.
+      return refuseUpload(req, res, 400, CANNOT_EXTRACT,
+        `no image could be extracted (${req.file.mimetype})`);
+    }
     if (!stored) {
       // Nothing else to fall back on here: unlike the analysis endpoint there is no
       // prefill to return, so a failed store IS the failure.
-      return res.status(502).json({
-        error: 'The photo was read out of your file but could not be saved. Please try ' +
-               'again, or upload a photo of the card instead.',
-      });
+      return refuseUpload(req, res, 502,
+        'The photo was read out of your file but could not be saved. Please try ' +
+        'again, or upload a photo of the card instead.',
+        'the extracted image could not be stored');
     }
 
     res.json({ url: stored.url, contentType: extracted.contentType });
@@ -303,9 +363,12 @@ exports.convert_scorecard_document = async function(req, res) {
 // helps nobody and is not theirs to act on. Same rule `convertDocument` already follows
 // for the document path, and the same rule `utils/afterCommit.js` states at length.
 //
-// A document upload is skipped: `convertDocument` has already stored the extracted image
-// under the ordinary prefix, before the OCR, precisely so it survives a failure. Writing
-// a second copy here would keep the same photo twice under two different retentions.
+// A document upload is skipped, and that is still right — but only because it is now
+// narrower than it looks. By the time this runs, extraction SUCCEEDED and `convertDocument`
+// has already stored the image under the ordinary prefix, so a second copy here would keep
+// the same photo twice under two different retentions. The case where extraction FAILED
+// never gets here at all: it returns 4xx from inside the try, and is kept by
+// `refuseUpload` above instead.
 async function storeFailedImage(req, isDocument) {
   if (isDocument) return null;
   if (!req.file || !req.file.buffer || !req.file.buffer.length) return null;
@@ -353,7 +416,12 @@ exports.analyse_scorecard = async function(req, res) {
     isDocument = isDocumentUpload(req.file);
     if (isDocument) {
       const { extracted, stored } = await convertDocument(req.file);
-      if (!extracted) return res.status(400).json({ error: CANNOT_EXTRACT });
+      if (!extracted) {
+        // Same hole as the convert endpoint had, for the same reason: this returns from
+        // inside the try, so the catch below — and `storeFailedImage` with it — never runs.
+        return refuseUpload(req, res, 400, CANNOT_EXTRACT,
+          `no image could be extracted (${req.file.mimetype})`);
+      }
       imageBuffer = extracted.buffer;
       storedPhoto = stored;
       // So a caller can reach the image rather than the wrapper.

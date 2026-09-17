@@ -436,7 +436,13 @@ describe('POST /api/convert-scorecard-document', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/could not be pulled out/i);
     expect(res.body.error).toMatch(/take a photo/i);
-    expect(mockS3Puts).toHaveLength(0);
+    // No CONVERTED image, because none could be extracted — that is the failure. The one
+    // put is the document itself, kept as diagnostic scrap under the 14-day prefix so the
+    // refusal can be checked against the file that caused it (HARD-36). This assertion
+    // used to be `toHaveLength(0)`, which was really "nothing was converted" written the
+    // loose way; naming the prefixes says which of the two it means.
+    expect(mockS3Puts.filter(p => !p.Key.startsWith('scorecards/failed-analysis/'))).toHaveLength(0);
+    expect(mockS3Puts.filter(p => p.Key.startsWith('scorecards/failed-analysis/'))).toHaveLength(1);
   });
 
   // Unlike the analysis endpoint there is no prefill to fall back on, so a failed store
