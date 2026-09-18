@@ -74,21 +74,49 @@ would break local database setup for everyone in order to tidy one hosted projec
 That is the general rule: a migration describes the schema the application needs, not the
 configuration of the machine it happens to run on.
 
-### The RLS on this database is decorative, and knowing that matters
+### The RLS on this database is inert, and the reason is not the obvious one
 
-73 of 75 public tables have RLS enabled with 142 policies, and **every policy tests
-`auth.role()`** — a JWT claim, which is `NULL` on a direct Postgres connection. Read
-literally they deny everything. Measured 18 Sep 2026: `current_user` is `postgres`,
-`auth.role()` is `NULL`, and `SELECT count(*) FROM team` still returns 55.
+Every public table has RLS enabled and exactly one policy:
 
-It works because the app connects as `postgres`, which **owns all 75 tables**, and an owner
-bypasses RLS unless the table is set to `FORCE ROW LEVEL SECURITY` — which none is.
+```sql
+CREATE POLICY "enable full access for postgres" ON public.<table>
+  AS PERMISSIVE FOR ALL TO postgres USING (true);
+```
 
-So: harmless today, and with the Data API off it protects nothing at all. But
-`ALTER TABLE … FORCE ROW LEVEL SECURITY` on any one table, or a connection as a non-owner
-role, would make that table return **zero rows silently** — no error, just empty results,
-which in this codebase is a blank page or a wrong answer rather than a crash. Do not enable
-FORCE, and do not change the connection role, without removing the policies first.
+**None of it ever applies to this application**, because the role it connects as —
+`postgres` — has **`rolbypassrls = true`**. That is a stronger exemption than owning the
+table: `FORCE ROW LEVEL SECURITY` makes an *owner* subject to policies, and does not touch
+`BYPASSRLS` at all. So RLS on this database is a statement about what PostgREST would see,
+and PostgREST is disabled.
+
+**An earlier version of this section said something else, and it was wrong.** It claimed
+the app survived on owner bypass and warned that enabling FORCE on any table would make it
+return zero rows silently. Measured 18 Sep 2026 inside a rolled-back transaction: with
+FORCE enabled on `division`, both the current policy *and* the old `auth.role() =
+'postgres'` one returned all 4 rows. That result made no sense under the owner-bypass
+story and is exactly what `rolbypassrls` predicts. There is no such landmine. Recorded
+because a warning that has quietly inverted is worse than no warning, and because the test
+that produced it was cheap — the claim had been asserted rather than checked.
+
+The consolidation happened because **Supabase's performance advisor reported 485 warnings
+and every one came from the policy set** (18 Sep 2026):
+
+| | |
+|---|---|
+| `multiple_permissive_policies` | 345 — 69 tables carried both an `ALL` and a `SELECT` policy, × 5 roles |
+| `auth_rls_initplan` | 140 — every policy called `auth.*` unwrapped, re-evaluated per row |
+
+One policy per table clears the first; no `auth.*` call clears the second. Verified 485 → 0.
+`scripts/rls-consolidate-policies.js`, dry by default, one transaction.
+
+Two things worth keeping:
+
+- **`auth.role()` is a JWT claim and is NULL on a direct connection**, so the old policies
+  read literally denied everything. They were never load-bearing; nothing noticed because
+  of `BYPASSRLS`.
+- **The dropped `allow_authenticated_select` granted any authenticated caller SELECT on 69
+  tables.** Inert while the Data API is off, and a real exposure the moment it is turned
+  back on. Nothing is granted to `anon` or `authenticated` now, so the default is deny.
 
 ## Authentication & Authorization
 
