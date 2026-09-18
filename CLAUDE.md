@@ -414,8 +414,26 @@ write, and the guard repeated in the `WHERE` clause of the write itself so a row
 changed between the read and the write can't be clobbered.
 
 `tools/audit/checks.js` holds the integrity checks — orphaned results, orphaned drafts,
-impossible scores, duplicate ranks, ghost teams, fixtures pointing at deleted teams.
-Each one found something real. Run `--check all` before and after any data work.
+impossible scores, duplicate ranks, ghost teams, fixtures pointing at deleted teams,
+officer pointers that disagree with the role flags. Each one found something real. Run
+`--check all` before and after any data work.
+
+**An officer is recorded two ways and they are not kept in step.** The old way is a
+pointer on the club or team — `club."matchSec"`, `club."clubSec"`, `team.captain` — and
+the new way is a flag on the player (`matchSecrertary`, `clubSecretary`, `teamCaptain`)
+read with that player's own club or team. `Player.getEmails` matches on **either**, per
+UNION branch, and the pointer side never looks at where the player actually is. So a
+pointer left behind when somebody changes club keeps them on that club's distribution
+lists for every division it plays in. Found 18 Sep 2026 from a permanent bounce on
+`division1@`: the recipient's record read "No Club / No Team" and she was still
+`club."matchSec"` for a club whose B team plays that division. It surfaced only because her
+mailbox had been disabled.
+
+The pointers are being retired and most are already NULL — but
+**`stale-officer-pointers` reports `flagged_equivalents` because that column decides what
+to do with a row.** 25 of the 29 remaining pointers have a flagged equivalent and clearing
+them changes nothing; the rest are the *only* record of that officer, so the obvious sweep
+would leave three real teams with no captain at all.
 
 One lesson already encoded there: **a data check must not inner-join to the data it is
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was
@@ -1371,6 +1389,21 @@ Key vars (see `.env` for examples):
    add-player modal posted `NaN` as the new id). **When mocking such a model in a
    test, mock `[{ id: 42 }]`, never `{ insertId: 42 }`** — the invented shape is
    exactly what let the scorecard bug live behind a green test.
+2d. **The query tuple has ONE element, and `affectedRows` hangs off the rows array.**
+   mysql2 returns `[rows, info]`; `pgQuery` returns `[rows]` and does
+   `rows.affectedRows = result.rowCount` before returning. So the natural
+   `const [, info] = await conn.query(...)` is **always `undefined`**, and
+   `(info && info.rowCount) || 0` is always `0` — silently, because `undefined` is falsy
+   and every caller has a fallback beside it. Read `const [rows] = …; rows.affectedRows`.
+   Measured: `SELECT id FROM team WHERE id IN (4,18)` returns a tuple of length 1 with
+   `rows.affectedRows === 2`.
+   Same family as 2b, and it bit the same way. `scripts/null-stale-officer-pointers.js`
+   cleared all four pointers it was asked to and reported **"committed — 0 of 4 cleared"**,
+   with a warning that rows had been skipped to avoid clobbering them. The writes were
+   right and the report was the exact opposite of the truth; it was caught only because the
+   run finished by re-querying and printing `remaining: 0`, which cannot both be true.
+   **A write script should end by re-reading the thing it changed**, precisely so a wrong
+   count cannot pass as a result.
 2c. **The `pg` Pool must keep its `'error'` listener.** `pg` emits `'error'` on the
    Pool when the backend hangs up on an **idle** client, and an EventEmitter `'error'`
    with no listener is an uncaught exception — so a connection Supabase reaped while
