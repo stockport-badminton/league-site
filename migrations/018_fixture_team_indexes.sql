@@ -1,0 +1,49 @@
+-- Index the two foreign keys migration 017 added.
+--
+-- A foreign key does not create an index on the REFERENCING side, and 017 did not add one.
+-- Postgres indexes the referenced side (`team.id`, the primary key) and leaves the other
+-- end to you, which is why "unindexed foreign key" is a standing lint rather than an
+-- exotic mistake — found here in the Supabase advisor review, 18 Sep 2026.
+--
+-- Two things get faster, and the second is the one 017 created:
+--
+--   * "the fixtures for team X", which the club and team pages ask constantly, and which
+--     is a sequential scan of every fixture ever played — the table keeps all of them,
+--     ~5,200 rows spanning 1900 to 2027, while `team` holds one season's 36.
+--   * **deleting or updating a team**, which now has to prove no fixture references it.
+--     Without an index that check is a full scan per row touched. 017's own header says
+--     deleting a team with fixtures should fail; this is what stops it being slow as well.
+--
+-- Measured rather than assumed, with the `index_advisor` extension already installed on
+-- this database:
+--
+--   SELECT * FROM extensions.index_advisor(
+--     'SELECT f.id, f.date FROM fixture f WHERE f."homeTeam" = 42 OR f."awayTeam" = 42');
+--
+--   total_cost_before  149.09
+--   total_cost_after    75.49
+--   index_statements   btree ("homeTeam"), btree ("awayTeam")
+--
+-- which is the same two indexes arrived at independently from the unindexed-foreign-key
+-- lint. Worth doing that check before adding any index: on a table this small the planner
+-- will often prefer a sequential scan anyway, and an index it never uses is write cost for
+-- nothing. Nine such indexes already exist on this database.
+--
+-- Quoted, because the columns are camelCase. Unquoted identifiers fold to lowercase and
+-- `homeTeam` would silently become `hometeam`, which is not a column — gotcha 1.
+--
+-- NOT CONCURRENTLY, deliberately. A plain CREATE INDEX takes a SHARE lock, which blocks
+-- writes to `fixture` while it builds but not reads; on 568 kB that is milliseconds.
+-- CONCURRENTLY trades that for a build that cannot run inside a transaction and can leave
+-- an INVALID index behind if it fails, which is a worse thing to own for no gain at this
+-- size.
+--
+-- Safe to apply before or after a deploy: it changes no behaviour and no code depends on
+-- it. Genuinely true here, unlike migration 015 where the same sentence was wrong.
+--
+--   node run-migration.js 018_fixture_team_indexes.sql --local   # rehearse
+--   node run-migration.js 018_fixture_team_indexes.sql           # production
+
+CREATE INDEX IF NOT EXISTS fixture_home_team_idx ON fixture ("homeTeam");
+
+CREATE INDEX IF NOT EXISTS fixture_away_team_idx ON fixture ("awayTeam");
