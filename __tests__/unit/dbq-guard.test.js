@@ -18,8 +18,43 @@ describe('what it refuses', () => {
     // Stripping comments for the semicolon test must not become a way past the other
     // tests: the write keyword is still visible to them.
     ['a write hidden after a comment', 'SELECT 1 --;\nDROP TABLE fixture', /write keyword/],
+    // The same, now that string literals are stripped too. The keyword is outside the
+    // literal, so removing the literal must not take it with it.
+    ['a write after a string literal',  "SELECT 'x' AS a DROP TABLE fixture", /write keyword/],
+    ['a second statement after a string', "SELECT 'a;b'; DELETE FROM fixture", /multiple statements/],
   ])('refuses %s', (_label, sql, expected) => {
     expect(() => assertReadOnly(sql)).toThrow(expected);
+  });
+});
+
+// Refusing a valid read is a failure too. It fails in the safe direction, which is why it
+// sat unnoticed — but this tool exists so nobody hand-rolls dotenv + pool boilerplate, and
+// one that refuses valid queries sends them straight back to doing exactly that.
+//
+// Both of these are real queries from the Supabase advisor review on 18 Sep 2026, and both
+// were refused.
+describe('the catalog queries it used to refuse', () => {
+  it('allows a semicolon inside a string literal', () => {
+    const sql = "SELECT 'no search_path set; prosecdef=' || p.prosecdef FROM pg_proc p";
+    expect(() => assertReadOnly(sql)).not.toThrow();
+  });
+
+  it('allows a write keyword inside a string literal', () => {
+    const sql = "SELECT regexp_replace(pg_get_indexdef(x.indexrelid), '^CREATE UNIQUE INDEX ', '') FROM pg_index x";
+    expect(() => assertReadOnly(sql)).not.toThrow();
+  });
+
+  it('allows a keyword inside a quoted identifier', () => {
+    expect(() => assertReadOnly('SELECT 1 AS "drop"')).not.toThrow();
+  });
+
+  it('allows a dollar-quoted block containing both', () => {
+    expect(() => assertReadOnly('SELECT $q$ DELETE FROM x; $q$ AS sample')).not.toThrow();
+  });
+
+  it('still returns the query unchanged, trailing semicolon aside', () => {
+    const sql = "SELECT 'a;b' AS x";
+    expect(assertReadOnly(sql + ';')).toBe(sql);
   });
 });
 

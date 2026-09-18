@@ -139,4 +139,27 @@ function preview(statement, max = 60) {
   return code.length > max ? code.slice(0, max).trimEnd() + '…' : code;
 }
 
-module.exports = { regionEnd, hasCode, splitStatements, preview };
+/**
+ * The same SQL with every non-code region replaced by a space: comments, string literals,
+ * quoted identifiers and dollar-quoted blocks all go.
+ *
+ * For scanning code for keywords. `tools/dbq.js` refused two legitimate catalog queries
+ * because it matched its forbidden-keyword list against the raw text — one had a `;` in a
+ * message string, the other the word CREATE inside a regex literal being used to tidy up
+ * `pg_get_indexdef` output. Neither could execute anything; both read like a write.
+ *
+ * A space rather than nothing, so removing a region can never join two tokens into one.
+ */
+function codeOnly(sql) {
+  let out = '';
+  let i = 0;
+  while (i < sql.length) {
+    const stop = regionEnd(sql, i);
+    if (stop > i) { out += ' '; i = stop; continue; }
+    out += sql[i];
+    i += 1;
+  }
+  return out;
+}
+
+module.exports = { regionEnd, hasCode, splitStatements, preview, codeOnly };

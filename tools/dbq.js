@@ -26,31 +26,49 @@ require('./lib/loadEnv').loadEnv({ local: process.argv.includes('--local') });
 
 const fs = require('fs');
 const db = require('../db_connect.js');
+const { splitStatements, codeOnly } = require('../utils/sqlScan');
 
 // A read is SELECT, or a WITH whose body is a SELECT. Everything else is refused
 // before it reaches the server — a guard here is cheaper than a restore.
+//
+// It is an accident-preventer, not a sandbox: it exists so a typed UPDATE cannot reach
+// production, not to contain somebody determined to write. Nothing installed on this
+// database executes SQL out of a string — there is no dblink and no postgres_fdw, checked
+// 18 Sep 2026 — so a keyword inside a literal is text and nothing more.
 const READ_ONLY = /^\s*(select|with|explain|show)\b/i;
 const FORBIDDEN = /\b(insert|update|delete|drop|truncate|alter|create|grant|revoke|copy|vacuum)\b/i;
 
 function assertReadOnly(sql) {
   const trimmed = sql.trim().replace(/;\s*$/, '');
-  // A `--` comment can legitimately contain a semicolon, and one in an audit check's
-  // explanatory comment used to be rejected as "multiple statements". Same blind spot
-  // HARD-18 records for run-migration.js, which splits on `;` with no regard for comments.
+
+  // Both text tests run against CODE ONLY — comments, string literals, quoted identifiers
+  // and dollar-quoted blocks removed — and they share `utils/sqlScan.js` with `pgify` and
+  // `run-migration.js` rather than keeping a fourth scanner that can drift.
   //
-  // Only the multi-statement test looks at the stripped text. Everything below still runs
-  // against the WHOLE query, so a write keyword hidden after a comment is still caught —
-  // and stripping comments can only reveal more of the statement to those tests, never
-  // less.
-  const withoutComments = trimmed.replace(/--[^\n]*/g, '');
-  if (withoutComments.includes(';')) {
+  // This started as a `--` comment carve-out: a semicolon in an audit check's explanatory
+  // comment was rejected as "multiple statements", the same blind spot HARD-18 records for
+  // run-migration.js splitting on `;`. Half a fix. On 18 Sep the keyword test refused two
+  // legitimate catalog queries for the same reason one layer along — a `;` inside a message
+  // string, and the word CREATE inside a regex literal used to tidy `pg_get_indexdef`
+  // output. Neither could execute anything; both read like a write.
+  //
+  // **A refusal to run a read is still a failure.** It fails in the safe direction, which
+  // is why it sat there — but the tool exists so nobody hand-rolls db boilerplate, and one
+  // that refuses valid queries sends them straight back to doing exactly that.
+  const code = codeOnly(trimmed);
+
+  // Counted, not searched for a `;`: the scanner already knows a trailing semicolon and a
+  // semicolon inside a region are not statement boundaries.
+  if (splitStatements(trimmed).length > 1) {
     throw new Error('multiple statements are not allowed — run one query at a time');
   }
   if (!READ_ONLY.test(trimmed)) {
     throw new Error('only SELECT / WITH / EXPLAIN / SHOW are allowed here.\n' +
       'A write belongs in a reviewed script under scripts/ with a dry run — see scripts/backfill-contact-emails.js.');
   }
-  if (FORBIDDEN.test(trimmed)) {
+  // Against `code`, so a keyword in a literal reads as the text it is. The statement still
+  // has to START with a read keyword, so this is a second lock on the same door.
+  if (FORBIDDEN.test(code)) {
     throw new Error('query contains a write keyword; refusing to run it against production');
   }
   return trimmed;
