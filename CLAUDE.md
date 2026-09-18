@@ -44,6 +44,52 @@ LEFT JOIN team ht ON f."homeTeam" = ht.id
 LEFT JOIN division d ON ht."division" = d.id
 ```
 
+### Settings that live in Supabase, not in this repo
+
+Grepping `migrations/` will not find these, the same way grepping for
+`ConfigurationSetName` does not find the SES configuration set. Recorded here because the
+scripts that applied them are under `scripts/`, which is gitignored.
+
+- **The Data API (PostgREST) is disabled**, Sep 2026. Nothing here ever used it: no
+  `@supabase/supabase-js`, no anon or service-role key in any env file, no `rest/v1` or
+  `graphql/v1` call anywhere. The app talks plain Postgres through
+  `new Pool({ connectionString: DATABASE_URL })`. Disabling it is what makes the RLS
+  advisories structurally inapplicable rather than individually silenced — RLS exists to
+  constrain the `anon` and `authenticated` roles that PostgREST authenticates as, and
+  without PostgREST nothing authenticates as either.
+- **`authenticator` has `pgrst.db_schemas = 'pgrst_no_exposed_schemas'`**, and that empty
+  schema exists. Disabling the Data API does not fully stop PostgREST: it keeps reloading
+  and falls back to a schema name that was never created, logging
+  `schema "pg_pgrst_no_exposed_schemas" does not exist` every time. Log noise, not a fault
+  — [Supabase's own page](https://supabase.com/docs/guides/troubleshooting/schema-pg_pgrst_no_exposed_schemas-does-not-exist)
+  says so. **The two names really do differ** (`pg_pgrst_…` in the error, `pgrst_…` in the
+  fix) and that is not a typo to tidy up: the name is arbitrary, and all that matters is
+  that the schema exists and is empty. `scripts/pgrst-no-exposed-schemas.js`, dry by
+  default.
+
+**Neither belongs in `migrations/`.** `tools/local-db.sh load` replays every numbered
+migration against a plain Postgres in Docker that has no `authenticator` role, and an
+error that is not "already exists" **stops the load**. A migration for either of these
+would break local database setup for everyone in order to tidy one hosted project's logs.
+That is the general rule: a migration describes the schema the application needs, not the
+configuration of the machine it happens to run on.
+
+### The RLS on this database is decorative, and knowing that matters
+
+73 of 75 public tables have RLS enabled with 142 policies, and **every policy tests
+`auth.role()`** — a JWT claim, which is `NULL` on a direct Postgres connection. Read
+literally they deny everything. Measured 18 Sep 2026: `current_user` is `postgres`,
+`auth.role()` is `NULL`, and `SELECT count(*) FROM team` still returns 55.
+
+It works because the app connects as `postgres`, which **owns all 75 tables**, and an owner
+bypasses RLS unless the table is set to `FORCE ROW LEVEL SECURITY` — which none is.
+
+So: harmless today, and with the Data API off it protects nothing at all. But
+`ALTER TABLE … FORCE ROW LEVEL SECURITY` on any one table, or a connection as a non-owner
+role, would make that table return **zero rows silently** — no error, just empty results,
+which in this codebase is a blank page or a wrong answer rather than a crash. Do not enable
+FORCE, and do not change the connection role, without removing the policies first.
+
 ## Authentication & Authorization
 
 ### Session & User Model
