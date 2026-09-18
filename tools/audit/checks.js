@@ -311,6 +311,82 @@ const CHECKS = [
       ORDER BY occurred_at DESC, email`
   },
   {
+    // Officer pointers that disagree with the role flags.
+    //
+    // There are two ways to record an officer and they are not kept in step. The old way
+    // is a POINTER on the club or team — `club."matchSec"`, `club."clubSec"`,
+    // `team.captain`, each holding a player id. The new way is a FLAG on the player —
+    // `matchSecrertary`, `clubSecretary`, `teamCaptain` — read together with that player's
+    // own club or team. The pointers are being retired; most are already NULL.
+    //
+    // `Player.getEmails` matches on EITHER, per UNION branch:
+    //
+    //     JOIN player ON a."matchSec" = player.id
+    //                 OR (player."matchSecrertary" = 1 AND a.id = player.club)
+    //
+    // The left side never looks at where the player actually is. So a pointer left behind
+    // when somebody moves club keeps them on that club's distribution lists for every
+    // division it plays in, while their own record says they are somewhere else entirely.
+    //
+    // Found 18 Sep 2026 from the other end: a permanent bounce on `division1@` was traced
+    // to a player whose record reads "No Club / No Team" and who was still
+    // `club."matchSec"` for Syddal Park, whose B team plays in that division. It only
+    // surfaced because her mailbox had been disabled. Three other pointers were aimed at
+    // people who had moved club and nothing had noticed.
+    //
+    // Two exclusions, both there so the row count stays a decision rather than a backdrop.
+    //
+    // **Withdrawn teams are skipped.** HARD-10's withdrawal flow sets `withdrawn` and NULLs
+    // the division; a team that has stopped playing having no flagged captain is the
+    // expected end state, not a finding. Without this, every withdrawal adds a row that is
+    // never actionable and never goes away — Parrswood C withdrew on 17 Sep 2026 and
+    // appeared here the next morning.
+    //
+    // **Club 63, `No Club`, is skipped.** It is the bucket for players who are not at a
+    // club, and its officer pointer aims at a player literally called `No Player`. The same
+    // placeholder is already excluded from the invoice run on purpose.
+    //
+    // **`orphaned` is the column that decides what to do about a row.** Where a flagged
+    // equivalent exists the pointer is redundant and clearing it changes nothing. Where
+    // one does not, the pointer is the ONLY record of that officer, and nulling it — the
+    // obvious sweep — silently leaves the team with no captain at all.
+    name: 'stale-officer-pointers',
+    description: 'Club/team officer pointers that disagree with the player role flags',
+    severity: 'medium',
+    sql: `
+      WITH pointers AS (
+        SELECT 'club.matchSec' AS pointer, c.name AS on_record, c.id AS owner_club,
+               NULL::int AS owner_team, p.id AS player_id,
+               trim(p.first_name || ' ' || p.family_name) AS officer,
+               p.club AS player_club, p.team AS player_team,
+               (SELECT count(*) FROM player f WHERE f.club = c.id AND f."matchSecrertary" = 1) AS flagged
+          FROM club c JOIN player p ON p.id = c."matchSec"
+        UNION ALL
+        SELECT 'club.clubSec', c.name, c.id, NULL::int, p.id,
+               trim(p.first_name || ' ' || p.family_name), p.club, p.team,
+               (SELECT count(*) FROM player f WHERE f.club = c.id AND f."clubSecretary" = 1)
+          FROM club c JOIN player p ON p.id = c."clubSec"
+        UNION ALL
+        SELECT 'team.captain', t.name, t.club, t.id, p.id,
+               trim(p.first_name || ' ' || p.family_name), p.club, p.team,
+               (SELECT count(*) FROM player f WHERE f.team = t.id AND f."teamCaptain" = 1)
+          FROM team t JOIN player p ON p.id = t.captain
+         WHERE t.withdrawn IS NULL
+      )
+      SELECT pointer, on_record, officer,
+             CASE WHEN owner_team IS NOT NULL THEN player_team IS DISTINCT FROM owner_team
+                  ELSE player_club IS DISTINCT FROM owner_club END AS moved_on,
+             flagged AS flagged_equivalents,
+             CASE WHEN flagged = 0 THEN 'only record — do NOT just null it'
+                  ELSE 'redundant — safe to null' END AS orphaned
+        FROM pointers
+       WHERE owner_club <> 63
+         AND (flagged = 0
+              OR (CASE WHEN owner_team IS NOT NULL THEN player_team IS DISTINCT FROM owner_team
+                       ELSE player_club IS DISTINCT FROM owner_club END))
+       ORDER BY flagged, pointer, on_record`
+  },
+  {
     name: 'missing-contact',
     description: 'Officers (captain, club or match secretary) with no contact email',
     severity: 'medium',
