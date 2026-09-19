@@ -104,22 +104,40 @@ The original steps, for the record:
    social routes. It currently lets anyone on the internet trigger an ffmpeg encode on
    Cloud Run, repeatedly. The S3 lock blunts that and is not an authorization control.
 
-### Phase 2 — ask Meta what it accepts, before building anything
+### Phase 2 — ask Meta what it accepts — **DONE 20 Sep 2026, and all three worries were wrong**
 
-**Creating a media container is free and publishes nothing**, and it is how the PNG problem
-was proved from Meta's side. Once phase 1 is deployed, for each aspect create an Instagram
-container and a Facebook `published=false` video, and read back what it says.
+Measured with the free tests: an Instagram media container asks Meta to fetch and validate
+the video and publishes nothing (it expires in 24h), and a Facebook video with
+`published=false` uploads and stays invisible. Both aspects, both platforms:
 
-Three things need answering and none should be guessed:
+```
+16-9   instagram REELS : container 18352028341301893 -> FINISHED
+       facebook video  : accepted, unpublished (deleted)
+1-1    instagram REELS : container 18352028470301893 -> FINISHED
+       facebook video  : accepted, unpublished (deleted)
+```
 
-- **Instagram video is Reels-only** now, and Reels wants **9:16**. We render 16:9 and 1:1.
-  A 4:5 source letterboxed into 16:9 and then into 9:16 would be bars inside bars.
-- **There is no audio track.** Confirmed with `ffprobe` — one video stream, nothing else.
-  Reels has historically been fussy about this.
-- **The source images are 1080x1350 (4:5)**, the same portrait card as results and
-  fixtures. 16:9 gives enormous side bars even when letterboxed correctly. A 9:16 or 4:5
-  render may simply be the right answer, in which case the two existing aspects are the
-  wrong two.
+This package previously listed three things that "need answering and none should be
+guessed". All three were guessed wrong:
+
+| Worry | Reality |
+|---|---|
+| Reels wants 9:16, so 16:9 and 1:1 may be refused | **Both reach `FINISHED`.** 9:16 is a preference, not a requirement |
+| No audio track — Reels is fussy about this | **Not fussy.** Both transcoded with a silent track |
+| A 4:5 source letterboxed into 16:9 then into 9:16 would be bars inside bars | True of how it *looks*, and irrelevant to whether it is accepted |
+
+**`FINISHED` means Meta will accept and publish it. It does not mean it looks good** — and
+that is the only question the container test cannot answer. A 16:9 video in a Reels slot is
+still pillarboxed twice over. Acceptance and presentation are different questions, and it
+was easy to conflate them while the feature was unfetchable and neither could be asked.
+
+**So what remains is editorial, not technical.** The source cards are 1080x1350 (4:5), the
+same portrait card as results and fixtures. A video rendered at 4:5 would need **no
+letterboxing at all** — no bars, every pixel content — and 0.8 is comfortably inside the
+range Reels accepts. The two aspects that exist were chosen before any of this was
+measurable, and 16:9 in particular is a landscape frame carrying portrait content. Adding a
+4:5 render to `VIDEO_KEYS` and dropping 16:9 is probably the right shape, but it is a
+decision about how the league's posts should look, not a constraint Meta imposes.
 
 ### Phase 3 — publish
 
