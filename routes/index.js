@@ -162,8 +162,20 @@ router.get('/admin/social/weekly-fixtures', secured, requireClubAccess.requireSu
 router.post('/admin/social/weekly-fixtures', requireSocialCaller, weekly_fixtures_controller.run);
 
 
-// Social video generation
-router.get('/api/social/generate-weekly-video', social_video_controller.generateWeeklyVideo);
+// The weekly results video.
+//
+// The read path is public and unauthenticated for the same reason the league-table and
+// fixtures images are: **Meta fetches `video_url` from its own servers**, so anything
+// gated here could not be posted. The objects themselves stay private in S3 — this route
+// is what replaces the bucket URL that answered 403 (HARD-21).
+router.get('/social-video/:aspect', mediaLimiter, social_video_controller.serveWeeklyVideo);
+
+// Generating, however, is gated. This used to be open to the internet, and it starts an
+// ffmpeg encode on Cloud Run that takes ~36 seconds — anyone who knew the URL could run
+// that as often as they liked. The S3 lock blunts it and is not an authorization control.
+// Sixth caller of the same gate: a scheduler token or a superadmin session, never a
+// redirect.
+router.get('/api/social/generate-weekly-video', requireSocialCaller, social_video_controller.generateWeeklyVideo);
 
 router.get('/logout', function(req, res, next) {
   req.logout(function(err) {

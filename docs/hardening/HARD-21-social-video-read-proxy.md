@@ -64,15 +64,30 @@ The 1:1 output looked right throughout, by coincidence — ratio 1:1 of a 1080-w
 **Fixed**, with `letterboxArgs()` extracted so the order is asserted without ImageMagick
 present: `__tests__/unit/social-video-letterbox.test.js`.
 
-### 3. The bucket URL still 403s
+### 3. The bucket URL still 403s — **fixed 20 Sep, phase 1**
 
-The original finding, unchanged. `uploadVideoToS3` sets no ACL and no bucket policy grants
+The original finding. `uploadVideoToS3` sets no ACL and no bucket policy grants
 public read, while the handler returns `https://<bucket>.s3.eu-west-1.amazonaws.com/…`.
-**Not yet fixed** — see phase 1.
+Replaced by `GET /social-video/:aspect`, which streams the object through our own domain.
+The objects stay private.
 
 ## What to do
 
-### Phase 1 — make it reachable, and close the open encode
+### Phase 1 — make it reachable, and close the open encode — **DONE 20 Sep 2026**
+
+`GET /social-video/:aspect` (`serveWeeklyVideo`), `requireSocialCaller` on the generator,
+and `socialVideoPath()` in `utils/canonical.js` so the URL is built in one place like every
+other media URL on the site. `__tests__/integration/social-video-read.test.js`.
+
+**One thing that test got wrong first, and it is the reusable part.** The traversal cases
+asserted only a 404 — which a handler interpolating `req.params.aspect` straight into the
+key would *also* return, because the mocked bucket holds no such object. It passed against
+the vulnerable version. It now asserts **the key that actually reached S3**, which is the
+only form of the question that tells the two implementations apart. Same mistake as the
+"different divisions use different backgrounds" test on the fixtures card: asserting an
+outcome that both the fix and the bug produce.
+
+The original steps, for the record:
 
 1. `GET /social-video/:aspect`, aspect constrained to `16-9` / `1-1` resolving to two known
    keys. **Never take a key from the request.** Copy `/scorecard-photo/:id`, which attaches

@@ -6,8 +6,25 @@ const { S3Client, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = r
 
 const execFileAsync = promisify(execFile);
 
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
+const { absoluteUrl, socialVideoPath } = require('../utils/canonical');
+
 const s3 = new S3Client({ region: 'eu-west-1' });
 const S3_PREFIX = 'social-videos';
+
+// The aspects, and the only keys this file will ever read or write.
+//
+// Defined once because two things need them — the generator and the read path below — and
+// a read path that resolved its own key could drift from the writer without anything
+// failing until the day somebody looked. **`aspect` is a lookup into this object, never a
+// path fragment**: nothing a caller sends reaches `Key`.
+const VIDEO_KEYS = {
+  '16-9': `${S3_PREFIX}/weekly-video-16_9.mp4`,
+  '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`,
+};
+const LOCK_KEY = `${S3_PREFIX}/.generating`;
+
+exports.VIDEO_KEYS = VIDEO_KEYS;
 
 /**
  * Generate weekly video from fixture results
@@ -19,6 +36,64 @@ const S3_PREFIX = 'social-videos';
  *   - aspect: '16-9', '1-1', or 'both' (default: both)
  *   - transition: 'fade' (default: fade) - for MVP, only fade is supported
  */
+// GET /social-video/:aspect — stream one of the two weekly videos.
+//
+// The objects are private and stay that way. `uploadVideoToS3` sets no ACL and no bucket
+// policy grants public read, so the bucket URL the generate endpoint used to hand out
+// answered 403 to everyone who tried it (HARD-21). **Do not "fix" that by making the
+// objects public** — this is the read path instead, the third instance of a pattern
+// already in `app.js` (the venues map) and `/scorecard-photo/:id`.
+//
+// Unauthenticated on purpose, like the league-table and fixtures images: **Meta fetches
+// `video_url` from Meta's own servers**, so anything gated here cannot be posted. It shows
+// nothing that is not already on the results page.
+//
+// `aspect` is looked up in VIDEO_KEYS and is never used to build a key. An unknown one is
+// a 404 rather than a lookup miss further down.
+exports.serveWeeklyVideo = async function(req, res, next) {
+  try {
+    const key = Object.prototype.hasOwnProperty.call(VIDEO_KEYS, req.params.aspect)
+      ? VIDEO_KEYS[req.params.aspect]
+      : null;
+
+    // `no-store` on the miss, and that is not tidiness. Firebase Hosting applies its own
+    // max-age to a response that sets no Cache-Control, and **Meta retries** — so a
+    // transient 404, a deploy in flight, a video not generated yet, gets cached and the
+    // retry hits the cache rather than the fixed route. The window outlives the fault.
+    // Same reasoning as the social images in socialController.
+    if (!key) {
+      return res.status(404).set('Cache-Control', 'no-store').type('text/plain')
+        .send('No such aspect. Known: ' + Object.keys(VIDEO_KEYS).join(', '));
+    }
+
+    let obj;
+    try {
+      obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+    } catch (err) {
+      // Not generated yet is a 404, not a 500 — and must not be cached either.
+      return res.status(404).set('Cache-Control', 'no-store').type('text/plain')
+        .send('That video has not been generated yet');
+    }
+
+    res.set('Content-Type', 'video/mp4');
+    res.set('X-Content-Type-Options', 'nosniff');
+    // `public`, unlike the scorecard photo beside it: there is nothing private here, it is
+    // about to be posted publicly. Short, because the video is regenerated weekly and on
+    // demand, so a long-lived copy could outlast the results it shows.
+    res.set('Cache-Control', 'public, max-age=300');
+    if (obj.ContentLength) res.set('Content-Length', String(obj.ContentLength));
+
+    // The stream needs its own 'error' listener or a mid-transfer failure is an unhandled
+    // 'error' on an EventEmitter, which takes the instance down — gotcha 2c, and the same
+    // thing /scorecard-photo/:id does. The venues-map route omits it; do not copy that one.
+    // Headers are already sent by this point, so all that is left is to stop talking.
+    obj.Body.on('error', () => res.destroy());
+    obj.Body.pipe(res);
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.generateWeeklyVideo = async function(req, res, next) {
   try {
     const duration = parseInt(req.query.duration) || 3;
@@ -45,11 +120,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     // Deduplication: use S3 lock file + video timestamps to prevent concurrent generation
     const dedupeWindow = 65000; // 65 seconds (slightly longer than generation time)
     const lockTimeout = 120000; // 120 seconds (timeout for stale locks)
-    const s3Keys = {
-      '16-9': `${S3_PREFIX}/weekly-video-16_9.mp4`,
-      '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`,
-      'lock': `${S3_PREFIX}/.generating`
-    };
+    const s3Keys = { ...VIDEO_KEYS, lock: LOCK_KEY };
 
     // Try to acquire lock and check for recent videos (retry once if lock is active)
     console.log(`[DEDUP] Attempt 0: checking for recent videos and lock...`);
@@ -80,8 +151,8 @@ exports.generateWeeklyVideo = async function(req, res, next) {
             week: weekLabel,
             cached: true,
             videos: {
-              '16-9': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`,
-              '1-1': `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`
+              '16-9': absoluteUrl(socialVideoPath('16-9')),
+              '1-1': absoluteUrl(socialVideoPath('1-1'))
             }
           });
         }
@@ -206,7 +277,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       );
       // Upload to S3
       await uploadVideoToS3(video16_9, s3Keys['16-9']);
-      videos['16-9'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`;
+      videos['16-9'] = absoluteUrl(socialVideoPath('16-9'));
     }
 
     if (['1-1', 'both'].includes(aspect)) {
@@ -216,7 +287,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       );
       // Upload to S3
       await uploadVideoToS3(video1_1, s3Keys['1-1']);
-      videos['1-1'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['1-1']}`;
+      videos['1-1'] = absoluteUrl(socialVideoPath('1-1'));
     }
 
     // Delete lock file to signal other instances

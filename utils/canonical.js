@@ -154,6 +154,19 @@ function fixturesImagePath(divisionName) {
   return '/fixtures-image/' + encodeURIComponent(String(divisionName ?? '')) + '.jpg';
 }
 
+// The weekly results video, read back through our own domain rather than the bucket.
+//
+// The objects are private — `uploadVideoToS3` sets no ACL and no bucket policy grants
+// public read — so the `https://<bucket>.s3.…` URL the generate endpoint used to hand out
+// answered 403 to everyone who tried it. That is HARD-21.
+//
+// `aspect` is an enum the route resolves to one of two fixed keys; nothing the caller
+// sends ever reaches `Key`. Here for the same reason as its neighbours: a URL that goes to
+// a third party is built in one place, so the route and the caller cannot disagree.
+function socialVideoPath(aspect) {
+  return '/social-video/' + encodeURIComponent(String(aspect ?? ''));
+}
+
 // A club's own public page. Same reasoning as eventPath: it is built in one place so
 // the link on /info/clubs, the sitemap entry and the `url` in the club's SportsClub
 // markup cannot disagree.
@@ -177,6 +190,6 @@ function localYmd(date) {
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
   eventPath, clubPath, clubSlug, localYmd, resultImagePath,
-  leagueTableImagePath, tournamentImagePath, fixturesImagePath,
+  leagueTableImagePath, tournamentImagePath, fixturesImagePath, socialVideoPath,
   DEFAULT_ORIGIN,
 };
