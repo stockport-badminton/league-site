@@ -1,101 +1,133 @@
-# HARD-21 — The weekly social video has no readable URL
+# HARD-21 — The weekly social video has never worked, in three separate ways
 
-**Severity:** low, but **dated** — must land before the first weekly video of the season
-**Wave:** C · **Blocked by:** nothing
-**Owns:** `controllers/socialVideoController.js`, one new route in `routes/index.js`
-**Source:** found auditing the bucket for HARD-02b, 1 Sep 2026
+**Severity:** low · **Wave:** C · **Blocked by:** nothing
+**Owns:** `controllers/socialVideoController.js`, `utils/metaPublisher.js`, routes
+**Source:** found auditing the bucket for HARD-02b, 1 Sep 2026.
+**Re-briefed 19 Sep 2026** — the original package solved a problem that no longer exists,
+and running the feature for the first time turned up two more faults.
 
-## Why
+## The premise changed, and the decision is to rebuild
 
-`GET /api/social/generate-weekly-video` builds the week's results video, uploads it to S3
-and answers with a URL for Make.com, which downloads it and posts it to social media.
+The package as written said: `GET /api/social/generate-weekly-video` answers with a public
+bucket URL that 403s, so give Make.com a URL it can fetch. **Make.com is gone** — every
+scenario disabled 15 Sep — and nothing has called this endpoint since. Zero requests in the
+whole 30-day log window; the only references in the codebase are its own route definition
+and docstring; nothing links to it.
 
-The URL it answers with is a **public bucket URL**:
+So the question was whether to delete it or finish it. **Decision (19 Sep): finish it** —
+the video posts to Meta itself, the way results, tables and fixtures now do.
 
-```js
-videos['16-9'] = `https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com/${s3Keys['16-9']}`;
+## What running it for the first time found
+
+The objects in S3 were dated **27 May 2026** — one development run, four months earlier.
+Calling the endpoint on production on 19 Sep produced three findings.
+
+### 1. A stale lock deadlocks the feature permanently
+
+The first call answered `202 — "Video generation in progress by another instance"`. There
+was no other instance. The `[DEDUP]` trace says it plainly:
+
+```
+Lock file exists! Age=9963441s (lockTimeout=120s)
+Lock file is stale (9963441s > 120s), proceeding with generation
+Proceeding with generation (breaking loop)
+Creating lock file to signal other instances...
+Lock file already created by another instance, checking for new videos...
 ```
 
-That URL returns **403**. `uploadVideoToS3` sets no `ACL`, so the objects were never
-publicly readable:
+The stale-lock branch **recognised** the lock and did not **delete** it. The atomic create
+that follows uses `IfNoneMatch: '*'`, which fails if the object exists at all — stale or
+not. So one interrupted run kills the feature for ever, and reports it as a concurrent run
+that does not exist.
 
-```js
-await s3.send(new PutObjectCommand({
-  Bucket: process.env.S3_BUCKET_NAME,
-  Key: s3Key,
-  Body: fileContent,
-  ContentType: 'video/mp4'
-}));   // no ACL, and no bucket policy grants public read either
-```
+The encode takes ~36s on Cloud Run, so a scale-down, a deploy or a timeout mid-generation
+is not exotic. Something did exactly that on 27 May and the endpoint answered 202 for
+**115 days**. **Fixed**: the stale branch deletes the lock before proceeding.
 
-Verified 1 Sep 2026 by anonymous `HEAD` against both
-`social-videos/weekly-video-16_9.mp4` and `…-1_1.mp4`.
+### 2. The slides were stretched, not letterboxed — and two bugs hid each other
 
-**This is not a regression, and nothing is broken today.** It has never worked. The
-feature was built over the summer, the season had not started, and no weekly video has
-been generated in anger — so the first real run is when Make.com would have failed to
-fetch. Confirmed with the owner: Make.com's only job is to download the file and upload
-it to social, so a plain readable URL is all it needs.
+One `convert` invocation, two faults:
 
-It is explicitly **not** HARD-02b's doing. That package made *new scorecard photos*
-private; it never touched `social-videos/`, and the runbook's claim that these objects are
-public — and would be broken by Block Public Access — was simply out of date. Corrected in
-that package's file.
+- **`-resize 1920:1080`** — a colon is an **aspect ratio** in ImageMagick geometry, not a
+  size. It forces the image to 16:9 by distorting it. A 1080x1350 result card came out
+  **1080x608**, a third of the intended pixels, with every word visibly stretched.
+- **`-extent` before `-gravity`/`-background`** — those only affect operators that come
+  after them, so the padding used ImageMagick's defaults: **NorthWest, and white**.
+
+The second was invisible because of the first: `-resize` with a ratio had already forced
+the exact target aspect, leaving `-extent` nothing to pad. **Correct the colon alone and
+the card lands top-left against white bars**, which is worse than what shipped.
+
+The 1:1 output looked right throughout, by coincidence — ratio 1:1 of a 1080-wide image is
+1080x1080, exactly the size intended. Only 16:9 showed the damage, and nobody had looked.
+
+**Fixed**, with `letterboxArgs()` extracted so the order is asserted without ImageMagick
+present: `__tests__/unit/social-video-letterbox.test.js`.
+
+### 3. The bucket URL still 403s
+
+The original finding, unchanged. `uploadVideoToS3` sets no ACL and no bucket policy grants
+public read, while the handler returns `https://<bucket>.s3.eu-west-1.amazonaws.com/…`.
+**Not yet fixed** — see phase 1.
 
 ## What to do
 
-Add a read proxy and return its URL instead of the bucket URL. This is the **third**
-instance of a pattern already in the codebase, so follow the existing ones rather than
-inventing a fourth shape:
+### Phase 1 — make it reachable, and close the open encode
 
-- `GET /static/generated/venues-map.png` in `app.js` (~line 174) — the simplest version.
-- `GET /scorecard-photo/:id` in `routes/index.js` — the careful version, and the better
-  model. Copy from this one.
+1. `GET /social-video/:aspect`, aspect constrained to `16-9` / `1-1` resolving to two known
+   keys. **Never take a key from the request.** Copy `/scorecard-photo/:id`, which attaches
+   an `'error'` listener to `obj.Body` before piping — a mid-transfer failure is otherwise
+   an unhandled EventEmitter `'error'` and takes the instance down (gotcha 2c). The
+   venues-map route omits that; do not copy it.
+2. `mediaLimiter`, as `/scorecard-photo/:id` uses. These are 1–2MB objects on a route that
+   must stay unauthenticated, because **Meta fetches it from Meta's servers**.
+3. Return that URL from the generate endpoint, built with `absoluteUrl()` — never
+   `req.get('host')`, which behind Firebase is the Cloud Run hostname (gotcha 1b).
+4. `Cache-Control: public`, short max-age. Nothing here is private; it is about to be
+   posted. A 404 must be `no-store` — Meta retries, and a cached miss outlives the fault.
+5. **Gate `/api/social/generate-weekly-video`** with `requireSocialCaller`, like the other
+   social routes. It currently lets anyone on the internet trigger an ffmpeg encode on
+   Cloud Run, repeatedly. The S3 lock blunts that and is not an authorization control.
 
-Specifically:
+### Phase 2 — ask Meta what it accepts, before building anything
 
-1. A route — `GET /social-video/:aspect` with `aspect` constrained to `16-9` / `1-1`,
-   resolving to the two known keys. **Never take a key from the request**; the aspect is
-   an enum, not a path.
-2. Stream it with `GetObjectCommand`, `Content-Type: video/mp4`. Attach an `'error'`
-   listener to `obj.Body` before piping — a mid-transfer failure is otherwise an
-   unhandled `'error'` on an EventEmitter, which takes the instance down. Same shape as
-   gotcha 2c and as the scorecard-photo route, which does this and the venues-map route
-   does not.
-3. `mediaLimiter` from `middleware/rateLimit.js`, as `/scorecard-photo/:id` uses. These
-   are 1–2MB objects and the route is necessarily unauthenticated.
-4. **Build the returned URL with `absoluteUrl()` from `utils/canonical.js`**, never
-   `req.get('host')`. This URL is handed to a third party: behind Firebase the Host header
-   is the *Cloud Run* one, so `req.get('host')` would hand Make.com
-   `league-site-akvq7tsxuq-nw.a.run.app`. That is gotcha 1b, and it is exactly the class
-   of bug that put the wrong canonical on every page of the site.
-5. Cache headers: `public`, short max-age. Unlike a scorecard photo there is nothing
-   private here — it is about to be posted publicly — so `public` is correct and
-   `Cache-Control: private` would be cargo-culting from the photo route.
+**Creating a media container is free and publishes nothing**, and it is how the PNG problem
+was proved from Meta's side. Once phase 1 is deployed, for each aspect create an Instagram
+container and a Facebook `published=false` video, and read back what it says.
+
+Three things need answering and none should be guessed:
+
+- **Instagram video is Reels-only** now, and Reels wants **9:16**. We render 16:9 and 1:1.
+  A 4:5 source letterboxed into 16:9 and then into 9:16 would be bars inside bars.
+- **There is no audio track.** Confirmed with `ffprobe` — one video stream, nothing else.
+  Reels has historically been fussy about this.
+- **The source images are 1080x1350 (4:5)**, the same portrait card as results and
+  fixtures. 16:9 gives enormous side bars even when letterboxed correctly. A 9:16 or 4:5
+  render may simply be the right answer, in which case the two existing aspects are the
+  wrong two.
+
+### Phase 3 — publish
+
+`metaPublisher` is images-only today. Video needs a different shape from photos: the
+container is not ready immediately, so it must be **polled on `status_code` until
+`FINISHED`** before `media_publish`. Facebook takes `POST /{page-id}/videos` with
+`file_url`. Then `POST /admin/social/weekly-video` behind `requireSocialCaller` with
+`?dry=1`, a `GET` preview, and a scheduler job — the same shape as the tables and fixtures
+posts.
 
 ## Acceptance criteria
 
-- `GET /social-video/16-9` and `/social-video/1-1` return `200 video/mp4` for the objects
-  currently in the bucket.
-- The JSON from `/api/social/generate-weekly-video` contains those URLs on our own
-  domain, and no `*.s3.*.amazonaws.com` URL.
-- An unknown aspect is a 404, and no request-supplied string ever reaches `Key`.
-- The objects stay private in S3 — this must not be "fixed" by adding
-  `ACL: 'public-read'` back to the upload.
-- Tests: a served video, the aspect enum rejecting junk, and an assertion that the
-  returned URL is on the site's own origin.
-
-## While you are in here — separate decision, do not silently fix
-
-`GET /api/social/generate-weekly-video` carries **no authentication and no rate limiter**.
-An anonymous caller can trigger an ffmpeg encode on Cloud Run, repeatedly. There is an S3
-lock file and a 65-second dedupe window, which blunts it but is not an authorization
-control. That is a compute-cost and availability question rather than a data one, and it
-changes how Make.com calls the endpoint, so it wants its own decision — raise it rather
-than folding it into this package.
+- `GET /social-video/16-9` and `/social-video/1-1` return `200 video/mp4`.
+- The generate endpoint returns URLs on our own domain and no `*.s3.*.amazonaws.com` URL.
+- An unknown aspect is a 404 with `no-store`, and no request-supplied string reaches `Key`.
+- The generate endpoint answers 403 to an anonymous caller.
+- The objects stay private in S3. **Do not "fix" the 403 by adding `ACL: 'public-read'`.**
+- An interrupted run does not brick the feature — the stale lock is cleared, not just noticed.
+- Slides are letterboxed, centred, on black.
 
 ## Out of scope
 
-- Making the video objects public again. That is the thing this package exists to avoid.
-- Block Public Access on the bucket (HARD-02b step 4).
-- Anything about how Make.com authenticates *to* social platforms.
+- Making the video objects public. That is the thing this package exists to avoid.
+- Block Public Access on the bucket (HARD-02b step 4) — and note **HARD-22's ordering note
+  points here**: it says to fix the reader before locking the bucket so nobody later
+  misdiagnoses "the lockdown broke the videos".

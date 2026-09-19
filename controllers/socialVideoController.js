@@ -118,7 +118,25 @@ exports.generateWeeklyVideo = async function(req, res, next) {
             });
           }
         } else {
-          console.log(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), proceeding with generation`);
+          // Recognising a stale lock is not enough — it has to be DELETED.
+          //
+          // The atomic create below uses `IfNoneMatch: '*'`, which fails if the object
+          // exists at all, stale or not. So this branch used to log "proceeding with
+          // generation", fall through, and then be refused by S3 with PreconditionFailed —
+          // reported to the caller as "in progress by another instance", naming a
+          // concurrent run that did not exist.
+          //
+          // The effect is that ONE interrupted run kills the feature permanently. A lock
+          // orphaned on 27 May 2026 — a crash, a scale-down, a deploy mid-encode; the
+          // encode takes ~36s on Cloud Run so any of those is likely — left this endpoint
+          // answering 202 for 115 days. Verified 19 Sep 2026 by reading the [DEDUP] trace:
+          // "Lock file is stale (9963441s > 120s), proceeding with generation" followed
+          // immediately by "Lock file already created by another instance".
+          console.log(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), removing it`);
+          await s3.send(new DeleteObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: s3Keys['lock'],
+          }));
         }
       } catch (err) {
         console.log(`[DEDUP] No lock file found (${err.Code || err.message}), safe to proceed with generation`);
@@ -184,7 +202,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     if (['16-9', 'both'].includes(aspect)) {
       console.log('Creating 16:9 video...');
       const video16_9 = await createVideoFromImageSequence(
-        resultImages, duration, transitionDuration, framerate, '1920:1080', outputDir, '16-9'
+        resultImages, duration, transitionDuration, framerate, '1920x1080', outputDir, '16-9'
       );
       // Upload to S3
       await uploadVideoToS3(video16_9, s3Keys['16-9']);
@@ -194,7 +212,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     if (['1-1', 'both'].includes(aspect)) {
       console.log('Creating 1:1 video...');
       const video1_1 = await createVideoFromImageSequence(
-        resultImages, duration, transitionDuration, framerate, '1080:1080', outputDir, '1-1'
+        resultImages, duration, transitionDuration, framerate, '1080x1080', outputDir, '1-1'
       );
       // Upload to S3
       await uploadVideoToS3(video1_1, s3Keys['1-1']);
@@ -331,13 +349,45 @@ async function generateResultImages(fixtures) {
   return images;
 }
 
+// Fit a slide inside the target frame and pad the remainder — a letterbox, not a squash.
+//
+// Two faults lived in this one command, and **they hid each other**, which is why fixing
+// only the obvious one makes the output worse rather than better.
+//
+//   -resize 1920:1080   a colon is an ASPECT RATIO in ImageMagick geometry, not a size.
+//                       It forces the image to 16:9 by distorting it: a 1080x1350 card
+//                       came out 1080x608 with every word visibly stretched. Measured
+//                       19 Sep 2026 against the live output. The `x` form fits inside the
+//                       box and preserves the aspect, which is what was wanted.
+//
+//   -extent before      -gravity and -background only affect operators that come AFTER
+//   -gravity/-background them. Written in this order they applied to nothing, so the pad
+//                       used the defaults: NorthWest and WHITE. Invisible until now,
+//                       because `-resize` with a ratio had already forced the exact target
+//                       aspect and left `-extent` nothing to pad.
+//
+// So the 1:1 output looked fine by coincidence — ratio 1:1 of a 1080-wide image is
+// 1080x1080, the size that was asked for — while 16:9 was a third of the intended pixels
+// and stretched. Correct the colon alone and the card lands top-left on white bars.
+function letterboxArgs(src, dest, scale) {
+  return [
+    src,
+    '-resize', scale,        // WxH: fit inside, preserve aspect
+    '-background', 'black',  // both must precede -extent to apply to it
+    '-gravity', 'center',
+    '-extent', scale,        // pad the remainder
+    dest,
+  ];
+}
+
+exports.letterboxArgs = letterboxArgs;
+
 /**
  * Create video from image sequence with fade transitions
  * Uses ImageMagick to create smooth fade frames between images
  */
 async function createVideoFromImageSequence(imageFiles, duration, transitionDuration, framerate, scale, outputDir, aspectLabel) {
   const tempSeqDir = path.join(outputDir, `temp-seq-${Date.now()}-${aspectLabel}`);
-  const [width, height] = scale.split(':').map(Number);
 
   try {
     console.log(`Building frame sequence for ${aspectLabel}...`);
@@ -352,14 +402,7 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
     const resizedImages = [];
     for (let i = 0; i < imageFiles.length; i++) {
       const resizedPath = path.join(tempSeqDir, `resized-${i}.jpg`);
-      await execFileAsync('convert', [
-        imageFiles[i],
-        '-resize', scale,
-        '-extent', scale,
-        '-gravity', 'center',
-        '-background', 'black',
-        resizedPath
-      ]);
+      await execFileAsync('convert', letterboxArgs(imageFiles[i], resizedPath, scale));
       resizedImages.push(resizedPath);
       console.log(`  Resized image ${i + 1}/${imageFiles.length}`);
     }
