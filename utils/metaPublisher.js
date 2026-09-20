@@ -222,6 +222,124 @@ async function publishInstagramCarousel(igUserId, token, { imageUrls, caption })
  * Returns `{ok, refused: [{url, reason}]}`. Containers created here are simply abandoned
  * and expire in 24 hours. Worth running before a scheduled post that nobody is watching.
  */
+// ── Video ────────────────────────────────────────────────────────────────────
+//
+// Video is not photo-with-a-different-field. A photo container is usable the moment it is
+// created; **a video container is not** — Meta fetches the file, transcodes it, and only
+// then is it publishable. Publishing too early fails with a container-not-ready error, so
+// the status has to be polled. That polling is the whole reason these are separate
+// functions rather than a flag on the photo ones.
+//
+// Measured 20 Sep 2026 (HARD-21 phase 2): a ~13s 1080-wide mp4 reaches FINISHED in a few
+// seconds, and Instagram accepts 16:9, 1:1 and 4:5 with a silent audio track. What Meta
+// accepts and what looks good are different questions and only the first is answerable
+// here — see the package.
+const VIDEO_POLL_MS = 5000;
+const VIDEO_TIMEOUT_MS = 180000;
+
+function assertPublishableVideo(url) {
+  if (!/^https:\/\//i.test(String(url || ''))) {
+    throw new MetaError(
+      `Video URL must be absolute https, got ${url || '(empty)'} — Meta fetches it from ` +
+      `its own servers, so a relative or local URL can never resolve.`, { step: 'validate' });
+  }
+}
+
+/**
+ * Wait for a video container to finish transcoding.
+ *
+ * Returns the container id, or throws with what Meta said. `ERROR` carries a `status`
+ * string that is the only description of what was wrong with the file, so it is passed
+ * through rather than flattened to "failed".
+ */
+async function waitForContainer(containerId, token, { pollMs = VIDEO_POLL_MS, timeoutMs = VIDEO_TIMEOUT_MS } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let last = 'IN_PROGRESS';
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, pollMs));
+    const r = await graph(containerId, { fields: 'status_code,status', access_token: token },
+      { method: 'GET', step: 'checking a video container' });
+    last = r.status_code;
+    if (last === 'FINISHED') return containerId;
+    if (last === 'ERROR') {
+      throw new MetaError(`Meta could not process the video: ${r.status || 'no detail given'}`,
+        { step: 'transcoding a video' });
+    }
+  }
+  throw new MetaError(
+    `Meta was still transcoding the video after ${Math.round(timeoutMs / 1000)}s (last status ${last}). ` +
+    `Nothing was published.`, { step: 'transcoding a video' });
+}
+
+/** Instagram. Video on Instagram is REELS — the old feed VIDEO type is gone. */
+async function publishInstagramReel(igUserId, token, { videoUrl, caption }) {
+  assertPublishableVideo(videoUrl);
+  const containerId = await createContainer(igUserId, token, {
+    media_type: 'REELS', video_url: videoUrl, caption: caption || '',
+  });
+  await waitForContainer(containerId, token);
+  const mediaId = await publishContainer(igUserId, token, containerId);
+  return { mediaId, containerId };
+}
+
+/**
+ * Facebook. `file_url` is fetched by Meta, like an image — but unlike the photo path there
+ * is no album step: one call posts it.
+ */
+async function publishPageVideo(pageId, token, { videoUrl, description }) {
+  assertPublishableVideo(videoUrl);
+  const r = await graph(`${pageId}/videos`, {
+    file_url: videoUrl, description: description || '', access_token: token,
+  }, { step: 'a Facebook page video' });
+  return { postId: r.id };
+}
+
+/**
+ * The dry run: ask Meta to fetch and transcode, and publish nothing.
+ *
+ * A container expires on its own in 24 hours, so this costs nothing and leaves nothing
+ * behind — the video equivalent of `validateImages`, and the check that proved the PNG
+ * problem from Meta's side. Worth running before a season's first real post: a scheduled
+ * job nobody watches is exactly where a silent refusal hides.
+ */
+async function validateVideo(igUserId, token, videoUrl) {
+  try {
+    assertPublishableVideo(videoUrl);
+    const containerId = await createContainer(igUserId, token, {
+      media_type: 'REELS', video_url: videoUrl, caption: '',
+    });
+    await waitForContainer(containerId, token);
+    return { ok: true, refused: [] };
+  } catch (err) {
+    return { ok: false, refused: [{ url: videoUrl, reason: err.message }] };
+  }
+}
+
+/** Same contract as publishEverywhere — per-target outcomes, never a bare throw. */
+async function publishVideoEverywhere(targets, { videoUrl, message, caption }) {
+  const posted = [];
+  const failed = [];
+
+  for (const t of (targets || []).filter(Boolean)) {
+    try {
+      if (t.kind === 'page') {
+        const r = await publishPageVideo(t.id, t.token, { videoUrl, description: message });
+        posted.push({ target: t.name, kind: t.kind, id: r.postId });
+      } else if (t.kind === 'instagram') {
+        const r = await publishInstagramReel(t.id, t.token, { videoUrl, caption: caption ?? message });
+        posted.push({ target: t.name, kind: t.kind, id: r.mediaId });
+      } else {
+        failed.push({ target: t.name, error: new MetaError(`Unknown target kind ${t.kind}`, { step: 'validate' }) });
+      }
+    } catch (err) {
+      failed.push({ target: t.name, error: err });
+    }
+  }
+
+  return { posted, failed, ok: failed.length === 0 };
+}
+
 async function validateImages(igUserId, token, imageUrls) {
   const refused = [];
   for (const url of [].concat(imageUrls || [])) {
@@ -318,6 +436,8 @@ module.exports = {
   publishInstagramPhoto, publishInstagramCarousel,
   createContainer, publishContainer,
   validateImages, publishingQuota, publishEverywhere,
+  assertPublishableVideo, waitForContainer,
+  publishInstagramReel, publishPageVideo, validateVideo, publishVideoEverywhere,
   targets,
   IG_MAX_CAROUSEL, IG_MIN_RATIO, IG_MAX_RATIO,
 };

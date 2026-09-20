@@ -139,14 +139,41 @@ measurable, and 16:9 in particular is a landscape frame carrying portrait conten
 4:5 render to `VIDEO_KEYS` and dropping 16:9 is probably the right shape, but it is a
 decision about how the league's posts should look, not a constraint Meta imposes.
 
-### Phase 3 — publish
+### Phase 3 — publish — **DONE 20 Sep 2026**
 
-`metaPublisher` is images-only today. Video needs a different shape from photos: the
-container is not ready immediately, so it must be **polled on `status_code` until
-`FINISHED`** before `media_publish`. Facebook takes `POST /{page-id}/videos` with
-`file_url`. Then `POST /admin/social/weekly-video` behind `requireSocialCaller` with
-`?dry=1`, a `GET` preview, and a scheduler job — the same shape as the tables and fixtures
-posts.
+`utils/metaPublisher.js` gained the video path: `publishInstagramReel`, `publishPageVideo`,
+`validateVideo` (the dry run) and `publishVideoEverywhere`, which keeps the same per-target
+contract as the photo one. `controllers/weeklyVideoController.js` posts it, gated by
+`requireSocialCaller` on the same `SOCIAL_CRON_TOKEN` as the other two weekly posts, with a
+`?dry=1` and a preview page.
+
+**Video is not photo-with-a-different-field**, and that is why it is separate functions
+rather than a flag. A photo container is usable the moment it is created; a video container
+has to be fetched and transcoded by Meta first, so `waitForContainer` polls `status_code`
+until `FINISHED`. Publishing early fails with container-not-ready.
+
+**Posted at 4:5 to both platforms.** The slides are 1080x1350 result cards, so 4:5 carries
+them with no letterboxing at all — verified by rendering one and checking the output's
+corner pixels are the source's, not black, with an RMSE of 0.16% (JPEG re-encode noise).
+16:9 is gone: a landscape frame around portrait content, most of its width black bars.
+
+**A stale video is refused, not posted.** The handler posts whatever is in the bucket and
+the bucket keeps the last render for ever — so a generation that did not happen would
+publish **last week's results as this week's**, under a caption saying so. Worse than
+posting nothing, and the same class of silent wrongness this feature had already produced
+twice. `videoFreshness()` reads `LastModified` and refuses anything older than two days
+with a 409 naming the step that was missed. The dry run is refused too: validating a stale
+video against Meta would report "ok" for something that must not go out.
+
+### Still to do: orchestration
+
+Generating and posting are two calls, and the post refuses if the first has not run. So the
+scheduler needs **generate, then post** — either two jobs a few minutes apart, or the
+handler calling the generation internally. Two jobs couple them by wall-clock time, which
+is fragile; folding generation into the handler makes one request take ~60s, which fits
+inside both Cloud Run's timeout and the scheduler's 300s `attemptDeadline`. **Not decided.**
+The freshness guard means the failure mode of getting it wrong is a loud 409 rather than a
+stale post, which is why it was worth building before the orchestration.
 
 ## Acceptance criteria
 

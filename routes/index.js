@@ -161,6 +161,16 @@ router.get('/admin/social/weekly-fixtures', secured, requireClubAccess.requireSu
   weekly_fixtures_controller.preview);
 router.post('/admin/social/weekly-fixtures', requireSocialCaller, weekly_fixtures_controller.run);
 
+// The weekly results video. Same gate and the same SOCIAL_CRON_TOKEN as the other two —
+// one secret for the weekly social post, called by the same scheduler as the same caller.
+// Unlike the image posts this one needs the video to exist first: encoding takes ~36s, far
+// longer than Meta will wait on a fetch, so it is generated ahead of time into S3 and
+// served from GET /social-video/:aspect.
+const weekly_video_controller = require('../controllers/weeklyVideoController');
+router.get('/admin/social/weekly-video', secured, requireClubAccess.requireSuperAdmin,
+  weekly_video_controller.preview);
+router.post('/admin/social/weekly-video', requireSocialCaller, weekly_video_controller.run);
+
 
 // The weekly results video.
 //

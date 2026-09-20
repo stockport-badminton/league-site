@@ -55,7 +55,7 @@ beforeEach(() => {
 });
 
 describe('GET /social-video/:aspect', () => {
-  it.each(['16-9', '1-1'])('serves the %s video as video/mp4', async aspect => {
+  it.each(Object.keys(VIDEO_KEYS))('serves the %s video as video/mp4', async aspect => {
     const res = await request(app).get(socialVideoPath(aspect));
 
     expect(res.status).toBe(200);
@@ -67,13 +67,13 @@ describe('GET /social-video/:aspect', () => {
   // here, it is about to be posted publicly. Short, because the video is regenerated
   // weekly and on demand, so a long-lived copy could outlast the results it shows.
   it('caches a hit publicly and briefly', async () => {
-    const res = await request(app).get(socialVideoPath('16-9'));
+    const res = await request(app).get(socialVideoPath(Object.keys(VIDEO_KEYS)[0]));
     expect(res.headers['cache-control']).toMatch(/public/);
     expect(res.headers['cache-control']).toMatch(/max-age=300/);
   });
 
   it('does not sniff the content type', async () => {
-    const res = await request(app).get(socialVideoPath('16-9'));
+    const res = await request(app).get(socialVideoPath(Object.keys(VIDEO_KEYS)[0]));
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
@@ -89,7 +89,8 @@ describe('GET /social-video/:aspect', () => {
     'nonesuch',
     '../scorecards/20262027/private.jpg',
     '..%2F..%2Fvenues-map.png',
-    'weekly-video-16_9.mp4',
+    'weekly-video-4_5.mp4',
+    '16-9',
     '',
   ])('404s an aspect it does not know, without asking S3 for it: %p', async aspect => {
     const res = await request(app).get('/social-video/' + encodeURIComponent(aspect));
@@ -100,7 +101,7 @@ describe('GET /social-video/:aspect', () => {
   });
 
   it('only ever asks S3 for one of the two keys it owns', async () => {
-    for (const aspect of ['16-9', '1-1', 'nonesuch', '../../venues-map.png']) {
+    for (const aspect of [...Object.keys(VIDEO_KEYS), 'nonesuch', '../../venues-map.png']) {
       await request(app).get('/social-video/' + encodeURIComponent(aspect));
     }
     const known = Object.values(VIDEO_KEYS);
@@ -111,7 +112,7 @@ describe('GET /social-video/:aspect', () => {
   // Meta retries, and Firebase caches a response that sets no Cache-Control. A cached
   // miss therefore outlives the fault that caused it — which is how a deploy-in-flight
   // 404 survives the deploy that fixed it.
-  it.each(['nonesuch', '16-9'])('never lets a 404 be cached: %s', async aspect => {
+  it.each(['nonesuch', ...Object.keys(VIDEO_KEYS)])('never lets a 404 be cached: %s', async aspect => {
     mockS3Objects.clear();                       // nothing generated yet
     const res = await request(app).get(socialVideoPath(aspect));
     expect(res.status).toBe(404);
@@ -155,8 +156,14 @@ describe('the URLs handed to a third party', () => {
 
   // Built with absoluteUrl, never req.get('host') — behind Firebase that header is the
   // Cloud Run hostname, and this URL goes to Meta (gotcha 1b).
+  // Pinned explicitly, and the only place in this file that names an aspect: everything
+  // else reads VIDEO_KEYS so it follows a change rather than breaking on one. 16:9 was
+  // dropped on 20 Sep — a landscape frame carrying 1080x1350 portrait cards, so most of
+  // its width was black bars. 4:5 matches the cards exactly and adds no bars at all
+  // (verified: the output's corner pixels are the source's, not black).
   it('name the two aspects the generator actually writes', () => {
-    expect(Object.keys(VIDEO_KEYS).sort()).toEqual(['1-1', '16-9']);
+    expect(Object.keys(VIDEO_KEYS).sort()).toEqual(['1-1', '4-5']);
+    expect(Object.keys(VIDEO_KEYS)).not.toContain('16-9');
     for (const key of Object.values(VIDEO_KEYS)) {
       expect(key.startsWith('social-videos/')).toBe(true);
     }

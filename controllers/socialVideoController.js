@@ -18,13 +18,23 @@ const S3_PREFIX = 'social-videos';
 // a read path that resolved its own key could drift from the writer without anything
 // failing until the day somebody looked. **`aspect` is a lookup into this object, never a
 // path fragment**: nothing a caller sends reaches `Key`.
+//
+// **4:5, not 16:9.** The slides are 1080x1350 result cards, so a 4:5 frame carries them
+// with NO letterboxing at all — every pixel is content. 16:9 was a landscape frame around
+// portrait content and spent most of its width on black bars; it is gone. Instagram Reels
+// accepts 0.8 comfortably (measured 20 Sep 2026, HARD-21 phase 2, along with the fact that
+// a silent audio track is fine). `VIDEO_SIZES` is the render geometry for the same keys,
+// in ImageMagick's `WxH` form — a colon there is an aspect RATIO and distorts, which is
+// what made the old 16:9 output 1080x608 with every word stretched.
 const VIDEO_KEYS = {
-  '16-9': `${S3_PREFIX}/weekly-video-16_9.mp4`,
+  '4-5': `${S3_PREFIX}/weekly-video-4_5.mp4`,
   '1-1': `${S3_PREFIX}/weekly-video-1_1.mp4`,
 };
+const VIDEO_SIZES = { '4-5': '1080x1350', '1-1': '1080x1080' };
 const LOCK_KEY = `${S3_PREFIX}/.generating`;
 
 exports.VIDEO_KEYS = VIDEO_KEYS;
+exports.VIDEO_SIZES = VIDEO_SIZES;
 
 /**
  * Generate weekly video from fixture results
@@ -33,7 +43,7 @@ exports.VIDEO_KEYS = VIDEO_KEYS;
  * GET /api/social/generate-weekly-video
  * Query params:
  *   - duration: seconds per image (default: 3)
- *   - aspect: '16-9', '1-1', or 'both' (default: both)
+ *   - aspect: '4-5', '1-1', or 'both' (default: both)
  *   - transition: 'fade' (default: fade) - for MVP, only fade is supported
  */
 // GET /social-video/:aspect — stream one of the two weekly videos.
@@ -110,8 +120,8 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     const weekLabel = `${startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
     // Validate inputs
-    if (!['16-9', '1-1', 'both'].includes(aspect)) {
-      return res.status(400).json({ error: 'aspect must be 16-9, 1-1, or both' });
+    if (![...Object.keys(VIDEO_KEYS), 'both'].includes(aspect)) {
+      return res.status(400).json({ error: `aspect must be ${Object.keys(VIDEO_KEYS).join(', ')}, or both` });
     }
     if (transition !== 'fade') {
       return res.status(400).json({ error: 'For MVP, only fade transition is supported' });
@@ -129,9 +139,9 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       try {
         // Check if videos exist and are recent
         console.log(`[DEDUP] Checking if videos exist in S3...`);
-        const head16_9 = await s3.send(new HeadObjectCommand({
+        const head4_5 = await s3.send(new HeadObjectCommand({
           Bucket: process.env.S3_BUCKET_NAME,
-          Key: s3Keys['16-9']
+          Key: s3Keys['4-5']
         }));
         const head1_1 = await s3.send(new HeadObjectCommand({
           Bucket: process.env.S3_BUCKET_NAME,
@@ -139,19 +149,19 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         }));
 
         const now = Date.now();
-        const age16_9 = now - head16_9.LastModified.getTime();
+        const age4_5 = now - head4_5.LastModified.getTime();
         const age1_1 = now - head1_1.LastModified.getTime();
 
-        console.log(`[DEDUP] Videos exist: 16-9 age=${Math.round(age16_9 / 1000)}s, 1-1 age=${Math.round(age1_1 / 1000)}s (dedupeWindow=${dedupeWindow / 1000}s)`);
+        console.log(`[DEDUP] Videos exist: 4-5 age=${Math.round(age4_5 / 1000)}s, 1-1 age=${Math.round(age1_1 / 1000)}s (dedupeWindow=${dedupeWindow / 1000}s)`);
 
-        if (age16_9 < dedupeWindow && age1_1 < dedupeWindow) {
+        if (age4_5 < dedupeWindow && age1_1 < dedupeWindow) {
           console.log(`[DEDUP] Videos are recent! Returning cached URLs.`);
           return res.json({
             success: true,
             week: weekLabel,
             cached: true,
             videos: {
-              '16-9': absoluteUrl(socialVideoPath('16-9')),
+              '4-5': absoluteUrl(socialVideoPath('4-5')),
               '1-1': absoluteUrl(socialVideoPath('1-1'))
             }
           });
@@ -270,20 +280,20 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     const videos = {};
     const totalDuration = calculateTotalDuration(resultImages.length, duration, transitionDuration);
 
-    if (['16-9', 'both'].includes(aspect)) {
+    if (['4-5', 'both'].includes(aspect)) {
       console.log('Creating 16:9 video...');
-      const video16_9 = await createVideoFromImageSequence(
-        resultImages, duration, transitionDuration, framerate, '1920x1080', outputDir, '16-9'
+      const video4_5 = await createVideoFromImageSequence(
+        resultImages, duration, transitionDuration, framerate, VIDEO_SIZES['4-5'], outputDir, '4-5'
       );
       // Upload to S3
-      await uploadVideoToS3(video16_9, s3Keys['16-9']);
-      videos['16-9'] = absoluteUrl(socialVideoPath('16-9'));
+      await uploadVideoToS3(video4_5, s3Keys['4-5']);
+      videos['4-5'] = absoluteUrl(socialVideoPath('4-5'));
     }
 
     if (['1-1', 'both'].includes(aspect)) {
       console.log('Creating 1:1 video...');
       const video1_1 = await createVideoFromImageSequence(
-        resultImages, duration, transitionDuration, framerate, '1080x1080', outputDir, '1-1'
+        resultImages, duration, transitionDuration, framerate, VIDEO_SIZES['1-1'], outputDir, '1-1'
       );
       // Upload to S3
       await uploadVideoToS3(video1_1, s3Keys['1-1']);

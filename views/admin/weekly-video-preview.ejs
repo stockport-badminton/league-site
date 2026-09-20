@@ -1,0 +1,43 @@
+<%- include('../header.ejs'); -%>
+<%- include('../nav.ejs'); -%>
+
+<div class="starter-template" style="text-align:left; max-width:900px; margin:0 auto;">
+  <h1>Weekly video post</h1>
+  <p>What the weekly results video post will contain. Nothing on this page sends anything.</p>
+
+  <% if (!targetsConfigured) { %>
+    <p><strong>No Meta credentials are configured on this service, so the post would go nowhere.</strong></p>
+  <% } %>
+
+  <h2>Video <small>(<%= aspect %>)</small></h2>
+  <%# Same-origin src so this page shows THIS server's file. The absolute URL beneath is
+      what Meta fetches — the tables and fixtures previews rendered production's images
+      whatever server they ran on, which is the bug that fix exists for. %>
+  <video src="<%= videoPath %>" controls preload="metadata"
+         style="max-width:360px; width:100%; border:1px solid #ccc; background:#000;"></video>
+  <p style="font-size:12px; word-break:break-all; color:#666;">
+    Meta fetches <%= videoUrl %>
+  </p>
+  <p>
+    Rendered at 4:5, the same shape as the result cards, so the slides carry no black bars.
+    Generated aspects: <%= aspects.join(', ') %>.
+    If the player above is empty the video has not been generated yet &mdash; that is a
+    404 from <code><%= videoPath %></code>, not a fault in this page.
+  </p>
+
+  <h2>Facebook</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.facebook %></pre>
+
+  <h2>Instagram</h2>
+  <pre style="white-space:pre-wrap;"><%= captions.instagram %></pre>
+  <p>
+    No <code>@</code>-mentions on either, deliberately: a results video names every club
+    that played, and mentioning all of them reads as spam rather than courtesy. The weekly
+    tables post makes the opposite call because its mentions are the point.
+  </p>
+</div>
+
+<%- include('../footer.ejs') %>
+
+</body>
+</html>
