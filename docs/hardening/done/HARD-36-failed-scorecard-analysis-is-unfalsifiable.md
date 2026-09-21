@@ -161,3 +161,39 @@ need no diagnosis.
 - A document that converts fine is **not** also kept as scrap — that would put a photo the
   league means to keep under a 14-day expiry.
 - Every refusal now says which check fired and where the file went.
+
+---
+
+## The live case arrived, 20 Sep 2026 — and this is what it was for
+
+Left open deliberately until a real failure came through, because a retention feature that
+has never retained anything is a claim rather than a fact.
+
+```
+12:06:16  Scorecard upload refused: no image could be extracted (application/pdf)
+          [file: scorecards/failed-analysis/20262027/41764fbc-…-aerospace-v-shell-c.pdf]
+12:06:26  (the same file again, ten seconds later)
+```
+
+Same captain and same match as the 17 Sep failure that prompted the document-path fix —
+Aerospace v Shell C. They tried twice with a byte-identical file and gave up; the result
+was eventually filed by hand and chased by email over the following week.
+
+**Diagnosed in one command from the kept file**, which is the whole point:
+
+```
+pdf version : %PDF-1.7      pages: 2      /Image: 1
+/CCITTFaxDecode : 1         /DCTDecode: 0   /FlateDecode: 0   /Font: 0
+```
+
+A two-page office-scanner fax-compressed scan — **exactly [HARD-30](../HARD-30-ccitt-scorecards.md)**,
+which estimated "about three scorecards a season" and had no specimen. It has one now, and
+the TIFF-rewrap route has been spiked against it.
+
+Compare with the 17 Sep failure four days earlier: a status code, a request size, and
+nothing else. Diagnosing that one meant reasoning from a file size. That is the difference
+this package bought, and it is worth restating that **the evidence and the message are two
+halves of one thing** — a log line naming the check that refused an upload is only
+believable if somebody can look at the file it describes.
+
+**Closed 21 Sep 2026**: verified on a real failure rather than a synthetic one.

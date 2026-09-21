@@ -32,6 +32,47 @@ If that is the decision, record it here and move this to `done/`. What is not ac
 the state this package was created to escape: an optional phase buried in a finished
 package, where nobody sees it again.
 
+## A real specimen, and the rewrap spiked — 21 Sep 2026
+
+The first CCITT card to come through since HARD-36 started keeping failed uploads:
+
+```
+scorecards/failed-analysis/20262027/41764fbc-…-aerospace-v-shell-c.pdf
+%PDF-1.7  2 pages  /Image 1  /CCITTFaxDecode  K=-1 (G4)  2316x3292  BlackIs1 false
+37,800 bytes of CCITT stream in a 39,109-byte file
+```
+
+Aerospace A v Shell C, 15 Sep. The captain tried twice ten seconds apart with a
+byte-identical file, gave up, and the result was filed by hand and chased by email over
+the following week. **That is the real cost of declining this**, and it is worth weighing
+against "three scorecards a season": each one is a captain who cannot file a result.
+
+**Option 2 — rewrap as TIFF — was spiked against that file and works.** CCITT G3/G4 is a
+TIFF compression scheme, `sharp` reaches `libtiff`, and `libtiff` decodes it. The CCITT
+bytes are copied out of the PDF stream **untouched** and given a minimal little-endian TIFF
+header; `sharp` then read it at 2316x3292 and produced a legible JPEG of the scorecard,
+checked by eye. About 50 lines, **no new dependency, and no Ghostscript** — which is what
+HARD-25 was careful to preserve.
+
+The header fields this package worried about turned out to be a dozen IFD entries and
+correct first attempt. What remains before it is production code:
+
+- **G3 as well as G4.** The spike maps `K < 0` to compression 4 and otherwise 3, which is
+  right in principle and untested — every specimen so far is G4.
+- **Multi-strip images.** The spike assumes one strip (`RowsPerStrip = Height`), true here
+  and not guaranteed.
+- `BlackIs1` drives `PhotometricInterpretation`; false means 0 = white, which this file is.
+- Tests. **Do NOT commit this PDF as the fixture**, however tempting while it sits under a
+  14-day expiry. It is a filled card carrying twelve players' names and both captains'
+  signatures, and this repository is public — which is the exact mistake
+  `__tests__/fixtures/make-document-fixtures.js` records having already been made and
+  reversed once. Generate a CCITT fixture there instead, the way the DCT and docx ones are
+  generated: the file needs to carry one structural shape (`/CCITTFaxDecode`, K=-1, single
+  strip), and a real card carries that shape incidentally while also carrying six people's
+  handwriting.
+  The structural facts above are the specimen's whole contribution, and they are written
+  down here precisely so the file itself does not have to be kept.
+
 ## Acceptance criteria
 
 Either:
