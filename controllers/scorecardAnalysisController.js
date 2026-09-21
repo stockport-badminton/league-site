@@ -235,7 +235,7 @@ const CANNOT_EXTRACT =
 // is reported, not thrown, because the caller may still have something worth returning
 // (the OCR prefill) and losing that as well helps nobody.
 async function convertDocument(file) {
-  const extracted = extractEmbeddedImage(file.buffer, file.originalname);
+  const extracted = await extractEmbeddedImage(file.buffer, file.originalname);
   if (!extracted) return { extracted: null, stored: null };
 
   let stored = null;

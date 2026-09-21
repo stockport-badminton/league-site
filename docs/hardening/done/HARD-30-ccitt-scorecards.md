@@ -73,13 +73,45 @@ correct first attempt. What remains before it is production code:
   The structural facts above are the specimen's whole contribution, and they are written
   down here precisely so the file itself does not have to be kept.
 
-## Acceptance criteria
+## Built, 21 Sep 2026 — option 2, the TIFF rewrap
 
-Either:
+`utils/documentImage.js` handles `/CCITTFaxDecode`. **No new dependency and no
+Ghostscript**, which is the rule HARD-25 established and this had to keep: the CCITT bytes
+are copied out of the PDF stream untouched, given a minimal TIFF header, and handed to
+`sharp` — which reaches `libtiff`, which decodes CCITT. The header this package worried
+about is a dozen IFD entries and was right first attempt.
 
-- A CCITT scorecard PDF is stored as a readable image, checked by eye, with whichever
-  approach was chosen and its cost written down; or
-- A note here saying it was considered and declined, with the reason and the date.
+Verified both ways: the generated fixture round-trips through the real code path, and the
+real specimen extracts at 2316x3292 into a legible scorecard.
+
+**A second blocker had to go with it, and it was the more interesting one.** `fromPdf`
+refused any multi-page PDF outright — *"2 or 4 pages; picking one is a guess"* — and the
+specimen is two pages, so CCITT support alone would not have read it. That reasoning does
+not survive the check above it: the image count must already be exactly 1 to get that far,
+so there is nothing to pick. What the rule was really protecting against is a **typed
+document with a logo** — one image, several pages, and the image is not the scorecard —
+and that has a signature of its own. Every document scorecard on record has **zero fonts**,
+being a photograph with a wrapper. So multi-page is allowed only when there is no text.
+
+That rule alone was costing results: the specimen's captain tried twice, gave up, filed by
+hand, and the result was chased by email for a week.
+
+**`extractEmbeddedImage` is now async.** Decoding a compressed format needs a decoder, and
+sharp has no synchronous API. One caller (`convertDocument`, already async) and the tests.
+Note the `await` on `fromPdf` inside its `try` — an un-awaited promise escapes the block,
+so a rejection would propagate instead of becoming the `null` every other failure returns.
+
+**Declined, deliberately: K > 0.** Group 3 two-dimensional needs `T4Options` bit 0 set and
+has never appeared in the corpus. It returns null rather than emitting a header that is
+probably wrong, because a silently mis-decoded scorecard is worse than one we admit we
+cannot read. `K < 0` (G4) and `K = 0` (G3 1D) are handled; every specimen so far is G4.
+Single-strip is assumed — true of every specimen, and a multi-strip image would decode
+wrong rather than fail, which is worth knowing.
+
+## Acceptance criteria — met
+
+- A CCITT scorecard PDF is stored as a readable image, **checked by eye**, with the
+  approach and its cost written down: option 2, ~60 lines, no new dependency.
 
 ## Out of scope
 

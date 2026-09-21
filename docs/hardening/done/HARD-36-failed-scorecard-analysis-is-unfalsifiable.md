@@ -186,7 +186,7 @@ pdf version : %PDF-1.7      pages: 2      /Image: 1
 /CCITTFaxDecode : 1         /DCTDecode: 0   /FlateDecode: 0   /Font: 0
 ```
 
-A two-page office-scanner fax-compressed scan — **exactly [HARD-30](../HARD-30-ccitt-scorecards.md)**,
+A two-page office-scanner fax-compressed scan — **exactly [HARD-30](HARD-30-ccitt-scorecards.md)**,
 which estimated "about three scorecards a season" and had no specimen. It has one now, and
 the TIFF-rewrap route has been spiked against it.
 

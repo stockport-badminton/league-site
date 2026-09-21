@@ -193,7 +193,7 @@ const uploadDoc = (route) => request(app)
 
 describe('when no image can be pulled out of a document', () => {
   beforeEach(() => {
-    extractEmbeddedImage.mockReturnValue(null);
+    extractEmbeddedImage.mockResolvedValue(null);
     storeImage.mockResolvedValue({ key: `${FAILED_PREFIX}/20262027/abc-card.docx`, url: 'https://x/y.docx' });
   });
 
@@ -239,7 +239,7 @@ describe('when no image can be pulled out of a document', () => {
 
 describe('a document that converts fine', () => {
   it('is not also kept as diagnostic scrap', async () => {
-    extractEmbeddedImage.mockReturnValue({ buffer: JPEG, contentType: 'image/jpeg' });
+    extractEmbeddedImage.mockResolvedValue({ buffer: JPEG, contentType: 'image/jpeg' });
     storeImage.mockResolvedValue({ key: 'scorecards/20262027/real.jpg', url: 'https://x/real.jpg' });
 
     const res = await uploadDoc('/api/convert-scorecard-document');
