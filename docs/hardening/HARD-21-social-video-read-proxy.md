@@ -165,6 +165,25 @@ twice. `videoFreshness()` reads `LastModified` and refuses anything older than t
 with a 409 naming the step that was missed. The dry run is refused too: validating a stale
 video against Meta would report "ok" for something that must not go out.
 
+### The first real run, 21 Sep 2026 — published, and reported as failed
+
+Both jobs fired. The video went to Facebook and Instagram. `sbl-weekly-video-post` went
+**red** anyway, with `status: {"code": 13}`.
+
+**Firebase Hosting times out at 60 seconds.** The handler took 91.195s — `waitForContainer`
+waiting on Meta to transcode — so Firebase returned an error to Cloud Scheduler at 59.5s
+while Cloud Run carried on, finished, and logged its own `200`. `attemptDeadline: 300s` was
+irrelevant: the limit sits in front of Cloud Run, not in the caller.
+
+That is worse than an untidy tick. A genuine failure would look identical, so the signal is
+useless for this job until fixed — and **a retry would have double-posted**, which only did
+not happen because `retryCount` is unset on these jobs, inherited by copying the tables job
+rather than chosen.
+
+Fixed by pointing that one job at Cloud Run directly. It does not change what Meta fetches:
+the handler builds the URL from `SITE_ORIGIN`. Recorded as gotcha 1bc in CLAUDE.md, because
+it applies to anything scheduled that can run long, not only to this.
+
 ### Still to do: orchestration
 
 Generating and posting are two calls, and the post refuses if the first has not run. So the

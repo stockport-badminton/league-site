@@ -1357,6 +1357,31 @@ Key vars (see `.env` for examples):
    a Google frontend in front of the app. `/healthz/` and `/HEALTHZ` both answer 200,
    which is how it was pinned down — compare a path you know has no route (it should
    return *our* 404 page, with our headers) against the one you are debugging.
+1bc. **Firebase Hosting gives up after 60 seconds, and the work carries on without it.**
+   Cloud Run's own request timeout is 300s, but every request to
+   `stockport-badminton.co.uk` is rewritten to it *through Firebase Hosting*, which cuts
+   the connection at 60. The two halves then disagree: **Firebase returns an error to the
+   caller while Cloud Run finishes the job and logs its own `200`.** So a slow request
+   looks like a failure and is a success — the exact inverse of `secured`'s 302 that
+   Make.com recorded as a successful invoice run, and the same lesson from the other
+   direction: **the caller's view of an outcome and the outcome are different things.**
+   Measured 21 Sep 2026 on the first weekly video post. Cloud Scheduler logged
+   `ERROR / INTERNAL` 59.5s after dispatch; Cloud Run logged `200` with
+   `latency: 91.195s`; the app logged *"weekly video posted to Stockport page,
+   Instagram"*. The video was published. The job went red. `attemptDeadline: 300s` on the
+   scheduler never came into it, because the limit is in front of Cloud Run rather than in
+   the caller.
+   **A retry would have double-posted.** Nothing had been published twice only because
+   `retryCount` is unset on these jobs, which was inherited by copying the tables job
+   rather than chosen. Anything that publishes and can exceed 60s must not carry retries.
+   The video handler is slow because `waitForContainer` waits on Meta transcoding, which
+   is not ours to speed up — so `sbl-weekly-video-post` calls **Cloud Run directly**
+   (`league-site-akvq7tsxuq-nw.a.run.app`), bypassing Firebase. That does not change what
+   Meta fetches: the handler builds the video URL from `SITE_ORIGIN` through
+   `absoluteUrl()`, so it is the public domain whichever host invoked the job.
+   The other scheduled jobs are well under the limit — tables 39.1s, fixtures 38.6s, audit
+   7.9s, registrations 4.8s — but **the image posts are closer to 60 than is comfortable**,
+   and what pushes them over would be Meta being slow rather than anything in this repo.
 1c. **An INNER JOIN to something optional loses the whole page.**
    `__tests__/unit/optional-join-guard.test.js` now fails on the specific shape that has
    caused this three times: an inner join to `player` on a ROLE (`teamCaptain`,
