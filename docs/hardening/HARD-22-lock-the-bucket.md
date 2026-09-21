@@ -24,7 +24,7 @@ keep behaving, forever, with no mechanism to notice if one stops.
 
 ## Ordering
 
-Not a hard block, but do **[HARD-21](HARD-21-social-video-read-proxy.md) first.**
+Not a hard block, but do **[HARD-21](done/HARD-21-social-video-read-proxy.md) first.**
 
 The weekly videos are the one thing in the bucket with no credentialed reader. They are
 *already* private and the Make.com handoff is *already* broken (HARD-21 explains why), so

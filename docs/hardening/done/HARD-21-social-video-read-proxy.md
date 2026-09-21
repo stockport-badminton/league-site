@@ -184,17 +184,18 @@ Fixed by pointing that one job at Cloud Run directly. It does not change what Me
 the handler builds the URL from `SITE_ORIGIN`. Recorded as gotcha 1bc in CLAUDE.md, because
 it applies to anything scheduled that can run long, not only to this.
 
-### Still to do: orchestration
+### Orchestration — settled 20 Sep, two jobs
 
-Generating and posting are two calls, and the post refuses if the first has not run. So the
-scheduler needs **generate, then post** — either two jobs a few minutes apart, or the
-handler calling the generation internally. Two jobs couple them by wall-clock time, which
-is fragile; folding generation into the handler makes one request take ~60s, which fits
-inside both Cloud Run's timeout and the scheduler's 300s `attemptDeadline`. **Not decided.**
-The freshness guard means the failure mode of getting it wrong is a loud 409 rather than a
-stale post, which is why it was worth building before the orchestration.
+`sbl-weekly-video-generate` at Monday 17:55 renders into S3; `sbl-weekly-video-post` at
+18:00 publishes it. Two jobs rather than generating inside the post handler, because a
+handler that generates is one nobody has to remember to trigger — but also one nobody sees
+fail. The coupling is wall-clock, which is the usual objection, and `videoFreshness()`
+answers it: if the first job did not run, the second refuses with a 409 naming the missed
+step rather than publishing last week's results.
 
-## Acceptance criteria
+The post job calls **Cloud Run directly**, not the public domain — see the run below.
+
+## Acceptance criteria — all met, verified on the live run
 
 - `GET /social-video/16-9` and `/social-video/1-1` return `200 video/mp4`.
 - The generate endpoint returns URLs on our own domain and no `*.s3.*.amazonaws.com` URL.

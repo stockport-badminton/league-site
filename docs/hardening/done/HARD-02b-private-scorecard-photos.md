@@ -6,7 +6,7 @@
 **Status: COMPLETE, 1 Sep 2026.** Code landed in `8312d1d` / `2a2589a`; runbook steps 0-3
 ran on 1 Sep and are evidenced below. The optional bucket-wide lockdown that used to be
 step 4 is now [HARD-22](../HARD-22-lock-the-bucket.md); the weekly-video reader found on the
-way is [HARD-21](../HARD-21-social-video-read-proxy.md).
+way is [HARD-21](HARD-21-social-video-read-proxy.md).
 
 ## Why
 
