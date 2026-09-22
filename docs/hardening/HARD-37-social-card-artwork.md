@@ -122,6 +122,14 @@ step 6 without step 7 would have shipped that.
 - ✅ The division letter is drawn by the renderer, and a card renders without one.
 - ✅ A text panel is something a card opts into.
 - ✅ The player is composited back on, per division, and is visible rather than buried.
+- ✅ The weekly VIDEO draws the same card. It carried its own copy of the 2024 layout —
+  own SVG, own escaping, own artwork lookup, black text in the corner — which no change to
+  the real card ever reached. `__tests__/integration/video-result-frames.test.js` asserts
+  the frames are legible and adds a guard that fails if a second renderer reappears there,
+  because a drifting copy breaks nothing until somebody edits the original and not the copy.
+- ✅ The video no longer silently drops results. Its old lookup `continue`d past any
+  division with no artwork file, so a friendly or a renamed division was absent from the
+  week's video with nothing said.
 - ✅ `/fixtures-image/:division` renders for all four and still falls back rather than
   500ing for a division with no artwork.
 - ✅ The result card carries the league name, the division in words, and the site URL.
@@ -159,7 +167,10 @@ Worth knowing before redesigning anything on top of the new artwork:
 
 ## Out of scope
 
-- The weekly tables card, which is on the plain grey `social.png` and has no division
-  artwork to inherit. The clean backgrounds now exist, so this is worth revisiting — but
-  separately, and note the tables card is square where these are 4:5.
+- **The weekly tables card stays on the plain grey `social.png`, by decision (22 Sep 2026).**
+  It was the obvious next thing to re-point and that would have been a mistake: its rows are
+  drawn in BLACK, which reads on a light greyscale background and would be illegible on the
+  colourful division artwork — the same trap the result card was rescued from. The light
+  background is doing a job there rather than waiting to be replaced. It is also square
+  where these are 4:5.
 - Anything about what the posts say. This is the pictures only.

@@ -8,6 +8,13 @@ const execFileAsync = promisify(execFile);
 
 const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { absoluteUrl, socialVideoPath } = require('../utils/canonical');
+const sharp = require('sharp');
+// The video's frames are the RESULT CARD, drawn by the same code the result post uses.
+// Required at the top, not inside the function: there is no cycle to dodge here, and a
+// lazy require is a deploy-time bug that waits — `sendResultZap` did `require('canvas')`
+// inside a function and threw on every result submitted for four months.
+const { createResultCard, accentFor } = require('./socialController');
+const { backgroundFor, subjectFor, subjectLayer } = require('../utils/socialCard');
 
 const s3 = new S3Client({ region: 'eu-west-1' });
 const S3_PREFIX = 'social-videos';
@@ -363,62 +370,52 @@ async function queryFixturesWithResults(startDate, endDate) {
 }
 
 /**
- * Generate result images for each fixture
+ * One frame per result, for the weekly video.
+ *
+ * It draws the SAME card the result post uses — `createResultCard` — rather than its own.
+ * It used to carry a full copy of the 2024 layout: its own `svgOverlay`, its own escaping,
+ * its own background lookup, and black text written into the bottom-right corner. That copy
+ * was invisible to every change made to the real card, so HARD-37 fixed the result post and
+ * left the video posting the old design with black text on artwork that no longer fades to
+ * white underneath it. A duplicated renderer is a renderer nobody remembers to update.
+ *
+ * It also **silently dropped results**. The old lookup `continue`d past any fixture whose
+ * division had no artwork file, so a friendly or a renamed division simply did not appear in
+ * the week's video and nothing said so. `backgroundFor` always answers, falling back through
+ * the 2024 artwork to the plain background, so every result gets a frame.
  */
 async function generateResultImages(fixtures) {
   const generatedDir = 'static/beta/images/generated';
   await fs.mkdir(generatedDir, { recursive: true });
 
   const images = [];
-  const sharp = require('sharp');
+  // The artwork, accent and player are per DIVISION, not per fixture, and a week's video is
+  // mostly one division repeated — so they are resolved once each rather than once a frame.
+  const perDivision = new Map();
 
   for (const fixture of fixtures) {
     try {
       const { homeTeam, awayTeam, homeScore, awayScore, division } = fixture;
-      const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
 
-      // Check if bg exists
-      try {
-        await fs.access(bgPath);
-      } catch {
-        console.warn(`Background image not found: ${bgPath}, skipping fixture`);
-        continue;
+      if (!perDivision.has(division)) {
+        const bgPath = await backgroundFor(division);
+        const subjectPath = await subjectFor(division);
+        perDivision.set(division, {
+          bgPath,
+          accent: await accentFor(bgPath),
+          subject: subjectPath ? await subjectLayer(subjectPath, { W: 1080, H: 1350 }) : null,
+        });
       }
+      const { bgPath, accent, subject } = perDivision.get(division);
+
+      const buf = await createResultCard(
+        bgPath,
+        { division, homeTeam, awayTeam, homeScore, awayScore },
+        1080, 1350, accent,
+        { subject });
 
       const fileBase = `${generatedDir}/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
-
-      // SVG overlay helper
-      const svgOverlay = (width, height, elements) => {
-        const escapeXml = (str) => String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;');
-
-        const els = elements.map(({ text, x, y, size, weight = 'normal', fill = '#000', anchor = 'middle' }) =>
-          `<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${escapeXml(text)}</text>`
-        ).join('');
-        return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${els}</svg>`);
-      };
-
-      const makeElements = (width, height) => {
-        const x = width - 100;
-        const y = Math.floor(2 * height / 3) + 50;
-        return [
-          { text: homeTeam, x, y, size: 60, weight: 'bold', fill: 'black', anchor: 'end' },
-          { text: 'vs', x, y: y + 60, size: 50, fill: 'black', anchor: 'end' },
-          { text: awayTeam, x, y: y + 140, size: 60, weight: 'bold', fill: 'black', anchor: 'end' },
-          { text: `${homeScore} - ${awayScore}`, x, y: y + 240, size: 80, weight: 'bold', fill: 'black', anchor: 'end' },
-        ];
-      };
-
-      const postBuffer = await sharp(bgPath)
-        .resize(1080, 1350, { fit: 'cover' })
-        .composite([{ input: svgOverlay(1080, 1350, makeElements(1080, 1350)) }])
-        .jpeg({ quality: 90 })
-        .toBuffer();
-
-      await sharp(postBuffer).toFile(`${fileBase}.jpg`);
+      await sharp(buf).toFile(`${fileBase}.jpg`);
       images.push(`${fileBase}.jpg`);
 
       console.log(`Generated image: ${fileBase}.jpg`);
@@ -460,6 +457,10 @@ function letterboxArgs(src, dest, scale) {
     dest,
   ];
 }
+
+// Exported for testing. The frame renderer is where this file's copy of the result card
+// used to live, and the thing worth asserting is that it no longer has one.
+exports.generateResultImages = generateResultImages;
 
 exports.letterboxArgs = letterboxArgs;
 
