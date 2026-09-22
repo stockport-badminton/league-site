@@ -86,7 +86,11 @@ exports.club_list_detail = async function(req, res, next) {
          error: false,
          recaptcha : process.env.RECAPTCHA,
          mapsApiKey: process.env.GMAPSAPIKEY,
-         venues:JSON.stringify(venueRows),
+         // Raw rows, not a JSON string: the view embeds them with `jsonForScript()`,
+         // which escapes the characters that would let a free-text address close the
+         // <script> block early. The popup markup is built client-side from these by
+         // static/beta/js/venue-popup.js.
+         venues: venueRows,
          // One SportsClub block per club, built in utils/structuredData.js rather
          // than as literal JSON in the template. Club 63 is the `No Club` sentinel
          // and is skipped here for the same reason club-v2.ejs skips it in the table.

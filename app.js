@@ -129,6 +129,11 @@ app.locals.resultImagePath = require('./utils/canonical').resultImagePath;
 app.locals.leagueTableImagePath = require('./utils/canonical').leagueTableImagePath;
 app.locals.tournamentImagePath = require('./utils/canonical').tournamentImagePath;
 app.locals.fixturesImagePath = require('./utils/canonical').fixturesImagePath;
+// Embedding a JSON value inside an inline <script>. `JSON.stringify` alone is not safe
+// there — a string containing a closing script tag ends the block early, because the
+// browser finds the end of a script element before any JS is parsed. See
+// utils/jsonForScript.js.
+app.locals.jsonForScript = require('./utils/jsonForScript');
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;

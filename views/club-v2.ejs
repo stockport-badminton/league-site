@@ -183,25 +183,33 @@ function initMap() {
     showLiveMap();
   });
 
-  var data = <%- venues %>
-  data.forEach(function(i){
-    if (i.Lat != null){
-        var point = {lat:i.Lat, lng:i.Lng}
+  // `jsonForScript`, not `JSON.stringify`: a venue address is free text, and one
+  // containing a closing script tag would otherwise end this block early — the browser
+  // finds the end of a script element before any JS is parsed. See utils/jsonForScript.js.
+  var data = <%- jsonForScript(venues) %>;
 
-    var contentString = '<div id="content">'+
-      '<div id="siteNotice">'+
-      '</div>'+ i.venueInfoBox 
-      '</div>';
+  // ONE InfoWindow, reused. Google's own guidance, and the previous code created a new one
+  // per marker — so clicking three pins left three popups open on top of each other.
+  var infowindow = new google.maps.InfoWindow();
 
-  var infowindow = new google.maps.InfoWindow({
-    content: contentString
-  });
-  var clubMarker = new google.maps.marker.AdvancedMarkerElement({position:point, map:map})
-  clubMarker.addListener('gmp-click', function() {
-    infowindow.open(map, clubMarker);
-  });
-    }
-    
+  data.forEach(function (venue) {
+    // A venue with no coordinates cannot be placed.
+    if (venue.Lat == null || venue.Lng == null) return;
+
+    var clubMarker = new google.maps.marker.AdvancedMarkerElement({
+      position: {lat: venue.Lat, lng: venue.Lng},
+      map: map,
+      gmpClickable: true
+    });
+
+    // AdvancedMarkerElement emits 'gmp-click', not 'click'; gmpClickable must be true for
+    // it to fire at all.
+    clubMarker.addListener('gmp-click', function () {
+      // The pin's content comes from VenuePopup, which is where the escaping lives and
+      // where the per-TEAM match nights are assembled. This block is only about Maps now.
+      infowindow.setContent(VenuePopup.popupHtml(venue));
+      infowindow.open(map, clubMarker);
+    });
   })
 
   var markerStockPortTownHall = new google.maps.marker.AdvancedMarkerElement({position: StockportTownHall, map: map});
@@ -216,6 +224,9 @@ function initMap() {
   center:StockportTownHall})
 }
 </script>
+<!-- The popup builder is a file, not an inline block, so it can be unit-tested.
+     See static/beta/js/venue-popup.js and __tests__/unit/venue-popup.test.js. -->
+<script src="<%= static_path %>/beta/js/venue-popup.js"></script>
 <script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&libraries=marker&callback=initMap&loading=async" async defer onerror="showMapFallback()"></script>
 
 <script src="//www.google.com/recaptcha/api.js" async defer></script>
