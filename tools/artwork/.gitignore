@@ -1,0 +1,11 @@
+# The photographs and hand cut-outs the division artwork was made from.
+#
+# THIS REPOSITORY IS PUBLIC and these are the un-abstracted originals: identifiable
+# photographs of real players, the hand cut-outs before polymerising, and the GIMP document
+# that still holds the players as separate layers. Committing them would publish exactly
+# what polyart.js exists to prevent — see the de-identification note in its header.
+#
+# They live here so the sources sit next to the tools that consume them, not so they ship.
+# The polymerised outputs are kept out too: they are already public inside the committed
+# social-Division-*.png, but at card resolution, and these are up to 3504px tall.
+source/
