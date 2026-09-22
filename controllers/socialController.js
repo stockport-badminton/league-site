@@ -4,35 +4,21 @@ const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 const Fixture = require('../models/fixture');
 const { canonicalFor } = require('../utils/canonical');
-
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// The shared card chrome — background lookup, dark panel, division letter, and the
+// league's name and host. See utils/socialCard.js for why the letter and the panel are
+// drawn rather than baked into the artwork (HARD-37).
+const {
+  LEAGUE_NAME, SITE_HOST, escapeXml, text, panel, divisionLetter, glyph,
+  backgroundFor, subjectFor, subjectLayer,
+} = require('../utils/socialCard');
 
 function svgOverlay(width, height, elements) {
-  const els = elements.map(({ text, x, y, size, weight = 'normal', fill = '#000', anchor = 'middle' }) =>
-    `<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${escapeXml(text)}</text>`
+  // `text:` is aliased because the shared helper of that name is imported at the top, and a
+  // destructured parameter would shadow it — harmless here, a trap for the next edit.
+  const els = elements.map(({ text: value, x, y, size, weight = 'normal', fill = '#000', anchor = 'middle' }) =>
+    `<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${escapeXml(value)}</text>`
   ).join('');
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${els}</svg>`);
-}
-
-// What the league is called, and where to find it. On the card because the post is seen by
-// people who have never heard of it: an Instagram carousel headed "Premier" and nothing
-// else says neither which sport nor which town. The result card carries the URL already;
-// the league's own name was nowhere on any of them.
-const LEAGUE_NAME = 'Stockport & District Badminton League';
-const SITE_HOST = 'stockport-badminton.co.uk';
-
-// One `<text>`, for the cards that build their SVG themselves rather than handing
-// `svgOverlay` a flat list. Same escaping and the same defaults; `spacing` is the extra
-// letter-spacing that makes an all-caps line read as a label rather than a shout.
-function text(value, x, y, size, { weight = 'normal', fill = '#000', anchor = 'middle', spacing = 0, opacity = 1 } = {}) {
-  return `<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}"` +
-         ` fill="${fill}" text-anchor="${anchor}" letter-spacing="${spacing}" opacity="${opacity}">${escapeXml(value)}</text>`;
 }
 
 // `/league-table-image/Division 1.jpg` and `/league-table-image/Division 1` are the same
@@ -42,6 +28,78 @@ function text(value, x, y, size, { weight = 'normal', fill = '#000', anchor = 'm
 function stripImageExt(v) {
   return String(v || '').replace(/\.jpe?g$/i, '');
 }
+
+/**
+ * The result card.
+ *
+ * Redesigned as part of HARD-37, and it had to be: the old layout wrote BLACK text into the
+ * bottom-right corner, which only worked because the artwork faded to near-white exactly
+ * there. Take the fade away and the card is black-on-colour and unreadable — so re-pointing
+ * the background and redesigning this were never two jobs, whatever the package's step list
+ * implied.
+ *
+ * It is now a sibling of the fixtures card rather than an unrelated layout: same dark panel,
+ * same league name, same host line, same derived accent. Two posts about the same league
+ * looked like two different leagues.
+ *
+ * What it gained, both from HARD-37's acceptance criteria:
+ *   - the LEAGUE'S NAME. The card carried the URL and nothing saying what competition this
+ *     is, which is the outsider problem the fixtures card was given a name and URL to fix;
+ *   - the DIVISION, in words. It used to be readable only as the letter baked into the
+ *     artwork, so a reader had to already know that "P" meant Premier.
+ */
+function createResultCard(bgPath, data, W, H, accent, { letter = null, subject = null } = {}) {
+  const { division, homeTeam, awayTeam, homeScore, awayScore } = data;
+
+  // A SHALLOW panel across the BOTTOM, not one filling the frame.
+  //
+  // The first version filled it, and that buried the player — which defeats the point of
+  // compositing one. The 2024 cards put their text on a fade across the bottom third
+  // precisely so the player had the rest of the frame, and that composition is the reason
+  // the artwork was ever worth using; a full-height panel turns the card into a coloured
+  // mesh with a box on it.
+  //
+  // Shallow because this card only ever says two team names and a score. It began at 0.56
+  // and was still mostly empty space, and every pixel the panel gives back is player.
+  const bottom = Math.round(H * 0.94);
+  const top = Math.round(H * 0.66);
+
+  // Centred in the panel with the host line pinned to its foot, rather than a stack of
+  // fixed offsets from the top: the story is 1080x1920 and the same panel is 40% taller
+  // there, so fixed offsets leave the text high with a hole beneath it.
+  const centre = Math.round((top + (bottom - 74)) / 2);
+
+  // The letter sits in the free space above the panel. `top:` not `y:` — see glyph(); an
+  // SVG baseline placed at "distance from the top of the card" loses the cap height off the
+  // top of the frame, which is exactly what it did here.
+  const body = `
+    ${letter ? glyph(letter, { x: 70, top: Math.round(H * 0.035), size: Math.round(H * 0.20) }) : ''}
+    ${panel({ x: 56, y: top, width: 968, height: bottom - top })}
+    ${text(LEAGUE_NAME.toUpperCase(), 540, centre - 124, 22, { fill: '#ffffff', spacing: 2.5, weight: 'bold', opacity: 0.7 })}
+    ${text(division, 540, centre - 70, 44, { weight: 'bold', fill: '#ffffff' })}
+    <line x1="360" y1="${centre - 40}" x2="720" y2="${centre - 40}" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+    ${text(homeTeam, 540, centre + 10, 40, { weight: 'bold', fill: '#ffffff' })}
+    ${text(`${homeScore} - ${awayScore}`, 540, centre + 86, 72, { weight: 'bold', fill: accent })}
+    ${text(awayTeam, 540, centre + 140, 40, { weight: 'bold', fill: '#ffffff' })}
+    ${text(SITE_HOST, 540, bottom - 26, 24, { fill: '#ffffff', weight: 'bold', opacity: 0.6 })}`;
+
+  // Background, then the PLAYER, then the panel and the text. The order is the design: the
+  // panel is translucent, so it darkens whatever it covers rather than hiding it, and the
+  // player reads through the lower half exactly as they did under the 2024 fade.
+  const layers = [];
+  if (subject) layers.push(subject);
+  layers.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${body}</svg>`) });
+
+  return sharp(bgPath)
+    .resize(W, H, { fit: 'cover' })
+    .composite(layers)
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
+
+// Exported so a design change can be looked at without standing up a request. A test can
+// prove a JPEG came out; it cannot prove the thing reads.
+exports.createResultCard = createResultCard;
 
 exports.resultImage = async function(req, res, next) {
   try {
@@ -55,35 +113,26 @@ exports.resultImage = async function(req, res, next) {
     // self-describing so `metaPublisher`'s JPEG guard can stay strict, and links filed
     // before the extension existed keep working.
     const division = stripImageExt(req.params.division);
-    const bgPath = `static/beta/images/bg/social-${division.replace(/\s+/g, '-')}.png`;
+    const bgPath = await backgroundFor(division);
+    const accent = await accentFor(bgPath);
+    const data = { division, homeTeam, awayTeam, homeScore, awayScore };
     const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
 
-    const makeElements = (width, height) => {
-      const x = width - 100;
-      const y = Math.floor(2 * height / 3) + 50;
-      return [
-        { text: homeTeam,                              x, y,       size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
-        { text: 'vs',                                  x, y: y+60,  size: 50,                  fill: 'black', anchor: 'end' },
-        { text: awayTeam,                              x, y: y+140, size: 60, weight: 'bold',   fill: 'black', anchor: 'end' },
-        { text: `${homeScore} - ${awayScore}`,         x, y: y+240, size: 80, weight: 'bold',   fill: 'black', anchor: 'end' },
-        { text: '#stockport #badminton #sdbl #result', x, y: y+320, size: 30,                  fill: 'black', anchor: 'end' },
-        { text: 'https://stockport-badminton.co.uk',   x, y: y+365, size: 30,                  fill: 'black', anchor: 'end' },
-      ];
-    };
+    // The subject is scaled per size rather than once, because the story is a different
+    // aspect and a layer placed for 4:5 lands in the wrong half of a 9:16 frame.
+    const subjectPath = await subjectFor(division);
+    const layerFor = (W, H) => subjectPath ? subjectLayer(subjectPath, { W, H }) : null;
 
-    const postBuffer = await sharp(bgPath)
-      .resize(1080, 1350, { fit: 'cover' })
-      .composite([{ input: svgOverlay(1080, 1350, makeElements(1080, 1350)) }])
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    const postBuffer = await createResultCard(bgPath, data, 1080, 1350, accent,
+      { subject: await layerFor(1080, 1350) });
 
     await Promise.all([
       sharp(postBuffer).toFile(`${fileBase}.jpg`),
-      sharp(bgPath)
-        .resize(1080, 1920, { fit: 'cover' })
-        .composite([{ input: svgOverlay(1080, 1920, makeElements(1080, 1920)) }])
-        .jpeg({ quality: 90 })
-        .toFile(`${fileBase}-Ig.jpg`),
+      (async () => {
+        const story = await createResultCard(bgPath, data, 1080, 1920, accent,
+          { subject: await layerFor(1080, 1920) });
+        return sharp(story).toFile(`${fileBase}-Ig.jpg`);
+      })(),
     ]);
 
     res.type('image/jpeg');
@@ -322,13 +371,7 @@ exports.fixturesBackground = (d) => fixturesBackground(d);
 // bytes whether or not their backgrounds do — a test that compared them passed happily
 // against a version that used one background for everything.
 async function fixturesBackground(divisionName) {
-  const named = `static/beta/images/bg/social-${String(divisionName).replace(/\s+/g, '-')}.png`;
-  try {
-    await fs.access(named);
-    return named;
-  } catch {
-    return 'static/beta/images/bg/social.png';
-  }
+  return backgroundFor(divisionName);
 }
 
 // The accent colour for a division's card, taken from that division's own artwork.
@@ -387,7 +430,7 @@ async function accentFor(bgPath) {
 
 exports.accentFor = (p) => accentFor(p);
 
-async function createFixturesImage(bgPath, divisionName, fixtures, format = 'png', accent = '#cccccc') {
+async function createFixturesImage(bgPath, divisionName, fixtures, format = 'png', accent = '#cccccc', { subject = null } = {}) {
   // 1080x1350, not the tables' square. It is what the result card uses, so the two posts
   // match; Instagram gives a 4:5 image more of the feed than a 1:1; and a list of fixtures
   // wants the vertical room.
@@ -403,14 +446,27 @@ async function createFixturesImage(bgPath, divisionName, fixtures, format = 'png
   const PANEL_OPACITY = 0.80;
   const PANEL_BOTTOM = 1270;
 
-  // A long list buys room by moving the top of the panel up over the artwork, rather than
-  // shrinking the type further. The worst week this league has ever had is about six
-  // fixtures in one division, which with its night headings is eleven lines.
-  const panelTop = lines.length > 8 ? 200 : 270;
-  const listTop = panelTop + 380;
-  const listBottom = PANEL_BOTTOM - 95;
+  // The panel GROWS UPWARD from the foot of the card, sized to its content, so a quiet week
+  // leaves the player visible above it and a busy one takes the room it needs. It used to be
+  // pinned near the top at a fixed height, which was fine when the artwork behind it was
+  // scenery — but the player is composited now, and a panel that always fills the frame
+  // buries them, which is the whole reason the artwork is there. The worst week this league
+  // has had is about six fixtures in one division: eleven lines with the night headings.
+  const HEADER = 340;   // league name down to the rule
+  const FOOT = 95;      // the host line
+  const MAX_STEP = 66;
+  const MIN_PANEL_TOP = 180;
 
-  const step = lines.length ? Math.min(78, Math.floor((listBottom - listTop) / lines.length)) : 0;
+  const wanted = PANEL_BOTTOM - FOOT - lines.length * MAX_STEP - HEADER;
+  const panelTop = Math.max(MIN_PANEL_TOP, wanted);
+  const listTop = panelTop + HEADER;
+  const listBottom = PANEL_BOTTOM - FOOT;
+
+  // Recomputed after the clamp: once the panel has hit its ceiling, the only room left to
+  // find is in the line spacing.
+  const step = lines.length
+    ? Math.min(MAX_STEP, Math.floor((listBottom - listTop) / lines.length))
+    : 0;
   const rowSize = Math.max(22, Math.min(46, Math.round(step * 0.58)));
   const dateSize = Math.max(20, Math.round(rowSize * 0.80));
 
@@ -442,12 +498,20 @@ async function createFixturesImage(bgPath, divisionName, fixtures, format = 'png
     ${rows}
     ${text(SITE_HOST, 540, PANEL_BOTTOM - 42, 29, { fill: '#ffffff', weight: 'bold', opacity: 0.6 })}`;
 
-  const pipeline = sharp(bgPath)
-    .resize(W, H, { fit: 'cover' })
-    .composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${body}</svg>`) }]);
+  // Background, then the PLAYER, then the panel and the text — same order as the result
+  // card. The panel is translucent, so whatever it covers is darkened rather than hidden.
+  const layers = [];
+  if (subject) layers.push(subject);
+  layers.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${body}</svg>`) });
+
+  const pipeline = sharp(bgPath).resize(W, H, { fit: 'cover' }).composite(layers);
 
   return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
 }
+// Exported for rendering a card outside a request — previewing a design change means
+// looking at the picture, and a test can prove a JPEG came out but not that it reads.
+exports.createFixturesImage = createFixturesImage;
+
 // GET /fixtures-image/:division — one division's coming week, as a JPEG, built now.
 //
 // Public and unauthenticated, like the league table and tournament images and for the same
@@ -469,7 +533,9 @@ exports.fixturesImage = async function (req, res, next) {
     }
 
     const bg = await fixturesBackground(mine[0].divisionName);
-    const buf = await createFixturesImage(bg, mine[0].divisionName, mine, 'jpeg', await accentFor(bg));
+    const subjectPath = await subjectFor(mine[0].divisionName);
+    const buf = await createFixturesImage(bg, mine[0].divisionName, mine, 'jpeg', await accentFor(bg),
+      { subject: subjectPath ? await subjectLayer(subjectPath, { W: 1080, H: 1350 }) : null });
 
     res.type('image/jpeg').set('Cache-Control', FIXTURES_IMAGE_CACHE_CONTROL).send(buf);
   } catch (err) {

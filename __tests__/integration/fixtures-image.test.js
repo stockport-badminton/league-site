@@ -155,14 +155,23 @@ describe('the division artwork', () => {
   // against a version that used one background for every division.
   const { fixturesBackground } = require('../../controllers/socialController');
 
-  it('picks each division its own artwork', async () => {
+  it('picks each division its own CLEAN artwork', async () => {
     await expect(fixturesBackground('Premier'))
-      .resolves.toBe('static/beta/images/bg/social-Premier.png');
+      .resolves.toBe('static/beta/images/bg/divisions/Premier.png');
     await expect(fixturesBackground('Division 1'))
-      .resolves.toBe('static/beta/images/bg/social-Division-1.png');
+      .resolves.toBe('static/beta/images/bg/divisions/Division-1.png');
   });
 
-  it('falls back to the plain background for a division with no artwork', async () => {
+  // The middle branch of the lookup, and it is exercised by real files rather than a
+  // fixture: Division 4 has 2024 artwork and no clean version. The 2024 files stay until
+  // every division has been re-cut, and a division part-way through that must keep
+  // rendering — this route is one Meta fetches, so a missing file cannot become a 500.
+  it('falls back to the 2024 artwork for a division with no clean version', async () => {
+    await expect(fixturesBackground('Division 4'))
+      .resolves.toBe('static/beta/images/bg/social-Division-4.png');
+  });
+
+  it('falls back to the plain background for a division with no artwork at all', async () => {
     await expect(fixturesBackground('Messer Knockout'))
       .resolves.toBe('static/beta/images/bg/social.png');
   });
@@ -206,7 +215,15 @@ describe('the derived accent colour', () => {
   const parse = css => css.match(/\d+/g).map(Number);
   const luminance = ([r, g, b]) => 0.299*r + 0.587*g + 0.114*b;
 
+  // Both sets. The clean backgrounds (HARD-37) are what the cards are drawn on now, and
+  // the 2024 files are still the fallback for any division not yet re-cut — so the accent
+  // has to hold up on both. The clean ones have no fade, which is what these assertions
+  // were originally written to survive.
   const BACKGROUNDS = [
+    'static/beta/images/bg/divisions/Premier.png',
+    'static/beta/images/bg/divisions/Division-1.png',
+    'static/beta/images/bg/divisions/Division-2.png',
+    'static/beta/images/bg/divisions/Division-3.png',
     'static/beta/images/bg/social-Premier.png',
     'static/beta/images/bg/social-Division-1.png',
     'static/beta/images/bg/social-Division-2.png',

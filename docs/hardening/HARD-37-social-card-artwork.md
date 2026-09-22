@@ -63,57 +63,84 @@ is quantise-then-smooth-the-labelling rather than Kuwahara (measured against the
 originals, which had both the input and output of that step on disk), and **the abstraction
 is de-identification rather than styling**, which inverts how it is tuned.
 
+## The layer that was nearly lost
+
+**The cards are a background with a PLAYER composited onto it.** The first pass at this
+package delivered the clean backgrounds, the panel and the text, and no player — a coloured
+mesh with a box of text on it. The owner caught it: *"you've taken the people off… we've
+just been through the work to de-id the people so that they could be layered on as they
+were originally."*
+
+Worth recording because of *why* it happened. Separating a composite into layers makes each
+one easy to reason about and makes exactly one mistake easy to make: putting back fewer
+layers than you took apart. Nothing failed. Every test passed, the route returned 200, the
+cards looked deliberate. The missing layer was the one the whole preceding piece of work —
+cutting the players out and abstracting them — had existed to produce.
+
+The subjects live in `static/beta/images/bg/divisions/subjects/`, resolved by
+`subjectFor()`. They are the **polymerised** cut-outs: abstracted so the individual is not
+identifiable, which is the point of the treatment and not a style. `tools/artwork/` has the
+tools and the measured settings.
+
 ## What to do
 
-1. ~~Get clean base images.~~ **Done** — see above.
-2. Keep the existing files until the new ones are proven. They are what `resultImage` uses
-   today and that post runs every time a captain publishes a result.
-3. **Decide whether all four are regenerated.** The owner's intent is that they should be,
-   so the set reads as one league: today two are recovered 2024 artwork and two are new,
-   and a Premier that does not match makes the mismatch conspicuous. Regenerating all four
-   is seconds of compute and the seeds make it repeatable — the cost is discarding two
-   pieces of artwork that already work. **Look at all four together before choosing**; the
-   recovered Division 3 has a noticeably different triangle scale and direction from the
-   rest.
-4. **Draw the division letter at render time, not into the pixels.** This is the whole
-   point of clean backgrounds. A letter in the image fixes one layout for ever; a letter
-   drawn by the renderer can move, resize, or be left off entirely for a card that already
-   names the division in text — which the fixtures card does, and which is why it currently
-   prints the same information twice a few hundred pixels apart.
-5. **Make the text panels addable and removable per card.** Same reasoning. Legibility is a
-   property of a particular background and a particular block of text, so it has to be a
-   decision the renderer can take, not a fade baked into every background whether that
-   card needs one or not.
-6. Re-point `fixturesBackground()` in `socialController`. It is already the single place the
-   fixtures card resolves artwork, and it already falls back to `social.png` for a division
-   it has no file for, so this is one path change. `accentFor()` derives the card's accent
-   from whatever that lookup returns, so the colours follow the new files on their own —
-   but **re-run the accent tests**, which assert every background yields a colour that is
-   light enough to read and still has chroma in it. They exist because the first version
-   washed out to white. Note the new backgrounds have **no fade**, so the reason
-   `accentFor()` samples only the top strip no longer applies to them — but it still does
-   to `social.png`, so do not remove the restriction without checking what else uses it.
-7. **Then review the result card's design**, which is the actual reason to do this. It is
-   the post that goes out weekly, it still uses the 2024 bottom-right layout that the fade
-   was created to serve, and it carries **neither the league's name nor any indication of
-   what competition it is** — the same outsider problem the fixtures card was just given the
-   league name and URL to fix.
-8. Re-render all four divisions and look at them. The images are the deliverable; a test
-   can prove a JPEG came out and cannot prove it looks right.
+1. ~~Get clean base images.~~ **Done.**
+2. ~~Keep the existing files until the new ones are proven.~~ **Still true and still done:**
+   `backgroundFor()` falls back to the 2024 artwork for any division with no clean version,
+   which Division 4 exercises with real files.
+3. **Decide whether all four backgrounds are regenerated.** *Still open.* The owner's intent
+   is that they should be, so the set reads as one league: two are recovered 2024 artwork
+   and two are new. **Look at all four together before choosing**; the recovered Division 3
+   has a noticeably different triangle scale and direction from the rest.
+4. ~~Draw the division letter at render time.~~ **Done** — `glyph()` in `utils/socialCard.js`,
+   off by default, drawn by the result card. Note its argument is `top`, not `y`: an SVG `y`
+   is the baseline, so a caller thinking in "distance from the top of the card" loses the
+   cap height off the top of the frame. That is not hypothetical; it shipped that way for
+   one render and the letters were visibly guillotined.
+5. ~~Make the text panels addable and removable per card.~~ **Done** — `panel()` is a call
+   the renderer makes, and each card sizes its own. The fixtures panel now grows *upward*
+   from the foot of the card according to how many lines it has, so a quiet week leaves the
+   player visible and a busy one takes the room it needs.
+6. ~~Re-point the background lookup.~~ **Done**, and it moved into `utils/socialCard.js` as
+   `backgroundFor()` so both cards share it. `accentFor()` still samples only the top strip:
+   the clean backgrounds have no fade so they no longer need that restriction, but
+   `social.png` does, and the accent tests now cover both sets.
+7. ~~Review the result card's design.~~ **Done, and it was not optional.** See below.
+8. ~~Re-render all four and look at them.~~ **Done**, repeatedly, and every adjustment in
+   this package came from looking rather than from a test.
+
+**Re-pointing the background and redesigning the result card were never two jobs.** The old
+card wrote BLACK text into the bottom-right corner, which was legible only because the 2024
+artwork faded to near-white exactly there. Put a clean background under that layout and it
+renders perfectly, returns 200, is a valid JPEG of the right size, and cannot be read. Doing
+step 6 without step 7 would have shipped that.
 
 ## Acceptance criteria
 
-- Four clean backgrounds in `static/beta/images/bg/`, no baked-in text, no fade.
-- The division letter is drawn by the renderer, and a card can be rendered without one.
-- A text panel is something a card opts into, not something every background carries.
-- `/fixtures-image/:division` renders on them for all four divisions, and still falls back
-  rather than 500ing for a division with no file.
-- The result card carries the league name and the site URL.
-- `__tests__/integration/fixtures-image.test.js` still passes, including the artwork lookup
-  tests — note those assert the **path chosen**, not the rendered bytes, because comparing
-  two rendered cards proves nothing: the division name is printed on the picture, so two
-  divisions differ in bytes whether or not their backgrounds do. A test that compared them
-  passed against a version using one background for everything.
+- ✅ Four clean backgrounds, no baked-in text, no fade — in
+  `static/beta/images/bg/divisions/`.
+- ✅ The division letter is drawn by the renderer, and a card renders without one.
+- ✅ A text panel is something a card opts into.
+- ✅ The player is composited back on, per division, and is visible rather than buried.
+- ✅ `/fixtures-image/:division` renders for all four and still falls back rather than
+  500ing for a division with no artwork.
+- ✅ The result card carries the league name, the division in words, and the site URL.
+- ✅ `__tests__/integration/fixtures-image.test.js` passes — the artwork tests assert the
+  **path chosen**, not the rendered bytes, because the division name is printed on the
+  picture so two divisions differ in bytes whether or not their backgrounds do.
+
+**`__tests__/integration/result-card.test.js` is the new one, and it asserts a property no
+earlier test could have caught**: the WCAG contrast between white text and whatever is
+underneath it, measured off the rendered pixels. Remove the panel and it fails on every
+division at 1.8–4.0 against a 4.5 bar.
+
+It also carries a trap worth knowing before writing any test that measures part of a
+rendered image. **`sharp(buf).extract(region).stats()` computes statistics from the INPUT
+image and ignores the pipeline**, so it silently returns whole-image means and every region
+reads identically. The first version of this file did exactly that and passed — because the
+panel then covered 74% of the frame, so whole-image means really did differ. It survived a
+mutation test for the same wrong reason. It only surfaced when the panel shrank to a band
+across the foot. Materialise the crop with `.toBuffer()` before calling `.stats()`.
 
 ## What the fixtures card already settled
 

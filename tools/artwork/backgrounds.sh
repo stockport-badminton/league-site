@@ -16,12 +16,12 @@
 # with.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-OUT=tools/artwork/assets/backgrounds
+OUT=static/beta/images/bg/divisions
 
-node tools/artwork/lowpolybg.js "$OUT/premier-clean.png" \
+node tools/artwork/lowpolybg.js "$OUT/Premier.png" \
   --palette '#2ecc40,#ffdc00,#ff851b,#f012be,#7fdbff' --cell 170 --seed 8
 
-node tools/artwork/lowpolybg.js "$OUT/division-1-clean.png" \
+node tools/artwork/lowpolybg.js "$OUT/Division-1.png" \
   --palette dusk --cell 190 --seed 62 --saturate 1.3
 
 echo "  divisions 2 and 3 are recovered artwork, not generated -- left alone"
