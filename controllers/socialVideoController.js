@@ -397,6 +397,23 @@ async function generateResultImages(fixtures) {
     try {
       const { homeTeam, awayTeam, homeScore, awayScore, division } = fixture;
 
+      // A fixture whose division cannot be resolved is SKIPPED, and skipped on purpose.
+      //
+      // `division` comes from a LEFT JOIN through the home team, so it is null whenever that
+      // team has no division — 1,318 completed fixtures on record, six of them in 2026, so
+      // this reaches a live video window. The old code happened to skip them too, but only
+      // because `division.replace(...)` threw a TypeError that the catch below swallowed.
+      //
+      // Replacing that with a lookup that always answers turned an accidental skip into a
+      // card reading "null" in 68px white type, published to Facebook and Instagram. That is
+      // the `String(null)` trap that once put "0 null null" on every league-table image, and
+      // it is worse than the drop it replaced: a missing result is invisible, a card saying
+      // "null" is not.
+      if (!String(division || '').trim()) {
+        console.warn(`Skipping ${homeTeam} v ${awayTeam}: no division on the home team`);
+        continue;
+      }
+
       if (!perDivision.has(division)) {
         const bgPath = await backgroundFor(division);
         const subjectPath = await subjectFor(division);

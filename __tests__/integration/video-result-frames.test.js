@@ -50,15 +50,29 @@ describe('the weekly video frames', () => {
     for (const f of images) await expect(fs.access(f)).resolves.toBeUndefined();
   });
 
-  // The old lookup built a path from the division name and `continue`d if no file was
-  // there, so a friendly or a renamed division was simply absent from the week's video and
-  // nothing said so. `backgroundFor` always answers.
-  it('does not drop a result whose division has no artwork', async () => {
+  // A division with no CLEAN artwork still renders, on the fallback. Division 4 has 2024
+  // artwork and no clean version, so this is exercised by real files rather than a mock —
+  // and it is the case a new or renamed division would land in.
+  it('renders a division that has no clean artwork of its own', async () => {
     const images = await video.generateResultImages([
-      fixture('Messer A', 'Messer B', 'Messer Knockout'),
+      fixture('Tatton A', 'Mellor B', 'Division 4'),
     ]);
     expect(images).toHaveLength(1);
   });
+
+  // ...but a fixture with NO division is skipped, and this is the important one.
+  //
+  // `division` comes from a LEFT JOIN through the home team and is null whenever that team
+  // has none: 1,318 completed fixtures, six of them in 2026. The old code skipped these by
+  // accident, because `division.replace(...)` threw. Replacing that with a lookup that
+  // always answers rendered a card reading "null" in 68px white type and published it.
+  it.each([null, undefined, '', '   '])
+    ('skips a fixture whose division is %p rather than printing it', async division => {
+      const images = await video.generateResultImages([
+        fixture('Tatton A', 'Mellor B', division),
+      ]);
+      expect(images).toEqual([]);
+    });
 
   // The property a duplicated renderer would have lost: text drawn on something dark
   // enough to read. The old copy wrote black text where the artwork used to fade white.

@@ -127,9 +127,17 @@ step 6 without step 7 would have shipped that.
   the real card ever reached. `__tests__/integration/video-result-frames.test.js` asserts
   the frames are legible and adds a guard that fails if a second renderer reappears there,
   because a drifting copy breaks nothing until somebody edits the original and not the copy.
-- ✅ The video no longer silently drops results. Its old lookup `continue`d past any
-  division with no artwork file, so a friendly or a renamed division was absent from the
-  week's video with nothing said.
+- ✅ A division with no CLEAN artwork still renders, on the fallback.
+- ✅ A fixture with NO division is SKIPPED, on purpose. `division` comes from a LEFT JOIN
+  through the home team and is null whenever that team has none — 1,318 completed fixtures,
+  six of them in 2026, so this reaches a live video window. The old code skipped them by
+  accident, because `division.replace(...)` threw a TypeError the catch swallowed. Replacing
+  that with a lookup that always answers turned an accidental skip into a card reading
+  "null" in 68px white type, published to Facebook and Instagram — the `String(null)` trap
+  that once put "0 null null" on every league-table image. **A missing result is invisible;
+  a card saying "null" is not.** Caught only because the owner asked what the fabricated
+  "Messer Knockout" frame in the test was supposed to be — there is no such division, and
+  the invented example had been used to justify the change.
 - ✅ `/fixtures-image/:division` renders for all four and still falls back rather than
   500ing for a division with no artwork.
 - ✅ The result card carries the league name, the division in words, and the site URL.
