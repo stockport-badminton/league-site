@@ -15,6 +15,9 @@ node tools/artwork/polyart.js source/IMG_0932-cutout.png subject.png \
 # 2. a background, from nothing
 node tools/artwork/lowpolybg.js bg.png --palette court --cell 170 --variants 6
 
+# ...or regenerate the chosen ones
+./tools/artwork/backgrounds.sh
+
 # 3. put them together
 node tools/artwork/compose.js bg.png subject.png card.png --scale 0.78 --x 0.62 --y 0.93
 ```
@@ -59,8 +62,13 @@ the obvious direction of improvement is the wrong one. `--preset subject` (20/10
 
 ## What is here
 
-- `assets/backgrounds/` — the two clean backgrounds recovered from the GIMP document.
-  Divisions 2 and 3 only: `div 1 background` has the white footer fade baked in and
-  `Prem background` has the player baked in too, so both need regenerating.
+- `assets/backgrounds/` — four clean backgrounds, 1080x1350, no fade and no division
+  letter. Divisions 2 and 3 are **recovered** from the GIMP document, which holds them as
+  standalone layers. Premier and Division 1 are **generated**, because their layers are
+  unusable: `div 1 background` has the white footer fade baked in and `Prem background`
+  has the player baked in too.
+- `backgrounds.sh` — regenerates the generated pair. The `--seed` values in it are the
+  point: the generator is random, so a seed is what makes a chosen render recoverable
+  rather than a lucky one nobody can get back.
 - `source/` — **gitignored**, see `.gitignore` for why. The originals, the hand cut-outs,
   the polymerised subjects and the `.xcf`.
