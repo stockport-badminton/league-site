@@ -786,9 +786,16 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       // draft is safe either way, but "filed AND the results secretary knows" and "filed,
       // and nobody has been told" are different situations and only one of them needs a
       // nudge by hand.
+      //
+      // `filed=1` makes that page read-only. It used to render the same editable wizard
+      // the results secretary publishes from, headed by an "Enter Result" button — and
+      // the token it carries is a publish credential (HARD-24). On 23 Sep a captain
+      // walked it through again two minutes after filing, pressed Submit, and published
+      // their own result (draft 2449). Publishing is the results secretary's step, from
+      // the emailed link, which carries no `filed`.
       const confirmPath = confirmationPath(scorecardId, confirmToken);
-      res.redirect(notified ? confirmPath
-        : confirmPath + (confirmPath.indexOf('?') === -1 ? '?' : '&') + 'notified=0');
+      const sep = confirmPath.indexOf('?') === -1 ? '?' : '&';
+      res.redirect(confirmPath + sep + 'filed=1' + (notified ? '' : '&notified=0'));
     } catch (err) { next(err); }
   }
 }
@@ -850,7 +857,33 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       Player.getEligiblePlayersAndSelectedById(rows[0].awayLady1, rows[0].awayLady2, rows[0].awayLady3, rows[0].awayTeam, 'Female'),
     ]);
     const renderData = { divisionRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
+
+    // The captain's view straight after filing: what we received, and no way to publish
+    // it. See the redirect in fixture_populate_scorecard_errors. A query parameter is
+    // enough here because this guards against a mistaken click, not an attacker — the
+    // token is still a publish credential, and the page without `filed` still offers it.
+    const readOnly = req.query.filed === '1';
+    const selectedName = (list, fallback) => {
+      const hit = (list || []).find(row => row.selected);
+      return (hit && hit.name) || fallback;
+    };
+    const draft = rows[0];
+    const games = [];
+    for (let n = 1; n <= 18; n++) {
+      games.push({ n, home: draft['Game' + n + 'homeScore'], away: draft['Game' + n + 'awayScore'] });
+    }
+    const summary = readOnly ? {
+      homeTeamName: selectedName(homeTeamRows, 'Home team'),
+      awayTeamName: selectedName(awayTeamRows, 'Away team'),
+      divisionName: selectedName(divisionRows, ''),
+      homeGames: games.filter(g => Number(g.home) > Number(g.away)).length,
+      awayGames: games.filter(g => Number(g.away) > Number(g.home)).length,
+      games,
+    } : null;
+
     res.render('populated-scorecard', {
+      readOnly,
+      summary,
       static_path: '/static',
       pageTitle: "Spreadsheet Upload Scorecard",
       pageDescription: "Show result of uploading scorecard",

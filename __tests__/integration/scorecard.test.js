@@ -509,6 +509,16 @@ describe('POST /email-scorecard', () => {
 
       expect(res.headers.location).not.toContain('notified=0');
     });
+
+    // The captain lands on the read-only view either way — see GET ?filed=1 below.
+    it('lands the captain on the read-only view whether or not the email went', async () => {
+      const failed = await request(app).post('/email-scorecard').send(validScorecard());
+      expect(failed.headers.location).toMatch(/[?&]filed=1(&|$)/);
+
+      ses.sendEmail.mockResolvedValue({});
+      const sent = await request(app).post('/email-scorecard').send(validScorecard());
+      expect(sent.headers.location).toMatch(/[?&]filed=1(&|$)/);
+    });
   });
 
   // If RETURNING is ever dropped from the INSERT again, this is what it looks like:
@@ -600,6 +610,57 @@ describe('GET /populated-scorecard-beta/:id', () => {
   it('says nothing of the sort on an ordinary visit', async () => {
     const res = await request(app).get('/populated-scorecard-beta/42');
     expect(res.text).not.toMatch(/couldn't email the results secretary/i);
+  });
+
+  // Where the captain lands after filing. It used to be the editable wizard the results
+  // secretary publishes from, carrying the draft's token — which IS a publish credential —
+  // so a captain who walked it through again and pressed Submit published their own
+  // result (draft 2449, 23 Sep 2026). After filing there must be nothing to submit.
+  describe('straight after filing (?filed=1)', () => {
+    const token = 'c'.repeat(64);
+    beforeEach(() => {
+      const games = {};
+      for (let n = 1; n <= 18; n++) {
+        games['Game' + n + 'homeScore'] = n <= 7 ? 21 : 15;
+        games['Game' + n + 'awayScore'] = n <= 7 ? 12 : 21;
+      }
+      Fixture.getScorecardById.mockResolvedValue([{ ...mockScorecardRow[0], ...games, confirmToken: token }]);
+      Team.getAllAndSelectedById
+        .mockResolvedValueOnce([{ id: 9, name: 'Other', selected: false }, { id: 10, name: 'Alderley Park A', selected: true }])
+        .mockResolvedValueOnce([{ id: 20, name: 'GHAP A', selected: true }]);
+    });
+
+    it('renders no publish form and no way into it', async () => {
+      const res = await request(app).get('/populated-scorecard-beta/42?t=' + token + '&filed=1');
+
+      expect(res.status).toBe(200);
+      expect(res.text).not.toMatch(/action="\/scorecard-beta"/);
+      expect(res.text).not.toMatch(/name="t"/);
+      // The page's own Enter Result button; the nav menu has a link of the same name.
+      expect(res.text).not.toMatch(/href="#signupModal"/);
+      expect(res.text).not.toMatch(/id="signupModal"/);
+    });
+
+    it('tells the captain it has been received, and plays the score back', async () => {
+      const res = await request(app).get('/populated-scorecard-beta/42?t=' + token + '&filed=1');
+
+      expect(res.text).toMatch(/Scorecard received/);
+      expect(res.text).toMatch(/Alderley Park A 7&ndash;11 GHAP A/);
+      expect(res.text).toMatch(/<tr data-game="1"><td>1<\/td><td class="home">21<\/td><td class="away">12<\/td><\/tr>/);
+      expect(res.text).toMatch(/<tr data-game="18">/);
+    });
+
+    it('still warns when the results secretary was not told', async () => {
+      const res = await request(app).get('/populated-scorecard-beta/42?t=' + token + '&filed=1&notified=0');
+      expect(res.text).toMatch(/couldn't email the results secretary/i);
+    });
+
+    // The emailed link carries no `filed`, and it is how the results secretary publishes.
+    it('leaves the emailed link editable', async () => {
+      const res = await request(app).get('/populated-scorecard-beta/42?t=' + token);
+      expect(res.text).toMatch(/action="\/scorecard-beta"/);
+      expect(res.text).not.toMatch(/Scorecard received/);
+    });
   });
 
   it('returns 500 when scorecard is not found', async () => {
@@ -1222,13 +1283,16 @@ describe('POST /email-scorecard link and token', () => {
     const token = Fixture.createScorecard.mock.calls[0][0].confirmToken;
     const html = emailBodyOf(ses.sendEmail.mock.calls[0][0]);
     expect(html).toContain('/populated-scorecard-beta/42?t=' + token);
+    // The emailed link is the one the results secretary publishes from, so it must not
+    // open the captain's read-only view.
+    expect(html).not.toContain('filed=1');
   });
 
   it('redirects the captain to a URL that carries the token, so their own draft opens', async () => {
     const res = await request(app).post('/email-scorecard').send(validScorecard());
 
     const token = Fixture.createScorecard.mock.calls[0][0].confirmToken;
-    expect(res.headers.location).toBe('/populated-scorecard-beta/42?t=' + token);
+    expect(res.headers.location).toBe('/populated-scorecard-beta/42?t=' + token + '&filed=1');
   });
 
   // The other end of the same injection: this handler emails req.body['scoresheet-url']

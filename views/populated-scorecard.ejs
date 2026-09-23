@@ -57,9 +57,34 @@
         hasResult = true
       }
       %>
+      <%# Straight after a captain files (?filed=1): show what we received and nothing that
+          publishes. Turning hasResult off drops the Enter Result button, the modal, the
+          form inside it and the wizard's script, all of which are guarded by it. %>
+      <% if (locals.readOnly) { hasResult = false } %>
 
       <div class="jumbotron">
+        <% if (locals.readOnly && locals.summary) { %>
+        <h1>Scorecard received</h1>
+        <p class="lead">
+          <%= summary.homeTeamName %> <%= summary.homeGames %>&ndash;<%= summary.awayGames %> <%= summary.awayTeamName %>
+          <% if (summary.divisionName) { %><br><small class="text-muted"><%= summary.divisionName %></small><% } %>
+        </p>
+        <p>
+          Thanks &mdash; that's all you need to do. The results secretary will check it and
+          put it on the website. If something below is wrong, email
+          <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>.
+        </p>
+        <table class="table table-sm scorecard-summary" style="max-width: 20rem;">
+          <thead><tr><th scope="col">Game</th><th scope="col">Home</th><th scope="col">Away</th></tr></thead>
+          <tbody>
+            <% summary.games.forEach(function (g) { %>
+            <tr data-game="<%= g.n %>"><td><%= g.n %></td><td class="home"><%= g.home %></td><td class="away"><%= g.away %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } else { %>
         <h1>The next big thing is coming...</h1>
+        <% } %>
         <% if (hasErrors) { %>
             <p>Looks like something went wrong</p>
             <p><a class="btn btn-lg btn-danger"  data-toggle="modal" href="#signupModal">Fix Errors</a></p>

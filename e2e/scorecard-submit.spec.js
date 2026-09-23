@@ -162,10 +162,14 @@ test.describe('filing a scorecard', function () {
     expect(String(rows[0].Game18awayScore)).toBe('21');    // away won game 18
     expect(rows[0].homeMan1).not.toBeNull();
 
-    // 3. The page plays it back, which is the half a server test cannot see: the same
-    //    view, re-rendered from the stored row, is what the results secretary confirms.
-    await expect(page.locator('#Game1homeScore').first()).toHaveValue('21');
-    await expect(page.locator('#Game18awayScore').first()).toHaveValue('21');
+    // 3. The page plays it back from the stored row — read-only, because the captain's
+    //    part is done. It used to be the editable wizard with the draft's token in it, and
+    //    a captain who pressed Submit there published their own result (draft 2449).
+    expect(url.searchParams.get('filed')).toBe('1');
+    await expect(page.locator('body')).toContainText(/Scorecard received/);
+    await expect(page.locator('tr[data-game="1"] .home')).toHaveText('21');
+    await expect(page.locator('tr[data-game="18"] .away')).toHaveText('21');
+    await expect(page.locator('form[action="/scorecard-beta"]')).toHaveCount(0);
 
     // One write, and it is the one that was declared.
     expect(guard.writes).toEqual(['POST /email-scorecard']);
