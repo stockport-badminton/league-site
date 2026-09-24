@@ -39,7 +39,7 @@ that writes or reads a scorecard either skips or fails.
 2. Find where the 21 missing teams went. Candidates to check first: a migration that
    deletes or constrains `team` rows (e.g. teams with a NULL division) running before the
    data; the snapshot's `team` COPY/INSERT erroring earlier and being reported as
-   "already exists"; or row ordering in `002_data.sql` putting `fixture` before `team`.
+   "already exists"; or row ordering in `migrations/data/002_data.sql` putting `fixture` before `team`.
 3. Fix it at the cause. Do **not** drop the foreign key or skip the offending fixtures to
    make the load pass — ghost-team fixtures are exactly what `--check ghost-teams` exists
    to find, and hiding them locally would make the local copy lie about production.
