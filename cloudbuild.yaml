@@ -3,7 +3,11 @@ steps:
   # image, let alone a deployment.
   #
   # There was no test step at all until August 2026: 391 Jest tests that ran only when
-  # somebody remembered to run them. That works while the person deploying is the person
+  # somebody remembered to run them. And until Sep 2026 this file itself never ran: the
+  # trigger was the one the Cloud Run console generates, with its own inline build (no
+  # tests, no cache, pushing to cloud-run-source-deploy). It now names this file. If a
+  # deploy ever skips the test step again, check the trigger before anything else:
+  #   gcloud builds triggers describe rmgpgab-league-site-europe-west2-stockport-badminton-league-hbz That works while the person deploying is the person
   # who wrote them; the moment it isn't, the suite stops being a safety net and becomes
   # documentation of what used to be checked.
   #
@@ -72,3 +76,8 @@ steps:
 images:
   - 'europe-west2-docker.pkg.dev/stockport-badminton-map/league-site/app:$COMMIT_SHA'
   - 'europe-west2-docker.pkg.dev/stockport-badminton-map/league-site/app:latest'
+
+# Required, not cosmetic: the trigger runs as a named service account, and Cloud Build
+# refuses such a build unless it says where its logs go.
+options:
+  logging: CLOUD_LOGGING_ONLY

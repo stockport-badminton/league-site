@@ -31,7 +31,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..', '..');
 
@@ -79,6 +79,14 @@ function resolves(ref) {
   return (byBasename.get(path.basename(ref)) || []).length > 0;
 }
 
+// `scripts/` and `migrations/data/` are gitignored on purpose, and the docs name files in
+// them. On a working machine they exist and are checked like anything else; in a clean
+// checkout — Cloud Build's — they cannot exist, so absence there says nothing about the
+// docs. Until Sep 2026 this test had only ever run on machines that had them.
+function isIgnored(ref) {
+  return spawnSync('git', ['check-ignore', '-q', ref], { cwd: ROOT }).status === 0;
+}
+
 // Prose mentions plenty of backticked things that are not repo paths: URL routes
 // (`/sw.js`, `/scripts/ejs/ejs.js` in a CSP allowlist), bare extensions (`.ejs`), globs
 // (`views/**/*.ejs`) and code fragments. Only check what is unambiguously a path.
@@ -103,7 +111,7 @@ describe('the documentation points at things that exist', () => {
       const text = fs.readFileSync(path.join(ROOT, doc), 'utf8');
       for (const ref of candidatePaths(text)) {
         if (KNOWN_ABSENT[path.basename(ref)]) continue;
-        if (!resolves(ref)) broken.push(`${doc} → ${ref}`);
+        if (!resolves(ref) && !isIgnored(ref)) broken.push(`${doc} → ${ref}`);
       }
     }
     expect(broken).toEqual([]);

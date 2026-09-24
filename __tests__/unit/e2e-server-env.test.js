@@ -48,26 +48,45 @@ describe('e2e/server-env.js', () => {
   // pass would make this test green when the neutralisation is deleted, since the guard
   // would simply refuse instead: the fix and its absence would look identical.
   const hasDevEnv = fs.existsSync(path.join(root, 'dev.env'));
+  // A clean checkout — Cloud Build's, or a fresh clone — has neither file, since both are
+  // gitignored. Then nothing is loaded, nothing can be live, and starting is right: there
+  // is nothing for the guard to refuse. What it must still do is hold only dead values.
+  const hasDotEnv = fs.existsSync(path.join(root, '.env'));
+  const expectStart = hasDevEnv || !hasDotEnv;
 
-  it(hasDevEnv ? 'starts, and holds nothing live' : 'refuses to start, with a reason', () => {
-    if (hasDevEnv) {
+  it(expectStart ? 'starts, and holds nothing live' : 'refuses to start, with a reason', () => {
+    if (expectStart) {
       expect(proc.stderr || '').not.toMatch(/live production credentials/i);
       expect(env).not.toBeNull();
       return expect(env.live).toEqual([]);
     }
-    // No dev.env means no local database to point at, so refusing is right — but it must
-    // say why rather than dying quietly.
+    // A .env without a dev.env means the only database on offer is production, so
+    // refusing is right — but it must say why rather than dying quietly.
     expect(proc.status).not.toBe(0);
     expect(proc.stderr).toMatch(/live production credentials|not been declared/i);
   });
 
   const whenStarted = env ? describe : describe.skip;
+  // The local database, bucket name and PI key all come from dev.env, so these describe a
+  // machine that has one. Without it they would be asserting on values nothing supplied.
+  const whenLocal = env && hasDevEnv ? describe : describe.skip;
 
   whenStarted('the environment it produces', () => {
     it('holds no usable AWS key', () => {
       expect(env.awsKey).not.toMatch(/^(AKIA|ASIA)[A-Z0-9]{16}$/);
     });
 
+    it('leaves unset the variables that are safe because they are unset', () => {
+      expect(env.auditTo).toBeUndefined();
+      expect(env.cronToken).toBeUndefined();
+    });
+
+    it('marks itself, so globalSetup can tell this server from somebody else\'s', () => {
+      expect(env.marker).toBe('1');
+    });
+  });
+
+  whenLocal('the configuration it takes from dev.env', () => {
     it('points at a local database, never production', () => {
       expect(env.dbHost).toBeDefined();
       expect(env.dbHost).not.toMatch(/supabase/);
@@ -79,15 +98,6 @@ describe('e2e/server-env.js', () => {
 
     it('keeps a working DB_PI_KEY — the pages under test decrypt real local columns', () => {
       expect(env.piKeySet).toBe(true);
-    });
-
-    it('leaves unset the variables that are safe because they are unset', () => {
-      expect(env.auditTo).toBeUndefined();
-      expect(env.cronToken).toBeUndefined();
-    });
-
-    it('marks itself, so globalSetup can tell this server from somebody else\'s', () => {
-      expect(env.marker).toBe('1');
     });
   });
 
