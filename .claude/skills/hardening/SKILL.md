@@ -70,8 +70,8 @@ is usually worth more than starting another.
 - **`npm test` before claiming done.** Roughly 1150 tests across 80-odd suites, ~40s; take
   the exact numbers from the run rather than from here, because a figure written down is
   wrong by the next package (this line has now been stale three times). Add
-  `npm run test:e2e` if you touched anything the browser drives — 89 specs, one of which
-  writes, deliberately and by name; see CLAUDE.md.
+  `npm run test:e2e` if you touched anything the browser drives — two of its spec files
+  write, deliberately and by name; see CLAUDE.md.
 - **Never hand-write database boilerplate.** Use `tools/dbq.js`:
   ```bash
   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"

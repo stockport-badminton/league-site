@@ -271,7 +271,10 @@ npm run test:all      # jest, then playwright
   `scorecard-messages.spec.js` (one test per captain-visible failure message, each also
   asserting the recovery it points at is on the page),
   `scorecard-prefill.spec.js` (what the auto-fill fills in beyond the photo),
-  `scorecard-submit.spec.js` (**the one spec that writes** — see below),
+  `scorecard-submit.spec.js` (**writes** — see below),
+  `scorecard-phone.spec.js` (the whole wizard at 390px by touch, both cards: no sideways
+  scroll on any step, the gate's reason on screen at three phone shapes, the digit pad,
+  and the camera — its league walk **also writes**, one draft, the same way),
   `filter-toolbar.spec.js` (filters/chips/DataTables controls),
   `roster-edit.spec.js` (team-management: pointer and **real touch** drag, drag
   *precision* — the row tracking the pointer and not falling into the wrong list —
@@ -279,9 +282,10 @@ npm run test:all      # jest, then playwright
   stacking; the reordering is JavaScript-only behaviour that no server-side test can
   reach),
   `read-only-guard.spec.js` (self-test for the guard below).
-- **One spec writes, and it says so.** `scorecard-submit.spec.js` fills the captain's form
+- **Two specs write, and they say so.** `scorecard-submit.spec.js` fills the captain's form
   in the browser, POSTs it, and reads the row back out of `scorecardstore` — one row per
-  test, no updates or deletes. It is declared:
+  test, no updates or deletes; `scorecard-phone.spec.js` does the same once, on a phone.
+  Each writing test is declared:
   `readOnly(page, baseURL, { allowWrites: [/^\/email-scorecard$/] })`. Cross-origin is
   still aborted unconditionally and any same-origin write the test did not name still
   fails `assertNoWrites()`, so "this test writes" stays a statement in the test rather than

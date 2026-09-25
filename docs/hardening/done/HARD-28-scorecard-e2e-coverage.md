@@ -285,7 +285,7 @@ name still fails `assertNoWrites()` — so "this test writes" stays a statement 
 ### Left open
 
 **Gap 6, mobile**, which is in the gap list above and not in the acceptance criteria. It is
-now [HARD-34](../HARD-34-scorecard-on-a-phone.md): captains file results on a phone and
+now [HARD-34](HARD-34-scorecard-on-a-phone.md): captains file results on a phone and
 every assertion here was made at desktop width.
 
 Also corrected: four comments in `e2e/` still saying `dev.env` carries production's

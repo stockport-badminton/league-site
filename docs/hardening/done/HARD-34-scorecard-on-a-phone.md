@@ -53,3 +53,42 @@ desktop width only, so "the captain is told" is really "the captain would be tol
   uses and it caught a real bug there.
 - Redesigning the wizard. If the fourteen-step modal turns out to be the wrong shape for a
   phone, that is a finding for its own package, not this one.
+
+## Outcome (25 Sep 2026)
+
+`e2e/scorecard-phone.spec.js` — 12 tests at 390px with `hasTouch`/`isMobile`, everything
+tapped and typed rather than clicked and filled.
+
+- **The wizard fits.** Both cards walked through all fourteen steps with no sideways scroll
+  of the page, the modal, or any control past the screen edge. The league walk ends in a
+  filed draft read back from `scorecardstore` — so this is the second spec that writes, one
+  row, declared through `allowWrites` exactly as `scorecard-submit.spec.js` is. The messer
+  walk stops at the summary.
+- **The gate's reason is on screen**, at 390x844, 375x667 and 390x500 (the phone with its
+  keyboard up — emulation cannot raise a keyboard, so the viewport is shrunk to what is
+  left). That is true **by layout and by nothing else**: the score row is the last thing in
+  every score step, so `#gameFeedbackN` sits directly above the footer. Move it, or put
+  anything between it and the footer, and the tests say so.
+- **Fixed: the digit pad.** The league inputs were `type="number"` alone, which on iOS opens
+  the full keyboard in its numbers layout. All 72 (the modal and its error-path copy) now
+  carry `inputmode="numeric"`.
+- **Messer deliberately keeps plain `type="number"`.** iOS's `numeric` and `decimal` pads
+  have no minus key and messer scores go to −10, so copying the fix across would have made a
+  handicapped score untypeable on an iPhone while every desktop test passed. A test pins it.
+- **The file pickers** carry `image/*` and no `capture` — `capture` would force the camera
+  and hide the photo library, and the usual order is photograph now, file later.
+
+Every assertion was shown to fail: the keypad test with the view fix stashed, the overflow
+test against a planted 600px-wide block, and the gate tests against a 400px spacer between
+reason and footer. The last one also showed that Playwright's `toBeInViewport()` passes on
+a one-pixel sliver, so the reason is asserted with `ratio: 1`.
+
+**Left open, recorded rather than fixed:**
+
+- With the keyboard up, revealing the reason adds a line of text above the footer, so
+  Continue moves ~46px down *after* the tap and ends half below the fold. The reason itself
+  is wholly visible. Reserving the feedback's height would stop the jump; that is a layout
+  change for whoever next touches the wizard, not a failure of this package's criterion.
+- `views/populated-scorecard.ejs` has the same league score inputs without `inputmode`.
+  Not this package's file.
+- `GET /messer-scorecard-beta/test` serves the dev debug panel in production — HARD-40.
