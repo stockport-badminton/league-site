@@ -62,8 +62,8 @@ The first ("a migration that deletes team rows") was not: nothing deletes anythi
 
 **21, not 19.** HARD-11 reinstated 19 ids. The other two, 56 and 57, were orphans in May
 too, but by September production had issued those ids to two new teams: the export's
-`setval(..., MAX(id))` had rewound the sequence below ids already used. That is a
-production bug in its own right, and it is **HARD-39**.
+`setval(..., MAX(id))` had rewound the sequence below ids already used. **HARD-39**
+followed that up. It turned out harmless for teams, and it found a player record that was not.
 
 **The fix** (`tools/local-db/seed-repairs.sql`, run by `load` straight after the seed):
 the seed loads with FK enforcement suspended (`session_replication_role = replica`). The

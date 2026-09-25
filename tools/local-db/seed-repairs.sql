@@ -21,12 +21,12 @@
 -- Same rows, same convention as scripts/hard11-reinstate-teams.js, which wrote them to
 -- production: club 63 ("No Club"), venue 0, NULL division, withdrawn.
 --
--- 56 and 57 are NOT in that script, and that is a production bug rather than an omission
--- (HARD-39). They were Astrazeneca E and CAP B in 2012-14 (team20122013/team20132014),
--- deleted before the May export — whose `setval(..., MAX(id))` rewound the team sequence to
--- 55. Production then issued 56 and 57 to two new teams, so its 68 fixtures of theirs now
--- read as Manor B and Featherforce B, and nothing reported them orphaned because they no
--- longer were. The snapshot has neither new team, so here they get their real names.
+-- 56 and 57 are NOT in that script. They were Astrazeneca E and CAP B in 2012-14, deleted
+-- before the May export, whose `setval(..., MAX(id))` rewound the team sequence to 55;
+-- production then issued both ids to new teams (Manor B, Featherforce B). That was
+-- investigated as HARD-39 and deliberately LEFT: past seasons are read through the archive
+-- tables, which still hold the 2012 teams at those ids, so every page is right. The snapshot
+-- has neither new team, so here they get their 2012 names.
 INSERT INTO team (id, name, club, venue, rank, "divRank", division, withdrawn, "withdrawnReason")
 SELECT id, name, 63, 0, 0, 0, NULL, NOW(),
        'Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: ' || source || '.'
@@ -58,6 +58,26 @@ ON CONFLICT (id) DO NOTHING;
 -- Explicit ids do not advance a sequence. Without this, the next team created locally
 -- is issued 56 — the same reuse that caused HARD-39, reproduced on purpose.
 SELECT setval(pg_get_serial_sequence('team', 'id'), (SELECT MAX(id) FROM team));
+
+-- ── HARD-39: player 116's games, reassigned ──────────────────────────────────────────
+-- 116 was a second "John Paul" record in 2018/19 and was later edited in place into
+-- "Ellie Harper", taking 48 men's and mixed games with it. Production was corrected on
+-- 25 Sep 2026 by scripts/hard39-player-116.js; the owner identified the players. Guarded
+-- on the old value, so a snapshot taken after the fix passes through unchanged.
+DO $$
+DECLARE m record; c text;
+BEGIN
+  FOR m IN SELECT * FROM (VALUES (785, ARRAY[6]), (250, ARRAY[326, 358, 363, 364, 372, 374, 976])) AS t(dest, fixtures)
+  LOOP
+    FOREACH c IN ARRAY ARRAY['homePlayer1', 'homePlayer2', 'awayPlayer1', 'awayPlayer2'] LOOP
+      EXECUTE format('UPDATE game SET %I = $1 WHERE %I = 116 AND fixture = ANY($2)', c, c) USING m.dest, m.fixtures;
+    END LOOP;
+    FOREACH c IN ARRAY ARRAY['homeMan1', 'homeMan2', 'homeMan3', 'homeLady1', 'homeLady2', 'homeLady3',
+                             'awayMan1', 'awayMan2', 'awayMan3', 'awayLady1', 'awayLady2', 'awayLady3'] LOOP
+      EXECUTE format('UPDATE fixture SET %I = $1 WHERE %I = 116 AND id = ANY($2)', c, c) USING m.dest, m.fixtures;
+    END LOOP;
+  END LOOP;
+END $$;
 
 -- ── re-validate every foreign key ─────────────────────────────────────────────────────
 -- Dropping and re-adding a constraint from its own definition is the only way to make
