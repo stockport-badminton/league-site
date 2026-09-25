@@ -89,6 +89,8 @@ a one-pixel sliver, so the reason is asserted with `ratio: 1`.
   Continue moves ~46px down *after* the tap and ends half below the fold. The reason itself
   is wholly visible. Reserving the feedback's height would stop the jump; that is a layout
   change for whoever next touches the wizard, not a failure of this package's criterion.
-- `views/populated-scorecard.ejs` has the same league score inputs without `inputmode`.
-  Not this package's file.
-- `GET /messer-scorecard-beta/test` serves the dev debug panel in production — HARD-40.
+- `views/populated-scorecard.ejs` had the same league score inputs without `inputmode`.
+  Not this package's file, so it was left here — and then fixed in the next commit, with a
+  test in the phone spec that failed without it.
+- `GET /messer-scorecard-beta/test` served the dev debug panel in production — HARD-40,
+  now done.

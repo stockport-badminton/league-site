@@ -34,7 +34,7 @@
 const { test, expect } = require('@playwright/test');
 const { readOnly } = require('./helpers/read-only');
 const { selectableValues } = require('./helpers/selects');
-const { query, outstandingFixture } = require('./helpers/db');
+const { query, outstandingFixture, latestScorecardDraftPath } = require('./helpers/db');
 
 const MODAL = '#signupModal';
 const PHONE = { width: 390, height: 844 };
@@ -255,6 +255,28 @@ test.describe('filing a result on a phone', function () {
 
     guard.assertNoWrites();
   });
+
+  // The confirmation page a superadmin publishes from — often from the emailed link, on
+  // whatever device it was opened on — carries the same eighteen editable pairs, and is a
+  // separate template, so it needs the same attribute separately.
+  test('the confirmation page\'s score boxes ask for the digit pad too',
+    async function ({ page, baseURL }) {
+      const url = await latestScorecardDraftPath();
+      test.skip(!url, 'no draft in the database to render the confirmation page from');
+      const guard = await readOnly(page, baseURL);
+      await page.goto(url);
+
+      const boxes = page.locator('input.scoreInput');
+      await expect(boxes).toHaveCount(36);
+      const wrong = await boxes.evaluateAll(function (els) {
+        return els.filter(function (e) {
+          return e.type !== 'number' || e.getAttribute('inputmode') !== 'numeric';
+        }).map(function (e) { return e.id; });
+      });
+      expect(wrong, 'score boxes without type=number + inputmode=numeric').toEqual([]);
+
+      guard.assertNoWrites();
+    });
 
   // The opposite rule, and the reason the league fix was not copied across. Messer is
   // handicapped and a side can finish below zero (min="-10"). iOS's `numeric` and `decimal`

@@ -269,7 +269,7 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
       result: true,
       scorecard,
       data: testData,
-      devMode: true,
+      devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
       pageTitle: 'Enter Messer Result (Test Data)',
       pageDescription: 'Enter Messer Result',
       canonical: canonicalFor(req),

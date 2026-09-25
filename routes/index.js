@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const Sentry = require('@sentry/node');
 const secured = require('../middleware/secured');
+const devOnly = require('../middleware/devOnly');
 const mailer = require('../utils/mailer');
 const { absoluteUrl } = require('../utils/canonical');
 const { expressjwt: jwt } = require('express-jwt');
@@ -638,7 +639,7 @@ router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
 
 // Messer scorecard routes
 router.get('/messer-scorecard-beta', secured, messer_scorecard_controller.messer_scorecard_beta);
-router.get('/messer-scorecard-beta/test', secured, messer_scorecard_controller.messer_scorecard_beta_test);
+router.get('/messer-scorecard-beta/test', devOnly, secured, messer_scorecard_controller.messer_scorecard_beta_test);
 router.post('/messer-scorecard-beta', secured, messer_scorecard_controller.validateMesserScorecard, messer_scorecard_controller.full_messer_fixture_post);
 router.get('/populated-messer-scorecard/:id', secured, messer_scorecard_controller.messer_fixture_populate_scorecard_fromId);
 router.get('/api/messer-teams-by-section/:section', secured, messer_scorecard_controller.messer_teams_by_section);

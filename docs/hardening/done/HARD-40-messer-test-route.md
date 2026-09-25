@@ -42,3 +42,23 @@ phone spec hides it.
 
 - The debug panel itself, and whether dev builds need it.
 - The phone layout of the messer card — HARD-34.
+
+## Outcome (25 Sep 2026)
+
+**Kept, and gated to dev.** The route has one real user — `e2e/messer-scorecard.spec.js`
+uses it as the cheapest check that a fully populated messer card still renders — and the
+controller's own comment already said "dev only". So it was never meant to be live; it
+just had nothing making it so.
+
+- `middleware/devOnly.js`, the same rule as `secured.js` and `devMode.js` (`DEV_MODE` set
+  **and** not production), read per request. Anywhere else it calls `next('route')`, so the
+  request falls through to the ordinary 404: production does not refuse the route, it does
+  not have it. It sits *ahead of* `secured`, so a logged-out visitor gets the 404 too rather
+  than a login redirect that would confirm the route exists.
+- The render now derives `devMode` from the environment like the other three.
+- `__tests__/integration/messer-scorecard.test.js` — 404 without `DEV_MODE`, 404 in
+  production *even with* `DEV_MODE` set, and the prefilled card on a dev server. The two
+  404 tests answered **200** with the route change stashed.
+- `__tests__/unit/no-literal-devmode.test.js` fails on a literal `devMode: true` anywhere in
+  `controllers/`, `routes/`, `utils/` or `middleware/`, and self-tests its pattern. It named
+  `controllers/messer-scorecard-controller.js:272` with the fix stashed.

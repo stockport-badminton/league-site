@@ -87,6 +87,54 @@ describe('Messer Scorecard Routes', () => {
     });
   });
 
+  // HARD-40. A messer form prefilled with test data and the dev debug panel forced on,
+  // posting to the real submit — and it was reachable in production by any logged-in
+  // member, because `secured` was its only gate. `secured` is mocked open in this file,
+  // so devOnly is the only thing standing between a request and the controller here.
+  describe('GET /messer-scorecard-beta/test (dev only)', () => {
+    const env = {};
+    beforeEach(() => {
+      env.DEV_MODE = process.env.DEV_MODE;
+      env.NODE_ENV = process.env.NODE_ENV;
+      Player.getEligiblePlayersAndSelectedById.mockResolvedValue([1, 2, 3].map(id =>
+        ({ id, first_name: 'Player', family_name: String(id) })));
+      Team.getAllAndSelectedBySection = jest.fn().mockResolvedValue([]);
+    });
+    afterEach(() => {
+      for (const k of ['DEV_MODE', 'NODE_ENV']) {
+        if (env[k] === undefined) delete process.env[k]; else process.env[k] = env[k];
+      }
+    });
+
+    it('does not exist without DEV_MODE', async () => {
+      delete process.env.DEV_MODE;
+      const res = await request(app).get('/messer-scorecard-beta/test');
+      expect(res.status).toBe(404);
+      expect(Team.getTeamsBySection).not.toHaveBeenCalled();
+    });
+
+    // The rule secured.js and devMode.js use: DEV_MODE alone is not enough, so a stray
+    // DEV_MODE=true on the Cloud Run service still cannot open it.
+    it('does not exist in production, even with DEV_MODE set', async () => {
+      process.env.DEV_MODE = 'true';
+      process.env.NODE_ENV = 'production';
+      const res = await request(app).get('/messer-scorecard-beta/test');
+      expect(res.status).toBe(404);
+      expect(Team.getTeamsBySection).not.toHaveBeenCalled();
+    });
+
+    it('renders the prefilled card, with the debug panel, on a dev server', async () => {
+      process.env.DEV_MODE = 'true';
+      const render = require('express').response.render;
+      const res = await request(app).get('/messer-scorecard-beta/test');
+      expect(res.status).toBe(200);
+      const [view, data] = render.mock.calls[render.mock.calls.length - 1];
+      expect(view).toBe('messer-scorecard');
+      expect(data.devMode).toBe(true);
+      expect(data.data.Game1homeScore).toBe('21');
+    });
+  });
+
   describe('GET /api/messer-teams-by-section/:section', () => {
     it('should return teams for section A', async () => {
       const res = await request(app).get('/api/messer-teams-by-section/A');
