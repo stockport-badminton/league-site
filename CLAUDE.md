@@ -789,7 +789,8 @@ Two smaller things worth not rediscovering:
   back to the plain background rather than throwing**: a division name with no matching
   file is reachable (a rename, a friendly) and Meta is fetching this route.
   That artwork has a fade and the division's letter baked into the pixels, which constrains
-  every layout drawn on it — **HARD-37**, blocked on clean source images.
+  every layout drawn on it. **HARD-37** (done) replaced it with clean backgrounds via
+  `backgroundFor()` in `utils/socialCard.js`; the 2024 files are the fallback.
 - **The panel is DARK, and that is the second attempt.** A white panel was built first and
   does not work: to be legible over the busy backgrounds it has to be near-opaque, and at
   that point the artwork underneath may as well not be there — which defeats the only
@@ -799,7 +800,7 @@ Two smaller things worth not rediscovering:
   road back to a white rectangle with a picture behind it.
 - **The accent colour is derived from the artwork, with a floor.** Sampled from the
   artwork's TOP strip and then forced to a fixed lightness and minimum saturation. Derived
-  so it follows the artwork when HARD-37 lands rather than becoming four stale hex values;
+  so it followed the artwork when HARD-37 replaced it, rather than becoming four stale hex values;
   floored because the first version sampled `stats().dominant` over the *whole* image,
   which on these backgrounds is the bottom third's fade to near-white — producing an
   invisible accent, and in an earlier layout white text on a near-white bar. The tests

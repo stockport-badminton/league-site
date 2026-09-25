@@ -6,7 +6,7 @@
  *
  * The four division backgrounds (static/beta/images/bg/social-*.png) were made by hand in
  * GIMP in 2024 and only some of the source photos survive. This reproduces the effect so
- * new artwork can be generated from any photo — see HARD-37, which is blocked on clean
+ * new artwork can be generated from any photo. Built for HARD-37 (done), which needed clean
  * base images with no fade and no baked-in division letter.
  *
  * It is a LOCAL TOOL. Nothing in the app requires it, and it deliberately adds no

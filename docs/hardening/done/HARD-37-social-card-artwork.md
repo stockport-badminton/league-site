@@ -1,7 +1,7 @@
 # HARD-37 — the social artwork constrains every card drawn on it
 
-**Severity:** low, cosmetic · **Wave:** D · **No longer blocked** — the artwork exists
-(22 Sep 2026), see *Where this got to*
+**Severity:** low, cosmetic · **Wave:** D · **Closed 25 Sep 2026** — landed 22 Sep; the one
+open decision (step 3) was left with the owner rather than held open here
 **Owns:** `static/beta/images/bg/social-*.png`, `controllers/socialController.js`
 (`createFixturesImage`, `resultImage`), `tools/artwork/`
 **Source:** building the weekly fixtures post, 16 Sep 2026 — raised by the owner while
@@ -88,8 +88,10 @@ tools and the measured settings.
 2. ~~Keep the existing files until the new ones are proven.~~ **Still true and still done:**
    `backgroundFor()` falls back to the 2024 artwork for any division with no clean version,
    which Division 4 exercises with real files.
-3. **Decide whether all four backgrounds are regenerated.** *Still open.* The owner's intent
-   is that they should be, so the set reads as one league: two are recovered 2024 artwork
+3. **Decide whether all four backgrounds are regenerated.** *Closed without regenerating,
+   25 Sep 2026*: the owner closed the package with the mixed set in place. It is taste rather
+   than a fault and nothing waits on it; `tools/artwork/backgrounds.sh` holds the palettes
+   and seeds if it is ever done. The intent had been that they should be, so the set reads as one league: two are recovered 2024 artwork
    and two are new. **Look at all four together before choosing**; the recovered Division 3
    has a noticeably different triangle scale and direction from the rest.
 4. ~~Draw the division letter at render time.~~ **Done** — `glyph()` in `utils/socialCard.js`,

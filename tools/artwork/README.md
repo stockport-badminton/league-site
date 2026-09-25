@@ -5,7 +5,7 @@ None of them is wired into the app, and none adds a dependency — `sharp` was a
 for the social cards, and the triangulation, edge detection and quantisation are written
 out rather than pulled in.
 
-They exist for **HARD-37**, which is blocked on clean base artwork.
+They were built for **HARD-37** (done), which needed clean base artwork.
 
 ```bash
 # 1. a photo (or better, a hand cut-out) -> a de-identified subject

@@ -8,8 +8,8 @@
 # Premier and Division 1 are generated because their original layers are unusable --
 # "div 1 background" has the white footer fade baked in and "Prem background" has the
 # player baked in too. Divisions 2 and 3 are RECOVERED from social-Premier.xcf and are not
-# regenerated here; see HARD-37 for the open question of whether all four should be, so the
-# set reads as one league.
+# regenerated here. Whether all four should be, so the set reads as one league, was left
+# with the owner when HARD-37 closed (25 Sep 2026); this script is where that would start.
 #
 # Deliberately no fade and no division letter. Both are layout decisions for whatever is
 # drawn on top, and baking them in is what made the 2024 artwork impossible to compose
