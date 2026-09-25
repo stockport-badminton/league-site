@@ -74,7 +74,14 @@ case "${1:-}" in
 
     if [ -f migrations/data/002_data.sql ]; then
       echo "→ seed data (migrations/data/002_data.sql)"
-      psql_in -q -f - < migrations/data/002_data.sql
+      # Foreign keys are suspended for the seed and re-validated, every one, by
+      # seed-repairs.sql straight after. The snapshot predates data repairs that
+      # production received before the constraints now replayed ahead of it (HARD-38),
+      # so it cannot satisfy them until those repairs are replayed too.
+      { echo 'SET session_replication_role = replica;'; cat migrations/data/002_data.sql; } | psql_in -q -f -
+
+      echo "→ production repairs the seed predates, then re-validating every foreign key"
+      psql_in -q -f - < tools/local-db/seed-repairs.sql
     else
       echo "→ NO SEED FOUND at migrations/data/002_data.sql — schema only."
       echo "  That directory is gitignored, so a fresh clone has no data. The app will"

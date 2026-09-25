@@ -485,6 +485,14 @@ half-applied load is worse than none and throwing a local database away costs no
   so an "already exists" is reported and skipped while **any other error stops the load**.
 - **Data comes from `migrations/data/002_data.sql`**, which is **gitignored**, so a fresh
   clone gets a schema and no rows. Its newest archive is 2024/25.
+- **The snapshot is older than the constraints replayed ahead of it**, so it is loaded
+  with foreign keys suspended and `tools/local-db/seed-repairs.sql` then replays the
+  production repairs it predates and **re-validates every foreign key**. Migration 017's
+  `fixture`→`team` keys went on in production only after HARD-11 reinstated the deleted
+  teams, and a seed from before that step broke the load (HARD-38). **A new data-repair
+  script that production needs before a constraint also belongs in that file**, or the
+  next constraint migration breaks the load the same way. The re-validation is what stops
+  the file being a way to hide orphans: a violation still stops the load and names the key.
 - **`tools/local-db/dev-fixtures.sql` supplies what that snapshot cannot**: outstanding
   fixtures in the current season (without them the scorecard form has nothing to match a
   result against), a draft carrying a `confirmToken`, and a messer draft. Six browser
