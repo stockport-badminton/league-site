@@ -150,6 +150,44 @@ describe('an Instagram post', () => {
   });
 });
 
+describe('an Instagram story', () => {
+  const STORY = 'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Premier/story.jpg';
+
+  it('is a STORIES container, with no caption, then a publish', async () => {
+    const out = await meta.publishInstagramStory(IG, TOKEN, { imageUrl: STORY });
+
+    expect(axios.post).toHaveBeenCalledTimes(2);
+    const [create, publish] = axios.post.mock.calls;
+    expect(urlOf(create)).toMatch(new RegExp(`/${IG}/media$`));
+    expect(bodyOf(create)).toMatchObject({ media_type: 'STORIES', image_url: STORY });
+    expect(bodyOf(create).caption).toBeUndefined();
+    expect(bodyOf(publish).creation_id).toBe('id-1');
+    expect(out.mediaId).toBe('id-2');
+  });
+
+  it('is its own target, reported separately from the feed post', async () => {
+    const out = await meta.publishEverywhere([
+      { name: 'Instagram', kind: 'instagram', id: IG, token: TOKEN },
+      { name: 'Instagram story', kind: 'instagram-story', id: IG, token: TOKEN },
+    ], { imageUrls: JPEG + '.jpg', message: 'Result', storyImageUrl: STORY });
+
+    expect(out.posted.map(p => p.target)).toEqual(['Instagram', 'Instagram story']);
+    expect(bodyOf(axios.post.mock.calls[0]).image_url).toBe(JPEG + '.jpg');
+    expect(bodyOf(axios.post.mock.calls[2])).toMatchObject({ media_type: 'STORIES', image_url: STORY });
+  });
+
+  it('fails the story target alone when no story image is given', async () => {
+    const out = await meta.publishEverywhere([
+      { name: 'Instagram', kind: 'instagram', id: IG, token: TOKEN },
+      { name: 'Instagram story', kind: 'instagram-story', id: IG, token: TOKEN },
+    ], { imageUrls: JPEG + '.jpg', message: 'Result' });
+
+    expect(out.posted.map(p => p.target)).toEqual(['Instagram']);
+    expect(out.failed.map(f => f.target)).toEqual(['Instagram story']);
+    expect(out.ok).toBe(false);
+  });
+});
+
 describe('asking Meta without publishing', () => {
   it('validateImages creates containers and publishes none of them', async () => {
     const out = await meta.validateImages(IG, TOKEN, [JPEG + '.jpg', JPEG + '2.jpg']);

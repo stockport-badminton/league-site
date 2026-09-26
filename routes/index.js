@@ -128,6 +128,7 @@ router.get('/callback', function(req, res, next) {
 });
 
 // Social image generation
+router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division/story.jpg', social_controller.resultStoryImage);
 router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division', social_controller.resultImage);
 router.get('/tables-social', social_controller.tablesSocial);
 router.get('/tournament-social', social_controller.tournamentSocial);

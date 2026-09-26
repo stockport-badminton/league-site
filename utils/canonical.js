@@ -116,6 +116,12 @@ function resultImagePath(result) {
   return '/resultImage/' + parts.map(p => encodeURIComponent(String(p ?? ''))).join('/') + '.jpg';
 }
 
+// The same result as a 9:16 Instagram story card. Same encoding, same segments; the division
+// is followed by `/story.jpg` instead of carrying `.jpg` itself.
+function resultStoryImagePath(result) {
+  return resultImagePath(result).replace(/\.jpg$/, '') + '/story.jpg';
+}
+
 // The weekly social images, on demand, for the same reason the result card is on demand.
 //
 // Until Sep 2026 these were PNGs written into `static/beta/images/generated/` and then
@@ -189,7 +195,7 @@ function localYmd(date) {
 
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
-  eventPath, clubPath, clubSlug, localYmd, resultImagePath,
+  eventPath, clubPath, clubSlug, localYmd, resultImagePath, resultStoryImagePath,
   leagueTableImagePath, tournamentImagePath, fixturesImagePath, socialVideoPath,
   DEFAULT_ORIGIN,
 };

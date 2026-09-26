@@ -696,7 +696,8 @@ Messer is a 15-game knockout (vs. 18-game regular fixtures):
 card with sharp, on demand — nothing stores the file, which is why Make.com fetches this
 URL just before it posts rather than being handed an image.
 
-**Build it with `resultImagePath()` from `utils/canonical.js`** (exposed to views as
+**Build it with `resultImagePath()` from `utils/canonical.js`** (or `resultStoryImagePath()`
+for the 9:16 story card; see `SOCIAL_POST_STORY`) (exposed to views as
 `app.locals.resultImagePath`), never by interpolation. Every segment must be
 percent-encoded: almost every team name in this league contains a space — "Tatton A",
 "Mellor B" — as does every division name, and a raw space is not a legal URL character.
@@ -1301,6 +1302,14 @@ Key vars (see `.env` for examples):
   a rollback is one environment variable rather than one deploy — this runs when a captain
   publishes a result, and a bad week is a week of missing posts nobody notices. Switching it
   on needs no change in Make: see *Two leagues, one Make account* above.
+- `SOCIAL_POST_STORY` — `'true'` also posts each published result as an **Instagram story**,
+  as a third target beside the Page and the feed post, so a failed story is reported on its
+  own. Needs `SOCIAL_POST_DIRECT`. **Unset posts no story.** The card is
+  `/resultImage/…/:division/story.jpg` (`resultStoryImagePath()`), a 1080x1920 layout of its
+  own: Instagram draws its profile bar over roughly the top 250px of a story and its reply box
+  over roughly the bottom 340px, and the feed layout stretched to 9:16 put the away team and
+  half the score under that box. `STORY_SAFE` in `socialController` holds those figures, which
+  are the commonly published ones, not measured.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

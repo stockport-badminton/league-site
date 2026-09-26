@@ -92,13 +92,19 @@ describe('the result card', () => {
     expect(drawn).toBeLessThan(lit * 0.7);
   });
 
-  it('holds the same contrast in the 1080x1920 story size', async () => {
-    const card = await render('Premier', {}, 1080, 1920);
+  // The story is its own layout (socialController's STORY): the panel sits higher, above the
+  // reply box Instagram draws over the foot of a story. Measured where it actually is.
+  it.each(DIVISIONS)('holds the same contrast in the 1080x1920 story layout: %s', async division => {
+    const { STORY } = social;
+    const card = await render(division, { layout: STORY.layout }, STORY.W, STORY.H);
     const meta = await sharp(card).metadata();
     expect([meta.width, meta.height]).toEqual([1080, 1920]);
 
-    const contrast = contrastWithWhite(await meanOf(card, panelRegion(1080, 1920)));
-    expect(contrast).toBeGreaterThan(4.5);
+    const region = {
+      left: 56, top: Math.round(STORY.H * STORY.layout.panelTop), width: STORY.W - 112,
+      height: Math.round(STORY.H * STORY.layout.panelBottom) - Math.round(STORY.H * STORY.layout.panelTop),
+    };
+    expect(contrastWithWhite(await meanOf(card, region))).toBeGreaterThan(4.5);
   });
 });
 

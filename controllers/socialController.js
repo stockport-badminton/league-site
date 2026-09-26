@@ -48,7 +48,7 @@ function stripImageExt(v) {
  *   - the DIVISION, in words. It used to be readable only as the letter baked into the
  *     artwork, so a reader had to already know that "P" meant Premier.
  */
-function createResultCard(bgPath, data, W, H, accent, { letter = null, subject = null } = {}) {
+function createResultCard(bgPath, data, W, H, accent, { letter = null, subject = null, layout = {} } = {}) {
   const { division, homeTeam, awayTeam, homeScore, awayScore } = data;
 
   // A SHALLOW panel across the BOTTOM, not one filling the frame.
@@ -61,8 +61,11 @@ function createResultCard(bgPath, data, W, H, accent, { letter = null, subject =
   //
   // Shallow because this card only ever says two team names and a score. It began at 0.56
   // and was still mostly empty space, and every pixel the panel gives back is player.
-  const bottom = Math.round(H * 0.94);
-  const top = Math.round(H * 0.66);
+  //
+  // `layout` moves the panel, as fractions of the height. The defaults are the feed card's.
+  const { panelTop = 0.66, panelBottom = 0.94 } = layout;
+  const bottom = Math.round(H * panelBottom);
+  const top = Math.round(H * panelTop);
 
   // Centred in the panel with the host line pinned to its foot, rather than a stack of
   // fixed offsets from the top: the story is 1080x1920 and the same panel is 40% taller
@@ -101,46 +104,73 @@ function createResultCard(bgPath, data, W, H, accent, { letter = null, subject =
 // prove a JPEG came out; it cannot prove the thing reads.
 exports.createResultCard = createResultCard;
 
+// The 9:16 story card's layout, chosen 26 Sep 2026 from three rendered options ("A, lifted").
+//
+// Instagram draws its own interface over a story: the profile bar and progress line across
+// roughly the top 250px, and the reply box and icons across roughly the bottom 340px. Those
+// are the commonly published safe-zone figures, not measured, so the first real story is
+// the check. The feed card's panel runs to 0.94H, which at 1920 put the away team, half the
+// score and the host line under the reply box. This one ends at 0.80H (1536px), above it.
+//
+// It is the feed card moved up, not a different design. Same panel depth and the same
+// player-behind-the-panel composition, so a story and its feed post read as one card. The
+// bottom fifth is plain background, which is the part the reply box covers anyway.
+const STORY = { W: 1080, H: 1920,
+  layout: { panelTop: 0.60, panelBottom: 0.80 },
+  subject: { height: 0.52, bottom: 0.655 } };
+const STORY_SAFE = { top: 250, bottom: 1580 };
+
+function resultParams(req) {
+  const { homeTeam, awayTeam, homeScore, awayScore } = req.params;
+  // The trailing `.jpg` is optional and must come off before the division name is used —
+  // it picks the background file, so `Division 1.jpg` would look for
+  // `social-Division-1.jpg.png` and fail. Same reasoning as the tables route: the URL is
+  // self-describing so `metaPublisher`'s JPEG guard can stay strict, and links filed
+  // before the extension existed keep working.
+  const division = stripImageExt(req.params.division);
+  return { division, homeTeam, awayTeam, homeScore, awayScore };
+}
+
+// Both sizes are drawn per request and returned, never written to disk. This handler used to
+// also write both to `static/beta/images/generated/`, for the Make.com scenario that fetched
+// them back by name. That is a container's own disk (see the header of the next section),
+// Make is gone, and nothing reads those names: the story file in particular was drawn on
+// every request and never served to anyone.
 exports.resultImage = async function(req, res, next) {
   try {
-    const generatedDir = 'static/beta/images/generated';
-    await fs.mkdir(generatedDir, { recursive: true });
-
-    const { homeTeam, awayTeam, homeScore, awayScore } = req.params;
-    // The trailing `.jpg` is optional and must come off before the division name is used —
-    // it picks the background file, so `Division 1.jpg` would look for
-    // `social-Division-1.jpg.png` and fail. Same reasoning as the tables route: the URL is
-    // self-describing so `metaPublisher`'s JPEG guard can stay strict, and links filed
-    // before the extension existed keep working.
-    const division = stripImageExt(req.params.division);
-    const bgPath = await backgroundFor(division);
-    const accent = await accentFor(bgPath);
-    const data = { division, homeTeam, awayTeam, homeScore, awayScore };
-    const fileBase = `static/beta/images/generated/${homeTeam.replace(/\s+/g, '+')}+${awayTeam.replace(/\s+/g, '+')}`;
-
-    // The subject is scaled per size rather than once, because the story is a different
-    // aspect and a layer placed for 4:5 lands in the wrong half of a 9:16 frame.
-    const subjectPath = await subjectFor(division);
-    const layerFor = (W, H) => subjectPath ? subjectLayer(subjectPath, { W, H }) : null;
-
-    const postBuffer = await createResultCard(bgPath, data, 1080, 1350, accent,
-      { subject: await layerFor(1080, 1350) });
-
-    await Promise.all([
-      sharp(postBuffer).toFile(`${fileBase}.jpg`),
-      (async () => {
-        const story = await createResultCard(bgPath, data, 1080, 1920, accent,
-          { subject: await layerFor(1080, 1920) });
-        return sharp(story).toFile(`${fileBase}-Ig.jpg`);
-      })(),
-    ]);
-
+    const data = resultParams(req);
+    const bgPath = await backgroundFor(data.division);
+    const subjectPath = await subjectFor(data.division);
+    const card = await createResultCard(bgPath, data, 1080, 1350, await accentFor(bgPath),
+      { subject: subjectPath ? await subjectLayer(subjectPath, { W: 1080, H: 1350 }) : null });
     res.type('image/jpeg');
-    res.send(postBuffer);
+    res.send(card);
   } catch (err) {
     next(err);
   }
 };
+
+// The same result as an Instagram story. Its own route rather than a flag on the feed one,
+// so the URL alone says which picture it is: Meta fetches it later, from its own servers,
+// and a query string is one more thing to lose on the way.
+exports.resultStoryImage = async function(req, res, next) {
+  try {
+    const data = resultParams(req);
+    const bgPath = await backgroundFor(data.division);
+    const subjectPath = await subjectFor(data.division);
+    const subject = subjectPath
+      ? await subjectLayer(subjectPath, { W: STORY.W, H: STORY.H, ...STORY.subject }) : null;
+    const card = await createResultCard(bgPath, data, STORY.W, STORY.H, await accentFor(bgPath),
+      { subject, layout: STORY.layout });
+    res.type('image/jpeg');
+    res.send(card);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.STORY = STORY;
+exports.STORY_SAFE = STORY_SAFE;
 
 // ---------------------------------------------------------------------------
 // The weekly social images, served on demand

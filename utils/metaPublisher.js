@@ -188,6 +188,24 @@ async function publishInstagramPhoto(igUserId, token, { imageUrl, caption }) {
 }
 
 /**
+ * One image as an Instagram story. The same container flow with `media_type=STORIES`, on the
+ * Page token we already hold: a container of the live result card was accepted on 26 Sep
+ * 2026 with no new permission or use case.
+ *
+ * No caption, because a story does not show one. Everything it says is in the pixels, which
+ * is why the story card is its own layout (socialController's STORY). And note what reads it
+ * back: a published story reports `media_type` IMAGE, and only `media_product_type` says
+ * STORY.
+ */
+async function publishInstagramStory(igUserId, token, { imageUrl }) {
+  assertPublishableImage(imageUrl, { forInstagram: true });
+  const creationId = await createContainer(igUserId, token, {
+    media_type: 'STORIES', image_url: imageUrl,
+  });
+  return { mediaId: await publishContainer(igUserId, token, creationId), creationId };
+}
+
+/**
  * Up to ten images as one carousel, which counts as ONE post against the publishing quota.
  *
  * Each child is its own container with `is_carousel_item`, then a parent container names
@@ -399,11 +417,11 @@ function targets() {
  *   failure indistinguishable from a whole one — the same rule `utils/afterCommit.js`
  *   states for notification email, and the same one `POST /fixture/rearrangement` broke.
  *
- * `targets` entries are `{name, kind: 'page'|'instagram', id, token}`. A null entry is
+ * `targets` entries are `{name, kind: 'page'|'instagram'|'instagram-story', id, token}`. A null entry is
  * skipped rather than being an error: that is how an unset credential means "this league
  * does not post there" instead of "crash".
  */
-async function publishEverywhere(targets, { imageUrls, message, caption }) {
+async function publishEverywhere(targets, { imageUrls, message, caption, storyImageUrl }) {
   const posted = [];
   const failed = [];
 
@@ -417,6 +435,12 @@ async function publishEverywhere(targets, { imageUrls, message, caption }) {
         const r = urls.length > 1
           ? await publishInstagramCarousel(t.id, t.token, { imageUrls: urls, caption: caption ?? message })
           : await publishInstagramPhoto(t.id, t.token, { imageUrl: urls[0], caption: caption ?? message });
+        posted.push({ target: t.name, kind: t.kind, id: r.mediaId });
+      } else if (t.kind === 'instagram-story') {
+        // Its own target, so a story that fails beside a feed post that worked is reported
+        // as exactly that, rather than folded into "Instagram: ok".
+        if (!storyImageUrl) throw new MetaError('No story image supplied for the story target', { step: 'validate' });
+        const r = await publishInstagramStory(t.id, t.token, { imageUrl: storyImageUrl });
         posted.push({ target: t.name, kind: t.kind, id: r.mediaId });
       } else {
         failed.push({ target: t.name, error: new MetaError(`Unknown target kind ${t.kind}`, { step: 'validate' }) });
@@ -433,7 +457,7 @@ module.exports = {
   MetaError,
   assertPublishableImage, ratioOk,
   uploadPagePhoto, publishPageAlbum,
-  publishInstagramPhoto, publishInstagramCarousel,
+  publishInstagramPhoto, publishInstagramCarousel, publishInstagramStory,
   createContainer, publishContainer,
   validateImages, publishingQuota, publishEverywhere,
   assertPublishableVideo, waitForContainer,

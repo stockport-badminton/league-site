@@ -1,5 +1,5 @@
 var db = require('../db_connect.js');
-const { absoluteUrl, resultImagePath } = require('../utils/canonical');
+const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
 const axios = require('axios');
 
@@ -817,13 +817,19 @@ exports.rearrangeByTeamNames = async function(updateObj) {
 // The caller is `afterCommit('result zap', ...)`, so the result is already committed and
 // nothing here can undo it. What is returned is an account of what happened, which is what
 // lets the log say "Facebook yes, Instagram no" rather than just "failed".
-async function publishResultToMeta({ imgGen, message }) {
+async function publishResultToMeta({ imgGen, message, zapObject }) {
   const meta = require('../utils/metaPublisher')
   const t = meta.targets()
 
+  // The Instagram story is a THIRD target, not part of the Instagram one, so a story that
+  // fails beside a feed post that worked is reported as exactly that. Off unless
+  // SOCIAL_POST_STORY is 'true': a story goes out on every published result, and the first
+  // real one is the only check of where Instagram's overlays fall on the 9:16 card.
+  const story = process.env.SOCIAL_POST_STORY === 'true' && t.instagram
   const configured = [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
+    story && { ...t.instagram, name: 'Instagram story', kind: 'instagram-story' },
   ].filter(Boolean)
 
   // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
@@ -845,7 +851,8 @@ async function publishResultToMeta({ imgGen, message }) {
       'Make.com.')
   }
 
-  const out = await meta.publishEverywhere(configured, { imageUrls: imgGen, message })
+  const storyImageUrl = story ? absoluteUrl(resultStoryImagePath(zapObject)) : undefined
+  const out = await meta.publishEverywhere(configured, { imageUrls: imgGen, message, storyImageUrl })
 
   for (const f of out.failed) console.error(`result post to ${f.target} failed:`, f.error.message)
   if (out.posted.length) console.log('result posted to', out.posted.map(p => p.target).join(', '))

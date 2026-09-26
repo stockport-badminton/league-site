@@ -1,8 +1,24 @@
 # Plan: Instagram Stories and Threads
 
-**Written 25 Sep 2026. Status 26 Sep: both dry-runs passed, and step 4 (token storage and refresh) is built.** See *Where it stands* below.
+**Written 25 Sep 2026. Status 27 Sep: step 4 (Threads token) is live; step 3 (result stories) is built and switched off.** See *Where it stands* below.
 
 ## Where it stands (26 Sep 2026)
+
+- **Step 3 (Stories for results) is built, behind `SOCIAL_POST_STORY`, unset.** The 9:16 card
+  already existed, drawn on every request and written to the container's disk as `-Ig.jpg`
+  for Make.com, and never served. Its layout was the feed card's, stretched, and that put
+  the away team, half the score and the host line under Instagram's reply box. Three
+  layouts were rendered and Neil chose "A, lifted": the same design with the panel ending
+  at 0.80H (1536px). Stretching the 4:5 backgrounds turned out fine at 1:1. Native 9:16
+  backgrounds regenerated from the same seeds come out a different colour, which would make
+  the story unlike its feed post, so they were not used.
+  - `GET /resultImage/…/:division/story.jpg` (`resultStoryImagePath()`), per request, no
+    disk. The feed route stopped writing to disk too; nothing read those files.
+  - `publishInstagramStory`, and an `instagram-story` target in `publishEverywhere`, so
+    the story is reported apart from the feed post.
+  - **Next: one real story.** Set `SOCIAL_POST_STORY=true` on Cloud Run and the next
+    published result goes out as one, visible for 24 hours. That is the only check of where
+    Instagram's overlays actually fall.
 
 - **Step 4 is built, and the token from the hand login is gone.** It lived only in that
   session's scratchpad. The next token comes from `/admin/threads`, which is the point:
