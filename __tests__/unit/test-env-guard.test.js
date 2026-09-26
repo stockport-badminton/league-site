@@ -68,6 +68,12 @@ describe('the live-credential guard', () => {
     expect(liveCredentials({ META_FUTURE_THING_TOKEN: 'x' })).toHaveLength(1);
   });
 
+  // Threads tokens start THAA, not EAA, so the Meta value check alone did not see them.
+  it('catches a Threads access token by its value, whatever it is called', () => {
+    expect(liveCredentials({ THREADS_TOKEN: 'THAAabc123def' })).toHaveLength(1);
+    expect(liveCredentials({ SOMETHING_UNEXPECTED: 'THAAabc123def' })).toHaveLength(1);
+  });
+
   it('does not flag the Meta ids, which are public', () => {
     // They appear in page URLs. A test that needs a plausible id should be allowed one.
     expect(liveCredentials({ META_PAGE_ID: '101950371354925' })).toEqual([]);

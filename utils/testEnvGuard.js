@@ -61,8 +61,11 @@ function liveCredentials(env) {
   //
   // Two rules, deliberately overlapping:
   //
-  //   - by VALUE: every Meta access token starts `EAA`, which is distinctive enough to
-  //     catch one stored under a name nobody here anticipated;
+  //   - by VALUE: every Meta Graph access token starts `EAA`, and every Threads token
+  //     starts `THAA` (the first real one, 26 Sep 2026), which is distinctive enough to
+  //     catch one stored under a name nobody here anticipated. Threads is the one that
+  //     would have slipped through: a Threads token is not an `EAA` token, and the app
+  //     keeps it in the database rather than in a `META_*` variable;
   //   - by NAME PATTERN, not a list: any `META_*TOKEN` or `META_*SECRET`. A pattern
   //     survives a new variable; a list is one variable behind the next deploy, which is
   //     the mistake the cron loop above made and `__tests__/setup.js` made three times.
@@ -73,6 +76,7 @@ function liveCredentials(env) {
     const v = String(value || '');
     if (!v) continue;
     if (/^EAA[A-Za-z0-9]/.test(v)) found.push(`${name} holds a Meta access token`);
+    else if (/^THAA[A-Za-z0-9]/.test(v)) found.push(`${name} holds a Threads access token`);
     else if (/^META_.+(TOKEN|SECRET)$/.test(name)) found.push(`${name} is set`);
   }
 
