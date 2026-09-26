@@ -12,6 +12,8 @@
   `@handle` works in Threads text is still unmeasured. `?dry=1` prepares the images and
   publishes nothing. It has its own scheduler job, `sbl-weekly-tables-threads`, which calls
   Cloud Run directly with no retries, a few minutes after the Facebook and Instagram post.
+  **Production dry run passed, 27 Sep:** HTTP 200, all four table images prepared, none
+  refused, nothing published. The job's first real post is Saturday 3 Oct, 13:05.
 
 - **Step 3 (Stories for results) is built, behind `SOCIAL_POST_STORY`, unset.** The 9:16 card
   already existed, drawn on every request and written to the container's disk as `-Ig.jpg`
