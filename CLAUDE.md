@@ -1281,7 +1281,9 @@ Key vars (see `.env` for examples):
   **The Threads token is not an env var.** It lasts 60 days and is renewed weekly, so it is
   state: `social_token` (migration 019), encrypted with `DB_PI_KEY`. `/admin/threads`
   connects it and is also the recovery path once a refresh has lapsed;
-  `POST /admin/threads/refresh` renews it on `SOCIAL_CRON_TOKEN`; the audit digest's
+  `POST /admin/threads/refresh` renews it on `SOCIAL_CRON_TOKEN`, and
+  `POST /admin/social/weekly-tables/threads` posts with it (`utils/threadsPublisher.js`, its
+  own scheduler job because Threads containers are waited on); the audit digest's
   `social-token-expiry` check says when either has stopped working. Threads tokens start
   `THAA`, not `EAA`, and `testEnvGuard` matches both.
 - `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to the

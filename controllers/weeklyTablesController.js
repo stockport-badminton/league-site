@@ -24,6 +24,8 @@ const { canonicalFor, absoluteUrl, leagueTableImagePath, tournamentImagePath } =
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
 const { TOURNAMENT_POSTERS } = require('./socialController');
+const SocialToken = require('../models/socialToken');
+const threads = require('../utils/threadsPublisher');
 
 // The order the tables read in the post: top division first.
 const DIVISIONS = ['Premier', 'Division 1', 'Division 2', 'Division 3'];
@@ -50,6 +52,13 @@ async function captions() {
       mentions,
       HASHTAGS,
     ].filter(Boolean).join('\n\n'),
+    // Threads: no mentions, and one tag.
+    //
+    // Whether an `@handle` in Threads post text becomes a mention is not documented, so none
+    // are sent until it has been tried; a negative observation needs its other causes ruled
+    // out first (see social-mentions.md). Threads treats a tag as the post's topic, and a
+    // post has one, so the Instagram run of five would read as clutter at best.
+    threads: `This week's league tables for the Stockport & District Badminton League. ${SITE}\n\n#badminton`,
     mentioned: clubs.map(c => c.name),
   };
 }
@@ -141,6 +150,56 @@ exports.run = async function (req, res, next) {
       failed: out.failed.map(f => ({ target: f.target, error: f.error.message })),
       caller: req.socialCaller,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /admin/social/weekly-tables/threads — the same tables as one Threads carousel.
+ *
+ * Its own route and its own scheduler job (`sbl-weekly-tables-threads`, a few minutes after
+ * the Facebook and Instagram post), never part of that request: Threads wants each container
+ * waited on before publishing, and adding that to a 39s request passes Firebase's 60s cut.
+ * The job calls Cloud Run directly for the same reason, and carries no retries, because a
+ * retry of a post that timed out on the way back is a second post.
+ *
+ * `?dry=1` asks Threads to fetch and prepare every image and publishes nothing.
+ *
+ * Answers 200 when it posted and 502 when it did not. No Threads token is a 503, not a
+ * quiet success: posting nowhere must not look like posting.
+ */
+exports.runThreads = async function (req, res, next) {
+  try {
+    const dry = req.query.dry === '1' || req.body?.dry === '1';
+    const urls = imageUrls();
+
+    const row = await SocialToken.withToken('threads');
+    if (!row) {
+      return res.status(503).json({
+        ok: false, error: 'No Threads account is connected. Connect one at /admin/threads.',
+      });
+    }
+    if (new Date(row.expiresAt).getTime() <= Date.now()) {
+      return res.status(503).json({
+        ok: false, error: 'The Threads token has expired. Connect again at /admin/threads.',
+      });
+    }
+
+    if (dry) {
+      const check = await threads.validateImages(row.accountId, row.token, urls);
+      return res.status(check.ok ? 200 : 502).json({ ok: check.ok, dry: true, images: urls, refused: check.refused });
+    }
+
+    const text = await captions();
+    try {
+      const out = await threads.publishCarousel(row.accountId, row.token, { imageUrls: urls, text: text.threads });
+      console.log('weekly tables posted to Threads', out.mediaId);
+      return res.json({ ok: true, images: urls, posted: [{ target: 'Threads', id: out.mediaId }], caller: req.socialCaller });
+    } catch (err) {
+      console.error('weekly tables -> Threads failed:', err.message);
+      return res.status(502).json({ ok: false, images: urls, error: err.message, caller: req.socialCaller });
+    }
   } catch (err) {
     next(err);
   }

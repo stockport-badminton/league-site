@@ -151,6 +151,8 @@ const weekly_tables_controller = require('../controllers/weeklyTablesController'
 router.get('/admin/social/weekly-tables', secured, requireClubAccess.requireSuperAdmin,
   weekly_tables_controller.preview);
 router.post('/admin/social/weekly-tables', requireSocialCaller, weekly_tables_controller.run);
+// The same tables to Threads, as its own job: see weeklyTablesController.runThreads.
+router.post('/admin/social/weekly-tables/threads', requireSocialCaller, weekly_tables_controller.runThreads);
 
 // The weekly fixtures post — the same thing looking forwards, Sunday evening. It shares
 // SOCIAL_CRON_TOKEN with the tables post rather than taking a sixth secret of its own:

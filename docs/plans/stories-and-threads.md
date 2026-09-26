@@ -4,6 +4,15 @@
 
 ## Where it stands (26 Sep 2026)
 
+- **Step 5 (weekly tables to Threads) is built, 27 Sep.** `POST
+  /admin/social/weekly-tables/threads` (`SOCIAL_CRON_TOKEN`) posts the four tables as one
+  carousel with the token from `social_token`. `utils/threadsPublisher.js` polls each
+  container until FINISHED rather than sleeping the documented 30s, and publishes nothing if
+  one fails or times out. The caption has one tag and no mentions, because whether
+  `@handle` works in Threads text is still unmeasured. `?dry=1` prepares the images and
+  publishes nothing. It has its own scheduler job, `sbl-weekly-tables-threads`, which calls
+  Cloud Run directly with no retries, a few minutes after the Facebook and Instagram post.
+
 - **Step 3 (Stories for results) is built, behind `SOCIAL_POST_STORY`, unset.** The 9:16 card
   already existed, drawn on every request and written to the container's disk as `-Ig.jpg`
   for Make.com, and never served. Its layout was the feed card's, stretched, and that put
