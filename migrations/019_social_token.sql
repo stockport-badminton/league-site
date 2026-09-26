@@ -48,4 +48,11 @@ CREATE TABLE IF NOT EXISTS social_token (
 -- There is deliberately no `TO postgres` policy like the other tables have. The local
 -- database's role is `sdbl` and it has no `postgres` role, so that statement would stop
 -- `tools/local-db.sh load`. It would also add nothing: BYPASSRLS never consults a policy.
+--
+-- In production, `anon` and `authenticated` were also stripped of their grants on this
+-- table (26 Sep 2026, SQL editor): REVOKE ALL ON public.social_token FROM anon, authenticated.
+-- Supabase's default privileges give every new public table to both, TRUNCATE included, and
+-- RLS does not govern TRUNCATE. That is true of all 76 tables and harmless while the Data API
+-- is off; it was done here only because this table holds a publishing credential. It is not
+-- in this file for the same reason as the policy: neither role exists locally.
 ALTER TABLE social_token ENABLE ROW LEVEL SECURITY;
