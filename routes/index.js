@@ -172,6 +172,17 @@ router.get('/admin/social/weekly-video', secured, requireClubAccess.requireSuper
   weekly_video_controller.preview);
 router.post('/admin/social/weekly-video', requireSocialCaller, weekly_video_controller.run);
 
+// Connecting the league's Threads account (Sep 2026). The token lasts 60 days and has to be
+// refreshed, so it is state in `social_token`, not an env var. The three pages are
+// superadmin, and the connect page is also the recovery path when a refresh has lapsed.
+// The weekly refresh takes SOCIAL_CRON_TOKEN, for the same reason the three weekly posts
+// share it: one job, done by the same caller. See controllers/threadsController.js.
+const threads_controller = require('../controllers/threadsController');
+router.get('/admin/threads', secured, requireClubAccess.requireSuperAdmin, threads_controller.page);
+router.get('/admin/threads/connect', secured, requireClubAccess.requireSuperAdmin, threads_controller.connect);
+router.get('/admin/threads/callback', secured, requireClubAccess.requireSuperAdmin, threads_controller.callback);
+router.post('/admin/threads/refresh', requireSocialCaller, threads_controller.refresh);
+
 
 // The weekly results video.
 //

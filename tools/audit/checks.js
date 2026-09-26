@@ -311,6 +311,38 @@ const CHECKS = [
       ORDER BY occurred_at DESC, email`
   },
   {
+    // A token the app has to renew itself, and which stops working for good if it is not.
+    //
+    // A Threads token lasts 60 days and the weekly refresh renews it
+    // (POST /admin/threads/refresh). If the refresh stops, nothing else fails for up to
+    // two months, and then the posts stop with nothing said. A scheduler job nobody watches
+    // is not the place to hear about that, so it is reported here as well.
+    //
+    // A healthy token is always 53 to 60 days from expiry. Under 45 means at least two
+    // weekly refreshes have been missed, which is time to look while it can still be
+    // refreshed. `last_error_at` is cleared by the next success, so a value there means
+    // the latest attempt failed.
+    //
+    // An account that was never connected is not reported. Nothing depends on it yet.
+    name: 'social-token-expiry',
+    description: 'Threads token failing to refresh or close to expiring — reconnect at /admin/threads',
+    severity: 'high',
+    sql: `
+      SELECT platform,
+             COALESCE(username, account_id) AS account,
+             to_char(expires_at AT TIME ZONE 'Europe/London', 'DD Mon YYYY') AS expires,
+             (expires_at AT TIME ZONE 'Europe/London')::date
+               - (now() AT TIME ZONE 'Europe/London')::date AS days_left,
+             CASE WHEN expires_at <= now() THEN 'expired: log in again at /admin/threads'
+                  WHEN last_error_at IS NOT NULL THEN 'last refresh failed: ' || LEFT(last_error, 160)
+                  ELSE 'not refreshed for over two weeks'
+             END AS problem
+      FROM social_token
+      WHERE expires_at <= now() + INTERVAL '45 days'
+         OR last_error_at IS NOT NULL
+      ORDER BY platform`
+  },
+  {
     // Officer pointers that disagree with the role flags.
     //
     // There are two ways to record an officer and they are not kept in step. The old way

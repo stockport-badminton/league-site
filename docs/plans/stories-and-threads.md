@@ -1,8 +1,26 @@
 # Plan: Instagram Stories and Threads
 
-**Written 25 Sep 2026. Status 26 Sep: both dry-runs passed, and a Threads token exists.** See *Where it stands* below.
+**Written 25 Sep 2026. Status 26 Sep: both dry-runs passed, and step 4 (token storage and refresh) is built.** See *Where it stands* below.
 
 ## Where it stands (26 Sep 2026)
+
+- **Step 4 is built, and the token from the hand login is gone.** It lived only in that
+  session's scratchpad. The next token comes from `/admin/threads`, which is the point:
+  the first real login also tests the recovery path.
+  - `social_token` (migration 019) holds it, encrypted with `DB_PI_KEY`. A `generation`
+    column stops a refresh overwriting a login that landed while it ran.
+  - `/admin/threads` (superadmin) shows the status and runs the login, with `state` tied
+    to the session. **It refuses any account but `META_THREADS_USER_ID`**, the trap from
+    the first attempt, which connected a personal account.
+  - `POST /admin/threads/refresh` (`SOCIAL_CRON_TOKEN`) skips a token under 24 hours old.
+    It answers 409 on an expired token and 502 on a refusal, and records either, so the
+    job goes red rather than reporting a quiet 200.
+  - The audit digest's `social-token-expiry` check reports a failed last attempt, under
+    45 days left (at least two missed weekly refreshes), or expiry.
+  - **Still to do, all of it outside the repo:** run migration 019 in production, set
+    `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET` and `META_THREADS_USER_ID` on Cloud
+    Run, deploy, log in at `/admin/threads`, then create the weekly scheduler job. The job
+    can be checked the day after the login; before that, Threads refuses to refresh.
 
 - **Stories: the container dry-run passed.** A `media_type=STORIES` container was created
   with the existing Page token for the live 4:5 result card (`status_code: FINISHED`) and

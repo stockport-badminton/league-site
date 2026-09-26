@@ -1271,6 +1271,18 @@ Key vars (see `.env` for examples):
 - `META_USER_TOKEN` — short-lived, and spent. Only needed to mint replacement Page tokens:
   exchange it for a long-lived user token (`grant_type=fb_exchange_token`, ~60 days) then
   `GET /me/accounts`. Nothing reads it at runtime.
+- `META_THREADS_APP_ID` / `META_THREADS_APP_SECRET` — the Threads app, which is **not** the
+  Graph app above: Threads has its own id, secret, host (`graph.threads.net`) and login.
+  `META_THREADS_USER_ID` (`28753684917596556`, `stockport.badders.results`) is an id, not a
+  secret, and it is **required**: the login callback refuses any other account, because a
+  browser login connects whichever Instagram identity is signed in, and on 26 Sep 2026 that
+  was a person's.
+  **The Threads token is not an env var.** It lasts 60 days and is renewed weekly, so it is
+  state: `social_token` (migration 019), encrypted with `DB_PI_KEY`. `/admin/threads`
+  connects it and is also the recovery path once a refresh has lapsed;
+  `POST /admin/threads/refresh` renews it on `SOCIAL_CRON_TOKEN`; the audit digest's
+  `social-token-expiry` check says when either has stopped working. Threads tokens start
+  `THAA`, not `EAA`, and `testEnvGuard` matches both.
 - `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to the
   two weekly social posts: `POST /admin/social/weekly-tables` (Saturday 13:00) and
   `POST /admin/social/weekly-fixtures` (Sunday 18:00). Same gate as the other four;
