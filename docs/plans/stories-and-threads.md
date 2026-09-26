@@ -17,10 +17,17 @@
     job goes red rather than reporting a quiet 200.
   - The audit digest's `social-token-expiry` check reports a failed last attempt, under
     45 days left (at least two missed weekly refreshes), or expiry.
-  - **Still to do, all of it outside the repo:** run migration 019 in production, set
-    `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET` and `META_THREADS_USER_ID` on Cloud
-    Run, deploy, log in at `/admin/threads`, then create the weekly scheduler job. The job
-    can be checked the day after the login; before that, Threads refuses to refresh.
+  - **Live in production, 26 Sep 2026.** Migration 019 has run, and `anon`/`authenticated`
+    have been revoked on the table. The three `META_THREADS_*` variables are on Cloud Run,
+    and the code deployed as `league-site-00288-7v9`. Neil connected at `/admin/threads`:
+    @stockport.badders.results, generation 1, expiring 24 Nov 2026. **Threads issued 59.06
+    days, not a round 60**, so a healthy token sits at about 52 to 59 days, still well
+    clear of the 45-day warning.
+  - **`sbl-weekly-threads-refresh`** runs Wednesdays 04:00 Europe/London: POST to the public
+    domain with `X-Social-Token`, attempt deadline 60s, no retries. Run by hand straight
+    after the login, it answered 200 in 44ms and left the row alone, which is the
+    under-24-hours skip. **A real refresh has not been seen yet.** The first is 30 Sep, or
+    use Refresh now on the page any time after 27 Sep 23:30.
 
 - **Stories: the container dry-run passed.** A `media_type=STORIES` container was created
   with the existing Page token for the live 4:5 result card (`status_code: FINISHED`) and
