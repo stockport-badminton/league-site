@@ -1,0 +1,42 @@
+<%- include('../header.ejs', { useRosterCss: true }) %>
+<%- include('../nav.ejs') %>
+
+<%# useRosterCss: roster.css undoes the global `.starter-template { text-align: center }`
+    and the site-wide `.fa` sizing. See CLAUDE.md. The list itself is
+    utils/adminTools.js — add a tool there, not here. %>
+<div class="roster-page container-fluid text-left admin-hub">
+
+  <h1>Admin</h1>
+
+  <%
+    function countLabel(key) {
+      var n = counts[key];
+      if (n === null || n === undefined) return null;
+      if (key === 'pendingRequests') return n ? n + ' pending' : null;
+      if (key === 'formsOutstanding') return n ? n + ' outstanding' : 'all in';
+      return null;
+    }
+  %>
+
+  <div class="admin-hub-groups">
+    <% groups.forEach(function (group) { %>
+      <section class="admin-hub-group">
+        <h2><%= group.title %></h2>
+        <ul class="list-unstyled mb-0">
+          <% group.tools.forEach(function (tool) { var label = tool.count && countLabel(tool.count); %>
+            <li>
+              <a href="<%= tool.href %>"><%= tool.label %></a>
+              <% if (label) { %>
+                <span class="badge <%= /pending|outstanding/.test(label) ? 'badge-warning' : 'badge-light' %>"><%= label %></span>
+              <% } %>
+              <div class="text-muted small"><%= tool.blurb %></div>
+            </li>
+          <% }); %>
+        </ul>
+      </section>
+    <% }); %>
+  </div>
+
+</div>
+
+<%- include('../footer.ejs') %>

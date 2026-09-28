@@ -582,6 +582,17 @@ switch — stays at the top level until that happens.
 
 ## Project-Specific Patterns
 
+### A new admin tool goes in `utils/adminTools.js`, not in the nav
+
+The superadmin Admin dropdown carries a shortlist and "All admin tools…" (`/admin`, built
+from `utils/adminTools.js`). It used to list every tool — 23 items — and because the navbar
+is `fixed-top`, a dropdown taller than the window **cannot be scrolled**: the newest items
+were unreachable on a laptop. Add a tool to `GROUPS`; it appears on the hub, and
+`__tests__/unit/admin-tools.test.js` checks its route exists. Promote it to
+`NAV_SHORTLIST` only if the request logs say it is used every week.
+`e2e/admin-nav.spec.js` fails if any menu item cannot be clicked at 1280x720 or on a
+375x640 phone.
+
 ### Form Validation (express-validator)
 
 Scorecard form validation is complex — validates 18 games + player uniqueness:

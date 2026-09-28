@@ -15,21 +15,71 @@ const fs = require('fs');
 const path = require('path');
 
 const NAV = path.join(__dirname, '../../views/nav.ejs');
+const { shortlist: adminNavShortlist, GROUPS } = require('../../utils/adminTools');
 const CLUB_CLAIM = 'https://my-app.example.com/club';
 const ROLE_CLAIM = 'https://my-app.example.com/role';
 
-function renderNav(club, role) {
+function renderNav(club, role, extra = {}) {
   const user = {
     _json: {
       [ROLE_CLAIM]: role,
       [CLUB_CLAIM]: club,
-      'https://my-app.example.com/messeradmin': false,
+      'https://my-app.example.com/messeradmin': !!extra.messeradmin,
     },
   };
+  // adminNavShortlist is an app.local in the real app.
+  const locals = Object.assign({ user }, extra.locals || {});
   return ejs.render(fs.readFileSync(NAV, 'utf8'),
-    { user, locals: { user }, pastSeasons: [], static_path: '/static' },
+    { user, locals, pastSeasons: [], static_path: '/static', adminNavShortlist },
     { filename: NAV });
 }
+
+const adminItems = html => {
+  const menu = html.slice(html.lastIndexOf('dropdown-menu'));
+  return (menu.match(/class="dropdown-item[^"]*"/g) || []).length;
+};
+
+// The navbar is fixed-top, so a dropdown taller than the window cannot be scrolled:
+// at 23 items the superadmin's newest tools were out of reach on a laptop.
+describe('the superadmin Admin menu', () => {
+  it('stays short, and links to the hub for everything else', () => {
+    const html = renderNav('All', 'superadmin');
+    expect(adminItems(html)).toBeLessThanOrEqual(10);
+    expect(html).toContain('href="/admin"');
+  });
+
+  it('keeps every tool reachable, from the menu or the hub', () => {
+    const html = renderNav('All', 'superadmin');
+    const onHub = GROUPS.flatMap(g => g.tools.map(t => t.href));
+    for (const href of ['/manage-players', '/admin/player-requests', '/admin/registrations', '/admin/clubs', '/admin/audit']) {
+      expect(html).toContain('href="' + href + '"');
+    }
+    expect(onHub).toEqual(expect.arrayContaining([
+      '/missed-three', '/fixture-players', '/player-stats', '/pair-stats', '/admin/teams',
+      '/admin/homepage-content', '/admin/site-settings', '/admin/spam', '/admin/invoices',
+      '/admin/social/weekly-tables', '/admin/social/weekly-fixtures', '/admin/social/weekly-video',
+      '/admin/threads', '/messer-results', '/admin/messer-bracket',
+    ]));
+  });
+
+  it('lists the Messer pages once for a superadmin who is also a messer admin', () => {
+    const html = renderNav('All', 'superadmin', { messeradmin: true });
+    expect(html.match(/href="\/messer-results"/g)).toHaveLength(1);
+  });
+
+  it('shows the pending count on Registration Requests, and nothing at zero', () => {
+    expect(renderNav('All', 'superadmin', { locals: { navPendingRequests: 3 } }))
+      .toMatch(/Registration Requests <span class="badge badge-warning">3<\/span>/);
+    expect(renderNav('All', 'superadmin', { locals: { navPendingRequests: 0 } }))
+      .not.toMatch(/Registration Requests <span/);
+  });
+
+  it('gives a club admin none of it', () => {
+    const html = renderNav('Shell', 'admin');
+    expect(html).not.toContain('href="/admin"');
+    expect(html).not.toContain('/admin/player-requests');
+  });
+});
 
 describe('nav club links', () => {
   it('gives an admin the prefilled forms for their own club', () => {

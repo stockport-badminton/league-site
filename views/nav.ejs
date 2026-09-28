@@ -82,7 +82,9 @@
           <% if(locals.user) { %>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Admin</a>
-              <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <%# -right: this is the last item in the navbar, and a left-aligned menu ran
+                  off the edge of the window, cutting every label short. %>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdown01">
                 <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
                 <a class="dropdown-item" href="/messer-scorecard-beta">Enter Messer Result</a>
                 <a class="dropdown-item" href="/admin/results/All">Results Detail</a>
@@ -114,29 +116,19 @@
                 %>
                 <%
                   if(locals.user._json['https://my-app.example.com/role'] == 'superadmin') { %>
-                    <%# /manage-players lists the clubs. This used to be a hardcoded
-                        /manage-players/club-Aerospace — the alphabetically first
-                        club, standing in for a picker that didn't exist. %>
-                    <a class="dropdown-item" href="/manage-players">Team Management</a>
-                    <a class="dropdown-item" href="/missed-three">Missed Three</a>
-                    <a class="dropdown-item" href="/fixture-players">Fixture Players</a>
-                    <a class="dropdown-item" href="/player-stats">Individual Stats</a>
-                    <a class="dropdown-item" href="/pair-stats">Pair Stats</a>
-                    <a class="dropdown-item" href="/admin/clubs">Club Admin</a>
-                    <a class="dropdown-item" href="/admin/teams">Team Admin</a>
-                    <a class="dropdown-item" href="/admin/homepage-content">Homepage Content</a>
-                    <a class="dropdown-item" href="/admin/site-settings">Site Settings</a>
-                    <a class="dropdown-item" href="/admin/spam">Spam Controls</a>
-                    <a class="dropdown-item" href="/admin/invoices">Annual Invoices</a>
-                    <a class="dropdown-item" href="/admin/audit">Data Health</a>
-                    <a class="dropdown-item" href="/admin/social/weekly-tables">Weekly Tables Post</a>
-                    <a class="dropdown-item" href="/admin/social/weekly-fixtures">Weekly Fixtures Post</a>
-                    <a class="dropdown-item" href="/admin/social/weekly-video">Weekly Video Post</a>
-                    <a class="dropdown-item" href="/admin/threads">Threads</a>
-                    <a class="dropdown-item" href="/admin/registrations">Player Registrations</a>
-                    <a class="dropdown-item" href="/admin/player-requests">Registration Requests</a>
-                    <a class="dropdown-item" href="/messer-results">Messer Results</a>
-                    <a class="dropdown-item" href="/admin/messer-bracket">Messer Bracket Setup</a>
+                    <%# Only the weekly pages, then everything else on /admin. This was all
+                        23 tools, and the navbar is fixed-top, so a dropdown longer than
+                        the window cannot be scrolled — the newest items were out of reach
+                        on a laptop. The list and the reasoning are utils/adminTools.js.
+                        The Messer pair is not repeated here: a superadmin who is also a
+                        messer admin already has them above, and anyone else finds them on
+                        /admin. %>
+                    <div class="dropdown-divider"></div>
+                    <% adminNavShortlist().forEach(function (tool) { %>
+                      <a class="dropdown-item" href="<%= tool.href %>"><%= tool.label %><% if (tool.href === '/admin/player-requests' && locals.navPendingRequests) { %> <span class="badge badge-warning"><%= locals.navPendingRequests %></span><% } %></a>
+                    <% }); %>
+                    <a class="dropdown-item font-weight-bold" href="/admin">All admin tools&hellip;</a>
+                    <div class="dropdown-divider"></div>
                  <% }
                 %>
                 <a class="dropdown-item" href="/logout" target="_blank">Logout</a>

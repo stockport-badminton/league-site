@@ -138,6 +138,8 @@ app.locals.jsonForScript = require('./utils/jsonForScript');
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;
 app.locals.socialLinksFor = require('./utils/socialLinks').socialLinksFor;
+// The superadmin's short Admin dropdown (views/nav.ejs); see utils/adminTools.js.
+app.locals.adminNavShortlist = require('./utils/adminTools').shortlist;
 
 // Honeypot field name and a freshly signed render timestamp, for views/spam-fields.ejs.
 // Per-request rather than app-wide because the stamp has to be the time this page was
@@ -408,6 +410,10 @@ app.use(session(sess));
 app.use(require('./middleware/devMode'));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// The pending-requests badge in a superadmin's Admin dropdown. After the session, since
+// it reads req.user.
+app.use(require('./middleware/adminNavCounts'));
 
 // Parses the filter path segments (/player-stats/Division-1/gender-Male/...) into
 // res.locals.filterBar, so views/filters.ejs can show what's applied and build

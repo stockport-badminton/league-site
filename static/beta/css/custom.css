@@ -653,3 +653,27 @@ table.colsearch-on .dt-colsearch-row {
     min-width: 0;
   }
 }
+
+/* The navbar is fixed-top, so a dropdown or an expanded phone menu that is taller than
+   the window cannot be reached by scrolling the page — it does not move. The superadmin
+   Admin menu hit this at 23 items (see utils/adminTools.js). These make any such menu
+   scroll inside itself instead, so the next long one degrades rather than hides items. */
+.navbar .dropdown-menu {
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+@media (max-width: 767.98px) {
+  .navbar-collapse {
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  /* The footer is fixed-bottom too, and later in the page, so it painted over the last
+     70px of an open phone menu — Logout sat underneath it. The open menu goes on top. */
+  .navbar.fixed-top {
+    z-index: 1031;
+  }
+  /* Inside the scrolling phone menu the dropdown is part of the flow already. */
+  .navbar .dropdown-menu {
+    max-height: none;
+  }
+}

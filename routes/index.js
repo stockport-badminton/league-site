@@ -804,6 +804,11 @@ router.post('/admin/registrations/:club/chase', secured, requireClubAccess.requi
 router.post('/admin/registrations/run',
   registration_controller.requireReminderCaller, registration_controller.digest_run);
 
+// Every superadmin tool, grouped (utils/adminTools.js) — the Admin dropdown's
+// "All admin tools…".
+router.get('/admin', secured, requireClubAccess.requireSuperAdmin,
+  require('../controllers/adminHubController').hub);
+
 // Player registration requests forwarded to registrations@ (controllers/playerRequestController).
 // All superadmin: the queue holds other people's email. /match is registered before /:id
 // so it is not read as an id.

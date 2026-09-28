@@ -480,3 +480,21 @@
 .roster-page .alert {
   height: auto;
 }
+
+/* /admin — the tool groups as columns that wrap: three across on a laptop, one on a
+   phone. Columns rather than cards so the whole page is scannable without scrolling. */
+.admin-hub-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px 32px;
+  margin-top: 8px;
+}
+.admin-hub-group h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.admin-hub-group li { margin-bottom: 10px; }
+.admin-hub-group li > a { font-weight: 500; }
