@@ -247,6 +247,7 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
   const sqlArray = []
   let teamTable = 'team'
   let clubTable = 'club'
+  let divisionTable = 'division'
 
   if (fixtureObj.club) {
     searchTerms.push('(e.homeClubName = ? OR e.awayClubName = ?)')
@@ -271,12 +272,13 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
     const safeSeason = seasonModel.assertName(fixtureObj.season)
     teamTable = `team${safeSeason} AS team`
     clubTable = `club${safeSeason} AS club`
+    divisionTable = `division${safeSeason} AS division`
   }
 
   const conditions = searchTerms.length > 0 ? ' WHERE ' + searchTerms.join(' AND ') : ''
 
   const [result] = await (await db.otherConnect()).query(
-    `SELECT e.* FROM ( SELECT d.*, division.name AS "divisionName" FROM ( SELECT c.*, club.name AS awayclubname FROM (SELECT b.*, club.name AS homeclubname FROM (SELECT a.*, team.name AS "awayTeam", team.club AS "awayClub", team.division FROM (SELECT team.name AS "homeTeam", team.id AS "homeTeamId", team.club AS "homeClub", fixture.id AS fixtureid, fixture.date AS date, fixture."awayTeam" AS awayteamid, fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN ${teamTable} ON team.id = fixture."homeTeam") AS a JOIN ${teamTable} ON team.id = a.awayTeamId) AS b JOIN ${clubTable} ON club.id = b."homeClub") AS c JOIN ${clubTable} ON club.id = c."awayClub") AS d JOIN division ON division.id = d.division) AS e, season${conditions} ORDER BY e.date`,
+    `SELECT e.* FROM ( SELECT d.*, division.name AS "divisionName" FROM ( SELECT c.*, club.name AS awayclubname FROM (SELECT b.*, club.name AS homeclubname FROM (SELECT a.*, team.name AS "awayTeam", team.club AS "awayClub", team.division FROM (SELECT team.name AS "homeTeam", team.id AS "homeTeamId", team.club AS "homeClub", fixture.id AS fixtureid, fixture.date AS date, fixture."awayTeam" AS awayteamid, fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN ${teamTable} ON team.id = fixture."homeTeam") AS a JOIN ${teamTable} ON team.id = a.awayTeamId) AS b JOIN ${clubTable} ON club.id = b."homeClub") AS c JOIN ${clubTable} ON club.id = c."awayClub") AS d JOIN ${divisionTable} ON division.id = d.division) AS e, season${conditions} ORDER BY e.date`,
     sqlArray
   )
   return result
@@ -366,7 +368,11 @@ exports.getFixtureDetails = async function(searchObj) {
     JOIN venue ON homeTeam.venue = venue.id
     JOIN ${'team' + season} awayTeam ON fixture."awayTeam" = awayTeam.id
     JOIN ${'club' + season} awayClub ON awayTeam.club = awayClub.id
-    JOIN division ON homeTeam.division = division.id
+    -- The division table for the season, like the team and club joins above. The live
+    -- one has no Division 4 (id 11), so this inner join silently dropped every
+    -- Division 4 fixture of 2018/19 and 2019/20 — about 2,500 games the ELO backfill
+    -- never rated, and never used as the history of anyone who played in them.
+    JOIN ${'division' + season} division ON homeTeam.division = division.id
     JOIN season ON (
       fixture.date > season."startDate"
       AND fixture.date < season."endDate"

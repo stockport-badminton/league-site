@@ -59,9 +59,12 @@
           <td><%= row['score'] %></td>
           <td><%= row['vsScore'] %></td>
           <td><%= row['gameType'] %></td>
-          <td><%= row['beforeVal'] %></td>
-          <td><%= row['after'] %></td>
-          <td><%= row['adjustment'] %></td>
+          <%# A game with no rating — a void fixture, or one the backfill never reached — is
+              stored as 0, and a 0 here read as a rating of zero. %>
+          <% var rated = row['after'] > 0 %>
+          <td><%= rated ? row['beforeVal'] : '–' %></td>
+          <td><%= rated ? row['after'] : '–' %></td>
+          <td><%= rated ? row['adjustment'] : '–' %></td>
       </tr>
     <% }) %>
       </tbody>

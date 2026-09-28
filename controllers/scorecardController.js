@@ -347,7 +347,7 @@ exports.full_fixture_post = async function(req, res, next) {
     prevScores[req.body.awayLady1] = {};
     prevScores[req.body.awayLady2] = {};
     prevScores[req.body.awayLady3] = {};
-    prevScores = await Player.getPrevRating(req.body.date, prevScores);
+    prevScores = await Player.getPrevRating(req.body.date, prevScores, { fallbackRank: FixtureIdResult[0].rank });
 
     const gameObject = {
       tablename: "game",
@@ -419,6 +419,12 @@ exports.full_fixture_post = async function(req, res, next) {
       await Fixture.updateById(fixtureObject, FixtureIdResult[0].id, conn);
       await Game.createBatch(gameObject, conn);
     });
+
+    // The games carry the new ELO; the players did not. /player-stats reads
+    // player.rating, which only a backfill ever wrote, so new players showed blank.
+    // Derived from the games just committed, so it can be rebuilt and must not be
+    // able to cost the captain the result.
+    await afterCommit('player rating refresh', () => Player.refreshRatings(Object.keys(prevScores)));
 
     // Past this point the result is safely recorded. Everything below is notification
     // and presentation, and none of it may cost the captain their submission — so each

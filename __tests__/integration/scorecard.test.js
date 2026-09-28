@@ -820,6 +820,45 @@ describe('POST /scorecard-beta', () => {
     });
   });
 
+  // The games carried each player's new ELO and player.rating never heard about it:
+  // only a backfill wrote that column, so /player-stats showed every new player blank
+  // and everyone else as of the last backfill (7 blank, 118 stale, Sep 2026).
+  describe('player ratings', () => {
+    beforeEach(() => {
+      setupFullFixtureMocks();
+      Player.refreshRatings.mockResolvedValue();
+    });
+
+    it('refreshes the rating of every player in the lineup once the games are saved', async () => {
+      await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(Player.refreshRatings).toHaveBeenCalledTimes(1);
+      const [ids] = Player.refreshRatings.mock.calls[0];
+      expect([...ids].sort((a, b) => a - b)).toEqual(
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+      );
+      // After the commit: it reads the new games back, so it has to see them.
+      expect(Player.refreshRatings.mock.invocationCallOrder[0])
+        .toBeGreaterThan(Game.createBatch.mock.invocationCallOrder[0]);
+    });
+
+    it('a failed refresh does not cost the captain the result', async () => {
+      Player.refreshRatings.mockRejectedValue(new Error('rating refresh exploded'));
+
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(res.status).toBe(200);
+      expect(db.__rolledBack).toBe(false);
+    });
+
+    it('asks for ranks relative to the fixture\'s own division', async () => {
+      await request(app).post('/scorecard-beta').send(validScorecard());
+      expect(Player.getPrevRating).toHaveBeenCalledWith(
+        '2026-01-15', expect.any(Object), { fallbackRank: 1 }
+      );
+    });
+  });
+
   // Everything after the commit is notification and presentation. None of it may cost
   // the captain a result that is already saved — which is how a momentary SES outage
   // used to turn into a captain resubmitting and being told "no matching fixtures".

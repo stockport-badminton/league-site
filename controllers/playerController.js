@@ -3,6 +3,7 @@ var Division = require('../models/division');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var Player = require('../models/players');
+var seasonModel = require('../models/season');
 var Team = require('../models/teams');
 var Venue = require('../models/venue');
 var Roster = require('../models/roster');
@@ -495,7 +496,14 @@ exports.player_update_post = async function(req, res, next) {
   }
 };
 
-exports.player_elo_populate = async function(req, res) {
+exports.player_elo_populate = async function(req, res, next) {
+  // Was reachable by anyone: the route carries no `secured` and this had no check of
+  // its own, so any visitor could rewrite ELO values. Same gate as the other ELO tools.
+  const isSuperAdmin = req.user &&
+    req.user._json['https://my-app.example.com/role'] === 'superadmin'
+  if (!isSuperAdmin && !(process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production')) {
+    return res.status(403).send('Forbidden')
+  }
   try {
     const rows = await Fixture.getFixtureDetails({ "status": "complete", "type": "eloSetting" });
     let totalFixtures = rows.length
@@ -526,7 +534,7 @@ exports.player_elo_populate = async function(req, res) {
           fixturePlayers[fixture.awayLady2] = {}
           fixturePlayers[fixture.awayLady3] = {}
 
-          fixturePlayers = await Player.getPrevRating(fixtureDate, fixturePlayers)
+          fixturePlayers = await Player.getPrevRating(fixtureDate, fixturePlayers, { fallbackRank: fixtureRank })
           const results = await Game.getByFixture(fixture.id)
 
           for (const game of results) {
@@ -718,6 +726,12 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
   if (seasonParam) searchObj.season = seasonParam
 
   const rows = await Fixture.getFixtureDetails(searchObj)
+  // Who was registered in which division THIS season. Carried-over players keep their
+  // rating from knownRatings but not their rank: rank is re-read every season, because
+  // it was loaded once and then carried from 2018 onwards, so everybody's historical
+  // games were adjusted as if they had always been in the division they were in the
+  // first time they appeared.
+  const seasonRanks = await Player.getSeasonRanks(seasonParam)
   let gamesProcessed = 0
   let gamesSkipped = 0
 
@@ -754,7 +768,7 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
       }
     }
     if (Object.keys(newPlayers).length > 0) {
-      const loaded = await Player.getPrevRating(fixture.date, newPlayers)
+      const loaded = await Player.getPrevRating(fixture.date, newPlayers, { season: seasonParam, fallbackRank: fixture.rank })
       for (const [pid, val] of Object.entries(loaded)) {
         // gamesCount isn't tracked in the DB — a player loaded here is treated as
         // starting fresh for provisional-K purposes. Full accuracy (a true
@@ -764,6 +778,10 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
         fixturePlayers[pid] = { ...val, gamesCount: 0 }
         knownRatings[pid] = fixturePlayers[pid]
       }
+    }
+    // No team that season means no reserving adjustment, not a guessed one.
+    for (const pid of Object.keys(fixturePlayers)) {
+      fixturePlayers[pid].rank = pid in seasonRanks ? seasonRanks[pid] : fixture.rank
     }
 
     for (const game of games) {
@@ -835,8 +853,7 @@ exports.player_elo_backfill_all = async function(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   try {
     const allSeasons = await Fixture.getAllSeasons()
-    const year = new Date().getFullYear()
-    const currentSeason = new Date().getMonth() < 7 ? `${year - 1}${year}` : `${year}${year + 1}`
+    const currentSeason = seasonModel.current()
 
     const flush = () => { if (typeof res.flush === 'function') res.flush() }
 

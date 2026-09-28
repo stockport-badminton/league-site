@@ -1057,81 +1057,120 @@ exports.deleteById = async function(playerId) {
   return result
 }
 
-exports.getPrevRating = async function(endDate, fixturePlayers) {
-  let playerArray = Object.entries(fixturePlayers)
-  let sqlArray = []
-  let sqlValsArray = []
+// The ELO of the player in a given slot of a game row. Shared by the two queries below
+// so the four-way CASE is written once.
+const SLOT_END = (pid) => `CASE
+    WHEN g."homePlayer1" = ${pid} THEN g."homePlayer1End"
+    WHEN g."homePlayer2" = ${pid} THEN g."homePlayer2End"
+    WHEN g."awayPlayer1" = ${pid} THEN g."awayPlayer1End"
+    WHEN g."awayPlayer2" = ${pid} THEN g."awayPlayer2End"
+  END`
 
-  for (row of playerArray) {
-    let i = row[0]
-    let sql = `(SELECT * FROM (SELECT * FROM (SELECT
-CASE
-    WHEN "homePlayer1" = ? THEN "homePlayer1"
-    WHEN "homePlayer2" = ? THEN "homePlayer2"
-    WHEN "awayPlayer1" = ? THEN "awayPlayer1"
-    WHEN "awayPlayer2" = ? THEN "awayPlayer2"
-    END AS "playerId",
-CASE
-    WHEN "homePlayer1" = ? THEN "homePlayer1End"
-    WHEN "homePlayer2" = ? THEN "homePlayer2End"
-    WHEN "awayPlayer1" = ? THEN "awayPlayer1End"
-    WHEN "awayPlayer2" = ? THEN "awayPlayer2End"
-    END AS rating,
-fixture.date,
-division.rank
-FROM game
-    JOIN fixture ON game.fixture = fixture.id
-    JOIN player ON (game."homePlayer1" = player.id OR game."homePlayer2" = player.id OR game."awayPlayer1" = player.id OR game."awayPlayer2" = player.id)
-    JOIN team ON player.team = team.id
-    JOIN division ON team.division = division.id
-    WHERE
-    ("homePlayer1" = ? OR
-    "homePlayer2" = ? OR
-    "awayPlayer1" = ? OR
-    "awayPlayer2" = ?) AND (
-    "homePlayer1End" IS NOT NULL AND
-    "homePlayer2End" IS NOT NULL AND
-    "awayPlayer1End" IS NOT NULL AND
-    "awayPlayer2End" IS NOT NULL
-    )
-    AND date < ?
-    ORDER BY date DESC, game.id DESC
-    LIMIT 1) AS a
-    UNION ALL
-SELECT player.id AS "playerId", 1500 AS rating, ? AS date, division.rank FROM player JOIN
-team ON player.team = team.id JOIN
-division ON team.division = division.id
-WHERE player.id = ?) AS b
-WHERE rating > 0
-LIMIT 1)`
-    sqlArray.push(sql)
-    sqlValsArray = [...sqlValsArray, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, i * 1, endDate, endDate, i * 1]
+// Each player's division rank IN A GIVEN SEASON: { [playerId]: rank }.
+//
+// This is the "registered division" the ELO reserving adjustment compares against the
+// fixture's division, so it has to be the division the player was registered in THAT
+// season. It used to be read from the live player/team/division tables, which meant a
+// backfill applied today's teams to every season back to 2018 — 268 of the 387 players
+// in 2021/22 are registered in a different division now. The season archives
+// (player20212022 and friends) hold the answer.
+//
+// A player with no team that season is simply absent; callers fall back to the
+// fixture's own rank, which makes the adjustment zero rather than inventing one.
+// Seasons before 2018/19 have no player archive (and no game rows), so they return {}.
+exports.getSeasonRanks = async function(season, playerIds) {
+  const current = !season || season === seasonModel.current()
+  const suffix = current ? '' : seasonModel.assertName(season)
+  const conn = await db.otherConnect()
+  if (!current) {
+    const [exists] = await conn.query('SELECT to_regclass(?) AS t', [`player${suffix}`])
+    if (!exists[0].t) return {}
+  }
+  let ids = null
+  if (playerIds) {
+    ids = playerIds.map(n => parseInt(n, 10)).filter(n => n > 0)
+    if (ids.length === 0) return {}
+  }
+  const [rows] = await conn.query(
+    `SELECT p.id, d.rank
+     FROM player${suffix} p
+     JOIN team${suffix} t ON t.id = p.team
+     JOIN division${suffix} d ON d.id = t.division
+     ${ids ? 'WHERE p.id = ANY(?::int[])' : ''}`,
+    ids ? [ids] : []
+  )
+  return Object.fromEntries(rows.map(r => [r.id, r.rank]))
+}
+
+// Each player's rating going into a fixture on `endDate`: their latest rated game
+// before it, else 1500. Fills in { rating, date, rank } on every entry of
+// fixturePlayers and returns it.
+//
+// opts.season       whose registration decides `rank` (undefined = current season)
+// opts.fallbackRank rank for a player with no team that season — pass the fixture's
+//                   own rank so the reserving adjustment comes out as zero
+//
+// Two things this used to get wrong, both silently:
+//  - rank came from the player's CURRENT team whatever the date (see getSeasonRanks),
+//    and defaulted to 1 — Premier — for anyone without one;
+//  - the latest game was chosen first and filtered on `rating > 0` second, so a player
+//    whose most recent game was unrated (a void fixture, a walkover) went back to 1500.
+//    The filter is inside the ordering now, so an unrated game is skipped, not fatal.
+exports.getPrevRating = async function(endDate, fixturePlayers, opts = {}) {
+  const playerArray = Object.entries(fixturePlayers)
+  const ids = playerArray.map(([id]) => parseInt(id, 10)).filter(n => n > 0)
+
+  const found = {}
+  if (ids.length > 0) {
+    const sql = ids.map(() => `(SELECT ?::int AS "playerId", rating, date FROM (
+  SELECT ${SLOT_END('?')} AS rating, f.date, g.id AS gid
+  FROM game g JOIN fixture f ON g.fixture = f.id
+  WHERE ? IN (g."homePlayer1", g."homePlayer2", g."awayPlayer1", g."awayPlayer2")
+    AND f.status = 'complete'
+    AND f.date < ?
+) a WHERE rating > 0 ORDER BY date DESC, gid DESC LIMIT 1)`).join(' UNION ALL ')
+    const params = ids.flatMap(id => [id, id, id, id, id, id, endDate])
+    const [rows] = await (await db.otherConnect()).query(sql, params)
+    for (const r of rows) found[r.playerId] = r
   }
 
-  let rows = await (await db.otherConnect()).query(sqlArray.join(' UNION ALL '), sqlValsArray)
+  const ranks = (await exports.getSeasonRanks(opts.season, ids)) || {}
+  const fallbackRank = opts.fallbackRank !== undefined ? opts.fallbackRank : 1
 
-  if (rows[0].length > 0) {
-    for (player of playerArray) {
-      let filtered = rows[0].filter(i => i.playerId == player[0])
-      if (filtered.length > 0) {
-        player[1].rating = filtered[0].rating
-        player[1].date = filtered[0].date
-        player[1].rank = filtered[0].rank
-      } else {
-        player[1].rating = 1500
-        player[1].date = "2020-01-01 00:00:00"
-        player[1].rank = 1
-      }
-    }
-  } else {
-    for (player of playerArray) {
-      player[1].rating = 1500
-      player[1].date = "2020-01-01 00:00:00"
-      player[1].rank = 1
-    }
+  for (const [id, player] of playerArray) {
+    const prev = found[id]
+    player.rating = prev ? prev.rating : 1500
+    player.date = prev ? prev.date : '2020-01-01 00:00:00'
+    player.rank = ranks[id] !== undefined ? ranks[id] : fallbackRank
   }
-  fixturePlayers = Object.fromEntries(playerArray)
-  return fixturePlayers
+  return Object.fromEntries(playerArray)
+}
+
+// Sets player.rating to each player's latest rated game, read back from `game`.
+//
+// The publish path computed every game's ELO and never wrote the player's rating, so
+// `player.rating` — what /player-stats shows — was only ever as fresh as the last
+// backfill: new players were blank and 118 others were out of date (Sep 2026). Reading
+// it back from the games rather than carrying the in-memory value means a late
+// scorecard for an older fixture cannot overwrite a newer rating. `conn` lets the
+// caller do this inside the transaction that wrote the games.
+exports.refreshRatings = async function(playerIds, conn) {
+  const ids = (playerIds || []).map(n => parseInt(n, 10)).filter(n => n > 0)
+  if (ids.length === 0) return
+  const c = conn || await db.otherConnect()
+  await c.query(
+    `UPDATE player SET rating = COALESCE((
+       SELECT ${SLOT_END('player.id')}
+       FROM game g JOIN fixture f ON f.id = g.fixture
+       WHERE player.id IN (g."homePlayer1", g."homePlayer2", g."awayPlayer1", g."awayPlayer2")
+         AND f.status = 'complete'
+         AND ${SLOT_END('player.id')} > 0
+       ORDER BY f.date DESC, g.id DESC
+       LIMIT 1
+     ), rating)
+     WHERE id = ANY(?::int[])`,
+    [ids]
+  )
 }
 
 // Returns ELO rating time-series for one or more player IDs.
