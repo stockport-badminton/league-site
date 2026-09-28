@@ -25,6 +25,7 @@
 // independently — a team's number 1 man and number 1 lady both hold rank 1.
 
 const db = require('../db_connect.js')
+const { rankByName } = require('../utils/nameMatch')
 
 // The holding pen for a player with no club: club 63 is the row literally named
 // 'No Club' and team 52 is 'No Team' (both confirmed against the live schema).
@@ -496,43 +497,43 @@ exports.createPlayer = async function({ firstName, familyName, gender, clubId, t
   return Number(rows[0].id)
 }
 
-// Players registered to no club — the pool "Add an unattached player" draws from.
-// Matched on a name fragment rather than the old first-letter LIKE, which missed
-// anyone whose surname you searched by.
-exports.findUnattached = async function(term) {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT player.id AS "playerId",
-            ${FULL_NAME} AS name,
-            player.gender, club.name AS "clubName", club.id AS "clubId"
-     FROM player
-     LEFT JOIN club ON club.id = player.club
-     WHERE player.club = ?
-       AND ${FULL_NAME} ILIKE ?
-     ORDER BY player.family_name, player.first_name
-     LIMIT 20`,
-    [NO_CLUB_ID, `%${term}%`]
-  )
-  return rows
+// Everyone who could be the person being searched for, split the way the add flow
+// offers them: registered to no club (adopt directly), at another club (needs a
+// transfer), or already at this one (so nobody creates them a second time).
+//
+// These were two `FULL_NAME ILIKE '%term%'` queries, so a search found someone only
+// if what was typed was a literal slice of what was stored — "Mary Whitle" could not
+// find the "Marry Whitle" on file, the modal said "No existing player matches. Create
+// a new one below", and that is how duplicates are made. Matching is now
+// utils/nameMatch.js, which is order-, typo- and nickname-tolerant. The whole table is
+// ~1,200 rows, so it is read once and ranked in JavaScript.
+exports.findCandidates = async function(term, clubName) {
+  return exports.splitCandidates(await exports.allForMatching(), term, clubName)
 }
 
-// Anyone at another club matching the term — the transfer candidates. Excluded
-// from findUnattached deliberately: adopting an unattached player is the club's
-// own business, taking one off another club needs the results secretary.
-exports.findAtOtherClubs = async function(term, excludeClubName) {
+// The table findCandidates ranks, for a caller matching many names at once — the
+// registration-request page matches every person an email names against one read.
+exports.allForMatching = async function() {
   const [rows] = await (await db.otherConnect()).query(
     `SELECT player.id AS "playerId",
             ${FULL_NAME} AS name,
             player.gender, club.name AS "clubName", club.id AS "clubId",
             team.name AS "teamName"
      FROM player
-     JOIN club ON club.id = player.club
+     LEFT JOIN club ON club.id = player.club
      LEFT JOIN team ON team.id = player.team
-     WHERE player.club <> ?
-       AND club.name <> ?
-       AND ${FULL_NAME} ILIKE ?
-     ORDER BY club.name, player.family_name
-     LIMIT 20`,
-    [NO_CLUB_ID, excludeClubName || '', `%${term}%`]
+     ORDER BY TRIM(player.family_name), TRIM(player.first_name)`
   )
   return rows
+}
+
+exports.splitCandidates = function(rows, term, clubName) {
+  const ranked = rankByName(rows, term, r => r.name)
+  const isUnattached = r => r.clubId === null || Number(r.clubId) === NO_CLUB_ID
+  const isOwn = r => !isUnattached(r) && !!clubName && r.clubName === clubName
+  return {
+    unattached: ranked.filter(isUnattached).slice(0, 20),
+    otherClubs: ranked.filter(r => !isUnattached(r) && !isOwn(r)).slice(0, 20),
+    ownClub: ranked.filter(isOwn).slice(0, 20)
+  }
 }

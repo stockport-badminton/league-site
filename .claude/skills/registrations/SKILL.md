@@ -1,6 +1,6 @@
 ---
 name: registrations
-description: The league's player-registration paperwork — which of the three registration documents is which, how the team registration docx is built, and the /admin/registrations chase-and-digest flow with its season-keyed status. Use when touching utils/teamRegistrationDoc.js, documentsController, registrationController, the /forms/* routes, /admin/registrations, or the club_registration table.
+description: The league's player-registration paperwork — which of the three registration documents is which, how the team registration docx is built, and the /admin/registrations chase-and-digest flow with its season-keyed status, the registrations@ email queue at /admin/player-requests, and the fuzzy player-name matching every player search uses. Use when touching utils/teamRegistrationDoc.js, documentsController, registrationController, playerRequestController, utils/registrationEmail.js, utils/nameMatch.js, the /forms/* routes, /admin/registrations, /admin/player-requests, or the club_registration and registration_request tables.
 ---
 
 # The league's registration forms, and chasing them
@@ -101,6 +101,59 @@ exactly the annual wipe nobody would remember to run.
   by it. Written as `(f.status IS NULL OR f.status NOT IN (...))`, deliberately: a bare
   `NOT IN` evaluates to NULL for a NULL status and drops the row, which would take a
   club's earliest fixture and its deadline with it.
+
+## Registration requests by email (`/admin/player-requests`)
+
+A different job from the chase above: that one collects a *club's form* once a season,
+this one handles the steady trickle of "please register X" emails from secretaries,
+captains and players themselves, often several names to a message. They used to be read
+out and typed into the roster editor by hand.
+
+```
+forward to registrations@stockport-badminton.co.uk
+  -> SES inbound -> POST /mail (contactusController.distribution_list)
+  -> playerRequestController.queueFromEmail -> registration_request (migration 020)
+  -> /admin/player-requests/:id: the email beside the people read out of it
+```
+
+- **Nothing is applied from the email.** `utils/registrationEmail.js` makes a first
+  reading (names, gender, the team if the email names one we know) and every line is
+  shown editable, with Skip. The buttons call the roster API the club pages use —
+  `/api/roster/club-:club/players` to create, `/transfer` to move someone on file, which
+  for a superadmin applies at once and re-homes their club. There is still one way to
+  write a player; this page only records which button was pressed, per person, in
+  `candidates[i].outcome`.
+- **A refusal falls through to the ordinary forward.** Sender not in
+  `REGISTRATION_INBOX_SENDERS`, SPF and DKIM both failing, DMARC failing, or the address
+  also sent to a list: the message is forwarded to the results inbox as it always was.
+  The new path can queue mail; it cannot lose it.
+- **The writer is inside the body**, because the emails are forwarded. `originalFrom` is
+  read out of the forwarded block (Gmail, Outlook and Apple Mail markers).
+- **Reading stops at the sign-off**, not at the sender's name. Excluding the sender's own
+  name looked like the way to skip "Thanks, Jane Secretary" and would have dropped exactly
+  the player who writes in to register themselves.
+- **Attachments are listed, not read.** A spreadsheet or a filled-in form is opened from
+  the original email; the page says it exists so it is not missed.
+- Matching is `utils/nameMatch.js` — see below.
+
+## Finding a player who is already registered
+
+Every player search (`Roster.findCandidates` behind the roster add dialog,
+`Player.searchPlayers` behind `/api/players/search`, and the request page) goes through
+`utils/nameMatch.js`. It was `ILIKE '%term%'`, so "Mary Whitle" could not find the
+"Marry Whitle" on file, the dialog offered to create her, and that is how the table came
+to hold Wahab Siddiqi *and* Wahab Siddiqui plus eight exact duplicates (measured 28 Sep
+2026). Order-, accent- and nickname-tolerant, with a per-word edit allowance.
+
+**The allowance was tuned against the live table and should be re-measured, not
+nudged.** Across ~1,200 players the current rules pair six names, all plausibly the same
+person; two edits from five letters pairs 27, mostly strangers ("Ryan" ~ "Brian"). A
+self-join with `matchName` over every same-gender pair is the measurement.
+
+`POST /api/roster/club-:club/players` answers **409 with `possibleDuplicates`** when the
+name looks registered already, and the client resends with `confirmNew: true` after
+showing them. Only `exact` and `close` count; a name that merely *contains* this one
+("Tom Longworth") would be noise.
 
 ## Related
 

@@ -406,13 +406,10 @@ exports.api_candidates = async function(req, res, next) {
     const clubName = req.params.club
     assertClubAccess(req, clubName)
     const term = String((req.query.term || '')).trim()
-    if (term.length < 2) return res.json({ unattached: [], otherClubs: [], term: term })
+    if (term.length < 2) return res.json({ unattached: [], otherClubs: [], ownClub: [], term: term })
 
-    const [unattached, otherClubs] = await Promise.all([
-      Roster.findUnattached(term),
-      Roster.findAtOtherClubs(term, clubName)
-    ])
-    res.json({ term: term, unattached: unattached, otherClubs: otherClubs })
+    const found = await Roster.findCandidates(term, clubName)
+    res.json({ term: term, unattached: found.unattached, otherClubs: found.otherClubs, ownClub: found.ownClub })
   } catch (err) {
     next(err)
   }
@@ -440,6 +437,28 @@ exports.api_player_create = async function(req, res, next) {
     const dest = await Roster.getTeamOwner(teamId)
     if (!dest) return next(Object.assign(new Error('No such team'), { status: 404 }))
     assertClubAccess(req, dest.clubName)
+
+    // Refuse, once, to create someone who looks already registered. The search above
+    // the form is advisory and easy to skip — type the name straight into "create" and
+    // nothing ever compared it with the table, which is where the duplicates came from.
+    // The client shows the matches and resends with confirmNew to go ahead anyway: two
+    // people really can share a name, so this is a question, not a block.
+    if (!(req.body && req.body.confirmNew === true)) {
+      const found = await Roster.findCandidates(firstName + ' ' + familyName, dest.clubName)
+      const tag = where => p => Object.assign({ where: where }, p)
+      const possible = [].concat(
+        found.ownClub.map(tag('ownClub')),
+        found.unattached.map(tag('unattached')),
+        found.otherClubs.map(tag('otherClubs'))
+      )
+        .filter(p => p.gender === gender && (p.match === 'exact' || p.match === 'close'))
+      if (possible.length) {
+        return res.status(409).json({
+          error: 'This player may already be registered.',
+          possibleDuplicates: possible.slice(0, 8)
+        })
+      }
+    }
 
     const playerId = await Roster.createPlayer({
       firstName: firstName,

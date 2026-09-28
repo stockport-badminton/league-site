@@ -396,9 +396,59 @@ test.describe('roster editor', () => {
     await modal.locator('#rosterAddSearchBtn').click();
 
     const results = modal.locator('#rosterAddResults');
-    await expect(results.locator('.result-group')).toHaveCount(2);
+    // Two groups always; a third, "Already registered at this club", only when the
+    // club itself has a match — which a common fragment usually will.
     await expect(results).toContainText('Registered to no club');
     await expect(results).toContainText('Already at another club');
+    expect(await results.locator('.result-group').count()).toBeGreaterThanOrEqual(2);
+
+    guard.assertNoWrites();
+  });
+
+  // Typing a name straight into "create" used to go through without anything
+  // comparing it to the table. The server now answers 409 with its closest matches;
+  // this pins what the page does with that answer. The POST is fulfilled here, in
+  // the browser, so nothing reaches the server and the test stays read-only.
+  test('creating someone who may already exist asks first', async ({ page, baseURL }) => {
+    const guard = await readOnly(page, baseURL);
+    await openBiggestClubEditor(page);
+
+    const bodies = [];
+    await page.route('**/api/roster/club-*/players', async route => {
+      const body = route.request().postDataJSON();
+      bodies.push(body);
+      if (!body.confirmNew) {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: 'This player may already be registered.',
+            possibleDuplicates: [{ playerId: 999999, name: 'Marry Whitle', gender: body.gender, clubName: 'Elsewhere', teamName: 'Elsewhere A', where: 'otherClubs', match: 'close' }]
+          })
+        });
+      } else {
+        // Stop here: the confirmed create is the write, and this test only needs to
+        // see that it was asked for.
+        await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'stopped by test' }) });
+      }
+    });
+
+    await page.locator('.roster-add-btn').first().click();
+    const modal = page.locator('#rosterAddModal');
+    await expect(modal).toBeVisible();
+    await modal.locator('#rosterNewFirst').fill('Mary');
+    await modal.locator('#rosterNewFamily').fill('Whitle');
+    await modal.locator('#rosterCreateBtn').click();
+
+    const results = modal.locator('#rosterAddResults');
+    await expect(results).toContainText('Mary Whitle may already be registered');
+    await expect(results).toContainText('Marry Whitle');
+    await expect(results.getByRole('button', { name: 'Request transfer' })).toBeVisible();
+
+    await results.getByRole('button', { name: /create Mary Whitle as a new player/ }).click();
+    await expect.poll(() => bodies.length).toBe(2);
+    expect(bodies[0].confirmNew).toBe(false);
+    expect(bodies[1].confirmNew).toBe(true);
 
     guard.assertNoWrites();
   });

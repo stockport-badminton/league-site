@@ -1231,6 +1231,12 @@ Key vars (see `.env` for examples):
   to `POST /admin/registrations/run`, compared with `timingSafeEqual` over SHA-256 of both
   sides. **Unset closes the token path rather than opening it.** A superadmin session also
   works. `GET /admin/registrations/digest` previews the same email and sends nothing.
+- `REGISTRATION_INBOX_SENDERS` — comma-separated addresses allowed to put an email in the
+  `registrations@` queue (`/admin/player-requests`, Admin → Registration Requests). The
+  From must also pass SES's SPF or DKIM verdict, and a DMARC FAIL refuses it outright.
+  **Unset closes the queue**: mail to `registrations@` is then forwarded to the results
+  inbox exactly as before, so nothing is lost either way — a refused message always falls
+  through to the ordinary forward. See the `registrations` skill.
 - `INVOICE_CRON_TOKEN` — shared secret the scheduled caller presents as `X-Invoice-Token`
   to `POST /league/sendInvoices`, compared with `timingSafeEqual` over SHA-256 of both
   sides. **Unset closes the token path rather than opening it.** A superadmin session also

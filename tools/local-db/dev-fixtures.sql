@@ -70,3 +70,20 @@ BEGIN
 
   RAISE NOTICE 'added messer draft % (teams % v %)', new_id, home, away;
 END $$;
+
+-- ── a forwarded registration email ──────────────────────────────────────────
+-- For /admin/player-requests and e2e/player-requests.spec.js. One name that is on file
+-- under a typo ("Mary Whitle" is stored as "Marry Whitle" in the snapshot — the case
+-- that prompted the fuzzy matcher), and one that is not. The fixed message_id makes a
+-- re-run a no-op rather than a second copy.
+INSERT INTO registration_request (message_id, forwarded_by, original_from, subject, body_text, candidates)
+VALUES (
+  '<dev-fixture-registration@local>',
+  'Neil Cooper <neil@example.com>',
+  'Jane Secretary <jane@example.com>',
+  'Fwd: New players',
+  E'---------- Forwarded message ---------\nFrom: Jane Secretary <jane@example.com>\nSubject: New players\n\nPlease register these for Dome A:\n\nMary Whitle (F)\nNewby Playerton - M\n\nThanks,\nJane',
+  '[{"first":"Mary","family":"Whitle","gender":"Female","team":"Dome A","raw":"Mary Whitle (F)","outcome":null,"playerId":null},
+    {"first":"Newby","family":"Playerton","gender":"Male","team":"Dome A","raw":"Newby Playerton - M","outcome":null,"playerId":null}]'::jsonb
+)
+ON CONFLICT (message_id) DO NOTHING;

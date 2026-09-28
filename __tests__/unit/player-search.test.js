@@ -61,9 +61,11 @@ describe('searchPlayers', () => {
     });
 
     it('collapses the whitespace in what the user typed', async () => {
-      await Player.searchPlayers('  Chris   Petty  ', {});
+      db.__state.rows = [[{ id: 1, name: 'Chris Petty', teamName: 'Dome A' }]];
 
-      expect(lastQuery().params[0]).toBe('%Chris Petty%');
+      const rows = await Player.searchPlayers('  Chris   Petty  ', {});
+
+      expect(rows.map(r => r.id)).toEqual([1]);
     });
 
     it('returns the name normalised, so the UI does not show the double space', async () => {
@@ -76,7 +78,7 @@ describe('searchPlayers', () => {
     it('sorts on the trimmed surname, so " Petty" files under P', async () => {
       await Player.searchPlayers('a', {});
 
-      const order = lastQuery().sql.match(/ORDER BY (.+?) LIMIT/i)[1];
+      const order = lastQuery().sql.match(/ORDER BY (.+?)(?: LIMIT|$)/i)[1];
       expect(order).toMatch(/TRIM/i);
     });
   });
@@ -116,14 +118,15 @@ describe('searchPlayers', () => {
       expect(sql).toMatch(/club\.name = \?/);
       expect(sql).toMatch(/team\.name = \?/);
       expect(sql).toMatch(/player\.gender = \?/);
-      expect(params).toEqual(['%smith%', 'Premier', 'Dome', 'Dome A', 'Male']);
+      expect(params).toEqual(['Premier', 'Dome', 'Dome A', 'Male']);
     });
 
     it('adds nothing when no filter is supplied', async () => {
       await Player.searchPlayers('smith', {});
 
       const { sql, params } = lastQuery();
-      expect(params).toEqual(['%smith%']);
+      expect(params).toEqual([]);
+      expect(sql).not.toMatch(/\bWHERE\b/);
       expect(sql).not.toMatch(/division\.name =/);
       expect(sql).not.toMatch(/club\.name =/);
     });
@@ -131,13 +134,61 @@ describe('searchPlayers', () => {
     it('tolerates being called with no filters object at all', async () => {
       // toHaveLength, not toEqual([]): the wrapper hangs affectedRows off the array.
       await expect(Player.searchPlayers('smith')).resolves.toHaveLength(0);
-      expect(lastQuery().params).toEqual(['%smith%']);
+      expect(lastQuery().params).toEqual([]);
     });
 
-    it('caps the result set', async () => {
-      await Player.searchPlayers('a', {});
+    it('caps a filter-only listing in SQL', async () => {
+      await Player.searchPlayers('', { club: 'Dome' });
 
       expect(lastQuery().sql).toMatch(/LIMIT 20/i);
+    });
+
+    it('caps a name search after ranking, not before', async () => {
+      // A LIMIT in SQL would cut the alphabetical list before the matcher saw it, and
+      // the best match for "Whitle" could be the 21st name alphabetically.
+      db.__state.rows = [Array.from({ length: 30 }, (_, i) => ({ id: i, name: 'Sam Smith' + i }))];
+
+      const rows = await Player.searchPlayers('smith', {});
+
+      expect(lastQuery().sql).not.toMatch(/LIMIT/i);
+      expect(rows).toHaveLength(20);
+    });
+  });
+
+  // The reason the matching moved out of SQL. Rows are what the query returns in its
+  // ORDER BY; the model filters and ranks them.
+  describe('matching the name', () => {
+    const table = [
+      { id: 1, name: 'Andy Bates', teamName: 'Mellor A' },
+      { id: 2, name: 'Marry Whitle', teamName: 'Dome B' },
+      { id: 3, name: 'Graham White', teamName: 'Tatton A' },
+      { id: 4, name: 'Tom Tang', teamName: 'No Team' },
+    ];
+    const search = async q => {
+      db.__state.rows = [table.slice()];
+      return (await Player.searchPlayers(q, {})).map(r => r.id);
+    };
+
+    it('finds a typo in the stored name', async () => {
+      expect(await search('Mary Whitle')).toEqual([2]);
+    });
+
+    it('finds the name in either order', async () => {
+      expect(await search('Whitle Mary')).toEqual([2]);
+    });
+
+    it('ranks a literal match above a close one', async () => {
+      expect(await search('Whitle')).toEqual([2, 3]);
+    });
+
+    it('does not pad the results with strangers', async () => {
+      expect(await search('Tom Long')).toEqual([]);
+    });
+
+    it('says how each row matched', async () => {
+      db.__state.rows = [table.slice()];
+      const rows = await Player.searchPlayers('Andrew Bates', {});
+      expect(rows).toEqual([expect.objectContaining({ id: 1, match: 'close' })]);
     });
   });
 });

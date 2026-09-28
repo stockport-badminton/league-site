@@ -478,6 +478,7 @@
            'Save failed (' + response.status + ').');
         var err = new Error(message);
         err.status = response.status;
+        err.data = data;
         throw err;
       }
       return data;
@@ -658,6 +659,13 @@
 
     var unattached = (data.unattached || []).filter(function (p) { return p.gender === gender; });
     var others = (data.otherClubs || []).filter(function (p) { return p.gender === gender; });
+    var own = (data.ownClub || []).filter(function (p) { return p.gender === gender; });
+
+    // Shown first and only when there is something, because the likeliest reason for
+    // searching for someone already at the club is not having noticed they are.
+    if (own.length) {
+      out.appendChild(group('Already registered at this club', own, null, ''));
+    }
 
     out.appendChild(group('Registered to no club — add them directly', unattached,
       function (p) { return { label: 'Add', className: 'btn-success', onClick: function () { attach(p); } }; },
@@ -667,7 +675,7 @@
       function (p) { return { label: 'Request transfer', className: 'btn-outline-warning', onClick: function () { requestTransfer(p); } }; },
       'Nobody at another club matches that name.'));
 
-    if (!unattached.length && !others.length) {
+    if (!unattached.length && !others.length && !own.length) {
       var hint = document.createElement('p');
       hint.className = 'text-muted small mb-0';
       hint.textContent = 'No existing player matches. Create a new one below.';
@@ -699,7 +707,11 @@
       who.appendChild(sub);
       rowEl.appendChild(who);
 
-      var action = actionFor(person);
+      var action = actionFor ? actionFor(person) : null;
+      if (!action) {
+        wrap.appendChild(rowEl);
+        return;
+      }
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn btn-sm ' + action.className;
@@ -741,7 +753,10 @@
     });
   }
 
-  function createPlayer() {
+  // confirmNew is sent only from the "create anyway" button below: the server
+  // answers 409 with its closest matches the first time, because typing a name
+  // straight into this form never compared it with anyone already registered.
+  function createPlayer(confirmNew) {
     var first = document.getElementById('rosterNewFirst').value.trim();
     var family = document.getElementById('rosterNewFamily').value.trim();
     if (!first || !family) {
@@ -756,16 +771,51 @@
       familyName: family,
       gender: pending.addContext.gender,
       teamId: parseInt(pending.addContext.teamId, 10),
-      section: 'reserve'
+      section: 'reserve',
+      confirmNew: confirmNew === true
     }).then(function () {
       $('#rosterAddModal').modal('hide');
       toast(first + ' ' + family + ' created and added as a reserve.');
       setTimeout(function () { window.location.reload(); }, 800);
     }).catch(function (err) {
+      if (err.status === 409 && err.data && err.data.possibleDuplicates) {
+        showPossibleDuplicates(first + ' ' + family, err.data.possibleDuplicates);
+        return;
+      }
       toast(err.message, 'error');
     }).finally(function () {
       btn.disabled = false;
     });
+  }
+
+  // The matches the server found, offered with the same actions as a search result,
+  // plus a way to say "no, this really is someone new".
+  function showPossibleDuplicates(name, people) {
+    var out = document.getElementById('rosterAddResults');
+    out.textContent = '';
+    var lead = document.createElement('p');
+    lead.className = 'mb-2';
+    lead.textContent = name + ' may already be registered. Is it one of these?';
+    out.appendChild(lead);
+
+    out.appendChild(group('Possible matches', people, function (p) {
+      if (p.where === 'ownClub') return null;
+      if (p.where === 'unattached') {
+        return { label: 'Add', className: 'btn-success', onClick: function () { attach(p); } };
+      }
+      return { label: 'Request transfer', className: 'btn-outline-warning', onClick: function () { requestTransfer(p); } };
+    }, ''));
+
+    var anyway = document.createElement('button');
+    anyway.type = 'button';
+    anyway.className = 'btn btn-sm btn-outline-secondary mt-2';
+    anyway.textContent = 'None of these — create ' + name + ' as a new player';
+    anyway.addEventListener('click', function () {
+      anyway.disabled = true;
+      createPlayer(true);
+    });
+    out.appendChild(anyway);
+    out.scrollIntoView({ block: 'nearest' });
   }
 
   // ---------------------------------------------------------------------------

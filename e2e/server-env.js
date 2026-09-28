@@ -72,6 +72,8 @@ for (const file of ['dev.env', '.env']) {
 // the mistake that broke three tests when HARD-26 was written.
 delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
+// Unset closes the registrations@ queue; a test that needs it open sets it itself.
+delete process.env.REGISTRATION_INBOX_SENDERS;
 delete process.env.SENTRY_DSN;
 
 // By PATTERN, not by a list of names, and that is not tidiness.

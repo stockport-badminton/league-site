@@ -1,6 +1,7 @@
 var db = require('../db_connect.js');
 var seasonModel = require("./season");
 const levenshtein = require('js-levenshtein');
+const { rankByName } = require('../utils/nameMatch');
 
 
 // POST
@@ -1241,11 +1242,16 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
 // about the name rather than about how it happened to be typed in.
 const SEARCH_NAME = `regexp_replace(TRIM(COALESCE(player.first_name, '') || ' ' || COALESCE(player.family_name, '')), '\\s+', ' ', 'g')`
 
+// The name is matched in JavaScript by utils/nameMatch.js, not with LIKE: a LIKE finds
+// someone only if the text typed is a literal slice of the text stored, so "Mary
+// Whitle" could not find "Marry Whitle" — and on the signup-approval page, a player who
+// cannot be found gets a second record. The SQL applies only the filters; with no name
+// the filtered list is returned as it was, alphabetically and capped.
 exports.searchPlayers = async function(query, filters = {}) {
-  const whereClauses = [`LOWER(${SEARCH_NAME}) LIKE LOWER(?)`]
+  const whereClauses = []
+  const params = []
   // Collapse the caller's spacing too, so "Chris  Petty" and " chris petty " work.
   const term = (query || '').trim().replace(/\s+/g, ' ')
-  const params = [`%${term}%`]
 
   if (filters.division) { whereClauses.push('division.name = ?'); params.push(filters.division) }
   if (filters.club) { whereClauses.push('club.name = ?'); params.push(filters.club) }
@@ -1267,10 +1273,10 @@ exports.searchPlayers = async function(query, filters = {}) {
      LEFT JOIN team ON team.id = player.team
      LEFT JOIN club ON club.id = team.club
      LEFT JOIN division ON division.id = team.division
-     WHERE ${whereClauses.join(' AND ')}
+     ${whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : ''}
      ORDER BY TRIM(COALESCE(player.family_name, '')), TRIM(COALESCE(player.first_name, ''))
-     LIMIT 20`,
+     ${term ? '' : 'LIMIT 20'}`,
     params
   )
-  return result
+  return term ? rankByName(result, term, r => r.name, 20) : result
 }

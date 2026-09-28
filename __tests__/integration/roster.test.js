@@ -359,8 +359,11 @@ describe('POST /api/players/:id/release', () => {
 
 describe('GET /api/roster/club-:club/candidates', () => {
   beforeEach(() => {
-    Roster.findUnattached.mockResolvedValue([{ playerId: 9, name: 'Free Agent', gender: 'Male', clubName: 'No Club' }]);
-    Roster.findAtOtherClubs.mockResolvedValue([{ playerId: 10, name: 'Someone Else', gender: 'Male', clubName: 'College Green', teamName: 'CG A' }]);
+    Roster.findCandidates.mockResolvedValue({
+      unattached: [{ playerId: 9, name: 'Free Agent', gender: 'Male', clubName: 'No Club' }],
+      otherClubs: [{ playerId: 10, name: 'Someone Else', gender: 'Male', clubName: 'College Green', teamName: 'CG A' }],
+      ownClub: [{ playerId: 11, name: 'Already Here', gender: 'Male', clubName: 'Shell', teamName: 'Shell A' }]
+    });
   });
 
   // Three outcomes as three labelled groups, instead of one Add button that chose
@@ -370,12 +373,14 @@ describe('GET /api/roster/club-:club/candidates', () => {
     expect(res.status).toBe(200);
     expect(res.body.unattached).toHaveLength(1);
     expect(res.body.otherClubs).toHaveLength(1);
+    expect(res.body.ownClub).toHaveLength(1);
+    expect(Roster.findCandidates).toHaveBeenCalledWith('some', 'Shell');
   });
 
   it('does not search on a one-character term', async () => {
     const res = await request(app).get('/api/roster/club-Shell/candidates?term=s');
     expect(res.body.unattached).toEqual([]);
-    expect(Roster.findUnattached).not.toHaveBeenCalled();
+    expect(Roster.findCandidates).not.toHaveBeenCalled();
   });
 
   it('403s another club\'s search', async () => {
@@ -390,6 +395,7 @@ describe('POST /api/roster/club-:club/players', () => {
     Roster.getTeamOwner.mockResolvedValue({ id: 12, name: 'Shell A', clubId: 40, clubName: 'Shell' });
     Roster.createPlayer.mockResolvedValue(4321);
     Roster.addToTeam.mockResolvedValue({ playerId: 4321, teamId: 12, rank: 99 });
+    Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [], ownClub: [] });
   });
 
   it('creates a player and places them in the team', async () => {
@@ -423,6 +429,49 @@ describe('POST /api/roster/club-:club/players', () => {
       .post('/api/roster/club-Shell/players')
       .send({ firstName: 'x'.repeat(80), familyName: 'Player', gender: 'Male', teamId: 12 });
     expect(res.status).toBe(400);
+  });
+
+  // Typing a name straight into the create form never compared it with anybody, and
+  // that is where the league's duplicate players came from.
+  describe('someone who may already be registered', () => {
+    const marry = { playerId: 163, name: 'Marry Whitle', gender: 'Female', clubName: 'Dome', clubId: 57, match: 'close' };
+
+    it('answers 409 with the matches instead of creating', async () => {
+      Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [marry], ownClub: [] });
+      const res = await request(app)
+        .post('/api/roster/club-Shell/players')
+        .send({ firstName: 'Mary', familyName: 'Whitle', gender: 'Female', teamId: 12 });
+      expect(res.status).toBe(409);
+      expect(res.body.possibleDuplicates).toEqual([expect.objectContaining({ playerId: 163, where: 'otherClubs' })]);
+      expect(Roster.findCandidates).toHaveBeenCalledWith('Mary Whitle', 'Shell');
+      expect(Roster.createPlayer).not.toHaveBeenCalled();
+    });
+
+    it('creates anyway when the caller confirms it is someone new', async () => {
+      Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [marry], ownClub: [] });
+      const res = await request(app)
+        .post('/api/roster/club-Shell/players')
+        .send({ firstName: 'Mary', familyName: 'Whitle', gender: 'Female', teamId: 12, confirmNew: true });
+      expect(res.status).toBe(200);
+      expect(Roster.createPlayer).toHaveBeenCalled();
+    });
+
+    it('does not count a match of the other gender', async () => {
+      Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [Object.assign({}, marry, { gender: 'Male' })], ownClub: [] });
+      const res = await request(app)
+        .post('/api/roster/club-Shell/players')
+        .send({ firstName: 'Mary', familyName: 'Whitle', gender: 'Female', teamId: 12 });
+      expect(res.status).toBe(200);
+    });
+
+    it('does not count a name that merely contains this one', async () => {
+      // "Tom Long" is not obviously "Tom Longworth"; asking would be noise.
+      Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [Object.assign({}, marry, { match: 'contains' })], ownClub: [] });
+      const res = await request(app)
+        .post('/api/roster/club-Shell/players')
+        .send({ firstName: 'Mary', familyName: 'Whitle', gender: 'Female', teamId: 12 });
+      expect(res.status).toBe(200);
+    });
   });
 
   it('403s creating into another club', async () => {

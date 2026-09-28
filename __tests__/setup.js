@@ -78,6 +78,8 @@ process.env.SITE_ORIGIN = 'https://stockport-badminton.co.uk';
 //    than left alone, so a value in the developer's shell cannot arm them either.
 delete process.env.AUDIT_EMAIL_TO;
 delete process.env.REGISTRATION_EMAIL_TO;
+// Unset closes the registrations@ queue; a test that needs it open sets it itself.
+delete process.env.REGISTRATION_INBOX_SENDERS;
 // Cron tokens and Meta credentials, by PATTERN rather than by name.
 //
 // A list here is one variable behind whatever goes into the next deploy — which is the

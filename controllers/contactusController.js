@@ -14,6 +14,7 @@ const spamGate = require('../middleware/spamGate');
 const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
 const Sentry = require('@sentry/node');
+const PlayerRequests = require('./playerRequestController');
 
 // Where an unsubscribe request from a distribution list lands. A person reads it and
 // decides — see the List-Unsubscribe comment in distribution_list.
@@ -612,6 +613,27 @@ exports.distribution_list = async function(req,res,next) {
         recipient += row.substring(0,row.indexOf("@"))
       }
       let otherrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') < 0)
+
+      // registrations@ is a queue, not a list: the email is stored for
+      // /admin/player-requests instead of being forwarded. Only when it is the sole
+      // league address on the message — anything also sent to a list still goes to the
+      // list — and only when the queue accepts it; a refusal (sender not on
+      // REGISTRATION_INBOX_SENDERS, or not authenticated) falls through to the ordinary
+      // forward below, so the message still reaches a person exactly as it did before.
+      if (stockportrecips.length === 1
+          && stockportrecips[0].toLowerCase() === PlayerRequests.ADDRESS) {
+        // An error queueing is a refusal too. Letting it reach the catch below would
+        // answer SNS with a 500 and forward nothing — the one outcome this must not have.
+        let outcome
+        try {
+          outcome = await PlayerRequests.queueFromEmail(parsedEmail, notification)
+        } catch (err) {
+          Sentry.captureException(err, { tags: { step: 'registration request queue' } })
+          outcome = { queued: null, reason: 'queue failed: ' + err.message }
+        }
+        console.log('registration request: ' + outcome.reason)
+        if (outcome.queued || outcome.duplicate) return res.sendStatus(200)
+      }
       console.log("recipients: " + JSON.stringify(recipients))
       console.log("stockportrecipients: " + JSON.stringify(stockportrecips))
       

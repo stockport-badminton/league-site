@@ -804,6 +804,23 @@ router.post('/admin/registrations/:club/chase', secured, requireClubAccess.requi
 router.post('/admin/registrations/run',
   registration_controller.requireReminderCaller, registration_controller.digest_run);
 
+// Player registration requests forwarded to registrations@ (controllers/playerRequestController).
+// All superadmin: the queue holds other people's email. /match is registered before /:id
+// so it is not read as an id.
+const player_request_controller = require('../controllers/playerRequestController');
+router.get('/admin/player-requests', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.list_page);
+router.get('/admin/player-requests/match', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.api_match);
+router.get('/admin/player-requests/:id', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.detail_page);
+router.post('/admin/player-requests/:id/candidates/:index', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.api_set_candidate);
+router.post('/admin/player-requests/:id/candidates', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.api_add_candidate);
+router.post('/admin/player-requests/:id/status', secured, requireClubAccess.requireSuperAdmin,
+  player_request_controller.set_status);
+
 // ---------------------------------------------------------------------------
 // Error handlers
 // ---------------------------------------------------------------------------

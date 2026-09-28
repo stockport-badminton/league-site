@@ -425,3 +425,45 @@ describe('createPlayer', () => {
     })).rejects.toThrow(/no id/);
   });
 });
+
+// The add-player search. It was two `ILIKE '%term%'` queries, so a search for "Mary
+// Whitle" said nobody matched while "Marry Whitle" sat in the table — and the modal's
+// next suggestion was to create her again.
+describe('findCandidates', () => {
+  const table = () => [
+    { playerId: 1, name: 'Marry Whitle', gender: 'Female', clubName: 'Dome', clubId: 57, teamName: 'Dome B' },
+    { playerId: 2, name: 'Mary Whitle', gender: 'Female', clubName: 'No Club', clubId: Roster.NO_CLUB_ID, teamName: 'No Team' },
+    { playerId: 3, name: 'Mary Whittle', gender: 'Female', clubName: 'Shell', clubId: 40, teamName: 'Shell A' },
+    { playerId: 4, name: 'Andy Bates', gender: 'Male', clubName: 'Mellor', clubId: 9, teamName: 'Mellor A' },
+  ];
+
+  beforeEach(() => {
+    db.__state.rows = [];
+    db.__state.log = [];
+  });
+
+  it('splits the matches by where the player is now, including this club', async () => {
+    db.__state.rows = [table()];
+    const found = await Roster.findCandidates('Mary Whitle', 'Shell');
+    expect(found.unattached.map(p => p.playerId)).toEqual([2]);
+    expect(found.otherClubs.map(p => p.playerId)).toEqual([1]);
+    expect(found.ownClub.map(p => p.playerId)).toEqual([3]);
+  });
+
+  it('matches in JavaScript, so the query carries no name predicate to miss a typo', async () => {
+    db.__state.rows = [table()];
+    await Roster.findCandidates('Mary Whitle', 'Shell');
+    const { sql, params } = db.__state.log[0];
+    expect(sql).not.toMatch(/I?LIKE/i);
+    expect(params || []).toEqual([]);
+  });
+
+  it('keeps players whose club or team resolves to nothing', async () => {
+    db.__state.rows = [[{ playerId: 5, name: 'Ben Holcome', gender: 'Male', clubName: null, clubId: null, teamName: null }]];
+    const found = await Roster.findCandidates('Ben Holcome', 'Shell');
+    expect(found.unattached.map(p => p.playerId)).toEqual([5]);
+    const { sql } = db.__state.log[0];
+    expect(sql).toMatch(/LEFT JOIN club/);
+    expect(sql).toMatch(/LEFT JOIN team/);
+  });
+});

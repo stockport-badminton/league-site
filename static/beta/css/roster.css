@@ -13,7 +13,9 @@
 .roster-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 12px 64px;
+  /* More than the fixed footer is tall (~70px, and the Facebook widget in it more), or
+   * the last row of a long table sits underneath it and cannot be clicked. */
+  padding: 0 12px 110px;
   /* nav.ejs wraps every page in `.starter-template row`, which sets
    * `text-align: center` — so player names sat centred in their rows and the
    * headings drifted to the middle. A roster is a list you scan down the left edge.
@@ -458,4 +460,23 @@
 .roster-page select:focus-visible {
   outline: 2px solid #b4622c;
   outline-offset: 1px;
+}
+
+/* /admin/player-requests/:id — the email being worked through. Kept as the sender wrote
+   it (line breaks and all, since a pasted list is the thing being read), but scrollable
+   so a long thread does not push the people off the screen. */
+.player-request .request-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
+/* custom.css sets `.alert { height: 100% }` site-wide, and inside the flex row nav.ejs
+   wraps every page in, that stretches a one-line alert to fill the space — the
+   registration pages' warnings rendered as a tall empty yellow box. */
+.roster-page .alert {
+  height: auto;
 }
