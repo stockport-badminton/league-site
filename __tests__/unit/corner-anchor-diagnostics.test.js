@@ -133,3 +133,27 @@ describe('the DATE band, widened 16 Sep 2026', () => {
     expect(found.DATE.centerY / IMG_H).toBeCloseTo(0.26);
   });
 });
+
+// Two cards will never have the anchors however they are photographed, and the generic
+// message ("cropped or taken at an angle") sends the captain to retake a photo that was
+// fine. On 29 Sep a Manor captain did exactly that with a Monkhouse card, twice; on 30 Sep
+// an Aerospace captain uploaded a Tameside card. Checked against those real images with
+// Vision: both Monkhouse photos, the 8 Sep Tatton scan and the Tameside card are each
+// recognised, and a current card that reads fine is untouched.
+describe('recognising a card the reader cannot do', () => {
+  const { recogniseCard } = require('../../controllers/cornerDetection');
+
+  it('knows the old Monkhouse Intersport print', () => {
+    expect(recogniseCard([word('MONKHOUSE', 0.3, 0.1), word('DATE', 0.1, 0.3)])).toBe('monkhouse');
+    // Vision sometimes runs the URL together as one word.
+    expect(recogniseCard([word('www.monkhouseintersport.com', 0.5, 0.15)])).toBe('monkhouse');
+  });
+
+  it('knows a Tameside card', () => {
+    expect(recogniseCard([word('Tameside', 0.3, 0.05), word('League', 0.7, 0.05)])).toBe('tameside');
+  });
+
+  it('says nothing about an ordinary card', () => {
+    expect(recogniseCard(goodCard())).toBeNull();
+  });
+});

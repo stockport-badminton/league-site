@@ -237,10 +237,14 @@ const CANNOT_EXTRACT =
 async function convertDocument(file) {
   const extracted = await extractEmbeddedImage(file.buffer, file.originalname);
   if (!extracted) return { extracted: null, stored: null };
+  return { extracted, stored: await storeExtracted(extracted, file) };
+}
 
-  let stored = null;
+// The store half on its own, because the analysis endpoint must not do it until the card
+// has been READ — see the note at its call site in `analyse_scorecard`.
+async function storeExtracted(extracted, file) {
   try {
-    stored = await storeImage({
+    return await storeImage({
       buffer: extracted.buffer,
       contentType: extracted.contentType,
       hint: file.originalname,
@@ -248,8 +252,8 @@ async function convertDocument(file) {
   } catch (err) {
     console.error('scorecard document: storing the extracted photo failed:', err.message);
     Sentry.captureException(err);
+    return null;
   }
-  return { extracted, stored };
 }
 
 // ── POST /api/convert-scorecard-document ──────────────────────────────────────
@@ -363,19 +367,23 @@ exports.convert_scorecard_document = async function(req, res) {
 // helps nobody and is not theirs to act on. Same rule `convertDocument` already follows
 // for the document path, and the same rule `utils/afterCommit.js` states at length.
 //
-// A document upload is skipped, and that is still right — but only because it is now
-// narrower than it looks. By the time this runs, extraction SUCCEEDED and `convertDocument`
-// has already stored the image under the ordinary prefix, so a second copy here would keep
-// the same photo twice under two different retentions. The case where extraction FAILED
-// never gets here at all: it returns 4xx from inside the try, and is kept by
+// For a document, `extracted` is the image pulled out of it, and that is what is kept —
+// the thing the reader actually looked at, and the same 14-day retention as any photo.
+// It used to skip documents on the grounds that the image was already stored under the
+// ordinary prefix; it was, permanently, attached to nothing, because a failed read never
+// hands a URL back to the page. On 30 Sep a captain's Tameside card, uploaded by mistake,
+// was kept that way while this logged `[image: not stored]`. The case where extraction
+// FAILED never gets here: it returns 4xx from inside the try and is kept by
 // `refuseUpload` above instead.
-async function storeFailedImage(req, isDocument) {
-  if (isDocument) return null;
-  if (!req.file || !req.file.buffer || !req.file.buffer.length) return null;
+async function storeFailedImage(req, extracted) {
+  const image = extracted
+    ? { buffer: extracted.buffer, contentType: extracted.contentType }
+    : req.file && { buffer: req.file.buffer, contentType: req.file.mimetype };
+  if (!image || !image.buffer || !image.buffer.length) return null;
   try {
     const { key } = await storeImage({
-      buffer: req.file.buffer,
-      contentType: req.file.mimetype,
+      buffer: image.buffer,
+      contentType: image.contentType,
       hint: req.file.originalname,
       prefix: FAILED_PREFIX,
     });
@@ -389,12 +397,11 @@ async function storeFailedImage(req, isDocument) {
 }
 
 exports.analyse_scorecard = async function(req, res) {
-  // Declared out here because the catch needs it: a document's image is already stored by
-  // convertDocument, before the OCR, so the failure path must not store a second copy of
-  // the same photo under a different retention. Scoped inside the try, it was simply not
-  // defined where it was read — a ReferenceError on every failure, which is the one path
-  // that had no test until this one.
-  let isDocument = false;
+  // Declared out here because the catch needs it: for a document, the image that could not
+  // be read is the one pulled out of it, not the wrapper. Scoped inside the try, the
+  // previous flag here was simply not defined where it was read — a ReferenceError on
+  // every failure, which is the one path that had no test until then.
+  let extracted = null;
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
@@ -410,12 +417,9 @@ exports.analyse_scorecard = async function(req, res) {
     // BELOW rather than crashing: about three cards a season, and telling the captain
     // plainly beats a 500.
     let imageBuffer = req.file.buffer;
-    // Set when a document's image has been stored, so it is still reported if the OCR
-    // below throws. The photo is the record; reading it is a bonus.
-    let storedPhoto = null;
-    isDocument = isDocumentUpload(req.file);
+    const isDocument = isDocumentUpload(req.file);
     if (isDocument) {
-      const { extracted, stored } = await convertDocument(req.file);
+      extracted = await extractEmbeddedImage(req.file.buffer, req.file.originalname);
       if (!extracted) {
         // Same hole as the convert endpoint had, for the same reason: this returns from
         // inside the try, so the catch below — and `storeFailedImage` with it — never runs.
@@ -423,13 +427,6 @@ exports.analyse_scorecard = async function(req, res) {
           `no image could be extracted (${req.file.mimetype})`);
       }
       imageBuffer = extracted.buffer;
-      storedPhoto = stored;
-      // So a caller can reach the image rather than the wrapper.
-      res.locals.convertedImage = extracted;
-      // convertDocument has already stored it — before the OCR, deliberately, so that if
-      // Vision throws the captain still gets their photo back rather than losing it to an
-      // error further down. A failed store does not fail this request: the prefill is
-      // still worth having, and `photoStored: false` tells the page to say so.
     }
 
     // Step 1: perspective-correct coordinates + OCR
@@ -466,6 +463,18 @@ exports.analyse_scorecard = async function(req, res) {
       men.forEach(   (p, i) => { playerFields[`awayMan${i + 1}`]  = p.id; });
       ladies.forEach((p, i) => { playerFields[`awayLady${i + 1}`] = p.id; });
     }
+
+    // A document's image is stored only now, once the card has been READ.
+    //
+    // It used to be stored before the OCR, "so that if Vision throws the captain still
+    // gets their photo back" — but a failure answers with an error and no URL, and the
+    // page attaches nothing on an error, so the photo never came back. What it did do was
+    // keep every unreadable document's image under the permanent prefix, attached to no
+    // draft: on 30 Sep, a Tameside card uploaded to the Stockport form by mistake. On
+    // failure the catch keeps it as 14-day scrap instead, like any photo. A failed store
+    // here does not fail the request: the prefill is still worth having, and
+    // `photoStored: false` tells the page to say so.
+    const storedPhoto = isDocument ? await storeExtracted(extracted, req.file) : null;
 
     // Step 5: build response in form-field format
     res.json({
@@ -526,7 +535,7 @@ exports.analyse_scorecard = async function(req, res) {
     // Its own prefix, carrying a 14-day S3 lifecycle expiry. A scorecard photo is the
     // league's record of a result and is kept; this is diagnostic scrap with twelve
     // players' names on it and is not.
-    const failedKey = await storeFailedImage(req, isDocument);
+    const failedKey = await storeFailedImage(req, extracted);
     console.error(
       'Scorecard analysis failed:', err.detail || err.message,
       failedKey ? `[image: ${failedKey}]` : '[image: not stored]');

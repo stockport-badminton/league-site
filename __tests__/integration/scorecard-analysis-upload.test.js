@@ -250,6 +250,37 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
       expect(res.body).toHaveProperty('_meta');
     });
 
+    // A card that cannot be READ keeps its image as 14-day scrap, and nothing permanent.
+    //
+    // The image used to be stored under the ordinary prefix BEFORE the OCR, so every
+    // unreadable document left a permanent object attached to no draft — the failure
+    // answers with no URL, so the page never picks it up. On 30 Sep that was a Tameside
+    // card uploaded to the Stockport form by mistake, while the log said "not stored".
+    it('keeps an unreadable document\'s image under failed-analysis only', async () => {
+      const err = new Error('could not line up');
+      err.status = 422;
+      err.detail = 'Missing corner anchors: STOCKPORT=not-on-card';
+      analyseImage.mockRejectedValueOnce(err);
+      const logged = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const res = await request(app).post('/api/analyse-scorecard')
+        .attach('scorecard', fixture('scorecard-docx-jpeg.docx'), {
+          filename: 'aerospace-v-mellor-b.docx',
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+
+      expect(res.status).toBe(422);
+      expect(mockS3Puts).toHaveLength(1);
+      expect(mockS3Puts[0].Key).toMatch(/^scorecards\/failed-analysis\/\d{8}\/[0-9a-f-]{36}-aerospace-v-mellor-b\.jpg$/);
+      // The image the reader looked at, not the wrapper.
+      expect(mockS3Puts[0].ContentType).toBe('image/jpeg');
+      expect(mockS3Puts[0].Body.slice(0, 3).toString('hex')).toBe('ffd8ff');
+      // And the log names that key, not "[image: not stored]".
+      const line = logged.mock.calls.map(c => c.join(' ')).find(l => /analysis failed/.test(l));
+      expect(line).toContain(mockS3Puts[0].Key);
+      logged.mockRestore();
+    });
+
     // An image upload does its own presigned PUT from the browser and must not be
     // double-stored, nor told about a photoUrl it did not ask for.
     it('does not store or report anything for an image upload', async () => {

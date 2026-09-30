@@ -145,6 +145,42 @@ function describeMissing(diagnostics, missing) {
   }).join(' ');
 }
 
+// ── Cards the reader cannot line up, and knows it cannot ─────────────────────
+//
+// Two kinds of card come in that will never have the anchors, however they are
+// photographed, and the generic message sends a captain the wrong way for both: it leads
+// with "cropped or taken at an angle", so they retake the photo, fail identically, and
+// give up. Measured over Sep 2026, these two were the only corner-anchor failures there
+// were.
+//
+//   monkhouse  The old Monkhouse Intersport sponsor's print. Same grid, but no league
+//              title and "a 7 day rule" where the current card says "(Rule 18)" — so
+//              STOCKPORT, LEAGUE and RULE18 are all missing. Tatton 8 Sep, Manor 29 Sep.
+//              Reading it is deliberately NOT supported: it is years out of date, and
+//              the right outcome is that clubs stop using it.
+//   tameside   The other league's card, uploaded by a captain who plays in both
+//              (Aerospace, 30 Sep).
+//
+// Only consulted once the anchors are already missing, so a player called Monkhouse on a
+// card that reads fine changes nothing.
+const CARD_MESSAGES = {
+  monkhouse:
+    'This is the old Monkhouse Intersport version of the scorecard, which the reader ' +
+    'cannot fill in from — a clearer photo will not help. Carry on and fill the form in ' +
+    'yourself; you can still attach this photo at the end. For future matches, please ' +
+    'use the current league scorecard (Useful Links → Scorecard-print.pdf).',
+  tameside:
+    'This looks like a Tameside league scorecard. This form is for Stockport league ' +
+    'results — check you have picked the right file and try again.',
+};
+
+function recogniseCard(textBlocks) {
+  const has = re => textBlocks.some(b => re.test(b.text || ''));
+  if (has(/monkhouse/i)) return 'monkhouse';
+  if (has(/^tameside$/i)) return 'tameside';
+  return null;
+}
+
 // ── Geometry ──────────────────────────────────────────────────────────────────
 
 function lineIntersection(p1, p2, p3, p4) {
@@ -320,7 +356,8 @@ async function analyseImage(imageBuffer) {
     // STOCKPORT, LEAGUE, RULE18" learns nothing except that the site is broken; the one
     // it happened to abandoned the auto-fill and uploaded by hand. `detail` keeps the
     // anchor names for the log, where they are the useful half.
-    const err = new Error(
+    const card = recogniseCard(textBlocks);
+    const err = new Error(CARD_MESSAGES[card] ||
       'The reader could not line up this scorecard, so it cannot fill the form in for ' +
       'you. That usually means the photo is cropped or taken at an angle, or that the ' +
       'card is an older version of the form. Take a straight-on photo of the whole ' +
@@ -328,7 +365,9 @@ async function analyseImage(imageBuffer) {
       'still attach the photo at the end.'
     );
     err.status = 422;
-    err.detail = `Missing corner anchors: ${describeMissing(diagnostics, missing)}`;
+    err.detail = `Missing corner anchors: ${describeMissing(diagnostics, missing)}` +
+      (card ? ` card=${card}` : '');
+    err.card = card;
     err.anchorDiagnostics = diagnostics;
     throw err;
   }
@@ -361,4 +400,6 @@ async function analyseImage(imageBuffer) {
 
 // findAnchors, CORNER_ANCHORS and describeMissing are exported for the tests: the
 // diagnostic logic is worth testing without a Vision call and a real photograph.
-module.exports = { analyseImage, findAnchors, describeMissing, CORNER_ANCHORS, REQUIRED_ANCHORS };
+module.exports = {
+  analyseImage, findAnchors, describeMissing, recogniseCard, CORNER_ANCHORS, REQUIRED_ANCHORS,
+};
