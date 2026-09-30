@@ -13,11 +13,11 @@ class ScorecardTemplate {
       DIVISION:  { pattern: /DIVISION\s*/i,   searchArea: { yMin: 0, yMax: 0.3 } },
       HOME:      { pattern: /^HOME$/i,        searchArea: { yMin: 0, yMax: 0.3 } },
       AWAY:      { pattern: /^AWAY$/i,        searchArea: { yMin: 0, yMax: 0.3 } },
-      HOME_TEAM: { pattern: /HOME\s+TEAM/i,   searchArea: { yMin: 0.15, yMax: 0.4 }, multiWord: true },
-      AWAY_TEAM: { pattern: /AWAY\s+TEAM/i,   searchArea: { yMin: 0.3,  yMax: 0.7 }, multiWord: true },
+      HOME_TEAM: { words: [/^HOME$/i, /^TEAM$/i], searchArea: { yMin: 0.15, yMax: 0.4 }, multiWord: true },
+      AWAY_TEAM: { words: [/^AWAY$/i, /^TEAM$/i], searchArea: { yMin: 0.3,  yMax: 0.7 }, multiWord: true },
       COUPLES:   { pattern: /COUPLES/i,       searchArea: { yMin: 0.15, yMax: 0.4 } },
       POINTS:    { pattern: /POINTS/i,        searchArea: { yMin: 0.15, yMax: 0.4 } },
-      WON_BY:    { pattern: /WON\s+BY/i,     searchArea: { yMin: 0.15, yMax: 0.4 }, multiWord: true },
+      WON_BY:    { words: [/^WON$/i, /^BY$/i],  searchArea: { yMin: 0.15, yMax: 0.4 }, multiWord: true },
       TOTALS:    { pattern: /TOTALS/i,        searchArea: { yMin: 0.4,  yMax: 1.0 } },
     };
   }
@@ -32,32 +32,34 @@ class ScorecardTemplate {
         && (area.xMax === undefined || nx <= area.xMax);
   }
 
+  // A two-word printed label: the second word to the RIGHT of the first, on its line.
+  //
+  // Tolerances are in units of the first word's own height, not pixels. This used to
+  // chain through a globally sorted list with `SPACING = 50, Y_TOL = 50` in pixels, and
+  // on a high-resolution photo the gap between AWAY and TEAM is simply wider than 50 —
+  // so the player block was never located and all six of that side's players came back
+  // blank. Measured Sep 2026 over 59 filed cards: 14 of 118 sides lost that way, and
+  // finding them all also moved score reading from 1553 to 1607 of 2124, because
+  // WON BY is what places the points column.
   _multiWordAnchor(blocks, anchor) {
-    const SPACING = 50, Y_TOL = 50;
-    const sorted = [...blocks].sort((a, b) =>
-      Math.abs(a.centerY - b.centerY) < Y_TOL ? a.centerX - b.centerX : a.centerY - b.centerY
-    );
-    for (let i = 0; i < sorted.length; i++) {
-      let text = sorted[i].text, parts = [sorted[i]], cur = sorted[i];
-      for (let j = i + 1; j < sorted.length; j++) {
-        const nxt = sorted[j];
-        if (Math.abs(nxt.centerY - cur.centerY) < Y_TOL &&
-            (nxt.bounds[0].x - cur.bounds[1].x) < SPACING) {
-          text += ' ' + nxt.text;
-          parts.push(nxt);
-          cur = nxt;
-          if (anchor.pattern.test(text)) {
-            const f = parts[0], l = parts[parts.length - 1];
-            return {
-              text,
-              bounds: { 0: f.bounds[0], 1: l.bounds[1], 2: l.bounds[2], 3: f.bounds[3] },
-              centerX: (f.centerX + l.centerX) / 2,
-              centerY: f.centerY,
-              width: l.bounds[1].x - f.bounds[0].x,
-              height: f.height,
-            };
-          }
-        } else { break; }
+    const [first, second] = anchor.words;
+    for (const a of blocks.filter(b => first.test(b.text))) {
+      const h = Math.max(a.height, 1);
+      const b = blocks
+        .filter(c => c !== a && second.test(c.text)
+          && Math.abs(c.centerY - a.centerY) < 0.7 * h
+          && c.bounds[0].x - a.bounds[1].x > -0.5 * h
+          && c.bounds[0].x - a.bounds[1].x < 3 * h)
+        .sort((x, y) => x.bounds[0].x - y.bounds[0].x)[0];
+      if (b) {
+        return {
+          text: `${a.text} ${b.text}`,
+          bounds: { 0: a.bounds[0], 1: b.bounds[1], 2: b.bounds[2], 3: a.bounds[3] },
+          centerX: (a.centerX + b.centerX) / 2,
+          centerY: a.centerY,
+          width: b.bounds[1].x - a.bounds[0].x,
+          height: a.height,
+        };
       }
     }
     return null;
@@ -146,6 +148,39 @@ class RegionBasedExtractor {
     return rows;
   }
 
+  // The six names in a team block, by SLOT: { ladies: [3], men: [3] }, null where a slot
+  // is empty or unreadable. Returns null if the section labels cannot be found, and the
+  // caller falls back to the flat list.
+  //
+  // A slot is placed by its position between the printed LADIES and GENTLEMEN labels,
+  // which sit four rows apart. The flat list this replaces lost the position of every
+  // name: an empty or unreadable row simply vanished, so everything below it moved up a
+  // slot. It also grouped words into rows with a fixed 30-pixel tolerance, so on a
+  // high-resolution photo a name written large split into "Kieran" and "Hesp", neither
+  // of which matched anybody. Grouping words by slot fixes both at once.
+  extractPlayerSlots(region) {
+    const inR = this.textBlocks.filter(b => this._inRegion(b, region));
+    const ladies = inR.find(b => /^LADIES$/i.test(b.text));
+    const gents  = inR.find(b => /^(GENTLEMEN|GENTS)$/i.test(b.text));
+    if (!ladies || !gents || gents.centerY <= ladies.centerY) return null;
+    const pitch = (gents.centerY - ladies.centerY) / 4;
+
+    const slots = { ladies: [[], [], []], men: [[], [], []] };
+    for (const b of inR) {
+      if (this._isLabel(b.text)) continue;
+      const kl = Math.round((b.centerY - ladies.centerY) / pitch);
+      const kg = Math.round((b.centerY - gents.centerY) / pitch);
+      if (kg >= 1 && kg <= 3) slots.men[kg - 1].push(b);
+      else if (kl >= 1 && kl <= 3) slots.ladies[kl - 1].push(b);
+    }
+    const name = bs => bs
+      .sort((a, b) => Math.abs(a.centerY - b.centerY) < pitch / 3 ? a.centerX - b.centerX : a.centerY - b.centerY)
+      .map(b => b.text).join(' ')
+      .replace(/\d+/g, '')
+      .trim() || null;
+    return { ladies: slots.ladies.map(name), men: slots.men.map(name) };
+  }
+
   parsePlayerRow(row) {
     const name = row.blocks
       .sort((a, b) => a.centerX - b.centerX)
@@ -201,6 +236,23 @@ class RegionBasedExtractor {
 
     const join = blocks => blocks.sort((a, b) => a.centerX - b.centerX).map(b => b.text).join(' ');
 
+    // Vision often reads the printed "V AWAY" as ONE word, `VAWAY`, and sometimes takes the
+    // team letter with it (`COLLEGE GREEN EVAWAY`). Then there is no AWAY anchor and both
+    // teams came back empty, though both names had been read perfectly — 5 of 59 filed
+    // cards, Sep 2026. Split the whole HOME line on it instead.
+    if (this.anchors.HOME && !this.anchors.AWAY) {
+      const line = join(hblocks.filter(b => between(b, this.anchors.HOME, null)));
+      const m = line.match(/^(.*?)\s*V\s*AWAY\s*(.*)$/i);
+      if (m) {
+        return {
+          date:     this.anchors.DATE     ? join(hblocks.filter(b => between(b, this.anchors.DATE, this.anchors.DIVISION))) : '',
+          division: this.anchors.DIVISION ? join(hblocks.filter(b => between(b, this.anchors.DIVISION, null))) : '',
+          homeTeam: m[1].trim(),
+          awayTeam: m[2].trim(),
+        };
+      }
+    }
+
     return {
       date:     this.anchors.DATE     ? join(hblocks.filter(b => between(b, this.anchors.DATE, this.anchors.DIVISION))) : '',
       division: this.anchors.DIVISION ? join(hblocks.filter(b => between(b, this.anchors.DIVISION, null))) : '',
@@ -229,6 +281,9 @@ async function extractScorecardData({ textBlocks, imageWidth, imageHeight }) {
     metadata,
     homePlayers: homeRows.map(r => ex.parsePlayerRow(r).playerName).filter(Boolean),
     awayPlayers: awayRows.map(r => ex.parsePlayerRow(r).playerName).filter(Boolean),
+    // By slot where the section labels can be found; the flat lists above are the fallback.
+    homeSlots: regions.homeTeam ? ex.extractPlayerSlots(regions.homeTeam) : null,
+    awaySlots: regions.awayTeam ? ex.extractPlayerSlots(regions.awayTeam) : null,
     pointsPairs,
   };
 }

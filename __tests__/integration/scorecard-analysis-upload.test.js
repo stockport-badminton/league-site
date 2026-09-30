@@ -520,3 +520,69 @@ describe('POST /api/convert-scorecard-document', () => {
     expect(big.body.error).toMatch(/larger than/i);
   }, 30000);
 });
+
+// ── What the endpoint fills in for the header ────────────────────────────────
+//
+// The rules themselves are in __tests__/unit/scorecard-matching.test.js. These are the
+// two that live in the endpoint, and each one produced a BLANK on the page rather than an
+// error, because the form loads its team dropdown from the division.
+describe('the header the page is given', () => {
+  const { analyseImage } = require('../../controllers/cornerDetection');
+  const { extractScorecardData } = require('../../controllers/scorecardExtraction');
+  const Team = require('../../models/teams');
+  const Division = require('../../models/division');
+  const Fixture = require('../../models/fixture');
+
+  const analyse = header => {
+    analyseImage.mockResolvedValue({ textBlocks: [], imageWidth: 600, imageHeight: 400 });
+    extractScorecardData.mockResolvedValue({
+      metadata: { date: '', division: '', homeTeam: '', awayTeam: '', ...header },
+      homePlayers: [], awayPlayers: [], homeSlots: null, awaySlots: null, pointsPairs: [],
+    });
+    return request(app).post('/api/analyse-scorecard')
+      .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
+  };
+
+  beforeEach(() => {
+    // Syddal Park B exists twice: the retired row (no division, lower id) that HARD-11
+    // reinstated so old fixtures resolve, and the live one.
+    Team.getAll.mockResolvedValue([
+      { id: 9, name: 'Syddal Park B', division: null },
+      { id: 20, name: 'Syddal Park B', division: 8 },
+      { id: 30, name: 'Shell B', division: 8 },
+    ]);
+    Division.getAll.mockResolvedValue([{ id: 7, name: 'Premier' }, { id: 8, name: 'Division 1' }]);
+    Fixture.getScorecardCandidates.mockResolvedValue([]);
+  });
+
+  // A tie went to the lower id — the retired team, which is not in the dropdown.
+  it('never matches a retired team, even one with the same name', async () => {
+    const res = await analyse({ homeTeam: 'Syddal Park B v', awayTeam: 'Shell B' });
+    expect(res.status).toBe(200);
+    expect(res.body.homeTeam).toBe('20');
+  });
+
+  // The box is often blank, and a division that disagrees with the team empties the team.
+  it('takes the division from the team, whatever the box says', async () => {
+    const res = await analyse({ homeTeam: 'Syddal Park B', awayTeam: 'Shell B', division: 'Prem' });
+    expect(res.body.division).toBe('8');
+  });
+
+  it('prefers the fixture when there is one', async () => {
+    Fixture.getScorecardCandidates.mockResolvedValue([{ id: 7300, homeId: 20, homeName: 'Syddal Park B',
+      awayId: 30, awayName: 'Shell B', divisionId: 8 }]);
+    const res = await analyse({ homeTeam: 'SYDALL', awayTeam: 'SHELL B' });
+    expect(res.body).toMatchObject({ homeTeam: '20', awayTeam: '30', division: '8' });
+    expect(res.body._meta.fixtureId).toBe(7300);
+  });
+
+  // The candidates are a hint; losing them must not lose the auto-fill.
+  it('still reads the card when the fixture query fails', async () => {
+    Fixture.getScorecardCandidates.mockRejectedValue(new Error('connection reset'));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = await analyse({ homeTeam: 'Shell B', awayTeam: 'Syddal Park B' });
+    expect(res.status).toBe(200);
+    expect(res.body.homeTeam).toBe('30');
+    warn.mockRestore();
+  });
+});

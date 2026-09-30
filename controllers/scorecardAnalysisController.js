@@ -8,6 +8,7 @@ const { extractScorecardData } = require('./scorecardExtraction');
 const Team     = require('../models/teams');
 const Player   = require('../models/players');
 const Division = require('../models/division');
+const Fixture  = require('../models/fixture');
 
 // ── Multer — memory storage, 10 MB limit ─────────────────────────────────────
 
@@ -168,30 +169,181 @@ function bestMatch(needle, haystack, keyFn, threshold = 0.6) {
   return bestScore >= threshold ? { item: best, score: bestScore } : null;
 }
 
+// ── Teams, division and the fixture they belong to ────────────────────────────
+//
+// Measured Sep 2026 by re-running the reader over 59 filed cards and comparing with what
+// the captains filed. Vision reads the header well; what went wrong was after it:
+//
+//   - team names were matched one at a time against EVERY team, retired ones included.
+//     Four names exist twice (the retired rows HARD-11 reinstated) and a tie went to the
+//     lower id — the retired one, which is not in the form's dropdown, so a perfect read
+//     showed as a blank. 37 of 59 cards got both teams right.
+//   - the card is one of a handful of unpublished fixtures, and nothing used that. Matched
+//     as a PAIR against them, 53 of 59; with the true fixture deliberately removed from
+//     the candidates it falls back to 44, which is what matching alone gives, and no worse.
+//   - division was right on 10 of 59. The fallback stripped "Division" from the
+//     HANDWRITING rather than from the names, so a correctly read "2" was compared with
+//     "Division 2" and lost; and captains often leave the box blank anyway. Taken from
+//     the team, 53 of 59 — and it must agree with the team, because the page loads the
+//     team dropdown from the division.
+
+// Club abbreviations captains actually write. Levenshtein cannot get from "Macc" to
+// "Macclesfield", and these are the ones that turned up.
+const TEAM_ALIASES = [
+  [/\bAPBC\b/i, 'Alderley Park'],
+  [/\bMACC\b/i, 'Macclesfield'],
+  [/^C\.?\s?GREEN\b/i, 'College Green'],
+];
+
+// What the captain wrote, minus the printed "v", a date written into the box, and stray
+// punctuation: "DAVID LLOYD A. v", "SYDALL 19/4/26 v", "PARRSWOOD . B.".
+function cleanTeamText(raw) {
+  return TEAM_ALIASES.reduce((s, [re, to]) => s.replace(re, to), String(raw || ''))
+    .replace(/\bv$/i, '')
+    .replace(/\d{1,2}[\/.]\d{1,2}([\/.]\d{2,4})?/g, '')
+    .replace(/[.'"·,\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// The division box as written: "2", "2nd", "1 .", "I", "TWO", "Prem". Matched against the
+// division NAMES, so nothing here hardcodes an id.
+function divisionFromText(raw, divisions) {
+  const s = String(raw || '').trim().toUpperCase();
+  if (!s) return null;
+  if (/^PR/.test(s)) return divisions.find(d => /premier/i.test(d.name)) || null;
+  const digit = (s.match(/[1-9]/) || [])[0]
+    || (/^(I|ONE)\b/.test(s) && '1') || (/^(II|TWO)\b/.test(s) && '2') || (/^(III|THREE)\b/.test(s) && '3');
+  if (!digit) return null;
+  return divisions.find(d => new RegExp(`\\b${digit}\\b`).test(d.name)) || null;
+}
+
+// The fixture this card is most likely for, or null.
+//
+// Accepted only if every side it fills matches the handwriting reasonably AND is not
+// clearly worse than the best team found on its own. Without that check, a card whose
+// fixture is missing from the candidates (played early, a rearrangement not yet entered)
+// is confidently given somebody else's: with the true fixture removed, a looser 0.15
+// margin filled 15 of 59 wrongly, where matching alone fills 10.
+function matchFixture(homeText, awayText, candidates, teams) {
+  const alone = text => text ? Math.max(0, ...teams.map(t => teamSimilarity(text, t.name))) : 0;
+  // A side that resembles no team at all was not really read ("Яна с" for "Shell C"):
+  // treat it as blank rather than let it veto a fixture the other side identifies.
+  if (alone(homeText) < 0.5) homeText = '';
+  if (alone(awayText) < 0.5) awayText = '';
+  if (!homeText && !awayText) return null;
+  const soloHome = alone(homeText), soloAway = alone(awayText);
+  const sideOk = (text, name, solo) => !text || (teamSimilarity(text, name) >= 0.5 && teamSimilarity(text, name) >= solo - 0.05);
+
+  let best = null, bestScore = -1;
+  for (const f of candidates) {
+    const score = (homeText ? teamSimilarity(homeText, f.homeName) : 0) + (awayText ? teamSimilarity(awayText, f.awayName) : 0);
+    if (score > bestScore) { bestScore = score; best = f; }
+  }
+  if (!best || !sideOk(homeText, best.homeName, soloHome) || !sideOk(awayText, best.awayName, soloAway)) return null;
+  // One side unread: only trust the fixture if it is the only one that side's team has.
+  const known = homeText ? 'homeId' : 'awayId';
+  if (!(homeText && awayText) && candidates.filter(f => f[known] === best[known]).length > 1) return null;
+  return best;
+}
+
+// Edit distance, except that a single word is read as the club, spelt right or not:
+// captains write "Cheadle" for Cheadle Hulme A and "SYDALL" for Syddal Park B, and
+// Levenshtein scores the first 0.47 — under every threshold here. Scored against the
+// club's first word and discounted, so it can make a side count as read without ever
+// beating a full name.
+function teamSimilarity(text, name) {
+  const t = String(text || '').toLowerCase().trim(), n = String(name || '').toLowerCase().trim();
+  const club = t.length >= 4 && !t.includes(' ') ? 0.9 * similarity(t, n.split(' ')[0]) : 0;
+  return Math.max(similarity(t, n), club);
+}
+
 // ── Player assignment ─────────────────────────────────────────────────────────
 // OCR gives a flat list of names; we fuzzy-match each against the eligible
 // male and female player lists and assign to the form field slots in card order.
 
-async function matchPlayers(ocrNames, teamId) {
+// How well a handwritten name matches a player.
+//
+// Captains write "R. LAWS", "Hui", "Louise W", "S. Mayer②", "Myles M-Sherratt".
+// Levenshtein over the whole name scores every one of those at 0.5 or below — the
+// threshold — so they came back blank. This scores the parts as well and takes the
+// better: an initial counts only if it is the right letter, and a surname carries the
+// weight unless it is itself an initial. Over the corpus it took players right from 419
+// to 528 of 624 slots on its own.
+function playerScore(raw, player) {
+  const first = String(player.first_name || '').toLowerCase().trim();
+  const family = String(player.family_name || '').toLowerCase().trim();
+  const whole = similarity(raw, `${first} ${family}`);
+  const words = raw.normalize('NFKD').replace(/[^A-Za-z\s-]/g, ' ').toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return whole;
+  let parts;
+  if (words.length === 1) {
+    parts = 0.9 * Math.max(similarity(words[0], family), similarity(words[0], first));
+  } else {
+    const lead = words[0], tail = words[words.length - 1];
+    const leadScore = lead.length === 1 ? (lead === first[0] ? 1 : 0) : similarity(lead, first);
+    const lastPart = s => s.split('-').pop();
+    const tailScore = tail.length === 1 ? (tail === family[0] ? 1 : 0)
+      : Math.max(similarity(tail, family),
+                 similarity(lastPart(tail), lastPart(family)) * (tail.includes('-') === family.includes('-') ? 1 : 0.85));
+    parts = tail.length === 1 ? 0.9 * (0.7 * leadScore + 0.3 * tailScore) : 0.7 * tailScore + 0.3 * leadScore;
+  }
+  return Math.max(whole, parts);
+}
+
+function bestPlayer(raw, players) {
+  let best = null, bestScore = -1;
+  for (const p of players) {
+    const score = playerScore(raw, p);
+    if (score > bestScore) { bestScore = score; best = p; }
+  }
+  return best ? { item: best, score: bestScore } : null;
+}
+
+const PLAYER_THRESHOLD = 0.5;
+
+// Returns { men: [3], ladies: [3] }, each an id string or null. A slot the card leaves
+// empty, or that cannot be read, stays null — it must never be filled by moving the
+// players below it up, which is what the flat list used to do.
+//
+// `slots` is { men, ladies } by position (see extractPlayerSlots); `flat` is the old list
+// of names in card order, used only when the section labels could not be found.
+async function matchPlayers({ slots, flat }, teamId) {
   const [males, females] = await Promise.all([
     Player.findElgiblePlayersFromTeamId(teamId, 'Male'),
     Player.findElgiblePlayersFromTeamId(teamId, 'Female'),
   ]);
+  const out = { men: [null, null, null], ladies: [null, null, null] };
+  const taken = new Set();
+  const place = (sec, i, p) => { if (p && !taken.has(p.id)) { out[sec][i] = String(p.id); taken.add(p.id); } };
 
-  const fullName = p => `${p.first_name} ${p.family_name}`;
-
-  const men = [], ladies = [];
-  for (const name of ocrNames) {
-    const mMatch = bestMatch(name, males,   fullName);
-    const fMatch = bestMatch(name, females, fullName);
-    const mScore = mMatch?.score ?? -1;
-    const fScore = fMatch?.score ?? -1;
-    if (mScore <= 0.5 && fScore <= 0.5) continue;
-    if (mScore >= fScore) { men.push(   { id: String(mMatch.item.id), name: fullName(mMatch.item), score: mScore }); }
-    else                  { ladies.push({ id: String(fMatch.item.id), name: fullName(fMatch.item), score: fScore }); }
+  if (slots) {
+    const spill = [];
+    for (const [sec, own, other, otherSec] of [['men', males, females, 'ladies'], ['ladies', females, males, 'men']]) {
+      slots[sec].forEach((raw, i) => {
+        if (!raw) return;
+        const a = bestPlayer(raw, own), b = bestPlayer(raw, other);
+        // The section is a strong hint, not a rule: some captains write a man in a
+        // ladies row. Only a clearly better match in the other list moves them.
+        if (b && b.score > PLAYER_THRESHOLD && b.score > (a ? a.score : 0) + 0.15) spill.push([otherSec, b.item]);
+        else if (a && a.score > PLAYER_THRESHOLD) place(sec, i, a.item);
+      });
+    }
+    for (const [sec, p] of spill) { const i = out[sec].indexOf(null); if (i >= 0) place(sec, i, p); }
+    return out;
   }
 
-  return { men: men.slice(0, 3), ladies: ladies.slice(0, 3) };
+  // No section labels: the old behaviour — gender by whichever list matches better, in
+  // card order. Positions are unknowable here, which is why this is only the fallback.
+  const next = { men: 0, ladies: 0 };
+  for (const raw of flat || []) {
+    const m = bestPlayer(raw, males), f = bestPlayer(raw, females);
+    const ms = m ? m.score : -1, fs = f ? f.score : -1;
+    if (ms <= PLAYER_THRESHOLD && fs <= PLAYER_THRESHOLD) continue;
+    const [sec, hit] = ms >= fs ? ['men', m] : ['ladies', f];
+    if (next[sec] < 3) place(sec, next[sec]++, hit.item);
+  }
+  return out;
 }
 
 // ── Score pair → form field mapping ──────────────────────────────────────────
@@ -433,36 +585,70 @@ exports.analyse_scorecard = async function(req, res) {
     const { textBlocks, imageWidth, imageHeight } = await analyseImage(imageBuffer);
 
     // Step 2: region-based extraction
-    const { metadata, homePlayers, awayPlayers, pointsPairs } = await extractScorecardData({
+    const { metadata, homePlayers, awayPlayers, homeSlots, awaySlots, pointsPairs } = await extractScorecardData({
       textBlocks, imageWidth, imageHeight,
     });
 
-    // Step 3: fuzzy-match team names and division to IDs (parallel)
-    const [allTeams, allDivisions] = await Promise.all([Team.getAll(), Division.getAll()]);
+    // Step 3: teams, division and the fixture — see the notes above matchFixture.
+    // The candidates are a hint. If that query fails the card is still worth reading, so
+    // it degrades to matching each team on its own rather than failing the analysis.
+    const [allTeams, allDivisions, candidates] = await Promise.all([
+      Team.getAll(), Division.getAll(),
+      Promise.resolve().then(() => Fixture.getScorecardCandidates())
+        .then(rows => rows || [])
+        .catch(err => { console.warn('scorecard analysis: no fixture candidates:', err.message); return []; }),
+    ]);
+    // Retired teams (no division) are never the answer, and share names with live ones.
+    const teams = allTeams.filter(t => t.division != null);
+    const homeText = cleanTeamText(metadata.homeTeam);
+    const awayText = cleanTeamText(metadata.awayTeam);
 
-    const homeTeamMatch = bestMatch(metadata.homeTeam, allTeams, t => t.name, 0.5);
-    const awayTeamMatch = bestMatch(metadata.awayTeam, allTeams, t => t.name, 0.5);
+    const fixture = matchFixture(homeText, awayText, candidates, teams);
+    const soloTeam = text => {
+      if (!text) return null;
+      let best = null, score = -1;
+      for (const t of teams) { const x = teamSimilarity(text, t.name); if (x > score) { score = x; best = t; } }
+      return score >= 0.5 ? { item: best, score } : null;
+    };
+    const homeTeamMatch = fixture
+      ? { item: teams.find(t => t.id === fixture.homeId) || { id: fixture.homeId }, score: teamSimilarity(homeText, fixture.homeName) }
+      : soloTeam(homeText);
+    const awayTeamMatch = fixture
+      ? { item: teams.find(t => t.id === fixture.awayId) || { id: fixture.awayId }, score: teamSimilarity(awayText, fixture.awayName) }
+      : soloTeam(awayText);
     const homeTeamId = homeTeamMatch ? String(homeTeamMatch.item.id) : null;
     const awayTeamId = awayTeamMatch ? String(awayTeamMatch.item.id) : null;
 
-    // Division: fuzzy-match the extracted text against division names.
-    // Also try stripping "Division " prefix and matching on the ordinal ("1", "2" etc.)
-    const divMatch = bestMatch(metadata.division, allDivisions, d => d.name, 0.5)
-                  || bestMatch(metadata.division.replace(/division\s*/i, ''), allDivisions, d => d.name, 0.5);
+    // Division from the team first: the page loads its team dropdown from the division,
+    // so a division that disagrees with the team leaves the team blank on screen.
+    const teamDivision = fixture ? fixture.divisionId
+      : (homeTeamMatch && homeTeamMatch.item.division) || (awayTeamMatch && awayTeamMatch.item.division);
+    const written = divisionFromText(metadata.division, allDivisions);
+    const divMatch = teamDivision != null
+      ? { item: allDivisions.find(d => d.id === teamDivision) || { id: teamDivision }, score: 1 }
+      : written ? { item: written, score: 1 } : null;
     const divisionId = divMatch ? String(divMatch.item.id) : null;
 
-    // Step 4: fuzzy-match player names to IDs, constrained to each team's eligible players
+    // Step 4: players by slot, constrained to each team's eligible players
     let playerFields = {};
-    if (homeTeamId) {
-      const { men, ladies } = await matchPlayers(homePlayers, homeTeamId);
-      men.forEach(   (p, i) => { playerFields[`homeMan${i + 1}`]  = p.id; });
-      ladies.forEach((p, i) => { playerFields[`homeLady${i + 1}`] = p.id; });
-    }
-    if (awayTeamId) {
-      const { men, ladies } = await matchPlayers(awayPlayers, awayTeamId);
-      men.forEach(   (p, i) => { playerFields[`awayMan${i + 1}`]  = p.id; });
-      ladies.forEach((p, i) => { playerFields[`awayLady${i + 1}`] = p.id; });
-    }
+    const fill = (prefix, { men, ladies }) => {
+      men.forEach(   (id, i) => { if (id) playerFields[`${prefix}Man${i + 1}`]  = id; });
+      ladies.forEach((id, i) => { if (id) playerFields[`${prefix}Lady${i + 1}`] = id; });
+    };
+    if (homeTeamId) fill('home', await matchPlayers({ slots: homeSlots, flat: homePlayers }, homeTeamId));
+    if (awayTeamId) fill('away', await matchPlayers({ slots: awaySlots, flat: awayPlayers }, awayTeamId));
+
+    // One line per analysis: what was read against what it was matched to. Until now the
+    // only way to learn why the header was wrong was to re-run Vision over the stored
+    // photos, which is how the Sep 2026 figures above were produced. Team names and ids
+    // only — no player names, which are on the card and not needed here.
+    console.log('Scorecard analysed:', JSON.stringify({
+      home: metadata.homeTeam, away: metadata.awayTeam, division: metadata.division,
+      fixtureId: fixture ? fixture.id : null, candidates: candidates.length,
+      homeTeamId, awayTeamId, divisionId,
+      players: Object.keys(playerFields).length,
+      slots: !!(homeSlots && awaySlots),
+    }));
 
     // A document's image is stored only now, once the card has been READ.
     //
@@ -509,6 +695,7 @@ exports.analyse_scorecard = async function(req, res) {
         homeTeamConfidence: homeTeamMatch?.score ?? 0,
         awayTeamConfidence: awayTeamMatch?.score ?? 0,
         scoresFound:        pointsPairs.filter(p => p.homePoints != null).length,
+        fixtureId:          fixture ? fixture.id : null,
       },
     });
   } catch (err) {
@@ -553,3 +740,7 @@ exports.analyse_scorecard = async function(req, res) {
     res.status(status).json({ error: err.message });
   }
 };
+
+// Exported for the tests: the matching rules are worth testing without a Vision call, a
+// photograph or a database.
+exports._matching = { cleanTeamText, divisionFromText, matchFixture, matchPlayers, playerScore, teamSimilarity };

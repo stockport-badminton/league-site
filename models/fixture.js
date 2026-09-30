@@ -178,6 +178,28 @@ WHERE date < NOW() AND "scoreCardId" IS NULL`, [seasonModel.current()])
   return result
 }
 
+// The fixtures a scorecard being uploaded now could be for: this season's, not yet
+// published, and due within the week — a match is sometimes played before its listed date. The scorecard reader matches the handwritten team
+// names against these PAIRS rather than against every team in the league.
+//
+// Not getOutstandingScorecards: that drops any fixture that already has a draft, and
+// captains re-file the same card often enough (2383/2384, 2405/2406) that it would remove
+// the right answer.
+exports.getScorecardCandidates = async function() {
+  const [result] = await (await db.otherConnect()).query(`SELECT
+      fixture.id, fixture.date,
+      fixture."homeTeam" AS "homeId", homeTeam.name AS "homeName",
+      fixture."awayTeam" AS "awayId", awayTeam.name AS "awayName",
+      homeTeam.division AS "divisionId"
+    FROM fixture
+    JOIN season ON fixture.date > season."startDate" AND fixture.date < season."endDate"
+    JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
+    JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
+    WHERE season.name = ? AND fixture.status = 'outstanding'
+      AND fixture.date < NOW() + INTERVAL '7 days'`, [seasonModel.current()])
+  return result
+}
+
 exports.getCardsDueToday = async function() {
   const [result] = await (await db.otherConnect()).query(
     `SELECT fixId, date, status, "homeTeam", team.name AS "awayTeam", a."homeScore", a."awayScore" FROM (SELECT fixture.id AS fixid, fixture.date, fixture.status, team.name AS "homeTeam", fixture."homeScore", fixture."awayScore", fixture."awayTeam" FROM fixture JOIN team ON fixture."homeTeam" = team.id AND fixture.status NOT IN ('rearranged','rearranging')) AS a JOIN team ON a."awayTeam" = team.id WHERE a."homeScore" IS NULL AND date BETWEEN NOW() - INTERVAL '7 days' AND NOW() - INTERVAL '6 days' ORDER BY date`
