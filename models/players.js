@@ -126,8 +126,21 @@ exports.getClubRoster = async function(clubName) {
   return result
 }
 
+// Nominated players who have not appeared in any of their team's last three
+// completed matches (rule: "If a player misses 3 consecutive matches...").
+//
+// `fixture` holds every season back to 2012, so the window must be bounded to
+// the current one: without that, a team that had not yet played this season was
+// judged on last April's matches, and every player nominated since was listed.
+// A team with fewer than three results this season cannot have a player who has
+// missed three, so it is left out rather than judged on the matches it has.
+// No Club's teams are the holding pen for released players, not a club.
 exports.getMissedThreePlayers = async function() {
-  const [result] = await (await db.otherConnect()).query(`WITH team_fixtures AS (
+  const Roster = require('./roster');
+  const [result] = await (await db.otherConnect()).query(`WITH season_window AS (
+  SELECT "startDate", "endDate" FROM season WHERE name = ?
+),
+team_fixtures AS (
   SELECT
     f.id        AS fixture_id,
     f.date      AS fixture_date,
@@ -135,6 +148,7 @@ exports.getMissedThreePlayers = async function() {
     f."homeMan1"  AS p1, f."homeMan2" AS p2, f."homeMan3" AS p3,
     f."homeLady1" AS p4, f."homeLady2" AS p5, f."homeLady3" AS p6
   FROM fixture f
+  JOIN season_window w ON f.date >= w."startDate" AND f.date <= w."endDate"
   WHERE f.status = 'complete'
 
   UNION ALL
@@ -146,6 +160,7 @@ exports.getMissedThreePlayers = async function() {
     f."awayMan1",  f."awayMan2",  f."awayMan3",
     f."awayLady1", f."awayLady2", f."awayLady3"
   FROM fixture f
+  JOIN season_window w ON f.date >= w."startDate" AND f.date <= w."endDate"
   WHERE f.status = 'complete'
 ),
 ranked AS (
@@ -161,6 +176,9 @@ last3 AS (
   SELECT *
   FROM ranked
   WHERE rn <= 3
+),
+teams_with_three AS (
+  SELECT team_id FROM ranked GROUP BY team_id HAVING COUNT(*) >= 3
 ),
 men_used AS (
   SELECT
@@ -218,7 +236,7 @@ nom_players AS (
     p.family_name,
     p.gender
   FROM player p
-  WHERE p."rank" < 99
+  WHERE p."rank" IS NULL OR p."rank" < ?
 ),
 team_filtered AS (
   SELECT
@@ -226,6 +244,7 @@ team_filtered AS (
     COUNT(*) OVER (PARTITION BY t.club) AS club_team_count,
     MAX(t."rank") OVER (PARTITION BY t.club) AS club_lowest_rank
   FROM team t
+  WHERE t.club <> ?
 )
 SELECT
   t.id   AS team_id,
@@ -238,6 +257,8 @@ SELECT
   np.gender,
   COALESCE(a.numPlayed, 0) AS "numPlayed"
 FROM team_filtered t
+JOIN teams_with_three twt
+  ON twt.team_id = t.id
 JOIN nom_players np
   ON np.team_id = t.id
 LEFT JOIN appearances a
@@ -254,7 +275,8 @@ WHERE
     COALESCE(mu.menDistinctUsed, 0) >= 3
     AND COALESCE(lu.ladiesDistinctUsed, 0) >= 3
   )
-ORDER BY t.club, t."rank", np.family_name, np.first_name;`)
+ORDER BY t.club, t."rank", np.family_name, np.first_name;`,
+    [seasonModel.current(), Roster.RESERVE_BASE, Roster.NO_CLUB_ID])
   return result
 }
 
