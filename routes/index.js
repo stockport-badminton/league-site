@@ -676,6 +676,10 @@ router.get('/players', secured, player_controller.player_list_clubs_teams);
 // button carries the club officers' contact addresses. It was `secured` alone, which
 // only proves someone is logged in.
 router.get('/missed-three', secured, requireClubAccess.requireSuperAdmin, player_controller.players_missed_three);
+// Preview a player's notice to their club's secretaries, then send it through SES.
+router.get('/missed-three/:playerId(\\d+)/notice', secured, requireClubAccess.requireSuperAdmin, player_controller.missed_three_notice_preview);
+router.get('/missed-three/:playerId(\\d+)/notice/email', secured, requireClubAccess.requireSuperAdmin, player_controller.missed_three_notice_email);
+router.post('/missed-three/:playerId(\\d+)/notice', secured, requireClubAccess.requireSuperAdmin, player_controller.missed_three_notice_send);
 // Team management. Two pages with two jobs, where there used to be one template
 // switching on a `superadmin` boolean: the roster a captain reads, and the editor
 // the results secretary works in. The .docx is its own endpoint rather than a side

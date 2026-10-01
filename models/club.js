@@ -150,7 +150,7 @@ exports.getOfficerEmails = async function(clubIds) {
   if (!clubIds || !clubIds.length) return []
   const key = process.env.DB_PI_KEY
   const [result] = await (await db.otherConnect()).query(
-    `SELECT DISTINCT club.id AS "clubId", p.id AS "playerId",
+    `SELECT DISTINCT club.id AS "clubId", club.name AS "clubName", p.id AS "playerId",
             'club officer' AS role,
             CONCAT(p.first_name, ' ', p.family_name) AS name,
             TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text) AS email

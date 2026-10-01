@@ -60,10 +60,10 @@ Two more that cost time here:
 no-stats variants that exercise the `mj-raw` conditionals. A preview is not proof: it
 renders in a browser and an email renders in Outlook, which lays out through Word.
 
-**Twelve templates**: `scorecard-received`, `website-updated`, `registration-reminder`,
+**Thirteen templates**: `scorecard-received`, `website-updated`, `registration-reminder`,
 `registration-digest`, `contact-us`, `scorecard-reminder`, `missing-scorecards`,
-`transfer-request`, `access-approved`, `access-request`, `scorecard-photo-added` and
-`messer-result`.
+`transfer-request`, `access-approved`, `access-request`, `scorecard-photo-added`,
+`messer-result` and `missed-three`.
 
 **Two sends are deliberately not on it, and both are listed in
 `__tests__/unit/mail-sends-use-mailer.test.js` with their reason:**

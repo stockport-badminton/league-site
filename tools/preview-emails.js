@@ -49,6 +49,13 @@ const SAMPLES = {
     replyTo: 'results@stockport-badminton.co.uk',
     rosterUrl: 'https://stockport-badminton.co.uk/manage-players',
   },
+  'missed-three': {
+    logoUrl,
+    whyReceiving: 'You are listed as a secretary for Alderley Park in the Stockport & District Badminton League.',
+    playerName: 'Olivia Frankland', firstName: 'Olivia', teamName: 'Alderley Park A',
+    nextTeamName: 'Alderley Park B', pronoun: 'she', possessive: 'her', rule: '19b',
+    senderName: 'Neil',
+  },
   'registration-digest': {
     logoUrl,
     whyReceiving: 'You are listed as a recipient of the league admin digests.',

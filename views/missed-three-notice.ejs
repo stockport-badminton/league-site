@@ -1,0 +1,50 @@
+<%- include('header.ejs', { useRosterCss: true }) %>
+<%- include('nav.ejs') %>
+
+<%# useRosterCss: roster.css undoes the global `.starter-template { text-align: center }`
+    and the site-wide `.fa` sizing. See CLAUDE.md. %>
+<div class="roster-page container-fluid text-left">
+
+  <p class="mb-1"><a href="/missed-three">&larr; Missed three</a></p>
+  <h1 class="h3"><%= notice.subject %></h1>
+
+  <div class="row">
+    <div class="col-lg-4 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <dl class="mb-3 small">
+            <dt>To</dt>
+            <dd>
+              <% if (notice.recipients.length) { %>
+                <% notice.recipients.forEach(function (r) { %>
+                  <%= r.name %> &lt;<%= r.email %>&gt;<br>
+                <% }) %>
+              <% } else { %>
+                <span class="text-danger">Nobody at this club has a contact email on file.</span>
+              <% } %>
+            </dd>
+            <dt>Bcc</dt><dd><%= notice.bcc.join(', ') %></dd>
+            <dt>Replies go to</dt><dd><%= notice.replyTo %></dd>
+            <dt>Subject</dt><dd><%= notice.subject %></dd>
+          </dl>
+          <% if (notice.recipients.length) { %>
+            <form method="post" action="/missed-three/<%= playerId %>/notice">
+              <button class="btn btn-primary" type="submit">Send</button>
+              <a class="btn btn-link" href="/missed-three">Cancel</a>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <%# The rendered email, from the same template and data the send uses. %>
+      <iframe src="/missed-three/<%= playerId %>/notice/email" title="Email preview"
+              style="width:100%; height:720px; border:1px solid #dee2e6; background:#fff"></iframe>
+    </div>
+  </div>
+</div>
+
+<%- include('footer.ejs') %>
+</body>
+</html>

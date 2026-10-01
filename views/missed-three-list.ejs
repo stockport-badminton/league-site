@@ -8,6 +8,9 @@
   <% }
   else { %>
     <h1>Players that have missed three matches</h1>
+    <% if (sent) { %>
+      <div class="alert alert-success" role="status">Sent: <%= sent %>. A copy went to the results mailbox.</div>
+    <% } %>
     <div class="dt-table-shell">
     <table class="table" id="results-table">
       <thead>
@@ -25,8 +28,8 @@
           <td><%= row['team_name'] %></td>
           <td><%= row['gender'] %></td>
           <td>
-            <% if (row.notice) { %>
-              <a class="btn btn-sm btn-outline-primary" href="<%= row.notice.href %>" title="<%= row.notice.to.join(', ') %>">Email secretaries</a>
+            <% if (row.canNotify) { %>
+              <a class="btn btn-sm btn-outline-primary" href="/missed-three/<%= row.playerID %>/notice">Preview email</a>
             <% } else { %>
               <span class="text-muted">No secretary email on file</span>
             <% } %>

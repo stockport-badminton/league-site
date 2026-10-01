@@ -20,9 +20,10 @@ function unknownClub(club) {
   return err;
 }
 const { validationResult } = require('express-validator');
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 const { userDisplayName } = require('../utils/sessionUser');
-const { buildMissedThreeEmail } = require('../utils/missedThreeEmail');
+const { buildMissedThreeNotice } = require('../utils/missedThreeEmail');
+const mailer = require('../utils/mailer');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
@@ -69,16 +70,16 @@ exports.player_list = async function(req, res, next) {
   }
 };
 
-// Display list of all Players
+// GET /missed-three — the list, superadmin-only (routes/index.js).
 exports.players_missed_three = async function(req, res, next) {
   try {
     const rows = await Player.getMissedThreePlayers();
     if (rows.length) {
+      // Only whether each club has someone to write to: the addresses themselves are
+      // shown on the preview, where they are about to be used.
       const officers = await Club.getOfficerEmails([...new Set(rows.map(r => r.club))]);
-      const sender = userDisplayName(req.user);
       rows.forEach(row => {
-        const to = officers.filter(o => Number(o.clubId) === Number(row.club)).map(o => o.email);
-        row.notice = to.length ? buildMissedThreeEmail(row, to, sender) : null;
+        row.canNotify = officers.some(o => Number(o.clubId) === Number(row.club));
       });
     }
     res.render('missed-three-list', {
@@ -88,8 +89,75 @@ exports.players_missed_three = async function(req, res, next) {
       pageTitle: "Players that have missed three matches",
       pageDescription: "Players that have missed three matches",
       result: rows,
+      sent: req.query.sent ? String(req.query.sent).slice(0, 120) : '',
       canonical: canonicalFor(req)
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// The notice for one player, derived entirely server-side. A player who is no longer
+// on the list — they played, or were re-ranked, since the list was loaded — is a 404
+// rather than a notice about something that is no longer true.
+async function missedThreeNotice(req) {
+  const playerId = Number(req.params.playerId);
+  const rows = await Player.getMissedThreePlayers();
+  const row = rows.find(r => Number(r.playerID) === playerId);
+  if (!row) {
+    const err = new Error('That player is no longer on the missed-three list');
+    err.status = 404;
+    throw err;
+  }
+  const officers = await Club.getOfficerEmails([row.club]);
+  return buildMissedThreeNotice(row, officers, userDisplayName(req.user));
+}
+
+// GET /missed-three/:playerId/notice — the preview: who it goes to, and the email.
+exports.missed_three_notice_preview = async function(req, res, next) {
+  try {
+    const notice = await missedThreeNotice(req);
+    res.render('missed-three-notice', {
+      static_path: '/static',
+      theme: process.env.THEME || 'flatly',
+      flask_debug: process.env.FLASK_DEBUG || 'false',
+      pageTitle: 'Missed three: ' + notice.subject,
+      pageDescription: 'Preview the missed-three notice before it is sent',
+      notice,
+      playerId: Number(req.params.playerId),
+      canonical: canonicalFor(req)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /missed-three/:playerId/notice/email — the email itself, for the preview's
+// iframe, so what is checked is what lands in the inbox.
+exports.missed_three_notice_email = async function(req, res, next) {
+  try {
+    const notice = await missedThreeNotice(req);
+    const html = await require('ejs').renderFile(
+      require('path').join(__dirname, '..', 'views', 'emails', notice.template + '.ejs'),
+      Object.assign({ logoUrl: absoluteUrl(mailer.LOGO_PATH), whyReceiving: notice.whyReceiving }, notice.data));
+    res.send(html);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /missed-three/:playerId/notice — sends it. Nothing is read from the body.
+exports.missed_three_notice_send = async function(req, res, next) {
+  try {
+    const notice = await missedThreeNotice(req);
+    if (!notice.to.length) {
+      const err = new Error('Nobody at this club has a contact email on file');
+      err.status = 422;
+      throw err;
+    }
+    const { recipients, ...sendArgs } = notice;
+    await mailer.send(sendArgs);
+    res.redirect(303, '/missed-three?sent=' + encodeURIComponent(notice.subject));
   } catch (err) {
     next(err);
   }
