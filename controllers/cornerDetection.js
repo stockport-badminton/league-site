@@ -160,6 +160,12 @@ function describeMissing(diagnostics, missing) {
 //              the right outcome is that clubs stop using it.
 //   tameside   The other league's card, uploaded by a captain who plays in both
 //              (Aerospace, 30 Sep).
+//   spreadsheet  The old Excel scoresheet, printed and filled in by hand — "Welcome to
+//              your new scoresheet", XD pos. columns, a rubbers column and the
+//              instructions down the right. A different layout entirely, with none of the
+//              anchors. Racketeers A v B, 1 Oct. Not supported, for the Monkhouse reason.
+//              Keyed on two of its printed words rather than one, because none of them is
+//              as unmistakable as "Monkhouse" and the current card prints none of them.
 //
 // Only consulted once the anchors are already missing, so a player called Monkhouse on a
 // card that reads fine changes nothing.
@@ -169,6 +175,12 @@ const CARD_MESSAGES = {
     'cannot fill in from — a clearer photo will not help. Carry on and fill the form in ' +
     'yourself; you can still attach this photo at the end. For future matches, please ' +
     'use the current league scorecard (Useful Links → Scorecard-print.pdf).',
+  spreadsheet:
+    'This is the old spreadsheet version of the scoresheet ("Welcome to your new ' +
+    'scoresheet"), which the reader cannot fill in from — a clearer photo will not help. ' +
+    'Carry on and fill the form in yourself; you can still attach this photo at the end. ' +
+    'For future matches, please use the current league scorecard (Useful Links → ' +
+    'Scorecard-print.pdf).',
   tameside:
     'This looks like a Tameside league scorecard. This form is for Stockport league ' +
     'results — check you have picked the right file and try again.',
@@ -178,6 +190,8 @@ function recogniseCard(textBlocks) {
   const has = re => textBlocks.some(b => re.test(b.text || ''));
   if (has(/monkhouse/i)) return 'monkhouse';
   if (has(/^tameside$/i)) return 'tameside';
+  const SPREADSHEET_WORDS = [/^scoresheet\W*$/i, /^welcome$/i, /^calculating\W*$/i, /^rubbers$/i, /^XD$/];
+  if (SPREADSHEET_WORDS.filter(has).length >= 2) return 'spreadsheet';
   return null;
 }
 

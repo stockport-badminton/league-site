@@ -153,6 +153,20 @@ describe('recognising a card the reader cannot do', () => {
     expect(recogniseCard([word('Tameside', 0.3, 0.05), word('League', 0.7, 0.05)])).toBe('tameside');
   });
 
+  // Racketeers A v B, 1 Oct: the old Excel sheet, printed. Words as printed on that photo.
+  it('knows the old spreadsheet scoresheet', () => {
+    expect(recogniseCard([
+      word('Welcome', 0.7, 0.10), word('to', 0.75, 0.10), word('your', 0.8, 0.10),
+      word('new', 0.85, 0.10), word('scoresheet,', 0.9, 0.10),
+      word('XD', 0.3, 0.16), word('pos.', 0.33, 0.16), word('rubbers', 0.55, 0.36),
+    ])).toBe('spreadsheet');
+  });
+
+  // One of those words on its own could be a captain's scribble; the sheet prints all five.
+  it('does not call a card the spreadsheet on one word', () => {
+    expect(recogniseCard([...goodCard(), word('rubbers', 0.5, 0.95)])).toBeNull();
+  });
+
   it('says nothing about an ordinary card', () => {
     expect(recogniseCard(goodCard())).toBeNull();
   });
