@@ -727,6 +727,14 @@ exports.analyse_scorecard = async function(req, res) {
       'Scorecard analysis failed:', err.detail || err.message,
       failedKey ? `[image: ${failedKey}]` : '[image: not stored]');
 
+    // Google refusing for capacity is a 5xx that is neither our fault nor the captain's,
+    // and the honest answer differs from both: the card is fine, so try again shortly.
+    // Not Sentry — the log line above carries the detail, and an outage would otherwise
+    // file one exception per captain.
+    if (err.visionBusy) {
+      return res.status(503).json({ error: err.message });
+    }
+
     if (status >= 500) {
       // Only the genuine faults. Reporting a photo of the wrong scorecard as an
       // exception is how a Sentry project stops being read.

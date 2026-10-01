@@ -272,11 +272,73 @@ function transformBlocks(blocks, h) {
   });
 }
 
+// ── Vision call, with Google's capacity refusal retried ──────────────────────
+//
+// On 1 Oct 2026 Vision answered `code 8: Resource has been exhausted (e.g. check quota)`
+// to roughly half of all calls, from every project, billing account, credential, region
+// and feature Tameside tried, with successes interleaved. It was Google's capacity, not
+// our quota — which the message implies and which we first believed.
+//
+// Two things made it invisible here. The refusal arrives as a PER-IMAGE error inside a
+// successful batchAnnotate response (`result.error`, no `fullTextAnnotation`), so the call
+// does not throw — `runOCR` reported it as "No text detected in image", blaming the photo,
+// and `autoRotate` silently skipped. And the client library's own retry covers only
+// DEADLINE_EXCEEDED and UNAVAILABLE, and could not see a per-image error anyway.
+//
+// So code 8 is retried here, in either shape. Delays total 7s per call and a card makes
+// two calls; Firebase Hosting cuts requests at 60s (CLAUDE.md 1bc) and an analysis takes
+// 2–7s, so the worst case still fits. Any other per-image error is NOT retried — a bad
+// image stays bad — and is named rather than passed off as "no text".
+
+const RESOURCE_EXHAUSTED = 8;
+const VISION_RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function visionBusyError(detail) {
+  const err = new Error(
+    "Google's card reader is busy right now, so it could not read this scorecard. " +
+    'Try the photo again in a minute, or carry on and fill the form in yourself — you ' +
+    'can still attach the photo at the end.'
+  );
+  // 503 rather than the 5xx catch-all: the controller passes this message through and
+  // does not report it as an exception. It is Google's condition, not a fault of ours,
+  // and reporting it as one is how a Sentry project stops being read.
+  err.status = 503;
+  err.visionBusy = true;
+  err.detail = `Vision refused ${VISION_RETRY_DELAYS_MS.length + 1} times: ${detail}`;
+  return err;
+}
+
+async function detectText(imageBuffer, delays = VISION_RETRY_DELAYS_MS) {
+  for (let attempt = 0; ; attempt++) {
+    let result, code, message;
+    try {
+      [result] = await visionClient.documentTextDetection(imageBuffer);
+      code = result && result.error && result.error.code;
+      message = code && result.error.message;
+    } catch (err) {
+      // The same refusal can also come back as a whole-call gRPC error.
+      if (err.code !== RESOURCE_EXHAUSTED) throw err;
+      code = err.code;
+      message = err.details || err.message;
+    }
+
+    if (!code) return result;
+    if (code !== RESOURCE_EXHAUSTED) {
+      throw new Error(`Vision could not process the image (code ${code}): ${message}`);
+    }
+    if (attempt >= delays.length) throw visionBusyError(message);
+    console.warn(`[ocr] Vision busy (code 8), retry ${attempt + 1} of ${delays.length}`);
+    await sleep(delays[attempt]);
+  }
+}
+
 // ── Auto-rotate ───────────────────────────────────────────────────────────────
 
 async function autoRotate(imageBuffer) {
   try {
-    const [result] = await visionClient.documentTextDetection(imageBuffer);
+    const result = await detectText(imageBuffer);
     if (!result.fullTextAnnotation) return imageBuffer;
     let total = 0, count = 0;
     result.fullTextAnnotation.pages[0].blocks.forEach(block => {
@@ -292,7 +354,13 @@ async function autoRotate(imageBuffer) {
     if (Math.abs(avg) > 1)
       return sharp(imageBuffer).rotate(-avg, { background: { r: 255, g: 255, b: 255 } }).toBuffer();
     return imageBuffer;
-  } catch { return imageBuffer; }
+  } catch (err) {
+    // Rotation is optional, so anything else still falls through to an unrotated read.
+    // A busy Vision is not: it has just refused this card four times, and spending
+    // another 7s of the request on runOCR's identical call only delays the same answer.
+    if (err.visionBusy) throw err;
+    return imageBuffer;
+  }
 }
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
@@ -324,7 +392,7 @@ async function runOCR(imageBuffer) {
     enhanced = imageBuffer;
   }
 
-  const [result] = await visionClient.documentTextDetection(enhanced);
+  const result = await detectText(enhanced);
   if (!result.fullTextAnnotation) throw new Error('No text detected in image');
 
   const meta = await sharp(enhanced).metadata();
@@ -416,4 +484,5 @@ async function analyseImage(imageBuffer) {
 // diagnostic logic is worth testing without a Vision call and a real photograph.
 module.exports = {
   analyseImage, findAnchors, describeMissing, recogniseCard, CORNER_ANCHORS, REQUIRED_ANCHORS,
+  detectText, VISION_RETRY_DELAYS_MS,
 };

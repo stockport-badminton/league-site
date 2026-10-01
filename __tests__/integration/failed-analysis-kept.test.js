@@ -167,6 +167,43 @@ describe('a genuine 500', () => {
   });
 });
 
+// Google refusing for capacity (1 Oct 2026) is a 5xx that is not ours: the captain should
+// hear "busy, try again", not the generic "something went wrong", and Sentry should not
+// get one exception per captain during an outage. The shape comes from detectText.
+describe('when Vision stays busy past its retries', () => {
+  const busy = () => Object.assign(new Error("Google's card reader is busy right now…"), {
+    status: 503, visionBusy: true, detail: 'Vision refused 4 times: Resource has been exhausted',
+  });
+
+  it('answers 503 with the busy message, not the generic 500', async () => {
+    analyseImage.mockRejectedValue(busy());
+
+    const res = await upload();
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/busy/i);
+    expect(res.body.error).not.toMatch(/something went wrong/i);
+  });
+
+  it('is not reported to Sentry as an exception', async () => {
+    const spy = jest.spyOn(require('@sentry/node'), 'captureException');
+    analyseImage.mockRejectedValue(busy());
+
+    await upload();
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('still keeps the image, so the card can be re-read later', async () => {
+    analyseImage.mockRejectedValue(busy());
+
+    await upload();
+
+    expect(storeImage).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── The same failure, on the document path — the hole HARD-36 left ───────────
 //
 // HARD-36 covered `analyse_scorecard`'s catch block. It could not cover a **4xx refusal**,

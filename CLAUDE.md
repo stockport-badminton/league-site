@@ -1329,6 +1329,25 @@ Key vars (see `.env` for examples):
   over roughly the bottom 340px, and the feed layout stretched to 9:16 put the away team and
   half the score under that box. `STORY_SAFE` in `socialController` holds those figures, which
   are the commonly published ones, not measured.
+- `GMAPSAPIKEY` — the browser Maps key, printed into every club and event page **on both
+  sites** (Tameside renders the same key). It is restricted in GCP, not here, so grepping
+  will not find the rule (1 Oct 2026):
+  - **API targets**: Maps JavaScript API (`maps-backend.googleapis.com`) and Places API
+    (New) (`places.googleapis.com`, which `Place.fetchFields` on the event pages needs).
+    Until then it was unrestricted, so anyone viewing source could call Vision or anything
+    else enabled on `stockport-badminton-map`, billed to us.
+  - **Referrers**: `https://` + `stockport-badminton.co.uk`, `tameside-badminton.co.uk`,
+    each **with and without `www.`** (all four serve the site; none redirects), plus
+    `http://localhost:8080` and `http://127.0.0.1:8080`, because `dev.env` carries this
+    same key.
+  - **A new hostname loses its maps** until it is added — a staging deploy, or the
+    `*.run.app` address, which is already in that state. A new browser use of another
+    Maps API (Geocoding, Static, a keyed Embed) fails the same way.
+  - Read it back with `gcloud services api-keys describe 9407c937-129b-48c9-9dfd-cbbfdd987466
+    --project stockport-badminton-map`. When updating referrers, **pass both
+    `--api-target` flags in the same command**.
+  - The venues map generator uses a separate server-only `GMAPS_STATIC_API_KEY` and is
+    unaffected; Vision on the server uses ADC, not a key.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
