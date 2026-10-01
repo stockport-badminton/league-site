@@ -672,7 +672,10 @@ router.get('/players/club-:club?', secured, player_controller.player_list_clubs_
 router.get('/players/team-:team?', secured, player_controller.player_list_clubs_teams);
 router.get('/players/gender-:gender?', secured, player_controller.player_list_clubs_teams);
 router.get('/players', secured, player_controller.player_list_clubs_teams);
-router.get('/missed-three', secured, player_controller.players_missed_three);
+// Superadmin-only: an admin tool (it is on the /admin hub), and each row's email
+// button carries the club officers' contact addresses. It was `secured` alone, which
+// only proves someone is logged in.
+router.get('/missed-three', secured, requireClubAccess.requireSuperAdmin, player_controller.players_missed_three);
 // Team management. Two pages with two jobs, where there used to be one template
 // switching on a `superadmin` boolean: the roster a captain reads, and the editor
 // the results secretary works in. The .docx is its own endpoint rather than a side

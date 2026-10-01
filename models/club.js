@@ -136,6 +136,37 @@ exports.clubDetailbyId = async function(clubId) {
 // right key, so nothing was visibly broken; it was just the production PI key
 // sitting in source control, and it would have silently started returning errors
 // the day the key was rotated. Bound as a parameter like everywhere else.
+// Every club secretary and match secretary of the given clubs who has a contact
+// email, for the missed-three notice. All of them, not one: College Green has two
+// of each and both should hear about it.
+//
+// An officer is the role flag on a player at that club OR the old pointer on the
+// club row — but a pointer only counts while the player it names is still at the
+// club. A pointer left behind when somebody moved on is how a former secretary ends
+// up on another club's mail (see stale-officer-pointers in tools/audit/checks.js).
+// INNER is right here, and the role literal says so to optional-join-guard: the join
+// defines what each row is, and a club with no officers should return no rows.
+exports.getOfficerEmails = async function(clubIds) {
+  if (!clubIds || !clubIds.length) return []
+  const key = process.env.DB_PI_KEY
+  const [result] = await (await db.otherConnect()).query(
+    `SELECT DISTINCT club.id AS "clubId", p.id AS "playerId",
+            'club officer' AS role,
+            CONCAT(p.first_name, ' ', p.family_name) AS name,
+            TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text) AS email
+     FROM club
+     JOIN player p ON p.club = club.id
+      AND (p."clubSecretary" = 1 OR p."matchSecrertary" = 1
+           OR club."clubSec" = p.id OR club."matchSec" = p.id)
+     WHERE club.id = ANY(?::int[])
+       AND p."playerEmail" IS NOT NULL
+       AND COALESCE(NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), ''), '') <> ''
+     ORDER BY club.id, p.id`,
+    [key, clubIds.map(Number), key]
+  )
+  return result
+}
+
 exports.getContactDetailsById = async function(clubId) {
   const key = process.env.DB_PI_KEY
   const [result] = await (await db.otherConnect()).query(

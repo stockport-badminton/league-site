@@ -255,7 +255,12 @@ SELECT
   np.first_name,
   np.family_name,
   np.gender,
-  COALESCE(a.numPlayed, 0) AS "numPlayed"
+  COALESCE(a.numPlayed, 0) AS "numPlayed",
+  -- The team a replacement would be promoted from. Never NULL here: the club's
+  -- lowest team is filtered out below, so there is always one beneath.
+  (SELECT n.name FROM team n
+    WHERE n.club = t.club AND n."rank" > t."rank"
+    ORDER BY n."rank", n.id LIMIT 1) AS next_team_name
 FROM team_filtered t
 JOIN teams_with_three twt
   ON twt.team_id = t.id

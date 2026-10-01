@@ -21,6 +21,8 @@ function unknownClub(club) {
 }
 const { validationResult } = require('express-validator');
 const { canonicalFor } = require('../utils/canonical');
+const { userDisplayName } = require('../utils/sessionUser');
+const { buildMissedThreeEmail } = require('../utils/missedThreeEmail');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
@@ -71,6 +73,14 @@ exports.player_list = async function(req, res, next) {
 exports.players_missed_three = async function(req, res, next) {
   try {
     const rows = await Player.getMissedThreePlayers();
+    if (rows.length) {
+      const officers = await Club.getOfficerEmails([...new Set(rows.map(r => r.club))]);
+      const sender = userDisplayName(req.user);
+      rows.forEach(row => {
+        const to = officers.filter(o => Number(o.clubId) === Number(row.club)).map(o => o.email);
+        row.notice = to.length ? buildMissedThreeEmail(row, to, sender) : null;
+      });
+    }
     res.render('missed-three-list', {
       static_path: '/static',
       theme: process.env.THEME || 'flatly',

@@ -7,7 +7,7 @@
     <p><%= error %></p>
   <% }
   else { %>
-    <h1>Registered Players</h1>
+    <h1>Players that have missed three matches</h1>
     <div class="dt-table-shell">
     <table class="table" id="results-table">
       <thead>
@@ -15,16 +15,22 @@
           <th>Name</th>
           <th>Team</th>
           <th>Gender</th>
+          <th>Club</th>
         </tr>
       </thead>
       <tbody>
     <% result.forEach(function(row){ %>
-
       <tr>
-
-          <td><a href="/remindPlayer/<%= row['playerID'] %>/<%= row['first_name'] %>|<%= row['family_name'] %>"><%= row['first_name'] %> <%= row['family_name'] %></a></td>
+          <td><%= row['first_name'] %> <%= row['family_name'] %></td>
           <td><%= row['team_name'] %></td>
           <td><%= row['gender'] %></td>
+          <td>
+            <% if (row.notice) { %>
+              <a class="btn btn-sm btn-outline-primary" href="<%= row.notice.href %>" title="<%= row.notice.to.join(', ') %>">Email secretaries</a>
+            <% } else { %>
+              <span class="text-muted">No secretary email on file</span>
+            <% } %>
+          </td>
       </tr>
     <% }) %>
       </tbody>
