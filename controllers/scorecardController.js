@@ -3,6 +3,7 @@ var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
+var ThreadsResultPost = require('../models/threadsResultPost');
 var db = require('../db_connect.js');
 const axios = require('axios');
 const Sentry = require('@sentry/node');
@@ -440,6 +441,13 @@ exports.full_fixture_post = async function(req, res, next) {
     };
 
     await afterCommit('result zap', () => Fixture.sendResultZap(zapObject));
+
+    // Threads is posted later, by the `sbl-results-threads` job: its containers have to be
+    // waited on, which cannot happen inside this request (threadsResultsController). This
+    // only queues the fixture. Unset `SOCIAL_POST_THREADS` queues nothing.
+    if (process.env.SOCIAL_POST_THREADS === 'true') {
+      await afterCommit('threads result queue', () => ThreadsResultPost.enqueue(FixtureIdResult[0].id));
+    }
 
     const [homeTeamNomPlayers, awayTeamNomPlayers, homeTeamFixturePlayers, awayTeamFixturePlayers, matchStats] =
       await afterCommit('confirmation page data', () => Promise.all([

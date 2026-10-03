@@ -1329,6 +1329,15 @@ Key vars (see `.env` for examples):
   over roughly the bottom 340px, and the feed layout stretched to 9:16 put the away team and
   half the score under that box. `STORY_SAFE` in `socialController` holds those figures, which
   are the commonly published ones, not measured.
+- `SOCIAL_POST_THREADS` — `'true'` queues each published result for **Threads**
+  (`threads_result_post`, migration 021). It does not post: a Threads container has to be
+  waited on, and that wait cannot sit inside the publish request in front of Firebase's 60s
+  cut (1bc). `POST /admin/social/results/threads` (`SOCIAL_CRON_TOKEN`), on the
+  `sbl-results-threads` job every few minutes, posts up to three per run. It retries a row
+  only where Threads cannot have published it (a publish that got **no answer** may be live,
+  so it fails instead), skips anything queued over 48 hours ago, and the audit digest's
+  `threads-result-posts` check reports failures and runs that died mid-post. Independent of
+  `SOCIAL_POST_DIRECT`. **Unset queues nothing.**
 - `GMAPSAPIKEY` — the browser Maps key, printed into every club and event page **on both
   sites** (Tameside renders the same key). It is restricted in GCP, not here, so grepping
   will not find the rule (1 Oct 2026):

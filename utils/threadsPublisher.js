@@ -107,6 +107,15 @@ async function publishContainer(userId, token, creationId) {
   return r.id;
 }
 
+/** One image with text, as one post: container, wait, publish. */
+async function publishImage(userId, token, { imageUrl, text }, waitOpts) {
+  assertImage(imageUrl);
+  assertText(text);
+  const id = await createImageContainer(userId, token, { imageUrl, text });
+  await waitForContainer(id, token, waitOpts);
+  return { mediaId: await publishContainer(userId, token, id), creationId: id };
+}
+
 /**
  * Two to twenty images as one post. Every image is checked before any container is made,
  * so a bad URL cannot leave half a carousel behind.
@@ -152,6 +161,6 @@ async function validateImages(userId, token, imageUrls, waitOpts) {
 }
 
 module.exports = {
-  publishCarousel, validateImages, createImageContainer, waitForContainer, publishContainer,
+  publishImage, publishCarousel, validateImages, createImageContainer, waitForContainer, publishContainer,
   MAX_TEXT, MIN_CAROUSEL, MAX_CAROUSEL,
 };

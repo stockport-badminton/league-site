@@ -34,6 +34,7 @@ jest.mock('../../models/teams');
 jest.mock('../../models/players');
 jest.mock('../../models/fixture');
 jest.mock('../../models/game');
+jest.mock('../../models/threadsResultPost');
 jest.mock('../../models/auth.js');
 jest.mock('axios');
 
@@ -723,6 +724,31 @@ describe('POST /scorecard-beta', () => {
     it('triggers the Zapier webhook', async () => {
       await request(app).post('/scorecard-beta').send(validScorecard());
       expect(Fixture.sendResultZap).toHaveBeenCalledTimes(1);
+    });
+
+    // Threads is posted later by its own job; publishing only queues the fixture.
+    describe('the Threads queue', () => {
+      const ThreadsResultPost = require('../../models/threadsResultPost');
+      afterEach(() => { delete process.env.SOCIAL_POST_THREADS; });
+
+      it('queues the published fixture when SOCIAL_POST_THREADS is on', async () => {
+        process.env.SOCIAL_POST_THREADS = 'true';
+        await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(ThreadsResultPost.enqueue).toHaveBeenCalledWith(99);
+      });
+
+      it('queues nothing when it is unset', async () => {
+        await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(ThreadsResultPost.enqueue).not.toHaveBeenCalled();
+      });
+
+      it('still publishes when the queue cannot be written', async () => {
+        process.env.SOCIAL_POST_THREADS = 'true';
+        ThreadsResultPost.enqueue.mockRejectedValueOnce(new Error('db down'));
+        const res = await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(res.status).toBe(200);
+        expect(Game.createBatch).toHaveBeenCalled();
+      });
     });
   });
 

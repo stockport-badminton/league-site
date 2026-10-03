@@ -2,7 +2,23 @@
 
 **Written 25 Sep 2026. Status 27 Sep: step 4 (Threads token) is live; step 3 (result stories) is built and switched off.** See *Where it stands* below.
 
-## Where it stands (26 Sep 2026)
+## Where it stands (3 Oct 2026)
+
+- **Step 6 (results to Threads) is built, 3 Oct, behind `SOCIAL_POST_THREADS`.** Publishing
+  a result queues the fixture in `threads_result_post` (migration 021), one row per fixture
+  so a republish cannot post twice. `POST /admin/social/results/threads`, on the scheduler
+  job `sbl-results-threads` (Cloud Run direct, no retries), claims up to three pending rows
+  with `FOR UPDATE SKIP LOCKED` and posts each as a single image with a one-tag caption.
+  Retrying happens per row instead of in the scheduler: a row goes back to `pending` (up to
+  three attempts) only when Threads cannot have published it. A publish that got no answer
+  may be live, so that row is marked `failed`; a post that went out but whose `posted` write
+  did not stays `posting`. Neither is retried, and the audit digest reports both
+  (`threads-result-posts`). A row queued over 48 hours ago is skipped, so a reconnected
+  account does not post a week of old results in one go.
+
+- **Steps 3, 4 and 5 are live and confirmed, 3 Oct.** The token refreshed on its own on
+  30 Sep (generation 2), the first weekly tables carousel posted on 3 Oct, and the result
+  stories look right on real phones.
 
 - **Step 5 (weekly tables to Threads) is built, 27 Sep.** `POST
   /admin/social/weekly-tables/threads` (`SOCIAL_CRON_TOKEN`) posts the four tables as one
@@ -286,4 +302,4 @@ they do.
 4. **Threads token storage + refresh + audit-digest line.** Build this before any posting
    code, because a poster without the refresh will work for 60 days and then stop.
 5. **Threads weekly tables carousel** on its own scheduler job.
-6. **Threads result posts**, deferred off the captain's request.
+6. **Threads result posts**, deferred off the publish request. Built 3 Oct (see above).

@@ -79,3 +79,32 @@ describe('the dry run', () => {
     expect(posts().some(c => /threads_publish$/.test(c[0]))).toBe(false);
   });
 });
+
+describe('a single image', () => {
+  const CARD = 'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/10/8/Premier.jpg';
+
+  it('makes one container carrying the text, waits for it, then publishes it', async () => {
+    statuses.c1 = ['IN_PROGRESS', 'FINISHED'];
+    const out = await threads.publishImage(USER, TOKEN, { imageUrl: CARD, text: 'Result' }, FAST);
+
+    expect(posts()).toHaveLength(2);
+    expect(bodyOf(posts()[0])).toMatchObject({ media_type: 'IMAGE', image_url: CARD, text: 'Result' });
+    expect(bodyOf(posts()[0]).is_carousel_item).toBeUndefined();
+    expect(posts()[1][0]).toBe(`https://graph.threads.net/v1.0/${USER}/threads_publish`);
+    expect(bodyOf(posts()[1])).toMatchObject({ creation_id: 'c1' });
+    expect(out).toEqual({ mediaId: 'c2', creationId: 'c1' });
+  });
+
+  it('refuses text over 500 characters before creating anything', async () => {
+    await expect(threads.publishImage(USER, TOKEN, { imageUrl: CARD, text: 'x'.repeat(501) }, FAST))
+      .rejects.toMatchObject({ step: 'validate' });
+    expect(posts()).toHaveLength(0);
+  });
+
+  it('publishes nothing when the container fails', async () => {
+    statuses.c1 = ['ERROR'];
+    await expect(threads.publishImage(USER, TOKEN, { imageUrl: CARD, text: 'Result' }, FAST))
+      .rejects.toThrow(/could not prepare the post/);
+    expect(posts().some(c => /threads_publish$/.test(c[0]))).toBe(false);
+  });
+});

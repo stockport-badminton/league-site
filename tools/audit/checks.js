@@ -343,6 +343,32 @@ const CHECKS = [
       ORDER BY platform`
   },
   {
+    // Results that did not reach Threads (controllers/threadsResultsController.js).
+    //
+    // `failed` is final. `posting` for more than a few minutes means a run died between
+    // claiming the row and recording the outcome, so the post may or may not be live; it is
+    // never retried automatically because the retry could be a second post. Either way a
+    // person looks at Threads and decides. Last 14 days, so an old failure stops nagging.
+    name: 'threads-result-posts',
+    description: 'Results that did not post to Threads — check the account, then re-queue if missing',
+    severity: 'medium',
+    sql: `
+      SELECT q.fixture_id,
+             ht.name || ' v ' || awt.name AS fixture,
+             q.state,
+             q.attempts,
+             to_char(q.queued_at AT TIME ZONE 'Europe/London', 'DD Mon HH24:MI') AS queued,
+             LEFT(COALESCE(q.last_error, 'run did not finish; may be live'), 160) AS problem
+      FROM threads_result_post q
+      LEFT JOIN fixture f ON f.id = q.fixture_id
+      LEFT JOIN team ht ON ht.id = f."homeTeam"
+      LEFT JOIN team awt ON awt.id = f."awayTeam"
+      WHERE q.queued_at > now() - INTERVAL '14 days'
+        AND (q.state = 'failed'
+             OR (q.state = 'posting' AND q.claimed_at < now() - INTERVAL '15 minutes'))
+      ORDER BY q.queued_at`
+  },
+  {
     // Officer pointers that disagree with the role flags.
     //
     // There are two ways to record an officer and they are not kept in step. The old way
