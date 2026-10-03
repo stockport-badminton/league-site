@@ -174,17 +174,8 @@ exports.runThreads = async function (req, res, next) {
     const dry = req.query.dry === '1' || req.body?.dry === '1';
     const urls = imageUrls();
 
-    const row = await SocialToken.withToken('threads');
-    if (!row) {
-      return res.status(503).json({
-        ok: false, error: 'No Threads account is connected. Connect one at /admin/threads.',
-      });
-    }
-    if (new Date(row.expiresAt).getTime() <= Date.now()) {
-      return res.status(503).json({
-        ok: false, error: 'The Threads token has expired. Connect again at /admin/threads.',
-      });
-    }
+    const { account: row, error } = await SocialToken.usable('threads');
+    if (error) return res.status(503).json({ ok: false, error });
 
     if (dry) {
       const check = await threads.validateImages(row.accountId, row.token, urls);

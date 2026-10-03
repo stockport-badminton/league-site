@@ -1305,7 +1305,11 @@ Key vars (see `.env` for examples):
   `THAA`, not `EAA`, and `testEnvGuard` matches both.
 - `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to the
   two weekly social posts: `POST /admin/social/weekly-tables` (Saturday 13:00) and
-  `POST /admin/social/weekly-fixtures` (Sunday 18:00). Same gate as the other four;
+  `POST /admin/social/weekly-fixtures` (Sunday 18:00). Also the three Threads routes, each on
+  its own job calling Cloud Run directly with no retries: `/admin/social/weekly-tables/threads`
+  (Sat 13:05), `/admin/social/weekly-fixtures/threads` (Sun 18:05; one division playing goes
+  out as a single image, because a Threads carousel needs two) and
+  `/admin/social/results/threads` (see `SOCIAL_POST_THREADS`). Same gate as the other four;
   **unset closes the token path**. A superadmin session also works, and the matching `GET`
   on each previews the images and both captions and sends nothing. `?dry=1` on either POST
   asks Meta whether it will accept the images and publishes nothing — worth running before

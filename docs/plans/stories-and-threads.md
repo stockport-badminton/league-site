@@ -16,6 +16,13 @@
   (`threads-result-posts`). A row queued over 48 hours ago is skipped, so a reconnected
   account does not post a week of old results in one go.
 
+- **The weekly fixtures post goes to Threads too, 3 Oct.** `POST
+  /admin/social/weekly-fixtures/threads` on `sbl-weekly-fixtures-threads` (Sun 18:05, Cloud
+  Run direct, no retries). The card count follows the week, so a single division playing goes
+  out as one image: a Threads carousel takes two to twenty. An empty week answers 200 with
+  `skipped` **before** the token is read, so a lapsed token cannot turn every summer Sunday
+  red. The token check is now one helper, `SocialToken.usable`, shared by all three routes.
+
 - **Steps 3, 4 and 5 are live and confirmed, 3 Oct.** The token refreshed on its own on
   30 Sep (generation 2), the first weekly tables carousel posted on 3 Oct, and the result
   stories look right on real phones.

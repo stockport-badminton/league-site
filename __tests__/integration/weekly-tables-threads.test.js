@@ -6,7 +6,12 @@ jest.mock('../../utils/threadsPublisher', () => ({
   publishCarousel: jest.fn(),
   validateImages: jest.fn(),
 }));
-jest.mock('../../models/socialToken', () => ({ withToken: jest.fn() }));
+// The real `usable` over a mocked `withToken`, so the expiry rule itself is under test.
+jest.mock('../../models/socialToken', () => {
+  const m = jest.requireActual('../../models/socialToken');
+  m.withToken = jest.fn();
+  return m;
+});
 jest.mock('../../models/club', () => ({ getInstagramHandles: jest.fn() }));
 
 const request = require('supertest');

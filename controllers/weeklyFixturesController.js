@@ -25,6 +25,8 @@ const { canonicalFor, absoluteUrl, fixturesImagePath } = require('../utils/canon
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
 const Fixture = require('../models/fixture');
+const SocialToken = require('../models/socialToken');
+const threads = require('../utils/threadsPublisher');
 const { DIVISIONS } = require('./weeklyTablesController');
 
 const SITE = 'https://stockport-badminton.co.uk';
@@ -99,6 +101,9 @@ async function captions(rows) {
       mentions,
       HASHTAGS,
     ].filter(Boolean).join('\n\n'),
+    // Threads: no mentions and one tag, for the reasons in weeklyTablesController.captions.
+    threads: `${headline} Fixtures for the Stockport & District Badminton League, with ` +
+      `venues, at ${SITE}\n\n#badminton`,
     mentioned: clubs.map(c => c.name),
   };
 }
@@ -170,6 +175,62 @@ exports.run = async function (req, res, next) {
       failed: out.failed.map(f => ({ target: f.target, error: f.error.message })),
       caller: req.socialCaller,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /admin/social/weekly-fixtures/threads — the same cards to Threads.
+ *
+ * Its own route and its own scheduler job (`sbl-weekly-fixtures-threads`, a few minutes
+ * after the Facebook and Instagram post), for the reason the tables have one: Threads
+ * containers are waited on, and adding that to a 38s request passes Firebase's 60s cut.
+ * The job calls Cloud Run directly and carries no retries.
+ *
+ * One difference from the tables: a week can have a single division playing, and a Threads
+ * carousel takes at least two images, so one card goes out as a single image post. An
+ * empty week is the same 200-and-`skipped` as the Meta post.
+ */
+exports.runThreads = async function (req, res, next) {
+  try {
+    const dry = req.query.dry === '1' || req.body?.dry === '1';
+    const rows = await Fixture.getUpcomingWeek();
+    const urls = imageUrls(rows);
+
+    // Before the token: an empty week needs nothing from Threads, and a lapsed token must
+    // not turn every summer Sunday red over a post that was never going to be made.
+    if (!urls.length) {
+      return res.json({
+        ok: true, skipped: 'no fixtures in the coming week', fixtures: 0,
+        posted: [], caller: req.socialCaller,
+      });
+    }
+
+    const { account, error } = await SocialToken.usable('threads');
+    if (error) return res.status(503).json({ ok: false, error });
+
+    if (dry) {
+      const check = await threads.validateImages(account.accountId, account.token, urls);
+      return res.status(check.ok ? 200 : 502).json({
+        ok: check.ok, dry: true, images: urls, fixtures: rows.length, refused: check.refused,
+      });
+    }
+
+    const text = (await captions(rows)).threads;
+    try {
+      const out = urls.length === 1
+        ? await threads.publishImage(account.accountId, account.token, { imageUrl: urls[0], text })
+        : await threads.publishCarousel(account.accountId, account.token, { imageUrls: urls, text });
+      console.log('weekly fixtures posted to Threads', out.mediaId);
+      return res.json({
+        ok: true, images: urls, fixtures: rows.length,
+        posted: [{ target: 'Threads', id: out.mediaId }], caller: req.socialCaller,
+      });
+    } catch (err) {
+      console.error('weekly fixtures -> Threads failed:', err.message);
+      return res.status(502).json({ ok: false, images: urls, error: err.message, caller: req.socialCaller });
+    }
   } catch (err) {
     next(err);
   }

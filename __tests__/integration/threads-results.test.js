@@ -3,7 +3,12 @@
 process.env.NODE_ENV = 'test';
 
 jest.mock('../../utils/threadsPublisher', () => ({ publishImage: jest.fn() }));
-jest.mock('../../models/socialToken', () => ({ withToken: jest.fn() }));
+// The real `usable` over a mocked `withToken`, so the expiry rule itself is under test.
+jest.mock('../../models/socialToken', () => {
+  const m = jest.requireActual('../../models/socialToken');
+  m.withToken = jest.fn();
+  return m;
+});
 jest.mock('../../models/threadsResultPost', () => ({
   claim: jest.fn(), resultFor: jest.fn(),
   markPosted: jest.fn(), markFailed: jest.fn(), markSkipped: jest.fn(), release: jest.fn(),

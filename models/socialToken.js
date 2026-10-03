@@ -106,3 +106,17 @@ exports.recordError = async function(platform, message) {
     `UPDATE social_token SET last_error = ?, last_error_at = now() WHERE platform = ?`,
     [String(message).slice(0, 1000), platform]);
 };
+
+/**
+ * The stored account if it can post right now, or why not. Every route that posts checks
+ * this before doing anything, so a missing or expired token is a 503 that names the
+ * recovery, never an attempt that fails halfway.
+ */
+exports.usable = async function(platform) {
+  const row = await exports.withToken(platform);
+  if (!row) return { error: 'No Threads account is connected. Connect one at /admin/threads.' };
+  if (new Date(row.expiresAt).getTime() <= Date.now()) {
+    return { error: 'The Threads token has expired. Connect again at /admin/threads.' };
+  }
+  return { account: row };
+};

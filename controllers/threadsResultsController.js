@@ -81,17 +81,8 @@ async function postOne(row, account) {
 exports.run = async function (req, res, next) {
   try {
     // Checked before anything is claimed, so with no usable token the queue simply waits.
-    const account = await SocialToken.withToken('threads');
-    if (!account) {
-      return res.status(503).json({
-        ok: false, error: 'No Threads account is connected. Connect one at /admin/threads.',
-      });
-    }
-    if (new Date(account.expiresAt).getTime() <= Date.now()) {
-      return res.status(503).json({
-        ok: false, error: 'The Threads token has expired. Connect again at /admin/threads.',
-      });
-    }
+    const { account, error } = await SocialToken.usable('threads');
+    if (error) return res.status(503).json({ ok: false, error });
 
     const rows = await ThreadsResultPost.claim(PER_RUN);
     const results = [];

@@ -168,6 +168,8 @@ const weekly_fixtures_controller = require('../controllers/weeklyFixturesControl
 router.get('/admin/social/weekly-fixtures', secured, requireClubAccess.requireSuperAdmin,
   weekly_fixtures_controller.preview);
 router.post('/admin/social/weekly-fixtures', requireSocialCaller, weekly_fixtures_controller.run);
+// The same cards to Threads, as its own job: see weeklyFixturesController.runThreads.
+router.post('/admin/social/weekly-fixtures/threads', requireSocialCaller, weekly_fixtures_controller.runThreads);
 
 // The weekly results video. Same gate and the same SOCIAL_CRON_TOKEN as the other two —
 // one secret for the weekly social post, called by the same scheduler as the same caller.
