@@ -79,3 +79,15 @@ END $$;
 -- ordinary, well-supported state — the whole "add a photo later" flow exists for it — so
 -- NULL exercises a real path, while a made-up URL would exercise a path that cannot work.
 UPDATE scorecardstore SET "scoresheet-url" = NULL WHERE "scoresheet-url" IS NOT NULL;
+
+-- ── Who filed each draft ────────────────────────────────────────────────────────────
+--
+-- `scorecardstore.email` and `messer_scorecard.email` are the submitter's address in
+-- PLAINTEXT — not pgp_sym_encrypt'd like player's columns — so the loop above, which
+-- looks for "playerEmail", never saw them. The seed carried 107 real addresses across
+-- 1,389 drafts until 4 Oct 2026. There is no name on the row to build the usual alias
+-- from, so the draft id stands in: still one inbox, still says which draft it was.
+UPDATE scorecardstore   SET email = 'bigcoops+draft'  || id || '@gmail.com'
+ WHERE email IS NOT NULL AND email <> '' AND email NOT ILIKE 'bigcoops+%';
+UPDATE messer_scorecard SET email = 'bigcoops+messer' || id || '@gmail.com'
+ WHERE email IS NOT NULL AND email <> '' AND email NOT ILIKE 'bigcoops+%';

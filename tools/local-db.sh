@@ -3,6 +3,7 @@
 #
 #   tools/local-db.sh up        start the container
 #   tools/local-db.sh load      schema + seed + sanitise (safe to re-run: it rebuilds)
+#   tools/local-db.sh sync      production's current season on top (dry; --apply writes)
 #   tools/local-db.sh status    what is in it
 #   tools/local-db.sh psql      a shell on it
 #   tools/local-db.sh url       the DATABASE_URL to put in dev.env
@@ -103,6 +104,15 @@ case "${1:-}" in
 
     echo
     "$0" status
+    ;;
+
+  sync)
+    # Production's current season on top of a loaded database, contact details rebuilt
+    # rather than copied. Dry by default; --apply writes. See tools/local-db/sync.js.
+    wait_healthy
+    SYNC_TARGET_URL="postgresql://$DB_USER:$DB_USER@127.0.0.1:$PORT/$DB_NAME" \
+    LOCAL_DB_PI_KEY="$LOCAL_DB_PI_KEY" \
+      node tools/local-db/sync.js "${@:2}"
     ;;
 
   status)

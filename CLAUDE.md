@@ -453,6 +453,7 @@ tools/local-db.sh status                          # what is in it
 tools/local-db.sh psql                            # a shell on it
 tools/local-db.sh down                            # stop, keep the data
 tools/local-db.sh nuke                            # stop and delete it
+tools/local-db.sh sync [--apply]                  # production's current season on top
 ```
 
 **Tools read PRODUCTION, not the local database.** `tools/lib/loadEnv.js` decides, and
@@ -506,6 +507,22 @@ half-applied load is worse than none and throwing a local database away costs no
   from Ofcom's reserved drama range, re-encrypted under a local `DB_PI_KEY`. A dev box
   should not hold the league's contact list, and the production ciphertext would not
   decrypt under a local key anyway.
+  **The draft tables' `email` is plaintext**, so the encrypted-column loop never saw it:
+  the seed carried 107 real submitter addresses until 4 Oct 2026. They become
+  `bigcoops+draft<id>@gmail.com` now. A new contact column needs its own line in
+  `sanitise.sql`, whatever type it is.
+- **`sync` brings production's current season in without its contact details**
+  (`tools/local-db/sync.js`, dry unless `--apply`). Fixtures and games for the season,
+  plus season/division/venue/club/team and players in full — the seed is two seasons old,
+  so this season's teams are not in it. Player contact columns are never read: the alias
+  is rebuilt locally from the name, only where production has a value. Games are
+  *replaced* per fixture, because a republished result has new game rows and an upsert
+  would double them. Draft tokens are replaced, since a production token can publish that
+  draft live. **An unknown `bytea` column stops it** — a new encrypted column is a new
+  contact detail until somebody says otherwise. Rows match by id, so a row written
+  locally can be overwritten when production later uses that id.
+  Production has two columns no migration creates (`season."clubFee"`,
+  `messer_scorecard."scoresheet-url"`); the sync names them and skips them.
 - **Stored scorecard photographs are cleared too**, and for a stronger version of the same
   reason: `scorecardstore."scoresheet-url"` pointed at 1,479 real objects in the production
   bucket, and a scorecard photo is a picture of a team sheet carrying twelve players' names
