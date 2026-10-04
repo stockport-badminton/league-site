@@ -145,8 +145,10 @@
 
             <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged' || row['status'] === 'rearranging') { %>
                   <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
-                  <% if(resultValue === 'Awaiting Result'){ %>
-                  <br /><a data-toggle="modal" data-target="#reminderModal">Send Reminder</a> 
+                  <%# Only in the 48 hours before the card is due (fixture + 5 days) and only
+                      while no draft is filed — row.reminderDue, utils/scorecardReminder.js. %>
+                  <% if(row['reminderDue']){ %>
+                  <br /><a href="#" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
                 <% } } %>
             </td>
             
@@ -217,27 +219,30 @@
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="reminderModalLabel">Rearrangement</h5>
+          <h5 class="modal-title" id="reminderModalLabel">Send scorecard reminder</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <form role="form" id="reminderForm" action="/fixture/reminder" method="post">
         <div class="modal-body" id="reminderModalBody">
-
-            <%# The "enter team captains email" box is gone on purpose. The server now
-                looks the recipient up from the fixture, so anything typed here would
-                be ignored — and while it was honoured this endpoint would send from
-                our verified domain to any address a visitor typed. %>
-            <div class="form-group">
-              <p class="mb-0">We'll remind the home team that this scorecard is outstanding.</p>
-              <input type="hidden" name="reminderHomeTeam" id="reminderHomeTeam" value="" />
-              <input type="hidden" name="reminderAwayTeam" id="reminderAwayTeam" value="" />
+            <%# The form and the outcome message are separate elements, shown and hidden,
+                so every open can reset both. The old handler replaced the body's HTML
+                with "Reminder sent!" and removed the Submit button, so after one send
+                every other fixture's popup opened on that message. %>
+            <div id="reminderFields" class="form-group">
+              <p id="reminderFixture" class="mb-2 font-weight-bold"></p>
+              <label for="reminderRecipients">Send to</label>
+              <input type="text" class="form-control" id="reminderRecipients" name="recipients" autocomplete="off" />
+              <small class="form-text text-muted">Comma-separated. Pre-filled with the home club's secretary, match secretary and team captain.</small>
+              <ul id="reminderContacts" class="small text-muted mt-2 mb-0 pl-3"></ul>
+              <input type="hidden" name="fixtureId" id="reminderFixtureId" value="" />
             </div>
+            <div id="reminderMessage" class="alert mb-0" role="status" style="display:none"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" id="remindFixture" class="btn btn-primary">Submit</button>
+          <button type="button" id="remindFixture" class="btn btn-primary">Send</button>
         </div>
         </form>
       </div>
@@ -299,27 +304,46 @@
         $('#awayTeam')[0].value = $(this).parent().siblings()[2].textContent;
       })
 
-      $('a[data-target="#reminderModal"]').click(function(){
-        $('#reminderHomeTeam')[0].value = $(this).parent().siblings()[1].textContent;
-        $('#reminderAwayTeam')[0].value = $(this).parent().siblings()[2].textContent;
-        var homeTeamId = this.parentElement.parentElement.children[1].getAttribute('data-hometeam').valueOf()
-        var homeTeamName = this.parentElement.parentElement.children[1].textContent
-        $.get('/club-api/'+homeTeamId, function(data){
-          // Lowercase keys, because that is what /club-api returns: it sends
-          // Club.getContactDetailsById straight out, and that query's aliases are
-          // unquoted, so Postgres folds them (CLAUDE.md gotcha 1).
-          //
-          // This read `row.teamName`, which is undefined for every row — so the filter
-          // matched nothing, `filterTeams[0]` was undefined, and
-          // `filterTeams[0].matchSecEmail` threw a TypeError that killed the callback.
-          // The address field was therefore never filled in at all, silently, since the
-          // error only ever appeared in the browser console.
-          var filterTeams = data.filter(row => row.teamname == homeTeamName)
-          if (!filterTeams.length) return;
-          var addresses = [filterTeams[0].matchsecemail, filterTeams[0].teamcaptainemail]
-            .filter(function (a) { return a; });
-          $('#reminderModalBody > div.form-group > input#email')[0].value = addresses.join(',');
-        })
+      // Each open resets the popup completely — fields back, message gone, Send
+      // enabled — and ignores a contacts answer that arrives after a different fixture
+      // has been opened.
+      var reminderRequest = 0;
+      $('a[data-target="#reminderModal"]').click(function(e){
+        e.preventDefault();
+        var link = $(this);
+        var requestId = ++reminderRequest;
+        $('#reminderFixtureId').val(link.attr('data-fixture-id'));
+        $('#reminderFixture').text(link.attr('data-home-team') + ' v ' + link.attr('data-away-team'));
+        $('#reminderRecipients').val('').prop('disabled', true).attr('placeholder', 'Looking up contacts…');
+        $('#reminderContacts').empty();
+        $('#reminderMessage').hide().removeClass('alert-success alert-danger alert-warning').text('');
+        $('#reminderFields').show();
+        $('#remindFixture').show().prop('disabled', true);
+
+        $.getJSON('/fixture/' + encodeURIComponent(link.attr('data-fixture-id')) + '/reminder-contacts')
+          .done(function (data) {
+            if (requestId !== reminderRequest) return;
+            var addresses = [];
+            (data.contacts || []).forEach(function (c) {
+              var item = $('<li>').text(c.role + ': ' + c.name + (c.email ? ' — ' + c.email : ' — no email on file'));
+              $('#reminderContacts').append(item);
+              if (c.email && addresses.indexOf(c.email) === -1) addresses.push(c.email);
+            });
+            if (!(data.contacts || []).length) {
+              $('#reminderContacts').append($('<li>').text('Nobody is flagged as secretary, match secretary or captain for the home team.'));
+            }
+            $('#reminderRecipients').val(addresses.join(', '));
+          })
+          .fail(function () {
+            if (requestId !== reminderRequest) return;
+            $('#reminderMessage').addClass('alert-warning')
+              .text('Could not look up the contacts — type the addresses in yourself.').show();
+          })
+          .always(function () {
+            if (requestId !== reminderRequest) return;
+            $('#reminderRecipients').prop('disabled', false).attr('placeholder', 'name@example.com, …');
+            $('#remindFixture').prop('disabled', false);
+          });
       })
 
      /*  $('#fixtureRearange').click(function(){
@@ -353,11 +377,23 @@
       })
 
       $('#remindFixture').click(function(){
-        // No email field any more — the server resolves the recipient from the fixture.
-        $.post('/fixture/reminder', {'homeTeam':$('#reminderHomeTeam')[0].value,'awayTeam':$('#reminderAwayTeam')[0].value }, function (data) {
-               $('#reminderModalBody').html('<p>Reminder sent!</p>');
-               $('#remindFixture').remove();
-            });
+        var button = $(this).prop('disabled', true);
+        $.post('/fixture/reminder', {
+          fixtureId: $('#reminderFixtureId').val(),
+          recipients: $('#reminderRecipients').val()
+        })
+          .done(function () {
+            $('#reminderFields').hide();
+            button.hide();
+            $('#reminderMessage').removeClass('alert-danger alert-warning').addClass('alert-success')
+              .text('Reminder sent to ' + $('#reminderRecipients').val() + '.').show();
+          })
+          .fail(function (xhr) {
+            // Say why, and leave the form up so the address can be corrected.
+            var err = (xhr.responseJSON && xhr.responseJSON.error) || 'Something went wrong — no reminder was sent.';
+            $('#reminderMessage').removeClass('alert-success alert-warning').addClass('alert-danger').text(err).show();
+            button.prop('disabled', false);
+          });
       })
 
       // Inline fixture date edit (superadmin): edits the existing date in place.

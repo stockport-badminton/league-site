@@ -13,6 +13,7 @@ const mailer = require('../utils/mailer');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { canonicalFor } = require('../utils/canonical');
+const { isReminderDue } = require('../utils/scorecardReminder');
 
 
 
@@ -336,6 +337,12 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         renderObject.admin = true
         renderObject.superadmin = role == "superadmin"
         renderObject.user = req.user
+        // Decided here rather than in the template, so the rule has one home
+        // (utils/scorecardReminder.js) and a test.
+        if (renderObject.superadmin) {
+          const now = Date.now()
+          for (const row of renderObject.result) row.reminderDue = isReminderDue(row, now)
+        }
       }
     }
   }

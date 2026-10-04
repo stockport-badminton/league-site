@@ -382,6 +382,18 @@ exports.getFixtureDetails = async function(searchObj) {
     fixture."awayScore",
     fixture."homeTeam" AS hometeamid,
     fixture."awayTeam" AS awayteamid
+    ${fixtureObj.type == 'eloSetting' ? '' : `,
+    -- Whether a captain has filed a draft for this pairing this season. Matched on the
+    -- pair, not on the exact date as getOutstandingScorecards does: a match played
+    -- early, or a card filed with the wrong day, is still a card filed, and a reminder
+    -- for it reads as "we have lost your scorecard".
+    EXISTS (
+      SELECT 1 FROM scorecardstore s
+      WHERE s."homeTeam" = fixture."homeTeam" AND s."awayTeam" = fixture."awayTeam"
+        AND s.date > season."startDate" AND s.date < season."endDate"
+    ) AS "hasDraft"`}
+    -- (Not on the eloSetting path: its GROUP BY fixture.id would reject the season
+    -- columns, and nothing there reads it.)
   FROM
     fixture
     ${fixtureObj.type == 'eloSetting' ? 'JOIN game ON game.fixture = fixture.id' : ''}
@@ -613,48 +625,51 @@ exports.getFixtureId = async function(obj) {
   return result
 }
 
-// Who a scorecard reminder for this fixture should actually go to.
+// Who the reminder popup offers to nudge about a missing scorecard: the home club's
+// secretary and match secretary and the home team's captain, each labelled, so the
+// results secretary can see who is about to be emailed before editing the list.
 //
-// The reminder form on /results used to carry a free-text "enter team captains email"
-// box, and fixture_reminder_post put whatever arrived straight into SES
-// ToAddresses — unauthenticated, uncaptcha'd, comma-split into multiple recipients,
-// with the subject line also taken from the request. That is an open mail relay
-// sending from our own verified domain, so the risk was never spam *to us*, it was
-// our sending reputation and our SES account.
-//
-// The recipient is now derived from the fixture instead: the home team's captain,
-// falling back to the club's match secretary. Emails are encrypted at rest, so this
-// decrypts with DB_PI_KEY. Returns [] when neither is on file, and the caller then
-// routes the nudge to the league inbox rather than inventing a recipient.
-exports.getReminderRecipients = async function(homeTeamName, awayTeamName) {
-  const [result] = await (await db.otherConnect()).query(`SELECT DISTINCT
-      NULLIF(TRIM(pgp_sym_decrypt(cap."playerEmail", ?)::text), '') AS "captainEmail",
-      NULLIF(TRIM(pgp_sym_decrypt(ms."playerEmail", ?)::text), '') AS "matchSecEmail"
-    FROM fixture f
-      JOIN team ht ON f."homeTeam" = ht.id
-      JOIN team at ON f."awayTeam" = at.id
-      LEFT JOIN player cap ON (cap.team = ht.id AND cap."teamCaptain" = 1
-                               AND cap."playerEmail" IS NOT NULL)
-      LEFT JOIN player ms ON (ms.club = ht.club AND ms."matchSecrertary" = 1
-                              AND ms."playerEmail" IS NOT NULL)
-    WHERE ht.name = ? AND at.name = ?
-      AND ht.withdrawn IS NULL AND at.withdrawn IS NULL
-      AND f.date > NOW() - INTERVAL '1 year'`,
-    [process.env.DB_PI_KEY, process.env.DB_PI_KEY, homeTeamName, awayTeamName]
+// Read from the role FLAGS, not the old pointer columns. Those
+// (club."clubSec" and friends) are being retired and can name someone who has since
+// left the club (CLAUDE.md, "An officer is recorded two ways").
+exports.getReminderContacts = async function(fixtureId) {
+  const [fixture] = await (await db.otherConnect()).query(
+    `SELECT f.id, f.date, ht.name AS "homeTeam", at.name AS "awayTeam"
+     FROM fixture f
+     JOIN team ht ON f."homeTeam" = ht.id
+     JOIN team at ON f."awayTeam" = at.id
+     WHERE f.id = ?`,
+    [fixtureId]
+  )
+  if (!fixture.length) return null
+
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT role, name, email FROM (
+       SELECT 'Club secretary' AS role, 1 AS sort,
+              TRIM(p.first_name) || ' ' || TRIM(p.family_name) AS name,
+              NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), '') AS email
+         FROM fixture f JOIN team ht ON f."homeTeam" = ht.id
+         JOIN player p ON p.club = ht.club AND p."clubSecretary" = 1
+        WHERE f.id = ?
+       UNION ALL
+       SELECT 'Match secretary', 2, TRIM(p.first_name) || ' ' || TRIM(p.family_name),
+              NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), '')
+         FROM fixture f JOIN team ht ON f."homeTeam" = ht.id
+         JOIN player p ON p.club = ht.club AND p."matchSecrertary" = 1
+        WHERE f.id = ?
+       UNION ALL
+       SELECT 'Team captain', 3, TRIM(p.first_name) || ' ' || TRIM(p.family_name),
+              NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), '')
+         FROM fixture f
+         JOIN player p ON p.team = f."homeTeam" AND p."teamCaptain" = 1
+        WHERE f.id = ?
+     ) AS officers
+     ORDER BY sort, name`,
+    [process.env.DB_PI_KEY, fixtureId, process.env.DB_PI_KEY, fixtureId,
+     process.env.DB_PI_KEY, fixtureId]
   )
 
-  const addresses = [];
-  for (const row of result) {
-    for (const candidate of [row.captainEmail, row.matchSecEmail]) {
-      // Belt and braces: only ever emit something that looks like one address, so a
-      // corrupt or comma-bearing value cannot fan out into a bulk send.
-      if (candidate && /^[^\s,;<>@]+@[^\s,;<>@]+\.[^\s,;<>@]+$/.test(candidate)
-          && !addresses.includes(candidate)) {
-        addresses.push(candidate);
-      }
-    }
-  }
-  return addresses;
+  return { fixture: fixture[0], contacts: rows }
 }
 
 // Every fixture this season between these two teams, whatever its status, newest

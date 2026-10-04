@@ -544,7 +544,11 @@ router.get('/divisions', checkJwt, division_controller.division_list);
 
 // Fixture routes
 router.get('/fixture/create', fixture_controller.fixture_create_get);
-router.post('/fixture/reminder', publicFormLimiter, scorecard_controller.fixture_reminder_post);
+// Superadmin only since Oct 2026, because the popup now lets the results secretary
+// edit the recipients — see fixture_reminder_post. No limiter: a busy week can have a
+// dozen cards due at once, and the gate is the control now, as for rearrangement.
+router.get('/fixture/:id/reminder-contacts', secured, requireClubAccess.requireSuperAdmin, scorecard_controller.fixture_reminder_contacts);
+router.post('/fixture/reminder', secured, requireClubAccess.requireSuperAdmin, scorecard_controller.fixture_reminder_post);
 // Kept as GET: Cloud Scheduler can issue either, and the Make.com scenario this replaces
 // used GET, so a token-carrying GET keeps a rollback one env var away rather than one
 // deploy away.

@@ -1,5 +1,26 @@
 const request = require('supertest');
 
+// One mutable user, as in fixture-rearrangement.test.js. Named `mock*` so jest's
+// hoisted factory may close over it.
+let mockCurrentUser = null;
+jest.mock('../../middleware/secured', () => (req, res, next) => {
+  if (!mockCurrentUser) {
+    return res.redirect('/login?returnTo=' + encodeURIComponent(req.originalUrl));
+  }
+  req.user = mockCurrentUser;
+  req.isAuthenticated = () => true;
+  next();
+});
+
+const SUPERADMIN = {
+  id: 'auth0|boss',
+  _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' },
+};
+const CAPTAIN = {
+  id: 'auth0|captain',
+  _json: { 'https://my-app.example.com/role': 'captain', 'https://my-app.example.com/club': 'Mellor' },
+};
+
 jest.mock('../../models/fixture');
 jest.mock('../../models/division');
 jest.mock('../../models/players');
@@ -19,6 +40,7 @@ const app = require('../../app');
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCurrentUser = null;
   ses.sendEmail.mockResolvedValue({});
 });
 
@@ -27,91 +49,124 @@ function sentParams() {
   return ses.sendEmail.mock.calls[0][0];
 }
 
-// POST /fixture/reminder is reachable from the public /results page. It used to put
-// req.body.email straight into SES ToAddresses and req.body.homeTeam/awayTeam into the
-// Subject — an open relay sending from our own verified domain, which risks the domain
-// reputation and the SES account rather than merely spamming us.
+// POST /fixture/reminder was reachable from the public /results page and once put
+// req.body.email straight into SES ToAddresses — an open relay from our own verified
+// domain. Since Oct 2026 the results secretary edits the recipients in the popup, which
+// is only safe because the route is now superadmin-only. These tests hold both halves:
+// nobody else can send, and the superadmin's list is still checked.
 describe('POST /fixture/reminder', () => {
-  it('sends to the captain resolved from the fixture, not to the address supplied', async () => {
-    Fixture.getReminderRecipients.mockResolvedValue(['captain@example.com']);
-    Fixture.getFixtureId.mockResolvedValue([{ id: 1 }]);
+  const OK_BODY = { fixtureId: '7200', recipients: 'sec@example.com, captain@example.com' };
 
-    const res = await request(app).post('/fixture/reminder').send({
-      email: 'attacker-chosen@evil.example.com',
-      homeTeam: 'Mellor A',
-      awayTeam: 'Aerospace A',
+  beforeEach(() => {
+    Fixture.getReminderContacts.mockResolvedValue({
+      fixture: { id: 7200, homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      contacts: [],
     });
-
-    expect(res.status).toBe(200);
-    const params = sentParams();
-    expect(params.Destination.ToAddresses).toEqual(['captain@example.com']);
-    expect(JSON.stringify(params)).not.toContain('evil.example.com');
   });
 
-  it('ignores a comma-separated list of recipients in the body', async () => {
-    // The old code split on commas, so one request could reach many addresses.
-    Fixture.getReminderRecipients.mockResolvedValue(['captain@example.com']);
-    Fixture.getFixtureId.mockResolvedValue([{ id: 1 }]);
-
-    await request(app).post('/fixture/reminder').send({
-      email: 'a@evil.com,b@evil.com,c@evil.com',
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A',
-    });
-
-    expect(sentParams().Destination.ToAddresses).toEqual(['captain@example.com']);
-  });
-
-  it('does not let the sender author the subject line', async () => {
-    Fixture.getReminderRecipients.mockResolvedValue(['captain@example.com']);
-    Fixture.getFixtureId.mockResolvedValue([{ id: 1 }]);
-
-    await request(app).post('/fixture/reminder').send({
-      homeTeam: 'Buy cheap pills at evil.example.com',
-      awayTeam: 'CLICK HERE',
-    });
-
-    const subject = sentParams().Message.Subject.Data;
-    expect(subject).toBe('Reminder: outstanding scorecard');
-    expect(subject).not.toMatch(/pills|CLICK HERE/);
-  });
-
-  it('sends nothing at all for a fixture that does not exist', async () => {
-    Fixture.getReminderRecipients.mockResolvedValue([]);
-    Fixture.getFixtureId.mockResolvedValue([]);
-
-    const res = await request(app).post('/fixture/reminder').send({
-      homeTeam: 'Made Up A', awayTeam: 'Also Fake B',
-    });
-
-    expect(res.status).toBe(200);
+  it('refuses an anonymous caller and sends nothing', async () => {
+    const res = await request(app).post('/fixture/reminder').send(OK_BODY);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/login/);
     expect(ses.sendEmail).not.toHaveBeenCalled();
   });
 
-  it('falls back to the league inbox when the fixture is real but nobody is on file', async () => {
-    Fixture.getReminderRecipients.mockResolvedValue([]);
-    Fixture.getFixtureId.mockResolvedValue([{ id: 42 }]);
+  it('refuses a logged-in captain and sends nothing', async () => {
+    mockCurrentUser = CAPTAIN;
+    const res = await request(app).post('/fixture/reminder').send(OK_BODY);
+    expect(res.status).toBe(403);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
 
-    await request(app).post('/fixture/reminder').send({
-      homeTeam: 'Manor B', awayTeam: 'Parrswood C',
-    });
+  it('sends to the addresses the superadmin typed', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).post('/fixture/reminder').send(OK_BODY);
 
-    expect(sentParams().Destination.ToAddresses).toEqual(['stockport.badders.results@gmail.com']);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, sent: 2 });
+    expect(Fixture.getReminderContacts).toHaveBeenCalledWith(7200);
+    expect(sentParams().Destination.ToAddresses).toEqual(['sec@example.com', 'captain@example.com']);
+  });
+
+  it('refuses the whole send when any entry is not one address', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).post('/fixture/reminder')
+      .send({ fixtureId: '7200', recipients: 'ok@example.com, "Evil" <x@evil.example.com>' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Not an email address/);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('refuses an empty list rather than sending to nobody', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).post('/fixture/reminder').send({ fixtureId: '7200', recipients: ' , ' });
+    expect(res.status).toBe(400);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
   });
 
   it('caps the recipient count', async () => {
-    Fixture.getReminderRecipients.mockResolvedValue([
-      'a@example.com', 'b@example.com', 'c@example.com', 'd@example.com', 'e@example.com',
-    ]);
-    Fixture.getFixtureId.mockResolvedValue([{ id: 1 }]);
+    mockCurrentUser = SUPERADMIN;
+    const many = Array.from({ length: 7 }, (_, i) => `p${i}@example.com`).join(',');
+    const res = await request(app).post('/fixture/reminder').send({ fixtureId: '7200', recipients: many });
+    expect(res.status).toBe(400);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
 
-    await request(app).post('/fixture/reminder').send({ homeTeam: 'A', awayTeam: 'B' });
-    expect(sentParams().Destination.ToAddresses).toHaveLength(3);
+  it('sends nothing for a fixture that does not exist', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getReminderContacts.mockResolvedValue(null);
+    const res = await request(app).post('/fixture/reminder').send(OK_BODY);
+    expect(res.status).toBe(404);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not let the request author the subject line', async () => {
+    mockCurrentUser = SUPERADMIN;
+    await request(app).post('/fixture/reminder')
+      .send({ ...OK_BODY, homeTeam: 'Buy cheap pills', awayTeam: 'CLICK HERE', subject: 'CLICK HERE' });
+    const subject = sentParams().Message.Subject.Data;
+    expect(subject).toBe('Reminder: outstanding scorecard');
   });
 
   it('400s without a fixture to identify', async () => {
-    const res = await request(app).post('/fixture/reminder').send({});
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).post('/fixture/reminder').send({ recipients: 'a@example.com' });
     expect(res.status).toBe(400);
     expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /fixture/:id/reminder-contacts', () => {
+  it('is not readable anonymously — it returns decrypted addresses', async () => {
+    const res = await request(app).get('/fixture/7200/reminder-contacts');
+    expect(res.status).toBe(302);
+    expect(Fixture.getReminderContacts).not.toHaveBeenCalled();
+  });
+
+  it('is not readable by a captain', async () => {
+    mockCurrentUser = CAPTAIN;
+    const res = await request(app).get('/fixture/7200/reminder-contacts');
+    expect(res.status).toBe(403);
+    expect(Fixture.getReminderContacts).not.toHaveBeenCalled();
+  });
+
+  it('gives a superadmin the labelled contacts', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const payload = {
+      fixture: { id: 7200, homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      contacts: [{ role: 'Club secretary', name: 'A Person', email: 'sec@example.com' }],
+    };
+    Fixture.getReminderContacts.mockResolvedValue(payload);
+    const res = await request(app).get('/fixture/7200/reminder-contacts');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(payload);
+  });
+
+  it('404s an unknown fixture', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getReminderContacts.mockResolvedValue(null);
+    const res = await request(app).get('/fixture/999999/reminder-contacts');
+    expect(res.status).toBe(404);
   });
 });
 

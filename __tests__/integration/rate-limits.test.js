@@ -20,9 +20,14 @@ const app = require('../../app');
 
 beforeEach(() => {
   ses.sendEmail.mockClear();
-  Fixture.getReminderRecipients.mockResolvedValue(['captain@example.com']);
-  Fixture.getFixtureId.mockResolvedValue([{ id: 1 }]);
 });
+
+// The vehicle is POST /add-scorecard-photo/:id with a URL that is not ours: the handler
+// answers 400 before touching anything, so a 400 proves the request reached it and a
+// 429 proves it did not. (This used to be /fixture/reminder, which became
+// superadmin-only in Oct 2026 and no longer carries the public limiter.)
+const PHOTO_PATH = '/add-scorecard-photo/1';
+const PHOTO_BODY = { imgURL: 'https://evil.example.com/x.jpg' };
 
 // Rate limiting is the only control here that caps abuse of endpoints nobody thought
 // about, so what matters is that the limit exists, bites, and says so in a way a browser
@@ -31,34 +36,29 @@ describe('public form rate limiting', () => {
   it('lets legitimate use through and then stops the flood', async () => {
     const statuses = [];
     for (let i = 0; i < 14; i++) {
-      const res = await request(app).post('/fixture/reminder')
-        .send({ homeTeam: 'Mellor A', awayTeam: 'Aerospace A' });
+      const res = await request(app).post(PHOTO_PATH).send(PHOTO_BODY);
       statuses.push(res.status);
     }
 
     // 10 an hour on the public form limiter.
-    expect(statuses.filter(s => s === 200).length).toBe(10);
+    expect(statuses.filter(s => s === 400).length).toBe(10);
     expect(statuses.filter(s => s === 429).length).toBe(4);
-    // And crucially: no email sent for the blocked ones.
-    expect(ses.sendEmail).toHaveBeenCalledTimes(10);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
   });
 
   it('stops calling the handler at all once limited', async () => {
     // Counters reset per test (see __tests__/setup.js), so exhaust the bucket here.
-    const body = { homeTeam: 'Mellor A', awayTeam: 'Aerospace A' };
-    for (let i = 0; i < 10; i++) await request(app).post('/fixture/reminder').send(body);
-    ses.sendEmail.mockClear();
+    for (let i = 0; i < 10; i++) await request(app).post(PHOTO_PATH).send(PHOTO_BODY);
 
-    const res = await request(app).post('/fixture/reminder').send(body);
+    const res = await request(app).post(PHOTO_PATH).send(PHOTO_BODY);
+    // 429, not the handler's 400: the limiter answered and the handler never ran.
     expect(res.status).toBe(429);
-    expect(ses.sendEmail).not.toHaveBeenCalled();
   });
 
   it('answers a browser with a page, not a stack trace', async () => {
-    const body = { homeTeam: 'A', awayTeam: 'B' };
-    for (let i = 0; i < 10; i++) await request(app).post('/fixture/reminder').send(body);
+    for (let i = 0; i < 10; i++) await request(app).post(PHOTO_PATH).send(PHOTO_BODY);
 
-    const res = await request(app).post('/fixture/reminder').send(body);
+    const res = await request(app).post(PHOTO_PATH).send(PHOTO_BODY);
     expect(res.status).toBe(429);
     expect(res.text).toContain('Steady on');
     expect(res.text).not.toMatch(/at Object|Error:/);

@@ -15,6 +15,7 @@ const { body, validationResult } = require("express-validator");
 const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
 const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
+const { parseRecipients, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
@@ -1026,48 +1027,56 @@ function renderLinkRefused(req, res, status) {
     });
   };
 
-  // POST /fixture/reminder — nudge the home team about a missing scorecard.
+  // POST /fixture/reminder — nudge the home club about a missing scorecard.
   //
-  // Reachable from the public /results page, so every input is hostile. It used to be
-  // an open relay: `req.body.email` went straight into SES ToAddresses (comma-split,
-  // so one request could reach many recipients) and `req.body.homeTeam`/`awayTeam`
-  // went into the Subject. Sending from our own verified domain to arbitrary
-  // addresses with attacker-chosen subject text puts the domain's reputation and the
-  // SES account at risk, which is a bigger problem than spam arriving here.
+  // Superadmin only (Oct 2026). Until then it was reachable from the public /results
+  // page, so the recipients had to be derived server-side: it had once been an open
+  // relay, taking `req.body.email` straight into SES ToAddresses. The popup now lets
+  // the results secretary edit who gets the reminder, and an editable To is only safe
+  // behind the same gate as /fixture/rearrangement — the only UI for either has always
+  // been inside `if (superadmin)` in fixtures-results.ejs.
   //
-  // Now: the teams are looked up, the recipient is derived from the fixture, and
-  // nothing from the request reaches the message. When no captain or match secretary
-  // email is on file the nudge goes to the league inbox instead — the sender gets the
-  // same acknowledgement either way, so the endpoint reveals nothing about who is or
-  // is not contactable.
+  // The fixture still comes from the database by id, and the subject and body are
+  // still fixed text: being allowed to choose who is emailed is not being allowed to
+  // choose what they are told.
   const LEAGUE_INBOX = 'stockport.badders.results@gmail.com';
-  const MAX_REMINDER_RECIPIENTS = 3;
+
+  // GET /fixture/:id/reminder-contacts — what the popup pre-fills its To box with.
+  exports.fixture_reminder_contacts = async function(req, res, next) {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Which fixture?' });
+      const found = await Fixture.getReminderContacts(id);
+      if (!found) return res.status(404).json({ error: 'No such fixture' });
+      res.json(found);
+    } catch (err) {
+      next(err);
+    }
+  }
 
   exports.fixture_reminder_post = async function(req, res, next) {
     try {
-      const homeTeam = String(req.body.homeTeam || '').trim();
-      const awayTeam = String(req.body.awayTeam || '').trim();
-      if (!homeTeam || !awayTeam) {
-        return res.status(400).send('Which fixture?');
+      const id = parseInt(req.body.fixtureId, 10);
+      if (!Number.isInteger(id) || id < 1) {
+        return res.status(400).json({ error: 'Which fixture?' });
+      }
+      const { addresses, invalid } = parseRecipients(req.body.recipients);
+      if (invalid.length) {
+        return res.status(400).json({ error: 'Not an email address: ' + invalid.join(', ') });
+      }
+      if (!addresses.length) {
+        return res.status(400).json({ error: 'Add at least one email address.' });
+      }
+      if (addresses.length > MAX_REMINDER_RECIPIENTS) {
+        return res.status(400).json({ error: `At most ${MAX_REMINDER_RECIPIENTS} recipients.` });
       }
 
-      let recipients = await Fixture.getReminderRecipients(homeTeam, awayTeam);
-      // A team pair that matches no fixture gets nothing sent at all — otherwise the
-      // endpoint would still emit a message for made-up teams.
-      if (!recipients.length) {
-        const [known] = await Promise.all([Fixture.getFixtureId({ homeTeam, awayTeam })]);
-        if (!known || !known.length) {
-          return res.send('Message Sent');
-        }
-        recipients = [LEAGUE_INBOX];
-      }
-      recipients = recipients.slice(0, MAX_REMINDER_RECIPIENTS);
+      const found = await Fixture.getReminderContacts(id);
+      if (!found) return res.status(404).json({ error: 'No such fixture' });
 
-      // Team names come from the database rows we just matched, not from the request,
-      // so the subject cannot be authored by the sender.
       await mailer.send({
         template: 'scorecard-reminder',
-        to: recipients,
+        to: addresses,
         bcc: [LEAGUE_INBOX, 'bigcoops@outlook.com'],
         replyTo: LEAGUE_INBOX,
         subject: 'Reminder: outstanding scorecard',
@@ -1083,15 +1092,13 @@ function renderLinkRefused(req, res, status) {
           'Neil',
         ].join('\n'),
         data: {
-          // No match line. The only team names to hand come from req.body, and this
-          // endpoint is reachable from the public /results page — the note above is that
-          // the subject cannot be authored by the sender, and the body must not be
-          // either. The original email named no fixture, so nothing is lost.
+          // Still no match line: the template has never carried one, and this change
+          // is about who receives the reminder, not what it says.
           matchLine: '',
           submitUrl: absoluteUrl('/scorecard-beta'),
         },
       });
-      res.send('Message Sent');
+      res.json({ ok: true, sent: addresses.length });
     } catch (err) {
       console.log(err.toString());
       next(err);
