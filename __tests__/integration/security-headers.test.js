@@ -183,7 +183,7 @@ describe('the report-only Content-Security-Policy', () => {
     ['https://www.googletagmanager.com', 'views/header.ejs — gtag.js, every page'],
     ['https://js-de.sentry-cdn.com', 'views/header.ejs — the browser Sentry loader'],
     ['https://browser.sentry-cdn.com', 'the bundle + lazyLoadIntegration the loader fetches'],
-    ['https://static.hotjar.com', 'views/header.ejs — Hotjar, every logged-in page'],
+    ['https://eu-assets.i.posthog.com', 'views/header.ejs — PostHog, scorecard pages'],
     ['https://cdn.datatables.net', 'views/datatables-scripts.ejs — every stats table'],
     ['https://cdn.jsdelivr.net', 'views/elo-chart.ejs, views/player-game-stats.ejs — Chart.js'],
     ['https://cdn.quilljs.com', 'views/admin/homepage-content-form.ejs — the editor'],
@@ -218,7 +218,7 @@ describe('the report-only Content-Security-Policy', () => {
     const connectSrc = policy.split(';').find(d => d.trim().startsWith('connect-src'));
     expect(connectSrc).toContain('sentry.io');
     expect(connectSrc).toContain('google-analytics.com');
-    expect(connectSrc).toContain('hotjar');
+    expect(connectSrc).toContain('https://eu.i.posthog.com');
   });
 
   // A CSP wildcard matches subdomains and NOT the domain itself, so listing

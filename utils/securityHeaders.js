@@ -147,7 +147,7 @@ const OBSERVED = {
 
     // The honest state of the templates, not a shortcut. views/ has 159 inline
     // `onclick=` attributes and 17 files with inline <script> blocks — the gtag config,
-    // the Sentry init, the Hotjar snippet, the scorecard wizard, the roster toasts.
+    // the Sentry init, the PostHog loader, the scorecard wizard, the roster toasts.
     // Removing them is explicitly out of scope for HARD-12 and is a much larger piece
     // of work.
     //
@@ -165,8 +165,6 @@ const OBSERVED = {
     'https://js-de.sentry-cdn.com',       // header.ejs — the browser Sentry loader
     'https://browser.sentry-cdn.com',     // what that loader then fetches, plus every
                                           // Sentry.lazyLoadIntegration call
-    'https://static.hotjar.com',          // header.ejs — the Hotjar bootstrap
-    'https://script.hotjar.com',          // and the module it pulls in turn
     'https://eu-assets.i.posthog.com',    // header.ejs — PostHog, scorecard pages only,
                                           // and the recorder it lazy-loads. Injected at
                                           // runtime, so no <script src> to grep for.
@@ -245,9 +243,6 @@ const OBSERVED = {
     // which is exactly why it survived: the report was the only evidence it existed.
     'https://analytics.google.com',
     'https://*.googletagmanager.com',
-    'https://*.hotjar.com',
-    'https://*.hotjar.io',
-    'wss://*.hotjar.com',                 // Hotjar's recorder holds a websocket open
     'https://eu.i.posthog.com',           // PostHog events and session recordings
     'https://eu-assets.i.posthog.com',    // and its remote config
     'https://maps.googleapis.com',
@@ -298,7 +293,6 @@ const OBSERVED = {
     'https://www.facebook.com',   // footer.ejs's .fb-page plugin, on every page
     'https://www.google.com',     // the reCAPTCHA challenge
     'https://recaptcha.google.com',
-    'https://vars.hotjar.com',
   ],
 
   // /sw.js, registered by pwa-head.ejs on every page.

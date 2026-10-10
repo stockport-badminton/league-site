@@ -63,7 +63,7 @@ async function readOnly(page, baseURL, options) {
     let url;
     try { url = new URL(request.url()); } catch (err) { return route.abort(); }
 
-    // Third-party beacons (Google Analytics, Sentry, Hotjar, Facebook) post on
+    // Third-party beacons (Google Analytics, Sentry, PostHog, Facebook) post on
     // their own schedule. Dropped so test runs don't show up in real analytics.
     if (url.host !== base.host) return route.abort();
 
