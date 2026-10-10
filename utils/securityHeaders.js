@@ -174,7 +174,6 @@ const OBSERVED = {
                                           // Chart.js and its date adapter
     'https://cdn.quilljs.com',            // admin/homepage-content-form.ejs — the
                                           // announcement editor
-    'https://connect.facebook.net',       // footer.ejs — the page plugin, every page
     'https://www.google.com',             // contact-us-form.ejs, club-v2.ejs — reCAPTCHA
     'https://www.gstatic.com',            // what reCAPTCHA loads next
     'https://maps.googleapis.com',        // club-v2.ejs directly; viewEventDetails.ejs
@@ -219,7 +218,7 @@ const OBSERVED = {
     // fixed set of hosts: homepage.ejs renders homepage_content.image_url, an arbitrary
     // URL an admin pastes into /admin/homepage-content; the scorecard views render
     // scorecardstore."scoresheet-url" from S3; user.picture is whatever avatar host
-    // Auth0 hands back; and then there are Google Maps tiles, the Facebook plugin,
+    // Auth0 hands back; and then there are Google Maps tiles,
     // Cloudinary event cards and analytics pixels. Images are also the lowest-value
     // XSS vector of the lot.
     'https:',
@@ -257,9 +256,6 @@ const OBSERVED = {
     // for a Stockport league they are rounding errors, and a blocked analytics beacon
     // costs a statistic rather than a feature.
     'https://www.google.co.uk',           // /ads/ga-audiences. 22 reports.
-    'https://connect.facebook.net',       // the page plugin fetches its own app_config
-                                          // JSON, from the host it was loaded from.
-                                          // 18 reports.
 
     // Added 3 Sep 2026, after someone walked the pages that get no anonymous traffic.
     // These are the ones prerequisite 3 exists to find: two are functional breaks that
@@ -288,9 +284,8 @@ const OBSERVED = {
 
   'frame-src': [
     "'self'",
-    // Neither of these is an <iframe> in any template — both are created at runtime, so
-    // a policy built by grepping for <iframe> finds nothing and breaks both.
-    'https://www.facebook.com',   // footer.ejs's .fb-page plugin, on every page
+    // Not an <iframe> in any template — reCAPTCHA creates it at runtime, so a policy
+    // built by grepping for <iframe> finds nothing and breaks it.
     'https://www.google.com',     // the reCAPTCHA challenge
     'https://recaptcha.google.com',
   ],

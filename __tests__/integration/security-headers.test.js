@@ -187,7 +187,6 @@ describe('the report-only Content-Security-Policy', () => {
     ['https://cdn.datatables.net', 'views/datatables-scripts.ejs — every stats table'],
     ['https://cdn.jsdelivr.net', 'views/elo-chart.ejs, views/player-game-stats.ejs — Chart.js'],
     ['https://cdn.quilljs.com', 'views/admin/homepage-content-form.ejs — the editor'],
-    ['https://connect.facebook.net', 'views/footer.ejs — the page plugin, every page'],
     ['https://www.google.com', 'views/contact-us-form.ejs, views/club-v2.ejs — reCAPTCHA'],
     ['https://maps.googleapis.com', 'views/club-v2.ejs, views/viewEventDetails.ejs — maps'],
   ])('allows %s in script-src (%s)', (host) => {
@@ -207,10 +206,8 @@ describe('the report-only Content-Security-Policy', () => {
 
   it('allows the frames third parties open', () => {
     const frameSrc = policy.split(';').find(d => d.trim().startsWith('frame-src'));
-    // views/footer.ejs's .fb-page plugin and reCAPTCHA's challenge both become iframes
-    // at runtime — neither is an <iframe> in any template, so grepping for <iframe>
-    // finds nothing and a policy built that way breaks both.
-    expect(frameSrc).toContain('https://www.facebook.com');
+    // reCAPTCHA's challenge becomes an iframe at runtime — it is not an <iframe> in any
+    // template, so grepping for <iframe> finds nothing and a policy built that way breaks it.
     expect(frameSrc).toContain('https://www.google.com');
   });
 

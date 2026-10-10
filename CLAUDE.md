@@ -1123,9 +1123,9 @@ Two CSP headers go out, and the split is the design:
   for external `<script src>` / `<link href>` and fails if a host is missing, so this is
   caught rather than discovered when enforcement is flipped on.
 - **Not everything is greppable.** Google Maps injects a `fonts.googleapis.com`
-  stylesheet at runtime, and both the Facebook page plugin and reCAPTCHA create iframes
-  that appear in no template. Grepping for `<iframe>` finds nothing and builds a policy
-  that breaks both.
+  stylesheet at runtime, and reCAPTCHA creates an iframe that appears in no template.
+  Grepping for `<iframe>` finds nothing and builds a policy that breaks both. (The
+  Facebook page plugin did the same until it was replaced by a plain link, Oct 2026.)
 - **`script-src` keeps `'unsafe-inline'`**, because `views/` has 159 inline `onclick`
   attributes. Do not "improve" this by adding a nonce: a nonce makes the browser *ignore*
   `'unsafe-inline'`, and no nonce can be attached to an `onclick` at all, so it would
