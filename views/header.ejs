@@ -9,6 +9,13 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+      // Named events for the PostHog recordings (the scorecard wizard's photo
+      // auto-fill), so a session can be found by what happened in it. Always defined,
+      // and a no-op wherever PostHog was not loaded — dev, tests, stats pages,
+      // superadmins — so callers never need to check.
+      window.sblTrack = function (name, props) {
+        if (window.posthog && window.posthog.__loaded) window.posthog.capture(name, props || {});
+      };
     </script>
 
       <% if (typeof user !== 'undefined') { %>
@@ -37,79 +44,50 @@
     var sentryEnabled = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE;
     %>
     <% if (sentryEnabled) { %>
-    window.sentryOnLoad = function () {
-      // in here, Sentry is ensured to be loaded & fully available
-
-      // Are we actually the ones serving this page?
-      //
-      // The `sentryEnabled` gate above is decided when the page is RENDERED, which keeps
-      // dev and test renders out but cannot keep a *production* render from being saved
-      // and reopened elsewhere. A saved page carries this snippet, the DSN, and the
-      // `Sentry.setUser` id baked in, and goes on reporting as `environment: production`
-      // for as long as the file exists.
-      //
-      // 14 Sep 2026: a saved copy of `/email-scorecard` — a `secured` page, so whoever
-      // saved it was logged in — opened off a Windows network share at
-      // `file://server/Data/.../stockport-badminton.co.uk/email-scorecard.html` and
-      // reported `ReferenceError: $ is not defined`, because jQuery cannot load over
-      // `file://`. Nothing was wrong with the site; the page had not been served by us in
-      // days. Two events and one "user" who was a file path.
-      //
-      // So the runtime check: a real scheme, and a host we recognise. `.run.app` is
-      // allowed because Firebase rewrites to Cloud Run and that hostname serves the whole
-      // site publicly (CLAUDE.md gotcha 1b). An optional `www.` is allowed so a visitor
-      // arriving that way is not silently unmonitored.
+    // Are we actually the ones serving this page? Shared by Sentry and PostHog below.
+    //
+    // The `sentryEnabled` gate above is decided when the page is RENDERED, which keeps
+    // dev and test renders out but cannot keep a *production* render from being saved
+    // and reopened elsewhere. A saved page carries this snippet, the DSN, and the
+    // `Sentry.setUser` id baked in, and goes on reporting as `environment: production`
+    // for as long as the file exists.
+    //
+    // 14 Sep 2026: a saved copy of `/email-scorecard` — a `secured` page, so whoever
+    // saved it was logged in — opened off a Windows network share at
+    // `file://server/Data/.../stockport-badminton.co.uk/email-scorecard.html` and
+    // reported `ReferenceError: $ is not defined`, because jQuery cannot load over
+    // `file://`. Nothing was wrong with the site; the page had not been served by us in
+    // days. Two events and one "user" who was a file path.
+    //
+    // So the runtime check: a real scheme, and a host we recognise. `.run.app` is
+    // allowed because Firebase rewrites to Cloud Run and that hostname serves the whole
+    // site publicly (CLAUDE.md gotcha 1b). An optional `www.` is allowed so a visitor
+    // arriving that way is not silently unmonitored.
+    window.sblServedByUs = (function () {
       var expectedHost = '<%= siteOrigin().replace(/^https?:\/\//, "") %>';
       var h = location.hostname;
       var servedByUs =
         (location.protocol === 'https:' || location.protocol === 'http:') &&
         (h === expectedHost || h === 'www.' + expectedHost || /\.run\.app$/.test(h));
-      if (!servedByUs) return;
+      return servedByUs;
+    })();
 
-      // Session Replay is quota-limited (50/month once the free trial ends), so
-      // only record it where it earns its keep, and never spend the budget on
-      // noise. A replay is enabled only when ALL of these hold:
-      //   - production (never local/dev testing)
-      //   - a results-entry or stats page (the only flows we want to watch)
-      //   - the viewer is NOT the site admin (sole superadmin, who tests these
-      //     daily and can watch locally)
-      // (Logged-in-only is already guaranteed — this whole block only renders
-      // for a logged-in user.) Error/console capture below still runs on every
-      // page for every logged-in user; only the replay is gated.
-      var REPLAY_PATHS = [
-        /^\/email-scorecard/,
-        /^\/messer-scorecard-beta/,
-        /^\/populated-messer-scorecard/,
-        /^\/player-stats/,
-        /^\/pair-stats/
-      ];
-      var isProd = <%= process.env.NODE_ENV === 'production' ? 'true' : 'false' %>;
-      var isSiteAdmin = <%= (user._json && user._json['https://my-app.example.com/role'] === 'superadmin') ? 'true' : 'false' %>;
-      var onReplayPath = REPLAY_PATHS.some(function (re) { return re.test(window.location.pathname); });
-      var enableReplay = isProd && !isSiteAdmin && onReplayPath;
+    window.sentryOnLoad = function () {
+      // in here, Sentry is ensured to be loaded & fully available
+      if (!window.sblServedByUs) return;
 
-      var integrations = [];
-      if (enableReplay) {
-        integrations.push(Sentry.replayIntegration({
-          maskAllInputs: false,
-          maskAllText: false,
-          blockAllMedia: false
-        }));
-      }
-
+      // No session replay here any more: PostHog records the scorecard flows (below).
+      // Sentry's free tier is 50 replays a month shared with tameside-site, which ran
+      // out within days once the stats pages were on the list, and a replay that starts
+      // at the error (buffer mode keeps ~60s) misses the OCR steps that come before it.
+      // Two recorders on one phone page would also be twice the CPU for one recording.
       Sentry.init({
         dsn: "https://41a5442332daa78ebc9dba9dfe8da392@o4508301910540288.ingest.de.sentry.io/4508301914800208",
         // Label events instead of letting them all default to "production" — this
         // block only loads in production now, but a mislabelled event is worse than
         // an unlabelled one if that ever changes.
         environment: "<%= process.env.NODE_ENV || 'production' %>",
-        // Off (0) on every non-eligible page. On eligible pages: keep a light
-        // sample of normal sessions, and always keep one that hits an error
-        // (errors are rare and the most useful, so they cost little quota).
-        traceSampleRate: 0,
-        replaysSessionSampleRate: enableReplay ? 1.0 : 0,
-        replaysOnErrorSampleRate: enableReplay ? 1.0 : 0,
-        integrations: integrations,
+        tracesSampleRate: 0,
       });
 
 
@@ -122,6 +100,48 @@
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });
     }
+
+    <% if (process.env.POSTHOG_KEY) { %>
+    // PostHog session replay, on the results-entry pages only — the point is to watch
+    // how captains use the photo auto-fill, which needs the whole session from page
+    // load. 5,000 recordings a month free, against Sentry's 50.
+    //
+    // Recorded only when ALL of these hold:
+    //   - production (the sentryEnabled gate above) and served by us (sblServedByUs)
+    //   - a results-entry page (not stats: browsing members used up Sentry's quota)
+    //   - the viewer is NOT a superadmin, who tests these daily
+    //
+    // persistence 'memory' stores nothing in the browser — no cookie, no localStorage —
+    // so each page load is its own session. The wizard is one page, which is what we
+    // want to watch. Inputs are unmasked so scores are visible; recordings therefore
+    // carry player names, are kept on PostHog's EU cloud and expire with its retention.
+    (function () {
+      var RECORD_PATHS = [
+        /^\/email-scorecard/,
+        /^\/messer-scorecard-beta/,
+        /^\/populated-messer-scorecard/
+      ];
+      var isSuperadmin = <%= (user._json && user._json['https://my-app.example.com/role'] === 'superadmin') ? 'true' : 'false' %>;
+      var onRecordPath = RECORD_PATHS.some(function (re) { return re.test(location.pathname); });
+      if (!window.sblServedByUs || isSuperadmin || !onRecordPath) return;
+
+      var s = document.createElement('script');
+      s.async = true;
+      s.crossOrigin = 'anonymous';
+      s.src = 'https://eu-assets.i.posthog.com/static/array.js';
+      s.onload = function () {
+        window.posthog.init('<%= process.env.POSTHOG_KEY %>', {
+          api_host: 'https://eu.i.posthog.com',
+          persistence: 'memory',
+          person_profiles: 'identified_only',
+          session_recording: { maskAllInputs: false },
+        });
+        window.posthog.identify('<%= user.user_id %>');
+        window.posthog.register({ league: location.hostname.replace(/^www\./, '') });
+      };
+      document.head.appendChild(s);
+    })();
+    <% } %>
     <% } %>
       </script>
       <% if (sentryEnabled) { %>

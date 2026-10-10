@@ -167,6 +167,9 @@ const OBSERVED = {
                                           // Sentry.lazyLoadIntegration call
     'https://static.hotjar.com',          // header.ejs — the Hotjar bootstrap
     'https://script.hotjar.com',          // and the module it pulls in turn
+    'https://eu-assets.i.posthog.com',    // header.ejs — PostHog, scorecard pages only,
+                                          // and the recorder it lazy-loads. Injected at
+                                          // runtime, so no <script src> to grep for.
     'https://cdn.datatables.net',         // datatables-scripts.ejs, datatables.ejs —
                                           // every stats and results table
     'https://cdn.jsdelivr.net',           // elo-chart.ejs, player-game-stats.ejs —
@@ -245,6 +248,8 @@ const OBSERVED = {
     'https://*.hotjar.com',
     'https://*.hotjar.io',
     'wss://*.hotjar.com',                 // Hotjar's recorder holds a websocket open
+    'https://eu.i.posthog.com',           // PostHog events and session recordings
+    'https://eu-assets.i.posthog.com',    // and its remote config
     'https://maps.googleapis.com',
     // Added 2 Sep 2026 from the report-only data — 88 of the 94 violations in the first
     // two days were these three, and none is a surprise: all three hosts are already

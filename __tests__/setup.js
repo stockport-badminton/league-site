@@ -95,6 +95,8 @@ for (const k of Object.keys(process.env)) {
   if (/_CRON_TOKEN$/.test(k) || /^META_/.test(k)) delete process.env[k];
 }
 delete process.env.SENTRY_DSN;
+// Unset means header.ejs loads no PostHog at all.
+delete process.env.POSTHOG_KEY;
 // An unset SNS_TOPIC_ARN means verifySns does not enforce a topic, which is what the
 // signature fixtures expect — they carry their own TopicArn, and the one test that wants
 // the check sets the variable itself and restores it.

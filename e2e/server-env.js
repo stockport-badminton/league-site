@@ -75,6 +75,8 @@ delete process.env.REGISTRATION_EMAIL_TO;
 // Unset closes the registrations@ queue; a test that needs it open sets it itself.
 delete process.env.REGISTRATION_INBOX_SENDERS;
 delete process.env.SENTRY_DSN;
+// Unset means header.ejs loads no PostHog at all.
+delete process.env.POSTHOG_KEY;
 
 // By PATTERN, not by a list of names, and that is not tidiness.
 //

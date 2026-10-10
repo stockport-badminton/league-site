@@ -1588,6 +1588,7 @@
 
             try {
               const photoUrl = await ScorecardUpload.store(file, hint);
+              sblTrack('scorecard_photo_attached', { outcome: 'stored' });
 
               // `photoUrl` comes from the server, which knows the object's real key.
               // This used to trim the signature off the presigned URL and rewrite %20 as
@@ -1618,6 +1619,7 @@
               // Never console-only. `/sign-s3` refuses anything that is not an image, and
               // swallowing that is why a captain could pick a PDF here, be told nothing,
               // and file the scorecard with no photo attached.
+              sblTrack('scorecard_photo_attached', { outcome: 'failed', reason: error.message });
               window.alert('The photo could not be uploaded: ' + error.message);
             }
         }
@@ -1686,6 +1688,10 @@
       $('#scorecardPhoto').on('change', function() {
         var file = this.files[0];
         if (!file) return;
+        sblTrack('scorecard_ocr_started', {
+          file_type: file.type || file.name.split('.').pop(),
+          size_kb: Math.round(file.size / 1024)
+        });
         $('#photoAnalysisStatus').show();
         $('#photoAnalysisResult').hide();
         var fd = new FormData();
@@ -1742,7 +1748,13 @@
               // through GET /scorecard-photo/:id once the draft exists.
             }
 
-            prefillFromAnalysis(data);
+            var filled = prefillFromAnalysis(data);
+            sblTrack('scorecard_ocr_result', {
+              outcome: filled > 0 ? 'read' : 'nothing_read',
+              fields_filled: filled,
+              photo_stored: !!storedUrl,
+              store_error: storeError
+            });
 
             // ONE place reports a photo that did not get stored, whichever path failed —
             // the server's own store for a document, or the presigned PUT for an image.
@@ -1762,6 +1774,7 @@
           error: function(xhr) {
             $('#photoAnalysisStatus').hide();
             var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Could not read the scorecard.';
+            sblTrack('scorecard_ocr_result', { outcome: 'refused', status: xhr.status, reason: msg });
             $('#photoAnalysisResult').html('<small class="text-danger">' + msg + ' Please fill in manually.</small>').show();
           }
         });
@@ -1808,6 +1821,7 @@
           ? '<small class="text-success">&#10003; ' + filled + ' fields auto-filled. Please review before submitting.</small>'
           : '<small class="text-warning">Could not extract data from the photo. Please fill in manually.</small>';
         $('#photoAnalysisResult').html(msg).show();
+        return filled;
       }
 
       // Apply player IDs after team dropdowns have loaded
@@ -1891,11 +1905,19 @@
         if (target > currentWizardStep && scoreStepGames[currentWizardStep]) {
           var gameNums = scoreStepGames[currentWizardStep];
           var results = gameNums.map(function(n) { return validateGamePair(n, true); });
-          if (results.some(function(r) { return r !== true; })) return;
+          if (results.some(function(r) { return r !== true; })) {
+            sblTrack('scorecard_step', { from: currentWizardStep, to: target, blocked: true });
+            return;
+          }
         }
+        sblTrack('scorecard_step', { from: currentWizardStep, to: target, blocked: false });
         currentWizardStep = target;
         _origSendEvent(targetStep);
       };
+      // Delegated: the modal markup is rendered in two variants, each with a #signup.
+      $(document).on('click', '#signup', function() {
+        sblTrack('scorecard_submit_clicked', { step: currentWizardStep, photo_prefilled: _photoUploaded });
+      });
 
       $(".playerInput").change(function(){
         var inputPlayerName = $(this)[0].selectedOptions[0].text;

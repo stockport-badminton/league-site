@@ -1378,6 +1378,14 @@ Key vars (see `.env` for examples):
     `--api-target` flags in the same command**.
   - The venues map generator uses a separate server-only `GMAPS_STATIC_API_KEY` and is
     unaffected; Vision on the server uses ADC, not a key.
+- `POSTHOG_KEY` — PostHog project key (`phc_…`, EU cloud). Public, like a DSN: it is
+  printed into the page. **Unset loads no PostHog at all.** When set, `header.ejs` records
+  sessions on the results-entry pages only (not stats, not superadmins, production only)
+  and the scorecard wizard sends `scorecard_ocr_*` / `scorecard_step` events through
+  `sblTrack`, so a recording can be found by what happened in it. It replaced Sentry's
+  replay (Oct 2026): 50 a month shared with Tameside ran out within days, and Sentry's
+  record-on-error keeps only ~60s, which misses the OCR steps before the failure.
+  Session replay must also be switched on in the PostHog project's settings.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned

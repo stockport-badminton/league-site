@@ -61,8 +61,9 @@ describe('the browser Sentry only reports from pages we serve', () => {
 
   it('emits the guard, and it runs before Sentry.init', () => {
     expect(html).toMatch(/var servedByUs/);
-    expect(html).toMatch(/if \(!servedByUs\) return;/);
-    expect(html.indexOf('if (!servedByUs) return;')).toBeLessThan(html.indexOf('Sentry.init('));
+    expect(html).toMatch(/if \(!window\.sblServedByUs\) return;/);
+    expect(html.indexOf('window.sblServedByUs = ')).toBeLessThan(html.indexOf('window.sentryOnLoad'));
+    expect(html.indexOf('if (!window.sblServedByUs) return;')).toBeLessThan(html.indexOf('Sentry.init('));
   });
 
   it('takes the expected host from siteOrigin, not a hardcoded string', () => {
