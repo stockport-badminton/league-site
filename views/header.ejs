@@ -5,30 +5,8 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSC0315491"></script>
     
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      // Named events for the PostHog recordings (the scorecard wizard's photo
-      // auto-fill), so a session can be found by what happened in it. Always defined,
-      // and a no-op wherever PostHog was not loaded — dev, tests, stats pages,
-      // superadmins — so callers never need to check.
-      window.sblTrack = function (name, props) {
-        if (window.posthog && window.posthog.__loaded) window.posthog.capture(name, props || {});
-      };
-    </script>
-
-      <% if (typeof user !== 'undefined') { %>
-        <script> 
-      gtag('config', 'G-PSC0315491',{'cookie_prefix': 'baddersCookie',
-  'cookie_domain': 'stockport-badminton.co.uk',
-  'cookie_expires': 28 * 24 * 60 * 60 ,  // 28 days, in seconds,
-  'user_id': '<%= user.user_id %>' });
-    gtag('set', 'user_properties', { 
-    'crm_id' : '<%= user.user_id %>' 
-    });
     <%
-    /* Browser Sentry runs in production only.
+    /* Browser Sentry and PostHog run in production only.
      *
      * This used to be ungated: isProd was computed below but only ever used to
      * decide on session replay, so error capture ran everywhere — including
@@ -41,12 +19,23 @@
      *
      * Same condition instrument.js uses for the server side, so the two agree.
      * Cloud Run sets K_SERVICE. */
-    var sentryEnabled = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE;
+    var monitoringEnabled = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE;
     %>
-    <% if (sentryEnabled) { %>
-    // Are we actually the ones serving this page? Shared by Sentry and PostHog below.
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      // Named PostHog events (the scorecard wizard's photo auto-fill, for a start), so
+      // a recording or a funnel can be found by what happened in it. Always defined,
+      // and a no-op wherever PostHog was not loaded — dev, tests, superadmins — so
+      // callers never need to check.
+      window.sblTrack = function (name, props) {
+        if (window.posthog && window.posthog.__loaded) window.posthog.capture(name, props || {});
+      };
+    <% if (monitoringEnabled) { %>
+    // Are we actually the ones serving this page? Shared by Sentry and PostHog.
     //
-    // The `sentryEnabled` gate above is decided when the page is RENDERED, which keeps
+    // The `monitoringEnabled` gate above is decided when the page is RENDERED, which keeps
     // dev and test renders out but cannot keep a *production* render from being saved
     // and reopened elsewhere. A saved page carries this snippet, the DSN, and the
     // `Sentry.setUser` id baked in, and goes on reporting as `environment: production`
@@ -72,6 +61,68 @@
       return servedByUs;
     })();
 
+    <% if (process.env.POSTHOG_KEY) { %>
+    // PostHog: web analytics on every page, and session recordings on the
+    // results-entry pages only. Running alongside Google Analytics from Oct 2026 to
+    // see whether it can replace it.
+    //
+    // cookieless_mode 'always' stores nothing in the browser — no cookie, no
+    // localStorage — so it needs no consent. PostHog counts unique visitors with a
+    // server-side hash under a salt that is discarded daily, so a visitor returning on
+    // another day counts again, and identify() is not available: the account id goes
+    // on each event as a property instead.
+    //
+    // Not loaded at all for a superadmin, who tests these pages daily.
+    //
+    // Recorded only on a results-entry page — the point is to watch how captains use
+    // the photo auto-fill, which needs the whole session from page load. Inputs are
+    // unmasked so scores are visible; recordings therefore carry player names.
+    (function () {
+      var RECORD_PATHS = [
+        /^\/email-scorecard/,
+        /^\/messer-scorecard-beta/,
+        /^\/populated-messer-scorecard/
+      ];
+      var loggedIn = <%= typeof user !== 'undefined' ? 'true' : 'false' %>;
+      var isSuperadmin = <%= (typeof user !== 'undefined' && user._json && user._json['https://my-app.example.com/role'] === 'superadmin') ? 'true' : 'false' %>;
+      var record = loggedIn && RECORD_PATHS.some(function (re) { return re.test(location.pathname); });
+      if (!window.sblServedByUs || isSuperadmin) return;
+
+      var s = document.createElement('script');
+      s.async = true;
+      s.crossOrigin = 'anonymous';
+      s.src = 'https://eu-assets.i.posthog.com/static/array.js';
+      s.onload = function () {
+        window.posthog.init('<%= process.env.POSTHOG_KEY %>', {
+          api_host: 'https://eu.i.posthog.com',
+          cookieless_mode: 'always',
+          person_profiles: 'never',
+          disable_session_recording: !record,
+          session_recording: { maskAllInputs: false },
+        });
+        window.posthog.register({
+          league: location.hostname.replace(/^www\./, ''),
+          logged_in: loggedIn,
+          account_id: <%- typeof user !== 'undefined' ? JSON.stringify(String(user.user_id)).replace(/</g, '\\u003c') : 'null' %>
+        });
+      };
+      document.head.appendChild(s);
+    })();
+    <% } %>
+    <% } %>
+    </script>
+
+
+      <% if (typeof user !== 'undefined') { %>
+        <script> 
+      gtag('config', 'G-PSC0315491',{'cookie_prefix': 'baddersCookie',
+  'cookie_domain': 'stockport-badminton.co.uk',
+  'cookie_expires': 28 * 24 * 60 * 60 ,  // 28 days, in seconds,
+  'user_id': '<%= user.user_id %>' });
+    gtag('set', 'user_properties', { 
+    'crm_id' : '<%= user.user_id %>' 
+    });
+    <% if (monitoringEnabled) { %>
     window.sentryOnLoad = function () {
       // in here, Sentry is ensured to be loaded & fully available
       if (!window.sblServedByUs) return;
@@ -100,51 +151,9 @@
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });
     }
-
-    <% if (process.env.POSTHOG_KEY) { %>
-    // PostHog session replay, on the results-entry pages only — the point is to watch
-    // how captains use the photo auto-fill, which needs the whole session from page
-    // load. 5,000 recordings a month free, against Sentry's 50.
-    //
-    // Recorded only when ALL of these hold:
-    //   - production (the sentryEnabled gate above) and served by us (sblServedByUs)
-    //   - a results-entry page (not stats: browsing members used up Sentry's quota)
-    //   - the viewer is NOT a superadmin, who tests these daily
-    //
-    // persistence 'memory' stores nothing in the browser — no cookie, no localStorage —
-    // so each page load is its own session. The wizard is one page, which is what we
-    // want to watch. Inputs are unmasked so scores are visible; recordings therefore
-    // carry player names, are kept on PostHog's EU cloud and expire with its retention.
-    (function () {
-      var RECORD_PATHS = [
-        /^\/email-scorecard/,
-        /^\/messer-scorecard-beta/,
-        /^\/populated-messer-scorecard/
-      ];
-      var isSuperadmin = <%= (user._json && user._json['https://my-app.example.com/role'] === 'superadmin') ? 'true' : 'false' %>;
-      var onRecordPath = RECORD_PATHS.some(function (re) { return re.test(location.pathname); });
-      if (!window.sblServedByUs || isSuperadmin || !onRecordPath) return;
-
-      var s = document.createElement('script');
-      s.async = true;
-      s.crossOrigin = 'anonymous';
-      s.src = 'https://eu-assets.i.posthog.com/static/array.js';
-      s.onload = function () {
-        window.posthog.init('<%= process.env.POSTHOG_KEY %>', {
-          api_host: 'https://eu.i.posthog.com',
-          persistence: 'memory',
-          person_profiles: 'identified_only',
-          session_recording: { maskAllInputs: false },
-        });
-        window.posthog.identify('<%= user.user_id %>');
-        window.posthog.register({ league: location.hostname.replace(/^www\./, '') });
-      };
-      document.head.appendChild(s);
-    })();
-    <% } %>
     <% } %>
       </script>
-      <% if (sentryEnabled) { %>
+      <% if (monitoringEnabled) { %>
       <%# Not just gated at init: outside production the loader is never fetched
           either, so local pages don't pay for the request. %>
       <script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>

@@ -1379,13 +1379,22 @@ Key vars (see `.env` for examples):
   - The venues map generator uses a separate server-only `GMAPS_STATIC_API_KEY` and is
     unaffected; Vision on the server uses ADC, not a key.
 - `POSTHOG_KEY` — PostHog project key (`phc_…`, EU cloud). Public, like a DSN: it is
-  printed into the page. **Unset loads no PostHog at all.** When set, `header.ejs` records
-  sessions on the results-entry pages only (not stats, not superadmins, production only)
-  and the scorecard wizard sends `scorecard_ocr_*` / `scorecard_step` events through
-  `sblTrack`, so a recording can be found by what happened in it. It replaced Sentry's
-  replay (Oct 2026): 50 a month shared with Tameside ran out within days, and Sentry's
-  record-on-error keeps only ~60s, which misses the OCR steps before the failure.
-  Session replay must also be switched on in the PostHog project's settings.
+  printed into the page. **Unset loads no PostHog at all.** When set, `header.ejs` loads
+  PostHog on **every page** in production (not for superadmins) as web analytics, running
+  beside Google Analytics from Oct 2026 to see whether it can replace it, and **records
+  sessions only on the results-entry pages** for logged-in users. The scorecard wizard sends
+  `scorecard_ocr_*` / `scorecard_step` events through `sblTrack`, so a recording can be
+  found by what happened in it.
+  **`cookieless_mode: 'always'` is what lets it run without a consent bar** — measured in a
+  real browser: nothing in cookies, localStorage or sessionStorage, against a cookie plus
+  four storage keys without it. The cost is that `identify()` is unavailable (the account
+  id goes on every event as `account_id` instead) and a visitor returning on another day
+  counts as new. Needs "Cookieless server hash mode" on in the project settings.
+  **PostHog drops events from automated browsers**, so a Playwright check of what it sends
+  sees nothing at all unless that test sets `opt_out_useragent_filter: true` — it reads as
+  "cookieless mode sends no events" and is not.
+  It replaced Sentry's replay: 50 a month shared with Tameside ran out within days, and
+  Sentry's record-on-error keeps only ~60s, which misses the OCR steps before the failure.
 - `SENTRY_DSN` — Server-side Sentry DSN (the `node` project). If unset, Sentry is a no-op, so it's optional locally. Set it in Cloud Run for prod error reporting. Wired via `instrument.js` (loaded first in `app.js`); errors are captured in the central 500 handler in `routes/index.js`. Note: the **browser** Sentry is separate — hardcoded in `views/header.ejs` (the `javascript` project), not env-driven.
 
 ## Gotchas & Lessons Learned
