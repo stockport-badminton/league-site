@@ -341,6 +341,14 @@ app.use('/static', express.static(path.join(__dirname, '/static')));
 app.use('/scripts', express.static(__dirname + '/node_modules/'));
 app.use(express.static('rootfiles'));
 
+// The live scorecard's poll, above globalLimiter with a limiter of its own — see
+// livePollLimiter in middleware/rateLimit.js for why a sports hall's worth of phones on one
+// IP cannot share the sitewide budget. A GET with its token in the query, so it needs no
+// body parser and no session.
+app.get('/api/live-scorecard/:id/state',
+  require('./middleware/rateLimit').livePollLimiter,
+  require('./controllers/liveScorecardController').state);
+
 // Sitewide request ceiling — the backstop for anything nobody thought to limit
 // individually. The per-endpoint limits in routes/index.js are the ones that matter for
 // spam.

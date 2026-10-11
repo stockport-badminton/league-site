@@ -705,35 +705,6 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
         scorecardId,
         { homeTeam: req.body.homeTeam, awayTeam: req.body.awayTeam, date: req.body.date }
       ));
-      // Built from the site's own origin, never from req.headers.host: behind Firebase
-      // that header is the Cloud Run hostname, so this link used to point at
-      // league-site-…-nw.a.run.app. See utils/canonical.js.
-      const scorecardUrlBeta = confirmationUrl(scorecardId, confirmToken);
-      // The photo is linked through GET /scorecard-photo/:id, never as the raw S3 URL
-      // (HARD-02b). Photos are private objects, so a bucket link in this email would be
-      // an AccessDenied page for the one person who has to look at it — and the bucket
-      // URL was itself the authorization on the photo, which is what made it worth
-      // fixing: forwarded once, it was public forever.
-      const photoLink = photoUrl ? photoLinkFor(scorecardId, confirmToken) : '';
-
-      // The match, by name. The form posts ids, so this costs three lookups — worth it
-      // because the email used to say only "a new scorecard has been entered" and left
-      // the reader to open the link to find out which match it meant. The same gap the
-      // Tameside site found in its reminder, whose subject line named a match its own
-      // body could not. A failed lookup degrades to a generic label rather than losing
-      // the email: the link is the payload, the names are the courtesy.
-      const [homeRows, awayRows, divRows] = await Promise.all([
-        Team.getById(scorecardObj.homeTeam),
-        Team.getById(scorecardObj.awayTeam),
-        Division.getById(scorecardObj.division),
-      ]).catch(() => [[], [], []]);
-      const named = (rows, fallback) => (rows && rows[0] && rows[0].name) || fallback;
-      const homeTeamName = named(homeRows, 'Home team');
-      const awayTeamName = named(awayRows, 'Away team');
-      const photoLine = photoUrl
-        ? 'A scorecard has been entered, with a photo attached.'
-        : 'A scorecard has been entered, with no photo attached.';
-
       // Who filed it — but only when there is NO photo, because that is the only time it
       // is actionable. With a photo attached there is nothing to chase; without one, the
       // results secretary's next move is to ask this person for the card, and previously
@@ -753,46 +724,9 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
       const submitterEmail = photoUrl ? '' : userEmail(req.user);
       const submitterName = submitterEmail ? userDisplayName(req.user) : '';
 
-      // The draft is already written. Notifying the results secretary is the next thing
-      // that should happen, not a condition of the captain's submission having worked —
-      // so a failure here is reported, not thrown. Before this it was awaited bare inside
-      // the try, so an SES outage took a draft that was safely in `scorecardstore` and
-      // showed the captain the 500 page, whose whole message is that nothing was
-      // recorded. The captain then re-files, and the results secretary gets two drafts
-      // for one match — or, with the notification broken both times, none.
-      //
-      // The publish path has had this since HARD-01. Filing a draft is the path captains
-      // actually use, and it did not.
-      const notified = await afterCommit('draft received email', () => mailer.send({
-        template: 'scorecard-received',
-        subject: 'Scorecard received: ' + homeTeamName + ' v ' + awayTeamName,
-        to: mailer.RESULTS_MAILBOX,
-        bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com'],
-        replyTo: mailer.RESULTS_MAILBOX,
-        whyReceiving: 'Sent to the results secretary whenever a captain files a scorecard.',
-        text: [
-          homeTeamName + ' v ' + awayTeamName,
-          photoLine,
-          '',
-          'Check the result: ' + scorecardUrlBeta,
-          photoUrl ? 'Photo: ' + photoLink : '',
-          submitterEmail
-            ? 'No photo attached. Ask ' + (submitterName ? submitterName + ' ' : '') +
-              '<' + submitterEmail + '> for the card.'
-            : '',
-        ].filter(Boolean).join('\n'),
-        data: {
-          homeTeamName,
-          awayTeamName,
-          divisionName: named(divRows, 'League fixture'),
-          matchDate: formatMatchDate(scorecardObj.date),
-          confirmUrl: scorecardUrlBeta,
-          photoUrl: photoLink,
-          photoLine,
-          submitterEmail,
-          submitterName,
-        },
-      }));
+      const notified = await sendDraftReceivedEmail({
+        scorecardId, confirmToken, scorecardObj, photoUrl, submitterEmail, submitterName,
+      });
       // The captain gets the token too, or the page they are redirected to would refuse
       // the draft they have just this moment filed.
       //
@@ -814,6 +748,87 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
     } catch (err) { next(err); }
   }
 }
+
+// The "scorecard received" email to the results secretary, for a draft that is already
+// written. Returns whether it went (afterCommit: a failure is reported, never thrown).
+// Shared by the paper-card draft path above and the live scorecard
+// (controllers/liveScorecardController.js), so both arrive looking the same.
+// `opts.photoLine` replaces the default photo/no-photo sentence when the caller has
+// something more useful to say about where the result came from.
+async function sendDraftReceivedEmail(opts) {
+  const { scorecardId, confirmToken, scorecardObj, photoUrl, submitterEmail, submitterName } = opts;
+  // Built from the site's own origin, never from req.headers.host: behind Firebase
+  // that header is the Cloud Run hostname, so this link used to point at
+  // league-site-…-nw.a.run.app. See utils/canonical.js.
+  const scorecardUrlBeta = confirmationUrl(scorecardId, confirmToken);
+  // The photo is linked through GET /scorecard-photo/:id, never as the raw S3 URL
+  // (HARD-02b). Photos are private objects, so a bucket link in this email would be
+  // an AccessDenied page for the one person who has to look at it — and the bucket
+  // URL was itself the authorization on the photo, which is what made it worth
+  // fixing: forwarded once, it was public forever.
+  const photoLink = photoUrl ? photoLinkFor(scorecardId, confirmToken) : '';
+
+  // The match, by name. The form posts ids, so this costs three lookups — worth it
+  // because the email used to say only "a new scorecard has been entered" and left
+  // the reader to open the link to find out which match it meant. The same gap the
+  // Tameside site found in its reminder, whose subject line named a match its own
+  // body could not. A failed lookup degrades to a generic label rather than losing
+  // the email: the link is the payload, the names are the courtesy.
+  const [homeRows, awayRows, divRows] = await Promise.all([
+    Team.getById(scorecardObj.homeTeam),
+    Team.getById(scorecardObj.awayTeam),
+    Division.getById(scorecardObj.division),
+  ]).catch(() => [[], [], []]);
+  const named = (rows, fallback) => (rows && rows[0] && rows[0].name) || fallback;
+  const homeTeamName = named(homeRows, 'Home team');
+  const awayTeamName = named(awayRows, 'Away team');
+  const photoLine = opts.photoLine || (photoUrl
+    ? 'A scorecard has been entered, with a photo attached.'
+    : 'A scorecard has been entered, with no photo attached.');
+
+  // The draft is already written. Notifying the results secretary is the next thing
+  // that should happen, not a condition of the captain's submission having worked —
+  // so a failure here is reported, not thrown. Before this it was awaited bare inside
+  // the try, so an SES outage took a draft that was safely in `scorecardstore` and
+  // showed the captain the 500 page, whose whole message is that nothing was
+  // recorded. The captain then re-files, and the results secretary gets two drafts
+  // for one match — or, with the notification broken both times, none.
+  //
+  // The publish path has had this since HARD-01. Filing a draft is the path captains
+  // actually use, and it did not.
+  const notified = await afterCommit('draft received email', () => mailer.send({
+    template: 'scorecard-received',
+    subject: 'Scorecard received: ' + homeTeamName + ' v ' + awayTeamName,
+    to: mailer.RESULTS_MAILBOX,
+    bcc: ['bigcoops@outlook.com', 'bigcoops@gmail.com'],
+    replyTo: mailer.RESULTS_MAILBOX,
+    whyReceiving: 'Sent to the results secretary whenever a captain files a scorecard.',
+    text: [
+      homeTeamName + ' v ' + awayTeamName,
+      photoLine,
+      '',
+      'Check the result: ' + scorecardUrlBeta,
+      photoUrl ? 'Photo: ' + photoLink : '',
+      submitterEmail
+        ? 'No photo attached. Ask ' + (submitterName ? submitterName + ' ' : '') +
+          '<' + submitterEmail + '> for the card.'
+        : '',
+    ].filter(Boolean).join('\n'),
+    data: {
+      homeTeamName,
+      awayTeamName,
+      divisionName: named(divRows, 'League fixture'),
+      matchDate: formatMatchDate(scorecardObj.date),
+      confirmUrl: scorecardUrlBeta,
+      photoUrl: photoLink,
+      photoLine,
+      submitterEmail,
+      submitterName,
+    },
+  }));
+  return notified;
+}
+exports.sendDraftReceivedEmail = sendDraftReceivedEmail;
 
 exports.fixture_populate_scorecard = async function(data, req, res, next) {
   try {

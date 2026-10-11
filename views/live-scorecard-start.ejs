@@ -1,0 +1,65 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<%#
+  Start a live scorecard: pick the match being played. One card per fixture — a match
+  that already has one says so, and only the person who started it is taken to it,
+  because its share page holds the captains' signing links.
+%>
+
+<div class="live-page">
+  <div class="live-head">
+    <h1>Live scorecard</h1>
+    <p class="live-sub">
+      Start the card for tonight's match, then share it. Anyone with the link can fill in
+      players and scores from their phone. Both captains sign it off at the end, and it goes
+      to the results secretary as a filed scorecard.
+    </p>
+  </div>
+
+  <% if (taken) { %>
+    <div class="alert alert-info">
+      Someone else has already started the card for that match. Ask them for the link — they
+      can show it as a QR code.
+    </div>
+  <% } %>
+
+  <% if (!fixtures.length) { %>
+    <div class="live-empty">
+      No outstanding fixtures from the last ten days or the coming week.
+    </div>
+  <% } else { %>
+    <ul class="live-fixtures">
+      <% fixtures.forEach(function(f) { %>
+        <li class="live-fixture">
+          <div class="live-fixture-main">
+            <span class="live-fixture-date"><%= f.date %></span>
+            <span class="live-fixture-teams"><%= f.homeName %> <span class="v">v</span> <%= f.awayName %></span>
+          </div>
+          <div class="live-fixture-action">
+            <% if (!f.card) { %>
+              <form method="post" action="/live-scorecard">
+                <input type="hidden" name="fixtureId" value="<%= f.id %>">
+                <button type="submit" class="btn btn-primary btn-sm">Start card</button>
+              </form>
+            <% } else if (f.card.mine) { %>
+              <a class="btn btn-outline-primary btn-sm" href="/live-scorecard/<%= f.card.id %>/share">
+                <%= f.card.status === 'filed' ? 'Filed' : 'Open' %>
+              </a>
+            <% } else { %>
+              <span class="live-taken">Started by someone else</span>
+            <% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="live-note">
+      If someone else has started the card for your match, ask them for the link — they can
+      share it as a QR code.
+    </p>
+  <% } %>
+</div>
+
+<%- include('footer.ejs') %>
+</body>
+</html>

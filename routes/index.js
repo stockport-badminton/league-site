@@ -35,6 +35,7 @@ var homepage_content_controller = require('../controllers/homepageContentControl
 var site_settings_controller = require('../controllers/siteSettingsController');
 var spam_admin_controller = require('../controllers/spamAdminController');
 var roster_controller = require('../controllers/rosterController');
+var live_scorecard_controller = require('../controllers/liveScorecardController');
 const requireClubAccess = require('../middleware/requireClubAccess');
 const verifySns = require('../middleware/verifySns');
 const {
@@ -660,6 +661,18 @@ router.post('/api/convert-scorecard-document', secured,
   scorecard_analysis_controller.convert_scorecard_document);
 router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
 router.get('/email-scorecard', secured, scorecard_controller.email_scorecard);
+
+// Live scorecard (proof of concept) — filled in at the match from players' phones, signed
+// off by both captains, filed as an ordinary draft. Starting one needs a login; using one
+// needs only its link, which is the point. The poll, GET /api/live-scorecard/:id/state, is
+// mounted in app.js. See controllers/liveScorecardController.js.
+router.get('/live-scorecard', secured, live_scorecard_controller.start);
+router.post('/live-scorecard', secured, publicFormLimiter, live_scorecard_controller.create);
+router.get('/live-scorecard/:id/share', secured, live_scorecard_controller.share);
+router.get('/live-scorecard/:id', live_scorecard_controller.card);
+router.post('/api/live-scorecard/:id/players', live_scorecard_controller.setPlayer);
+router.post('/api/live-scorecard/:id/games/:n', live_scorecard_controller.setGame);
+router.post('/api/live-scorecard/:id/sign', live_scorecard_controller.sign);
 
 // Messer scorecard routes
 router.get('/messer-scorecard-beta', secured, messer_scorecard_controller.messer_scorecard_beta);

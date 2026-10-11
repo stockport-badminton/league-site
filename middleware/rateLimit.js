@@ -112,6 +112,17 @@ const cspReportLimiter = makeLimiter({
   limit: 300,
 });
 
+// GET /api/live-scorecard/:id/state — the live scorecard's poll. Its own limiter, mounted
+// above globalLimiter in app.js, because the people polling it are all in one sports hall:
+// a dozen phones on the club's wifi share one public IP, and at one poll each every five
+// seconds they spend the sitewide 600 per quarter hour in about four minutes — after which
+// every page on the site is a 429 for the whole team. Sized for twenty phones polling
+// continuously; an unchanged poll is a 204 and one indexed read.
+const livePollLimiter = makeLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 4000,
+});
+
 // Sitewide backstop. Generous enough that no real visitor meets it — a page with images
 // and scripts is one request here (static assets are mounted before the router), and
 // crawlers stay well under it.
@@ -146,6 +157,7 @@ module.exports = {
   webhookLimiter,
   mediaLimiter,
   cspReportLimiter,
+  livePollLimiter,
   globalLimiter,
   keyGenerator,
   skipCrawlSurface,

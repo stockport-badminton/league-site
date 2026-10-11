@@ -1,0 +1,142 @@
+/* The live scorecard pages (views/live-scorecard*.ejs), opted into with
+ * include('header.ejs', { useLiveScorecardCss: true }) — the controller sets it.
+ *
+ * Phone first: this is used courtside, one-handed, between games. Desktop is the
+ * afterthought. Two site-wide rules are undone locally rather than in custom.css, the same
+ * way roster.css does it: nav.ejs's `.starter-template` centres all text, and the fixed
+ * footer covers the last ~110px of any page that does not pad for it. */
+
+.live-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 12px 120px;
+  text-align: left;
+  width: 100%;
+}
+
+.live-page h1 { font-size: 1.5rem; margin: 12px 0 4px; }
+.live-page h2 { font-size: 1.1rem; margin: 0 0 10px; }
+.live-page h3 { font-size: 1rem; margin: 0 0 8px; }
+.live-page .v { color: #6c757d; font-weight: normal; }
+.live-sub, .live-note { color: #6c757d; font-size: 0.9rem; }
+.live-empty { padding: 24px 0; color: #6c757d; }
+
+/* ---- start page ---- */
+
+.live-fixtures { list-style: none; padding: 0; margin: 16px 0; }
+.live-fixture {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid #e5e5e5;
+}
+.live-fixture-main { display: flex; flex-direction: column; min-width: 0; }
+.live-fixture-date { font-size: 0.8rem; color: #6c757d; }
+.live-fixture-teams { font-weight: 600; }
+.live-fixture-action form { margin: 0; }
+.live-taken { font-size: 0.8rem; color: #6c757d; }
+
+/* ---- share page ---- */
+
+.live-share-block { padding: 16px 0; border-bottom: 1px solid #e5e5e5; }
+.live-qr { width: 240px; max-width: 70vw; margin: 0 auto 12px; }
+.live-qr svg { width: 100%; height: auto; display: block; }
+.live-link-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.live-link-row input { flex: 1 1 200px; min-width: 0; }
+.live-captain { padding: 10px 0; }
+.live-captain-name { font-weight: 600; margin-bottom: 6px; }
+
+/* ---- the card ---- */
+
+.live-head { padding-top: 8px; }
+.live-meta { font-size: 0.8rem; color: #6c757d; text-align: center; }
+.live-scoreboard {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+  margin: 6px 0 2px;
+}
+.live-team { font-weight: 600; line-height: 1.2; }
+.live-team-home { text-align: right; }
+.live-team-away { text-align: left; }
+.live-score { font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.live-score .dash { margin: 0 6px; color: #adb5bd; }
+.live-progress { text-align: center; font-size: 0.85rem; color: #6c757d; }
+.live-dot { color: #28a745; margin-left: 8px; font-size: 0.7rem; animation: live-pulse 2s infinite; }
+.live-dot.offline { color: #dc3545; animation: none; }
+.live-dot.done { color: #6c757d; animation: none; }
+.live-sync { margin-left: 3px; }
+@keyframes live-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+.live-captain-banner {
+  margin: 8px 0 0; padding: 6px 10px; border-radius: 4px;
+  background: #e8f4fd; color: #0c5460; font-size: 0.85rem; text-align: center;
+}
+.live-share-link { display: block; text-align: center; font-size: 0.85rem; margin-top: 6px; }
+.live-filed { margin: 12px 0 0; }
+
+.live-tabs {
+  position: sticky; top: 56px; z-index: 5; background: #fff;
+  display: flex; margin: 12px -12px 0; padding: 0 12px; border-bottom: 1px solid #dee2e6;
+}
+.live-tabs button {
+  flex: 1; background: none; border: 0; padding: 10px 4px;
+  border-bottom: 3px solid transparent; font-weight: 600; color: #6c757d;
+}
+.live-tabs button[aria-selected="true"] { color: #007bff; border-bottom-color: #007bff; }
+
+.live-who { display: block; font-size: 0.8rem; margin: 12px 0; }
+.live-who input { margin-top: 4px; }
+
+.live-games { list-style: none; padding: 0; margin: 0; }
+.live-game { border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; background: #fff; }
+.live-game-head { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #6c757d; }
+.live-game-n {
+  display: inline-block; min-width: 22px; height: 22px; line-height: 22px; text-align: center;
+  border-radius: 11px; background: #f1f3f5; font-weight: 700; color: #495057;
+}
+.live-game-next { display: none; margin-left: auto; color: #fff; background: #007bff; border-radius: 3px; padding: 0 6px; font-weight: 600; }
+.live-game.is-next { border-color: #007bff; box-shadow: 0 0 0 1px #007bff; }
+.live-game.is-next .live-game-next { display: inline-block; }
+
+.live-game-body {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 6px;
+}
+.live-pair { font-size: 0.85rem; line-height: 1.2; overflow-wrap: anywhere; }
+.live-pair-home { text-align: right; }
+.live-game-scores { display: flex; align-items: center; gap: 4px; }
+.live-game-scores .dash { color: #adb5bd; }
+.live-in {
+  width: 52px; height: 44px; padding: 4px; text-align: center;
+  font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.live-game.home-won .live-pair-home,
+.live-game.away-won .live-pair-away { font-weight: 700; }
+.live-game.home-won .live-in[data-side="h"],
+.live-game.away-won .live-in[data-side="a"] { border-color: #28a745; background: #f0fff4; }
+.live-game.is-saving { opacity: 0.6; }
+.live-game-foot { font-size: 0.7rem; color: #adb5bd; text-align: center; min-height: 1em; margin-top: 2px; }
+.live-game.has-error { border-color: #dc3545; }
+.live-game.has-error .live-game-foot { color: #dc3545; font-size: 0.8rem; }
+.live-game.is-done:not(.is-next) { background: #fcfcfc; }
+
+.live-players { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 12px; }
+@media (min-width: 576px) { .live-players { grid-template-columns: 1fr 1fr; } }
+.live-slot { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 0.85rem; }
+
+.live-sig {
+  display: flex; justify-content: space-between; gap: 8px; padding: 10px 0;
+  border-bottom: 1px solid #e5e5e5; margin-top: 4px;
+}
+.live-sig-team { font-weight: 600; }
+.live-sig-state { color: #6c757d; font-size: 0.85rem; text-align: right; }
+.live-sig.is-signed .live-sig-state { color: #28a745; }
+.live-problems { margin: 12px 0; padding: 10px 12px; background: #fff8e1; border-radius: 4px; font-size: 0.85rem; }
+.live-problems ul { margin: 4px 0 0; padding-left: 18px; }
+.live-sign-form { margin-top: 12px; }
+.live-sign-form .form-control { margin-bottom: 8px; }
+
+.live-toast {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 50;
+  max-width: 90vw; padding: 8px 14px; border-radius: 4px; background: #343a40; color: #fff;
+  font-size: 0.9rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.live-toast.error { background: #c82333; }
+.live-toast.ok { background: #218838; }

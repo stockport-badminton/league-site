@@ -234,6 +234,13 @@
     <% if (typeof useRosterCss !== 'undefined' && useRosterCss) { %>
       <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/roster.css"/>
     <% } %>
+    <% if (typeof useLiveScorecardCss !== 'undefined' && useLiveScorecardCss) { %>
+      <link rel="stylesheet" type="text/css" href="<%= static_path %>/beta/css/live-scorecard.css"/>
+    <% } %>
+    <%# Pages whose URL carries a secret (the live scorecard's token) must never be indexed. %>
+    <% if (typeof noindex !== 'undefined' && noindex) { %>
+      <meta name="robots" content="noindex, nofollow">
+    <% } %>
     <% if (typeof canonical != 'undefined') { %>
       <link rel="canonical"
             href="<%= canonical %>" />

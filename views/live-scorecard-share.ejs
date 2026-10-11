@@ -1,0 +1,57 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<%#
+  Shown only to whoever started the card (or a superadmin). The QR code is the PLAYERS'
+  link — view and enter scores. The two captains' links can also sign, so they are not
+  in the QR code: each is sent to one person.
+%>
+
+<div class="live-page">
+  <div class="live-head">
+    <h1><%= ctx.homeTeamName %> <span class="v">v</span> <%= ctx.awayTeamName %></h1>
+    <p class="live-sub"><%= ctx.divisionName %> · <%= ctx.dateLabel %></p>
+  </div>
+
+  <section class="live-share-block">
+    <h2>Players: scan to open the card</h2>
+    <div class="live-qr" role="img" aria-label="QR code for the live scorecard"><%- qrSvg %></div>
+    <div class="live-link-row">
+      <input class="form-control form-control-sm" readonly value="<%= urls.player %>" aria-label="Players' link">
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-copy="<%= urls.player %>">Copy</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-share="<%= urls.player %>"
+              data-title="<%= ctx.homeTeamName %> v <%= ctx.awayTeamName %> scorecard">Share</button>
+    </div>
+    <a class="btn btn-primary btn-block mt-3" href="<%= urls.player %>">Open the card</a>
+  </section>
+
+  <section class="live-share-block">
+    <h2>Captains: one link each</h2>
+    <p class="live-note">
+      A captain's link can also <strong>sign the card off</strong>. Send each one only to that
+      captain. When both have signed, the card goes to the results secretary.
+    </p>
+    <% [['home', ctx.homeTeamName, urls.home], ['away', ctx.awayTeamName, urls.away]].forEach(function(c) { %>
+      <div class="live-captain">
+        <div class="live-captain-name"><%= c[1] %> captain
+          <% if (card[c[0] + '_signed_at']) { %><span class="badge badge-success">Signed</span><% } %>
+        </div>
+        <div class="live-link-row">
+          <a class="btn btn-outline-primary btn-sm" href="<%= c[2] %>">Open as <%= c[0] %> captain</a>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-copy="<%= c[2] %>">Copy link</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-share="<%= c[2] %>"
+                  data-title="<%= c[1] %> captain: sign the scorecard">Share</button>
+        </div>
+      </div>
+    <% }) %>
+  </section>
+
+  <% if (card.status === 'filed') { %>
+    <div class="alert alert-success">Signed by both captains and filed with the results secretary.</div>
+  <% } %>
+</div>
+
+<script src="<%= static_path %>/beta/js/live-scorecard-share.js"></script>
+<%- include('footer.ejs') %>
+</body>
+</html>

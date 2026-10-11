@@ -1,0 +1,64 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+
+<%#
+  The live card. Everything inside #live-card is drawn by static/beta/js/live-scorecard.js
+  from the state in #live-boot, and redrawn from GET /api/live-scorecard/:id/state as other
+  phones change it — so there is one renderer, and what the page first shows is exactly
+  what a poll would show.
+%>
+
+<div class="live-page" id="live-card">
+  <div class="live-head">
+    <div class="live-meta"><%= ctx.divisionName %> · <%= ctx.dateLabel %></div>
+    <div class="live-scoreboard" aria-live="polite">
+      <div class="live-team live-team-home"><%= ctx.homeTeamName %></div>
+      <div class="live-score"><span data-tally="home">0</span><span class="dash">–</span><span data-tally="away">0</span></div>
+      <div class="live-team live-team-away"><%= ctx.awayTeamName %></div>
+    </div>
+    <div class="live-progress">
+      <span data-tally="played">0</span> of 18 games played
+      <span class="live-dot" data-sync title="Live">●</span><span class="live-sync" data-sync-text>Live</span>
+    </div>
+    <% if (side) { %>
+      <div class="live-captain-banner">You're signing as the <strong><%= side %> captain</strong> (<%= side === 'home' ? ctx.homeTeamName : ctx.awayTeamName %>)</div>
+    <% } %>
+    <% if (canShare) { %>
+      <a class="live-share-link" href="/live-scorecard/<%= cardId %>/share">Share / QR code</a>
+    <% } %>
+  </div>
+
+  <div class="live-filed alert alert-success" data-filed hidden>
+    Signed off by both captains and sent to the results secretary. This card is now read-only.
+  </div>
+
+  <nav class="live-tabs" role="tablist">
+    <button type="button" role="tab" data-tab="games" aria-selected="true">Games</button>
+    <button type="button" role="tab" data-tab="players" aria-selected="false">Players</button>
+    <button type="button" role="tab" data-tab="sign" aria-selected="false">Sign off</button>
+  </nav>
+
+  <section data-panel="games">
+    <label class="live-who">
+      Your name <span class="text-muted">(shown beside the scores you enter)</span>
+      <input type="text" class="form-control form-control-sm" data-who maxlength="40" autocomplete="name">
+    </label>
+    <ol class="live-games" data-games></ol>
+  </section>
+
+  <section data-panel="players" hidden>
+    <div class="live-players" data-players></div>
+  </section>
+
+  <section data-panel="sign" hidden>
+    <div data-sign></div>
+  </section>
+
+  <div class="live-toast" data-toast role="status" hidden></div>
+</div>
+
+<script type="application/json" id="live-boot"><%- bootJson %></script>
+<script src="<%= static_path %>/beta/js/live-scorecard.js"></script>
+<%- include('footer.ejs') %>
+</body>
+</html>
