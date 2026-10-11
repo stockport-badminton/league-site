@@ -174,6 +174,14 @@ describe('GET /scorecard/fixture/:id', () => {
     expect(res.status).toBe(404);
   });
 
+  it('404s a malformed id without reaching the database', async () => {
+    // A link pasted with a trailing bracket reached Postgres as "7199]" and came back as
+    // a 500 (Sentry NODE-15). Not a fixture, so it is a 404 — decided by the route.
+    const res = await request(app).get('/scorecard/fixture/7199%5D');
+    expect(res.status).toBe(404);
+    expect(Fixture.getScorecardDataById).not.toHaveBeenCalled();
+  });
+
   it('surfaces a model failure as an error, not a 200', async () => {
     // The handler used to `res.send(err)`, answering 200 with a serialised error —
     // so a real failure looked like a success to the browser and to monitoring.

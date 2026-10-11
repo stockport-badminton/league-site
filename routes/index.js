@@ -571,7 +571,7 @@ router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixt
 router.patch('/fixture/:id', checkJwt, fixture_controller.fixture_update_post);
 router.get('/fixture/:id(\\d+)', checkJwt, fixture_controller.fixture_detail);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', fixture_controller.fixture_event_detail);
-router.get('/scorecard/fixture/:id', fixture_controller.getScorecard);
+router.get('/scorecard/fixture/:id(\\d+)', fixture_controller.getScorecard);
 router.get('/fixture-players', fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/team-:team?', fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/club-:club?', fixture_controller.get_fixture_players_details);
