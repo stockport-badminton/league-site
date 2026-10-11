@@ -13,6 +13,7 @@ process.env.NODE_ENV = 'test';
 
 jest.mock('../../utils/metaPublisher', () => ({
   targets: jest.fn(),
+  pageStoryTarget: jest.requireActual('../../utils/metaPublisher').pageStoryTarget,
   publishEverywhere: jest.fn(),
   validateImages: jest.fn(),
 }));
@@ -119,6 +120,17 @@ describe('what gets posted', () => {
   // A mention is a notification. Notifying a club about a week it is not playing in is how
   // an account gets muted — so this post names the clubs playing, not every club with a
   // handle, which is where it differs from the tables post.
+  it('adds a Facebook page story when SOCIAL_POST_FB_STORY is set', async () => {
+    process.env.SOCIAL_POST_FB_STORY = 'true';
+    try {
+      await post();
+      const [targets] = meta.publishEverywhere.mock.calls[0];
+      expect(targets.map(t => t.kind)).toEqual(['page', 'instagram', 'page-story']);
+    } finally {
+      delete process.env.SOCIAL_POST_FB_STORY;
+    }
+  });
+
   it('mentions only the clubs actually playing this week', async () => {
     await post();
     const [, payload] = meta.publishEverywhere.mock.calls[0];

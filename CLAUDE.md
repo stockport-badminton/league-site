@@ -1350,6 +1350,16 @@ Key vars (see `.env` for examples):
   over roughly the bottom 340px, and the feed layout stretched to 9:16 put the away team and
   half the score under that box. `STORY_SAFE` in `socialController` holds those figures, which
   are the commonly published ones, not measured.
+- `SOCIAL_POST_FB_STORY` — `'true'` also posts **every Facebook Page post as a Facebook Page
+  story**: the result (its 9:16 story card), the weekly tables and fixtures (one frame per
+  card, in division order, so four frames a week each — those cards are square and 4:5, not
+  9:16) and the weekly video (`video_stories`, the 4:5 file). It is its own `page-story`
+  target, reported apart from the feed post, and `metaPublisher.pageStoryTarget()` is the one
+  switch all four callers read. **Unset posts no Facebook story.** Built 11 Oct 2026 from
+  Meta's documentation with **nothing published for real**: `/{page-id}/photo_stories` takes
+  an unpublished photo's id, so the upload half is the usual free test, but the publish half
+  has no dry run. The first post after switching it on is the measurement. Story uploads run
+  in parallel because the tables post already takes ~39s of Firebase's 60 (1bc).
 - `SOCIAL_POST_THREADS` — `'true'` queues each published result for **Threads**
   (`threads_result_post`, migration 021). It does not post: a Threads container has to be
   waited on, and that wait cannot sit inside the publish request in front of Firebase's 60s

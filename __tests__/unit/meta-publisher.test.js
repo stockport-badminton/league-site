@@ -188,6 +188,69 @@ describe('an Instagram story', () => {
   });
 });
 
+describe('a Facebook page story', () => {
+  const STORY = 'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Premier/story.jpg';
+  afterEach(() => { delete process.env.SOCIAL_POST_FB_STORY; });
+
+  it('uploads each photo unpublished, then publishes one story frame per photo, in order', async () => {
+    const urls = [JPEG + '.jpg', 'https://stockport-badminton.co.uk/league-table-image/Division%201.jpg'];
+    const out = await meta.publishPageStories(PAGE, TOKEN, { imageUrls: urls });
+
+    const calls = axios.post.mock.calls;
+    expect(calls).toHaveLength(4);
+    expect(calls.slice(0, 2).map(bodyOf)).toEqual([
+      expect.objectContaining({ url: urls[0], published: 'false' }),
+      expect.objectContaining({ url: urls[1], published: 'false' }),
+    ]);
+    expect(calls.slice(2).map(urlOf)).toEqual([
+      expect.stringMatching(new RegExp(`/${PAGE}/photo_stories$`)),
+      expect.stringMatching(new RegExp(`/${PAGE}/photo_stories$`)),
+    ]);
+    // Division order, whichever upload Meta answered first.
+    expect(calls.slice(2).map(c => bodyOf(c).photo_id)).toEqual(out.photoIds);
+    expect(out.photoIds).toEqual(['id-1', 'id-2']);
+  });
+
+  it('uses the 9:16 story card when there is one, and is reported apart from the feed post', async () => {
+    const out = await meta.publishEverywhere([
+      { name: 'Stockport page', kind: 'page', id: PAGE, token: TOKEN },
+      { name: 'Stockport page story', kind: 'page-story', id: PAGE, token: TOKEN },
+    ], { imageUrls: JPEG + '.jpg', message: 'Result', storyImageUrl: STORY });
+
+    expect(out.posted.map(p => p.target)).toEqual(['Stockport page', 'Stockport page story']);
+    const storyUpload = axios.post.mock.calls[2];
+    expect(bodyOf(storyUpload)).toMatchObject({ url: STORY, published: 'false' });
+    expect(bodyOf(storyUpload).message).toBeUndefined();
+  });
+
+  it('posts a video story in three calls: start, hand Meta the file url, finish', async () => {
+    axios.post
+      .mockResolvedValueOnce({ data: { video_id: 'v1', upload_url: 'https://rupload.facebook.com/video-upload/v21.0/v1' } })
+      .mockResolvedValueOnce({ data: { success: true } })
+      .mockResolvedValueOnce({ data: { success: true, post_id: 'story-1' } });
+    const VIDEO = 'https://stockport-badminton.co.uk/social-video/4-5';
+
+    const out = await meta.publishVideoEverywhere(
+      [{ name: 'Stockport page story', kind: 'page-story', id: PAGE, token: TOKEN }], { videoUrl: VIDEO });
+
+    const [start, upload, finish] = axios.post.mock.calls;
+    expect(urlOf(start)).toMatch(new RegExp(`/${PAGE}/video_stories$`));
+    expect(bodyOf(start).upload_phase).toBe('start');
+    expect(urlOf(upload)).toBe('https://rupload.facebook.com/video-upload/v21.0/v1');
+    expect(upload[2].headers).toMatchObject({ Authorization: `OAuth ${TOKEN}`, file_url: VIDEO });
+    expect(bodyOf(finish)).toMatchObject({ upload_phase: 'finish', video_id: 'v1' });
+    expect(out.posted).toEqual([{ target: 'Stockport page story', kind: 'page-story', id: 'story-1' }]);
+  });
+
+  it('is off unless SOCIAL_POST_FB_STORY is set, and needs the page configured', () => {
+    const t = { stockportPage: { id: PAGE, token: TOKEN }, instagram: null };
+    expect(meta.pageStoryTarget(t)).toBeNull();
+    process.env.SOCIAL_POST_FB_STORY = 'true';
+    expect(meta.pageStoryTarget(t)).toEqual({ id: PAGE, token: TOKEN, name: 'Stockport page story', kind: 'page-story' });
+    expect(meta.pageStoryTarget({ stockportPage: null })).toBeNull();
+  });
+});
+
 describe('asking Meta without publishing', () => {
   it('validateImages creates containers and publishes none of them', async () => {
     const out = await meta.validateImages(IG, TOKEN, [JPEG + '.jpg', JPEG + '2.jpg']);

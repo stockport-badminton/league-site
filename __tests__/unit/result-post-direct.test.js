@@ -20,6 +20,7 @@
 jest.mock('axios');
 jest.mock('../../utils/metaPublisher', () => ({
   targets: jest.fn(),
+  pageStoryTarget: jest.requireActual('../../utils/metaPublisher').pageStoryTarget,
   publishEverywhere: jest.fn(),
 }));
 

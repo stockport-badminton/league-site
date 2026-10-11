@@ -96,6 +96,7 @@ function configuredTargets() {
   return [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
+    meta.pageStoryTarget(t),
   ].filter(Boolean);
 }
 

@@ -14,6 +14,7 @@ process.env.NODE_ENV = 'test';
 
 jest.mock('../../utils/metaPublisher', () => ({
   targets: jest.fn(),
+  pageStoryTarget: jest.requireActual('../../utils/metaPublisher').pageStoryTarget,
   publishEverywhere: jest.fn(),
   validateImages: jest.fn(),
 }));
@@ -85,6 +86,18 @@ describe('what gets posted', () => {
     expect(targets.map(t => t.kind)).toEqual(['page', 'instagram']);
     // Facebook gets `message`, Instagram gets `caption`, and they are not the same string.
     expect(payload.message).not.toBe(payload.caption);
+  });
+
+  it('adds every table as a Facebook story frame when SOCIAL_POST_FB_STORY is set', async () => {
+    process.env.SOCIAL_POST_FB_STORY = 'true';
+    try {
+      await post();
+      const [targets, payload] = meta.publishEverywhere.mock.calls[0];
+      expect(targets.map(t => t.kind)).toEqual(['page', 'instagram', 'page-story']);
+      expect(payload.storyImageUrl).toBeUndefined();
+    } finally {
+      delete process.env.SOCIAL_POST_FB_STORY;
+    }
   });
 
   // Instagram turns a bare @handle into a real mention. The handles must come from the

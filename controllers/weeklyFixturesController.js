@@ -126,6 +126,7 @@ exports.run = async function (req, res, next) {
     const configured = [
       t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
       t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
+      meta.pageStoryTarget(t),
     ].filter(Boolean);
 
     // Same rule as the tables post and the result post: a switch whose halves live in

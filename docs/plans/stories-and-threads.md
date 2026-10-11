@@ -176,7 +176,9 @@ is a design question to settle after seeing the first one.
 
 **Facebook Page stories are a separate API**, and I believe it lives at
 `/{page-id}/photo_stories` and `/video_stories`. That is unverified and out of scope until
-checked. Instagram is where stories get watched.
+checked. **Built 11 Oct 2026 behind `SOCIAL_POST_FB_STORY`, unset** — every Page
+post (result, tables, fixtures, video) as a Page story; see CLAUDE.md. Not yet published
+for real. Instagram is where stories get watched.
 
 ### Measure first (free, publishes nothing)
 

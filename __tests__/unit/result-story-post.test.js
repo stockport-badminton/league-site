@@ -6,6 +6,7 @@
 
 jest.mock('../../utils/metaPublisher', () => ({
   targets: jest.fn(),
+  pageStoryTarget: jest.requireActual('../../utils/metaPublisher').pageStoryTarget,
   publishEverywhere: jest.fn(),
 }));
 
@@ -25,6 +26,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env.SOCIAL_POST_DIRECT;
   delete process.env.SOCIAL_POST_STORY;
+  delete process.env.SOCIAL_POST_FB_STORY;
 });
 
 it('posts no story unless SOCIAL_POST_STORY is set', async () => {
@@ -55,4 +57,17 @@ it('posts no story when there is no Instagram account, whatever the flag says', 
   meta.targets.mockReturnValue({ stockportPage: PAGE, instagram: null, tamesidePage: null });
   await Fixture.sendResultZap({ ...RESULT });
   expect(meta.publishEverywhere.mock.calls[0][0].map(t => t.kind)).toEqual(['page']);
+});
+
+it('adds a Facebook page story on SOCIAL_POST_FB_STORY, with the same 9:16 card, on its own', async () => {
+  process.env.SOCIAL_POST_FB_STORY = 'true';
+  await Fixture.sendResultZap({ ...RESULT });
+  const [targets, payload] = meta.publishEverywhere.mock.calls[0];
+
+  expect(targets.map(t => [t.name, t.kind])).toEqual([
+    ['Stockport page', 'page'], ['Instagram', 'instagram'], ['Stockport page story', 'page-story'],
+  ]);
+  expect(targets[2]).toMatchObject({ id: PAGE.id, token: PAGE.token });
+  expect(payload.storyImageUrl).toBe(
+    'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203/story.jpg');
 });

@@ -869,10 +869,13 @@ async function publishResultToMeta({ imgGen, message, zapObject }) {
   // SOCIAL_POST_STORY is 'true': a story goes out on every published result, and the first
   // real one is the only check of where Instagram's overlays fall on the 9:16 card.
   const story = process.env.SOCIAL_POST_STORY === 'true' && t.instagram
+  // The Facebook Page story is a fourth, on SOCIAL_POST_FB_STORY, and uses the same 9:16 card.
+  const pageStory = meta.pageStoryTarget(t)
   const configured = [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
     story && { ...t.instagram, name: 'Instagram story', kind: 'instagram-story' },
+    pageStory,
   ].filter(Boolean)
 
   // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
@@ -894,7 +897,7 @@ async function publishResultToMeta({ imgGen, message, zapObject }) {
       'Make.com.')
   }
 
-  const storyImageUrl = story ? absoluteUrl(resultStoryImagePath(zapObject)) : undefined
+  const storyImageUrl = (story || pageStory) ? absoluteUrl(resultStoryImagePath(zapObject)) : undefined
   const out = await meta.publishEverywhere(configured, { imageUrls: imgGen, message, storyImageUrl })
 
   for (const f of out.failed) console.error(`result post to ${f.target} failed:`, f.error.message)

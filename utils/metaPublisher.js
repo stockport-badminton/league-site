@@ -159,6 +159,35 @@ async function publishPageAlbum(pageId, token, { imageUrls, message }) {
   return { postId: r.id, photoIds: ids };
 }
 
+/**
+ * Photos as Facebook Page stories, one frame each, in the order given.
+ *
+ * A story is single-media, so four tables are four frames rather than one album. The same
+ * two-step shape as the album: upload unpublished, then `POST /{page-id}/photo_stories`
+ * names the photo — which is the step that publishes.
+ *
+ * The uploads run in parallel and the publishes in order. Each upload is Meta fetching a
+ * card we render on demand, and the weekly tables post already takes ~39s of Firebase's 60
+ * (CLAUDE.md, 1bc): four more sequential fetches is what would push it over. Publishing in
+ * order keeps the frames in division order.
+ *
+ * Fresh uploads, not the album's photo ids: once a feed post has attached a photo it is
+ * published, and whether `photo_stories` takes one in that state is unmeasured.
+ */
+async function publishPageStories(pageId, token, { imageUrls }) {
+  const urls = [].concat(imageUrls || []);
+  if (!urls.length) throw new MetaError('No images to post as a story', { step: 'validate' });
+
+  const photoIds = await Promise.all(urls.map(url => uploadPagePhoto(pageId, token, url)));
+  const postIds = [];
+  for (const photoId of photoIds) {
+    const r = await graph(`${pageId}/photo_stories`, { photo_id: photoId, access_token: token },
+      { step: 'the page story' });
+    postIds.push(r.post_id || r.id);
+  }
+  return { postIds, photoIds };
+}
+
 // ── Instagram ────────────────────────────────────────────────────────────────
 
 /**
@@ -314,6 +343,31 @@ async function publishPageVideo(pageId, token, { videoUrl, description }) {
 }
 
 /**
+ * A video as a Facebook Page story. Unlike `/videos`, there is no `file_url` shortcut on the
+ * story endpoint itself: it is three calls — `start` hands back an upload URL on
+ * rupload.facebook.com, that URL is given our `file_url` to fetch, and `finish` publishes.
+ */
+async function publishPageVideoStory(pageId, token, { videoUrl }) {
+  assertPublishableVideo(videoUrl);
+  const start = await graph(`${pageId}/video_stories`, { upload_phase: 'start', access_token: token },
+    { step: 'starting a page video story' });
+
+  try {
+    await axios.post(start.upload_url, null, {
+      timeout: 120000,
+      headers: { Authorization: `OAuth ${token}`, file_url: videoUrl },
+    });
+  } catch (err) {
+    throw describeFailure(err, 'uploading a page video story');
+  }
+
+  const r = await graph(`${pageId}/video_stories`, {
+    upload_phase: 'finish', video_id: start.video_id, access_token: token,
+  }, { step: 'publishing a page video story' });
+  return { postId: r.post_id || r.id || start.video_id };
+}
+
+/**
  * The dry run: ask Meta to fetch and transcode, and publish nothing.
  *
  * A container expires on its own in 24 hours, so this costs nothing and leaves nothing
@@ -343,6 +397,9 @@ async function publishVideoEverywhere(targets, { videoUrl, message, caption }) {
     try {
       if (t.kind === 'page') {
         const r = await publishPageVideo(t.id, t.token, { videoUrl, description: message });
+        posted.push({ target: t.name, kind: t.kind, id: r.postId });
+      } else if (t.kind === 'page-story') {
+        const r = await publishPageVideoStory(t.id, t.token, { videoUrl });
         posted.push({ target: t.name, kind: t.kind, id: r.postId });
       } else if (t.kind === 'instagram') {
         const r = await publishInstagramReel(t.id, t.token, { videoUrl, caption: caption ?? message });
@@ -402,6 +459,19 @@ function targets() {
 }
 
 /**
+ * The Stockport Page's story target, or null when SOCIAL_POST_FB_STORY is not 'true' or the
+ * Page is not configured. One helper so all four Facebook posts — the result, the tables,
+ * the fixtures and the video — switch together and cannot drift.
+ *
+ * Off unless set, like SOCIAL_POST_STORY was: nothing here has been published for real
+ * yet, so the first story after switching it on is the measurement.
+ */
+function pageStoryTarget(t = targets()) {
+  if (process.env.SOCIAL_POST_FB_STORY !== 'true' || !t.stockportPage) return null;
+  return { ...t.stockportPage, name: 'Stockport page story', kind: 'page-story' };
+}
+
+/**
  * Post the same thing to several places, and let each succeed or fail on its own.
  *
  * Returns `{posted: [...], failed: [{target, error}]}` and does NOT throw. Three reasons,
@@ -417,7 +487,9 @@ function targets() {
  *   failure indistinguishable from a whole one — the same rule `utils/afterCommit.js`
  *   states for notification email, and the same one `POST /fixture/rearrangement` broke.
  *
- * `targets` entries are `{name, kind: 'page'|'instagram'|'instagram-story', id, token}`. A null entry is
+ * `targets` entries are `{name, kind: 'page'|'page-story'|'instagram'|'instagram-story', id, token}`.
+ * A `page-story` uses `storyImageUrl` when given (the result's 9:16 card) and otherwise
+ * every image in `imageUrls`, one frame each. A null entry is
  * skipped rather than being an error: that is how an unset credential means "this league
  * does not post there" instead of "crash".
  */
@@ -430,6 +502,9 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
       if (t.kind === 'page') {
         const r = await publishPageAlbum(t.id, t.token, { imageUrls, message });
         posted.push({ target: t.name, kind: t.kind, id: r.postId });
+      } else if (t.kind === 'page-story') {
+        const r = await publishPageStories(t.id, t.token, { imageUrls: storyImageUrl || imageUrls });
+        posted.push({ target: t.name, kind: t.kind, id: r.postIds.join(',') });
       } else if (t.kind === 'instagram') {
         const urls = [].concat(imageUrls || []);
         const r = urls.length > 1
@@ -456,12 +531,12 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
 module.exports = {
   MetaError,
   assertPublishableImage, ratioOk,
-  uploadPagePhoto, publishPageAlbum,
+  uploadPagePhoto, publishPageAlbum, publishPageStories, publishPageVideoStory,
   publishInstagramPhoto, publishInstagramCarousel, publishInstagramStory,
   createContainer, publishContainer,
   validateImages, publishingQuota, publishEverywhere,
   assertPublishableVideo, waitForContainer,
   publishInstagramReel, publishPageVideo, validateVideo, publishVideoEverywhere,
-  targets,
+  targets, pageStoryTarget,
   IG_MAX_CAROUSEL, IG_MIN_RATIO, IG_MAX_RATIO,
 };

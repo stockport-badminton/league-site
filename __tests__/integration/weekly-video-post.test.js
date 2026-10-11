@@ -33,6 +33,7 @@ jest.mock('@aws-sdk/client-s3', () => ({
 
 jest.mock('../../utils/metaPublisher', () => ({
   targets: jest.fn(),
+  pageStoryTarget: jest.requireActual('../../utils/metaPublisher').pageStoryTarget,
   publishVideoEverywhere: jest.fn(),
   validateVideo: jest.fn(),
 }));
@@ -102,6 +103,17 @@ describe('what gets posted', () => {
     await post();
     const [targets] = meta.publishVideoEverywhere.mock.calls[0];
     expect(targets.map(t => t.kind)).toEqual(['page', 'instagram']);
+  });
+
+  it('adds a Facebook page story when SOCIAL_POST_FB_STORY is set', async () => {
+    process.env.SOCIAL_POST_FB_STORY = 'true';
+    try {
+      await post();
+      const [targets] = meta.publishVideoEverywhere.mock.calls[0];
+      expect(targets.map(t => t.kind)).toEqual(['page', 'instagram', 'page-story']);
+    } finally {
+      delete process.env.SOCIAL_POST_FB_STORY;
+    }
   });
 
   it('carries a caption for each platform and a link to the site', async () => {
