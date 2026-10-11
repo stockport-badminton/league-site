@@ -1219,6 +1219,8 @@ There is no member-facing input path into it. Check that is still true before re
 decision — the moment it sanitises anything a captain or the public can submit, the
 calculation changes and the suite is the thing that has to give.
 
+**The way out is Node 24.9+ — HARD-41.** 2.18.0 moves to an ESM-only `htmlparser2 ^12`; Node 22 loads it, Jest 30 on Node 22 does not, and a babel-jest CJS transform was tried (11 Oct 2026) and fails the same way, because Jest's ESM check runs before any transform. Jest loads it natively from Node 24.9.
+
 Note also that Dependabot names **2.17.6** as the fix. That is wrong for us: the SVG/SMIL
 advisory covers `<= 2.17.6`, so 2.17.6 closes one of the two and leaves the other. If this
 is ever revisited, 2.17.7 is the floor.

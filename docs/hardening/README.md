@@ -154,7 +154,9 @@ a file — worth reading before you edit one. **What is open is `ls docs/hardeni
 | [HARD-31](done/HARD-31-pi-key-rotation-decision.md) Decide, knowingly, whether to rotate `DB_PI_KEY` | `scripts/hard31-rotate-pi-key.js` (gitignored), the database, Cloud Run | C | — |
 | [HARD-34](done/HARD-34-scorecard-on-a-phone.md) Filing a result on a phone | `e2e/` (a new mobile spec), `views/index-scorecard.ejs`, `views/messer-scorecard.ejs` | A | — |
 | [HARD-40](done/HARD-40-messer-test-route.md) A test-data messer form, live in production | `routes/index.js` (one line), `messer_scorecard_beta_test`, `e2e/messer-scorecard.spec.js` | A | — |
+| [HARD-41](HARD-41-node-24-for-sanitize-html.md) | not started | | From the 11 Oct Dependabot review (`573a654`, 58 alerts → 3). The two left are `sanitize-html` (#331, #333). **The blocker is now pinned down:** 2.18.0's `htmlparser2 ^12` chain is ESM-only, Node 22 loads it but Jest 30 on Node 22 refuses it before any transform runs — a babel-jest CJS transform was tried and fails identically. Jest supports `require(esm)` from **Node 24.9**, so the fix is a runtime bump, then the library. |
 | [HARD-35](HARD-35-invoice-run-reporting.md) A scheduled send that did not happen should say so | `utils/auditDigest.js`, `auditController`, or a completion mail from `contactusController` | C | — |
+| [HARD-41](HARD-41-node-24-for-sanitize-html.md) Move to Node 24 so sanitize-html can be patched | `Dockerfile`, `cloudbuild.yaml`, `package.json` (`engines`, the `sanitize-html` pin), CLAUDE.md | C | — |
 
 ## Priority
 
