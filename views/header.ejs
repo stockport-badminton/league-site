@@ -93,13 +93,21 @@
       s.crossOrigin = 'anonymous';
       s.src = 'https://eu-assets.i.posthog.com/static/array.js';
       s.onload = function () {
-        window.posthog.init('<%= process.env.POSTHOG_KEY %>', {
+        // A recorded page uses in-memory persistence instead of cookieless mode,
+        // because the recorder cannot run cookieless: that mode keeps no session in
+        // the browser (PostHog assigns $session_id server-side), and without one
+        // the recorder never starts. Not one recording was stored in the two days
+        // replay ran with cookieless on every page. 'memory' still stores nothing in
+        // the browser, so the no-consent position holds; the cost is that each page
+        // load is a new session, so the wizard and its confirmation page are two
+        // recordings.
+        var storage = record ? { persistence: 'memory' } : { cookieless_mode: 'always' };
+        window.posthog.init('<%= process.env.POSTHOG_KEY %>', Object.assign({
           api_host: 'https://eu.i.posthog.com',
-          cookieless_mode: 'always',
           person_profiles: 'never',
           disable_session_recording: !record,
           session_recording: { maskAllInputs: false },
-        });
+        }, storage));
         window.posthog.register({
           league: location.hostname.replace(/^www\./, ''),
           logged_in: loggedIn,

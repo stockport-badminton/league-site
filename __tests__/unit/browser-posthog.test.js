@@ -99,6 +99,17 @@ describe('PostHog', () => {
     }
   });
 
+  // The recorder cannot run cookieless: that mode keeps no session in the browser, so it
+  // never starts. Replay ran two days like that and stored nothing at all. A recorded page
+  // keeps its session in memory instead — still nothing written to the browser.
+  it('keeps a recorded page out of cookieless mode, in memory rather than storage', () => {
+    const { config } = runPostHog(captain, { pathname: '/email-scorecard' });
+    expect(config.cookieless_mode).toBeUndefined();
+    expect(config.persistence).toBe('memory');
+    expect(config.person_profiles).toBe('never');
+    expect(runPostHog(captain, { pathname: '/player-stats' }).config.cookieless_mode).toBe('always');
+  });
+
   it('records nowhere else', () => {
     expect(runPostHog(captain, { pathname: '/player-stats' }).config.disable_session_recording).toBe(true);
     expect(runPostHog(captain, { pathname: '/' }).config.disable_session_recording).toBe(true);
