@@ -684,6 +684,10 @@
     <script type="text/javascript" src="/static/beta/js/scorecard-upload.js"></script>
 
     <script type="text/javascript">
+        // Hold Submit while the photo is still uploading — see guardSubmit.
+        document.querySelectorAll('form#signupForm').forEach(function (form) {
+          ScorecardUpload.guardSubmit(form);
+        });
       
         (() => {
             document.getElementById("scoresheet-spreadsheet").onchange = () => {

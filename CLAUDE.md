@@ -317,7 +317,7 @@ Two traps it closes, neither of which was obvious (HARD-33):
 - **`e2e/helpers/read-only.js` cannot see a write the server makes.** It intercepts
   *browser* requests, so it stops a presigned PUT from the page and aborts anything
   cross-origin — but `POST /api/analyse-scorecard` and `/api/convert-scorecard-document`
-  store their converted image from inside Node, where the guard has no visibility at all.
+  store the photo they read (since Oct 2026, an image as well as a converted document) from inside Node, where the guard has no visibility at all.
   Until Sep 2026 `dev.env` held a live `AKIA` key, so that write would have landed in the
   **production** bucket with the suite reporting no writes. Both layers are needed: the
   environment makes it harmless, the helper keeps the page honest.

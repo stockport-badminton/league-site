@@ -281,15 +281,49 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
       logged.mockRestore();
     });
 
-    // An image upload does its own presigned PUT from the browser and must not be
-    // double-stored, nor told about a photoUrl it did not ask for.
-    it('does not store or report anything for an image upload', async () => {
+    // An image is stored from the bytes already here, rather than left to a second upload
+    // from the phone. On 11 Oct an iPhone sent a 3.6MB photo to this endpoint in six
+    // seconds and then could not get the same file to S3, and draft 2465 was filed with no
+    // photo. This used to assert the opposite — no PUT, no photoUrl — which is what left
+    // the photo's fate to the captain's connection twice over.
+    it('stores an image upload and hands back its URL', async () => {
+      const res = await request(app).post('/api/analyse-scorecard')
+        .attach('scorecard', JPEG, { filename: 'IMG_1334.jpeg', contentType: 'image/jpeg' });
+      expect(res.status).toBe(200);
+      expect(res.body.photoStored).toBe(true);
+      expect(mockS3Puts).toHaveLength(1);
+      const put = mockS3Puts[0];
+      expect(put.ContentType).toBe('image/jpeg');
+      expect(put.Body.equals(JPEG)).toBe(true);
+      expect(put.Key).toMatch(/^scorecards\/\d{8}\/[0-9a-f-]{36}-img-1334\.jpg$/);
+      expect(put.ACL).toBeUndefined();
+      const { normalisePhotoUrl } = require('../../utils/scorecardLinks');
+      expect(res.body.photoUrl).toContain(put.Key);
+      expect(() => normalisePhotoUrl(res.body.photoUrl)).not.toThrow();
+    });
+
+    // The octet-stream HEIC that gets past the upload filter by its name must be stored
+    // under a real image type, not refused by the bucket's allowlist for its label.
+    it('stores an octet-stream HEIC as image/heic', async () => {
+      const res = await request(app).post('/api/analyse-scorecard')
+        .attach('scorecard', JPEG, { filename: 'IMG_4021.HEIC', contentType: 'application/octet-stream' });
+      expect(res.body.photoStored).toBe(true);
+      expect(mockS3Puts[0].ContentType).toBe('image/heic');
+      expect(mockS3Puts[0].Key).toMatch(/\.heic$/);
+    });
+
+    // The page falls back to its own PUT when this fails, so the OCR must still arrive and
+    // the URL must be null rather than absent.
+    it('still returns the OCR for an image when the store fails', async () => {
+      mockPutFails = true;
+      const err = jest.spyOn(console, 'error').mockImplementation(() => {});
       const res = await request(app).post('/api/analyse-scorecard')
         .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
+      err.mockRestore();
       expect(res.status).toBe(200);
-      expect(mockS3Puts).toHaveLength(0);
-      expect(res.body).not.toHaveProperty('photoUrl');
-      expect(res.body).not.toHaveProperty('photoStored');
+      expect(res.body.photoStored).toBe(false);
+      expect(res.body.photoUrl).toBeNull();
+      expect(res.body).toHaveProperty('_meta');
     });
   });
 

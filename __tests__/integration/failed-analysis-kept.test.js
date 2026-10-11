@@ -138,7 +138,10 @@ describe('when the reader cannot read the card', () => {
 });
 
 describe('when the reader succeeds', () => {
-  it('stores nothing extra — the page attaches the photo itself', async () => {
+  // Stored once, as the photo of record — never also as scrap. (It used to store nothing
+  // at all and leave the photo to a second upload from the phone; since 11 Oct the server
+  // stores the image it was sent. See scorecard-analysis-upload.test.js.)
+  it('stores the photo once, under the permanent prefix, and nothing as scrap', async () => {
     analyseImage.mockResolvedValue({ textBlocks: [], imageWidth: 100, imageHeight: 100 });
     require('../../controllers/scorecardExtraction').extractScorecardData.mockResolvedValue({
       metadata: { date: '', division: '', homeTeam: '', awayTeam: '' },
@@ -147,9 +150,11 @@ describe('when the reader succeeds', () => {
     require('../../models/teams').getAll.mockResolvedValue([]);
     require('../../models/division').getAll.mockResolvedValue([]);
 
+    storeImage.mockResolvedValue({ key: 'scorecards/20262027/abc-card.jpg', url: 'https://x/abc-card.jpg' });
     await upload();
 
-    expect(storeImage).not.toHaveBeenCalled();
+    expect(storeImage).toHaveBeenCalledTimes(1);
+    expect(storeImage.mock.calls[0][0].prefix).toBeUndefined();
   });
 });
 

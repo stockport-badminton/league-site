@@ -1485,7 +1485,12 @@
     <script type="text/javascript" src="/static/beta/js/scorecard-upload.js"></script>
 
     <script type="text/javascript">
-      
+        // Hold Submit while a photo is still uploading — see guardSubmit. Both variants of
+        // the modal render a #signupForm.
+        document.querySelectorAll('form#signupForm').forEach(function (form) {
+          ScorecardUpload.guardSubmit(form);
+        });
+
         (async () => {
           let scorecardPhotos = await document.querySelectorAll('#scoresheet-spreadsheet');
           for (const photo of scorecardPhotos){
@@ -1696,7 +1701,11 @@
         $('#photoAnalysisResult').hide();
         var fd = new FormData();
         fd.append('scorecard', file);
-        $.ajax({
+        // Tracked, so Submit waits for it: the server stores the photo while it reads it,
+        // and the URL only reaches scoresheet-url when this answers. A refusal is not a
+        // failed photo upload — the captain is told to fill in by hand, and may still
+        // attach the photo at step 13 — so it must not hold the form.
+        ScorecardUpload.track(Promise.resolve($.ajax({
           url: '/api/analyse-scorecard',
           method: 'POST',
           data: fd,
@@ -1705,18 +1714,19 @@
           success: async function(data) {
             $('#photoAnalysisStatus').hide();
 
-            // Getting the photo INTO THE BUCKET is a separate job from reading it, and
-            // this handler has to do it for an image.
+            // Getting the photo INTO THE BUCKET is a separate job from reading it.
             //
-            // `/api/analyse-scorecard` stores the photo only for a DOCUMENT upload — it
-            // pulls the image out of the pdf/docx, stores that, and returns `photoUrl`.
-            // For an image it analyses the bytes and discards them, on the assumption
-            // (stated in scorecardAnalysisController) that "an image upload does its own
-            // presigned PUT". That is true of the step-13 box, whose change handler calls
-            // ScorecardUpload.store — but this is a DIFFERENT input, and picking a file
-            // here never populates that one. So an image auto-filled here was analysed
-            // beautifully and then thrown away: no object in S3, nothing in
-            // scoresheet-url, and the draft filed with no photo (2439, 9 Sep).
+            // `/api/analyse-scorecard` stores what it read — the image itself, or the one
+            // pulled out of a pdf/docx — and returns `photoUrl`. Since 11 Oct, that is:
+            // before then it stored documents only and left an image to this handler, and
+            // before THAT nothing stored an auto-filled image at all, so it was analysed
+            // and thrown away and the draft filed with no photo (2439, 9 Sep). The step-13
+            // box is a different input and picking a file here never populates it.
+            //
+            // The server is the better route: those bytes already crossed the captain's
+            // connection once, and on 11 Oct a phone that had just sent them to us could
+            // not get the same file to S3 (draft 2465). The PUT below remains as the
+            // fallback for when the server's own store fails (`photoUrl: null`).
             var storedUrl = data.photoUrl || null;
             var storeError = null;
 
@@ -1727,6 +1737,10 @@
                 storedUrl = await ScorecardUpload.store(file);
               } catch (error) {
                 storeError = error.message;
+                // To the console as well, which browser Sentry collects. Until now this
+                // failure went to PostHog alone, so a captain whose browser blocks
+                // PostHog left no trace of it anywhere.
+                console.error('scorecard photo could not be stored: ' + storeError);
               }
             }
 
@@ -1777,7 +1791,7 @@
             sblTrack('scorecard_ocr_result', { outcome: 'refused', status: xhr.status, reason: msg });
             $('#photoAnalysisResult').html('<small class="text-danger">' + msg + ' Please fill in manually.</small>').show();
           }
-        });
+        })).catch(function () {}));
       });
 
       function prefillFromAnalysis(data) {

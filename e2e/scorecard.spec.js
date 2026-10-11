@@ -262,6 +262,91 @@ test.describe('/scorecard-beta', function () {
       });
   });
 
+  // Submitting navigates, and navigating kills a fetch still in flight. The photo's URL
+  // only reaches scoresheet-url when its PUT finishes, so pressing Submit mid-upload filed
+  // the draft with no photo. Draft 2465, 11 Oct: an iPhone sixteen seconds into a 3.6MB
+  // PUT; Sentry has the PUT failing ("Load failed") 28ms after the Submit click.
+  //
+  // The PUT is HELD here until the test releases it, which is the only way to put Submit
+  // inside the window. The form's POST is stubbed, so nothing is written; it is captured
+  // so the test can read what the form would have sent.
+  test.describe('Submit while the photo is still uploading', function () {
+    const SIGNED = {
+      signedUrl: 'https://badmintontemp.s3.eu-west-1.amazonaws.com/put?sig=x',
+      url: 'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/held-card.jpg',
+    };
+    const photo = { name: 'card.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0]) };
+
+    async function stub(page, putStatus) {
+      const state = { put: 0, posts: [] };
+      let release;
+      state.released = new Promise(function (r) { release = r; });
+      state.release = release;
+      await page.route('**/sign-s3*', function (route) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SIGNED) });
+      });
+      await page.route('https://badmintontemp.s3.eu-west-1.amazonaws.com/**', async function (route) {
+        state.put++;
+        await state.released;
+        return route.fulfill({ status: putStatus, body: '' });
+      });
+      await page.route('**/email-scorecard', function (route) {
+        if (route.request().method() !== 'POST') return route.fallback();
+        state.posts.push(new URLSearchParams(route.request().postData() || ''));
+        return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>filed</p>' });
+      });
+      return state;
+    }
+
+    // requestSubmit, not a click: Submit is on step 14 of the wizard, and what is under
+    // test is the form's submit event, which a button press and requestSubmit both fire.
+    function pressSubmit(page) {
+      return page.evaluate(function () { document.querySelector('form#signupForm').requestSubmit(); });
+    }
+
+    test('waits for the photo, then sends it', async function ({ page, baseURL }) {
+      const guard = await readOnly(page, baseURL);
+      const state = await stub(page, 200);
+      await page.goto('/email-scorecard');
+
+      await page.locator('#scoresheet-spreadsheet').first().setInputFiles(photo);
+      await expect.poll(function () { return state.put; }).toBe(1);
+
+      await pressSubmit(page);
+      await expect(page.locator('#signup')).toHaveText('Uploading photo…');
+      // Long enough for a native submit to have happened, were it going to.
+      await page.waitForTimeout(500);
+      expect(state.posts).toHaveLength(0);
+
+      state.release();
+      await expect.poll(function () { return state.posts.length; }).toBe(1);
+      expect(state.posts[0].getAll('scoresheet-url')).toEqual([SIGNED.url]);
+      guard.assertNoWrites();
+    });
+
+    test('a failed upload sends nothing, says so, and a second press files without it',
+      async function ({ page, baseURL }) {
+        const guard = await readOnly(page, baseURL);
+        const state = await stub(page, 500);
+        page.on('dialog', function (d) { d.dismiss(); });
+        await page.goto('/email-scorecard');
+
+        await page.locator('#scoresheet-spreadsheet').first().setInputFiles(photo);
+        await expect.poll(function () { return state.put; }).toBe(1);
+        await pressSubmit(page);
+        state.release();
+
+        await expect(page.locator('.upload-wait-note')).toContainText('did not upload');
+        await expect(page.locator('#signup')).toBeEnabled();
+        expect(state.posts).toHaveLength(0);
+
+        await pressSubmit(page);
+        await expect.poll(function () { return state.posts.length; }).toBe(1);
+        expect(state.posts[0].get('scoresheet-url')).toBe('');
+        guard.assertNoWrites();
+      });
+  });
+
   test('loads without console or page errors', async function ({ page, baseURL }) {
     const guard = await readOnly(page, baseURL);
     const errors = [];

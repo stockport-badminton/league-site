@@ -392,6 +392,19 @@ async function convertDocument(file) {
   return { extracted, stored: await storeExtracted(extracted, file) };
 }
 
+// The content type to store a photo under. Usually what the browser said; for the
+// octet-stream HEIC that some browsers send (see the upload filter's test), the name's
+// extension. Either way it goes through ALLOWED_TYPES inside storeImage, exactly as at
+// `/sign-s3`, so this cannot widen what the bucket will hold.
+const EXTENSION_TYPES = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' };
+function photoContentType(file) {
+  const declared = String(file.mimetype || '').toLowerCase().trim();
+  if (declared.startsWith('image/')) return declared;
+  const ext = String(file.originalname || '').split('.').pop().toLowerCase();
+  return EXTENSION_TYPES[ext] || declared;
+}
+
 // The store half on its own, because the analysis endpoint must not do it until the card
 // has been READ — see the note at its call site in `analyse_scorecard`.
 async function storeExtracted(extracted, file) {
@@ -402,7 +415,7 @@ async function storeExtracted(extracted, file) {
       hint: file.originalname,
     });
   } catch (err) {
-    console.error('scorecard document: storing the extracted photo failed:', err.message);
+    console.error('scorecard upload: storing the photo failed:', err.message);
     Sentry.captureException(err);
     return null;
   }
@@ -650,7 +663,14 @@ exports.analyse_scorecard = async function(req, res) {
       slots: !!(homeSlots && awaySlots),
     }));
 
-    // A document's image is stored only now, once the card has been READ.
+    // The photo is stored only now, once the card has been READ.
+    //
+    // An image as well as a document, since 11 Oct. An image used to be left to the
+    // browser — this endpoint read the bytes and threw them away, and the page then made a
+    // second upload of the same file, straight to S3. On 11 Oct an iPhone sent us a 3.6MB
+    // photo here in six seconds and then could not get that same file to S3 at all, and
+    // the draft was filed with no photo (2465). The bytes are already here; storing them
+    // costs one server-side PUT and asks nothing more of the captain's connection.
     //
     // It used to be stored before the OCR, "so that if Vision throws the captain still
     // gets their photo back" — but a failure answers with an error and no URL, and the
@@ -660,7 +680,9 @@ exports.analyse_scorecard = async function(req, res) {
     // failure the catch keeps it as 14-day scrap instead, like any photo. A failed store
     // here does not fail the request: the prefill is still worth having, and
     // `photoStored: false` tells the page to say so.
-    const storedPhoto = isDocument ? await storeExtracted(extracted, req.file) : null;
+    const storedPhoto = await storeExtracted(
+      isDocument ? extracted : { buffer: req.file.buffer, contentType: photoContentType(req.file) },
+      req.file);
 
     // Step 5: build response in form-field format
     res.json({
@@ -670,22 +692,16 @@ exports.analyse_scorecard = async function(req, res) {
       awayTeam: awayTeamId,
       ...playerFields,
       ...mapScores(pointsPairs),
-      // Only present for a document upload: the URL of the image pulled out of it, for
-      // the page to drop into its `scoresheet-url` field.
+      // The URL of the stored photo — the image itself, or the one pulled out of a
+      // document — for the page to drop into its `scoresheet-url` field.
       //
-      // An image upload gets nothing here — this endpoint reads the bytes and discards
-      // them. **Storing it is then the page's job, and the page must actually do it.**
-      // This used to say "an image upload does its own presigned PUT and does not need
-      // this", which was true of the step-13 photo box and not of the auto-fill box that
-      // posts here: they are different inputs, and choosing a file in one does not
-      // populate the other. So an image auto-filled at step 1 was analysed and thrown
-      // away — no object in the bucket, nothing in scoresheet-url, and the draft filed
-      // with no photo, while the form told the captain it had one (draft 2439, 9 Sep).
-      // e2e/scorecard.spec.js 'the auto-fill box' now holds that end up.
-      ...(isDocument ? {
-        photoUrl: storedPhoto ? storedPhoto.url : null,
-        photoStored: !!storedPhoto,
-      } : {}),
+      // Null when the store failed, and then **storing it is the page's job**: for an
+      // image it falls back to its own presigned PUT (e2e/scorecard.spec.js 'the
+      // auto-fill box'). That fallback is the whole of how an image used to be stored,
+      // and before it existed an auto-filled image was analysed and thrown away, the
+      // draft filed with no photo while the form said it had one (2439, 9 Sep).
+      photoUrl: storedPhoto ? storedPhoto.url : null,
+      photoStored: !!storedPhoto,
       _meta: {
         dateRaw:            metadata.date,
         divisionRaw:        metadata.division,
