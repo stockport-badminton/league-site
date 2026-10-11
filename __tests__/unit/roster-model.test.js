@@ -409,19 +409,35 @@ describe('createPlayer', () => {
   // models/players.js:create has no RETURNING clause, so its result.insertId is
   // always undefined — which is why the old add-player modal set the new row's id
   // to undefined and then posted parseInt(undefined).
-  it('returns the new id', async () => {
-    queue([{ id: 4321 }]);
-    const id = await Roster.createPlayer({
-      firstName: 'New', familyName: 'Player', gender: 'Male', clubId: 61, teamId: 23
+  it('returns the new id, placed in the team', async () => {
+    queue([{ id: 4321 }], [{ gender: 'Male' }], [{ club: 61 }], [{ max: 99 }]);
+    const placed = await Roster.createPlayer({
+      firstName: 'New', familyName: 'Player', gender: 'Male', clubId: 61, teamId: 23, section: 'reserve'
     });
-    expect(id).toBe(4321);
-    expect(db.__state.log[0].sql).toContain('RETURNING id');
+    expect(placed).toEqual({ playerId: 4321, teamId: 23, rank: 100 });
+    expect(db.__state.log.find(e => /^INSERT/.test(e.sql)).sql).toContain('RETURNING id');
+  });
+
+  // The INSERT and the placement were two transactions, so a failure between them
+  // left a player on the team with no rank while the captain was told it had failed.
+  it('creates and places in ONE transaction, and rolls the insert back if placing fails', async () => {
+    queue([{ id: 4321 }], [{ gender: 'Male' }], [{ club: 61 }], [{ max: 2 }]);
+    db.__state.failOn = 6; // BEGIN, INSERT, SELECT gender, SELECT club, SELECT max, UPDATE
+    await expect(Roster.createPlayer({
+      firstName: 'New', familyName: 'Player', gender: 'Male', clubId: 61, teamId: 23, section: 'nominated'
+    })).rejects.toThrow(/simulated/);
+    const sqls = db.__state.log.map(e => e.sql);
+    expect(sqls.filter(s => s === 'BEGIN')).toHaveLength(1);
+    expect(sqls[0]).toBe('BEGIN');
+    expect(sqls.indexOf('BEGIN')).toBeLessThan(sqls.findIndex(s => /^INSERT/.test(s)));
+    expect(sqls[sqls.length - 1]).toBe('ROLLBACK');
+    expect(sqls).not.toContain('COMMIT');
   });
 
   it('throws rather than returning undefined if no id comes back', async () => {
     queue([]);
     await expect(Roster.createPlayer({
-      firstName: 'New', familyName: 'Player', gender: 'Male', clubId: 61, teamId: 23
+      firstName: 'New', familyName: 'Player', gender: 'Male', clubId: 61, teamId: 23, section: 'reserve'
     })).rejects.toThrow(/no id/);
   });
 });

@@ -393,8 +393,7 @@ describe('GET /api/roster/club-:club/candidates', () => {
 describe('POST /api/roster/club-:club/players', () => {
   beforeEach(() => {
     Roster.getTeamOwner.mockResolvedValue({ id: 12, name: 'Shell A', clubId: 40, clubName: 'Shell' });
-    Roster.createPlayer.mockResolvedValue(4321);
-    Roster.addToTeam.mockResolvedValue({ playerId: 4321, teamId: 12, rank: 99 });
+    Roster.createPlayer.mockResolvedValue({ playerId: 4321, teamId: 12, rank: 99 });
     Roster.findCandidates.mockResolvedValue({ unattached: [], otherClubs: [], ownClub: [] });
   });
 
@@ -405,7 +404,9 @@ describe('POST /api/roster/club-:club/players', () => {
     expect(res.status).toBe(200);
     expect(res.body.created.playerId).toBe(4321);
     // The club comes from the destination team, never from the request body.
-    expect(Roster.createPlayer).toHaveBeenCalledWith(expect.objectContaining({ clubId: 40 }));
+    expect(Roster.createPlayer).toHaveBeenCalledWith(expect.objectContaining({ clubId: 40, section: 'reserve' }));
+    // Placement happens inside createPlayer's transaction, not as a second write.
+    expect(Roster.addToTeam).not.toHaveBeenCalled();
   });
 
   it('ignores a club id supplied in the body', async () => {

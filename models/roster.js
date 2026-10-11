@@ -451,50 +451,59 @@ exports.releasePlayer = async function(playerId) {
 // Adds a player to a team as its next reserve — the shared tail of "create a new
 // player" and "adopt an unattached one". Returns the rank assigned.
 exports.addToTeam = async function(playerId, teamId, section) {
-  return db.withTransaction(async conn => {
-    const [rows] = await conn.query('SELECT gender FROM player WHERE id = ?', playerId)
-    if (!rows.length) {
-      const err = new Error('No such player')
-      err.status = 404
-      throw err
-    }
-    const [teamRows] = await conn.query('SELECT club FROM team WHERE id = ?', teamId)
-    if (!teamRows.length) {
-      const err = new Error('No such team')
-      err.status = 404
-      throw err
-    }
-    const [maxRows] = await conn.query(
-      `SELECT COALESCE(MAX(rank), 0) AS max FROM player
-       WHERE team = ? AND gender = ? AND rank ${section === 'reserve' ? '>=' : '<'} ?`,
-      [teamId, rows[0].gender, RESERVE_BASE]
-    )
-    const currentMax = Number(maxRows[0].max) || 0
-    const rank = section === 'reserve'
-      ? Math.max(currentMax + 1, RESERVE_BASE)
-      : currentMax + 1
-
-    await conn.query('UPDATE player SET team = ?, club = ?, rank = ? WHERE id = ?',
-      [teamId, teamRows[0].club, rank, playerId])
-    return { playerId: Number(playerId), teamId, rank }
-  })
+  return db.withTransaction(conn => placeOnTeam(conn, playerId, teamId, section))
 }
 
-// Creates a player and returns their new id.
+async function placeOnTeam(conn, playerId, teamId, section) {
+  const [rows] = await conn.query('SELECT gender FROM player WHERE id = ?', playerId)
+  if (!rows.length) {
+    const err = new Error('No such player')
+    err.status = 404
+    throw err
+  }
+  const [teamRows] = await conn.query('SELECT club FROM team WHERE id = ?', teamId)
+  if (!teamRows.length) {
+    const err = new Error('No such team')
+    err.status = 404
+    throw err
+  }
+  const [maxRows] = await conn.query(
+    `SELECT COALESCE(MAX(rank), 0) AS max FROM player
+     WHERE team = ? AND gender = ? AND rank ${section === 'reserve' ? '>=' : '<'} ?`,
+    [teamId, rows[0].gender, RESERVE_BASE]
+  )
+  const currentMax = Number(maxRows[0].max) || 0
+  const rank = section === 'reserve'
+    ? Math.max(currentMax + 1, RESERVE_BASE)
+    : currentMax + 1
+
+  await conn.query('UPDATE player SET team = ?, club = ?, rank = ? WHERE id = ?',
+    [teamId, teamRows[0].club, rank, playerId])
+  return { playerId: Number(playerId), teamId, rank }
+}
+
+// Creates a player and places them in a team, in one transaction. Returns what
+// addToTeam returns: { playerId, teamId, rank }.
 //
 // models/players.js:create issues a bare INSERT with no RETURNING, so the `result`
 // it hands back is an empty rows array and `result.insertId` is undefined — which
 // is why the old add-player modal set `dataset.id = undefined` and then posted
 // parseInt(undefined) as the player id. The new player has to be placed in a team
 // straight after being created, so the id is not optional here.
-exports.createPlayer = async function({ firstName, familyName, gender, clubId, teamId }) {
-  const [rows] = await (await db.otherConnect()).query(
-    `INSERT INTO player (first_name, family_name, gender, club, team, date_of_registration)
-     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-    [firstName, familyName, gender, clubId, teamId, new Date()]
-  )
-  if (!rows.length) throw new Error('player insert returned no id')
-  return Number(rows[0].id)
+//
+// The INSERT and the placement used to be two transactions, so a failure between
+// them left a player on the team with a NULL rank while the captain was told the add
+// had failed. Found by Tameside porting this (Oct 2026).
+exports.createPlayer = async function({ firstName, familyName, gender, clubId, teamId, section }) {
+  return db.withTransaction(async conn => {
+    const [rows] = await conn.query(
+      `INSERT INTO player (first_name, family_name, gender, club, team, date_of_registration)
+       VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+      [firstName, familyName, gender, clubId, teamId, new Date()]
+    )
+    if (!rows.length) throw new Error('player insert returned no id')
+    return placeOnTeam(conn, Number(rows[0].id), teamId, section)
+  })
 }
 
 // Everyone who could be the person being searched for, split the way the add flow

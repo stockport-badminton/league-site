@@ -359,6 +359,47 @@ test.describe('roster editor', () => {
     guard.assertNoWrites();
   });
 
+  // Moving the row in the DOM releases pointer capture, so a drag that listened on the
+  // handle only heard the pointer while it was over the handle. Once something else was
+  // under it — the Save bar, which appears at the foot of the window on the first swap
+  // — the row stopped following, and letting go there never ended the drag. Found by
+  // Tameside porting this editor (Oct 2026).
+  test('the drag keeps hearing the pointer once it leaves the handle', async ({ page, baseURL }) => {
+    const guard = await readOnly(page, baseURL);
+    await openBiggestClubEditor(page);
+
+    const list = listWithAtLeast(page, 3);
+    const first = list.locator('.roster-row').first();
+    await parkNearTop(first, 200);
+
+    const from = await first.locator('.drag-handle').boundingBox();
+    const second = await list.locator('.roster-row').nth(1).boundingBox();
+    const x = from.x + from.width / 2;
+
+    await page.mouse.move(x, from.y + from.height / 2);
+    await page.mouse.down();
+    // One swap, so the row has moved in the DOM and capture is gone.
+    await page.mouse.move(x, second.y + second.height / 2 + 4, { steps: 8 });
+    await expect(page.locator('#roster-savebar')).toBeVisible();
+
+    // Off the handle sideways, then down: the row has to keep tracking.
+    const grabbed = page.locator('.roster-row.grabbed');
+    const before = (await grabbed.boundingBox()).y;
+    const away = from.x + 200;
+    await page.mouse.move(away, second.y + second.height / 2 + 4, { steps: 4 });
+    await page.mouse.move(away, second.y + second.height / 2 + 34, { steps: 4 });
+    expect((await grabbed.boundingBox()).y - before).toBeGreaterThan(20);
+
+    // And letting go over the Save bar ends it.
+    const bar = await page.locator('#roster-savebar').boundingBox();
+    await page.mouse.move(bar.x + 10, bar.y + bar.height / 2, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.locator('.roster-row.grabbed')).toHaveCount(0);
+    await expect(page.locator('.roster-list.drop-active')).toHaveCount(0);
+
+    guard.assertNoWrites();
+  });
+
   test('Discard puts everything back', async ({ page, baseURL }) => {
     const guard = await readOnly(page, baseURL);
     await openBiggestClubEditor(page);

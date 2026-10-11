@@ -460,18 +460,17 @@ exports.api_player_create = async function(req, res, next) {
       }
     }
 
-    const playerId = await Roster.createPlayer({
+    const placed = await Roster.createPlayer({
       firstName: firstName,
       familyName: familyName,
       gender: gender,
       clubId: dest.clubId,
-      teamId: teamId
+      teamId: teamId,
+      section: section
     })
-
-    const placed = await Roster.addToTeam(playerId, teamId, section)
     res.json({
       ok: true,
-      created: { playerId: playerId, name: firstName + ' ' + familyName, gender: gender },
+      created: { playerId: placed.playerId, name: firstName + ' ' + familyName, gender: gender },
       placed: placed
     })
   } catch (err) {

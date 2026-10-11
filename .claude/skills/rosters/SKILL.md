@@ -75,7 +75,9 @@ look the club up first. Id-keyed endpoints resolve the club from the row's real
 owner (`Roster.getTeamOwner` / `getPlayerOwner`), never from the request.
 
 **`/api/` errors answer in JSON**, via a handler that runs before the HTML one in
-`routes/index.js`. 4xx messages are passed through to the client (the editor shows
+`routes/index.js` — and so does a lapsed login: `secured` answers an `/api/` path with
+a 401 rather than redirecting, since fetch followed the redirect to Auth0 and died
+cross-origin with a bare network error. 4xx messages are passed through to the client (the editor shows
 them in its toast); 5xx messages are not, since they can carry SQL.
 
 Gotchas:
@@ -88,6 +90,11 @@ Gotchas:
   fire from touch, so nothing on it worked on a phone. `touch-action: none` also
   means the dragging finger can't scroll, which is why the drag runs its own
   edge auto-scroll off `requestAnimationFrame`.
+- **The drag listens on `window`, filtered by `pointerId`, not on the handle.**
+  `setPointerCapture` does not survive the row being moved in the DOM, and every swap
+  moves it, so a handle listener only hears the pointer while it is over the handle.
+  The Save bar appears under the finger at the foot of the window on the first swap,
+  and the drag froze there and could not be released. Found by Tameside's port (Oct 2026).
 - **The dragged row is positioned in document coordinates**, from the pointer's
   offset within it, re-derived after every DOM move (`reanchor()`). Don't go back to
   a running delta with the transform reset to zero on each swap: that snaps the row
@@ -102,7 +109,9 @@ Gotchas:
   the bottom half of a team. The head's rounded corners are set explicitly instead, and
   the menu flips to `.drop-up` near the foot of the window.
 - `models/players.js:create` has no `RETURNING`, so its `insertId` is always
-  `undefined`. Use `Roster.createPlayer` when you need the new id.
+  `undefined`. Use `Roster.createPlayer`, which inserts **and places** the player in one
+  transaction (it was two, so a failure between them left an unranked player on the
+  team while the captain was told the add had failed).
 - Club 63 is `No Club` and team 52 is `No Team` — the sentinels a released player is
   parked on. Named as `Roster.NO_CLUB_ID` / `NO_TEAM_ID`.
 

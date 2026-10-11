@@ -190,6 +190,7 @@
     drag = {
       row: row,
       handle: handle,
+      pointerId: e.pointerId,
       from: row.parentElement,
       clientY: e.clientY,
       // Where in the row the pointer landed, and where the row's in-flow top sits
@@ -211,14 +212,20 @@
     });
     drag.targets.forEach(function (l) { l.classList.add('drop-active'); });
 
-    handle.addEventListener('pointermove', onHandleMove);
-    handle.addEventListener('pointerup', onHandleUp);
-    handle.addEventListener('pointercancel', onHandleUp);
+    // On the window, not the handle. Moving the row in the DOM — which every swap
+    // does — releases pointer capture, after which the handle only hears the pointer
+    // while it happens to be over it. Mostly it is, because the row follows the finger,
+    // until something covers it: at the foot of the window the Save bar appears under
+    // the pointer, the moves stop arriving and the drag freezes, and a release over the
+    // bar never ended it. Found by Tameside porting this file (Oct 2026).
+    window.addEventListener('pointermove', onHandleMove, { passive: false });
+    window.addEventListener('pointerup', onHandleUp);
+    window.addEventListener('pointercancel', onHandleUp);
     drag.raf = window.requestAnimationFrame(autoScroll);
   }
 
   function onHandleMove(e) {
-    if (!drag) return;
+    if (!drag || e.pointerId !== drag.pointerId) return;
     e.preventDefault();
     drag.clientY = e.clientY;
     drag.pageY = e.pageY;
@@ -320,12 +327,12 @@
     drag.raf = window.requestAnimationFrame(autoScroll);
   }
 
-  function onHandleUp() {
-    if (!drag) return;
+  function onHandleUp(e) {
+    if (!drag || (e && e.pointerId !== drag.pointerId)) return;
     window.cancelAnimationFrame(drag.raf);
-    drag.handle.removeEventListener('pointermove', onHandleMove);
-    drag.handle.removeEventListener('pointerup', onHandleUp);
-    drag.handle.removeEventListener('pointercancel', onHandleUp);
+    window.removeEventListener('pointermove', onHandleMove);
+    window.removeEventListener('pointerup', onHandleUp);
+    window.removeEventListener('pointercancel', onHandleUp);
     drag.targets.forEach(function (l) { l.classList.remove('drop-active'); });
     drag.row.style.transform = '';
     drag.row.classList.remove('grabbed');
