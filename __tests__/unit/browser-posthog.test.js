@@ -92,7 +92,7 @@ describe('PostHog', () => {
   });
 
   it('records the results-entry pages for a logged-in captain, with the scores visible', () => {
-    for (const pathname of ['/email-scorecard', '/messer-scorecard-beta', '/populated-messer-scorecard/12']) {
+    for (const pathname of ['/email-scorecard', '/populated-scorecard-beta/2465', '/messer-scorecard-beta', '/populated-messer-scorecard/12']) {
       const { config } = runPostHog(captain, { pathname });
       expect(config.disable_session_recording).toBe(false);
       expect(config.session_recording.maskAllInputs).toBe(false);
