@@ -63,8 +63,17 @@ beforeEach(() => {
 // change — our bind is then the one refused, and the kernel picks another port.
 //
 // Do not "simplify" this back to app.listen(0).
-const tls = require('tls');
-const net = require('net');
+//
+// supertest 7.3 adopted exactly this fix upstream — it now calls listen(0, '127.0.0.1')
+// and defers dispatch until 'listening' — which is why package.json floors it at ^7.3.1.
+// This file used to REPLACE serverAddress to get the loopback bind. Against 7.3 that
+// leaked every server: upstream now closes only the servers it registered in a private
+// WeakMap inside its own serverAddress, so a server started by a replacement is never
+// closed. 1,167 listeners were still open at the end of a full run (13 Oct 2026). Workers
+// are force-killed and hid it locally; Cloud Build's 2 CPUs run Jest in-band, where they
+// kept the only process alive until the build's one-hour timeout — four deploys lost.
+//
+// So: let upstream bind, track and close the server, and only add the stamp.
 const { isForeignResponse, STAMP_HEADER } = require('./helpers/foreign-response');
 
 const supertestTest = (() => {
@@ -73,39 +82,10 @@ const supertestTest = (() => {
 
 let serverSeq = 0;
 
-// Bind a port on 127.0.0.1 only, and do it SYNCHRONOUSLY.
-//
-// Synchronously is the awkward part. supertest builds the request URL inside its
-// constructor, so it needs the port there and then, and every public form that takes a
-// host — listen(0, '127.0.0.1'), listen({port: 0, host}) — resolves the host through
-// dns.lookup and so does not have an address until the 'listening' event a tick later.
-// Only the wildcard listen(0) is synchronous, and the wildcard is the bug.
-//
-// net._createServerHandle binds immediately and returns a handle server.listen() accepts,
-// which keeps serverAddress synchronous and changes nothing else about the timing. It is
-// underscore-prefixed and therefore not API, so if it ever stops working we fall back to
-// upstream's wildcard bind: the collision comes back, but the guard below still names it
-// rather than letting it read as a bug in the code under test.
-function listenOnLoopback(server) {
-  try {
-    const handle = net._createServerHandle('127.0.0.1', 0, 4 /* AF_INET */);
-    // A uv errno comes back as a number rather than a handle.
-    if (handle && typeof handle !== 'number') {
-      server.listen(handle);
-      if (server.address()) return server;
-    }
-  } catch (err) {
-    // fall through
-  }
-  return server.listen(0);
-}
-
-if (supertestTest && !supertestTest.prototype.__loopbackBind) {
-  // Upstream's serverAddress, with the bind address changed and the server stamped.
+if (supertestTest && !supertestTest.prototype.__stampWrapped) {
+  const upstreamServerAddress = supertestTest.prototype.serverAddress;
   supertestTest.prototype.serverAddress = function (app, path) {
-    if (!app.address()) this._server = listenOnLoopback(app);
-    const port = app.address().port;
-    const protocol = app instanceof tls.Server ? 'https' : 'http';
+    const url = upstreamServerAddress.call(this, app, path);
 
     // Give this server an identity and have it stamp its own responses, so the guard
     // below can prove a response came from it rather than infer it. The id carries the
@@ -122,10 +102,10 @@ if (supertestTest && !supertestTest.prototype.__loopbackBind) {
       });
     }
 
-    return protocol + '://127.0.0.1:' + port + path;
+    return url;
   };
 
-  supertestTest.prototype.__loopbackBind = true;
+  supertestTest.prototype.__stampWrapped = true;
 }
 
 // ---------------------------------------------------------------------------

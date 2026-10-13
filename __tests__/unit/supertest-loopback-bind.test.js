@@ -26,6 +26,13 @@ const request = require('supertest');
 
 const ok = (req, res) => { res.end('ok'); };
 
+// supertest 7.3 binds with a host, which resolves a tick later, so the address is not
+// known until 'listening'.
+function listening(server) {
+  if (server.address()) return Promise.resolve();
+  return new Promise(resolve => server.once('listening', resolve));
+}
+
 // The port the kernel is about to hand out. Ephemeral allocation walks forward, so a
 // decoy planted just ahead of this sits exactly where the next few binds will look —
 // which is what makes the contested case reproducible instead of a one-in-thousands
@@ -62,6 +69,7 @@ describe('supertest server binding', () => {
   it('binds 127.0.0.1, not the wildcard', async () => {
     const test = request(ok).get('/');
     // Read the address before the request completes — supertest closes the server after.
+    await listening(test._server);
     const address = test._server.address();
     await test.expect(200);
 
@@ -76,14 +84,11 @@ describe('supertest server binding', () => {
     if (!planted) return; // could not set the experiment up; not a failure of the code
 
     try {
-      const ports = [];
-      const pending = [];
-      for (let i = 0; i < 60; i++) {
-        const test = request(ok).get('/');
-        ports.push(test._server.address().port);
-        pending.push(test.expect(200).expect('ok'));
-      }
-      await Promise.all(pending);
+      const tests = [];
+      for (let i = 0; i < 60; i++) tests.push(request(ok).get('/'));
+      await Promise.all(tests.map(test => listening(test._server)));
+      const ports = tests.map(test => test._server.address().port);
+      await Promise.all(tests.map(test => test.expect(200).expect('ok')));
 
       // Before the fix these binds walk straight onto the decoy and it answers 'DECOY'.
       expect(ports).not.toContain(planted.target);
@@ -119,6 +124,16 @@ describe('supertest server binding', () => {
       handles.forEach(handle => handle.close());
       await new Promise(resolve => planted.decoy.close(resolve));
     }
+  });
+
+  // setupAfterEnv used to REPLACE serverAddress. supertest 7.3 closes only servers its own
+  // serverAddress registered, so every server stayed open: 1,167 by the end of a run, and
+  // on Cloud Build's 2 CPUs Jest runs in-band and could not exit (13 Oct 2026).
+  it('closes the server once the request has settled', async () => {
+    const test = request(ok).get('/');
+    const server = test._server;
+    await test.expect(200);
+    expect(server.listening).toBe(false);
   });
 
   it('stamps every response with the id of the server that produced it', async () => {
