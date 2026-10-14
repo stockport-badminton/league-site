@@ -67,6 +67,9 @@ const GAMES_PER_FIXTURE = 18;
 // player more than once" — the message that made this workflow impossible on the Tameside
 // site, and the first link in a three-bug chain that trapped a captain in a 500 loop.
 exports.validateScorecard = [
+      // Nothing checked the date, so a blank one reached the INSERT and Postgres refused
+      // `""` as a timestamp — a 500, and the captain's whole card lost (14 Oct, [85FE5E]).
+      body('date').isISO8601({ strict: true }).withMessage("Please enter the date the match was played."),
       body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
       body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
       body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),

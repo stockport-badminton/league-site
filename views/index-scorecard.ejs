@@ -183,6 +183,7 @@
                      <div class="form-group">
                        <label for="date">Date</label>
                        <input type="date" class="form-control" id="date" name="date" placeholder="DD/MM/YYYY">
+                       <div id="dateFeedback" class="text-danger small mt-1" style="display:none">Please enter the date the match was played.</div>
                      </div>
                    </div>
                  </div>
@@ -1912,10 +1913,29 @@
         if (match) validateGamePair(parseInt(match[1], 10), false);
       });
 
+      $('#date').on('change input', function() {
+        if (!this.value) return;
+        this.classList.remove('is-invalid');
+        $('#dateFeedback').hide();
+      });
+
       // Gate forward navigation: block "Continue" on score steps until games are valid
       var _origSendEvent = sendEvent;
       sendEvent = function(targetStep) {
         var target = parseInt(targetStep, 10);
+        // Step 1 had no gate, so a card the photo reader filled in without a date went
+        // all the way to submit and failed there with a 500 (14 Oct, [85FE5E]).
+        if (target > currentWizardStep && currentWizardStep === 1) {
+          var dateEl = document.getElementById('date');
+          var dateFb = document.getElementById('dateFeedback');
+          var missing = dateEl && !dateEl.value;
+          if (dateEl) dateEl.classList.toggle('is-invalid', !!missing);
+          if (dateFb) dateFb.style.display = missing ? 'block' : 'none';
+          if (missing) {
+            sblTrack('scorecard_step', { from: currentWizardStep, to: target, blocked: true, reason: 'date' });
+            return;
+          }
+        }
         if (target > currentWizardStep && scoreStepGames[currentWizardStep]) {
           var gameNums = scoreStepGames[currentWizardStep];
           var results = gameNums.map(function(n) { return validateGamePair(n, true); });

@@ -26,6 +26,8 @@ async function openWizard(page, baseURL) {
 // what made the first version of these tests time out on locator.fill: the input exists,
 // it is simply not visible yet.
 async function goToFirstScoreStep(page) {
+  // Step 1 does gate on the date (see 'the fixture step' below).
+  await page.locator('#date').first().fill('2026-01-15');
   for (const from of [1, 2, 3]) {
     await page.locator(`button.step.step-${from}[onclick="sendEvent('${from + 1}')"]`).first().click();
   }
@@ -171,6 +173,29 @@ test.describe('the summary', function () {
     const home = Number(await page.locator('#homeScore').first().inputValue());
     const away = Number(await page.locator('#awayScore').first().inputValue());
     expect(home + away).toBe(18);
+
+    guard.assertNoWrites();
+  });
+});
+
+// A card the photo reader filled in without a date used to walk all fourteen steps and
+// fail at submit with a 500 — the server refused "" as a timestamp and the whole card was
+// lost (14 Oct, [85FE5E]). The date is the one thing on step 1 the form cannot do without.
+test.describe('the fixture step', function () {
+  test('will not continue without a date, and says why', async function ({ page, baseURL }) {
+    const guard = await openWizard(page, baseURL);
+    const continueFrom1 = page.locator(`button.step.step-1[onclick="sendEvent('2')"]`).first();
+
+    await continueFrom1.click();
+    await expect(page.locator('.modal-body.step-1').first()).toBeVisible();
+    await expect(page.locator('.modal-body.step-2').first()).toBeHidden();
+    await expect(page.locator('#dateFeedback').first()).toBeVisible();
+    await expect(page.locator('#dateFeedback').first()).toHaveText(/date the match was played/i);
+
+    await page.locator('#date').first().fill('2026-01-15');
+    await expect(page.locator('#dateFeedback').first()).toBeHidden();
+    await continueFrom1.click();
+    await expect(page.locator('.modal-body.step-2').first()).toBeVisible();
 
     guard.assertNoWrites();
   });

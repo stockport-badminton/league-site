@@ -37,6 +37,9 @@ function differenceOfTwo(value, { req, path }) {
 }
 
 exports.validateMesserScorecard = [
+  // A blank date reaches the INSERT as `""`, which Postgres refuses as a timestamp — a
+  // 500 that loses the card. Same hole the league form had (14 Oct, [85FE5E]).
+  body('date').isISO8601({ strict: true }).withMessage('Please enter the date the match was played.'),
   body('Game1homeScore').isInt({ min: -10, max: 30 }).withMessage('must be between -10 and 30'),
   body('Game1awayScore').isInt({ min: -10, max: 30 }).withMessage('must be between -10 and 30').custom(greaterThan21).withMessage('Game 1: one team must score at least 21'),
   body('Game2homeScore').isInt({ min: -10, max: 30 }).withMessage('must be between -10 and 30'),

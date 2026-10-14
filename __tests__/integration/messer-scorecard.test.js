@@ -193,6 +193,24 @@ describe('Messer Scorecard Routes', () => {
       expect([200, 302]).toContain(res.status);
     });
 
+    // A blank date reached the INSERT and Postgres refused "" as a timestamp — a 500 that
+    // loses the card. The league form did exactly that on 14 Oct ([85FE5E]). Asserted on the
+    // validator chain itself: validMesserScorecard() also fails the mixed-game rules, so
+    // "nothing was inserted" over HTTP would pass with or without a date rule.
+    it('rejects a submission with no date', async () => {
+      const { validationResult } = require('express-validator');
+      const { validateMesserScorecard } = require('../../controllers/messer-scorecard-controller');
+      const dateErrors = async date => {
+        const req = { body: validMesserScorecard({ date }) };
+        await Promise.all(validateMesserScorecard.map(rule => rule.run(req)));
+        return validationResult(req).array().filter(e => e.param === 'date');
+      };
+      expect(await dateErrors('2026-01-15')).toHaveLength(0);
+      const blank = await dateErrors('');
+      expect(blank).toHaveLength(1);
+      expect(blank[0].msg).toBe('Please enter the date the match was played.');
+    });
+
     it('should reject submission with missing scores', async () => {
       const body = validMesserScorecard();
       delete body.Game1homeScore;

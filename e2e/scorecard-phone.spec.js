@@ -339,6 +339,8 @@ for (const { name, viewport } of GATE_VIEWPORTS) {
         async function ({ page, baseURL }) {
           const guard = await readOnly(page, baseURL);
           await openWizard(page, CARDS[card].path);
+          // The league card's step 1 gates on the date.
+          if (card === 'league') await page.locator('#date').first().fill('2026-01-15');
           for (const step of [1, 2, 3]) await continueButton(page, step).tap();
           await expect(page.locator('.modal-body.step-4').first()).toBeVisible();
 

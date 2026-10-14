@@ -620,3 +620,57 @@ describe('the header the page is given', () => {
     warn.mockRestore();
   });
 });
+
+// 14 Oct, 500 [85FE5E]: the reader matched the card to fixture 7298 but read nothing in the
+// date box, so the page was handed `date: null`, the field stayed blank, and the submit
+// failed on the INSERT. A matched fixture has a date we already hold.
+describe('POST /api/analyse-scorecard — the date', () => {
+  const { analyseImage } = require('../../controllers/cornerDetection');
+  const { extractScorecardData } = require('../../controllers/scorecardExtraction');
+  const Fixture = require('../../models/fixture');
+
+  const cardWithDate = date => ({
+    metadata: { date, division: '', homeTeam: 'AEROSPACE A', awayTeam: 'DOMEB' },
+    homePlayers: [], awayPlayers: [], pointsPairs: [],
+  });
+
+  beforeEach(() => {
+    mockS3Puts.length = 0;
+    mockPutFails = false;
+    analyseImage.mockResolvedValue({ textBlocks: [], imageWidth: 600, imageHeight: 400 });
+    require('../../models/teams').getAll.mockResolvedValue([
+      { id: 24, name: 'Aerospace A', division: 9 },
+      { id: 38, name: 'Dome B', division: 9 },
+    ]);
+    require('../../models/division').getAll.mockResolvedValue([{ id: 9, name: 'Division 2' }]);
+    // As pg hands back a `timestamp without time zone`: local midnight on the day.
+    Fixture.getScorecardCandidates.mockResolvedValue([{
+      id: 7298, date: new Date(2026, 9, 13),
+      homeId: 24, homeName: 'Aerospace A', awayId: 38, awayName: 'Dome B', divisionId: 9,
+    }]);
+  });
+
+  const analyse = () => request(app).post('/api/analyse-scorecard')
+    .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
+
+  it('falls back to the matched fixture\'s date when none was read', async () => {
+    extractScorecardData.mockResolvedValue(cardWithDate(''));
+    const res = await analyse();
+    expect(res.status).toBe(200);
+    expect(res.body._meta.fixtureId).toBe(7298);
+    expect(res.body.date).toBe('2026-10-13');
+  });
+
+  it('prefers the date written on the card', async () => {
+    extractScorecardData.mockResolvedValue(cardWithDate('14/10/2026'));
+    const res = await analyse();
+    expect(res.body.date).toBe('2026-10-14');
+  });
+
+  it('still answers null when there is neither', async () => {
+    extractScorecardData.mockResolvedValue(cardWithDate(''));
+    Fixture.getScorecardCandidates.mockResolvedValue([]);
+    const res = await analyse();
+    expect(res.body.date).toBeNull();
+  });
+});

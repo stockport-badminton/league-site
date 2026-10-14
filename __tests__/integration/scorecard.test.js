@@ -322,6 +322,24 @@ describe('POST /email-scorecard', () => {
     });
   });
 
+  // 14 Oct, 500 [85FE5E]: nothing validated the date, so a blank one reached the INSERT
+  // and Postgres refused "" as a timestamp — a 500 page and the whole card lost.
+  describe('with no date', () => {
+    it('re-renders the form saying so, and writes nothing', async () => {
+      Division.getAllAndSelectedById.mockResolvedValue([{ id: 1, name: 'Division 1', selected: 1 }]);
+      Team.getAllAndSelectedById.mockResolvedValue([{ id: 10, name: 'Mellor A', selected: 1 }]);
+      Player.getEligiblePlayersAndSelectedById.mockResolvedValue([[{ id: 1, name: 'P1', selected: 1 }]]);
+
+      const res = await request(app)
+        .post('/email-scorecard')
+        .send(validScorecard({ date: '' }));
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Please enter the date the match was played.');
+      expect(Fixture.createScorecard).not.toHaveBeenCalled();
+    });
+  });
+
   describe('with valid data', () => {
     beforeEach(() => {
       // The shape Fixture.createScorecard really resolves to: the db wrapper returns

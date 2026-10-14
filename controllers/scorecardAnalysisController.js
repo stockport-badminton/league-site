@@ -9,6 +9,7 @@ const Team     = require('../models/teams');
 const Player   = require('../models/players');
 const Division = require('../models/division');
 const Fixture  = require('../models/fixture');
+const { localYmd } = require('../utils/canonical');
 
 // ── Multer — memory storage, 10 MB limit ─────────────────────────────────────
 
@@ -122,7 +123,7 @@ function normaliseDate(raw) {
     let [, d, m, y] = dmy;
     if (y.length === 2) y = '20' + y;
     const date = new Date(+y, +m - 1, +d);
-    if (!isNaN(date)) return date.toISOString().slice(0, 10);
+    if (!isNaN(date)) return ymd(date);
   }
 
   // "15 Jan 2026" or "15th January 2026" or "January 15 2026"
@@ -133,7 +134,7 @@ function normaliseDate(raw) {
     if (m) {
       const year = y.length === 2 ? '20' + y : y;
       const date = new Date(+year, m - 1, +d);
-      if (!isNaN(date)) return date.toISOString().slice(0, 10);
+      if (!isNaN(date)) return ymd(date);
     }
   }
   const textDate2 = s.match(/([A-Za-z]{3,})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})/);
@@ -143,11 +144,20 @@ function normaliseDate(raw) {
     if (m) {
       const year = y.length === 2 ? '20' + y : y;
       const date = new Date(+year, m - 1, +d);
-      if (!isNaN(date)) return date.toISOString().slice(0, 10);
+      if (!isNaN(date)) return ymd(date);
     }
   }
 
   return null;
+}
+
+// YYYY-MM-DD of a local-midnight Date: the ones built above, and fixture.date, which is
+// UK local midnight held as a naive timestamp. Local getters (localYmd), because
+// toISOString() gives the day before whenever the process is not on UTC — BST on a dev
+// machine, which is how the test for the written date caught it.
+function ymd(date) {
+  const { y, m, d } = localYmd(date);
+  return `${y}-${m}-${d}`;
 }
 
 // ── Fuzzy matching ────────────────────────────────────────────────────────────
@@ -686,7 +696,11 @@ exports.analyse_scorecard = async function(req, res) {
 
     // Step 5: build response in form-field format
     res.json({
-      date:     normaliseDate(metadata.date),
+      // What was written on the card, else the date of the fixture it was matched to.
+      // OCR often reads nothing in the date box, and a matched fixture has a date we
+      // already hold — the page used to leave the field blank, and the captain submitted
+      // with no date at all (14 Oct, 500 [85FE5E]).
+      date:     normaliseDate(metadata.date) || (fixture && fixture.date ? ymd(fixture.date) : null),
       division: divisionId,
       homeTeam: homeTeamId,
       awayTeam: awayTeamId,
