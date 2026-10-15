@@ -169,8 +169,10 @@
 function initMap() {
   clearTimeout(mapInitTimeout);
 
-  // The location of Uluru
-  var StockportTownHall = {lat:53.4060787,lng:-2.1606755};
+  // Stockport Town Hall, Edward Street (OpenStreetMap way 136354479). The rules define the
+  // league's catchment as ten miles from here. The previous point was ~150m west, at
+  // Stockport Exchange by the station.
+  var StockportTownHall = {lat:53.4059929,lng:-2.1584417};
   var map = new google.maps.Map(
       document.getElementById('map'), {zoom: 10, center: StockportTownHall, mapId: '28eeb908f19e8aab',});
 
@@ -214,7 +216,7 @@ function initMap() {
 
   var markerStockPortTownHall = new google.maps.marker.AdvancedMarkerElement({position: StockportTownHall, map: map});
   var circle = new google.maps.Circle({
-  radius: 16093,    // 10 miles in metres
+  radius: 16093.44, // 10 miles in metres; Circle measures along the Earth's surface
   strokeColor: '#FF0000',
   strokeOpacity: 0.1,
   strokeWeight: 0.5,

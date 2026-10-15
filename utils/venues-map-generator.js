@@ -20,7 +20,7 @@ const s3 = new S3Client({ region: 'eu-west-1' });
 const S3_KEY = 'venues-map.png';
 
 // Matches the live map's config (club-v2.ejs) for visual parity.
-const CENTER = '53.4060787,-2.1606755'; // Stockport Town Hall
+const CENTER = '53.4059929,-2.1584417'; // Stockport Town Hall (OSM way 136354479)
 const ZOOM = 10;
 const MAP_ID = '28eeb908f19e8aab';
 const SIZE = '640x400';
