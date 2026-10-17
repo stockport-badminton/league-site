@@ -281,6 +281,8 @@ npm run test:all      # jest, then playwright
   arrow-key reordering, the row menu and its clipping/flip, Discard, plus mobile
   stacking; the reordering is JavaScript-only behaviour that no server-side test can
   reach),
+  `homepage-gallery.spec.js` (the Messer gallery's images download only when its modal
+  opens — HARD-43),
   `read-only-guard.spec.js` (self-test for the guard below).
 - **Two specs write, and they say so.** `scorecard-submit.spec.js` fills the captain's form
   in the browser, POSTs it, and reads the row back out of `scorecardstore` — one row per

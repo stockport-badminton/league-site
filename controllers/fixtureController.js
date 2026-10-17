@@ -6,7 +6,7 @@ var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var HomepageContent = require('../models/homepageContent');
 var SiteSettings = require('../models/siteSettings');
-const axios = require('axios');
+const cloudinaryGallery = require('../utils/cloudinaryGallery');
 const SD = require('../utils/structuredData');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
@@ -474,13 +474,8 @@ exports.fixture_get_summary = async function(req, res, next) {
       HomepageContent.getActive(),
       SiteSettings.get('homepage_gallery_tag')
     ]);
-    let assets = [];
-    try {
-      const response = await axios.get('https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image/tags/'+(galleryTag || 'messer2026')+'?max_results=30&context=true');
-      assets = response.data.resources;
-    } catch (cloudinaryErr) {
-      console.error('Cloudinary fetch failed:', cloudinaryErr.message);
-    }
+    // Cached, time-bounded and never rejects: see utils/cloudinaryGallery.js (HARD-43).
+    const assets = await cloudinaryGallery.getGallery(galleryTag || 'messer2026');
     res.render('homepage', {
       static_path: '/static',
       pageTitle: "Homepage",

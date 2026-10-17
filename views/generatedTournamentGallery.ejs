@@ -27,7 +27,7 @@
                   
               %>
               <div class="carousel-item <%= active %>">
-                    <img class="d-block img-fluid" src="<%= imageref %>" sizes="100vw" width="100%" border=0 alt="" title=""/>
+                    <img class="d-block img-fluid" data-src="<%= imageref %>" sizes="100vw" width="100%" border=0 alt="" title=""/>
                 <div class="carousel-caption d-none d-md-block">
                   <h5><%= caption %></h5>
                 </div>
@@ -53,3 +53,17 @@
     </div>
   </div>
 </div>
+<script>
+  // The gallery's images are fetched when the modal opens, not with the page (HARD-43).
+  // A hidden modal does not stop an <img src> downloading: this was ~10 requests and
+  // ~425 KB on every homepage view, for a gallery most visitors never open. Bound on
+  // DOMContentLoaded because jQuery and Bootstrap load in the footer, after this.
+  document.addEventListener('DOMContentLoaded', function () {
+    $('#generatedTournamentGalleryModal').one('show.bs.modal', function () {
+      this.querySelectorAll('img[data-src]').forEach(function (img) {
+        img.src = img.getAttribute('data-src');
+        img.removeAttribute('data-src');
+      });
+    });
+  });
+</script>

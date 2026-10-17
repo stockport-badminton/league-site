@@ -15,10 +15,12 @@ const Club = require('../../models/club');
 const HomepageContent = require('../../models/homepageContent');
 const SiteSettings = require('../../models/siteSettings');
 const axios = require('axios');
+const cloudinaryGallery = require('../../utils/cloudinaryGallery');
 const app = require('../../app');
 
 beforeEach(() => {
   jest.clearAllMocks();
+  cloudinaryGallery._reset();
 });
 
 // GET / — homepage
@@ -44,6 +46,43 @@ describe('GET /', () => {
     expect(Fixture.getOutstandingScorecards).toHaveBeenCalledTimes(1);
     expect(Fixture.getRecent).toHaveBeenCalledTimes(1);
     expect(Fixture.getupComing).toHaveBeenCalledTimes(1);
+  });
+
+  // HARD-43: the gallery listing came from Cloudinary's Admin API on every request,
+  // uncached and with no timeout, so a slow Cloudinary was a slow homepage.
+  it('makes at most one Cloudinary call for two homepage requests in a row', async () => {
+    setupHomepageMocks();
+    await request(app).get('/');
+    await request(app).get('/');
+    expect(axios.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders without the gallery, in under 2 s, when Cloudinary never answers', async () => {
+    setupHomepageMocks();
+    axios.get.mockImplementation(() => new Promise(() => {}));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const started = Date.now();
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(res.text).not.toMatch(/class="carousel-item/);
+    console.error.mockRestore();
+  });
+
+  it('does not fetch gallery images with the page, only when the modal opens', async () => {
+    setupHomepageMocks();
+    axios.get.mockResolvedValue({ data: { resources: [
+      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/a.jpg' },
+      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/b.jpg' },
+    ] } });
+    const res = await request(app).get('/');
+    const imgs = res.text.match(/<img[^>]*res\.cloudinary\.com\/hvunsveuh[^>]*>/g) || [];
+    expect(imgs).toHaveLength(2);
+    for (const img of imgs) {
+      expect(img).toMatch(/\sdata-src="/);
+      expect(img).not.toMatch(/\ssrc="/);
+    }
+    expect(res.text).toMatch(/'show\.bs\.modal'/);
   });
 
   it('returns 500 when a Fixture call rejects', async () => {
