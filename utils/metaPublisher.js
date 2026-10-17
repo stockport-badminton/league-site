@@ -498,6 +498,10 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
   const failed = [];
 
   for (const t of (targets || []).filter(Boolean)) {
+    // Targets run in sequence, so each one's time adds to the caller's. Logged rather than
+    // returned so no caller's contract changes (HARD-47; grep Cloud Logging for `[timing]`).
+    const started = Date.now();
+    const before = failed.length;
     try {
       if (t.kind === 'page') {
         const r = await publishPageAlbum(t.id, t.token, { imageUrls, message });
@@ -523,6 +527,7 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
     } catch (err) {
       failed.push({ target: t.name, error: err });
     }
+    console.log(`[timing] meta: ${t.name} ${Date.now() - started}ms ${failed.length > before ? 'failed' : 'ok'}`);
   }
 
   return { posted, failed, ok: failed.length === 0 };

@@ -31,12 +31,20 @@ const Sentry = require('@sentry/node');
  */
 async function afterCommit(label, fn, opts) {
   const stage = (opts && opts.stage) || 'post-commit';
+  // Every step is timed, because these are what a request waits on after its write has
+  // already succeeded. HARD-47: publishing a result took 16-51 s against Firebase's 60 s
+  // cut, and the request log could say only the total. Grep Cloud Logging for `[timing]`.
+  const started = Date.now();
+  let outcome = 'ok';
   try {
     return await fn();
   } catch (err) {
+    outcome = 'failed';
     console.error(`${stage}: ${label} failed after the write was committed:`, err.message);
     Sentry.captureException(err, { tags: { stage, step: label } });
     return null;
+  } finally {
+    console.log(`[timing] ${stage}: ${label} ${Date.now() - started}ms ${outcome}`);
   }
 }
 
