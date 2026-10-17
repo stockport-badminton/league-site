@@ -1,9 +1,14 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#673ab6">
 <script>
+  // After load, not during it: on first install the worker precaches seven pages and the
+  // shell assets, and doing that while the first page is still loading competes with it
+  // for the connection (HARD-44).
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .catch(function(err) { console.warn('SW registration failed:', err); });
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .catch(function(err) { console.warn('SW registration failed:', err); });
+    });
   }
 </script>
 <script>

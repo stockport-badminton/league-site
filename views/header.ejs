@@ -169,7 +169,9 @@
       <% if (monitoringEnabled) { %>
       <%# Not just gated at init: outside production the loader is never fetched
           either, so local pages don't pay for the request. %>
-      <script src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
+      <%# defer, not blocking: a synchronous script here held up rendering of every page a
+          logged-in member opened (HARD-44). sentryOnLoad above is defined first either way. %>
+      <script defer src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
       <% } %>
       
     <% } else{ %>
@@ -181,7 +183,6 @@
 });
 </script>
       <% } %> 
-    </script>
 
 <%#
   Structured data (JSON-LD) arrives pre-built as `jsonLd`, an array of serialised
@@ -230,10 +231,16 @@
 
     <%- include('touch-icons.ejs') -%>
 
+    <%# The background on <main class="respBgImg"> is the LCP element on most pages, and its
+        URL is in custom.css, so without this the browser cannot start it until that file has
+        arrived. One link per breakpoint; each media range matches exactly one, so only the
+        image the CSS will use is fetched. See utils/backgroundPreload.js. %>
+    <% backgroundPreloads().forEach(function(bg) { %>
+    <link rel="preload" as="image" fetchpriority="high" href="<%= bg.href %>" media="<%= bg.media %>">
+    <% }) %>
     <!-- Bootstrap core CSS (self-hosted from node_modules so it works offline) -->
     <link rel="stylesheet" href="<%= asset('/scripts/bootstrap/dist/css/bootstrap.min.css') %>">
-    <!-- font awesome CSS-->
-    <link rel="stylesheet" href="<%= asset('/scripts/@fortawesome/fontawesome-free/css/all.css') %>">
+    <%# No Font Awesome stylesheet: icons are inline SVG from utils/icons.js (HARD-44). %>
     <%# DataTables CSS is only needed on the six views that build a table, so those
         views opt in with include('header.ejs', { useDataTables: true }). It used to
         load unconditionally on every page. %>

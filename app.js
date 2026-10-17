@@ -136,6 +136,10 @@ app.locals.fixturesImagePath = require('./utils/canonical').fixturesImagePath;
 app.locals.jsonForScript = require('./utils/jsonForScript');
 // Versioned asset URLs (HARD-42): never build a /static or /scripts URL by hand in a view.
 app.locals.asset = require('./utils/assets').asset;
+// Inline SVG icons (HARD-44): `<%- icon('trophy') %>`, never a Font Awesome class.
+app.locals.icon = require('./utils/icons').icon;
+// The page background's <link rel=preload> tags, read from custom.css (HARD-44 item 2).
+app.locals.backgroundPreloads = require('./utils/backgroundPreload').backgroundPreloads;
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;

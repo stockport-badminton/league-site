@@ -29,7 +29,6 @@ const sha = (file) => crypto.createHash('sha256').update(fs.readFileSync(path.jo
 const SHELL = [
   ['/static/beta/css/custom.css', 'static/beta/css/custom.css'],
   ['/scripts/bootstrap/dist/css/bootstrap.min.css', 'node_modules/bootstrap/dist/css/bootstrap.min.css'],
-  ['/scripts/@fortawesome/fontawesome-free/css/all.css', 'node_modules/@fortawesome/fontawesome-free/css/all.css'],
   ['/scripts/jquery/dist/jquery.min.js', 'node_modules/jquery/dist/jquery.min.js'],
   ['/scripts/popper.js/dist/umd/popper.min.js', 'node_modules/popper.js/dist/umd/popper.min.js'],
   ['/scripts/bootstrap/dist/js/bootstrap.min.js', 'node_modules/bootstrap/dist/js/bootstrap.min.js'],
@@ -89,7 +88,7 @@ describe('Cache-Control on the static mounts', () => {
 });
 
 describe('the service worker precaches what the page requests', () => {
-  test.each(SHELL.filter(([u]) => !u.includes('fontawesome')))('%s is precached at its versioned URL', async (url, file) => {
+  test.each(SHELL)('%s is precached at its versioned URL', async (url, file) => {
     const res = await request(app).get('/sw.js');
     expect(res.text).toContain(`'${url}?v=${sha(file)}'`);
     expect(res.text).not.toContain(`'${url}'`);
@@ -97,15 +96,13 @@ describe('the service worker precaches what the page requests', () => {
 });
 
 describe('/scripts serves the vendor files the pages use, not node_modules', () => {
-  test('Font Awesome\'s fonts are reachable, since all.css loads them by relative URL', async () => {
-    const res = await request(app).get('/scripts/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2');
-    expect(res.status).toBe(200);
-  });
-
   test.each([
     '/scripts/ejs/ejs.js',
     '/scripts/express/package.json',
     '/scripts/bootstrap/package.json',
+    // Font Awesome is inline SVG since HARD-44; its font and css are no longer published.
+    '/scripts/@fortawesome/fontawesome-free/css/all.css',
+    '/scripts/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2',
   ])('%s is not served', async (url) => {
     const res = await request(app).get(url);
     expect(res.status).toBe(404);

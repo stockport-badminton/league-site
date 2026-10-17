@@ -25,30 +25,6 @@
   width: 100%;
 }
 
-/* custom.css styles `.fa, .fa-brands` globally for the footer's social icons —
- * `font-size: 30px; padding: 10px; float: right; margin: 5px` — and that lands on
- * every Font Awesome icon on the site. Inside a button it makes a 30px glyph float
- * away from its own label, which is why the old team page carried
- * `.add-player-box .fa, .player-box .fa { font-size:16px; position:absolute; }` as
- * a workaround. Rather than change a rule 40-odd other pages depend on, undo it for
- * this page's icons: here an icon is a glyph next to a word, at the size of the
- * word. */
-.roster-page .fa,
-.roster-page .fas,
-.roster-page .far,
-.roster-page .fa-solid,
-.roster-page .fa-regular {
-  float: none;
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  line-height: inherit;
-  text-align: inherit;
-  display: inline-block;
-  width: auto;
-  vertical-align: baseline;
-}
-
 .roster-head {
   display: flex;
   flex-wrap: wrap;

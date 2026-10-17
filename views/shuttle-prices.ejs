@@ -20,12 +20,12 @@
     <h2 class="mb-0 mr-3">Feather Shuttle Prices</h2>
     <form method="POST" action="/shuttle-prices/refresh" class="mb-0 mr-2">
       <button type="submit" class="btn btn-sm btn-primary" id="refreshBtn">
-        <i class="fas fa-sync-alt mr-1"></i>Refresh prices
+        <%- icon('arrows-rotate', { class: 'mr-1' }) %>Refresh prices
       </button>
     </form>
     <% if (data) { %>
       <a href="/shuttle-prices/export" class="btn btn-sm btn-success mr-2">
-        <i class="fas fa-file-excel mr-1"></i>Export xlsx
+        <%- icon('file-excel', { class: 'mr-1' }) %>Export xlsx
       </a>
     <% } %>
     <% if (data) { %>
@@ -38,7 +38,7 @@
 
   <% if (!data) { %>
     <div class="no-data-prompt">
-      <i class="fas fa-shuttle-space fa-2x text-muted mb-3 d-block"></i>
+      <div class="text-muted mb-3" style="font-size:2em;line-height:1"><%- icon('shuttle-space') %></div>
       <h5>No price data yet</h5>
       <p class="text-muted mb-3">Click <strong>Refresh prices</strong> to scrape both sites.<br>
       This takes about 20–30 seconds.</p>
@@ -187,7 +187,7 @@
               </td>
               <td>
                 <a href="<%= p.url %>" target="_blank" rel="noopener" class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem;padding:2px 6px">
-                  View <i class="fas fa-external-link-alt ml-1" style="font-size:0.65rem"></i>
+                  View <%- icon('up-right-from-square', { class: 'ml-1', style: 'font-size:0.65rem' }) %>
                 </a>
               </td>
             </tr>
@@ -274,7 +274,7 @@
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {
     refreshBtn.closest('form').addEventListener('submit', () => {
-      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Scraping…';
+      refreshBtn.innerHTML = '<%- icon('spinner', { class: 'icon-spin mr-1' }) %>Scraping…';
       refreshBtn.disabled = true;
     });
   }

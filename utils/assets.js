@@ -19,14 +19,13 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 // What /scripts serves. It used to be the whole of node_modules, which published every
-// installed package's files; these are the only ones a page asks for. Font Awesome's
-// all.css pulls its fonts from ../webfonts/, so that directory has to be here too.
+// installed package's files; these are the only ones a page asks for. (Font Awesome's css
+// and webfonts were here until HARD-44 replaced the font with inline SVG; utils/icons.js
+// reads the package from disk and nothing fetches it.)
 const VENDOR_DIRS = [
   'bootstrap/dist',
   'jquery/dist',
-  'popper.js/dist',
-  '@fortawesome/fontawesome-free/css',
-  '@fortawesome/fontawesome-free/webfonts'
+  'popper.js/dist'
 ];
 
 const YEAR = 'public, max-age=31536000, immutable';

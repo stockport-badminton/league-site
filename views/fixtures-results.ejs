@@ -10,9 +10,9 @@
     
     <div class="row col-12">
       <h1><%= division %></h1>
-      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/results-grid\/') %>" data-text="Grid view"><i class="fa fa-th"></i></a><br />
-      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/calendars\/') %>" data-text="download the calendar or copy the link"><i class="fa fa-calendar"></i></a>
-      <a id="showFilter" class="text-secondary other-tooltip" href="" data-text="show/hide filters"><i class="fa fa-filter"></i></a>
+      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/results-grid\/') %>" data-text="Grid view"><%- icon('table-cells', { class: 'icon-float' }) %></a><br />
+      <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/calendars\/') %>" data-text="download the calendar or copy the link"><%- icon('calendar', { class: 'icon-float' }) %></a>
+      <a id="showFilter" class="text-secondary other-tooltip" href="" data-text="show/hide filters"><%- icon('filter', { class: 'icon-float' }) %></a>
     </div>
     <% if (typeof admin !== 'undefined') { %>
     <div class="row col-12">
@@ -109,12 +109,12 @@
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
           <td class="fixture-date" data-fixture-id="<%= row['id'] %>" data-iso="<%= isoDate %>">
             <span class="fd-text"><%= MyDateString %></span>
-            <a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><i class="fa fa-pencil"></i></a>
+            <a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><%- icon('pencil', { class: 'icon-float' }) %></a>
           </td>
           <% } else { %>
           <td><%= MyDateString %></td>
           <% } %>
-          <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><i class="fa-solid fa-map-location-dot"></i></a><%= row['homeTeam'] %></td>
+          <td data-homeTeam="<%= row['homeClubId'] %>"><a href="<%= row['venueLink'] %>" target="_blank"><%- icon('map-location-dot') %></a><%= row['homeTeam'] %></td>
           <td data-awayTeam="<%= row['awayTeamId'] %>"><%= row['awayTeam'] %></td>
           <% if(row['homeScore'] != null){
                // Through the shared helper so this cannot drift from the URL the
@@ -427,7 +427,7 @@
             var p = val.split('-');
             $cell.attr('data-iso', val);
             $cell.html('<span class="fd-text">' + p[2] + '/' + p[1] + '/' + p[0] + '</span> '
-              + '<a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><i class="fa fa-pencil"></i></a>');
+              + '<a href="#" class="fd-edit" title="Edit date" aria-label="Edit date"><%- icon('pencil', { class: 'icon-float' }) %></a>');
           })
           .fail(function(xhr){
             $cell.find('.fd-msg').text((xhr.responseJSON && xhr.responseJSON.error) || 'Save failed');

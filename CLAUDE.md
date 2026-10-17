@@ -628,6 +628,16 @@ were unreachable on a laptop. Add a tool to `GROUPS`; it appears on the hub, and
 - **`/scripts` is not `node_modules` any more** — only `VENDOR_DIRS`. A new vendor file a
   page loads needs its directory added there, or it 404s.
 
+### Icons are `icon('name')`, not Font Awesome classes
+
+`<%- icon('trophy') %>` (`utils/icons.js`, on `app.locals`) inlines the SVG from the
+installed `@fortawesome/fontawesome-free` package. The webfont and its stylesheet are gone
+(HARD-44 — 118–274 KB of fonts for ~33 icons), so **an `fa-` class now renders as
+nothing**; `__tests__/unit/icons.test.js` fails on one. Names are Font Awesome 6 file names
+(`xmark`, not `times`), and an unknown name throws at render. The output is safe inside a
+single-quoted JS string. An icon is the size and colour of its text; `icon-float` is the
+old 30px floated look, opted into on the results pages.
+
 ### Form Validation (express-validator)
 
 Scorecard form validation is complex — validates 18 games + player uniqueness:

@@ -32,6 +32,7 @@ function renderHeader(env, user) {
       theme: 'flatly',
       siteOrigin,
       asset: require('../../utils/assets').asset,
+      backgroundPreloads: require('../../utils/backgroundPreload').backgroundPreloads,
       ...(user ? { user } : {}),
       canonical: 'https://stockport-badminton.co.uk/',
     }, { filename: HEADER });

@@ -17,7 +17,7 @@
           { extend: 'colvis', className: 'dt-btn' }
           <% if (typeof dtCsv !== 'undefined' && dtCsv) { %>
           ,
-          { extend: 'csv', text: '<i class="fas fa-download"></i> CSV', className: 'dt-btn' }
+          { extend: 'csv', text: '<%- icon('download') %> CSV', className: 'dt-btn' }
           <% } %>
         ]
       });

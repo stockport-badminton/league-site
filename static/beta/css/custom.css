@@ -134,52 +134,51 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
 
 
 
-/* Style all font awesome icons */
-.fa, .fa-brands {
+/* Inline SVG icons from utils/icons.js (HARD-44), which replaced the Font Awesome
+ * webfont. An icon is a glyph the size of the text around it, coloured like it. */
+.icon {
+  display: inline-block;
+  height: 1em;
+  width: auto;
+  vertical-align: -0.125em;
+  overflow: visible;
+  fill: currentColor;
+}
+.icon-spin { animation: icon-spin 1s linear infinite; }
+@keyframes icon-spin { to { transform: rotate(360deg); } }
+
+/* The large floated icon at the top of the results pages (grid, calendar, filter). This
+ * is what the old global `.fa` rule did to every `fa fa-*` icon on the site — opt in to
+ * it now rather than inherit it. */
+.icon-float {
+  box-sizing: content-box;
   padding: 10px;
   font-size: 30px;
-  text-align: center;
-  text-decoration: none;
-  float:right;
+  float: right;
   margin: 5px;
 }
+.icon-float:hover { opacity: 0.7; }
 
-/* Add a hover effect if you want */
-.fa:hover, .fa-brands:hover {
-  opacity: 0.7;
-}
-
-/* Set a specific color for each brand */
-
-/* Facebook */
-.fa-facebook {
-  background: #3B5998;
+/* The footer's social links: a white glyph in a coloured square. */
+.social-link {
+  float: right;
+  padding: 10px;
+  margin: 5px;
+  font-size: 30px;
+  line-height: 0;
   color: white;
 }
+.social-link:hover { opacity: 0.7; color: white; }
+.social-link .icon { display: block; vertical-align: 0; }
+.social-facebook { background: #3B5998; }
+.social-twitter { background: #55ACEE; }
+.social-instagram { background: #125688; }
 
-/* Twitter */
-.fa-twitter {
-  background: #55ACEE;
-  color: white;
-}
-
-/* Instagram */
-.fa-instagram {
-  background: #125688;
-  color: white;
-}
-
-.fa-map-location-dot {
+.icon-map-location-dot {
   color: black;
   font-size: 1.5em;
-  padding-right:1em
-}
-
-.add-player-box .fa, .player-box .fa {
-  font-size:16px;
-  padding:0px;
-  position:absolute;
-  right:16px;
+  padding-right: 1em;
+  box-sizing: content-box;
 }
 
 .nominated-container, .reserves-container {
@@ -194,9 +193,6 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
   cursor: pointer;
 }
 
-i.fa.fa-ellipsis-v.dropdown-toggle::after {
-  content:unset
-}
 
 .h-13 {
   height: 13vmin!important;
@@ -335,19 +331,13 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   text-align: left;
 }
 
-/* These icons are inside a label, not the footer social row that the global
- * `.fa` rule above styles - so reset the parts of it that would apply. */
-.filter-field label i,
-.filter-chip i,
-.dt-controls .dt-buttons .dt-btn i {
-  float: none;
-  margin: 0;
-  padding: 0;
-  font-size: inherit;
+.filter-field label .icon,
+.filter-chip .icon,
+.dt-controls .dt-buttons .dt-btn .icon {
   opacity: 0.75;
 }
 
-.filter-field label i {
+.filter-field label .icon {
   margin-right: 0.3rem;
 }
 
@@ -419,7 +409,7 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   text-decoration: none;
 }
 
-.filter-chip i {
+.filter-chip .icon {
   font-size: 0.7rem;
 }
 
@@ -557,7 +547,7 @@ i.fa.fa-ellipsis-v.dropdown-toggle::after {
   color: white;
 }
 
-.dt-controls .dt-buttons .dt-btn i {
+.dt-controls .dt-buttons .dt-btn .icon {
   margin-right: 0.35rem;
 }
 

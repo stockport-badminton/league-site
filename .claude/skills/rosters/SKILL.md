@@ -81,10 +81,12 @@ cross-origin with a bare network error. 4xx messages are passed through to the c
 them in its toast); 5xx messages are not, since they can carry SQL.
 
 Gotchas:
-- `custom.css` styles `.fa` globally for the footer's social icons (`font-size: 30px;
-  float: right`), and `nav.ejs` wraps every page in `.starter-template` which sets
-  `text-align: center`. `roster.css` undoes both for `.roster-page` — don't "fix"
-  them centrally, 40-odd other pages depend on them.
+- `nav.ejs` wraps every page in `.starter-template`, which sets `text-align: center`.
+  `roster.css` undoes it for `.roster-page` — don't "fix" it centrally, 40-odd other
+  pages depend on it. (There used to be a second trap, a global `.fa` rule sizing every
+  icon at 30px and floating it right; HARD-44 replaced the icon font with inline SVG
+  via `icon()`, and an icon is now the size of its text unless it opts into
+  `icon-float`.)
 - Drag uses **Pointer Events** plus `touch-action: none` on the handle. Both are
   needed; the old page bound only `dragstart`/`drop`, which mobile browsers never
   fire from touch, so nothing on it worked on a phone. `touch-action: none` also

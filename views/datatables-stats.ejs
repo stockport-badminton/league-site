@@ -57,12 +57,12 @@
           { extend: 'colvis', className: 'dt-btn' }
           <% if (typeof dtCsv !== 'undefined' && dtCsv) { %>
           ,
-          { extend: 'csv', text: '<i class="fas fa-download"></i> CSV', className: 'dt-btn' }
+          { extend: 'csv', text: '<%- icon('download') %> CSV', className: 'dt-btn' }
           <% } %>
           <% if (typeof dtColumnSearch !== 'undefined' && dtColumnSearch) { %>
           ,
           {
-            text: '<i class="fas fa-magnifying-glass"></i> Search columns',
+            text: '<%- icon('magnifying-glass') %> Search columns',
             className: 'dt-btn dt-btn-colsearch',
             action: function (e, dt, node) {
               var on = $('#results-table').toggleClass('colsearch-on').hasClass('colsearch-on');

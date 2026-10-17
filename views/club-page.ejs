@@ -1,6 +1,5 @@
-<%# useRosterCss because roster.css is what undoes the two global traps this page
-    would otherwise hit: `.starter-template { text-align: center }` from nav.ejs and
-    the site-wide `.fa` sizing in custom.css. See CLAUDE.md. %>
+<%# useRosterCss because roster.css is what undoes the global trap this page
+    would otherwise hit: `.starter-template { text-align: center }` from nav.ejs. %>
 <%- include('header.ejs', { useRosterCss: true }) %>
 <%- include('nav.ejs') %>
 
