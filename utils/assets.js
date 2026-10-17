@@ -93,10 +93,22 @@ function cacheControlFor(urlPath, version) {
   return HOUR;
 }
 
+function isServedFile(urlPath) {
+  const file = resolve(urlPath);
+  if (!file) return false;
+  try { return fs.statSync(file).isFile(); } catch (e) { return false; }
+}
+
 function cacheHeaders(req, res, next) {
-  const v = typeof req.query.v === 'string' ? req.query.v : undefined;
   // Mounted at /static and /scripts, so req.path has the mount stripped off.
-  res.set('Cache-Control', cacheControlFor(req.baseUrl + req.path, v));
+  const urlPath = req.baseUrl + req.path;
+  // Only a file the static mount will actually serve. Anything else falls through to the
+  // site's 404 page, which is rendered with the nav and the visitor's login state, and a
+  // public max-age on THAT would let the CDN hand one person's page to everyone. Found on
+  // production minutes after this first deployed: a missing /scripts URL was an x-cache HIT.
+  if (!isServedFile(urlPath)) return next();
+  const v = typeof req.query.v === 'string' ? req.query.v : undefined;
+  res.set('Cache-Control', cacheControlFor(urlPath, v));
   next();
 }
 

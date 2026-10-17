@@ -110,6 +110,19 @@ describe('/scripts serves the vendor files the pages use, not node_modules', () 
     const res = await request(app).get(url);
     expect(res.status).toBe(404);
   });
+
+  // The 404 is the site's own page, rendered with the nav and the visitor's login state.
+  // A public max-age on it lets the CDN serve one person's page to everyone — which is
+  // what the first deploy of this did, until it was curled.
+  test.each([
+    '/scripts/ejs/ejs.js',
+    '/static/does-not-exist.css',
+    '/static/does-not-exist.css?v=000000000000',
+  ])('the 404 for %s carries no public cache policy', async (url) => {
+    const res = await request(app).get(url);
+    expect(res.status).toBe(404);
+    expect(res.headers['cache-control'] || '').not.toMatch(/public|max-age=[1-9]/);
+  });
 });
 
 describe('asset() follows the file\'s contents', () => {
