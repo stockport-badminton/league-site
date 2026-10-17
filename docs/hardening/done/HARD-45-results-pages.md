@@ -116,5 +116,7 @@ allows.** Measured on production:
 Item 3 (render rows pre-paginated) was not done: field FCP p75 on past seasons is already
 413 ms, and the brief asked for a measurement before changing what crawlers see.
 
-Still to do after deploy: Lighthouse on `/results/All` to confirm the 770 ms of
-render-blocking is gone.
+**Verified on production after deploy** (Lighthouse 12.2.1, mobile, `/results/All`):
+performance score **65 → 96**, FCP **4.9 s → 1.6 s**, LCP 2.6 s, TBT 90 ms, **no
+render-blocking resources** and **0 requests to datatables.net**. The four files are
+served at `?v=<hash>` with `max-age=31536000, immutable`.
