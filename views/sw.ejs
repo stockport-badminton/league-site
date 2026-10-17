@@ -1,17 +1,19 @@
 var CACHE_VERSION = 'sdbl-static-<%= cacheVersion %>';
 var OFFLINE_URL = '/offline.html';
 
+// The versioned URLs the pages actually request (HARD-42); a bare path here would
+// precache a file no page asks for, since the cache matches on the query string.
 var PRECACHE_URLS = [
   OFFLINE_URL,
-  '/static/beta/css/custom.css',
+  '<%= asset('/static/beta/css/custom.css') %>',
   '/touch-icon-192x192.png',
   '/favicon.ico',
   '/static/generated/venues-map.png',
   // Self-hosted vendor CSS/JS so offline pages keep Bootstrap layout + working nav.
-  '/scripts/bootstrap/dist/css/bootstrap.min.css',
-  '/scripts/jquery/dist/jquery.min.js',
-  '/scripts/popper.js/dist/umd/popper.min.js',
-  '/scripts/bootstrap/dist/js/bootstrap.min.js'
+  '<%= asset('/scripts/bootstrap/dist/css/bootstrap.min.css') %>',
+  '<%= asset('/scripts/jquery/dist/jquery.min.js') %>',
+  '<%= asset('/scripts/popper.js/dist/umd/popper.min.js') %>',
+  '<%= asset('/scripts/bootstrap/dist/js/bootstrap.min.js') %>'
 ];
 
 // Static-content pages precached as an anonymous (logged-out) snapshot, so a

@@ -612,6 +612,22 @@ were unreachable on a laptop. Add a tool to `GROUPS`; it appears on the hub, and
 `e2e/admin-nav.spec.js` fails if any menu item cannot be clicked at 1280x720 or on a
 375x640 phone.
 
+### Asset URLs go through `asset()`, never by hand
+
+`asset('/static/beta/css/custom.css')` (`utils/assets.js`, on `app.locals`) appends
+`?v=<content hash>`, and a URL carrying the **current** hash is served
+`max-age=31536000, immutable` — that is what lets Firebase's CDN and browsers hold the shell
+(HARD-42; it was `max-age=0`, ~30,000 full re-downloads in 19 days). Three rules in it:
+
+- **A hash this instance does not hold answers `no-cache`.** Two revisions serve side by
+  side during a deploy, and the new page's `?v=<new>` reaching the old instance would
+  otherwise pin the old bytes under the new URL for a year.
+- **Unversioned is an hour, not a year**, so a template that forgets `asset()` is slow, not
+  stale. `static/generated/` and `static/beta/images/generated/` stay `max-age=0` (written
+  at runtime); `/sw.js` and `rootfiles/` keep their own treatment.
+- **`/scripts` is not `node_modules` any more** — only `VENDOR_DIRS`. A new vendor file a
+  page loads needs its directory added there, or it 404s.
+
 ### Form Validation (express-validator)
 
 Scorecard form validation is complex — validates 18 games + player uniqueness:

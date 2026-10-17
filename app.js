@@ -134,6 +134,8 @@ app.locals.fixturesImagePath = require('./utils/canonical').fixturesImagePath;
 // browser finds the end of a script element before any JS is parsed. See
 // utils/jsonForScript.js.
 app.locals.jsonForScript = require('./utils/jsonForScript');
+// Versioned asset URLs (HARD-42): never build a /static or /scripts URL by hand in a view.
+app.locals.asset = require('./utils/assets').asset;
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;
@@ -337,8 +339,15 @@ app.post('/csp-report', require('./middleware/rateLimit').cspReportLimiter, cspB
   });
 });
 
-app.use('/static', express.static(path.join(__dirname, '/static')));
-app.use('/scripts', express.static(__dirname + '/node_modules/'));
+// Cache policy for both mounts is set by cacheHeaders, so serve-static must not overwrite
+// it with its own max-age=0 (HARD-42). rootfiles keeps the default: it holds
+// manifest.json, and /sw.js above must never be cached either.
+var assets = require('./utils/assets');
+app.use(['/static', '/scripts'], assets.cacheHeaders);
+app.use('/static', express.static(path.join(__dirname, '/static'), { cacheControl: false }));
+assets.VENDOR_DIRS.forEach(function(dir) {
+  app.use('/scripts/' + dir, express.static(path.join(__dirname, 'node_modules', dir), { cacheControl: false }));
+});
 app.use(express.static('rootfiles'));
 
 // The live scorecard's poll, above globalLimiter with a limiter of its own — see
