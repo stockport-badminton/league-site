@@ -10,9 +10,12 @@
 // signature, the filing claim — against a real Postgres. The Jest suite fakes the model.
 //
 // Re-runnable, with one honest limit: a fixture has one card, and this spec signs its card
-// off, so each run uses up one outstanding fixture in the local database. The seed plus
-// tools/local-db/dev-fixtures.sql offer a dozen or more; `tools/local-db.sh load` restores
-// them. The test says so if it runs out, rather than skipping.
+// off, so each run uses up one outstanding fixture in the local database.
+// tools/local-db/dev-fixtures.sql seeds six, dated around the day of the load so they sit
+// inside the start page's window (ten days back, a week ahead) — they were fixed September
+// dates until Oct 2026, and the spec failed after every fresh load once October came.
+// `tools/local-db.sh load` restores them, and moves them to the new today. The test says
+// so if it runs out, rather than skipping.
 
 const { test, expect } = require('@playwright/test');
 const { readOnly } = require('./helpers/read-only');

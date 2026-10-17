@@ -8,11 +8,29 @@
 --
 -- Everything here is local-only and deliberately obvious as test data.
 
+-- ── a season that contains today ─────────────────────────────────────────────
+-- The seed's newest season row is 2025/26, which ends 30 Jul 2026, so from August a
+-- fixture dated today belongs to no season and every "this season" query drops it.
+-- Stretch the newest season to cover today rather than inserting the next one: a new
+-- 2026/27 row would make 2025/26 the "previous" season, and the seed has no 2025/26
+-- archive tables, so every past-season page the browser specs open would 500. Only
+-- when nothing covers today, so a database that has been `sync`ed is left alone.
+UPDATE season SET "endDate" = now() + interval '1 year'
+ WHERE id = (SELECT id FROM season ORDER BY "startDate" DESC LIMIT 1)
+   AND NOT EXISTS (SELECT 1 FROM season WHERE now() > "startDate" AND now() < "endDate");
+
 -- ── current-season fixtures ──────────────────────────────────────────────────
 -- Copied from real rows through a temp table rather than written out column by column:
 -- `fixture` has a wide schema that changes, and a copy cannot drift out of date with it.
+--
+-- Dated around TODAY, not at a fixed point in the season: the live scorecard's start
+-- page offers only outstanding fixtures from the last ten days or the coming week
+-- (liveScorecardController.START_WINDOW_DAYS_BACK, getScorecardCandidates). Dated 1-20
+-- September, as they were, they fell out of that window by October and
+-- e2e/live-scorecard.spec.js failed after every fresh load. Six days, two apart, from
+-- six days ago to four days ahead; UK local midnight, as `fixture.date` stores it.
 DO $$
-DECLARE season_start date := date_trunc('year', now())::date + interval '8 months';
+DECLARE today date := (now() AT TIME ZONE 'Europe/London')::date;
 BEGIN
   DROP TABLE IF EXISTS _seed_fixtures;
   CREATE TEMP TABLE _seed_fixtures AS
@@ -21,7 +39,7 @@ BEGIN
 
   UPDATE _seed_fixtures SET
     id         = nextval(pg_get_serial_sequence('fixture','id')),
-    date       = season_start + (id % 20) * interval '1 day',
+    date       = today + ((id % 6) * 2 - 6) * interval '1 day',
     "homeScore" = NULL,
     "awayScore" = NULL,
     -- 'outstanding' is the column's own default and its NOT NULL value in production
