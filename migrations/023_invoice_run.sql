@@ -29,3 +29,9 @@ CREATE TABLE IF NOT EXISTS invoice_run (
 );
 
 CREATE INDEX IF NOT EXISTS invoice_run_season_idx ON invoice_run (season, ran_at);
+
+-- RLS on and no policy, as live_scorecard and threads_result_post: the app's role has
+-- BYPASSRLS, and a `TO postgres` policy would stop `tools/local-db.sh load`, whose database
+-- has no such role. Added after 023 first ran on production without it (17 Oct 2026); the
+-- statement is idempotent, so re-running the file is how it was applied.
+ALTER TABLE invoice_run ENABLE ROW LEVEL SECURITY;
