@@ -37,6 +37,11 @@ jest.mock('passport', () => {
 
 jest.mock('../../models/league');
 jest.mock('../../utils/ses');
+// Only `record` is replaced: findingsFor is pure and has its own unit test.
+jest.mock('../../models/invoiceRun', () => ({
+  ...jest.requireActual('../../models/invoiceRun'),
+  record: jest.fn(),
+}));
 
 jest.mock('../../db_connect', () => ({
   connect: jest.fn(),
@@ -49,6 +54,7 @@ jest.mock('../../db_connect', () => ({
 
 const League = require('../../models/league');
 const ses = require('../../utils/ses');
+const InvoiceRun = require('../../models/invoiceRun');
 const app = require('../../app');
 
 const SUPERADMIN = {
@@ -75,6 +81,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCurrentUser = null;
   League.getAnnualInvoices.mockResolvedValue([]);
+  InvoiceRun.record.mockResolvedValue(1);
 });
 
 describe('POST /league/sendInvoices', () => {
@@ -448,5 +455,95 @@ describe('POST /admin/invoices', () => {
       .send({ confirm: 'SEND', force: 'true' });
     expect(forced.status).toBe(200);
     expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// The run records itself — HARD-35
+// ---------------------------------------------------------------------------
+//
+// HARD-23 made a failed run fail honestly; it still failed into silence. Every run now
+// writes an invoice_run row with per-club outcomes, which the weekly audit digest reads
+// (models/invoiceRun.js findingsFor, unit-tested). These pin the writing half: the row
+// must exist, must say per club what happened, and must not be able to undo a send.
+
+describe('POST /league/sendInvoices — the run is recorded', () => {
+  const row = (over = {}) => Object.assign({
+    clubId: 1, clubName: 'Mellor', teamsCount: '2', fineId: null, desc: null,
+    amount: null, fineTeam: null, fineClub: null, season: null,
+    secretary: 'John', playerEmail: 'sec@example.com', clubFee: '15',
+  }, over);
+  const recorded = () => InvoiceRun.record.mock.calls[0][0];
+
+  beforeEach(() => {
+    mockCurrentUser = SUPERADMIN;
+    ses.sendEmail.mockResolvedValue({});
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T09:00:00Z'));
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('records each club\'s outcome, the failures beside the successes', async () => {
+    League.getAnnualInvoices.mockResolvedValue([
+      row({ clubId: 1, clubName: 'Mellor' }),
+      row({ clubId: 2, clubName: 'Broken', clubFee: undefined }),
+      row({ clubId: 3, clubName: 'Nobody', playerEmail: null }),
+    ]);
+
+    const res = await request(app).post('/league/sendInvoices');
+
+    expect(res.status).toBe(200);
+    expect(InvoiceRun.record).toHaveBeenCalledTimes(1);
+    const run = recorded();
+    expect(run).toMatchObject({ status: 200, caller: 'superadmin', forced: false });
+    expect(typeof run.season).toBe('string');
+    expect(run.outcomes.map(o => [o.club, o.sent])).toEqual([
+      ['Mellor', true], ['Broken', false], ['Nobody', false],
+    ]);
+    // The detail is the same line the caller was shown, so the two cannot disagree.
+    expect(run.outcomes.map(o => o.detail)).toEqual(res.body);
+  });
+
+  it('records a send that SES refused as not sent', async () => {
+    League.getAnnualInvoices.mockResolvedValue([row()]);
+    ses.sendEmail.mockRejectedValue(new Error('MessageRejected'));
+
+    await request(app).post('/league/sendInvoices');
+
+    expect(recorded().outcomes).toEqual([
+      expect.objectContaining({ club: 'Mellor', sent: false, detail: expect.stringMatching(/MessageRejected/) }),
+    ]);
+  });
+
+  it('records a refusal too, so a wrong-day scheduler leaves a trace', async () => {
+    jest.setSystemTime(new Date('2026-10-01T09:00:00Z'));
+    League.getAnnualInvoices.mockResolvedValue([row()]);
+    process.env.INVOICE_CRON_TOKEN = 'invoice-cron-token-for-tests';
+    mockCurrentUser = null;
+    try {
+      const res = await request(app).post('/league/sendInvoices')
+        .set('X-Invoice-Token', 'invoice-cron-token-for-tests');
+      expect(res.status).toBe(409);
+    } finally {
+      delete process.env.INVOICE_CRON_TOKEN;
+    }
+
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+    expect(recorded()).toMatchObject({ status: 409, outcomes: [] });
+    expect(recorded().caller).toBe('scheduler');
+  });
+
+  it('a failure to record does not undo the send, and says so', async () => {
+    League.getAnnualInvoices.mockResolvedValue([row()]);
+    InvoiceRun.record.mockRejectedValue(new Error('connection reset'));
+
+    const res = await request(app).post('/league/sendInvoices');
+
+    // 200 and the per-club line: a 500 here would read as "nothing was sent" and invite
+    // a second run, which sends every club its invoice twice.
+    expect(res.status).toBe(200);
+    expect(ses.sendEmail).toHaveBeenCalledTimes(1);
+    expect(res.body[0]).toMatch(/Mellor invoice sent successfully/);
+    expect(res.body.join(' ')).toMatch(/could not be recorded/);
   });
 });

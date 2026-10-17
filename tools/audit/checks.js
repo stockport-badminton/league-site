@@ -369,6 +369,17 @@ const CHECKS = [
       ORDER BY q.queued_at`
   },
   {
+    // The annual club invoices (HARD-35). The 2026 run failed on 1 Sep and nothing said
+    // so: the scheduler logged a red step nobody read. A run that never happens leaves no
+    // error to report, so this works from the ABSENCE of a successful run once the window
+    // after 1 Sep has closed — and lists any club whose latest outcome is not "sent".
+    // The decision is models/invoiceRun.js `findingsFor`, tested without a database.
+    name: 'invoice-run',
+    description: 'Annual club invoices not sent — run them from Admin → Invoices',
+    severity: 'high',
+    run: async () => require('../../models/invoiceRun').findings(),
+  },
+  {
     // Officer pointers that disagree with the role flags.
     //
     // There are two ways to record an officer and they are not kept in step. The old way

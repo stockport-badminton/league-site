@@ -126,6 +126,7 @@ function linkFor(name, row) {
     return absoluteUrl('/admin/teams/' + row.id);
   }
   if (ROSTER_CHECKS.has(name)) return absoluteUrl('/manage-players');
+  if (name === 'invoice-run') return absoluteUrl('/admin/invoices');
   // Deliberately no link for orphan-drafts: /populated-scorecard-beta/:id now needs the
   // draft's own confirmToken (HARD-03), so a link built from the id alone would 403.
   return null;

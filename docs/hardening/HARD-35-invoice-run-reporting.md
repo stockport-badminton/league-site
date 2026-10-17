@@ -59,3 +59,43 @@ tracked", or it will be added and then never seen.
 - SES bounce-watching for invoice delivery — already out of scope in HARD-23, and it
   applies equally to every outbound mail, so it wants its own package.
 - The invoice content and the fee calculation.
+
+## Outcome (17 Oct 2026)
+
+Took the first option: a row per run, read by the weekly digest.
+
+- **`invoice_run`** (migration 023): one row per call to `runInvoiceSend`, refusals
+  included, with `outcomes` as `[{club, sent, detail}]`. `detail` is the same line the
+  caller is shown, pushed through one `report()` so the two cannot disagree. The record
+  goes through `afterCommit`: by then the invoices are sent, and a 500 would invite a
+  second run. If it fails the response says so, because an unrecorded run is one the
+  digest will later call missing.
+- **`invoice-run` check** (`tools/audit/checks.js`, severity high, a `run()` check). The
+  decision is `findingsFor` in `models/invoiceRun.js`, which has no database. It reports
+  "(all clubs) NOT sent" once the window after 1 Sep has closed with no club ever sent,
+  and one row per club whose latest outcome is not "sent". A later single-club re-send
+  clears that club. Not in `TRACKED`, so a row is always shown as new.
+- **2026/27 is exempt by name** (`UNRECORDED_SEASONS`): its invoices went out by hand on
+  1 Sep, before the table existed, so the absence of a row says nothing.
+
+Two things found on the way:
+
+- **The check read the season from `seasonModel.current()` first, and that cache is only
+  filled by the app's startup.** `dbq --check` never fills it, so the date-based fallback
+  named the exempt 2026/27 and the check printed nothing locally where the app would have
+  printed a row. It reads the season table now, like every other check.
+- **The invoice send CCs the treasurer's real Hotmail and BCCs real addresses, all
+  hard-coded.** The local seed's fake `playerEmail` covers only the To, so a local run
+  with working credentials would mail the real treasurer. Recorded in CLAUDE.md. Running
+  the endpoint locally was not done for that reason: `record()` and `findings()` were
+  rehearsed against local Postgres directly instead (before any run, after a partial run,
+  after re-sending the failed club), then the rows deleted.
+
+**Acceptance criteria**
+
+- *A run that does not happen is visible within a week:* the weekly digest reports it from
+  the first run after the window closes (1 Sep + 3 days).
+- *Per-club outcomes somewhere durable:* `invoice_run.outcomes`.
+- *A test that fails if the signal is silent:* `__tests__/unit/invoice-run-findings.test.js`
+  (3 fail with the missing-run branch removed); `__tests__/integration/invoices.test.js`
+  pins the recording (4 fail without the controller change).

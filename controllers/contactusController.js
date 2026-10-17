@@ -15,6 +15,8 @@ const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
 const Sentry = require('@sentry/node');
 const PlayerRequests = require('./playerRequestController');
+const InvoiceRun = require('../models/invoiceRun');
+const { afterCommit } = require('../utils/afterCommit');
 
 // Where an unsubscribe request from a distribution list lands. A person reads it and
 // decides — see the List-Unsubscribe comment in distribution_list.
@@ -94,7 +96,7 @@ const FIRSTYEAR = new Date().getMonth() < 7 ? `${new Date().getFullYear() - 1}` 
 
 // How far either side of 1 September the annual invoice run may still fire. A run that
 // failed on the day used to have no second chance until the next year (HARD-23).
-const INVOICE_WINDOW_DAYS = 3;
+const INVOICE_WINDOW_DAYS = InvoiceRun.WINDOW_DAYS;
 
 // Where today sits relative to the annual invoice date. Shared by the run and the admin
 // page so the two cannot tell the treasurer different things.
@@ -378,14 +380,39 @@ exports.contactus = async function(req, res, next) {
 // Returns `{ status, lines }` rather than writing a response, so the JSON endpoint and the
 // HTML page render the same outcome — including the refusals, which is the half that was
 // previously indistinguishable from success.
+//
+// Every run is recorded in `invoice_run` (HARD-35), refusals included, because the 2026
+// failure lasted as long as it did for want of anybody being told. The weekly audit digest
+// reads that table; see models/invoiceRun.js.
 async function runInvoiceSend(req) {
+  const forced = wantsForce(req) && req.invoiceCaller === 'superadmin';
+  const result = await sendInvoices(req);
+  // The invoices are already sent by now, so recording them is courtesy in the
+  // afterCommit sense: a failure here must not turn a successful send into a 500, which
+  // would invite somebody to send the lot again. But it is said, because an unrecorded run
+  // is one the digest will later report as NOT sent.
+  const recorded = await afterCommit('invoice run record', () => InvoiceRun.record({
+    season: seasonModel.current(),
+    caller: req.invoiceCaller,
+    forced,
+    status: result.status,
+    outcomes: result.outcomes,
+  }), { stage: 'invoices' });
+  if (recorded !== null) console.log(`[invoices] recorded as invoice_run ${recorded} (status ${result.status})`);
+  const lines = recorded === null
+    ? result.lines.concat(['Warning: this run could not be recorded, so next week\'s data-health email may report the invoices as not sent.'])
+    : result.lines;
+  return { status: result.status, lines };
+}
+
+async function sendInvoices(req) {
   const rows = await League.getAnnualInvoices(req.params.club);
 
   // Nothing to invoice is a refusal, not a success. It used to fall through the loop
   // and answer `200 []`, which any caller checking only the status reads as "invoices
   // sent".
   if (!rows || !rows.length) {
-    return { status: 409, lines: ['No clubs to invoice — nothing was sent.'] };
+    return { status: 409, lines: ['No clubs to invoice — nothing was sent.'], outcomes: [] };
   }
 
   // The date guard, hoisted out of the loop.
@@ -414,6 +441,7 @@ async function runInvoiceSend(req) {
       `date and today is ${Math.abs(daysOut)} day(s) ${daysOut > 0 ? 'after' : 'before'} it. ` +
       `Nothing was sent. The results secretary can override this from Admin \u2192 Invoices.`,
       ],
+      outcomes: [],
     };
   }
 
@@ -422,6 +450,13 @@ async function runInvoiceSend(req) {
   const ejs = require('ejs');
   let allData = [];
   let outputs = [];
+  // The same outcomes as `outputs`, structured, for invoice_run. Pushed together through
+  // one function so the line a person reads and the row the digest reads cannot disagree.
+  let outcomes = [];
+  const report = (club, sent, line) => {
+    outputs.push(line);
+    outcomes.push({ club, sent, detail: line });
+  };
 
   for (let club of rows) {
     let data = {};
@@ -464,7 +499,7 @@ async function runInvoiceSend(req) {
     if (!Number.isFinite(Number(data.teamsCost)) || !Number.isFinite(Number(data.feesTotal))) {
       const detail = `teamsCount=${JSON.stringify(club.teamsCount)} clubFee=${JSON.stringify(club.clubFee)}`;
       console.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
-      outputs.push(`${data.name} invoice NOT sent: total did not compute (${detail})`);
+      report(data.name, false, `${data.name} invoice NOT sent: total did not compute (${detail})`);
       continue;
     }
 
@@ -486,7 +521,7 @@ async function runInvoiceSend(req) {
           // Reported through `outputs`, which is what the response body is, so the
           // treasurer sees the gap in the same list as the successes rather than
           // having to notice an absence.
-          outputs.push(`${currentData.name} invoice NOT sent: no club secretary email on file`);
+          report(currentData.name, false, `${currentData.name} invoice NOT sent: no club secretary email on file`);
           continue;
         }
         const str = await ejs.renderFile('views/emails/clubInvoice.ejs', { data: currentData }, { debug: false });
@@ -516,14 +551,14 @@ async function runInvoiceSend(req) {
           ReplyToAddresses: ['stockport.badders.results@gmail.com', 'treasurer.sdbl@hotmail.com']
         };
         await sesUtil.sendEmail(params);
-        outputs.push(`${currentData.name} invoice sent successfully`);
+        report(currentData.name, true, `${currentData.name} invoice sent successfully`);
       } catch (sendErr) {
         console.log(sendErr.toString());
-        outputs.push(`${currentData.name} invoice failed: ${sendErr}`);
+        report(currentData.name, false, `${currentData.name} invoice failed: ${sendErr}`);
       }
     }
   }
-  return { status: 200, lines: outputs };
+  return { status: 200, lines: outputs, outcomes };
 }
 
 exports.send_invoices = async function(req, res, next) {

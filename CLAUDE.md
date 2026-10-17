@@ -1304,6 +1304,13 @@ Key vars (see `.env` for examples):
   with the audit and registration tokens; it answers **403, never a redirect**, because
   `secured`'s 302 to `/login` is what Make.com recorded as a successful run while the
   invoices went unsent for a year.
+  **Every run is recorded in `invoice_run`** (migration 023, HARD-35), refusals included,
+  with each club's outcome. The audit digest's `invoice-run` check reports from it: once
+  the window after 1 Sep closes with nothing sent, and any club whose latest outcome is not
+  "sent". It works from the *absence* of a successful run, because a run that never
+  happens raises no error to report. **The send also CCs the treasurer's real Hotmail and
+  BCCs real addresses, hard-coded** — the local seed's fake `playerEmail` covers only the
+  To, so never run it locally with working AWS credentials.
 - `LATE_SCORECARD_CRON_TOKEN` — shared secret Cloud Scheduler presents as
   `X-Late-Scorecard-Token` to `GET /fixture/outstanding`, the daily missing-scorecard
   reminder. Same gate, same `timingSafeEqual` over SHA-256 of both sides, and **unset
