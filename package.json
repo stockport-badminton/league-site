@@ -78,6 +78,7 @@
       "<rootDir>/\\.claude/"
     ],
     "testTimeout": 15000,
+    "workerIdleMemoryLimit": "800MB",
     "setupFilesAfterEnv": [
       "./__tests__/setupAfterEnv.js"
     ]

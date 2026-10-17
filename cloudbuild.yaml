@@ -22,12 +22,18 @@ steps:
   - name: 'node:22'
     id: 'test'
     entrypoint: bash
+    # Two workers, not Jest's default for this 2-CPU machine (one process, in band).
+    # In band, every suite's leftovers stay in one heap, and on 17 Oct 2026 that heap
+    # reached Node's ~2 GB limit on suite 132 of 133 and aborted the build (exit 134,
+    # no test failed). Workers are recycled past `workerIdleMemoryLimit` (package.json),
+    # so nothing accumulates however many suites are added. Reproduced locally with
+    # NODE_OPTIONS=--max-old-space-size=1536: `jest -i` dies, this passes.
     args:
       - '-c'
       - |
         set -e
         npm ci
-        npm test
+        npm test -- --maxWorkers=2
 
   # Pull the previous image so its layers seed the build cache below.
   # First ever build (no :latest yet) is a harmless no-op thanks to `|| true`.
