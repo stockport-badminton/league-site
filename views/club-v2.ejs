@@ -214,7 +214,29 @@ function initMap() {
     });
   })
 
-  var markerStockPortTownHall = new google.maps.marker.AdvancedMarkerElement({position: StockportTownHall, map: map});
+  // The circle's centre, not a club. It used to be a default red pin with no click handler,
+  // identical to every venue — PostHog recorded mobile rage clicks on it (13–14 Oct 2026)
+  // from people expecting a club popup. So it looks different, and a tap explains it.
+  var townHallPin = new google.maps.marker.PinElement({
+    background: '#6c757d',
+    borderColor: '#495057',
+    glyphColor: '#ffffff',
+    scale: 0.8
+  });
+  var markerStockPortTownHall = new google.maps.marker.AdvancedMarkerElement({
+    position: StockportTownHall,
+    map: map,
+    content: townHallPin.element,
+    title: 'Stockport Town Hall',
+    gmpClickable: true
+  });
+  markerStockPortTownHall.addListener('gmp-click', function () {
+    infowindow.setContent(
+      '<strong>Stockport Town Hall</strong><br>' +
+      'The league\'s catchment is ten miles from here &mdash; the shaded circle.'
+    );
+    infowindow.open(map, markerStockPortTownHall);
+  });
   var circle = new google.maps.Circle({
   radius: 16093.44, // 10 miles in metres; Circle measures along the Earth's surface
   strokeColor: '#FF0000',
