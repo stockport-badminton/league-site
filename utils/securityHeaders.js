@@ -168,8 +168,6 @@ const OBSERVED = {
     'https://eu-assets.i.posthog.com',    // header.ejs — PostHog, scorecard pages only,
                                           // and the recorder it lazy-loads. Injected at
                                           // runtime, so no <script src> to grep for.
-    'https://cdn.datatables.net',         // datatables-scripts.ejs, datatables.ejs —
-                                          // every stats and results table
     'https://cdn.jsdelivr.net',           // elo-chart.ejs, player-game-stats.ejs —
                                           // Chart.js and its date adapter
     'https://cdn.quilljs.com',            // admin/homepage-content-form.ejs — the
@@ -186,7 +184,6 @@ const OBSERVED = {
     // 24 templates use style="" attributes and 4 have <style> blocks (header.ejs's
     // #eventMap height among them). Same out-of-scope reasoning as script-src.
     "'unsafe-inline'",
-    'https://cdn.datatables.net',   // datatables-css.ejs
     'https://cdn.quilljs.com',      // quill.snow.css
     // **cdn.quilljs.com 301s to cdn.jsdelivr.net**, and CSP checks every hop of a
     // redirect, so allowing only the host in the markup is not enough. The browser
@@ -197,7 +194,7 @@ const OBSERVED = {
     //
     // Quill's *script* was unaffected only by luck: it redirects too, and jsdelivr was
     // already in script-src for Chart.js. Of the CDNs in this policy, quilljs is the only
-    // one that redirects — datatables, jsdelivr and sentry-cdn all serve directly.
+    // one that redirects — jsdelivr and sentry-cdn both serve directly.
     'https://cdn.jsdelivr.net',     // where cdn.quilljs.com now redirects to
     'https://fonts.googleapis.com', // not linked by any template — the Google Maps JS
                                     // API injects a Roboto stylesheet at runtime, which

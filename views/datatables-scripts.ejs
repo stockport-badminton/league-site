@@ -1,15 +1,24 @@
 <!-- DataTables library tags. Shared by datatables.ejs (results/fixture tables) and
-     datatables-stats.ejs (stats tables) so the CDN URLs are declared in one place.
+     datatables-stats.ejs (stats tables) so the URLs are declared in one place.
      Six views each carried their own copy, and they had drifted: three asked for a
      bundle with b-html5 (the CSV button) and three for one without, so the browser
      fetched two different 200KB+ bundles across a session.
 
-     Note there is no `jq-` segment in the URL. The bundle used to include jQuery
-     3.3.1, which was fetched on top of the copy footer.ejs already self-hosts from
-     node_modules, then replaced window.jQuery with a second instance that carries
-     none of the Bootstrap plugins registered on the first. Excluding it drops the
-     bundle from 220KB to 158KB and leaves one jQuery on the page.
+     Note the bundle has no jQuery in it (no `jq-` segment in its builder URL). It used
+     to include jQuery 3.3.1, which was fetched on top of the copy footer.ejs already
+     self-hosts from node_modules, then replaced window.jQuery with a second instance
+     that carries none of the Bootstrap plugins registered on the first.
 
-     Views opt into the matching CSS with include('header.ejs', { useDataTables: true }). -->
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.20/b-1.6.1/b-colvis-1.6.1/b-html5-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.js"></script>
-<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/date-euro.js"></script>
+     Self-hosted since HARD-45, in static/vendor/datatables/. They are byte-for-byte
+     what cdn.datatables.net served, not an npm install: the bundle is a builder output
+     (DataTables 1.10.20, Buttons 1.6.1, ColVis, HTML5 export, FixedHeader 3.1.6,
+     Responsive 2.2.3 - the rebuild link is in its header) and the npm equivalent is ten
+     packages at different versions, which is an upgrade, not a move. The two plug-ins
+     are date-euro (plug-ins 1.10.19) and page.jumpToData() (1.12.0).
+
+     `defer` keeps document order, so the plug-ins still run after the bundle they
+     register on, and all of it before DOMContentLoaded - which is when jQuery's ready
+     fires the inline initialisers in datatables.ejs and datatables-stats.ejs. -->
+<script defer src="<%= asset('/static/vendor/datatables/datatables.min.js') %>"></script>
+<script defer src="<%= asset('/static/vendor/datatables/date-euro.js') %>"></script>
+<script defer src="<%= asset('/static/vendor/datatables/page.jumpToData.js') %>"></script>

@@ -248,6 +248,49 @@ test.describe('DataTables control band', function () {
     guard.assertNoWrites();
   });
 
+  // HARD-45. DataTables and both plug-ins are self-hosted and deferred. The results page
+  // is the one that uses the plug-ins - date-euro for column 0 and page.jumpToData() to
+  // open at the nearest fixture - so it is the page that proves the deferred load order
+  // still works: a plug-in that ran before the bundle would throw at the top level.
+  test('the results page builds its table from same-origin files, plug-ins included', async function ({ page, baseURL }) {
+    const guard = await readOnly(page, baseURL);
+    const foreign = [];
+    const errors = [];
+    page.on('request', function (r) { if (new URL(r.url()).host.endsWith('datatables.net')) foreign.push(r.url()); });
+    page.on('pageerror', function (e) { errors.push(e.message); });
+
+    await page.goto(`/results/All/${SEASON}`);
+    await expect(page.locator('.dt-pager .pagination')).toBeVisible();
+
+    const facts = await page.evaluate(() => {
+      const $ = window.jQuery;
+      const table = $('#results-table').DataTable();
+      // Column 0 reads dd/mm/yyyy; turned round so a plain sort is chronological.
+      const isos = $('#results-table tbody tr td:first-child').map(function () {
+        const m = this.textContent.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+        return m ? m[3] + m[2] + m[1] : null;
+      }).get();
+      return {
+        initialised: $.fn.dataTable.isDataTable('#results-table'),
+        dateEuro: typeof $.fn.dataTable.ext.type.order['date-euro-pre'],
+        jumpToData: typeof table.page.jumpToData,
+        isos,
+      };
+    });
+
+    expect(foreign, 'a DataTables file still comes from the CDN').toEqual([]);
+    expect(errors).toEqual([]);
+    expect(facts.initialised).toBe(true);
+    expect(facts.dateEuro).toBe('function');
+    expect(facts.jumpToData).toBe('function');
+    // Sorted by date-euro, not as text: dd/mm/yyyy compared as strings puts 02/10 before
+    // 15/09, so a page spanning a month boundary would come out of order.
+    expect(facts.isos.length).toBeGreaterThan(1);
+    expect(facts.isos).toEqual([...facts.isos].sort());
+
+    guard.assertNoWrites();
+  });
+
   test('DataTables CSS is not loaded on pages without a table', async function ({ page, baseURL }) {
     const guard = await readOnly(page, baseURL);
     await page.goto('/rules');

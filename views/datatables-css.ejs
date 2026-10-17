@@ -1,5 +1,7 @@
 <!-- DataTables CSS. Opt in per view with include('header.ejs', { useDataTables: true }) -
      it used to sit in header.ejs unconditionally, so all ~50 pages paid for it and
-     only the six with a table used it. Must stay in step with the bundle URL in
-     datatables-scripts.ejs. -->
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.20/b-1.6.1/b-colvis-1.6.1/b-html5-1.6.1/fh-3.1.6/r-2.2.3/datatables.min.css"/>
+     only the six with a table used it. Self-hosted since HARD-45: from
+     cdn.datatables.net it was a render-blocking stylesheet on a host nothing else on
+     the page used (770 ms in Lighthouse on /results/All). The files and why they are
+     copies rather than an npm package: datatables-scripts.ejs. -->
+<link rel="stylesheet" type="text/css" href="<%= asset('/static/vendor/datatables/datatables.min.css') %>"/>

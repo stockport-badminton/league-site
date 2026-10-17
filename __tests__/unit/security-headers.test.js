@@ -30,7 +30,7 @@ describe('by default', () => {
   it('observes the full allowlist separately', () => {
     delete process.env.CSP_ENFORCE;
     const observed = securityHeaders.observedDirectives();
-    expect(observed['script-src']).toContain('https://cdn.datatables.net');
+    expect(observed['script-src']).toContain('https://cdn.jsdelivr.net');
     expect(observed['default-src']).toEqual(["'self'"]);
   });
 });
@@ -40,7 +40,7 @@ describe('with CSP_ENFORCE=true', () => {
 
   it('folds the observed allowlist into the enforcing header', () => {
     const enforced = securityHeaders.enforcedDirectives();
-    expect(enforced['script-src']).toContain('https://cdn.datatables.net');
+    expect(enforced['script-src']).toContain('https://cdn.jsdelivr.net');
     expect(enforced['default-src']).toEqual(["'self'"]);
     // The baseline survives the merge — enforcing the allowlist must not quietly drop
     // the clickjacking and form-action protection that was already live.

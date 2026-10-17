@@ -85,3 +85,36 @@ The lab's 4.9 s FCP is a cold-cache, cross-origin DataTables fetch on throttled 
 real visitors mostly do not pay it. Self-hosting is still right, for the CSP allowlist
 and HARD-42's caching. The server-side p75 of 970 ms on past seasons does not show up
 here as a slow FCP, though the sample is small.
+
+## Outcome (17 Oct 2026)
+
+**Browser:** DataTables is self-hosted in `static/vendor/datatables/`. The four files are
+byte-for-byte what `cdn.datatables.net` served, not an npm install: the bundle is a builder
+output (DataTables 1.10.20 + Buttons, ColVis, HTML5 export, FixedHeader, Responsive) and the
+npm equivalent is ten packages at different versions, which would be an upgrade rather than
+a move. Served through `asset()`, so HARD-42's immutable caching applies. All three scripts
+are `defer`; document order is preserved, so the plug-ins still run after the bundle, and
+jQuery's `ready` (which the inline initialisers use) fires on DOMContentLoaded, after
+deferred scripts. The CDN is out of the CSP. The only other cross-origin tags in the head
+are gtag (`async`) and the Sentry loader (`defer`).
+
+**Server: deliberately unchanged, and this is the written explanation the third criterion
+allows.** Measured on production:
+
+- The past-season query (`/results/All/20242025`, 309 rows) runs in **30 ms warm, 90 ms
+  cold**. Most of it is the `hasDraft` subplan (24k of 27k buffers), which is still small.
+- Of 309 non-bot `/results/:division/:season` requests between 3 and 17 Oct, **296 came
+  from Google IP ranges** (66.249.x, 142.250.x) under ordinary Chrome user agents: its
+  renderer, fetching several seasons within the same 30 ms. They make up the whole tail
+  (p75 1.08 s). The **13 from anyone else had p75 222 ms**, already under target.
+- The 970 ms p75 in the table above is therefore Google's concurrency stacking requests on
+  one instance, not a slow page. An in-memory cache would speed up a crawler, not a person.
+  Revisit only if real-visitor latency moves. The bot filter used for "non-bot" was a
+  user-agent regex, which is exactly what this traffic gets past. **When reading request
+  latency, split by IP range as well as by user agent.**
+
+Item 3 (render rows pre-paginated) was not done: field FCP p75 on past seasons is already
+413 ms, and the brief asked for a measurement before changing what crawlers see.
+
+Still to do after deploy: Lighthouse on `/results/All` to confirm the 770 ms of
+render-blocking is gone.

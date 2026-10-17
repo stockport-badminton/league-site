@@ -184,7 +184,6 @@ describe('the report-only Content-Security-Policy', () => {
     ['https://js-de.sentry-cdn.com', 'views/header.ejs — the browser Sentry loader'],
     ['https://browser.sentry-cdn.com', 'the bundle + lazyLoadIntegration the loader fetches'],
     ['https://eu-assets.i.posthog.com', 'views/header.ejs — PostHog, scorecard pages'],
-    ['https://cdn.datatables.net', 'views/datatables-scripts.ejs — every stats table'],
     ['https://cdn.jsdelivr.net', 'views/elo-chart.ejs, views/player-game-stats.ejs — Chart.js'],
     ['https://cdn.quilljs.com', 'views/admin/homepage-content-form.ejs — the editor'],
     ['https://www.google.com', 'views/contact-us-form.ejs, views/club-v2.ejs — reCAPTCHA'],
