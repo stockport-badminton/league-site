@@ -49,10 +49,18 @@ describe('cloudinaryGallery.getGallery', () => {
     axios.get.mockResolvedValueOnce(listing(3));
     await gallery.getGallery('t');
     now += gallery.FRESH_MS + 1;
-    axios.get.mockImplementation(hang);
-    // Resolves immediately with the old listing although the refresh hangs.
+    let release;
+    axios.get.mockImplementation(() => new Promise(r => { release = r; }));
+    // Resolves immediately with the old listing although the refresh is still pending.
     expect(await gallery.getGallery('t')).toHaveLength(3);
     expect(axios.get).toHaveBeenCalledTimes(2);
+    // Settle the refresh before the test ends. Left hanging, its deadline fires 1.5 s
+    // later and logs after the file has finished, and Jest answers that with exit code 1
+    // although every test passed. That failed the Cloud Build of 3edbe3f, where the
+    // suite runs in one process; locally each file's worker exited first and hid it.
+    release(listing(4));
+    await new Promise(setImmediate);
+    expect(await gallery.getGallery('t')).toHaveLength(4);
   });
 
   it('keeps the last good listing when a refresh fails, and backs off before retrying', async () => {
