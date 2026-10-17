@@ -103,9 +103,11 @@ function cacheHeaders(req, res, next) {
   // Mounted at /static and /scripts, so req.path has the mount stripped off.
   const urlPath = req.baseUrl + req.path;
   // Only a file the static mount will actually serve. Anything else falls through to the
-  // site's 404 page, which is rendered with the nav and the visitor's login state, and a
-  // public max-age on THAT would let the CDN hand one person's page to everyone. Found on
-  // production minutes after this first deployed: a missing /scripts URL was an x-cache HIT.
+  // site's 404 page, and an hour's public max-age on that is wrong twice over: a URL
+  // requested before the deploy that adds its file stays a 404 at the CDN for an hour, and
+  // the page carries the nav, so it is one `user: req.user` away from handing one person's
+  // page to everyone. (It is anonymous today: the 404 handler passes no user.) Found on
+  // production minutes after this first deployed, as an x-cache HIT on a missing URL.
   if (!isServedFile(urlPath)) return next();
   const v = typeof req.query.v === 'string' ? req.query.v : undefined;
   res.set('Cache-Control', cacheControlFor(urlPath, v));

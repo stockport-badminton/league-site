@@ -111,9 +111,9 @@ describe('/scripts serves the vendor files the pages use, not node_modules', () 
     expect(res.status).toBe(404);
   });
 
-  // The 404 is the site's own page, rendered with the nav and the visitor's login state.
-  // A public max-age on it lets the CDN serve one person's page to everyone — which is
-  // what the first deploy of this did, until it was curled.
+  // The 404 is the site's own page, with the nav. A public max-age on it outlives the deploy
+  // that adds the file, and would hand one person's page to everyone the day the 404
+  // handler passes a user. The first deploy of this did stamp it, until it was curled.
   test.each([
     '/scripts/ejs/ejs.js',
     '/static/does-not-exist.css',
