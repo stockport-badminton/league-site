@@ -106,6 +106,10 @@
         window.posthog.init('<%= process.env.POSTHOG_KEY %>', Object.assign({
           api_host: 'https://eu.i.posthog.com',
           person_profiles: 'never',
+          // Names the element behind each LCP/INP/CLS reading (and splits LCP into its
+          // phases), so the web vitals say what was slow, not only how slow. Web vitals
+          // capture itself is switched on in the project settings, not here.
+          capture_performance: { web_vitals_attribution: true },
           disable_session_recording: !record,
           session_recording: { maskAllInputs: false },
         }, storage));

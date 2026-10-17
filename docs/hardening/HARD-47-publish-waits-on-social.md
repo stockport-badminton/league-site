@@ -1,0 +1,70 @@
+# HARD-47 — publishing a result takes 25 seconds, and the limit is 60
+
+**Severity:** high (availability of the publish step) · **Wave:** P1 · **Blocked by:** nothing
+**Owns:** `full_fixture_post` in `controllers/scorecardController.js` (the `afterCommit`
+sequence after the write), `sendResultZap` / `publishResultToMeta` in `models/fixture.js`
+**Source:** the PostHog field data pulled on 17 Oct 2026, confirmed in Cloud Run request logs.
+
+## Why
+
+This was not in the lab review, because Lighthouse cannot submit a form. PostHog's web
+vitals for `/scorecard-beta` on desktop show **FCP and LCP both about 27 s**. FCP that high
+means nothing was painted, so the delay is in the response to the publish POST, not in the
+page. Cloud Run agrees. Every `POST /scorecard-beta` since 17 Sep:
+
+| Period | Latency of each publish |
+|---|---|
+| 17–25 Sep | 15.6 – 20.2 s |
+| 29–30 Sep | 30.7 – **46.0 s** |
+| 1–15 Oct | 23.2 – 31.3 s, and **51.3 s** on 13 Oct |
+
+Firebase Hosting cuts the connection at **60 s** (gotcha 1bc in CLAUDE.md). The 13 Oct
+publish was 9 s from that limit. Past it, the results secretary gets an error page for a
+result that was published, emailed and posted. That is the half-failure `afterCommit` exists
+to prevent, arriving by a different route.
+
+The reason is that the request awaits everything after the commit, in sequence, before it
+renders: the player rating refresh, `sendResultZap`, the Threads enqueue, the confirmation
+page data, then the results email. `sendResultZap` with `SOCIAL_POST_DIRECT` publishes to up
+to four Meta targets: the Page, the Instagram feed post, the Instagram story
+(`SOCIAL_POST_STORY`) and the Facebook Page story (`SOCIAL_POST_FB_STORY`, 11 Oct). Each
+Instagram container has to be **waited on** until Meta has fetched and processed it. The step
+from ~16 s to ~25 s lines up with the story targets being added. Each new target makes the
+publish slower, and nothing warns when it does.
+
+Threads already met this problem and solved it: `SOCIAL_POST_THREADS` queues the post in
+`threads_result_post` and a scheduler job posts it, *"because a Threads container has to be
+waited on, and that wait cannot sit inside the publish request in front of Firebase's 60s
+cut"*. The Meta targets have the same property and were left inline.
+
+The `409`s next to two of the publishes (5 Oct, 23 Sep) are the already-published guard
+catching a second submit made while the first was still running. That guard works. It is
+why a retry today does not double-post.
+
+## What to do
+
+1. **Measure the split first.** Log the duration of each `afterCommit` step (a
+   `console.time`-shaped line per label is enough) and read one week of it. The rating
+   refresh is the unknown. If it turns out to be a large share, it needs its own answer.
+2. **Queue the Meta posts the way Threads is queued.** Enqueue the result in the request,
+   and have a scheduler job (`SOCIAL_CRON_TOKEN`, no retries, called on Cloud Run directly
+   like the video job) publish it. Keep the existing rules: retry only where Meta cannot have
+   published, report partial success per target, and add a digest check for rows that died.
+   A table shared with Threads, with a target column, is probably simpler than a second one.
+3. **Do not "respond first and post afterwards" within the same request.** On Cloud Run,
+   CPU is throttled once the response is sent unless CPU is always allocated, so the posting
+   would stall or die without a sound. The queue exists so the work has a request of its own.
+4. The cost: a result reaches Facebook and Instagram a few minutes later instead of
+   immediately. Threads already works that way and nobody has noticed.
+
+## Acceptance criteria
+
+- `POST /scorecard-beta` p95 under 10 s in the request logs, a week after deploy.
+- A test with Meta mocked to hang shows the publish completing and rendering anyway. It
+  must fail with the queue removed.
+- Every result published in that week reached every configured target, checked against the
+  queue table, not the logs alone.
+
+## Out of scope
+
+- The Make.com path (`SOCIAL_POST_DIRECT` unset). It is a webhook and returns quickly.
