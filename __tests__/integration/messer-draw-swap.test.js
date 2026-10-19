@@ -146,3 +146,68 @@ describe('GET /messer-draw/:section — the Swap button', () => {
     expect(res.text).not.toContain('alert-danger');
   });
 });
+
+describe('POST /admin/messer-bracket/:section — Save wiring', () => {
+  // Two rows as the form posts them: parallel arrays, the was* fields as rendered.
+  const form = (over = {}) => ({
+    id: ['19', '20'], round: ['2', '2'], nextDrawPos: ['30', '30'], nextSlot: ['H', 'A'],
+    wasRound: ['2', '2'], wasNextDrawPos: ['30', '30'], wasNextSlot: ['H', 'A'], ...over,
+  });
+  const post = body => request(app).post('/admin/messer-bracket/b-section').type('form').send(body);
+
+  it('passes each row with what the page showed, and reports how many changed', async () => {
+    Fixture.saveMesserBracketLinks.mockResolvedValue({ saved: 1, conflicts: [] });
+    const res = await post(form({ nextSlot: ['A', 'A'] }));
+    expect(res.headers.location).toBe('/admin/messer-bracket/b-section?saved=1');
+    expect(Fixture.saveMesserBracketLinks).toHaveBeenCalledWith([
+      { id: 19, round: 2, nextDrawPos: 30, nextSlot: 'A', was: { round: 2, nextDrawPos: 30, nextSlot: 'H' } },
+      { id: 20, round: 2, nextDrawPos: 30, nextSlot: 'A', was: { round: 2, nextDrawPos: 30, nextSlot: 'A' } },
+    ]);
+  });
+
+  it('sends a conflict back to the page, naming the slots', async () => {
+    Fixture.saveMesserBracketLinks.mockResolvedValue({ saved: 0, conflicts: [26, 25] });
+    const res = await post(form());
+    expect(res.headers.location).toBe('/admin/messer-bracket/b-section?conflict=26,25');
+  });
+
+  it('refuses a page rendered before it carried the was* fields, without writing', async () => {
+    const { wasRound, wasNextDrawPos, wasNextSlot, ...old } = form();
+    const res = await post(old);
+    expect(res.headers.location).toBe('/admin/messer-bracket/b-section?stale=1');
+    expect(Fixture.saveMesserBracketLinks).not.toHaveBeenCalled();
+  });
+
+  it('is forbidden to a member who is not a messer admin', async () => {
+    mockClaims = CAPTAIN;
+    const res = await post(form());
+    expect(res.status).toBe(403);
+    expect(Fixture.saveMesserBracketLinks).not.toHaveBeenCalled();
+  });
+
+  describe('the page', () => {
+    beforeEach(() => Fixture.getMesserBracket.mockResolvedValue([
+      { id: 20, section: 'B', drawPos: 26, round: 2, nextDrawPos: 30, nextSlot: 'A', homeTeamName: 'Mellor B', awayTeamName: 'Cheadle Hulme A', homeScore: 5, awayScore: 10 },
+      { id: 32, section: 'B', drawPos: 32, round: 4, nextDrawPos: null, nextSlot: null, homeTeamName: 'No Team', awayTeamName: 'No Team', homeScore: null, awayScore: null },
+    ]));
+
+    it('renders what it showed alongside each row', async () => {
+      const res = await request(app).get('/admin/messer-bracket/b-section');
+      expect(res.text).toContain('name="wasNextSlot" value="A"');
+      expect(res.text).toContain('name="wasNextDrawPos" value="30"');
+      // A final: blank, not "null".
+      expect(res.text).toMatch(/name="wasNextDrawPos" value=""/);
+      expect(res.text).not.toContain('value="null"');
+    });
+
+    it('explains a conflict', async () => {
+      const res = await request(app).get('/admin/messer-bracket/b-section?conflict=26');
+      expect(res.text).toMatch(/Nothing was saved: the wiring for slot\s+26 changed/);
+    });
+
+    it('says when nothing had changed', async () => {
+      const res = await request(app).get('/admin/messer-bracket/b-section?saved=0');
+      expect(res.text).toContain('Nothing had changed, so nothing was saved.');
+    });
+  });
+});

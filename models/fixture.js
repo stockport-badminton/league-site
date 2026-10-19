@@ -1187,18 +1187,50 @@ exports.getMesserBracket = async function(section) {
   return result
 }
 
-// Bulk-save the bracket links entered on the admin screen.
-// `links` is an array of { id, round, nextDrawPos, nextSlot }; blank values
-// become NULL (e.g. a section final has no nextDrawPos/nextSlot).
+// Save the bracket links entered on the admin screen.
+// `links` is an array of { id, round, nextDrawPos, nextSlot, was } where `was` holds
+// the same three values as the page showed them; blank values are NULL (a section
+// final has no nextDrawPos/nextSlot).
+//
+// Only rows the admin changed are written, and each write requires the row to still
+// hold what the page showed. This used to write every row of the form blindly, so a
+// wiring page opened before a swap on the draw — which flips its feeders' nextSlot —
+// put the old sides back when it was saved, and the next winner would have been written
+// over the team already in the slot (B-30, 19 Oct 2026). Any row that has moved on
+// rolls the whole save back: half a rewiring is worse than none.
+//
+// Returns { saved, conflicts } — `conflicts` is the drawPos of each row that changed
+// underneath the page, and when it is non-empty nothing was written.
 exports.saveMesserBracketLinks = async function(links) {
-  const conn = await db.otherConnect()
-  for (const l of links) {
-    await conn.query(
-      `UPDATE messer SET "round" = ?, "nextDrawPos" = ?, "nextSlot" = ? WHERE id = ?`,
-      [l.round, l.nextDrawPos, l.nextSlot, l.id]
-    )
+  const same = (a, b) => (a == null ? null : a) === (b == null ? null : b)
+  const changed = links.filter(l =>
+    !same(l.round, l.was.round) || !same(l.nextDrawPos, l.was.nextDrawPos) || !same(l.nextSlot, l.was.nextSlot))
+  if (!changed.length) return { saved: 0, conflicts: [] }
+
+  const conflicts = []
+  const rollback = new Error('messer bracket save conflict')
+  try {
+    await db.withTransaction(async conn => {
+      for (const l of changed) {
+        const [rows] = await conn.query(
+          `UPDATE messer SET "round" = ?, "nextDrawPos" = ?, "nextSlot" = ?
+           WHERE id = ? AND "round" IS NOT DISTINCT FROM ?
+             AND "nextDrawPos" IS NOT DISTINCT FROM ? AND "nextSlot" IS NOT DISTINCT FROM ?
+           RETURNING "drawPos"`,
+          [l.round, l.nextDrawPos, l.nextSlot, l.id, l.was.round, l.was.nextDrawPos, l.was.nextSlot]
+        )
+        if (rows.affectedRows !== 1) {
+          const [cur] = await conn.query(`SELECT "drawPos" FROM messer WHERE id = ?`, [l.id])
+          conflicts.push(cur[0] ? cur[0].drawPos : l.id)
+        }
+      }
+      if (conflicts.length) throw rollback
+    })
+  } catch (err) {
+    if (err !== rollback) throw err
+    return { saved: 0, conflicts }
   }
-  return links.length
+  return { saved: changed.length, conflicts: [] }
 }
 
 // The draw match between two teams, whichever way round the draw has them. `reversed`

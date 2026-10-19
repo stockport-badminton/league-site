@@ -871,7 +871,9 @@ exports.messer_bracket_edit = async function(req, res, next) {
       section,
       rows,
       warnings: validateBracket(rows),
-      saved: req.query.saved === '1',
+      saved: /^\d+$/.test(req.query.saved || '') ? parseInt(req.query.saved, 10) : null,
+      conflict: /^\d+(,\d+)*$/.test(req.query.conflict || '') ? req.query.conflict.split(',') : null,
+      stale: req.query.stale === '1',
       pageTitle: `Messer Bracket — ${section} Section`,
       pageDescription: 'Wire up the messer draw for auto-advance',
       canonical: canonicalFor(req),
@@ -886,26 +888,46 @@ exports.messer_bracket_save = async function(req, res, next) {
     const section = (req.params.section || '').toUpperCase().charAt(0);
     if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
 
-    // Form posts parallel arrays keyed by row id: id[], round[], nextDrawPos[], nextSlot[]
-    const ids = [].concat(req.body.id || []);
-    const rounds = [].concat(req.body.round || []);
-    const nextPositions = [].concat(req.body.nextDrawPos || []);
-    const nextSlots = [].concat(req.body.nextSlot || []);
+    // Form posts parallel arrays keyed by row id: id[], round[], nextDrawPos[], nextSlot[],
+    // and the same three as the page showed them: wasRound[], wasNextDrawPos[], wasNextSlot[].
+    const list = (k) => [].concat(req.body[k] || []);
+    const ids = list('id');
+    const rounds = list('round');
+    const nextPositions = list('nextDrawPos');
+    const nextSlots = list('nextSlot');
+    const was = { round: list('wasRound'), nextDrawPos: list('wasNextDrawPos'), nextSlot: list('wasNextSlot') };
+    const back = `/admin/messer-bracket/${section.toLowerCase()}-section`;
+    // A page rendered before the was* fields existed cannot say what it was showing, so
+    // it cannot be saved safely; reloading it gives it them.
+    if (!ids.length || [rounds, nextPositions, nextSlots, was.round, was.nextDrawPos, was.nextSlot]
+      .some(a => a.length !== ids.length)) {
+      return res.redirect(`${back}?stale=1`);
+    }
 
     const toIntOrNull = (v) => {
       const n = parseInt(v, 10);
       return (v == null || v === '' || isNaN(n)) ? null : n;
     };
 
+    const toSlot = (v) => (v === 'H' || v === 'A') ? v : null;
+
     const links = ids.map((id, i) => ({
       id: parseInt(id, 10),
       round: toIntOrNull(rounds[i]),
       nextDrawPos: toIntOrNull(nextPositions[i]),
-      nextSlot: (nextSlots[i] === 'H' || nextSlots[i] === 'A') ? nextSlots[i] : null,
+      nextSlot: toSlot(nextSlots[i]),
+      was: {
+        round: toIntOrNull(was.round[i]),
+        nextDrawPos: toIntOrNull(was.nextDrawPos[i]),
+        nextSlot: toSlot(was.nextSlot[i]),
+      },
     }));
 
-    await Fixture.saveMesserBracketLinks(links);
-    res.redirect(`/admin/messer-bracket/${section}-section?saved=1`);
+    const out = await Fixture.saveMesserBracketLinks(links);
+    if (out.conflicts.length) {
+      return res.redirect(`${back}?conflict=${out.conflicts.join(',')}`);
+    }
+    res.redirect(`${back}?saved=${out.saved}`);
   } catch (err) {
     console.error('messer_bracket_save error:', err);
     next(err);

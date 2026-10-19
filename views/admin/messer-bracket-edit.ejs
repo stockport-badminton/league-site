@@ -5,8 +5,24 @@
   <h1>Messer Bracket — <%= section %> Section</h1>
   <p><a href="/admin/messer-bracket">← Both sections</a></p>
 
-  <% if (saved) { %>
-    <div class="alert alert-success">Bracket wiring saved.</div>
+  <% if (saved != null) { %>
+    <div class="alert alert-success">
+      <%= saved === 0 ? 'Nothing had changed, so nothing was saved.'
+                      : 'Bracket wiring saved (' + saved + (saved === 1 ? ' slot' : ' slots') + ' changed).' %>
+    </div>
+  <% } %>
+  <% if (conflict) { %>
+    <div class="alert alert-danger">
+      Nothing was saved: the wiring for slot<%= conflict.length === 1 ? '' : 's' %>
+      <%= conflict.join(', ') %> changed after this page was opened (a swap on the draw page
+      does that). It now shows the current wiring, so make your changes again.
+    </div>
+  <% } %>
+  <% if (stale) { %>
+    <div class="alert alert-danger">
+      Nothing was saved: that page was opened before an update to this screen. It now
+      shows the current wiring, so make your changes again.
+    </div>
   <% } %>
 
   <% if (warnings && warnings.length) { %>
@@ -42,6 +58,11 @@
             <td>
               <strong><%= r.drawPos %></strong>
               <input type="hidden" name="id" value="<%= r.id %>">
+              <%# What this page showed, so a save writes only what was changed here and
+                  refuses rows that have moved on since — see saveMesserBracketLinks. %>
+              <input type="hidden" name="wasRound" value="<%= r.round != null ? r.round : '' %>">
+              <input type="hidden" name="wasNextDrawPos" value="<%= r.nextDrawPos != null ? r.nextDrawPos : '' %>">
+              <input type="hidden" name="wasNextSlot" value="<%= r.nextSlot || '' %>">
             </td>
             <td>
               <%= (r.homeTeamName || 'TBC') + ' vs ' + (r.awayTeamName || 'TBC') %>
