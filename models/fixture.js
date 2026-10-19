@@ -1201,6 +1201,23 @@ exports.saveMesserBracketLinks = async function(links) {
   return links.length
 }
 
+// The draw match between two teams, whichever way round the draw has them. `reversed`
+// is true when the draw has `awayTeamId` at home. The current draw only: archived
+// seasons live in their own messer<season> tables.
+exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT id, section, "drawPos", "nextDrawPos", "nextSlot",
+            ("homeTeam" = ?) AS "exact"
+     FROM messer
+     WHERE ("homeTeam" = ? AND "awayTeam" = ?) OR ("homeTeam" = ? AND "awayTeam" = ?)
+     ORDER BY "exact" DESC`,
+    [homeTeamId, homeTeamId, awayTeamId, awayTeamId, homeTeamId]
+  )
+  if (!rows.length) return null
+  const { exact, ...match } = rows[0]
+  return { ...match, reversed: !exact }
+}
+
 // Swap which team is at home in one draw slot, at the messer admin's request —
 // she sometimes alternates home and away so the top of a bracket is not always
 // the home side.

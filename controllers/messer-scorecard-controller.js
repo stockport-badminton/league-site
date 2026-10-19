@@ -6,6 +6,11 @@ const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
 const { isMesserAdmin: isMesserAdminUser } = require('../utils/sessionUser');
+
+// The refusals Fixture.swapMesserHomeAway names; views/messer-draw-a-section.ejs has a
+// message for each.
+const SWAP_ERRORS = ['missing', 'empty', 'played', 'pending'];
+
 const { body, validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
@@ -632,8 +637,28 @@ exports.messer_result_approve = async function(req, res, next) {
       approved_at: new Date(),
     };
 
-    // Get the messer match to get its ID
-    const messerMatch = await getMesserMatchId(data.homeTeam, data.awayTeam);
+    // Find the draw match. A scorecard can be filed the other way round from the draw —
+    // whoever actually hosted files as home — and the exact-orientation lookup this used
+    // to be found nothing, so approval recorded the result with no messer_id, left the
+    // draw untouched and said nothing (Manor A v College Green C, 19 Oct 2026). Filed the
+    // other way round, the scorecard is the better evidence of who hosted, so the draw is
+    // swapped to agree with it before the result goes in; the swap re-points the feeding
+    // matches too.
+    let messerMatch = await Fixture.findMesserMatch(data.homeTeam, data.awayTeam);
+    let drawSwapped = false;
+    let drawSwapRefused = null;
+    if (messerMatch && messerMatch.reversed) {
+      try {
+        await Fixture.swapMesserHomeAway(messerMatch.section, messerMatch.id);
+        drawSwapped = true;
+      } catch (err) {
+        if (!SWAP_ERRORS.includes(err.code)) throw err;
+        // Refused (another scorecard is pending the draw's way round, say): nothing is
+        // recorded against the draw rather than recording it under the wrong team.
+        drawSwapRefused = err.code;
+        messerMatch = null;
+      }
+    }
 
     let advanceResult = null;
     if (messerMatch) {
@@ -667,7 +692,12 @@ exports.messer_result_approve = async function(req, res, next) {
     const captainTold = await afterCommit('messer approval email',
       () => sendMesserApprovalEmail(data));
 
-    let message = 'Result approved and messer table updated';
+    let message = messerMatch
+      ? 'Result approved and messer table updated'
+      : (drawSwapRefused
+        ? `Result approved, but it was filed the other way round from the draw and the draw could not be swapped to match (${drawSwapRefused}) — the draw was NOT updated`
+        : 'Result approved, but this match was not found in the draw — the draw was NOT updated');
+    if (drawSwapped) message += '; it was filed the other way round, so the draw was swapped to match';
     if (advanceResult && advanceResult.advanced) {
       message += `; winner advanced to slot ${messerMatch.nextDrawPos} (${advanceResult.slot === 'H' ? 'home' : 'away'})`;
     } else if (advanceResult && advanceResult.reason === 'target-already-played') {
@@ -885,10 +915,6 @@ exports.messer_bracket_save = async function(req, res, next) {
 // POST /messer-draw/:section/swap/:id — swap home and away for one match, from the
 // Swap button the draw page shows a messer admin. The outcome goes back as a code
 // rather than text, so nothing from the request is echoed into the page.
-// The refusals Fixture.swapMesserHomeAway names; views/messer-draw-a-section.ejs has a
-// message for each.
-const SWAP_ERRORS = ['missing', 'empty', 'played', 'pending'];
-
 exports.messer_draw_swap = async function(req, res, next) {
   if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
   const section = (req.params.section || '').toUpperCase().charAt(0);
@@ -1010,16 +1036,3 @@ async function sendMesserRejectionEmail(scorecardData) {
 }
 
 // Helper: Get messer match ID by teams and date
-async function getMesserMatchId(homeTeamId, awayTeamId) {
-  try {
-    const db = require('../db_connect');
-    const [result] = await (await db.otherConnect()).query(
-      'SELECT id, section, "drawPos", "nextDrawPos", "nextSlot" FROM messer WHERE "homeTeam" = ? AND "awayTeam" = ?',
-      [homeTeamId, awayTeamId]
-    );
-    return result && result.length > 0 ? result[0] : null;
-  } catch (err) {
-    console.error('getMesserMatchId error:', err);
-    return null;
-  }
-}
