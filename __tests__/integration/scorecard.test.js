@@ -58,6 +58,7 @@ jest.mock('../../db_connect', () => {
     __lastTransactionConn: null,
     __rolledBack: false,
     connect: jest.fn(),
+    sessionPool: () => ({ query: () => Promise.resolve({ rows: [] }) }),
     otherConnect: jest.fn(() => Promise.resolve({
       query: jest.fn(() => Promise.resolve([[]]))
     })),

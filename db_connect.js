@@ -59,6 +59,24 @@ exports.connect = function() {
   });
 };
 
+// The pool for connect-pg-simple, so sessions share the app's capped pool instead of
+// the store building its own. Given only a connection string it creates a second Pool
+// at pg's default max of 10 — 15 connections per instance against Supabase's 15 in
+// total, so one busy instance could starve the next of every slot (Sentry NODE-18,
+// 19 Oct 2026).
+//
+// An adapter rather than the Pool itself because app.js builds the store at load time
+// and db.connect() runs later. The store only ever calls `pool.query(text, params)`
+// with its own $N placeholders, so this goes straight to pg, not through pgQuery.
+exports.sessionPool = function() {
+  return {
+    query: function(text, params) {
+      if (!state.pool) return Promise.reject(new Error('session store used before db.connect()'));
+      return state.pool.query(text, params);
+    },
+  };
+};
+
 // Exposed for logging/diagnostics; also lets a test assert the cap is applied.
 exports.poolMax = function() {
   return POOL_MAX;

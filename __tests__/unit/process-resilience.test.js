@@ -19,6 +19,7 @@ jest.mock('@sentry/node', () => ({
 
 jest.mock('../../db_connect', () => ({
   connect: jest.fn(),
+  sessionPool: () => ({ query: () => Promise.resolve({ rows: [] }) }),
   end: jest.fn().mockResolvedValue(undefined),
   otherConnect: jest.fn(() => Promise.resolve({
     query: jest.fn(() => Promise.resolve([[]]))

@@ -26,6 +26,7 @@ jest.mock('axios');
 // Database mock
 jest.mock('../../db_connect', () => ({
   connect: jest.fn(),
+  sessionPool: () => ({ query: () => Promise.resolve({ rows: [] }) }),
   otherConnect: jest.fn(() => Promise.resolve({
     query: jest.fn(() => Promise.resolve([[], []]))
   })),

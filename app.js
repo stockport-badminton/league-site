@@ -410,7 +410,9 @@ passport.deserializeUser(function(user, done) { done(null, user); });
 
 var sess = {
   name: '__session',
-  store: new pgSession({ conString: process.env.DATABASE_URL, createTableIfMissing: true }),
+  // The app's own pool, not a connection string: given one, the store builds a second
+  // Pool of 10 and starves Supabase's 15-slot pooler (db_connect.sessionPool).
+  store: new pgSession({ pool: db.sessionPool(), createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'ThisisMySecret',
   cookie: {},
   resave: false,
@@ -428,6 +430,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sess));
+app.set('sessionStore', sess.store);
 app.use(require('./middleware/devMode'));
 app.use(passport.initialize());
 app.use(passport.session());

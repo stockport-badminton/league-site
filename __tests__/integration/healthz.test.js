@@ -12,6 +12,7 @@ let mockQueryImpl = () => Promise.resolve([[{ '?column?': 1 }]]);
 
 jest.mock('../../db_connect', () => ({
   connect: jest.fn(),
+  sessionPool: () => ({ query: () => Promise.resolve({ rows: [] }) }),
   end: jest.fn().mockResolvedValue(undefined),
   otherConnect: jest.fn(() => Promise.resolve({
     query: jest.fn((...args) => mockQueryImpl(...args))

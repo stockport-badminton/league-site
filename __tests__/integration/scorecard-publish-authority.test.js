@@ -47,6 +47,7 @@ jest.mock('../../utils/ses', () => ({ sendEmail: jest.fn().mockResolvedValue({})
 
 jest.mock('../../db_connect', () => ({
   connect: jest.fn(),
+  sessionPool: () => ({ query: () => Promise.resolve({ rows: [] }) }),
   otherConnect: jest.fn(() => Promise.resolve({ query: jest.fn(() => Promise.resolve([[]])) })),
   isObject: obj => obj === Object(obj),
   withTransaction: jest.fn(async fn => fn({ query: jest.fn(() => Promise.resolve([[]])) })),
