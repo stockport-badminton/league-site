@@ -3,6 +3,26 @@
 
 <h1>Messer Trophy <%= section + " section" %></h1>
 
+<% if (locals.swapped != null && teams[swapped]) { %>
+  <div class="alert alert-success">
+    Swapped: <%= teams[swapped].homeTeam %> are now at home to <%= teams[swapped].awayTeam %>.
+    Any earlier match feeding it now sends its winner to the other side, so each winner
+    still meets the same opponent.
+  </div>
+<% } %>
+<% var swapMessages = {
+     played: "That match already has a result, so home and away can't be swapped.",
+     pending: 'A scorecard for that match is waiting for approval the way round it is now. Approve or reject it on Messer Results first.',
+     empty: 'Neither side of that match has a team yet, so there is nothing to swap.',
+     missing: "That match wasn't found in this section."
+   };
+   if (locals.swapError && Object.prototype.hasOwnProperty.call(swapMessages, swapError)) { %>
+  <div class="alert alert-danger">
+    <%= swapMessages[swapError] %>
+    <% if (swapError === 'pending') { %><a href="/messer-results">Messer Results</a><% } %>
+  </div>
+<% } %>
+
 <div class="row col-12 bracket-container">
     <% 
     let fixCount=0
@@ -19,7 +39,7 @@
                         <div class="row align-middle d-flex align-items-center h-6">
                             <div class="row col-12 g-0 p-0 m-0 d-flex">
                         <% if (typeof teams[1+offset] !== 'undefined'){ %>
-                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> <strong><%= teams[1+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><%= teams[1+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong></div> <% } %>
+                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> <strong><%= teams[1+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><%= teams[1+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[1+offset], section: section }) %></div> <% } %>
                             <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
                         </div>
                    <% }
@@ -30,7 +50,7 @@
                             <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
                         <% if (typeof teams[2+offset] !== 'undefined'){ %>
                             <div class="row col-12 g-0 p-0 m-0 d-flex">
-                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %>  <strong><%= teams[2+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %>  <strong><%= teams[2+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong></div> <% } %>
+                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %>  <strong><%= teams[2+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %>  <strong><%= teams[2+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[2+offset], section: section }) %></div> <% } %>
                             
                         </div>
                     <% }
@@ -44,7 +64,7 @@
                     <div class="row align-middle d-flex align-items-center h-<%= i > 0 ? (i > 1 ? ( i > 2 ? (i > 3 ? 100 : 50) : 25 ) : 13 ) : 6 %>">
                         <% if (typeof teams[fixCount+offset] !== 'undefined'){ %>
                             <div class="row col-12 g-0 p-0 m-0 d-flex">
-                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %>  <strong><%= teams[fixCount+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %>  <strong><%= teams[fixCount+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong></div> <% } %>
+                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %>  <strong><%= teams[fixCount+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %>  <strong><%= teams[fixCount+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[fixCount+offset], section: section }) %></div> <% } %>
                         <div style="" class="bracket <%= fixCount % 2 == 0 ? 'even' : 'odd' %>-fix d-flex flex-fill">&nbsp;</div>
                     </div>
                 <% } 

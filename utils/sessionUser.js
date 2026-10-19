@@ -46,4 +46,13 @@ function userLabel(user) {
   return name ? `${name} (${email})` : email;
 }
 
-module.exports = { userEmail, userDisplayName, userLabel };
+// A superadmin, or someone carrying the messer admin flag — who may run the Messer
+// draw. The flag is its own claim rather than a role, so a messer admin is usually a
+// captain as well.
+function isMesserAdmin(user) {
+  const claims = (user && user._json) || {};
+  return claims['https://my-app.example.com/role'] === 'superadmin' ||
+    !!claims['https://my-app.example.com/messeradmin'];
+}
+
+module.exports = { userEmail, userDisplayName, userLabel, isMesserAdmin };

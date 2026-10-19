@@ -230,6 +230,12 @@ table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, tab
 .bracket.odd-fix{
   position:relative;
 }
+/* The messer admin's Swap button sits in the match text, and .even-fix above is
+   shifted up over that text — without this, the connector line takes the click. */
+.bracket-container .messer-swap {
+  position: relative;
+  z-index: 1;
+}
 .bracket-container .row {
   padding:5px 0px;
   text-align: left;

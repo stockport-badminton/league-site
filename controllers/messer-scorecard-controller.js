@@ -5,6 +5,7 @@ const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
+const { isMesserAdmin: isMesserAdminUser } = require('../utils/sessionUser');
 const { body, validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
@@ -772,9 +773,7 @@ exports.messer_result_reject = async function(req, res, next) {
 // ── Admin: wire up the messer bracket ────────────────────────────────────
 
 function isMesserAdmin(req) {
-  return req.user && req.user._json &&
-    (req.user._json['https://my-app.example.com/role'] === 'superadmin' ||
-     req.user._json['https://my-app.example.com/messeradmin']);
+  return isMesserAdminUser(req.user);
 }
 
 // Sanity-check a section's wiring; returns an array of human-readable warnings.
@@ -879,6 +878,31 @@ exports.messer_bracket_save = async function(req, res, next) {
     res.redirect(`/admin/messer-bracket/${section}-section?saved=1`);
   } catch (err) {
     console.error('messer_bracket_save error:', err);
+    next(err);
+  }
+};
+
+// POST /messer-draw/:section/swap/:id — swap home and away for one match, from the
+// Swap button the draw page shows a messer admin. The outcome goes back as a code
+// rather than text, so nothing from the request is echoed into the page.
+// The refusals Fixture.swapMesserHomeAway names; views/messer-draw-a-section.ejs has a
+// message for each.
+const SWAP_ERRORS = ['missing', 'empty', 'played', 'pending'];
+
+exports.messer_draw_swap = async function(req, res, next) {
+  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
+  const section = (req.params.section || '').toUpperCase().charAt(0);
+  if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).send('Invalid match');
+  const back = `/messer-draw/${section.toLowerCase()}-section`;
+  try {
+    const out = await Fixture.swapMesserHomeAway(section, id);
+    res.redirect(`${back}?swapped=${out.drawPos}`);
+  } catch (err) {
+    if (SWAP_ERRORS.includes(err.code)) {
+      return res.redirect(`${back}?swapError=${err.code}`);
+    }
     next(err);
   }
 };

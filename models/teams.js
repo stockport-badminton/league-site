@@ -36,7 +36,10 @@ exports.getMesser = async function(searchTerms) {
     awayTeam.handicap AS "awayTeamHandicap",
     messer."homeScore",
     messer."awayScore",
-    messer."drawPos"
+    messer."drawPos",
+    messer.id,
+    messer."homeTeam",
+    messer."awayTeam"
 FROM
     messer${season} messer
     JOIN team${season} homeTeam ON messer."homeTeam" = homeTeam.id

@@ -2,6 +2,7 @@ var db = require('../db_connect.js');
 const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
 const axios = require('axios');
+const { NO_TEAM_ID } = require('./roster');
 
 
 exports.create = async function(fixtureObj) {
@@ -1198,6 +1199,68 @@ exports.saveMesserBracketLinks = async function(links) {
     )
   }
   return links.length
+}
+
+// Swap which team is at home in one draw slot, at the messer admin's request —
+// she sometimes alternates home and away so the top of a bracket is not always
+// the home side.
+//
+// Swapping the two teams is not enough on its own. The matches that FEED this
+// slot carry a fixed `nextSlot`, so if slot 3 feeds 11:H and Syddal Park B is
+// already sitting in 11's home side, swapping 11 moves Syddal Park B to away —
+// and slot 4's winner, still wired to 11:A, would then be written over them on
+// approval. So the feeders' sides are flipped in the same transaction, and each
+// still delivers its winner to the team it is actually drawn against.
+//
+// Refused (err.status 409) when:
+//   - neither side has a team yet (both are the 'No Team' placeholder), so there
+//     is nothing to swap;
+//   - the match has a result: home/away is moot once it is played, and the
+//     scores and messer_result rows are recorded the way round it was played;
+//   - a scorecard for it is awaiting approval in the CURRENT orientation:
+//     approval finds the match by exact homeTeam/awayTeam, so swapping under it
+//     would make the approval record the result and silently skip updating the
+//     draw. (A draft filed the other way round is fine — the swap is what lets
+//     it match.)
+exports.swapMesserHomeAway = async function(section, id) {
+  return db.withTransaction(async conn => {
+    const [rows] = await conn.query(
+      `SELECT id, section, "drawPos", "homeTeam", "awayTeam", "homeScore", "awayScore"
+       FROM messer WHERE id = ? AND section = ? FOR UPDATE`,
+      [id, section]
+    )
+    const match = rows[0]
+    if (!match) {
+      throw Object.assign(new Error('No such draw slot in this section'), { status: 404, code: 'missing' })
+    }
+    if (match.homeTeam === NO_TEAM_ID && match.awayTeam === NO_TEAM_ID) {
+      throw Object.assign(new Error('Neither side of that match has a team yet'), { status: 409, code: 'empty' })
+    }
+    if (match.homeScore != null || match.awayScore != null) {
+      throw Object.assign(new Error('That match already has a result'), { status: 409, code: 'played' })
+    }
+    const [pending] = await conn.query(
+      `SELECT id FROM messer_scorecard
+       WHERE "homeTeam" = ? AND "awayTeam" = ? AND status IN ('draft', 'submitted')`,
+      [match.homeTeam, match.awayTeam]
+    )
+    if (pending.length) {
+      throw Object.assign(new Error('A scorecard for that match is awaiting approval'), { status: 409, code: 'pending' })
+    }
+
+    // Postgres evaluates every SET expression against the old row, so this swaps.
+    await conn.query(
+      `UPDATE messer SET "homeTeam" = "awayTeam", "awayTeam" = "homeTeam" WHERE id = ?`,
+      [match.id]
+    )
+    const [flipped] = await conn.query(
+      `UPDATE messer
+       SET "nextSlot" = CASE "nextSlot" WHEN 'H' THEN 'A' ELSE 'H' END
+       WHERE section = ? AND "nextDrawPos" = ? AND "nextSlot" IN ('H', 'A')`,
+      [match.section, match.drawPos]
+    )
+    return { id: match.id, drawPos: match.drawPos, feedersFlipped: flipped.affectedRows }
+  })
 }
 
 // Advance a winning team into its next-round slot.

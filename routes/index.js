@@ -390,6 +390,7 @@ router.get('/history', static_controller.history);
 router.get('/messer-rules', static_controller.messer_rules);
 router.get('/messer-draw/:section', team_controller.new_messer_draw);
 router.get('/messer-draw/:season/:section', team_controller.new_messer_draw);
+router.post('/messer-draw/:section/swap/:id', secured, messer_scorecard_controller.messer_draw_swap);
 router.get('/rules', static_controller.rules);
 
 // Generated from the database — see controllers/sitemapController.js. The stale

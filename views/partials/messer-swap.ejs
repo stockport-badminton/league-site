@@ -1,0 +1,14 @@
+<%# The Swap button on one draw match, for a messer admin. `m` is the match; the
+    controller sets m.swappable only for an admin, on the current draw, where the match
+    is unplayed and has at least one real team. Inline because each match sits in its
+    own markup; no outer form exists for it to nest inside. %>
+<% if (m && m.swappable) {
+     var tbc = function (n) { return (!n || n === 'No Team') ? 'TBC' : String(n).replace(/[\\'"<>&]/g, ''); };
+%>
+<form method="POST" class="d-inline ms-1 messer-swap"
+      action="/messer-draw/<%= section.toLowerCase() %>-section/swap/<%= m.id %>"
+      onsubmit="return confirm('Swap home and away? <%= tbc(m.awayTeam) %> will be at home to <%= tbc(m.homeTeam) %>, and their captain sends in the scorecard.');">
+  <button type="submit" class="btn btn-link btn-sm p-0 align-baseline"
+          title="Swap home and away" aria-label="Swap home and away"><%- icon('arrows-up-down') %></button>
+</form>
+<% } %>

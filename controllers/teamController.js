@@ -5,6 +5,7 @@ var Venue = require('../models/venue');
 var League = require('../models/league');
 var Roster = require('../models/roster');
 const { canonicalFor } = require('../utils/canonical');
+const { isMesserAdmin } = require('../utils/sessionUser');
 
 // Display list of all Teams
 exports.team_list = async function(req, res, next) {
@@ -124,6 +125,10 @@ exports.new_messer_draw = async function(req, res, next) {
   if (req.params.season !== undefined) {
     searchObj.season = req.params.season;
   }
+  // Swapping home and away is offered to a messer admin on the current draw only: an
+  // archived season is read from its own messer<season> table, which the swap does not
+  // touch, and is finished anyway.
+  const mayAdminDraw = req.params.season === undefined && isMesserAdmin(req.user);
   try {
     const rows = await Team.getMesser(searchObj);
     // console.log(rows)
@@ -184,7 +189,10 @@ exports.new_messer_draw = async function(req, res, next) {
       }
       // console.log(homeTeamAdjHandicap+homeHand)
       // console.log(awayTeamAdjHandicap+awayHand)
-      obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeAdjHandicap":homeTeamAdjHandicap+homeHand,"awayAdjHandicap":awayTeamAdjHandicap+awayHand,"homeScore":row.homeScore,"awayScore":row.awayScore};
+      obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeAdjHandicap":homeTeamAdjHandicap+homeHand,"awayAdjHandicap":awayTeamAdjHandicap+awayHand,"homeScore":row.homeScore,"awayScore":row.awayScore,"id":row.id,
+        // At least one real team (not the 'No Team' placeholder) and no result yet.
+        "swappable": mayAdminDraw && row.homeScore == null && row.awayScore == null &&
+          (row.homeTeam !== Roster.NO_TEAM_ID || row.awayTeam !== Roster.NO_TEAM_ID)};
       return obj;
     }, {});
 
@@ -197,6 +205,8 @@ exports.new_messer_draw = async function(req, res, next) {
       flask_debug: process.env.FLASK_DEBUG || 'false',
       teams: otherArray,
       section: req.params.section.toUpperCase().at(0),
+      swapped: mayAdminDraw && /^\d+$/.test(req.query.swapped || '') ? parseInt(req.query.swapped, 10) : null,
+      swapError: mayAdminDraw ? req.query.swapError : null,
       pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section",
       pageDescription : "Messer Trophy Draws and results",
       canonical:canonicalFor(req)
