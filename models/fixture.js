@@ -201,9 +201,13 @@ exports.getScorecardCandidates = async function() {
   return result
 }
 
+// The daily missing-scorecard email. Only 'outstanding' is owed a scorecard: this used
+// to exclude just 'rearranged'/'rearranging', so when Dome A withdrew (Oct 2026) and
+// its fixtures were voided, every one of them was reported missing in turn. An allowlist,
+// so a status added later is silent rather than nagging.
 exports.getCardsDueToday = async function() {
   const [result] = await (await db.otherConnect()).query(
-    `SELECT fixId, date, status, "homeTeam", team.name AS "awayTeam", a."homeScore", a."awayScore" FROM (SELECT fixture.id AS fixid, fixture.date, fixture.status, team.name AS "homeTeam", fixture."homeScore", fixture."awayScore", fixture."awayTeam" FROM fixture JOIN team ON fixture."homeTeam" = team.id AND fixture.status NOT IN ('rearranged','rearranging')) AS a JOIN team ON a."awayTeam" = team.id WHERE a."homeScore" IS NULL AND date BETWEEN NOW() - INTERVAL '7 days' AND NOW() - INTERVAL '6 days' ORDER BY date`
+    `SELECT fixId, date, status, "homeTeam", team.name AS "awayTeam", a."homeScore", a."awayScore" FROM (SELECT fixture.id AS fixid, fixture.date, fixture.status, team.name AS "homeTeam", fixture."homeScore", fixture."awayScore", fixture."awayTeam" FROM fixture JOIN team ON fixture."homeTeam" = team.id AND fixture.status = 'outstanding') AS a JOIN team ON a."awayTeam" = team.id WHERE a."homeScore" IS NULL AND date BETWEEN NOW() - INTERVAL '7 days' AND NOW() - INTERVAL '6 days' ORDER BY date`
   )
   return result
 }
