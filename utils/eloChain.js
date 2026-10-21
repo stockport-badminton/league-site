@@ -70,7 +70,16 @@ function rateFixtureGames(games, fixturePlayers, fixture) {
   return rated
 }
 
-async function rerateFrom(fixtureId) {
+// opts.dryRun computes everything and writes nothing, for checking what a re-rate of
+// production would change before it does. maxShift is the largest move in any one
+// game's End value.
+//
+// opts.everyFixture treats every player as dirty from the start, so every fixture from
+// here to now is re-rated — a backfill of the rest of the season, with the lifetime
+// games-played count recalcSeasonElo only has when run from 2018 (eloFullRecalc starts
+// everyone at zero). For a fault that is in every fixture, not one that spreads from
+// this one. opts.maxFixtures raises the cap for that.
+async function rerateFrom(fixtureId, opts = {}) {
   return db.withTransaction(async conn => {
     await conn.query('SELECT pg_advisory_xact_lock(?::bigint)', [LOCK_KEY])
 
@@ -91,7 +100,8 @@ async function rerateFrom(fixtureId) {
     }
 
     const ranks = (await Player.getSeasonRanks()) || {}
-    const dirty = new Set(playersIn(gamesByFixture[chain[0].id] || []))
+    const dirty = new Set(playersIn(opts.everyFixture ? rows : (gamesByFixture[chain[0].id] || [])))
+    const cap = opts.maxFixtures || MAX_CHAIN_FIXTURES
     const known = {}  // dirty players only: their state after the last fixture re-rated here
     const writes = []
     let rerated = 0
@@ -100,8 +110,8 @@ async function rerateFrom(fixtureId) {
       const games = gamesByFixture[fixture.id] || []
       const pids = playersIn(games)
       if (!pids.some(p => dirty.has(p))) continue
-      if (++rerated > MAX_CHAIN_FIXTURES) {
-        throw new Error(`ELO chain from fixture ${fixtureId} reaches more than ${MAX_CHAIN_FIXTURES} fixtures; nothing re-rated — run a full backfill`)
+      if (++rerated > cap) {
+        throw new Error(`ELO chain from fixture ${fixtureId} reaches more than ${cap} fixtures; nothing re-rated — run a full backfill`)
       }
 
       // A clean player's history up to here is unchanged, so the database is right
@@ -125,10 +135,13 @@ async function rerateFrom(fixtureId) {
       }
     }
 
+    const maxShift = writes.reduce((m, row) => Math.max(m, ...SLOTS.map(([, e]) => Math.abs(row[e] - Number(storedById[row.id][e])))), 0)
+    if (opts.dryRun) return { fixtures: rerated, games: writes.length, players: dirty.size, maxShift, dryRun: true }
+
     await Game.updateEloBatch(writes, conn)
     if (writes.length > 0) await Player.refreshRatings([...dirty], conn)
     if (rerated > 1) console.log(`[elo-chain] fixture ${fixtureId}: re-rated ${rerated} fixtures, ${writes.length} games, ${dirty.size} players`)
-    return { fixtures: rerated, games: writes.length, players: dirty.size }
+    return { fixtures: rerated, games: writes.length, players: dirty.size, maxShift }
   })
 }
 

@@ -183,6 +183,48 @@ describe('eloChain.rerateFrom', () => {
     expect(eloOf(rows)).toEqual(eloOf(truth));
   });
 
+  it('a dry run reports what would change and writes nothing', async () => {
+    const late = fixtures[8];
+    const rows = rateFromScratch(fixtures, games, late.id);
+    const writes = serve(fixtures, rows);
+    const wet = await rerateFrom(late.id);
+    const wetWrites = writes.splice(0);
+    jest.clearAllMocks();
+
+    const dry = await rerateFrom(late.id, { dryRun: true });
+    expect(writes).toEqual([]);
+    expect(Player.refreshRatings).not.toHaveBeenCalled();
+    expect(dry).toEqual({ ...wet, dryRun: true });
+    expect(dry.games).toBe(wetWrites.length);
+    expect(dry.maxShift).toBeGreaterThan(0);
+  });
+
+  // The season had to be re-rated once (21 Oct 2026) because every live publish used
+  // K=32: a fault in every fixture, which a walk from the first one does not reach.
+  it('everyFixture re-rates a season whose every fixture is wrong', async () => {
+    const rows = truth.map(g => ({ ...g }));
+    const k32 = {};
+    for (const f of fixtures) {
+      const fg = rows.filter(g => g.fixture === f.id);
+      const fp = {};
+      for (const g of fg) for (const [s] of SLOTS) fp[g[s]] = { ...(k32[g[s]] || { rating: 1500 }), rank: 1, gamesCount: undefined };
+      for (const out of rateFixtureGames(fg, fp, f)) Object.assign(fg.find(g => g.id === out.id), out);
+      for (const p of Object.keys(fp)) k32[p] = fp[p];
+    }
+    expect(eloOf(rows)).not.toEqual(eloOf(truth));
+
+    let writes = serve(fixtures, rows.map(g => ({ ...g })));
+    await rerateFrom(fixtures[0].id);
+    const partial = rows.map(g => ({ ...g }));
+    apply(partial, writes);
+    expect(eloOf(partial)).not.toEqual(eloOf(truth));
+
+    writes = serve(fixtures, rows);
+    await rerateFrom(fixtures[0].id, { everyFixture: true, maxFixtures: fixtures.length });
+    apply(rows, writes);
+    expect(eloOf(rows)).toEqual(eloOf(truth));
+  });
+
   it('refuses a chain longer than the cap and writes nothing', async () => {
     const long = makeSeason(11, Math.ceil((MAX_CHAIN_FIXTURES + 8) / 4) + 2);
     const rows = rateFromScratch(long.fixtures, long.games, long.fixtures[0].id);
