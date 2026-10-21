@@ -5,7 +5,9 @@ const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
-const { isMesserAdmin: isMesserAdminUser } = require('../utils/sessionUser');
+const { isMesserAdmin: isMesserAdminUser, userEmail } = require('../utils/sessionUser');
+const { normalisePhotoUrl, isPhotoUrl } = require('../utils/scorecardLinks');
+const { sendPhoto } = require('../utils/scorecardPhoto');
 
 // The refusals Fixture.swapMesserHomeAway names; views/messer-draw-a-section.ejs has a
 // message for each.
@@ -322,6 +324,13 @@ exports.full_messer_fixture_post = async function(req, res, next) {
   }
 
   try {
+    // The photo the form uploaded into its hidden `scoresheet-url`. This handler never read
+    // it, so every Messer photo was uploaded and then dropped (found 21 Oct 2026). Same rule
+    // as the league form: only an object in our own bucket, and a bad one costs the photo,
+    // never the result.
+    const offered = [].concat(req.body['scoresheet-url'] || []).find(isPhotoUrl);
+    const photoUrl = offered ? normalisePhotoUrl(offered) : null;
+
     // Create messer_scorecard draft - convert all numeric fields to integers
     const scorecardData = {
       date: req.body.date,
@@ -356,7 +365,8 @@ exports.full_messer_fixture_post = async function(req, res, next) {
           .filter(([k]) => k.startsWith('Game') && (k.includes('homeScore') || k.includes('awayScore')))
           .map(([k, v]) => [k, parseInt(v) || null])
       ),
-      email: req.user?.email || req.body.email,
+      email: userEmail(req.user) || req.body.email,
+      'scoresheet-url': photoUrl,
       status: 'submitted',
     };
 
@@ -502,6 +512,21 @@ exports.messer_results_list = async function(req, res, next) {
     });
   } catch (err) {
     console.error('messer_results_list error:', err);
+    next(err);
+  }
+};
+
+// GET /messer-scorecard-photo/:id — the photo on a Messer draft, for the approver only.
+// A card carries twelve names and both captains' signatures, so this is narrower than the
+// `secured` on the rest of the Messer pages. Keyed by draft id, never object key, for the
+// reason GET /scorecard-photo/:id is.
+exports.messer_scorecard_photo = async function(req, res, next) {
+  try {
+    if (!isMesserAdmin(req)) return res.status(403).end();
+    const rows = await Fixture.getMesserScorecardById(req.params.id);
+    if (!rows || !rows.length) return res.status(404).end();
+    return await sendPhoto(res, rows[0]['scoresheet-url']);
+  } catch (err) {
     next(err);
   }
 };

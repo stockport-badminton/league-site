@@ -8,7 +8,7 @@ const { absoluteUrl } = require('../utils/canonical');
 const { expressjwt: jwt } = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
 const multer = require('multer');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 var venue_controller = require('../controllers/venueController');
@@ -44,7 +44,7 @@ const {
 const spamGate = require('../middleware/spamGate');
 const { buildUploadKey, objectUrl } = require('../utils/uploads');
 // The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
-const { photoKeyFromStored, contentTypeFor, downloadTypeFor, downloadNameFor } = require('../utils/scorecardPhoto');
+const { sendPhoto } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
 const requirePublishAuthority = require('../middleware/requirePublishAuthority');
 const requireCronCaller = require('../middleware/requireCronCaller');
@@ -342,43 +342,7 @@ router.get('/scorecard-photo/:id', mediaLimiter, async (req, res, next) => {
 
     if (!mayOpenDraft(draft.confirmToken, req.query.t)) return res.status(403).end();
 
-    const key = photoKeyFromStored(draft['scoresheet-url']);
-    if (!key) return res.status(404).end();
-
-    const s3 = new S3Client({ region: 'eu-west-1' });
-    let obj;
-    try {
-      obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
-    } catch (err) {
-      // A key the bucket does not hold is a 404, not a 500. There are rows whose key was
-      // corrupted on the way in years ago (the upload page used to rewrite %20 as '+'),
-      // and a missing photo must not take the page with it.
-      return res.status(404).end();
-    }
-
-    // An image is served inline. A PDF or Word document is a real scorecard too — 109 of
-    // the 1,479 on record, filed before HARD-02 restricted uploads to images — and is
-    // served as a download instead: inline PDF rendering happens in our origin and PDFs
-    // can carry script, whereas an attachment is saved and never executes. 404ing them
-    // would have turned "make photos private" into "silently lose 7% of the archive".
-    const contentType = contentTypeFor(key, obj.ContentType);
-    const downloadType = contentType ? null : downloadTypeFor(key);
-    if (!contentType && !downloadType) return res.status(404).end();
-
-    res.set('Content-Type', contentType || downloadType);
-    res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Content-Disposition', contentType
-      ? 'inline'
-      : 'attachment; filename="' + downloadNameFor(key) + '"');
-    res.set('Cache-Control', 'private, max-age=300');
-    if (obj.ContentLength) res.set('Content-Length', String(obj.ContentLength));
-
-    // The stream needs its own 'error' listener or a mid-transfer failure is an
-    // unhandled 'error' event on an EventEmitter, which takes the instance down — the
-    // same shape as the pg pool bug in gotcha 2c. Headers are already sent by then, so
-    // all that is left is to stop talking.
-    obj.Body.on('error', () => res.destroy());
-    obj.Body.pipe(res);
+    return await sendPhoto(res, draft['scoresheet-url']);
   } catch (err) {
     next(err);
   }
@@ -683,6 +647,7 @@ router.get('/populated-messer-scorecard/:id', secured, messer_scorecard_controll
 router.get('/api/messer-teams-by-section/:section', secured, messer_scorecard_controller.messer_teams_by_section);
 router.get('/messer-results', secured, messer_scorecard_controller.messer_results_list);
 router.get('/messer-result/:id', secured, messer_scorecard_controller.messer_result_detail);
+router.get('/messer-scorecard-photo/:id', mediaLimiter, secured, messer_scorecard_controller.messer_scorecard_photo);
 router.post('/messer-result/:id/approve', secured, messer_scorecard_controller.messer_result_approve);
 router.post('/messer-result/:id/reject', secured, messer_scorecard_controller.messer_result_reject);
 

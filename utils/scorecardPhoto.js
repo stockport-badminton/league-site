@@ -29,6 +29,7 @@
 
 const { normalisePhotoUrl } = require('./scorecardLinks');
 const { ALLOWED_TYPES } = require('./uploads');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 // Extension -> the type to *serve*. Built explicitly rather than by inverting
 // ALLOWED_TYPES, which maps both `image/jpeg` and `image/jpg` onto `jpg` and so would
@@ -199,7 +200,51 @@ function downloadNameFor(key) {
   return safe || 'scorecard';
 }
 
+// Stream the photo a draft row names, given that the caller has already decided this
+// request may see that draft. Shared by GET /scorecard-photo/:id and the Messer one, so
+// the key, content-type and download rules above cannot differ between the two.
+async function sendPhoto(res, stored) {
+  const key = photoKeyFromStored(stored);
+  if (!key) return res.status(404).end();
+
+  const s3 = new S3Client({ region: 'eu-west-1' });
+  let obj;
+  try {
+    obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+  } catch (err) {
+    // A key the bucket does not hold is a 404, not a 500. There are rows whose key was
+    // corrupted on the way in years ago (the upload page used to rewrite %20 as '+'),
+    // and a missing photo must not take the page with it.
+    return res.status(404).end();
+  }
+
+  // An image is served inline. A PDF or Word document is a real scorecard too — 109 of
+  // the 1,479 on record, filed before HARD-02 restricted uploads to images — and is
+  // served as a download instead: inline PDF rendering happens in our origin and PDFs
+  // can carry script, whereas an attachment is saved and never executes. 404ing them
+  // would have turned "make photos private" into "silently lose 7% of the archive".
+  const contentType = contentTypeFor(key, obj.ContentType);
+  const downloadType = contentType ? null : downloadTypeFor(key);
+  if (!contentType && !downloadType) return res.status(404).end();
+
+  res.set('Content-Type', contentType || downloadType);
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Disposition', contentType
+    ? 'inline'
+    : 'attachment; filename="' + downloadNameFor(key) + '"');
+  res.set('Cache-Control', 'private, max-age=300');
+  if (obj.ContentLength) res.set('Content-Length', String(obj.ContentLength));
+
+  // The stream needs its own 'error' listener or a mid-transfer failure is an
+  // unhandled 'error' event on an EventEmitter, which takes the instance down — the
+  // same shape as the pg pool bug in gotcha 2c. Headers are already sent by then, so
+  // all that is left is to stop talking.
+  obj.Body.on('error', () => res.destroy());
+  obj.Body.pipe(res);
+}
+
 module.exports = {
+  sendPhoto,
   photoKeyFromStored,
   contentTypeFor,
   downloadTypeFor,

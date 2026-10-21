@@ -21,6 +21,20 @@
       </div>
     </div>
 
+    <% if (String(scorecard['scoresheet-url'] || '').trim()) { %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Scorecard Photo</h5>
+        </div>
+        <div class="card-body text-center">
+          <a href="/messer-scorecard-photo/<%= scorecard.id %>" target="_blank" rel="noopener">
+            <img src="/messer-scorecard-photo/<%= scorecard.id %>" alt="Photo of the filed scorecard"
+                 class="img-fluid" style="max-height: 600px;" loading="lazy">
+          </a>
+        </div>
+      </div>
+    <% } %>
+
     <div class="row">
       <div class="col-lg-8">
         <!-- Player Rosters -->
