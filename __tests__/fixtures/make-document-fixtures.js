@@ -135,15 +135,18 @@ function ccittFromTiff(tiff) {
   return { bytes: tiff.subarray(tags[273], tags[273] + tags[279]), width: tags[256], height: tags[257] };
 }
 
-function buildPdf(imageBytes, { filter, reorderKeys, eol }) {
+// `extra` adds more /DCTDecode images after the content stream, as objects 6, 7, ... —
+// CamScanner's badge, or the second half of a sliced scan.
+function buildPdf(imageBytes, { filter, reorderKeys, eol, extra = [] }) {
   const EOL = eol || '\n';
   const objects = [];
   const add = body => { objects.push(body); return objects.length; };
 
+  const xobjects = ['/Im0 4 0 R', ...extra.map((_, i) => '/Im' + (i + 1) + ' ' + (6 + i) + ' 0 R')];
   const catalog = add('<< /Type /Catalog /Pages 2 0 R >>');
   const pages   = add('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
   const page    = add('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400] ' +
-                      '/Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+                      '/Resources << /XObject << ' + xobjects.join(' ') + ' >> >> /Contents 5 0 R >>');
 
   // The dictionary under test. `reorderKeys` puts /Filter BEFORE /Subtype, which is legal
   // (PDF dictionary keys are unordered) and is what an extractor that scans only after
@@ -157,6 +160,11 @@ function buildPdf(imageBytes, { filter, reorderKeys, eol }) {
   const image   = add({ dict: imageDict, stream: imageBytes });
   const content = Buffer.from('q 600 0 0 400 0 0 cm /Im0 Do Q');
   add({ dict: '<< /Length ' + content.length + ' >>', stream: content });
+  for (const x of extra) {
+    add({ dict: '<< /Type /XObject /Subtype /Image /Width ' + x.width + ' /Height ' + x.height +
+                ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ' + x.bytes.length +
+                ' /Filter\n/DCTDecode >>', stream: x.bytes });
+  }
 
   const chunks = [Buffer.from('%PDF-1.4\n')];
   const offsets = [];
@@ -212,6 +220,20 @@ function buildPdf(imageBytes, { filter, reorderKeys, eol }) {
   // that the raw bytes are not a jpeg, and wrong to give up: one inflate and they are.
   fs.writeFileSync(path.join(OUT, 'scorecard-pdf-flate-over-dct.pdf'),
     buildPdf(zlib.deflateSync(jpeg), { filter: '[/FlateDecode /DCTDecode]' }));
+
+  // CamScanner: the photo plus a small "Scanned with CamScanner" badge as a second image,
+  // with /Filter and its value on separate lines, as CamScanner writes them. The real one
+  // was 240x90 against 1592x2236; this keeps it under 5% of the 600x400 page.
+  const badge = await sharp({ create: { width: 120, height: 45, channels: 3, background: '#cccccc' } })
+    .jpeg().toBuffer();
+  fs.writeFileSync(path.join(OUT, 'scorecard-pdf-dct-with-badge.pdf'),
+    buildPdf(jpeg, { filter: '/DCTDecode', extra: [{ bytes: badge, width: 120, height: 45 }] }));
+
+  // The shape that must still be refused: a page sliced into pieces of similar size, where
+  // keeping the biggest would keep part of the card.
+  const half = await sharp(jpeg).extract({ left: 0, top: 0, width: 600, height: 300 }).jpeg().toBuffer();
+  fs.writeFileSync(path.join(OUT, 'scorecard-pdf-dct-sliced.pdf'),
+    buildPdf(jpeg, { filter: '/DCTDecode', extra: [{ bytes: half, width: 600, height: 300 }] }));
 
   // The office-scanner case. ImageMagick encodes G4; see buildCcittPdf above.
   const { execFileSync } = require('child_process');

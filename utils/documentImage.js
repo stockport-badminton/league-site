@@ -229,13 +229,12 @@ function ccittTiff(dict, ccitt) {
 async function fromPdf(buffer) {
   const s = buffer.toString('latin1');
 
-  // Not our shape: more than one image. Bail rather than pick — a scan sliced into 30-89
-  // strips is 12 of the 127, and choosing one of them is a guess.
-  if ((s.match(/\/Subtype\s*\/Image/g) || []).length !== 1) return null;
+  const imageCount = (s.match(/\/Subtype\s*\/Image/g) || []).length;
+  if (imageCount === 0) return null;
 
   // Multi-page WAS also refused outright ("2 or 4 pages; picking one is a guess"), and
-  // that reasoning does not survive the check above: with exactly one image there is
-  // nothing to pick. The real specimen behind HARD-30 is two pages and one image — a
+  // that reasoning does not survive the image rule below: once one image is the page,
+  // there is nothing to pick. The real specimen behind HARD-30 is two pages and one image — a
   // duplex scanner giving you the blank back of the sheet — so refusing it cost a captain
   // their result for a week.
   //
@@ -247,62 +246,87 @@ async function fromPdf(buffer) {
   const fonts = (s.match(/\/Type\s*\/Font/g) || []).length;
   if (pages > 1 && fonts > 0) return null;
 
-  for (const { dict, streamStart } of streamDictionaries(s)) {
-    if (!/\/Subtype\s*\/Image/.test(dict)) continue;
+  const images = streamDictionaries(s).filter(({ dict }) => /\/Subtype\s*\/Image/.test(dict));
+  // An image we counted but could not find the stream of — in an object stream, say — is
+  // one we cannot weigh against the others, so nothing can be said to dominate it.
+  if (images.length !== imageCount) return null;
+  const chosen = images.length === 1 ? images[0] : dominantImage(images);
+  if (!chosen) return null;
 
-    // Two shapes carry a jpeg. Both end with DCTDecode, because that IS the jpeg.
-    //
-    //   /Filter/DCTDecode                    the stream is the jpeg
-    //   /Filter[/FlateDecode/DCTDecode]      the jpeg, then zlib on top of it
-    //
-    // The second is common — Acrobat writes it — and an earlier version of this bailed on
-    // any filter array, which is why extraction sat at 48% when the codec census said 80%.
-    // Bailing was right that the raw bytes are not a jpeg; giving up was not.
-    const filter = /\/Filter\s*(\/\w+|\[[^\]]*\])/.exec(dict);
-    if (!filter) return null;
-    const chain = (filter[1].match(/\/\w+/g) || []);
-    const isPlainDct = chain.length === 1 && chain[0] === '/DCTDecode';
-    const isFlateOverDct = chain.length === 2 &&
-      chain[0] === '/FlateDecode' && chain[1] === '/DCTDecode';
-    const isCcitt = chain.length === 1 && chain[0] === '/CCITTFaxDecode';
-    if (!isPlainDct && !isFlateOverDct && !isCcitt) return null;
+  const { dict, streamStart } = chosen;
 
-    const end = s.indexOf('endstream', streamStart);
-    if (end < 0) return null;
-    let data = buffer.slice(streamStart, end);
+  // Two shapes carry a jpeg. Both end with DCTDecode, because that IS the jpeg.
+  //
+  //   /Filter/DCTDecode                    the stream is the jpeg
+  //   /Filter[/FlateDecode/DCTDecode]      the jpeg, then zlib on top of it
+  //
+  // The second is common — Acrobat writes it — and an earlier version of this bailed on
+  // any filter array, which is why extraction sat at 48% when the codec census said 80%.
+  // Bailing was right that the raw bytes are not a jpeg; giving up was not.
+  const filter = /\/Filter\s*(\/\w+|\[[^\]]*\])/.exec(dict);
+  if (!filter) return null;
+  const chain = (filter[1].match(/\/\w+/g) || []);
+  const isPlainDct = chain.length === 1 && chain[0] === '/DCTDecode';
+  const isFlateOverDct = chain.length === 2 &&
+    chain[0] === '/FlateDecode' && chain[1] === '/DCTDecode';
+  const isCcitt = chain.length === 1 && chain[0] === '/CCITTFaxDecode';
+  if (!isPlainDct && !isFlateOverDct && !isCcitt) return null;
 
-    // CCITT: rewrap, do not decode here. See ccittTiff above.
-    if (isCcitt) {
-      const tiff = ccittTiff(dict, data);
-      if (!tiff) return null;
-      try {
-        const jpeg = await sharp(tiff).jpeg({ quality: 90 }).toBuffer();
-        return { buffer: jpeg, contentType: 'image/jpeg', extension: 'jpg' };
-      } catch (err) {
-        // A header we got wrong, or a stream libtiff will not take. Decline rather than
-        // store something unreadable — the caller keeps the PDF and says so.
-        return null;
-      }
+  const end = s.indexOf('endstream', streamStart);
+  if (end < 0) return null;
+  let data = buffer.slice(streamStart, end);
+
+  // CCITT: rewrap, do not decode here. See ccittTiff above.
+  if (isCcitt) {
+    const tiff = ccittTiff(dict, data);
+    if (!tiff) return null;
+    try {
+      const jpeg = await sharp(tiff).jpeg({ quality: 90 }).toBuffer();
+      return { buffer: jpeg, contentType: 'image/jpeg', extension: 'jpg' };
+    } catch (err) {
+      // A header we got wrong, or a stream libtiff will not take. Decline rather than
+      // store something unreadable — the caller keeps the PDF and says so.
+      return null;
     }
-
-    if (isFlateOverDct) {
-      try {
-        // maxOutputLength IS the bomb guard, and it is why this stays a Phase 1 case: the
-        // output is a jpeg, so it is bounded by something sane, unlike raw pixel data
-        // which can declare any dimensions it likes.
-        data = zlib.inflateSync(data, { maxOutputLength: MAX_INFLATED_BYTES });
-      } catch (err) {
-        return null;   // truncated, or larger than we are willing to hold
-      }
-    }
-
-    const kind = sniff(data);
-    // It should be a jpeg by now. If it does not sniff as one, something about this file is
-    // not what it claims, so leave it alone.
-    if (!kind || kind.type !== 'image/jpeg') return null;
-    return { buffer: data, contentType: kind.type, extension: kind.ext, source: 'pdf' };
   }
-  return null;
+
+  if (isFlateOverDct) {
+    try {
+      // maxOutputLength IS the bomb guard, and it is why this stays a Phase 1 case: the
+      // output is a jpeg, so it is bounded by something sane, unlike raw pixel data
+      // which can declare any dimensions it likes.
+      data = zlib.inflateSync(data, { maxOutputLength: MAX_INFLATED_BYTES });
+    } catch (err) {
+      return null;   // truncated, or larger than we are willing to hold
+    }
+  }
+
+  const kind = sniff(data);
+  // It should be a jpeg by now. If it does not sniff as one, something about this file is
+  // not what it claims, so leave it alone.
+  if (!kind || kind.type !== 'image/jpeg') return null;
+  return { buffer: data, contentType: kind.type, extension: kind.ext, source: 'pdf' };
+}
+
+// More than one image used to be refused outright: a scan sliced into 30-89 strips is 12
+// of the 127 in the corpus, and choosing one strip is a guess. But CamScanner, which
+// captains use, stamps a 240x90 "Scanned with CamScanner" badge beside a ~1600x2200 photo
+// (21 Oct 2026, a Messer card). That is not a choice between candidates — one image IS
+// the page and the other is decoration. So pick the largest only when everything else
+// together is under 5% of its area. Strips are similar sizes to each other and never
+// pass; a missing /Width or /Height means we cannot weigh it, so decline.
+const DOMINANT_SHARE = 0.05;
+
+function dominantImage(images) {
+  const sized = images.map(img => {
+    const w = /\/Width\s+(\d+)/.exec(img.dict);
+    const h = /\/Height\s+(\d+)/.exec(img.dict);
+    return { img, area: w && h ? Number(w[1]) * Number(h[1]) : NaN };
+  });
+  if (sized.some(x => !(x.area > 0))) return null;
+  sized.sort((a, b) => b.area - a.area);
+  const rest = sized.slice(1).reduce((sum, x) => sum + x.area, 0);
+  return rest < sized[0].area * DOMINANT_SHARE ? sized[0].img : null;
 }
 
 /**

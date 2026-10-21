@@ -86,6 +86,21 @@ describe('extractEmbeddedImage', () => {
     expect(await extractEmbeddedImage(fixture('scorecard-pdf-flate.pdf'), 'card.pdf')).toBeNull();
   });
 
+  // CamScanner adds a "Scanned with CamScanner" badge as a second image. Refusing every
+  // two-image PDF cost a Messer card its photo on 21 Oct 2026.
+  it('takes the photo and ignores a small badge beside it', async () => {
+    const got = await extractEmbeddedImage(fixture('scorecard-pdf-dct-with-badge.pdf'), 'card.pdf');
+    expect(got).not.toBeNull();
+    const meta = await sharp(got.buffer).metadata();
+    expect([meta.width, meta.height]).toEqual([600, 400]);
+  });
+
+  // ...but a page sliced into similar-sized pieces is still a guess, so still declined.
+  it('declines two images of similar size rather than picking one', async () => {
+    await expect(extractEmbeddedImage(fixture('scorecard-pdf-dct-sliced.pdf'), 'card.pdf'))
+      .resolves.toBeNull();
+  });
+
   it('trusts the bytes over the extension', async () => {
     // The image inside is a png regardless of what anything is called.
     const got = await extractEmbeddedImage(fixture('scorecard-docx-png.docx'), 'card.docx');
