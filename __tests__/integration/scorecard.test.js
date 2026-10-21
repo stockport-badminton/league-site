@@ -35,6 +35,8 @@ jest.mock('../../models/players');
 jest.mock('../../models/fixture');
 jest.mock('../../models/game');
 jest.mock('../../models/threadsResultPost');
+// Opens its own transaction; utils/eloChain has its own tests.
+jest.mock('../../utils/eloChain');
 jest.mock('../../models/auth.js');
 jest.mock('axios');
 
@@ -88,6 +90,7 @@ const Auth = require('../../models/auth.js');
 const axios = require('axios');
 const ses = require('../../utils/ses');
 const db = require('../../db_connect');
+const eloChain = require('../../utils/eloChain');
 const app = require('../../app');
 
 // ── Fixtures (test data) ──────────────────────────────────────────────────────
@@ -894,6 +897,27 @@ describe('POST /scorecard-beta', () => {
 
       expect(res.status).toBe(200);
       expect(db.__rolledBack).toBe(false);
+    });
+
+    // A result published after a later one used to leave that later one rated as if
+    // this match had never been played (21 Oct 2026). utils/eloChain re-rates forward.
+    it('re-rates forward from this fixture once the games are saved', async () => {
+      eloChain.rerateFrom.mockResolvedValue({ fixtures: 1, games: 0, players: 12 });
+      await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(eloChain.rerateFrom).toHaveBeenCalledWith(99);
+      expect(eloChain.rerateFrom.mock.invocationCallOrder[0])
+        .toBeGreaterThan(Game.createBatch.mock.invocationCallOrder[0]);
+    });
+
+    it('a failed re-rate does not cost the captain the result', async () => {
+      eloChain.rerateFrom.mockRejectedValue(new Error('chain exploded'));
+
+      const res = await request(app).post('/scorecard-beta').send(validScorecard());
+
+      expect(res.status).toBe(200);
+      expect(db.__rolledBack).toBe(false);
+      expect(Player.refreshRatings).toHaveBeenCalledTimes(1);
     });
 
     it('asks for ranks relative to the fixture\'s own division', async () => {

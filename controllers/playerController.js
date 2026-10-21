@@ -24,6 +24,7 @@ const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 const { userDisplayName } = require('../utils/sessionUser');
 const { buildMissedThreeNotice } = require('../utils/missedThreeEmail');
 const mailer = require('../utils/mailer');
+const { rateFixtureGames } = require('../utils/eloChain');
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
@@ -862,28 +863,17 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
       fixturePlayers[pid].rank = pid in seasonRanks ? seasonRanks[pid] : fixture.rank
     }
 
+    // Shared with utils/eloChain, which re-rates forward from a late result and has to
+    // produce exactly what this does.
+    const rated = rateFixtureGames(games, fixturePlayers, fixture)
+    for (const { id, ...updateObj } of rated) await Game.updateById(updateObj, id)
     for (const game of games) {
-      const rateResult = Game.calculateRating(game, fixturePlayers, fixture.date, fixture.rank)
-      if (rateResult && (game.homePlayer1 !== 0 || game.homePlayer2 !== 0 || game.awayPlayer1 !== 0 || game.awayPlayer2 !== 0)) {
-        for (const [slot, endKey] of [
-          [game.homePlayer1, 'homePlayer1End'],
-          [game.homePlayer2, 'homePlayer2End'],
-          [game.awayPlayer1, 'awayPlayer1End'],
-          [game.awayPlayer2, 'awayPlayer2End'],
-        ]) {
-          if (slot != null && slot !== 0) {
-            fixturePlayers[slot].rating = rateResult.updateObj[endKey]
-            fixturePlayers[slot].date   = fixture.date
-            fixturePlayers[slot].gamesCount = (fixturePlayers[slot].gamesCount || 0) + 1
-            knownRatings[slot] = { ...fixturePlayers[slot] }
-          }
-        }
-        await Game.updateById(rateResult.updateObj, game.id)
-        gamesProcessed++
-      } else {
-        gamesSkipped++
+      for (const slot of [game.homePlayer1, game.homePlayer2, game.awayPlayer1, game.awayPlayer2]) {
+        if (slot != null && slot != 0) knownRatings[slot] = { ...fixturePlayers[slot] }
       }
     }
+    gamesProcessed += rated.length
+    gamesSkipped += games.length - rated.length
 
     const playerUpdate = {
       tablename: 'player',

@@ -433,7 +433,9 @@ exports.getFixtureDetails = async function(searchObj) {
     ${fixtureObj.endDate !== undefined ? 'AND fixture.date < ?' : ''}
     ${fixtureObj.startDate !== undefined ? 'AND fixture.date > ?' : ''}
     ${fixtureObj.type == 'eloSetting' ? 'GROUP BY fixture.id' : ''}
-    ORDER BY fixture.date ASC`
+    -- fixture.id breaks ties: the ELO backfill rates in this order, and utils/eloChain
+    -- has to agree with it about which of two fixtures on the same night came first.
+    ORDER BY fixture.date ASC, fixture.id ASC`
 
   let [result] = await (await db.otherConnect()).query(sql, sqlArray)
 

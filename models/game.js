@@ -104,6 +104,27 @@ exports.updateById = async function(gameObj, gameId) {
   return result
 }
 
+const ELO_COLUMNS = [
+  'homePlayer1Start', 'homePlayer2Start', 'awayPlayer1Start', 'awayPlayer2Start',
+  'homePlayer1End', 'homePlayer2End', 'awayPlayer1End', 'awayPlayer2End',
+]
+
+// Writes the eight ELO columns for many games in one statement: rows are
+// [{ id, homePlayer1Start, ..., awayPlayer2End }]. One round trip rather than one per
+// game, because utils/eloChain runs this after a publish, in front of Firebase's 60s.
+exports.updateEloBatch = async function(rows, conn) {
+  if (!rows || rows.length === 0) return
+  const values = rows.map(() => `(${['?::int', ...ELO_COLUMNS.map(() => '?::int')].join(',')})`).join(',')
+  const params = rows.flatMap(r => [r.id, ...ELO_COLUMNS.map(k => r[k])])
+  const c = conn || await db.otherConnect()
+  await c.query(
+    `UPDATE game g SET ${ELO_COLUMNS.map(k => `"${k}" = v."${k}"`).join(', ')}
+     FROM (VALUES ${values}) AS v(id, ${ELO_COLUMNS.map(k => `"${k}"`).join(', ')})
+     WHERE g.id = v.id`,
+    params
+  )
+}
+
 exports.calculateRating = function(game, fixturePlayers, endDate, division) {
   let updateObj = {}
   let prevRatingDates = {}

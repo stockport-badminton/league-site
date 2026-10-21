@@ -1174,6 +1174,41 @@ exports.getPrevRating = async function(endDate, fixturePlayers, opts = {}) {
   return Object.fromEntries(playerArray)
 }
 
+// Each player's ELO state going into a fixture: { [playerId]: { rating, date, gamesCount } }.
+//
+// "Before" is the backfill's processing order — fixture date, then fixture id, then game
+// id — not just an earlier date, so two fixtures on the same night are ordered the same
+// way here as in eloBackfillAll. gamesCount is every rated game before it, which is what
+// the backfill carries in memory for the provisional K; getPrevRating has no count, so
+// the publish path used to rate everybody as established. A player with no rated game
+// is absent, and the caller starts them at 1500 with nothing played. `conn` lets
+// utils/eloChain read inside its own transaction.
+exports.getRatingStateBefore = async function(fixtureId, playerIds, conn) {
+  const ids = (playerIds || []).map(n => parseInt(n, 10)).filter(n => n > 0)
+  if (ids.length === 0) return {}
+  const c = conn || await db.otherConnect()
+  const [rows] = await c.query(
+    `SELECT s.pid AS "playerId",
+            (array_agg(s.rating ORDER BY f.date DESC, f.id DESC, g.id DESC, s.slot DESC))[1] AS rating,
+            MAX(f.date) AS date,
+            COUNT(*)::int AS "gamesCount"
+     FROM game g
+     JOIN fixture f ON f.id = g.fixture
+     -- slot: if one id fills two slots of a game, the backfill keeps the last one's End.
+     CROSS JOIN LATERAL (VALUES
+       (1, g."homePlayer1", g."homePlayer1End"), (2, g."homePlayer2", g."homePlayer2End"),
+       (3, g."awayPlayer1", g."awayPlayer1End"), (4, g."awayPlayer2", g."awayPlayer2End")
+     ) AS s(slot, pid, rating)
+     WHERE s.pid = ANY(?::int[])
+       AND s.rating > 0
+       AND f.status = 'complete'
+       AND (f.date, f.id) < (SELECT date, id FROM fixture WHERE id = ?)
+     GROUP BY s.pid`,
+    [ids, fixtureId]
+  )
+  return Object.fromEntries(rows.map(r => [r.playerId, { rating: r.rating, date: r.date, gamesCount: r.gamesCount }]))
+}
+
 // Sets player.rating to each player's latest rated game, read back from `game`.
 //
 // The publish path computed every game's ELO and never wrote the player's rating, so

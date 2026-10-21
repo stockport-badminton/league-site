@@ -17,6 +17,7 @@ const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
 const { parseRecipients, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
+const eloChain = require('../utils/eloChain');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
   // `photoUrl` is aliased because full_fixture_post already has a local of that name
@@ -424,6 +425,13 @@ exports.full_fixture_post = async function(req, res, next) {
       await Fixture.updateById(fixtureObject, FixtureIdResult[0].id, conn);
       await Game.createBatch(gameObject, conn);
     });
+
+    // The ratings above are a first answer, there so the result is never left unrated.
+    // eloChain re-rates this fixture the way a backfill would (it knows how many games
+    // each player has played, which getPrevRating does not), and then every later
+    // fixture this result reaches — so a scorecard published out of date order no longer
+    // leaves the matches after it rated as though it had never been played.
+    await afterCommit('elo chain', () => eloChain.rerateFrom(FixtureIdResult[0].id));
 
     // The games carry the new ELO; the players did not. /player-stats reads
     // player.rating, which only a backfill ever wrote, so new players showed blank.

@@ -35,6 +35,7 @@ jest.mock('../../models/teams');
 jest.mock('../../models/players');
 jest.mock('../../models/fixture');
 jest.mock('../../models/game');
+jest.mock('../../utils/eloChain');
 jest.mock('../../models/auth.js');
 jest.mock('axios');
 
