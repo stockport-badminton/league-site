@@ -699,7 +699,12 @@ exports.newGetPairStats = async function(searchObj) {
     season = searchObj.season;
     seasonVal = searchObj.season;
   }
+  // In placeholder order. These used to be pasted into the statement from the URL.
   whereValue = [seasonVal]
+  if (searchObj.division !== undefined) whereValue.push(searchObj.division)
+  whereValue.push(searchObj.team || '%')
+  whereValue.push(searchObj.club || '%')
+  whereValue.push(searchObj.gameType || '%')
 
   var sql = `WITH
   seasonFixture AS (
@@ -819,11 +824,11 @@ FROM
   JOIN player${ season } Player1 ON Player1.id = a.player1Id
   JOIN player${ season } Player2 ON Player2.id = a.player2Id
   JOIN team${ season } team ON team.id = a.team
-  ${ (searchObj.division !== undefined) ? 'AND team.division = ' + searchObj.division : ''}
-  ${ (searchObj.team !== undefined) ? "AND team.name LIKE '" + searchObj.team + "'" : "AND team.name LIKE '%'"}
-  JOIN club club ON club.id = Player1.club
-  ${ (searchObj.club !== undefined) ? "AND club.name LIKE '" + searchObj.club + "'" : "AND club.name LIKE '%'"}
-  ${ (searchObj.gameType !== undefined) ? "AND \"gameType\" LIKE '" + searchObj.gameType + "'" : "AND \"gameType\" LIKE '%'"}
+  ${ (searchObj.division !== undefined) ? 'AND team.division = ?' : ''}
+  AND team.name LIKE ?
+  JOIN club${ season } club ON club.id = Player1.club
+  AND club.name LIKE ?
+  AND "gameType" LIKE ?
 GROUP BY
   "Pairing",
   player1Id,
@@ -939,14 +944,15 @@ exports.getEmails = async function(searchTerms) {
 exports.search = async function(searchTerms) {
   var sql = 'SELECT * FROM player';
   var whereTerms = [];
-  if (searchTerms.teamid) whereTerms.push('team = ' + searchTerms.teamid)
-  if (searchTerms.gender) whereTerms.push("gender = '" + searchTerms.gender + "'")
-  if (searchTerms.clubid) whereTerms.push('club = ' + searchTerms.clubid)
+  var params = [];
+  if (searchTerms.teamid) { whereTerms.push('team = ?'); params.push(searchTerms.teamid) }
+  if (searchTerms.gender) { whereTerms.push('gender = ?'); params.push(searchTerms.gender) }
+  if (searchTerms.clubid) { whereTerms.push('club = ?'); params.push(searchTerms.clubid) }
 
   if (whereTerms.length > 0) {
     sql = sql + ' WHERE ' + whereTerms.join(' AND ') + ' ORDER BY gender, rank'
   }
-  const [result] = await (await db.otherConnect()).query(sql)
+  const [result] = await (await db.otherConnect()).query(sql, params)
   return result
 }
 

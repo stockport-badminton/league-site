@@ -1,4 +1,5 @@
 var db = require('../db_connect.js');
+var seasonModel = require('./season');
 
 exports.create = async function(name, venue) {
   const [result] = await (await db.otherConnect()).query(
@@ -16,6 +17,19 @@ exports.createBatch = async function(batchObj) {
   const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
   const [result] = await (await db.otherConnect()).query(sql, rows.flat())
   return result
+}
+
+// Whether a club of exactly this name existed in a season: the live table for the
+// current season, the club<season> archive otherwise. The stats pages ask this of a
+// `club-` filter, which can legitimately name a club that has since folded or been
+// renamed (Canute in 2024/25, Remnants now) and so must not be checked against the live
+// table alone.
+exports.existsInSeason = async function(name, season) {
+  const suffix = seasonModel.assertName(season)
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT 1 FROM club${suffix} WHERE name = ? LIMIT 1`, [name]
+  )
+  return rows.length > 0
 }
 
 exports.getAll = async function() {

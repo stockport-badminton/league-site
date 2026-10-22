@@ -46,6 +46,27 @@ function scopeToAdminClub(req, searchObj) {
   }
 }
 
+// A `club-` filter naming a club that did not exist in the season being viewed is
+// redirected to the same page without it. Seen live as /player-stats/club-Canute,
+// bookmarked before Canute was renamed Remnants (club 47, between 2024/25 and 2025/26):
+// the table was empty (or, for a club admin, silently their own club's) under a chip
+// that still said Canute. Checked against the season's own club table, because an old
+// name is a real filter on the seasons it was used in. Fails open: a lookup error
+// renders the page as it always did.
+async function redirectUnknownClub(req, res, searchObj) {
+  const filterBar = res.locals.filterBar;
+  if (!searchObj.club || !filterBar) return false;
+  const s = searchObj.season;
+  const archived = s && s !== seasonModel.current() && seasonModel.isServable(s) ? s : '';
+  try {
+    if (await Club.existsInSeason(searchObj.club, archived)) return false;
+  } catch (err) {
+    return false;
+  }
+  res.redirect(filterBar.pathFor({ club: '' }));
+  return true;
+}
+
 exports.index = async function(req, res) {
   try {
     const [player_count, player_female_count, player_male_count] = await Promise.all([
@@ -300,6 +321,7 @@ exports.all_player_stats = async function(req, res, next) {
   }
 
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
+  if (await redirectUnknownClub(req, res, searchObj)) return
   scopeToAdminClub(req, searchObj)
 
   try {
@@ -398,6 +420,7 @@ exports.all_pair_stats = async function(req, res, next) {
   }
   let divisionString = "All"
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
+  if (await redirectUnknownClub(req, res, searchObj)) return
   scopeToAdminClub(req, searchObj)
 
   try {

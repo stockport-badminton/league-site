@@ -96,3 +96,87 @@ describe('getEmails binds its search terms', () => {
     expect(placeholders(sql)).toBe(params.length);
   });
 });
+
+// /pair-stats/* is behind `secured` alone, so any logged-in member reached this. Its
+// division, team, club and gameType came straight out of the URL path and were pasted
+// into the statement - `%27` decodes to a quote in req.params, and the query runs as a
+// role with BYPASSRLS, so a UNION could read any table. newGetPlayerStats beside it has
+// always bound the same four filters; this one never did (Oct 2026).
+describe('newGetPairStats binds its filters', () => {
+  it('cannot have its statement altered by any filter in the URL', async () => {
+    const hostile = "x' UNION SELECT sess::text FROM session /*";
+    await Player.newGetPairStats({ team: hostile, club: hostile, gameType: hostile, division: '7 OR 1=1' });
+    const { sql, params } = lastCall();
+    expect(sql).not.toContain('UNION SELECT sess');
+    expect(sql).not.toContain('1=1');
+    expect(params).toEqual(expect.arrayContaining([hostile, '7 OR 1=1']));
+    expect(placeholders(sql)).toBe(params.length);
+  });
+
+  it('keeps placeholders and parameters in step for every combination', async () => {
+    const filters = [
+      {}, { division: '8' }, { team: 'Mellor A' }, { club: 'Remnants' }, { gameType: 'Mixed' },
+      { division: '9', team: 'Tatton A', club: 'Tatton', gameType: 'Mens' },
+      { season: '20242025', club: 'Canute' },
+    ];
+    for (const f of filters) {
+      mockQuery.mockClear();
+      await Player.newGetPairStats(f);
+      const { sql, params } = lastCall();
+      expect(placeholders(sql)).toBe(params.length);
+    }
+  });
+
+  it('matches everything when a filter is absent, as before', async () => {
+    await Player.newGetPairStats({});
+    const { params } = lastCall();
+    // season, then team / club / gameType each defaulting to the LIKE wildcard.
+    expect(params.slice(1)).toEqual(['%', '%', '%']);
+  });
+});
+
+// Its club join ignored the season: player<season>.club ids were matched against the
+// LIVE club table, so an archived season showed today's club names. Club 47 was Canute
+// in 2024/25 and is Remnants now, so that season's pair stats labelled Canute's pairs
+// "Remnants" and /pair-stats/20242025/club-Canute was empty while player stats for the
+// same URL was not. A folded club's pairs would vanish outright. The archives are
+// snapshotted together, so the ids line up.
+describe('newGetPairStats reads clubs from the season it is showing', () => {
+  it('joins the archived club table for an archived season', async () => {
+    await Player.newGetPairStats({ season: '20242025' });
+    const { sql } = lastCall();
+    expect(sql).toMatch(/JOIN club20242025 club ON club\.id = Player1\.club/);
+  });
+
+  it('joins the live club table for the current season', async () => {
+    await Player.newGetPairStats({});
+    const { sql } = lastCall();
+    expect(sql).toMatch(/JOIN club club ON club\.id = Player1\.club/);
+  });
+});
+
+// Unrouted today (exports.player_list has no route), but it took req.params whole and
+// pasted gender, teamid and clubid into the statement. Fixed rather than left, because
+// the next person to wire it up would not know.
+describe('search binds its terms', () => {
+  it('cannot have its statement altered by a search term', async () => {
+    const hostile = "x' OR '1'='1";
+    await Player.search({ teamid: '4 OR 1=1', gender: hostile, clubid: '9; DROP TABLE player' });
+    const { sql, params } = lastCall();
+    expect(sql).not.toContain(hostile);
+    expect(sql).not.toContain('1=1');
+    expect(sql).not.toContain('DROP TABLE');
+    expect(params).toEqual(['4 OR 1=1', hostile, '9; DROP TABLE player']);
+    expect(placeholders(sql)).toBe(params.length);
+  });
+
+  it('keeps placeholders and parameters in step for every combination', async () => {
+    for (const t of [{}, { teamid: 4 }, { gender: 'Male' }, { clubid: 9 }, { teamid: 4, clubid: 9 }]) {
+      mockQuery.mockClear();
+      await Player.search(t);
+      const { sql, params } = lastCall();
+      expect(placeholders(sql)).toBe(params.length);
+      expect(params.length).toBe(Object.keys(t).length);
+    }
+  });
+});
