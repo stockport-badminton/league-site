@@ -525,6 +525,12 @@ half-applied load is worse than none and throwing a local database away costs no
   locally can be overwritten when production later uses that id.
   Production has two columns no migration creates (`season."clubFee"`,
   `messer_scorecard."scoresheet-url"`); the sync names them and skips them.
+  **It also creates any season archive (`team20252026` and the other five) that production
+  has and the local database does not.** The first sync of a new season makes last season
+  "previous", and every page for it reads those tables — which the rollover creates in
+  production and nothing created locally, so after syncing 2026/27 every 2025/26 page was a
+  500 and seven browser tests failed on it. An archive already present is left alone; they
+  are frozen once the season ends.
 - **Stored scorecard photographs are cleared too**, and for a stronger version of the same
   reason: `scorecardstore."scoresheet-url"` pointed at 1,479 real objects in the production
   bucket, and a scorecard photo is a picture of a team sheet carrying twelve players' names

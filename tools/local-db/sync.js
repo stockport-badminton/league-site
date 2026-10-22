@@ -28,6 +28,17 @@
 //                                         email aliased, and confirmToken replaced: a
 //                                         production token is a credential that can PUBLISH
 //                                         that draft on the live site.
+//   season archives (team20252026, …)     created and copied when production has one and
+//                                         the local database does not. player<season>
+//                                         gets the same contact treatment as player.
+//
+// The archives are why a sync was not enough on its own. The first sync of a new season
+// adds its season row, which makes last season "previous" — and every page for a previous
+// season reads team<season>, player<season> and friends, which the rollover creates in
+// production and nothing created here. The seed stops at 2024/25, so after syncing
+// 2026/27 every 2025/26 page answered 500 `relation "player20252026" does not exist`, and
+// seven browser tests failed on it (22 Oct 2026). An archive is frozen once its season
+// ends, so one that already exists locally is left alone rather than re-copied.
 //
 // Rows are matched by id, and local writes draw ids from the same sequences. So a row
 // written locally — a draft filed by the browser suite, a player added on a dev server —
@@ -61,6 +72,10 @@ const RAW = { getTypeParser: () => v => v };
 
 const CONTACT_COLUMNS = ['playerEmail', 'playerTel', 'authEmail'];
 const KNOWN_BYTEA = new Set(CONTACT_COLUMNS.map(c => 'player.' + c));
+
+// The tables the season rollover snapshots, as <base><season name>. Named rather than
+// matched by any 8-digit suffix, so a table nobody has looked at is not copied blind.
+const ARCHIVE_PATTERN = '^(club|division|messer|player|team|venue)20[0-9]{6}$';
 
 const SEASON_RANGE = 'date > $1 AND date < $2';
 const TABLES = [
@@ -149,6 +164,8 @@ async function main() {
       console.log(`  ${t.name.padEnd(17)} ${String(rows.length).padStart(6)} rows` +
         (missingLocally.length ? `   (not in local schema, skipped: ${missingLocally.join(', ')} — a migration not applied locally?)` : ''));
     }
+
+    const archives = await pullArchives(prod, local);
     await prod.query('COMMIT');
 
     // Counts worth knowing before writing anything.
@@ -179,7 +196,7 @@ async function main() {
            ON CONFLICT (id) DO ${updates ? 'UPDATE SET ' + updates : 'NOTHING'}`, values);
       }
 
-      if (t.name === 'player') await rebuildContacts(local, rows, localKey);
+      if (t.name === 'player') await rebuildContacts(local, 'player', rows, localKey, CONTACT_COLUMNS);
       if (t.draft) await scrubDrafts(local, t.name, rows.map(r => r.id));
 
       await local.query(
@@ -188,13 +205,25 @@ async function main() {
       console.log(`  ${t.name}: wrote ${rows.length}`);
     }
 
+    for (const a of archives) {
+      await local.query(`CREATE TABLE ${q(a.name)} (${a.ddl})`);
+      for (let i = 0; i < a.rows.length; i += 500) {
+        const batch = a.rows.slice(i, i + 500);
+        const values = [];
+        const tuples = batch.map(r => '(' + a.cols.map(c => { values.push(r[c]); return '$' + values.length; }).join(', ') + ')');
+        await local.query(`INSERT INTO ${q(a.name)} (${a.cols.map(q).join(', ')}) VALUES ${tuples.join(', ')}`, values);
+      }
+      if (a.contacts.length) await rebuildContacts(local, a.name, a.rows, localKey, a.contacts);
+      console.log(`  ${a.name}: created, wrote ${a.rows.length}`);
+    }
+
     await local.query('SET LOCAL session_replication_role = origin');
     console.log('  re-validating every foreign key');
     const repairs = fs.readFileSync(path.join(__dirname, 'seed-repairs.sql'), 'utf8');
     await local.query(repairs.slice(repairs.indexOf('-- ── re-validate every foreign key')));
 
     await local.query('COMMIT');
-    await local.query(`ANALYZE ${TABLES.map(t => q(t.name)).join(', ')}`);
+    await local.query(`ANALYZE ${TABLES.map(t => t.name).concat(archives.map(a => a.name)).map(q).join(', ')}`);
     console.log('done');
   } catch (err) {
     await local.query('ROLLBACK').catch(() => {});
@@ -206,22 +235,76 @@ async function main() {
   }
 }
 
+// With `types: RAW` a boolean arrives as the text 't'/'f'.
+function truthy(v) {
+  return v === true || v === 't';
+}
+
+// Season archives production has and the local database does not, read whole — except
+// the contact columns, of which only presence is read, exactly as for player. Their
+// definition is taken from production rather than from an older local archive, because
+// the columns have changed between seasons. No defaults or sequences: nothing writes to
+// an archive.
+async function pullArchives(prod, local) {
+  const list = async client => (await client.query(
+    `SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name ~ $1
+      ORDER BY table_name`, [ARCHIVE_PATTERN])).rows.map(r => r.table_name);
+  const have = new Set(await list(local));
+  const missing = (await list(prod)).filter(name => !have.has(name));
+  if (!missing.length) console.log('  season archives    none missing locally');
+
+  const archives = [];
+  for (const name of missing) {
+    const rel = 'public.' + q(name);
+    const { rows: cols } = await prod.query(
+      `SELECT attname AS name, format_type(atttypid, atttypmod) AS type, attnotnull AS notnull
+         FROM pg_attribute WHERE attrelid = $1::regclass AND attnum > 0 AND NOT attisdropped
+        ORDER BY attnum`, [rel]);
+    const { rows: pk } = await prod.query(
+      `SELECT a.attname AS name FROM pg_index i
+         JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+        WHERE i.indrelid = $1::regclass AND i.indisprimary`, [rel]);
+
+    const contacts = [];
+    for (const c of cols.filter(c => c.type === 'bytea')) {
+      if (!name.startsWith('player') || !CONTACT_COLUMNS.includes(c.name)) {
+        fail(`${name}.${c.name} is bytea and this script does not know what it holds. ` +
+             'Decide how it is scrubbed (see sanitise.sql) before syncing it.');
+      }
+      contacts.push(c.name);
+    }
+
+    const copy = cols.map(c => c.name).filter(c => !contacts.includes(c));
+    const presence = contacts.map(c => `, (${q(c)} IS NOT NULL) AS ${q('has_' + c)}`).join('');
+    const { rows } = await prod.query(`SELECT ${copy.map(q).join(', ')}${presence} FROM ${q(name)} ORDER BY 1`);
+
+    const ddl = cols.map(c => `${q(c.name)} ${c.type}${truthy(c.notnull) && !contacts.includes(c.name) ? ' NOT NULL' : ''}`)
+      .concat(pk.length ? [`PRIMARY KEY (${pk.map(c => q(c.name)).join(', ')})`] : [])
+      .join(', ');
+    archives.push({ name, ddl, cols: copy, rows, contacts });
+    console.log(`  ${name.padEnd(17)} ${String(rows.length).padStart(6)} rows   (season archive, not in local database)`);
+  }
+  return archives;
+}
+
 // The same aliases sanitise.sql builds, for exactly the players production has a value
-// for. Recomputed every run, so a renamed player's alias follows the name.
-async function rebuildContacts(local, rows, key) {
-  const ids = col => rows.filter(r => r['has_' + col] === 't' || r['has_' + col] === true).map(r => r.id);
+// for. Recomputed every run, so a renamed player's alias follows the name. `columns` is
+// whichever contact columns the table has — a season archive has no authEmail.
+async function rebuildContacts(local, table, rows, key, columns) {
+  const ids = col => rows.filter(r => truthy(r['has_' + col])).map(r => r.id);
   const all = rows.map(r => r.id);
   const alias = `'bigcoops+' || lower(regexp_replace(coalesce(first_name,'') || coalesce(family_name,''), '[^a-zA-Z0-9]', '', 'g')) || '@gmail.com'`;
 
-  await local.query(
-    `UPDATE player SET "playerEmail" = CASE WHEN id = ANY($2::int[]) THEN pgp_sym_encrypt(${alias}, $1) END
-      WHERE id = ANY($3::int[])`, [key, ids('playerEmail'), all]);
-  await local.query(
-    `UPDATE player SET "authEmail" = CASE WHEN id = ANY($2::int[]) THEN pgp_sym_encrypt(${alias}, $1) END
-      WHERE id = ANY($3::int[])`, [key, ids('authEmail'), all]);
+  for (const col of columns.filter(c => c !== 'playerTel')) {
+    await local.query(
+      `UPDATE ${q(table)} SET ${q(col)} = CASE WHEN id = ANY($2::int[]) THEN pgp_sym_encrypt(${alias}, $1) END
+        WHERE id = ANY($3::int[])`, [key, ids(col), all]);
+  }
+  if (!columns.includes('playerTel')) return;
   // A phone number is kept if it already has one, so it does not change on every run.
   await local.query(
-    `UPDATE player SET "playerTel" = CASE
+    `UPDATE ${q(table)} SET "playerTel" = CASE
         WHEN NOT (id = ANY($2::int[])) THEN NULL
         WHEN "playerTel" IS NOT NULL THEN "playerTel"
         ELSE pgp_sym_encrypt('07700 900' || lpad((floor(random()*1000))::int::text, 3, '0'), $1) END
