@@ -68,6 +68,16 @@
     baseline = snapshot();
   }
 
+  // A change the server has accepted, for PostHog (sblTrack is a no-op where it is not
+  // loaded). Sent straight away because most of these are followed by a reload. No
+  // player names: what is being measured is which actions get used, not on whom.
+  function track(action, props) {
+    if (!window.sblTrack) return;
+    var data = { action: action, club_url: CLUB_URL };
+    Object.keys(props || {}).forEach(function (k) { data[k] = props[k]; });
+    window.sblTrack('roster_change', data, { leaving: true });
+  }
+
   function toast(message, kind, action) {
     toastEl.textContent = '';
     toastEl.className = 'roster-toast show' + (kind === 'error' ? ' error' : '');
@@ -514,6 +524,7 @@
     });
 
     Promise.all(requests).then(function () {
+      track('reorder', { teams: teams.size });
       captureBaseline();
       refresh();
       toast(teams.size === 1 ? 'Order saved.' : 'Order saved for ' + teams.size + ' teams.');
@@ -550,6 +561,7 @@
       return;
     }
     postJson('/api/players/' + row.dataset.playerId + '/release').then(function () {
+      track('release');
       var list = row.parentElement;
       row.remove();
       // Applied server-side straight away, so the baseline moves with it — this
@@ -597,6 +609,7 @@
     postJson('/api/players/' + row.dataset.playerId + '/move',
       { teamId: parseInt(teamId, 10), section: section }
     ).then(function (data) {
+      track('move', { section: section });
       $('#rosterMoveModal').modal('hide');
       // The destination team's ranks are now the server's business; reload so both
       // cards show what it decided rather than a guess.
@@ -739,6 +752,7 @@
       teamId: parseInt(pending.addContext.teamId, 10),
       section: 'reserve'
     }).then(function () {
+      track('attach');
       $('#rosterAddModal').modal('hide');
       toast(person.name + ' added to ' + pending.addContext.teamName + '.');
       setTimeout(function () { window.location.reload(); }, 800);
@@ -752,6 +766,7 @@
       playerId: person.playerId,
       teamId: parseInt(pending.addContext.teamId, 10)
     }).then(function (data) {
+      track('transfer', { applied: !!data.applied });
       $('#rosterAddModal').modal('hide');
       toast(data.message);
       if (data.applied) setTimeout(function () { window.location.reload(); }, 900);
@@ -781,6 +796,7 @@
       section: 'reserve',
       confirmNew: confirmNew === true
     }).then(function () {
+      track('create', { confirmed_new: confirmNew === true });
       $('#rosterAddModal').modal('hide');
       toast(first + ' ' + family + ' created and added as a reserve.');
       setTimeout(function () { window.location.reload(); }, 800);

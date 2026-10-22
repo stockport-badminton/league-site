@@ -122,11 +122,45 @@ describe('PostHog', () => {
   it('tags events with the account, not identify(), which cookieless mode does not support', () => {
     expect(runPostHog(captain, { pathname: '/' }).registered).toEqual({
       league: 'stockport-badminton.co.uk', logged_in: true, account_id: 'auth0|captain',
+      role: 'member', club: null, messer_admin: false,
     });
     expect(runPostHog(anon, { pathname: '/' }).registered).toEqual({
       league: 'stockport-badminton.co.uk', logged_in: false, account_id: null,
+      role: null, club: null, messer_admin: false,
     });
     expect(captain).not.toMatch(/posthog\.identify/);
+  });
+
+  // So "how many club admins used X" is one query. The club comes from the admin claim,
+  // and is a string from the database printed into a <script>, so it must not be able
+  // to close the tag.
+  it('tags a club admin with their role and club, and a messer admin as such', () => {
+    const admin = {
+      user_id: 'auth0|sec',
+      _json: {
+        'https://my-app.example.com/role': 'admin',
+        'https://my-app.example.com/club': 'Manor</script><script>alert(1)',
+        'https://my-app.example.com/messeradmin': true,
+      },
+    };
+    const html = renderHeader(PROD, admin);
+    expect(html).not.toMatch(/Manor<\/script>/);
+    expect(runPostHog(html, { pathname: '/' }).registered).toMatchObject({
+      role: 'admin', club: 'Manor</script><script>alert(1)', messer_admin: true,
+    });
+  });
+
+  it('sends an event immediately when the caller is about to navigate away', () => {
+    const dev = renderHeader({ NODE_ENV: 'development' }, CAPTAIN);
+    const m = dev.match(/window\.sblTrack = function[\s\S]*?\n\s*\};/);
+    const calls = [];
+    const sandbox = { window: { posthog: { __loaded: true, capture: (...a) => calls.push(a) } } };
+    vm.createContext(sandbox);
+    vm.runInContext(m[0], sandbox);
+    sandbox.window.sblTrack('filter_applied', { page: '/results' }, { leaving: true });
+    sandbox.window.sblTrack('scorecard_step', { step: 2 });
+    expect(calls[0]).toEqual(['filter_applied', { page: '/results' }, { send_instantly: true }]);
+    expect(calls[1]).toEqual(['scorecard_step', { step: 2 }]);
   });
 
   it('does not load for a superadmin, or on a page not served by us', () => {

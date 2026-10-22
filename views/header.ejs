@@ -29,8 +29,14 @@
       // a recording or a funnel can be found by what happened in it. Always defined,
       // and a no-op wherever PostHog was not loaded — dev, tests, superadmins — so
       // callers never need to check.
-      window.sblTrack = function (name, props) {
-        if (window.posthog && window.posthog.__loaded) window.posthog.capture(name, props || {});
+      //
+      // `opts.leaving` is for a caller about to navigate away (a filter Apply, a save
+      // followed by a reload): it sends the event now rather than in the next batch,
+      // which the navigation could otherwise cut off.
+      window.sblTrack = function (name, props, opts) {
+        if (!(window.posthog && window.posthog.__loaded)) return;
+        if (opts && opts.leaving) window.posthog.capture(name, props || {}, { send_instantly: true });
+        else window.posthog.capture(name, props || {});
       };
     <% if (monitoringEnabled) { %>
     // Are we actually the ones serving this page? Shared by Sentry and PostHog.
@@ -84,8 +90,17 @@
         /^\/messer-scorecard-beta/,
         /^\/populated-messer-scorecard/
       ];
+      <%
+      // Who is using a page, by what they are allowed to do rather than who they are.
+      // `role` is 'admin' (a club's captain/secretary, from player.role) or 'member'
+      // (logged in with no role); superadmins never get this far. `club` is only known
+      // for an admin, because only the admin claim carries one (app.js login strategy).
+      var phClaims = (typeof user !== 'undefined' && user._json) || {};
+      var phRole = typeof user === 'undefined' ? null : (phClaims['https://my-app.example.com/role'] || 'member');
+      var phClub = phRole === 'admin' ? (phClaims['https://my-app.example.com/club'] || null) : null;
+      %>
       var loggedIn = <%= typeof user !== 'undefined' ? 'true' : 'false' %>;
-      var isSuperadmin = <%= (typeof user !== 'undefined' && user._json && user._json['https://my-app.example.com/role'] === 'superadmin') ? 'true' : 'false' %>;
+      var isSuperadmin = <%= phRole === 'superadmin' ? 'true' : 'false' %>;
       var record = loggedIn && RECORD_PATHS.some(function (re) { return re.test(location.pathname); });
       if (!window.sblServedByUs || isSuperadmin) return;
 
@@ -116,7 +131,10 @@
         window.posthog.register({
           league: location.hostname.replace(/^www\./, ''),
           logged_in: loggedIn,
-          account_id: <%- typeof user !== 'undefined' ? JSON.stringify(String(user.user_id)).replace(/</g, '\\u003c') : 'null' %>
+          account_id: <%- typeof user !== 'undefined' ? JSON.stringify(String(user.user_id)).replace(/</g, '\\u003c') : 'null' %>,
+          role: <%- JSON.stringify(phRole).replace(/</g, '\\u003c') %>,
+          club: <%- JSON.stringify(phClub).replace(/</g, '\\u003c') %>,
+          messer_admin: <%= phClaims['https://my-app.example.com/messeradmin'] === true ? 'true' : 'false' %>
         });
       };
       document.head.appendChild(s);
