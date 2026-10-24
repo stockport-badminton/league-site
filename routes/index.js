@@ -445,11 +445,11 @@ router.get('/players/matching/:name/:gender', secured, player_controller.find_cl
 router.get('/team/create', team_controller.team_create_get);
 router.post('/team/create', checkJwt, team_controller.team_create_post);
 router.post('/team/batch-create', checkJwt, team_controller.teams_batch_create);
-router.get('/team/:id/delete', team_controller.team_delete_get);
-router.delete('/team/:id', checkJwt, team_controller.team_delete_post);
-router.get('/team/:id/update', team_controller.team_update_get);
-router.patch('/team/:id', checkJwt, team_controller.team_update_post);
-router.get('/team/:id', team_controller.team_detail);
+router.get('/team/:id(\\d+)/delete', team_controller.team_delete_get);
+router.delete('/team/:id(\\d+)', checkJwt, team_controller.team_delete_post);
+router.get('/team/:id(\\d+)/update', team_controller.team_update_get);
+router.patch('/team/:id(\\d+)', checkJwt, team_controller.team_update_post);
+router.get('/team/:id(\\d+)', team_controller.team_detail);
 router.get('/teams', team_controller.team_list);
 router.post('/teams', team_controller.team_search);
 
