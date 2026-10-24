@@ -98,3 +98,55 @@ time: each POST's start plus its latency lands on that publish's `results email`
 Step 2 as written stands. Running the four targets in parallel would bring the request to
 ~10–16 s and is a fallback if the queue stalls. It is not the fix: Meta's speed would still
 set the publish request's duration.
+
+## Step 2: the queue, designed 24 Oct 2026
+
+**One row per fixture *and target*.** A new table, `social_result_post` (migration 024),
+unique on `(fixture_id, target)`, where `target` is a `metaPublisher` kind: `page`,
+`instagram`, `instagram-story`, `page-story`. Per target, not per fixture, because the
+outcome is per target: a run that posted the Page and failed Instagram must retry Instagram
+alone, and the acceptance check ("every result reached every configured target") is then a
+query rather than a log read. Same states and the same rules as `threads_result_post`
+(migration 021): `pending → posting → posted | failed | skipped`, `SKIP LOCKED` claiming,
+finishing writes guarded on `state = 'posting'`, a row left in `posting` is never retried
+automatically, stale after 48 hours, RLS on with no policy.
+
+Threads stays in its own table for now. It is live and working, and moving it in is a
+rename of a table a scheduled job is writing to, for no gain in this package. The new table
+is named generically so that it can join later.
+
+**The publish request enqueues and returns.** Under `SOCIAL_POST_DIRECT`, `sendResultZap`
+writes one row per *configured* target (the flags are read at publish time; credentials at
+post time) and returns. No configured target still throws, as now. The `[timing]` line
+`result zap` becomes a few ms.
+
+**`POST /admin/social/results/meta`** (`SOCIAL_CRON_TOKEN`), on a new job `sbl-results-meta`.
+Like the video and Threads jobs, it calls Cloud Run directly with no retries. It claims a
+bounded number of rows, reads the result *as it stands now* (`ThreadsResultPost.resultFor`'s
+query, shared), and posts each target through the same `metaPublisher` functions with the
+same caption and card URLs. It answers 502 if anything did not post, as the Threads job does.
+
+**Retry only where Meta cannot have published**, with the Threads rule: a failure at the
+step that publishes (`the page post`, `the page story`, `the Instagram publish`) with **no
+HTTP status** may be live and is failed, not retried. Everything else is released for the
+next run, up to 3 attempts.
+
+**And wait for the container before publishing it.** Every Meta failure on a result since
+25 Sep (five, of which 23 Oct is the latest) is the same refusal: *"The media is not ready
+to be published. Please wait a moment."* Today we publish an Instagram container the moment
+it is created, and nothing retries. Nothing was waited on because the wait would have been
+inside the publish request. In the job it costs nothing, so the image publish polls
+`status_code` until `FINISHED` the way `waitForContainer` already does for video. That
+removes the failure rather than retrying around it, and the retry rule stays as a backstop.
+
+**A digest check, `meta-result-posts`**, for failed rows, rows stuck in `posting` over 15
+minutes, and **rows still `pending` an hour after queueing**. The last one is not in the
+Threads check and should be: a queue whose job has stopped running fails silently, because
+nothing is ever attempted.
+
+**Schedule: `*/15 7-23 * * *` Europe/London, the same as `sbl-results-threads`** (Neil, 24
+Oct). A result reaches Facebook and Instagram within 15 minutes, and one published after
+midnight goes out from 07:00. The 48-hour stale rule is unaffected.
+
+**No rollback flag** (Neil, 24 Oct). The queue is unconditional under
+`SOCIAL_POST_DIRECT`, and backing it out is a revert and a deploy.
