@@ -121,3 +121,11 @@ connection quality would predict. The `w_1920` background PNG (114 KB, against 2
 `w_300`) is the obvious candidate for a desktop-only cost. That makes `f_auto,q_auto` a
 better bet than it looked in a mobile-only lab run. Check by splitting desktop LCP before
 and after.
+
+## Outcome so far (PostHog, measured 24 Oct 2026)
+
+Items 1, 2 and 4, 18–24 Oct against the baseline above (combined with HARD-42/43, which
+went out the same day). **Desktop is no longer slower than mobile** except on `/`: desktop
+LCP p75 1.14 s → **666 ms**, mobile 686 → 562 ms. With attribution on, the `w_1920`
+background is the LCP element on 11 of the 48 desktop `/` loads; the lead text paragraph
+is the rest. Item 3 (analytics) is still a decision for ~Nov.

@@ -1551,9 +1551,13 @@ Key vars (see `.env` for examples):
    (`league-site-akvq7tsxuq-nw.a.run.app`), bypassing Firebase. That does not change what
    Meta fetches: the handler builds the video URL from `SITE_ORIGIN` through
    `absoluteUrl()`, so it is the public domain whichever host invoked the job.
-   The other scheduled jobs are well under the limit — tables 39.1s, fixtures 38.6s, audit
-   7.9s, registrations 4.8s — but **the image posts are closer to 60 than is comfortable**,
-   and what pushes them over would be Meta being slow rather than anything in this repo.
+   **The weekly tables and fixtures posts went the same way, and call Cloud Run directly
+   too** (24 Oct 2026). Both were measured at 39s when this was written; the Facebook
+   story frames (11 Oct) and a slow Meta day took tables to 37 → 38 → 59 → **90s** on four
+   consecutive Saturdays, and on the fourth the scheduler logged `ERROR / INTERNAL` over a
+   post that went out. Audit (7.9s) and registrations (4.8s) still go through Firebase.
+   **A job that publishes to Meta belongs on the Cloud Run URL from the start** — its
+   duration is Meta's, and every target added makes it longer without anything warning.
 1c. **An INNER JOIN to something optional loses the whole page.**
    `__tests__/unit/optional-join-guard.test.js` now fails on the specific shape that has
    caused this three times: an inner join to `player` on a ROLE (`teamCaptain`,

@@ -68,3 +68,33 @@ why a retry today does not double-post.
 ## Out of scope
 
 - The Make.com path (`SOCIAL_POST_DIRECT` unset). It is a webhook and returns quickly.
+
+## Step 1: the split, measured 18–24 Oct 2026
+
+Six publishes, every one a 200. The `[timing]` lines carry no trace id, so they were grouped by
+time: each POST's start plus its latency lands on that publish's `results email` line.
+
+| Start (UTC) | Total | Page | Instagram | IG story | Page story | Everything else |
+|---|---|---|---|---|---|---|
+| 19 Oct 16:46 | 29.9 s | 5.7 | 8.3 | 8.1 | 5.5 | 0.5 |
+| 20 Oct 22:31 | 29.3 s | 4.4 | 7.9 | 8.9 | 6.7 | 0.4 |
+| 20 Oct 22:33 | 31.3 s | 6.5 | 10.1 | 8.8 | 5.1 | 0.5 |
+| 22 Oct 17:11 | 32.8 s | 5.9 | 9.4 | 10.1 | 5.2 | 0.8 |
+| 23 Oct 07:52 | 26.5 s | 4.4 | 6.5 **failed** | 8.1 | 5.1 | 0.8 |
+| 24 Oct 11:25 | **52.0 s** | 8.8 | 16.1 | 14.7 | 9.9 | 1.2 |
+
+- **The Meta posts are 92–95% of the request, and they run one after another.** The four
+  targets add up to `result zap`'s own figure to within a millisecond.
+- **The rating refresh, the unknown in step 1, is not a factor**: median 70 ms. With the ELO
+  chain (late results only, median 356 ms), the Threads enqueue, the confirmation-page data
+  and the results email, the whole rest of the request is under 2%. Nothing besides Meta
+  needs its own answer.
+- 24 Oct was a slow Meta day: every target took about 1.7x its usual time, and the publish
+  finished 8 s inside Firebase's cut. Status 200.
+- 23 Oct: the Instagram feed post failed, and `result zap` still logged `ok`, because the
+  step reports success when any target does. The queue's per-target rows should make that
+  visible rather than inherit it.
+
+Step 2 as written stands. Running the four targets in parallel would bring the request to
+~10–16 s and is a fallback if the queue stalls. It is not the fix: Meta's speed would still
+set the publish request's duration.

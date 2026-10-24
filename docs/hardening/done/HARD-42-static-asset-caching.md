@@ -96,3 +96,18 @@ on every route, so this is a loading problem only, as the lab said.
 Every route is in Google's *good* band at p75. Caching is still worth doing for the
 first visit after each deploy (58 a month) and for the CDN load, but it will move the
 **p90 more than the p75**, so measure the effect there.
+
+## Outcome (PostHog, measured 24 Oct 2026)
+
+Same query as the baseline, Stockport host, 18–24 Oct against 9–17 Oct. Deployed 17 Oct
+alongside HARD-43 and HARD-44 items 1, 2 and 4, so this is the combined effect of all four,
+not HARD-42's alone. As predicted, the p90 moved further than the p75.
+
+| | LCP p75 | LCP p90 | FCP p75 | FCP p90 | LCP samples |
+|---|---|---|---|---|---|
+| Mobile, all pages | 686 → **562 ms** | 1.29 s → **924 ms** | 589 → **476 ms** | 1.21 s → **904 ms** | 280 → 574 |
+| Desktop, all pages | 1.14 s → **666 ms** | 2.99 s → **1.47 s** | 933 → **664 ms** | 1.89 s → **1.57 s** | 93 → 224 |
+
+(The baseline's mobile row reads 686 ms here against 721 ms in the table above. The
+baseline query has been re-run since, with a few late events, and the rest of the row
+agrees.)

@@ -94,3 +94,35 @@ The homepage's FCP is about twice that of the other pages, and FCP comes before 
 image, so the gap is in the document and not the gallery. That matches the ~180 ms of
 extra TTFB measured above, plus the tail when Cloudinary is slow. Acceptance should
 add this: homepage FCP p75 within ~200 ms of `/results/:division`'s.
+
+## Outcome (measured 24 Oct 2026)
+
+**Request logs, the acceptance criterion.** `GET /`, status 200, bots excluded by user
+agent (SentryUptimeBot, facebookexternalhit, Google's preview/inspection agents, …):
+
+| Window | Requests | p50 | p75 | p90 |
+|---|---|---|---|---|
+| 26 Sep – 17 Oct (before) | 2,706 | 450 ms | 495 ms | 590 ms |
+| 18 – 24 Oct (after) | 1,017 | **106 ms** | 127 ms | 212 ms |
+| `/results/*`, after | 572 | 98 ms | 151 ms | 327 ms |
+| `/tables/*`, after | 284 | 65 ms | 108 ms | 290 ms |
+
+Under 150 ms and level with the other pages: **met.**
+
+**PostHog field data**, 18–24 Oct against the baseline above:
+
+| | LCP p75 | LCP p90 | FCP p75 |
+|---|---|---|---|
+| `/` desktop | 2.20 → **1.33 s** | 2.79 → 2.19 s | 1.83 → 1.23 s |
+| `/` mobile | 1.08 s → **764 ms** | 2.03 → 2.01 s | 1.18 s → 732 ms |
+| `/results/*` mobile | 521 → 455 ms | 958 → 771 ms | 514 → 438 ms |
+
+The added "FCP within ~200 ms of `/results`" is **not quite met** (mobile 732 against
+438 ms), and the gap is not in the app. With web-vitals attribution on, the browser's TTFB
+for `/` is p75 **1.1 s** against ~280 ms for `/results` and `/tables`, while Cloud Run
+answers `/` in 127 ms at p75. 86 of 102 `/` loads are landings (external or direct), which
+pay DNS, TLS and the Firebase hop on a cold connection where an in-site navigation does
+not. Landing loads elsewhere come in at p75 481 ms, so that explains much of the gap but
+not all of it, and the sample is too small to go further. The LCP element on `/` is now
+almost always the lead text paragraph, not the background, so the image is no longer the
+cost.
