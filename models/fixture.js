@@ -3,6 +3,7 @@ const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils
 var seasonModel = require("./season");
 const axios = require('axios');
 const { NO_TEAM_ID } = require('./roster');
+const SocialResultPost = require('./socialResultPost');
 
 
 exports.create = async function(fixtureObj) {
@@ -858,64 +859,42 @@ exports.rearrangeByTeamNames = async function(updateObj) {
   })
 }
 
-// Post one result to the league's own Facebook page and Instagram account.
+// Where a published result goes on Meta: the targets configured on this service, in the
+// order they are posted.
 //
-// Each target succeeds or fails on its own — `publishEverywhere` collects rather than
-// throwing — because a post that reached Facebook and not Instagram has still reached
-// Facebook, and a retry that re-posted it would be worse than the gap.
-//
-// The caller is `afterCommit('result zap', ...)`, so the result is already committed and
-// nothing here can undo it. What is returned is an account of what happened, which is what
-// lets the log say "Facebook yes, Instagram no" rather than just "failed".
-async function publishResultToMeta({ imgGen, message, zapObject }) {
+// The Instagram story is a THIRD target, not part of the Instagram one, so a story that
+// fails beside a feed post that worked is reported as exactly that. Off unless
+// SOCIAL_POST_STORY is 'true'. The Facebook Page story is a fourth, on SOCIAL_POST_FB_STORY,
+// and uses the same 9:16 card. Read when a result is queued, to decide which rows to write,
+// and again when the job posts one, for the credentials.
+function resultTargets() {
   const meta = require('../utils/metaPublisher')
   const t = meta.targets()
-
-  // The Instagram story is a THIRD target, not part of the Instagram one, so a story that
-  // fails beside a feed post that worked is reported as exactly that. Off unless
-  // SOCIAL_POST_STORY is 'true': a story goes out on every published result, and the first
-  // real one is the only check of where Instagram's overlays fall on the 9:16 card.
   const story = process.env.SOCIAL_POST_STORY === 'true' && t.instagram
-  // The Facebook Page story is a fourth, on SOCIAL_POST_FB_STORY, and uses the same 9:16 card.
-  const pageStory = meta.pageStoryTarget(t)
-  const configured = [
+  return [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
     story && { ...t.instagram, name: 'Instagram story', kind: 'instagram-story' },
-    pageStory,
+    meta.pageStoryTarget(t),
   ].filter(Boolean)
+}
+exports.resultTargets = resultTargets
 
-  // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
-  // latter. `SOCIAL_POST_DIRECT` lives in the Cloud Run service config; the credentials
-  // live in `.env`, which is gitignored and never deployed. Setting the flag without
-  // copying the credentials across left a service that took the direct path, found nothing
-  // to post to, posted nowhere — and reported success, because an empty target list
-  // produces neither a post nor a failure.
-  //
-  // That is the exact shape this codebase keeps getting caught by: a rejection that looks
-  // like an acceptance. `secured`'s 302 that Make.com logged as a successful invoice run;
-  // the rearrangement endpoint answering 200 to a pairing it had discarded. A switch whose
-  // two halves live in different places must fail loudly when only one of them is set.
-  if (!configured.length) {
-    throw new Error(
-      'SOCIAL_POST_DIRECT is set but no Meta credentials are configured, so this result ' +
-      'would have been posted nowhere. Set META_PAGE_ID, META_PAGE_TOKEN and ' +
-      'META_IG_USER_ID on the service, or unset SOCIAL_POST_DIRECT to go back through ' +
-      'Make.com.')
+function resultMessage(r) {
+  return `Result: ${r.homeTeam} vs ${r.awayTeam} : ${r.homeScore}-${r.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`
+}
+
+// What a result post carries, in the shape `metaPublisher.publishEverywhere` takes. Built
+// through the URL helpers, and percent-encoded, because Meta fetches these from its own
+// servers: interpolated raw, "Tatton A" put a literal space in the URL and Facebook answered
+// `Missing or invalid image file (324, OAuthException)` — the endpoint was fine, the URL
+// was not.
+exports.resultPostContent = function(r) {
+  return {
+    imageUrls: absoluteUrl(resultImagePath(r)),
+    message: resultMessage(r),
+    storyImageUrl: absoluteUrl(resultStoryImagePath(r)),
   }
-
-  const storyImageUrl = (story || pageStory) ? absoluteUrl(resultStoryImagePath(zapObject)) : undefined
-  const out = await meta.publishEverywhere(configured, { imageUrls: imgGen, message, storyImageUrl })
-
-  for (const f of out.failed) console.error(`result post to ${f.target} failed:`, f.error.message)
-  if (out.posted.length) console.log('result posted to', out.posted.map(p => p.target).join(', '))
-
-  // Thrown only when EVERY target failed, so `afterCommit` records one Sentry event for a
-  // post that went nowhere and stays quiet about a partial success it can do nothing about.
-  if (!out.posted.length && out.failed.length) {
-    throw out.failed[0].error
-  }
-  return out
 }
 
 exports.sendResultZap = async function(zapObject) {
@@ -936,7 +915,7 @@ exports.sendResultZap = async function(zapObject) {
 
   const webhookBody = {
     imgGen: imgGen,
-    message: `Result: ${zapObject.homeTeam} vs ${zapObject.awayTeam} : ${zapObject.homeScore}-${zapObject.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`,
+    message: resultMessage(zapObject),
     // `imgUrl` used to name the file the canvas block below wrote — spaces to dashes, no
     // separator, and `http://`. That block went in May and the file has 404'd ever since,
     // so nothing can be depending on the old value. Pointed at `imgGen` rather than
@@ -972,8 +951,38 @@ exports.sendResultZap = async function(zapObject) {
   // stopped Tameside appearing on Instagram. Tameside got its own account on 15 Sep 2026
   // and every Make scenario is now disabled, so neither the sharing nor the fallback is
   // live; the flag remains as the rollback path it was built to be.
+  //
+  // **Direct means queued** (HARD-47). Posting here, inside the request that publishes the
+  // result, took 26–33 s a publish and 52 s on 24 Oct 2026, against Firebase Hosting's 60 s
+  // cut — the four Meta targets one after another were 92–95% of it. So this writes one row
+  // per configured target and returns, and `sbl-results-meta` posts them
+  // (controllers/metaResultsController.js). Nothing may be posted from here after the
+  // response either: Cloud Run throttles the CPU once a response is sent.
   if (process.env.SOCIAL_POST_DIRECT === 'true') {
-    return publishResultToMeta({ imgGen, message: webhookBody.message, zapObject })
+    const configured = resultTargets()
+
+    // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
+    // latter. `SOCIAL_POST_DIRECT` lives in the Cloud Run service config; the credentials
+    // live in `.env`, which is gitignored and never deployed. Setting the flag without
+    // copying the credentials across left a service that took the direct path, found
+    // nothing to post to, posted nowhere — and reported success, because an empty target
+    // list produces neither a post nor a failure.
+    //
+    // That is the exact shape this codebase keeps getting caught by: a rejection that looks
+    // like an acceptance. A switch whose two halves live in different places must fail
+    // loudly when only one of them is set.
+    if (!configured.length) {
+      throw new Error(
+        'SOCIAL_POST_DIRECT is set but no Meta credentials are configured, so this result ' +
+        'would have been posted nowhere. Set META_PAGE_ID, META_PAGE_TOKEN and ' +
+        'META_IG_USER_ID on the service, or unset SOCIAL_POST_DIRECT to go back through ' +
+        'Make.com.')
+    }
+    if (!zapObject.fixtureId) throw new Error('sendResultZap needs the fixture id to queue the post')
+
+    const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map(t => t.kind))
+    console.log(`result for fixture ${zapObject.fixtureId} queued for`, queued.map(q => q.target).join(', ') || 'nothing new')
+    return { queued }
   }
 
   const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)

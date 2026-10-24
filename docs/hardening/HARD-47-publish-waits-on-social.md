@@ -150,3 +150,27 @@ midnight goes out from 07:00. The 48-hour stale rule is unaffected.
 
 **No rollback flag** (Neil, 24 Oct). The queue is unconditional under
 `SOCIAL_POST_DIRECT`, and backing it out is a revert and a deploy.
+
+## Step 2: built, 24 Oct 2026
+
+As designed above, with three details settled while building it:
+
+- **The Instagram wait checks at once, then every 1.5 s for up to 30 s** (`IMAGE_WAIT` in
+  `utils/metaPublisher.js`). The call that creates a container is Meta fetching the image,
+  so it is normally `FINISHED` by the time we ask, and the common case costs one GET. The
+  wait covers the photo, the story and a carousel's parent. The weekly carousel gets it too,
+  which is harmless now that the weekly jobs call Cloud Run directly.
+- **A row whose target is no longer configured is `failed`, not `skipped`.** A credential
+  gone missing from the service is someone's problem to fix.
+- **The digest check's "never attempted" threshold is 12 hours**, not one, to clear the
+  overnight gap in the 07:00–23:45 schedule. A dead job still shows on the next Monday.
+
+Each new test failed with its fix removed: the acceptance test (Meta hanging) timed out
+against the old `models/fixture.js`, and 6 of the container-wait tests failed with the
+waits deleted. The model was exercised against the local Postgres (queue, de-duplication,
+claim order, guarded finishes), and the digest check against seeded rows: it reported the
+failed row, the dead run and the 13-hour pending row, and left out a pending row 2 hours old.
+
+**Still to do once deployed:** a week of publishes, then the acceptance criteria: `POST
+/scorecard-beta` p95 under 10 s, and every result in `social_result_post` posted to every
+target.

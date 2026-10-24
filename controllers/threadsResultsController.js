@@ -1,7 +1,8 @@
 // POST /admin/social/results/threads — post published results to Threads.
 //
-// Publishing a result posts it to Facebook, Instagram and the story inside the publish
-// request. Threads cannot go there: each container has to be waited on before it can be
+// Publishing a result used to post it to Facebook, Instagram and the stories inside the
+// publish request; since HARD-47 those are queued too (metaResultsController, which copies
+// this file's rules). Threads was never there: each container has to be waited on before it can be
 // published, and that wait would sit in front of whoever is publishing, in a request that
 // Firebase Hosting cuts at 60 seconds (CLAUDE.md 1bc). So publishing only queues the fixture
 // (`threads_result_post`, migration 021) and this route, called by the scheduler job

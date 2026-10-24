@@ -369,6 +369,35 @@ const CHECKS = [
       ORDER BY q.queued_at`
   },
   {
+    // Results that did not reach Facebook or Instagram (controllers/metaResultsController.js,
+    // HARD-47). The Threads check's rules, per target, plus one it lacks: a row still
+    // `pending` twelve hours after it was queued. A queue whose job has stopped running fails
+    // silently — nothing is ever attempted, so nothing ever fails. Twelve hours clears the
+    // overnight gap in the job's 07:00–23:45 schedule.
+    name: 'meta-result-posts',
+    description: 'Results that did not post to Facebook/Instagram — check the page, then re-queue if missing',
+    severity: 'medium',
+    sql: `
+      SELECT q.fixture_id,
+             ht.name || ' v ' || awt.name AS fixture,
+             q.target,
+             q.state,
+             q.attempts,
+             to_char(q.queued_at AT TIME ZONE 'Europe/London', 'DD Mon HH24:MI') AS queued,
+             LEFT(COALESCE(q.last_error,
+               CASE WHEN q.state = 'pending' THEN 'never attempted: is sbl-results-meta running?'
+                    ELSE 'run did not finish; may be live' END), 160) AS problem
+      FROM social_result_post q
+      LEFT JOIN fixture f ON f.id = q.fixture_id
+      LEFT JOIN team ht ON ht.id = f."homeTeam"
+      LEFT JOIN team awt ON awt.id = f."awayTeam"
+      WHERE q.queued_at > now() - INTERVAL '14 days'
+        AND (q.state = 'failed'
+             OR (q.state = 'posting' AND q.claimed_at < now() - INTERVAL '15 minutes')
+             OR (q.state = 'pending' AND q.queued_at < now() - INTERVAL '12 hours'))
+      ORDER BY q.queued_at, q.id`
+  },
+  {
     // The annual club invoices (HARD-35). The 2026 run failed on 1 Sep and nothing said
     // so: the scheduler logged a red step nobody read. A run that never happens leaves no
     // error to report, so this works from the ABSENCE of a successful run once the window

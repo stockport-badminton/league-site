@@ -35,6 +35,14 @@ jest.mock('../../models/players');
 jest.mock('../../models/fixture');
 jest.mock('../../models/game');
 jest.mock('../../models/threadsResultPost');
+jest.mock('../../models/socialResultPost');
+// The real module, with the two calls that reach Meta replaced: the acceptance test for
+// HARD-47 below makes Meta hang.
+jest.mock('../../utils/metaPublisher', () => ({
+  ...jest.requireActual('../../utils/metaPublisher'),
+  targets: jest.fn(),
+  publishEverywhere: jest.fn(),
+}));
 // Opens its own transaction; utils/eloChain has its own tests.
 jest.mock('../../utils/eloChain');
 jest.mock('../../models/auth.js');
@@ -1691,5 +1699,41 @@ describe('POST /scorecard-beta — refusing to publish a superseded draft', () =
 
     expect(Fixture.getDraftSupersession).not.toHaveBeenCalled();
     expect(Fixture.updateById).toHaveBeenCalled();
+  });
+});
+
+// HARD-47's acceptance test. Publishing used to post to every Meta target inside this
+// request — up to 52 s, against Firebase Hosting's 60 s cut — so a slow Meta was a slow (or
+// failed-looking) publish. With the real sendResultZap and a Meta that never answers, the
+// publish must still complete and render, because all it does now is queue the post.
+// Without the queue this test hangs and times out.
+describe('POST /scorecard-beta when Meta never answers', () => {
+  const meta = require('../../utils/metaPublisher');
+  const SocialResultPost = require('../../models/socialResultPost');
+
+  beforeEach(() => {
+    setupFullFixtureMocks();
+    process.env.SOCIAL_POST_DIRECT = 'true';
+    meta.targets.mockReturnValue({
+      stockportPage: { id: '101950371354925', token: 'not-real' },
+      instagram: { id: '17841409056774880', token: 'not-real' },
+      tamesidePage: null,
+    });
+    meta.publishEverywhere.mockImplementation(() => new Promise(() => {}));
+    SocialResultPost.enqueue.mockImplementation(async (id, kinds) => kinds.map((target, i) => ({ id: i + 1, target })));
+    Fixture.sendResultZap.mockImplementation(jest.requireActual('../../models/fixture').sendResultZap);
+  });
+  afterEach(() => {
+    delete process.env.SOCIAL_POST_DIRECT;
+    Fixture.sendResultZap.mockResolvedValue({});
+  });
+
+  it('publishes and renders anyway, having only queued the post for each target', async () => {
+    const res = await request(app).post('/scorecard-beta').send(validScorecard()).timeout(5000);
+
+    expect(res.status).toBe(200);
+    expect(Game.createBatch).toHaveBeenCalled();
+    expect(SocialResultPost.enqueue).toHaveBeenCalledWith(99, ['page', 'instagram']);
+    expect(meta.publishEverywhere).not.toHaveBeenCalled();
   });
 });

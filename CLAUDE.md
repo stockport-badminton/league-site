@@ -1369,7 +1369,8 @@ Key vars (see `.env` for examples):
   its own job calling Cloud Run directly with no retries: `/admin/social/weekly-tables/threads`
   (Sat 13:05), `/admin/social/weekly-fixtures/threads` (Sun 18:05; one division playing goes
   out as a single image, because a Threads carousel needs two) and
-  `/admin/social/results/threads` (see `SOCIAL_POST_THREADS`). Same gate as the other four;
+  `/admin/social/results/threads` (see `SOCIAL_POST_THREADS`), and the Meta results queue,
+  `/admin/social/results/meta` (see `SOCIAL_POST_DIRECT`). Same gate as the other four;
   **unset closes the token path**. A superadmin session also works, and the matching `GET`
   on each previews the images and both captions and sends nothing. `?dry=1` on either POST
   asks Meta whether it will accept the images and publishes nothing — worth running before
@@ -1385,6 +1386,14 @@ Key vars (see `.env` for examples):
   a rollback is one environment variable rather than one deploy — this runs when a captain
   publishes a result, and a bad week is a week of missing posts nobody notices. Switching it
   on needs no change in Make: see *Two leagues, one Make account* above.
+  **"Itself" means queued** (HARD-47, Oct 2026). Publishing writes one `social_result_post`
+  row per configured target (migration 024) and returns; `POST /admin/social/results/meta`
+  (`SOCIAL_CRON_TOKEN`), on `sbl-results-meta` every 15 min 07:00–23:45, calling Cloud Run
+  directly with no retries, posts them. Posting inline took 26–52 s of Firebase's 60. A
+  result reaches Facebook and Instagram up to 15 minutes later, overnight ones at 07:00. The
+  job retries per row only where Meta cannot have published (`metaPublisher.mayHavePublished`),
+  and the digest's `meta-result-posts` check reports failures, dead runs and a job that has
+  stopped running. The story flags below now decide which rows are queued.
 - `SOCIAL_POST_STORY` — `'true'` also posts each published result as an **Instagram story**,
   as a third target beside the Page and the feed post, so a failed story is reported on its
   own. Needs `SOCIAL_POST_DIRECT`. **Unset posts no story.** The card is

@@ -28,7 +28,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   let n = 0;
   axios.post.mockImplementation(async () => ({ data: { id: `id-${++n}` } }));
-  axios.get.mockResolvedValue({ data: { data: [{ config: { quota_total: 100 }, quota_usage: 3 }] } });
+  // A container status check answers FINISHED; anything else is the quota read.
+  axios.get.mockImplementation(async (url, { params } = {}) =>
+    String(params && params.fields).includes('status_code')
+      ? { data: { status_code: 'FINISHED' } }
+      : { data: { data: [{ config: { quota_total: 100 }, quota_usage: 3 }] } });
 });
 
 describe('the image rules, enforced before Meta sees them', () => {
@@ -147,6 +151,89 @@ describe('an Instagram post', () => {
       imageUrls: ['https://x.co/a.jpg', 'https://x.co/b.png'],
     })).rejects.toThrow(/JPEG only/);
     expect(axios.post).not.toHaveBeenCalled();
+  });
+});
+
+// Every Meta failure on a published result between 25 Sep and 23 Oct 2026 was Instagram's
+// "The media is not ready to be published. Please wait a moment." — the container was
+// published the moment it was created. So an image container is now asked whether it is
+// FINISHED first (HARD-47).
+describe('an Instagram image container is ready before it is published', () => {
+  const statusGets = () => axios.get.mock.calls.filter(c => String(c[1].params.fields).includes('status_code'));
+
+  it('checks the container, then publishes it', async () => {
+    await meta.publishInstagramPhoto(IG, TOKEN, { imageUrl: JPEG + '.jpg' });
+    expect(statusGets()).toHaveLength(1);
+    expect(urlOf(statusGets()[0])).toMatch(/\/id-1$/);              // the container, not the account
+    // The check came between creating and publishing.
+    expect(axios.get.mock.invocationCallOrder[0]).toBeGreaterThan(axios.post.mock.invocationCallOrder[0]);
+    expect(axios.get.mock.invocationCallOrder[0]).toBeLessThan(axios.post.mock.invocationCallOrder[1]);
+  });
+
+  it('waits while it is IN_PROGRESS, and publishes once it is FINISHED', async () => {
+    jest.useFakeTimers();
+    try {
+      axios.get
+        .mockResolvedValueOnce({ data: { status_code: 'IN_PROGRESS' } })
+        .mockResolvedValueOnce({ data: { status_code: 'FINISHED' } });
+      const p = meta.publishInstagramStory(IG, TOKEN, { imageUrl: JPEG + '.jpg' });
+      await jest.advanceTimersByTimeAsync(1500);
+      const out = await p;
+      expect(statusGets()).toHaveLength(2);
+      expect(axios.post).toHaveBeenCalledTimes(2);                     // create + publish
+      expect(out.mediaId).toBe('id-2');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('publishes nothing when Meta reports ERROR, and says it never got to publishing', async () => {
+    axios.get.mockResolvedValueOnce({ data: { status_code: 'ERROR', status: 'Image too small' } });
+    const err = await meta.publishInstagramPhoto(IG, TOKEN, { imageUrl: JPEG + '.jpg' }).catch(e => e);
+    expect(err.message).toMatch(/could not process the image: Image too small/);
+    expect(err.step).toBe('processing an image');
+    expect(axios.post).toHaveBeenCalledTimes(1);                       // the container only
+    expect(meta.mayHavePublished(err)).toBe(false);                    // so it may be retried
+  });
+
+  it('gives up after 30 s, without publishing', async () => {
+    jest.useFakeTimers();
+    try {
+      axios.get.mockResolvedValue({ data: { status_code: 'IN_PROGRESS' } });
+      const p = meta.publishInstagramPhoto(IG, TOKEN, { imageUrl: JPEG + '.jpg' }).catch(e => e);
+      await jest.advanceTimersByTimeAsync(31000);
+      const err = await p;
+      expect(err.message).toMatch(/still processing the image after 30s/);
+      expect(axios.post).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('waits on a carousel\'s parent before publishing it', async () => {
+    const urls = ['a', 'b'].map(x => `https://stockport-badminton.co.uk/${x}.jpg`);
+    await meta.publishInstagramCarousel(IG, TOKEN, { imageUrls: urls });
+    expect(statusGets()).toHaveLength(1);
+    expect(urlOf(statusGets()[0])).toMatch(/\/id-3$/);              // the parent
+  });
+});
+
+// Whether a failed post may be tried again. Only the call that publishes can make anything
+// visible, and only an unanswered one leaves us not knowing.
+describe('mayHavePublished', () => {
+  const err = (step, status) => new meta.MetaError('x', { step, status });
+  it('is true only for a publishing step that got no answer', () => {
+    expect(meta.mayHavePublished(err('the Instagram publish'))).toBe(true);
+    expect(meta.mayHavePublished(err('the page post'))).toBe(true);
+    expect(meta.mayHavePublished(err('the page story'))).toBe(true);
+  });
+  it('is false when Meta answered the publish with a refusal', () => {
+    expect(meta.mayHavePublished(err('the Instagram publish', 400))).toBe(false);
+  });
+  it('is false for every step before publishing', () => {
+    for (const step of ['a photo upload', 'an Instagram media container', 'processing an image', 'validate']) {
+      expect(meta.mayHavePublished(err(step))).toBe(false);
+    }
   });
 });
 

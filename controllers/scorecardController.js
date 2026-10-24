@@ -444,6 +444,7 @@ exports.full_fixture_post = async function(req, res, next) {
     // step is allowed to fail on its own without taking the request down with it.
     const getFixtureDetailsResult = await Fixture.getFixtureDetailsById(FixtureIdResult[0].id);
     const zapObject = {
+      fixtureId: FixtureIdResult[0].id,
       host: req.headers.host,
       homeTeam: getFixtureDetailsResult[0].homeTeam,
       awayTeam: getFixtureDetailsResult[0].awayTeam,
@@ -452,10 +453,12 @@ exports.full_fixture_post = async function(req, res, next) {
       division: FixtureIdResult[0].name
     };
 
+    // With SOCIAL_POST_DIRECT this only queues the post: `sbl-results-meta` publishes it to
+    // Facebook and Instagram (metaResultsController, HARD-47). Posting here took up to 52 s.
     await afterCommit('result zap', () => Fixture.sendResultZap(zapObject));
 
-    // Threads is posted later, by the `sbl-results-threads` job: its containers have to be
-    // waited on, which cannot happen inside this request (threadsResultsController). This
+    // Threads is posted later too, by the `sbl-results-threads` job: its containers have to
+    // be waited on, which cannot happen inside this request (threadsResultsController). This
     // only queues the fixture. Unset `SOCIAL_POST_THREADS` queues nothing.
     if (process.env.SOCIAL_POST_THREADS === 'true') {
       await afterCommit('threads result queue', () => ThreadsResultPost.enqueue(FixtureIdResult[0].id));

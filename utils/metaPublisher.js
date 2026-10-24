@@ -213,6 +213,7 @@ async function publishInstagramPhoto(igUserId, token, { imageUrl, caption }) {
   const creationId = await createContainer(igUserId, token, {
     image_url: imageUrl, caption: caption || '',
   });
+  await waitForContainer(creationId, token, IMAGE_WAIT);
   return { mediaId: await publishContainer(igUserId, token, creationId), creationId };
 }
 
@@ -231,6 +232,7 @@ async function publishInstagramStory(igUserId, token, { imageUrl }) {
   const creationId = await createContainer(igUserId, token, {
     media_type: 'STORIES', image_url: imageUrl,
   });
+  await waitForContainer(creationId, token, IMAGE_WAIT);
   return { mediaId: await publishContainer(igUserId, token, creationId), creationId };
 }
 
@@ -260,6 +262,7 @@ async function publishInstagramCarousel(igUserId, token, { imageUrls, caption })
   const parent = await createContainer(igUserId, token, {
     media_type: 'CAROUSEL', children: children.join(','), caption: caption || '',
   });
+  await waitForContainer(parent, token, IMAGE_WAIT);
   return { mediaId: await publishContainer(igUserId, token, parent), childIds: children };
 }
 
@@ -271,11 +274,16 @@ async function publishInstagramCarousel(igUserId, token, { imageUrls, caption })
  */
 // ── Video ────────────────────────────────────────────────────────────────────
 //
-// Video is not photo-with-a-different-field. A photo container is usable the moment it is
-// created; **a video container is not** — Meta fetches the file, transcodes it, and only
-// then is it publishable. Publishing too early fails with a container-not-ready error, so
-// the status has to be polled. That polling is the whole reason these are separate
-// functions rather than a flag on the photo ones.
+// Video is not photo-with-a-different-field. **A video container is never usable when it
+// is created** — Meta fetches the file, transcodes it, and only then is it publishable.
+// Publishing too early fails with a container-not-ready error, so the status has to be
+// polled for minutes. That polling is the whole reason these are separate functions rather
+// than a flag on the photo ones.
+//
+// A photo container was believed usable the moment it was created, and usually is. Not
+// always: every Meta failure on a published result between 25 Sep and 23 Oct 2026 (five) was
+// "The media is not ready to be published. Please wait a moment." So photo containers are
+// waited on too, briefly — see IMAGE_WAIT.
 //
 // Measured 20 Sep 2026 (HARD-21 phase 2): a ~13s 1080-wide mp4 reaches FINISHED in a few
 // seconds, and Instagram accepts 16:9, 1:1 and 4:5 with a silent audio track. What Meta
@@ -283,6 +291,9 @@ async function publishInstagramCarousel(igUserId, token, { imageUrls, caption })
 // here — see the package.
 const VIDEO_POLL_MS = 5000;
 const VIDEO_TIMEOUT_MS = 180000;
+// An image container is checked at once — the call that creates it is Meta fetching the
+// image, so it is normally FINISHED by the time we ask — and then every 1.5 s for up to 30 s.
+const IMAGE_WAIT = { pollMs: 1500, timeoutMs: 30000, image: true };
 
 function assertPublishableVideo(url) {
   if (!/^https:\/\//i.test(String(url || ''))) {
@@ -293,30 +304,34 @@ function assertPublishableVideo(url) {
 }
 
 /**
- * Wait for a video container to finish transcoding.
+ * Wait for a container to be publishable: a video's transcode, or (with `image`) a photo's
+ * processing.
  *
  * Returns the container id, or throws with what Meta said. `ERROR` carries a `status`
  * string that is the only description of what was wrong with the file, so it is passed
- * through rather than flattened to "failed".
+ * through rather than flattened to "failed". Nothing is published when this throws, which
+ * is what lets the results queue retry it.
  */
-async function waitForContainer(containerId, token, { pollMs = VIDEO_POLL_MS, timeoutMs = VIDEO_TIMEOUT_MS } = {}) {
+async function waitForContainer(containerId, token,
+  { pollMs = VIDEO_POLL_MS, timeoutMs = VIDEO_TIMEOUT_MS, image = false } = {}) {
   const deadline = Date.now() + timeoutMs;
+  const what = image ? 'image' : 'video';
+  const step = image ? 'processing an image' : 'transcoding a video';
   let last = 'IN_PROGRESS';
 
-  while (Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, pollMs));
+  for (let first = true; Date.now() < deadline; first = false) {
+    if (!(image && first)) await new Promise(r => setTimeout(r, pollMs));
     const r = await graph(containerId, { fields: 'status_code,status', access_token: token },
-      { method: 'GET', step: 'checking a video container' });
+      { method: 'GET', step: `checking ${image ? 'an image' : 'a video'} container` });
     last = r.status_code;
     if (last === 'FINISHED') return containerId;
     if (last === 'ERROR') {
-      throw new MetaError(`Meta could not process the video: ${r.status || 'no detail given'}`,
-        { step: 'transcoding a video' });
+      throw new MetaError(`Meta could not process the ${what}: ${r.status || 'no detail given'}`, { step });
     }
   }
   throw new MetaError(
-    `Meta was still transcoding the video after ${Math.round(timeoutMs / 1000)}s (last status ${last}). ` +
-    `Nothing was published.`, { step: 'transcoding a video' });
+    `Meta was still ${image ? 'processing the image' : 'transcoding the video'} after ` +
+    `${Math.round(timeoutMs / 1000)}s (last status ${last}). Nothing was published.`, { step });
 }
 
 /** Instagram. Video on Instagram is REELS — the old feed VIDEO type is gone. */
@@ -533,8 +548,22 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
   return { posted, failed, ok: failed.length === 0 };
 }
 
+// The steps that make something visible. Everything before them (photo uploads, containers,
+// waiting on a container) leaves nothing anyone can see.
+const PUBLISH_STEPS = new Set(['the page post', 'the page story', 'the Instagram publish']);
+
+/**
+ * Whether Meta might have published a post despite this error, which decides whether it
+ * may be tried again. If Meta answered the publishing call with an error status, it
+ * refused. With no answer at all (a timeout, a dropped connection) the post may be live,
+ * and a retry could be a second post. The same rule as threadsResultsController's.
+ */
+function mayHavePublished(err) {
+  return !!err && PUBLISH_STEPS.has(err.step) && !err.status;
+}
+
 module.exports = {
-  MetaError,
+  MetaError, mayHavePublished,
   assertPublishableImage, ratioOk,
   uploadPagePhoto, publishPageAlbum, publishPageStories, publishPageVideoStory,
   publishInstagramPhoto, publishInstagramCarousel, publishInstagramStory,

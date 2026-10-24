@@ -158,6 +158,10 @@ router.post('/admin/social/weekly-tables/threads', requireSocialCaller, weekly_t
 // few minutes: see controllers/threadsResultsController.js.
 const threads_results_controller = require('../controllers/threadsResultsController');
 router.post('/admin/social/results/threads', requireSocialCaller, threads_results_controller.run);
+// The same queue idea for Facebook and Instagram, on `sbl-results-meta` (HARD-47): see
+// controllers/metaResultsController.js.
+const meta_results_controller = require('../controllers/metaResultsController');
+router.post('/admin/social/results/meta', requireSocialCaller, meta_results_controller.run);
 
 // The weekly fixtures post — the same thing looking forwards, Sunday evening. It shares
 // SOCIAL_CRON_TOKEN with the tables post rather than taking a sixth secret of its own:
