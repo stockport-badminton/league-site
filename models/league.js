@@ -1,13 +1,11 @@
 // @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require('./season');
-const { kysely } = require('../db');
+const { kysely, decrypt } = require('../db');
 
-// REARCH-01: getById and the withdrawal functions are on the typed query layer. Not
-// converted: getLeagueTable, getAllLeagueTables and getAllLeagueTablesWithTopBottomDetails
-// (season-switched, REARCH-02), and getAnnualInvoices, which reads season."clubFee" — a
-// column production has and no migration creates, so the generated types cannot name it
-// (see the REARCH-01 brief).
+// REARCH-01: on the typed query layer except getLeagueTable, getAllLeagueTables and
+// getAllLeagueTablesWithTopBottomDetails, which are season-switched and belong to
+// REARCH-02. getAnnualInvoices waited on season."clubFee" being in a migration (026).
 
 /** @typedef {import('kysely').Kysely<import('../db/schema').DB>} Q */
 
@@ -90,48 +88,39 @@ exports.getAnnualInvoices = async function(clubName) {
   // dropped) surfaced it. Excluded on purpose instead, which does not depend on its data
   // staying incomplete.
   const SENTINEL_CLUB = 63
-  const base = `club.id <> ${SENTINEL_CLUB}`
-  const clubFilter = typeof clubName !== 'undefined'
-    ? `WHERE ${base} AND club.name = ?`
-    : `WHERE ${base}`
-  const params = [process.env.DB_PI_KEY, seasonModel.current(), seasonModel.previous(), seasonModel.current()]
-  if (typeof clubName !== 'undefined') params.push(clubName)
+  const current = seasonModel.current()
+  const previous = seasonModel.previous()
 
-  const sql = `SELECT club.id AS "clubId",
-    club.name AS "clubName",
-    count(team.id) AS "teamsCount",
-    fines.id AS "fineId",
-    fines.desc,
-    fines.amount,
-    "fineTeam".name AS "fineTeam",
-    "fineClub".name AS "fineClub",
-    fines.season,
-    player.first_name AS secretary,
-    pgp_sym_decrypt(player."playerEmail", ?)::text AS "playerEmail",
-    season."clubFee"
-    FROM
-    club JOIN
-    team ON team.club = club.id AND team.withdrawn IS NULL LEFT JOIN
-    fines ON fines.club = club.id AND ((fines.season = ? AND fines.desc IN ('agm')) OR (fines.season = ? AND fines.desc IN ('rearrangement','card')) OR fines.season IS NULL) LEFT JOIN
-    team "fineTeam" ON fines.team = "fineTeam".id LEFT JOIN
-    club "fineClub" ON fines.club = "fineClub".id JOIN
-    season on season.name = ? LEFT JOIN
-    -- LEFT, because a club secretary is OPTIONAL in the data and this was an inner join.
-    -- A club with nobody flagged as clubSecretary was dropped from the result entirely, so
-    -- it would silently never be invoiced — no error, no empty row, just absent from the
-    -- run. All 18 clubs happen to have one flagged today, which is the only reason this
-    -- has not already cost the league money. CLAUDE.md gotcha 1c: an INNER JOIN to
-    -- something optional loses the whole row.
-    --
-    -- The club now appears with a NULL secretary and email, and the caller
-    -- (contactusController.send_invoices) reports that rather than handing SES a null
-    -- recipient.
-    player ON (player.club = club.id AND player."clubSecretary" = 1)
-    ${clubFilter}
-    GROUP BY club.id, club.name, fines.id, fines.desc, fines.amount, "fineTeam".name, "fineClub".name, fines.season, player.first_name, player."playerEmail",season."clubFee"`
-
-  const [result] = await (await db.otherConnect()).query(sql, params)
-  return result
+  return kysely.selectFrom('club')
+    .innerJoin('team', join => join.onRef('team.club', '=', 'club.id').on('team.withdrawn', 'is', null))
+    .leftJoin('fines', join => join.onRef('fines.club', '=', 'club.id').on(eb => eb.or([
+      eb.and([eb('fines.season', '=', current), eb('fines.desc', 'in', ['agm'])]),
+      eb.and([eb('fines.season', '=', previous), eb('fines.desc', 'in', ['rearrangement', 'card'])]),
+      eb('fines.season', 'is', null),
+    ])))
+    .leftJoin('team as fineTeam', 'fines.team', 'fineTeam.id')
+    .leftJoin('club as fineClub', 'fines.club', 'fineClub.id')
+    .innerJoin('season', join => join.on('season.name', '=', current))
+    // LEFT, because a club secretary is OPTIONAL in the data and this was an inner join.
+    // A club with nobody flagged as clubSecretary was dropped from the result entirely, so
+    // it would silently never be invoiced — no error, no empty row, just absent from the
+    // run. All 18 clubs happen to have one flagged today, which is the only reason this
+    // has not already cost the league money. CLAUDE.md gotcha 1c: an INNER JOIN to
+    // something optional loses the whole row.
+    //
+    // The club now appears with a NULL secretary and email, and the caller
+    // (contactusController.send_invoices) reports that rather than handing SES a null
+    // recipient.
+    .leftJoin('player', join => join.onRef('player.club', '=', 'club.id').on('player.clubSecretary', '=', 1))
+    .select(eb => ['club.id as clubId', 'club.name as clubName', eb.fn.count('team.id').as('teamsCount'),
+      'fines.id as fineId', 'fines.desc', 'fines.amount', 'fineTeam.name as fineTeam', 'fineClub.name as fineClub',
+      'fines.season', 'player.first_name as secretary', decrypt(eb.ref('player.playerEmail')).as('playerEmail'),
+      'season.clubFee'])
+    .where('club.id', '<>', SENTINEL_CLUB)
+    .$if(typeof clubName !== 'undefined', qb => qb.where('club.name', '=', /** @type {string} */ (clubName)))
+    .groupBy(['club.id', 'club.name', 'fines.id', 'fines.desc', 'fines.amount', 'fineTeam.name', 'fineClub.name',
+      'fines.season', 'player.first_name', 'player.playerEmail', 'season.clubFee'])
+    .execute()
 }
 
 /** @param {string} [season] */

@@ -1,23 +1,379 @@
 {
   "function": "league.getAnnualInvoices",
   "database": "sdbl",
-  "taken": "2026-10-25T22:14:03.000Z",
+  "taken": "2026-10-25T22:24:16.915Z",
   "cases": [
     {
       "label": "all",
       "args": [],
-      "result": {
-        "$error": "column season.clubFee does not exist"
-      }
+      "result": [
+        {
+          "clubId": 43,
+          "clubName": "Alderley Park",
+          "teamsCount": "3",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Jennifer",
+          "playerEmail": "bigcoops+jenniferszczepaniaksloane@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 51,
+          "clubName": "Disley",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Julian",
+          "playerEmail": "bigcoops+juliancherryman@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 50,
+          "clubName": "David Lloyd",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Diane",
+          "playerEmail": "bigcoops+dianereid@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 55,
+          "clubName": "Manor",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Gareth",
+          "playerEmail": "bigcoops+garethmoorhouse@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 64,
+          "clubName": "Featherforce",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Tina",
+          "playerEmail": "bigcoops+tinazheng@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 60,
+          "clubName": "Tatton",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Lorna",
+          "playerEmail": "bigcoops+lornabeacock@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Sue",
+          "playerEmail": "bigcoops+sueorwin@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Sue",
+          "playerEmail": "bigcoops+sueorwin@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 39,
+          "clubName": "Mellor",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "John",
+          "playerEmail": "bigcoops+johnpawsey@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 57,
+          "clubName": "Parrs Wood",
+          "teamsCount": "2",
+          "fineId": 6,
+          "desc": "card",
+          "amount": 10,
+          "fineTeam": "Parrswood B",
+          "fineClub": "Parrs Wood",
+          "season": "20252026",
+          "secretary": "Mike",
+          "playerEmail": "bigcoops+mikegreatorex@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 49,
+          "clubName": "Cheadle Hulme",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Claire",
+          "playerEmail": "bigcoops+clairenorbury@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 40,
+          "clubName": "Shell",
+          "teamsCount": "3",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Anna",
+          "playerEmail": "bigcoops+annawiza@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 47,
+          "clubName": "Remnants",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Kara",
+          "playerEmail": "bigcoops+kararobinson@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 59,
+          "clubName": "Racketeer",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Emily",
+          "playerEmail": "bigcoops+emilystapley@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 53,
+          "clubName": "G.H.A.P",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Ross",
+          "playerEmail": "bigcoops+rossowen@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "teamsCount": "5",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Miriam",
+          "playerEmail": "bigcoops+miriamturner@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 42,
+          "clubName": "Aerospace",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Rob",
+          "playerEmail": "bigcoops+robwakefield@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 55,
+          "clubName": "Manor",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Jo",
+          "playerEmail": "bigcoops+jowoolley@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 41,
+          "clubName": "Syddal Park",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Ruth",
+          "playerEmail": "bigcoops+ruthhaydon@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 47,
+          "clubName": "Remnants",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Dave",
+          "playerEmail": "bigcoops+davelee@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 52,
+          "clubName": "Dome",
+          "teamsCount": "1",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Steve",
+          "playerEmail": "bigcoops+stevechu@gmail.com",
+          "clubFee": "15"
+        },
+        {
+          "clubId": 57,
+          "clubName": "Parrs Wood",
+          "teamsCount": "2",
+          "fineId": 5,
+          "desc": "card",
+          "amount": 10,
+          "fineTeam": "Parrswood B",
+          "fineClub": "Parrs Wood",
+          "season": "20252026",
+          "secretary": "Mike",
+          "playerEmail": "bigcoops+mikegreatorex@gmail.com",
+          "clubFee": "15"
+        }
+      ]
     },
     {
       "label": "one",
       "args": [
         "Mellor"
       ],
-      "result": {
-        "$error": "column season.clubFee does not exist"
-      }
+      "result": [
+        {
+          "clubId": 39,
+          "clubName": "Mellor",
+          "teamsCount": "2",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "John",
+          "playerEmail": "bigcoops+johnpawsey@gmail.com",
+          "clubFee": "15"
+        }
+      ]
+    },
+    {
+      "label": "collegeGreen",
+      "args": [
+        "College Green"
+      ],
+      "result": [
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "teamsCount": "5",
+          "fineId": null,
+          "desc": null,
+          "amount": null,
+          "fineTeam": null,
+          "fineClub": null,
+          "season": null,
+          "secretary": "Miriam",
+          "playerEmail": "bigcoops+miriamturner@gmail.com",
+          "clubFee": "15"
+        }
+      ]
+    },
+    {
+      "label": "noClub",
+      "args": [
+        "No Club"
+      ],
+      "result": []
+    },
+    {
+      "label": "missing",
+      "args": [
+        "Nope"
+      ],
+      "result": []
     }
   ]
 }

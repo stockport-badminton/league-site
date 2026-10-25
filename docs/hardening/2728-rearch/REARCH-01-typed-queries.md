@@ -50,8 +50,7 @@ starts with `auth`. What is there, and what was decided on the way:
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
 `spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
-function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league` except
-`getAnnualInvoices` (below). `auth` has no SQL. Left: `players`, `fixture`.
+function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league`. `auth` has no SQL. Left: `players`, `fixture`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -63,12 +62,13 @@ list step 3 must clear before `pgQuery` can go:
 | `game.createBatch` | `scorecardController`, inside the publish transaction (takes its `conn`) |
 | `game.updateEloBatch` | `utils/eloChain`, the re-rate after a publish (takes its `conn`) |
 
-**Blocked on a decision, not on the publish path: `league.getAnnualInvoices`.** It reads
-`season."clubFee"`, which production has (`bigint`, default 15) and no migration creates
-— one of the two columns CLAUDE.md already names. So the generated types cannot describe
-it, and locally the query cannot run at all (its snapshot is `column season.clubFee does
-not exist`, before and after). The fix is a migration, `ADD COLUMN IF NOT EXISTS
-"clubFee" bigint DEFAULT 15`, a recorded no-op in production; that is the owner's call.
+**`league.getAnnualInvoices` needed a migration first.** It reads `season."clubFee"`,
+which production had (`bigint NOT NULL DEFAULT 15`) and no migration created, so neither
+the generated types nor any local database had it and the query ran nowhere else.
+Migration 026 adds it with `IF NOT EXISTS`. **Production still needs it recorded:**
+`node run-migration.js 026_season_club_fee.sql` — a no-op against the existing column
+that only writes the `schema_migrations` row (the agent doing this was not permitted to
+run it; `--status` shows whether it has been).
 
 Idioms settled on the way, worth reusing:
 

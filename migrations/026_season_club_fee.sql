@@ -1,0 +1,16 @@
+-- season."clubFee": the per-team fee the annual invoice charges (League.getAnnualInvoices,
+-- contactusController's invoice send).
+--
+-- Production has had this column for years and no migration ever created it — it was
+-- added by hand. So a database built from migrations/ (the local one, the test one, CI's)
+-- had no clubFee, and the invoice query failed there with `column season.clubFee does
+-- not exist`: it could not be run, previewed or tested anywhere but production. It also
+-- kept the column out of db/schema.d.ts, so the typed query layer (REARCH-01) could not
+-- name it.
+--
+-- Written to match production exactly — bigint NOT NULL DEFAULT 15, measured 25 Oct
+-- 2026 — and with IF NOT EXISTS, so against production it changes nothing: the column is
+-- already there, and the whole clause, constraint and default included, is skipped.
+-- Production's per-season values (2025/26 was 20) are data, not schema; a local database
+-- gets 15 everywhere until `tools/local-db.sh sync` copies the real ones.
+ALTER TABLE season ADD COLUMN IF NOT EXISTS "clubFee" bigint NOT NULL DEFAULT 15;

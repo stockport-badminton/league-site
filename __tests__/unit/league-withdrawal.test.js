@@ -4,11 +4,11 @@
 // against a real Postgres in __tests__/db/league-withdrawal.test.js, since those went onto
 // the typed query layer (REARCH-01). This file kept the statement-reading approach only
 // for the functions still on the string wrapper: the three season-switched table reads
-// (REARCH-02) and getAnnualInvoices. Its old note that "the only database available is
+// (REARCH-02). Its old note that "the only database available is
 // production" stopped being true with HARD-13.
 //
 // What is being pinned down here:
-//   - the live league table and the annual invoice must exclude a withdrawn team, and
+//   - the live league table must exclude a withdrawn team, and
 //     the archived team<season> snapshots — which have no `withdrawn` column — must not
 //     have the filter applied at all
 
@@ -110,37 +110,5 @@ describe('withdrawn teams and the league table', () => {
   });
 });
 
-describe('withdrawn teams and the annual invoice', () => {
-  it('are not counted as entered teams', async () => {
-    queue([]);
-    await League.getAnnualInvoices();
-    expect(log()[0].sql).toMatch(/team ON team\.club = club\.id AND team\.withdrawn IS NULL/);
-  });
-
-  it('still filters by club when one is named', async () => {
-    queue([]);
-    await League.getAnnualInvoices('Parrswood');
-    expect(log()[0].sql).toMatch(/team ON team\.club = club\.id AND team\.withdrawn IS NULL/);
-    // Was `WHERE club.name = ?`. The WHERE now also excludes the `No Club` sentinel, so
-    // this asserts the club filter is APPLIED rather than that it is the only condition.
-    expect(log()[0].sql).toMatch(/club\.name = \?/);
-    expect(log()[0].sql).toMatch(/WHERE/);
-  });
-
-  // The sentinel club (63, `No Club`) holds `No Team` and so looks like a club with two
-  // teams. It was excluded only because it has no flagged secretary and the officer join
-  // was INNER; making that join LEFT surfaced it, so it is now excluded on purpose.
-  it('never invoices the No Club sentinel', async () => {
-    queue([]);
-    await League.getAnnualInvoices();
-    expect(log()[0].sql).toMatch(/club\.id <> 63/);
-  });
-
-  // An officer is optional in the data. Joining one with INNER dropped the whole club
-  // from the invoice run — silently, with no error and no empty row.
-  it('joins the club secretary with LEFT, so a club without one is still invoiced', async () => {
-    queue([]);
-    await League.getAnnualInvoices();
-    expect(log()[0].sql).toMatch(/LEFT JOIN[\s\S]*player ON \(player\.club = club\.id/);
-  });
-});
+// The annual invoice's four cases moved to __tests__/db/league-withdrawal.test.js once
+// migration 026 let getAnnualInvoices run against a database built from migrations/.

@@ -168,3 +168,43 @@ describe('getTeamPlayerIds', () => {
     expect(await League.getTeamPlayerIds(999999)).toEqual([]);
   });
 });
+
+// Moved from __tests__/unit/league-withdrawal.test.js, which read the statement out of a
+// mocked db_connect. They could not run against a database until migration 026 put
+// season."clubFee" into the schema: before it, the query failed everywhere but production.
+describe('getAnnualInvoices', () => {
+  const teamsFor = async (clubId, name) => {
+    const rows = await League.getAnnualInvoices(name);
+    const mine = rows.filter(r => r.clubId === clubId);
+    return mine.length ? Number(mine[0].teamsCount) : 0;
+  };
+  let club;
+  beforeEach(async () => { [club] = await run('SELECT c.id, c.name FROM club c JOIN team t ON t.club = c.id WHERE t.id = ?', [T]); });
+
+  it('does not count a withdrawn team as entered', async () => {
+    const before = await teamsFor(club.id);
+    await League.withdrawTeam(T, {});
+    expect(await teamsFor(club.id)).toBe(before - 1);
+  });
+
+  it('filters to the club it is asked about, and charges the season\'s fee', async () => {
+    const rows = await League.getAnnualInvoices(club.name);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(new Set(rows.map(r => r.clubName))).toEqual(new Set([club.name]));
+    expect(rows.every(r => Number(r.clubFee) > 0)).toBe(true);
+  });
+
+  // No Club holds No Team, so it looks like a club with two teams. It was kept off the
+  // invoice only by accident until the officer join was made LEFT.
+  it('never invoices the No Club sentinel', async () => {
+    expect((await League.getAnnualInvoices()).some(r => r.clubId === 63)).toBe(false);
+  });
+
+  // An INNER join to the secretary dropped a club with none flagged from the run entirely.
+  it('still invoices a club with no secretary flagged, with a NULL secretary', async () => {
+    await run('UPDATE player SET "clubSecretary" = 0 WHERE club = ?', [club.id]);
+    const rows = await League.getAnnualInvoices(club.name);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every(r => r.secretary === null && r.playerEmail === null)).toBe(true);
+  });
+});

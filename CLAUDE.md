@@ -574,8 +574,9 @@ half-applied load is worse than none and throwing a local database away costs no
   draft live. **An unknown `bytea` column stops it** — a new encrypted column is a new
   contact detail until somebody says otherwise. Rows match by id, so a row written
   locally can be overwritten when production later uses that id.
-  Production has two columns no migration creates (`season."clubFee"`,
-  `messer_scorecard."scoresheet-url"`); the sync names them and skips them.
+  Production has a column no migration creates (`messer_scorecard."scoresheet-url"`); the
+  sync names it and skips it. `season."clubFee"` was the other until migration 026 (Oct
+  2026) — the invoice query could not run anywhere but production before it.
   **It also creates any season archive (`team20252026` and the other five) that production
   has and the local database does not.** The first sync of a new season makes last season
   "previous", and every page for it reads those tables — which the rollover creates in
