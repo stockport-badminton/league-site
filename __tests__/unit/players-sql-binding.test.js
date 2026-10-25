@@ -40,12 +40,8 @@ describe('the PI key is bound, not pasted into the statement', () => {
     expect(params).toEqual([KEY, KEY, KEY, KEY, KEY]);
   });
 
-  it('getById binds it for playerEmail and playerTel', async () => {
-    await Player.getById(4);
-    const { sql, params } = lastCall();
-    expect(sql).not.toContain(KEY);
-    expect(params).toEqual([KEY, KEY, 4]);
-  });
+  // getById moved to __tests__/db/players-search.test.js (REARCH-01): it goes through
+  // db/encrypted.js's decrypt(), which can only bind the key.
 
   it('updateBulk binds it in the pgp_sym_encrypt clause', async () => {
     await Player.updateBulk({
@@ -155,28 +151,5 @@ describe('newGetPairStats reads clubs from the season it is showing', () => {
   });
 });
 
-// Unrouted today (exports.player_list has no route), but it took req.params whole and
-// pasted gender, teamid and clubid into the statement. Fixed rather than left, because
-// the next person to wire it up would not know.
-describe('search binds its terms', () => {
-  it('cannot have its statement altered by a search term', async () => {
-    const hostile = "x' OR '1'='1";
-    await Player.search({ teamid: '4 OR 1=1', gender: hostile, clubid: '9; DROP TABLE player' });
-    const { sql, params } = lastCall();
-    expect(sql).not.toContain(hostile);
-    expect(sql).not.toContain('1=1');
-    expect(sql).not.toContain('DROP TABLE');
-    expect(params).toEqual(['4 OR 1=1', hostile, '9; DROP TABLE player']);
-    expect(placeholders(sql)).toBe(params.length);
-  });
-
-  it('keeps placeholders and parameters in step for every combination', async () => {
-    for (const t of [{}, { teamid: 4 }, { gender: 'Male' }, { clubid: 9 }, { teamid: 4, clubid: 9 }]) {
-      mockQuery.mockClear();
-      await Player.search(t);
-      const { sql, params } = lastCall();
-      expect(placeholders(sql)).toBe(params.length);
-      expect(params.length).toBe(Object.keys(t).length);
-    }
-  });
-});
+// `search` moved to __tests__/db/players-search.test.js when it went onto the typed query
+// layer (REARCH-01): a hostile term is shown to bind as a value against a real database.

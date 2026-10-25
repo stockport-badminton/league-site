@@ -1,0 +1,40 @@
+{
+  "function": "players.count",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:29:19.311Z",
+  "cases": [
+    {
+      "label": "all",
+      "args": [
+        ""
+      ],
+      "result": [
+        {
+          "players": "1168"
+        }
+      ]
+    },
+    {
+      "label": "male",
+      "args": [
+        "Male"
+      ],
+      "result": [
+        {
+          "players": "664"
+        }
+      ]
+    },
+    {
+      "label": "nobody",
+      "args": [
+        "Other"
+      ],
+      "result": [
+        {
+          "players": "3"
+        }
+      ]
+    }
+  ]
+}

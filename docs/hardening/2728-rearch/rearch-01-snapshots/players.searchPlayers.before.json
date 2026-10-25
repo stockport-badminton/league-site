@@ -1,0 +1,381 @@
+{
+  "function": "players.searchPlayers",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:29:20.080Z",
+  "cases": [
+    {
+      "label": "listing",
+      "args": [
+        "",
+        {}
+      ],
+      "result": [
+        {
+          "id": 59,
+          "name": "Ryan ?",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2376,
+          "name": "Shahid Abdullah",
+          "teamName": "Dome B"
+        },
+        {
+          "id": 2317,
+          "name": "Alicia Adams",
+          "teamName": "David Lloyd A"
+        },
+        {
+          "id": 158,
+          "name": "Steve Adie",
+          "teamName": "Shell C"
+        },
+        {
+          "id": 2117,
+          "name": "Gerald Aditya",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2087,
+          "name": "Susanne Aggarawal",
+          "teamName": "Racketeers B"
+        },
+        {
+          "id": 64,
+          "name": "Laura Agnew",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2009,
+          "name": "Edgar Agno",
+          "teamName": "No Team"
+        },
+        {
+          "id": 791,
+          "name": "Yogesh Agrawal",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2341,
+          "name": "Israr Ahmed",
+          "teamName": "Syddal Park B"
+        },
+        {
+          "id": 499,
+          "name": "Muhammad Ahsan",
+          "teamName": "Parrswood B"
+        },
+        {
+          "id": 463,
+          "name": "Colin Ainsworth",
+          "teamName": "No Team"
+        },
+        {
+          "id": 529,
+          "name": "Finley Aitken",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2190,
+          "name": "Lucy Aitkin",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2116,
+          "name": "Shaun Alexander",
+          "teamName": "No Team"
+        },
+        {
+          "id": 568,
+          "name": "Aki Ali",
+          "teamName": "No Team"
+        },
+        {
+          "id": 1827,
+          "name": "Haider Ali",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2074,
+          "name": "Kamran Ali",
+          "teamName": "No Team"
+        },
+        {
+          "id": 2386,
+          "name": "Shahanoor Ali",
+          "teamName": "Racketeers B"
+        },
+        {
+          "id": 2062,
+          "name": "Akhtar Ali Jaffery",
+          "teamName": "Syddal Park B"
+        }
+      ]
+    },
+    {
+      "label": "spacedName",
+      "args": [
+        "Neil Hutchinson",
+        {}
+      ],
+      "result": [
+        {
+          "id": 365,
+          "name": "Neil Hutchinson",
+          "teamName": "Alderley Park B",
+          "match": "exact"
+        },
+        {
+          "id": 2277,
+          "name": "Neil Hutchinson",
+          "teamName": "Alderley Park C",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "label": "messySpacing",
+      "args": [
+        "  neil   hutchinson ",
+        {}
+      ],
+      "result": [
+        {
+          "id": 365,
+          "name": "Neil Hutchinson",
+          "teamName": "Alderley Park B",
+          "match": "exact"
+        },
+        {
+          "id": 2277,
+          "name": "Neil Hutchinson",
+          "teamName": "Alderley Park C",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "label": "typo",
+      "args": [
+        "Cameron Owens",
+        {}
+      ],
+      "result": [
+        {
+          "id": 103,
+          "name": "Cameron Owen",
+          "teamName": "College Green A",
+          "match": "close"
+        }
+      ]
+    },
+    {
+      "label": "clubOnly",
+      "args": [
+        "",
+        {
+          "club": "College Green"
+        }
+      ],
+      "result": [
+        {
+          "id": 2367,
+          "name": "Ashmethaa Ashokkumar",
+          "teamName": "College Green E"
+        },
+        {
+          "id": 2209,
+          "name": "Leon Bailey",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 2366,
+          "name": "Gabi Booth",
+          "teamName": "College Green D"
+        },
+        {
+          "id": 207,
+          "name": "Andy Brown",
+          "teamName": "College Green C"
+        },
+        {
+          "id": 198,
+          "name": "Don Bullough",
+          "teamName": "College Green E"
+        },
+        {
+          "id": 2052,
+          "name": "Arthur Chan",
+          "teamName": "College Green B"
+        },
+        {
+          "id": 2165,
+          "name": "Gabby Chan",
+          "teamName": "College Green B"
+        },
+        {
+          "id": 2051,
+          "name": "Jenny Chan",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 226,
+          "name": "Josie Chan",
+          "teamName": "College Green E"
+        },
+        {
+          "id": 2025,
+          "name": "Prem Chandar-Anandan",
+          "teamName": "College Green B"
+        },
+        {
+          "id": 1866,
+          "name": "Phil Corner",
+          "teamName": "College Green E"
+        },
+        {
+          "id": 2249,
+          "name": "Tom Davis",
+          "teamName": "College Green C"
+        },
+        {
+          "id": 2346,
+          "name": "Karthik Elumalai",
+          "teamName": "College Green E"
+        },
+        {
+          "id": 188,
+          "name": "Sally Ford",
+          "teamName": "College Green C"
+        },
+        {
+          "id": 129,
+          "name": "Dave Haigh",
+          "teamName": "College Green C"
+        },
+        {
+          "id": 2026,
+          "name": "Chi-Sum Hau",
+          "teamName": "College Green B"
+        },
+        {
+          "id": 206,
+          "name": "Alexander Hey",
+          "teamName": "College Green C"
+        },
+        {
+          "id": 592,
+          "name": "Emma Hillesdon",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 619,
+          "name": "Holly Hillesdon",
+          "teamName": "College Green B"
+        },
+        {
+          "id": 196,
+          "name": "Karen Hodgson",
+          "teamName": "College Green C"
+        }
+      ]
+    },
+    {
+      "label": "genderName",
+      "args": [
+        "owen",
+        {
+          "gender": "Male"
+        }
+      ],
+      "result": [
+        {
+          "id": 103,
+          "name": "Cameron Owen",
+          "teamName": "College Green A",
+          "match": "contains"
+        },
+        {
+          "id": 330,
+          "name": "Ross Owen",
+          "teamName": "GHAP A",
+          "match": "contains"
+        },
+        {
+          "id": 185,
+          "name": "Simon Owen",
+          "teamName": "College Green C",
+          "match": "contains"
+        },
+        {
+          "id": 533,
+          "name": "Paul Owens",
+          "teamName": "Racketeers B",
+          "match": "contains"
+        }
+      ]
+    },
+    {
+      "label": "divisionTeam",
+      "args": [
+        "",
+        {
+          "division": "Premier",
+          "team": "College Green A"
+        }
+      ],
+      "result": [
+        {
+          "id": 2209,
+          "name": "Leon Bailey",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 2051,
+          "name": "Jenny Chan",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 592,
+          "name": "Emma Hillesdon",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 199,
+          "name": "Mike Jones",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 103,
+          "name": "Cameron Owen",
+          "teamName": "College Green A"
+        },
+        {
+          "id": 1835,
+          "name": "Judith Peatman",
+          "teamName": "College Green A"
+        }
+      ]
+    },
+    {
+      "label": "noFilters",
+      "args": [
+        "Shiyu Yuan"
+      ],
+      "result": [
+        {
+          "id": 2296,
+          "name": "Shiyu Yuan",
+          "teamName": "Featherforce A",
+          "match": "exact"
+        },
+        {
+          "id": 2297,
+          "name": "Shiyu Yuan",
+          "teamName": "No Team",
+          "match": "exact"
+        }
+      ]
+    }
+  ]
+}

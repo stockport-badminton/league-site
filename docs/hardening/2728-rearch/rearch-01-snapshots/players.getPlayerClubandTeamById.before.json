@@ -1,0 +1,38 @@
+{
+  "function": "players.getPlayerClubandTeamById",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:29:19.790Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        592
+      ],
+      "result": [
+        {
+          "playerId": 592,
+          "playerName": "Emma Hillesdon",
+          "clubName": "College Green",
+          "teamName": "College Green A",
+          "date_of_registration": {
+            "$date": "2017-09-02T22:00:00.000Z"
+          }
+        }
+      ]
+    },
+    {
+      "label": "noTeam",
+      "args": [
+        2325
+      ],
+      "result": []
+    },
+    {
+      "label": "missing",
+      "args": [
+        9999999
+      ],
+      "result": []
+    }
+  ]
+}

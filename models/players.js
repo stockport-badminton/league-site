@@ -1,8 +1,32 @@
+// @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require("./season");
+const { sql } = require('kysely');
+const { kysely, decrypt } = require('../db');
 const levenshtein = require('js-levenshtein');
 const { rankByName } = require('../utils/nameMatch');
 
+
+// REARCH-01 is converting this file in batches. On the typed query layer so far: the
+// searches and lookups (getClubRoster, search, the eligibility lookups, count, getById,
+// getPlayerClubandTeamById, searchPlayers).
+//
+// `first_name family_name`, as CONCAT gives it.
+/** @param {import('kysely').ExpressionBuilder<any, any>} eb */
+const concatName = eb => eb.fn('concat', [eb.ref('player.first_name'), sql.lit(' '), eb.ref('player.family_name')])
+
+// The teams a player in the given team may also play for: that team and every team at the
+// same club ranked below it (team.rank >= its own). The team is named by id, or by a LIKE
+// pattern on its name.
+/** @param {{ teamId?: number, nameLike?: string }} which */
+const eligibleTeams = which => kysely
+  .selectFrom(eb => eb.selectFrom('team').innerJoin('club', 'team.club', 'club.id')
+    .select(['club.id', 'club.name', 'team.rank as originalrank'])
+    .$if(which.teamId !== undefined, qb => qb.where('team.id', '=', /** @type {number} */ (which.teamId)))
+    .$if(which.nameLike !== undefined, qb => qb.where('team.name', 'like', /** @type {string} */ (which.nameLike)))
+    .as('a'))
+  .innerJoin('team', join => join.onRef('a.id', '=', 'team.club').onRef('team.rank', '>=', 'a.originalrank'))
+  .select(['team.id', 'team.name', 'team.rank'])
 
 // POST
 // Returns `[{ id }]`. Without RETURNING the result is an empty rows array, so the
@@ -10,6 +34,7 @@ const { rankByName } = require('../utils/nameMatch');
 // Fixture.createScorecard for the same bug in the scorecard flow. Prefer
 // models/roster.js:createPlayer for the roster pages; this one stays for the
 // standalone /player/create form.
+/** @param {any} first_name @param {any} family_name @param {any} team @param {any} club @param {any} gender */
 exports.create = async function(first_name, family_name, team, club, gender) {
   var date_of_registration = new Date();
   const [result] = await (await db.otherConnect()).query(
@@ -33,6 +58,7 @@ const BULK_WRITABLE = new Set([
   'treasurer', 'otherComms', 'junior', 'date_of_registration'
 ])
 
+/** @param {any} BatchObj */
 exports.updateBulk = async function(BatchObj) {
   if (!db.isObject(BatchObj)) throw new Error('not object')
   // Authorization-bearing columns (role, messerAdmin, authEmail) are deliberately
@@ -41,7 +67,7 @@ exports.updateBulk = async function(BatchObj) {
   if (BatchObj.tablename && BatchObj.tablename !== 'player') {
     throw new Error(`updateBulk only writes the player table, got ${JSON.stringify(BatchObj.tablename)}`)
   }
-  const rejected = (BatchObj.fields || []).filter(f => !BULK_WRITABLE.has(f))
+  const rejected = (BatchObj.fields || []).filter((/** @type {any} */ f) => !BULK_WRITABLE.has(f))
   if (rejected.length) {
     throw new Error(`updateBulk cannot write these columns: ${rejected.join(', ')}`)
   }
@@ -69,6 +95,7 @@ exports.updateBulk = async function(BatchObj) {
 }
 
 // GET
+/** @param {any} teamName */
 exports.getNominatedPlayers = async function(teamName) {
   const [result] = await (await db.otherConnect()).query(
     "SELECT CONCAT(first_name,' ',family_name) AS name, gender FROM player JOIN team ON team.id = player.team WHERE team.name = ? AND player.rank IS NOT NULL ORDER BY gender, player.rank",
@@ -82,18 +109,16 @@ exports.getNominatedPlayers = async function(teamName) {
 // else is a nominated player. player.rank is only a within-team strength order,
 // so team.rank (the team's own pecking order at the club) has to sort first, or
 // e.g. every team's #1 player clusters together ahead of any team's #2.
+/** @param {string} clubName */
 exports.getClubRoster = async function(clubName) {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT player.id, CONCAT(player.first_name,' ',player.family_name) AS name,
-            player.gender, player.rank, player.junior, team.name AS "teamName"
-     FROM player
-     JOIN team ON team.id = player.team
-     JOIN club ON club.id = team.club
-     WHERE club.name = ?
-     ORDER BY player.gender, team.rank, player.rank, player.family_name`,
-    clubName
-  )
-  return result
+  return kysely.selectFrom('player')
+    .innerJoin('team', 'team.id', 'player.team')
+    .innerJoin('club', 'club.id', 'team.club')
+    .select(eb => ['player.id', concatName(eb).as('name'), 'player.gender', 'player.rank', 'player.junior',
+      'team.name as teamName'])
+    .where('club.name', '=', clubName)
+    .orderBy('player.gender').orderBy('team.rank').orderBy('player.rank').orderBy('player.family_name')
+    .execute()
 }
 
 // Nominated players who have not appeared in any of their team's last three
@@ -255,6 +280,7 @@ ORDER BY t.club, t."rank", np.family_name, np.first_name;`,
   return result
 }
 
+/** @param {any} fixtureId */
 exports.getMatchStats = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     "SELECT CONCAT(player.first_name,' ',player.family_name) AS name, team.name AS \"teamName\", b.\"avgPtsFor\", b.\"avgPtsAgainst\", \"gamesWon\" FROM ( SELECT playerId, AVG(ptsFor) AS \"avgPtsFor\", AVG(ptsAgainst) AS \"avgPtsAgainst\", SUM(won) AS \"gamesWon\" FROM ( SELECT \"homePlayer1\" AS playerid, \"homeScore\" AS ptsfor, \"awayScore\" AS ptsagainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"homePlayer2\" AS playerid, \"homeScore\" AS ptsfor, \"awayScore\" AS ptsagainst, CASE WHEN \"homeScore\" > \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer1\" AS playerid, \"awayScore\" AS ptsfor, \"homeScore\" AS ptsagainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) UNION ALL SELECT \"awayPlayer2\" AS playerid, \"awayScore\" AS ptsfor, \"homeScore\" AS ptsagainst, CASE WHEN \"homeScore\" < \"awayScore\" THEN 1 ELSE 0 END AS won FROM game WHERE fixture = ? AND (\"awayPlayer1\" !=0 AND \"awayPlayer2\" != 0 AND \"homePlayer2\" != 0 AND \"homePlayer1\" !=0) ) AS a GROUP BY playerId ) AS b JOIN player ON b.playerId = player.id JOIN team ON player.team = team.id ORDER BY \"teamName\", \"gamesWon\" DESC, \"avgPtsAgainst\" ASC",
@@ -264,12 +290,14 @@ exports.getMatchStats = async function(fixtureId) {
 }
 
 
+/** @param {any} searchTerms */
 exports.getNamesClubsTeams = async function(searchTerms) {
   var whereTerms = [];
   var whereValue = [];
   var nameMatch = ""
 
   let season = ""
+  /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
     // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
@@ -325,31 +353,33 @@ exports.getNamesClubsTeams = async function(searchTerms) {
 //
 // The current season is left out even if a snapshot of it exists: until it ends, the
 // live tables are the record of it.
+/** @param {any} conn */
 async function seasonSnapshots(conn) {
   const [tables] = await conn.query(
     'SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name ~ ?',
     ['public', '^(team|player)20[0-9]{6}$']
   )
   const current = seasonModel.current()
-  const seasonsOf = kind => tables
-    .map(t => t.table_name)
-    .filter(name => name.startsWith(kind))
-    .map(name => seasonModel.assertName(name.slice(kind.length)))
-    .filter(season => season !== current)
+  const seasonsOf = (/** @type {any} */ kind) => tables
+    .map((/** @type {any} */ t) => t.table_name)
+    .filter((/** @type {any} */ name) => name.startsWith(kind))
+    .map((/** @type {any} */ name) => seasonModel.assertName(name.slice(kind.length)))
+    .filter((/** @type {any} */ season) => season !== current)
     .sort()
-  const union = (rows, empty) => rows.length ? rows.join(' UNION ALL ') : empty
+  const union = (/** @type {string[]} */ rows, /** @type {string} */ empty) => rows.length ? rows.join(' UNION ALL ') : empty
   return {
     teamThen: union(
-      seasonsOf('team').map(s => `SELECT '${s}'::text AS season, id, name, rank FROM team${s}`),
+      seasonsOf('team').map((/** @type {any} */ s) => `SELECT '${s}'::text AS season, id, name, rank FROM team${s}`),
       'SELECT NULL::text AS season, NULL::integer AS id, NULL::varchar AS name, NULL::integer AS rank WHERE false'
     ),
     playerThen: union(
-      seasonsOf('player').map(s => `SELECT '${s}'::text AS season, id, team FROM player${s}`),
+      seasonsOf('player').map((/** @type {any} */ s) => `SELECT '${s}'::text AS season, id, team FROM player${s}`),
       'SELECT NULL::text AS season, NULL::integer AS id, NULL::integer AS team WHERE false'
     ),
   }
 }
 
+/** @param {any} id */
 exports.getPlayerGameData = async function(id) {
   // LEFT JOIN, not INNER, and this is not a style preference (HARD-11).
   //
@@ -495,11 +525,13 @@ ORDER BY date DESC, allGames.id DESC`
 }
 
 
+/** @param {any} searchObj */
 exports.newGetPlayerStats = async function(searchObj) {
   let season = ""
   let seasonString = seasonModel.current()
   let whereValue = []
 
+  /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
     // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
@@ -700,12 +732,14 @@ ORDER BY
 }
 
 
+/** @param {any} searchObj */
 exports.newGetPairStats = async function(searchObj) {
   let season = ""
   let seasonString = seasonModel.current()
   let divisionSql = ""
   let whereValue = []
 
+  /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
     // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
@@ -879,6 +913,7 @@ ORDER BY
 // "playerEmail" (contact email) — a player's login email is often not their
 // registered contact email, so relying on playerEmail alone misses most
 // admins (confirmed live: 82 of 151 during the initial backfill).
+/** @param {any} email */
 exports.getAuthRoleByEmail = async function(email) {
   const [result] = await (await db.otherConnect()).query(
     `SELECT player.id, player.first_name, player.family_name, player.role, player."messerAdmin", club.name AS "clubName"
@@ -907,6 +942,7 @@ exports.getAuthRoleByEmail = async function(email) {
 // club's contact page, which read playerEmail (Chris Petty, Alderley Park B).
 // A player who already has a contact email keeps it: the COALESCE/NULLIF guard
 // makes this an initialisation, never an overwrite.
+/** @param {any} playerId @param {any} opts */
 exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail }) {
   if (authEmail) {
     const [result] = await (await db.otherConnect()).query(
@@ -937,6 +973,7 @@ exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail })
   return result
 }
 
+/** @param {any} searchTerms */
 exports.getEmails = async function(searchTerms) {
   const key = process.env.DB_PI_KEY
   var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
@@ -962,47 +999,58 @@ exports.getEmails = async function(searchTerms) {
   // Logging `sql` would now be harmless — it carries placeholders where the key used to be.
   // It is still not logged: it is 1.5KB of five-way UNION and nothing reads it.
   const [result] = await (await db.otherConnect()).query(sql, params)
-  var emailArray = result.map(row => row.playerEmail)
-  emailArray = emailArray.filter(email => email && email.indexOf("@") != -1)
+  var emailArray = result.map((/** @type {any} */ row) => row.playerEmail)
+  emailArray = emailArray.filter((/** @type {any} */ email) => email && email.indexOf("@") != -1)
   return emailArray
 }
 
+// Filters only on the keys it knows, when truthy. Ordered by gender and rank only when a
+// filter applies, as it always was.
+/** @param {{ teamid?: number, gender?: string, clubid?: number }} searchTerms */
 exports.search = async function(searchTerms) {
-  var sql = 'SELECT * FROM player';
-  var whereTerms = [];
-  var params = [];
-  if (searchTerms.teamid) { whereTerms.push('team = ?'); params.push(searchTerms.teamid) }
-  if (searchTerms.gender) { whereTerms.push('gender = ?'); params.push(searchTerms.gender) }
-  if (searchTerms.clubid) { whereTerms.push('club = ?'); params.push(searchTerms.clubid) }
-
-  if (whereTerms.length > 0) {
-    sql = sql + ' WHERE ' + whereTerms.join(' AND ') + ' ORDER BY gender, rank'
-  }
-  const [result] = await (await db.otherConnect()).query(sql, params)
-  return result
+  const filtered = !!(searchTerms.teamid || searchTerms.gender || searchTerms.clubid)
+  return kysely.selectFrom('player').selectAll()
+    .$if(!!searchTerms.teamid, qb => qb.where('team', '=', /** @type {number} */ (searchTerms.teamid)))
+    .$if(!!searchTerms.gender, qb => qb.where('gender', '=', /** @type {string} */ (searchTerms.gender)))
+    .$if(!!searchTerms.clubid, qb => qb.where('club', '=', /** @type {number} */ (searchTerms.clubid)))
+    .$if(filtered, qb => qb.orderBy('gender').orderBy('rank'))
+    .execute()
 }
 
+/** @param {number} id @param {string} gender */
 exports.findElgiblePlayersFromTeamId = async function(id, gender) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name, b.rank AS teamrank, player.rank AS playerrank FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY b.rank ASC, player.rank DESC, player.family_name',
-    [id, gender]
-  )
-  return result
+  return kysely.selectFrom(eligibleTeams({ teamId: id }).as('b'))
+    .innerJoin('player', join => join.onRef('player.team', '=', 'b.id').on('player.gender', '=', gender))
+    .select(['player.id', 'player.first_name', 'player.family_name', 'b.rank as teamrank', 'player.rank as playerrank'])
+    .orderBy('b.rank', 'asc').orderBy('player.rank', 'desc').orderBy('player.family_name')
+    .execute()
 }
 
+/**
+ * @param {number | null} first @param {number | null} second @param {number | null} third
+ * @param {number} teamId @param {string} gender
+ */
 exports.getEligiblePlayersAndSelectedById = async function(first, second, third, teamId, gender) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
-    [first, second, third, teamId, gender]
-  )
-  return result
+  /** 1 when the row is the player picked for that slot, else 0. */
+  const picked = (/** @type {any} */ eb, /** @type {number | null} */ id) =>
+    eb.case().when('player.id', '=', id).then(eb.lit(1)).else(eb.lit(0)).end()
+  return kysely.selectFrom(eligibleTeams({ teamId }).as('b'))
+    .innerJoin('player', join => join.onRef('player.team', '=', 'b.id').on('player.gender', '=', gender))
+    .select(eb => ['player.id', 'player.first_name', 'player.family_name',
+      picked(eb, first).as('first'), picked(eb, second).as('second'), picked(eb, third).as('third')])
+    .execute()
 }
 
+/**
+ * @param {string} teamName a LIKE pattern @param {string} gender
+ * @param {string} first @param {string} second @param {string} third
+ */
 exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async function(teamName, gender, first, second, third) {
-  const [rows] = await (await db.otherConnect()).query(
-    'SELECT player.id, player.first_name, player.family_name FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.name LIKE ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
-    [teamName, gender]
-  )
+  /** @type {any[]} */
+  const rows = await kysely.selectFrom(eligibleTeams({ nameLike: teamName }).as('b'))
+    .innerJoin('player', join => join.onRef('player.team', '=', 'b.id').on('player.gender', '=', gender))
+    .select(['player.id', 'player.first_name', 'player.family_name'])
+    .execute()
 
   rows[0].first = 1;
   rows[0].second = 1;
@@ -1011,9 +1059,9 @@ exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async functio
   let lowestSecondIndex = [0, levenshtein(rows[0].first_name + " " + rows[0].family_name, second)];
   let lowestThirdIndex = [0, levenshtein(rows[0].first_name + " " + rows[0].family_name, third)]
   for (let i = 1; i < rows.length; i++) {
-    rowFirstLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, first);
-    rowSecondLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, second);
-    rowThirdLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, third);
+    const rowFirstLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, first);
+    const rowSecondLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, second);
+    const rowThirdLevenshtein = levenshtein(rows[i].first_name + " " + rows[i].family_name, third);
     if (lowestFirstIndex[1] > rowFirstLevenshtein) {
       rows[lowestFirstIndex[0]].first = 0;
       rows[i].first = 1;
@@ -1042,36 +1090,38 @@ exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async functio
   return rows
 }
 
+/** @param {string} searchTerm a gender, or '' for everyone */
 exports.count = async function(searchTerm) {
-  if (searchTerm == "") {
-    const [result] = await (await db.otherConnect()).query('SELECT COUNT(*) AS players FROM player')
-    return result
-  } else {
-    const [result] = await (await db.otherConnect()).query('SELECT COUNT(*) AS players FROM player WHERE gender = ?', searchTerm)
-    return result
-  }
+  return kysely.selectFrom('player').select(eb => eb.fn.countAll().as('players'))
+    .$if(searchTerm != "", qb => qb.where('gender', '=', searchTerm))
+    .execute()
 }
 
+/** @param {number} playerId */
 exports.getById = async function(playerId) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT id, first_name, family_name, gender, pgp_sym_decrypt(\"playerEmail\", ?)::text AS \"playerEmail\", pgp_sym_decrypt(\"playerTel\", ?)::text AS \"playerTel\", \"teamCaptain\", \"clubSecretary\", \"matchSecrertary\", treasurer, \"otherComms\", junior, role, \"messerAdmin\" FROM player WHERE id = ?",
-    // Two binds: "playerEmail" then "playerTel", then the id.
-    [process.env.DB_PI_KEY, process.env.DB_PI_KEY, playerId]
-  )
-  return result
+  return kysely.selectFrom('player')
+    .select(eb => ['id', 'first_name', 'family_name', 'gender',
+      decrypt(eb.ref('playerEmail')).as('playerEmail'), decrypt(eb.ref('playerTel')).as('playerTel'),
+      'teamCaptain', 'clubSecretary', 'matchSecrertary', 'treasurer', 'otherComms', 'junior', 'role', 'messerAdmin'])
+    .where('id', '=', playerId)
+    .execute()
 }
 
+// Inner joins, as the nested version had: a player with no club or team returns nothing.
+/** @param {number} playerId */
 exports.getPlayerClubandTeamById = async function(playerId) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT playerId AS \"playerId\", playerName AS \"playerName\", clubName AS \"clubName\", team.name AS \"teamName\", date_of_registration FROM (SELECT playerId, playerName, club.name AS clubname, teamId, date_of_registration FROM (SELECT player.id AS playerid, CONCAT(player.first_name,' ',player.family_name) AS playername, player.club AS clubid, player.team AS teamid, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
-    [playerId]
-  )
-  return result
+  return kysely.selectFrom('player')
+    .innerJoin('club', 'player.club', 'club.id')
+    .innerJoin('team', 'player.team', 'team.id')
+    .select(eb => ['player.id as playerId', concatName(eb).as('playerName'), 'club.name as clubName',
+      'team.name as teamName', 'player.date_of_registration'])
+    .where('player.id', '=', playerId)
+    .execute()
 }
 
 // The ELO of the player in a given slot of a game row. Shared by the two queries below
 // so the four-way CASE is written once.
-const SLOT_END = (pid) => `CASE
+const SLOT_END = (/** @type {any} */ pid) => `CASE
     WHEN g."homePlayer1" = ${pid} THEN g."homePlayer1End"
     WHEN g."homePlayer2" = ${pid} THEN g."homePlayer2End"
     WHEN g."awayPlayer1" = ${pid} THEN g."awayPlayer1End"
@@ -1090,6 +1140,7 @@ const SLOT_END = (pid) => `CASE
 // A player with no team that season is simply absent; callers fall back to the
 // fixture's own rank, which makes the adjustment zero rather than inventing one.
 // Seasons before 2018/19 have no player archive (and no game rows), so they return {}.
+/** @param {any} season @param {any} playerIds */
 exports.getSeasonRanks = async function(season, playerIds) {
   const current = !season || season === seasonModel.current()
   const suffix = current ? '' : seasonModel.assertName(season)
@@ -1100,7 +1151,7 @@ exports.getSeasonRanks = async function(season, playerIds) {
   }
   let ids = null
   if (playerIds) {
-    ids = playerIds.map(n => parseInt(n, 10)).filter(n => n > 0)
+    ids = playerIds.map((/** @type {any} */ n) => parseInt(n, 10)).filter((/** @type {any} */ n) => n > 0)
     if (ids.length === 0) return {}
   }
   const [rows] = await conn.query(
@@ -1111,7 +1162,7 @@ exports.getSeasonRanks = async function(season, playerIds) {
      ${ids ? 'WHERE p.id = ANY(?::int[])' : ''}`,
     ids ? [ids] : []
   )
-  return Object.fromEntries(rows.map(r => [r.id, r.rank]))
+  return Object.fromEntries(rows.map((/** @type {any} */ r) => [r.id, r.rank]))
 }
 
 // Each player's rating going into a fixture on `endDate`: their latest rated game
@@ -1128,9 +1179,12 @@ exports.getSeasonRanks = async function(season, playerIds) {
 //  - the latest game was chosen first and filtered on `rating > 0` second, so a player
 //    whose most recent game was unrated (a void fixture, a walkover) went back to 1500.
 //    The filter is inside the ordering now, so an unrated game is skipped, not fatal.
+/** @param {any} endDate @param {any} fixturePlayers @param {any} [opts] */
 exports.getPrevRating = async function(endDate, fixturePlayers, opts = {}) {
   const playerArray = Object.entries(fixturePlayers)
   const ids = playerArray.map(([id]) => parseInt(id, 10)).filter(n => n > 0)
+
+  /** @type {Record<string, any>} */
 
   const found = {}
   if (ids.length > 0) {
@@ -1167,8 +1221,9 @@ exports.getPrevRating = async function(endDate, fixturePlayers, opts = {}) {
 // the publish path used to rate everybody as established. A player with no rated game
 // is absent, and the caller starts them at 1500 with nothing played. `conn` lets
 // utils/eloChain read inside its own transaction.
+/** @param {any} fixtureId @param {any} playerIds @param {any} conn */
 exports.getRatingStateBefore = async function(fixtureId, playerIds, conn) {
-  const ids = (playerIds || []).map(n => parseInt(n, 10)).filter(n => n > 0)
+  const ids = (playerIds || []).map((/** @type {any} */ n) => parseInt(n, 10)).filter((/** @type {any} */ n) => n > 0)
   if (ids.length === 0) return {}
   const c = conn || await db.otherConnect()
   const [rows] = await c.query(
@@ -1190,7 +1245,7 @@ exports.getRatingStateBefore = async function(fixtureId, playerIds, conn) {
      GROUP BY s.pid`,
     [ids, fixtureId]
   )
-  return Object.fromEntries(rows.map(r => [r.playerId, { rating: r.rating, date: r.date, gamesCount: r.gamesCount }]))
+  return Object.fromEntries(rows.map((/** @type {any} */ r) => [r.playerId, { rating: r.rating, date: r.date, gamesCount: r.gamesCount }]))
 }
 
 // Sets player.rating to each player's latest rated game, read back from `game`.
@@ -1201,8 +1256,9 @@ exports.getRatingStateBefore = async function(fixtureId, playerIds, conn) {
 // it back from the games rather than carrying the in-memory value means a late
 // scorecard for an older fixture cannot overwrite a newer rating. `conn` lets the
 // caller do this inside the transaction that wrote the games.
+/** @param {any} playerIds @param {any} conn */
 exports.refreshRatings = async function(playerIds, conn) {
-  const ids = (playerIds || []).map(n => parseInt(n, 10)).filter(n => n > 0)
+  const ids = (playerIds || []).map((/** @type {any} */ n) => parseInt(n, 10)).filter((/** @type {any} */ n) => n > 0)
   if (ids.length === 0) return
   const c = conn || await db.otherConnect()
   await c.query(
@@ -1223,6 +1279,7 @@ exports.refreshRatings = async function(playerIds, conn) {
 // Writes [id, rating] pairs in one statement. The backfill's per-fixture rating write
 // went through updateBulk, which is one UPDATE per player — ~12 round trips a fixture
 // against production, once the game writes were batched.
+/** @param {any} pairs @param {any} conn */
 exports.setRatings = async function(pairs, conn) {
   if (!pairs || pairs.length === 0) return
   const c = conn || await db.otherConnect()
@@ -1236,10 +1293,11 @@ exports.setRatings = async function(pairs, conn) {
 
 // Returns ELO rating time-series for one or more player IDs.
 // Crosses season boundaries — used by the ELO chart pages.
+/** @param {any} playerIds */
 exports.getPlayerEloTimeSeries = async function(playerIds) {
   if (!playerIds || playerIds.length === 0) return []
 
-  const numIds = playerIds.map(id => id * 1)
+  const numIds = playerIds.map((/** @type {any} */ id) => id * 1)
 
   // One batched query for every requested player instead of one query each —
   // the game table has no index on the player-id columns, so per-player
@@ -1262,19 +1320,21 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
   const [nameRows] = await (await db.otherConnect()).query(
     `SELECT id, CONCAT(first_name, ' ', family_name) AS name FROM player WHERE id = ANY(?)`, [numIds]
   )
+  /** @type {Record<string, any>} */
   const nameById = {}
-  nameRows.forEach(r => { nameById[r.id] = r.name })
+  nameRows.forEach((/** @type {any} */ r) => { nameById[r.id] = r.name })
 
   // One point per fixture date per player (rows ordered ASC by date, id — last game wins)
+  /** @type {Record<string, any>} */
   const byDateByPlayer = {}
-  numIds.forEach(id => { byDateByPlayer[id] = {} })
+  numIds.forEach((/** @type {any} */ id) => { byDateByPlayer[id] = {} })
   const slots = [
     ['homePlayer1', 'homePlayer1End'],
     ['homePlayer2', 'homePlayer2End'],
     ['awayPlayer1', 'awayPlayer1End'],
     ['awayPlayer2', 'awayPlayer2End'],
   ]
-  rows.forEach(row => {
+  rows.forEach((/** @type {any} */ row) => {
     slots.forEach(([idKey, endKey]) => {
       const pid = row[idKey]
       if (pid != null && byDateByPlayer[pid] !== undefined && row[endKey] != null && row[endKey] > 0) {
@@ -1283,7 +1343,7 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
     })
   })
 
-  return numIds.map(id => ({
+  return numIds.map((/** @type {any} */ id) => ({
     id,
     name: nameById[id] || `Player ${id}`,
     data: Object.entries(byDateByPlayer[id]).map(([x, y]) => ({ x, y }))
@@ -1300,23 +1360,22 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
 // full name while still being findable by surname alone, which is a maddening way
 // for a search to fail. Both sides are whitespace-normalised so the comparison is
 // about the name rather than about how it happened to be typed in.
-const SEARCH_NAME = `regexp_replace(TRIM(COALESCE(player.first_name, '') || ' ' || COALESCE(player.family_name, '')), '\\s+', ' ', 'g')`
+/** The name tidied of stray whitespace, null-safe. @param {import('kysely').ExpressionBuilder<any, any>} eb */
+const searchName = eb => eb.fn('regexp_replace', [
+  eb.fn('trim', [eb(eb(eb.fn.coalesce('player.first_name', sql.lit('')), '||', sql.lit(' ')), '||',
+    eb.fn.coalesce('player.family_name', sql.lit('')))]),
+  sql.lit('\\s+'), sql.lit(' '), sql.lit('g'),
+])
 
 // The name is matched in JavaScript by utils/nameMatch.js, not with LIKE: a LIKE finds
 // someone only if the text typed is a literal slice of the text stored, so "Mary
 // Whitle" could not find "Marry Whitle" — and on the signup-approval page, a player who
 // cannot be found gets a second record. The SQL applies only the filters; with no name
 // the filtered list is returned as it was, alphabetically and capped.
+/** @param {string} query @param {{ division?: string, club?: string, team?: string, gender?: string }} [filters] */
 exports.searchPlayers = async function(query, filters = {}) {
-  const whereClauses = []
-  const params = []
   // Collapse the caller's spacing too, so "Chris  Petty" and " chris petty " work.
   const term = (query || '').trim().replace(/\s+/g, ' ')
-
-  if (filters.division) { whereClauses.push('division.name = ?'); params.push(filters.division) }
-  if (filters.club) { whereClauses.push('club.name = ?'); params.push(filters.club) }
-  if (filters.team) { whereClauses.push('team.name = ?'); params.push(filters.team) }
-  if (filters.gender) { whereClauses.push('player.gender = ?'); params.push(filters.gender) }
 
   // LEFT JOINs. These were INNER, and club/division contribute nothing to the
   // output — they exist only so the optional filters have something to match — so
@@ -1325,18 +1384,18 @@ exports.searchPlayers = async function(query, filters = {}) {
   // not a division that exists, so the division join alone hid 490 players. A
   // returning member who had been released could not be found at all. The filters
   // still filter: an equality test in WHERE fails against a NULL from a LEFT JOIN.
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT player.id,
-            ${SEARCH_NAME} AS name,
-            team.name AS "teamName"
-     FROM player
-     LEFT JOIN team ON team.id = player.team
-     LEFT JOIN club ON club.id = team.club
-     LEFT JOIN division ON division.id = team.division
-     ${whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : ''}
-     ORDER BY TRIM(COALESCE(player.family_name, '')), TRIM(COALESCE(player.first_name, ''))
-     ${term ? '' : 'LIMIT 20'}`,
-    params
-  )
-  return term ? rankByName(result, term, r => r.name, 20) : result
+  const result = await kysely.selectFrom('player')
+    .leftJoin('team', 'team.id', 'player.team')
+    .leftJoin('club', 'club.id', 'team.club')
+    .leftJoin('division', 'division.id', 'team.division')
+    .select(eb => ['player.id', searchName(eb).as('name'), 'team.name as teamName'])
+    .$if(!!filters.division, qb => qb.where('division.name', '=', /** @type {string} */ (filters.division)))
+    .$if(!!filters.club, qb => qb.where('club.name', '=', /** @type {string} */ (filters.club)))
+    .$if(!!filters.team, qb => qb.where('team.name', '=', /** @type {string} */ (filters.team)))
+    .$if(!!filters.gender, qb => qb.where('player.gender', '=', /** @type {string} */ (filters.gender)))
+    .orderBy(eb => eb.fn('trim', [eb.fn.coalesce('player.family_name', sql.lit(''))]))
+    .orderBy(eb => eb.fn('trim', [eb.fn.coalesce('player.first_name', sql.lit(''))]))
+    .$if(!term, qb => qb.limit(20))
+    .execute()
+  return term ? rankByName(result, term, (/** @type {any} */ r) => r.name, 20) : result
 }
