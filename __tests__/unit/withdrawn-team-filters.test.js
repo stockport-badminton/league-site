@@ -5,7 +5,7 @@
 //
 //   Roster.getClubTeams    the roster editor's "Move to…" destination list
 //   Roster.getClubSummaries the superadmin club picker's team and player counts
-//   Club.getTeamsForClub    the club page's team listing
+//   Club.getTeamsForClub    the club page's team listing (now in __tests__/db/club.test.js)
 //
 // The first is the one that bites: a captain could move a live player onto a team that has
 // been withdrawn, and nothing would stop her.
@@ -39,7 +39,6 @@ jest.mock('../../db_connect.js', () => {
 
 const db = require('../../db_connect.js');
 const Roster = require('../../models/roster.js');
-const Club = require('../../models/club.js');
 
 beforeEach(() => {
   db.__state.log = [];
@@ -54,10 +53,9 @@ describe('queries that hand out teams exclude withdrawn ones', () => {
     expect(lastSql()).toMatch(/team\.withdrawn IS NULL/);
   });
 
-  it('Club.getTeamsForClub — the club page listing', async () => {
-    await Club.getTeamsForClub(1, -1);
-    expect(lastSql()).toMatch(/t\.withdrawn IS NULL/);
-  });
+  // Club.getTeamsForClub moved to __tests__/db/club.test.js when it went onto the typed
+  // query layer (REARCH-01): its SQL no longer passes through this mock, and there it is
+  // tested by withdrawing a team rather than by reading the statement.
 
   it('Roster.getClubSummaries — counts both teams and players', async () => {
     await Roster.getClubSummaries();

@@ -1,0 +1,287 @@
+{
+  "function": "club.getClubRegistration",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:43:01.024Z",
+  "cases": [
+    {
+      "label": "collegeGreen",
+      "args": [
+        "College Green"
+      ],
+      "result": {
+        "core": {
+          "id": 61,
+          "clubName": "College Green",
+          "clubWebsite": "http://www.collegegreenbadminton.com",
+          "clubEmail": "miriam.turner@hotmail.com",
+          "matchNightText": "Thursday 7.30pm 2 courts",
+          "clubNightText": "Monday 7.30pm",
+          "clubNight": "Mon",
+          "clubNightCourts": 2,
+          "venueName": "Tytherington School",
+          "venueAddress": "Tytherington School, Manchester Road, Macclesfield, SK10 2EE",
+          "clubSecName": "Miriam Turner",
+          "clubSecTel": "07700 900410",
+          "clubSecEmail": "bigcoops+miriamturner@gmail.com",
+          "matchSecName": "Simon Owen",
+          "matchSecTel": "07700 900165",
+          "matchSecEmail": "bigcoops+simonowen@gmail.com"
+        },
+        "teams": [
+          {
+            "id": 12,
+            "teamName": "College Green A",
+            "captainName": "Judith Peatman",
+            "captainTel": "07700 900214",
+            "captainEmail": "bigcoops+judithpeatman@gmail.com"
+          },
+          {
+            "id": 23,
+            "teamName": "College Green B",
+            "captainName": "Chi-Sum Hau",
+            "captainTel": "07700 900625",
+            "captainEmail": "bigcoops+chisumhau@gmail.com"
+          },
+          {
+            "id": 33,
+            "teamName": "College Green C",
+            "captainName": "Richard Laws",
+            "captainTel": "07700 900765",
+            "captainEmail": "bigcoops+richardlaws@gmail.com"
+          },
+          {
+            "id": 43,
+            "teamName": "College Green D",
+            "captainName": "Ben Hugget",
+            "captainTel": "07700 900787",
+            "captainEmail": "bigcoops+benhugget@gmail.com"
+          },
+          {
+            "id": 54,
+            "teamName": "College Green E",
+            "captainName": "Josie Chan",
+            "captainTel": "07700 900258",
+            "captainEmail": "bigcoops+josiechan@gmail.com"
+          }
+        ]
+      }
+    },
+    {
+      "label": "twoOfficers",
+      "args": [
+        "Macclesfield"
+      ],
+      "result": {
+        "core": {
+          "id": 54,
+          "clubName": "Macclesfield",
+          "clubWebsite": "https://www.manchesteredgeleybadmintonclub.org",
+          "clubEmail": "sueorwin@btinternet.com",
+          "matchNightText": "Monday 8pm",
+          "clubNightText": "Thursday 8 pm at Avondale",
+          "clubNight": "Thu",
+          "clubNightCourts": 4,
+          "venueName": "Avondale Life Leisure",
+          "venueAddress": "Avondale Life Leisure, Heathbank Rd, Cheadle Heath, Stockport SK3 0UP",
+          "clubSecName": "Sue  Orwin",
+          "clubSecTel": "07700 900444",
+          "clubSecEmail": "bigcoops+sueorwin@gmail.com",
+          "matchSecName": "Sue  Orwin",
+          "matchSecTel": "07700 900444",
+          "matchSecEmail": "bigcoops+sueorwin@gmail.com"
+        },
+        "teams": [
+          {
+            "id": 5,
+            "teamName": "Macclesfield A",
+            "captainName": "Pete Taylor",
+            "captainTel": "07700 900339",
+            "captainEmail": "bigcoops+petetaylor@gmail.com"
+          }
+        ]
+      }
+    },
+    {
+      "label": "noClub",
+      "args": [
+        "No Club"
+      ],
+      "result": {
+        "core": {
+          "id": 63,
+          "clubName": "No Club",
+          "clubWebsite": null,
+          "clubEmail": null,
+          "matchNightText": "None",
+          "clubNightText": "None",
+          "clubNight": null,
+          "clubNightCourts": 0,
+          "venueName": "Mellor",
+          "venueAddress": "Mellor Sports Club, 215 Longhust Lane, Mellor SK6 5PN",
+          "clubSecName": "Pashyca Gill",
+          "clubSecTel": "07700 900153",
+          "clubSecEmail": "bigcoops+pashycagill@gmail.com",
+          "matchSecName": "No Player",
+          "matchSecTel": "07700 900320",
+          "matchSecEmail": "bigcoops+noplayer@gmail.com"
+        },
+        "teams": [
+          {
+            "id": 53,
+            "teamName": "Alderley Park D",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 16,
+            "teamName": "Altrincham Central",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 50,
+            "teamName": "Blue Triangle",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 21,
+            "teamName": "Bramhall Village A",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 48,
+            "teamName": "Bramhall Village B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 31,
+            "teamName": "CAP",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 11,
+            "teamName": "Carrington A",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 17,
+            "teamName": "Carrington B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 15,
+            "teamName": "Disley A",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 42,
+            "teamName": "Disley C",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 49,
+            "teamName": "Disley D",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 35,
+            "teamName": "GHAP",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 34,
+            "teamName": "Macclesfield B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 37,
+            "teamName": "Manor B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 44,
+            "teamName": "Manor C",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 41,
+            "teamName": "Mellor B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 36,
+            "teamName": "New Mills",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 52,
+            "teamName": "No Team",
+            "captainName": "No Player",
+            "captainTel": "07700 900320",
+            "captainEmail": "bigcoops+noplayer@gmail.com"
+          },
+          {
+            "id": 40,
+            "teamName": "Parrswood C",
+            "captainName": "Richard Laws",
+            "captainTel": "07700 900765",
+            "captainEmail": "bigcoops+richardlaws@gmail.com"
+          },
+          {
+            "id": 9,
+            "teamName": "Syddal Park B",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          },
+          {
+            "id": 58,
+            "teamName": "Unknown team",
+            "captainName": null,
+            "captainTel": null,
+            "captainEmail": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        "Nope"
+      ],
+      "result": null
+    }
+  ]
+}

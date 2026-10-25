@@ -1,0 +1,111 @@
+{
+  "function": "club.getTeamsForClub",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:39:48.505Z",
+  "cases": [
+    {
+      "label": "collegeGreen",
+      "args": [
+        61,
+        52
+      ],
+      "result": [
+        {
+          "id": 12,
+          "name": "College Green A",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "startTime": "19:30",
+          "divisionName": "Premier",
+          "venueName": "Macclesfield Leisure Centre",
+          "venueAddress": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8"
+        },
+        {
+          "id": 23,
+          "name": "College Green B",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "startTime": "19:30",
+          "divisionName": "Division 1",
+          "venueName": "Macclesfield Leisure Centre",
+          "venueAddress": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8"
+        },
+        {
+          "id": 33,
+          "name": "College Green C",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "startTime": "19:30",
+          "divisionName": "Division 2",
+          "venueName": "Macclesfield Leisure Centre",
+          "venueAddress": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8"
+        },
+        {
+          "id": 43,
+          "name": "College Green D",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "startTime": "19:30",
+          "divisionName": "Division 3",
+          "venueName": "Macclesfield Leisure Centre",
+          "venueAddress": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8"
+        },
+        {
+          "id": 54,
+          "name": "College Green E",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "startTime": "19:30",
+          "divisionName": "Division 3",
+          "venueName": "Macclesfield Leisure Centre",
+          "venueAddress": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8"
+        }
+      ]
+    },
+    {
+      "label": "noClub",
+      "args": [
+        63,
+        52
+      ],
+      "result": []
+    },
+    {
+      "label": "string",
+      "args": [
+        "64",
+        "52"
+      ],
+      "result": [
+        {
+          "id": 55,
+          "name": "Featherforce A",
+          "matchDay": "Wednesday 8pm 2 courts",
+          "startTime": "20:00",
+          "divisionName": "Premier",
+          "venueName": "Salford City Academy",
+          "venueAddress": "Salford City Academy, Northfleet Rd, Peel Green, Eccles, Manchester M30 7PQ",
+          "gMapUrl": "https://maps.app.goo.gl/xL85FF5QtPLFWjMm9"
+        },
+        {
+          "id": 57,
+          "name": "Featherforce B",
+          "matchDay": "Thursday 8pm 2 courts",
+          "startTime": "20:00",
+          "divisionName": "Division 1",
+          "venueName": "Salford City Academy",
+          "venueAddress": "Salford City Academy, Northfleet Rd, Peel Green, Eccles, Manchester M30 7PQ",
+          "gMapUrl": "https://maps.app.goo.gl/xL85FF5QtPLFWjMm9"
+        }
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        999,
+        52
+      ],
+      "result": []
+    }
+  ]
+}

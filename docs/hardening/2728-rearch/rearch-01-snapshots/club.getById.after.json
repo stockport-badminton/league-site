@@ -1,0 +1,64 @@
+{
+  "function": "club.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:42:37.078Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        61
+      ],
+      "result": [
+        {
+          "id": 61,
+          "name": "College Green",
+          "venue": 14,
+          "matchNightText": "Thursday 7.30pm 2 courts",
+          "clubNightText": "Monday 7.30pm",
+          "clubNight": "Mon",
+          "clubNightCourts": 2,
+          "clubWebsite": "http://www.collegegreenbadminton.com",
+          "matchVenue": 27,
+          "contactUs": "miriam.turner@hotmail.com",
+          "matchSec": null,
+          "clubSec": null,
+          "facebook": "CollegeGreenBadmintonClub",
+          "instagram": null,
+          "twitter": null
+        }
+      ]
+    },
+    {
+      "label": "string",
+      "args": [
+        "61"
+      ],
+      "result": [
+        {
+          "id": 61,
+          "name": "College Green",
+          "venue": 14,
+          "matchNightText": "Thursday 7.30pm 2 courts",
+          "clubNightText": "Monday 7.30pm",
+          "clubNight": "Mon",
+          "clubNightCourts": 2,
+          "clubWebsite": "http://www.collegegreenbadminton.com",
+          "matchVenue": 27,
+          "contactUs": "miriam.turner@hotmail.com",
+          "matchSec": null,
+          "clubSec": null,
+          "facebook": "CollegeGreenBadmintonClub",
+          "instagram": null,
+          "twitter": null
+        }
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        999
+      ],
+      "result": []
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "function": "club.getInstagramHandles",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:42:37.553Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "name": "Aerospace",
+          "handle": "aerospacebadminton"
+        },
+        {
+          "name": "G.H.A.P",
+          "handle": "ghapbadminton"
+        },
+        {
+          "name": "Manor",
+          "handle": "manorbadmintonclubwilmslow"
+        },
+        {
+          "name": "Parrs Wood",
+          "handle": "parrswoodbadmintonclub"
+        }
+      ]
+    }
+  ]
+}

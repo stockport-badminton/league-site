@@ -30,6 +30,13 @@ const { Kysely, PostgresDialect } = require('kysely');
 function overPool(getPool) {
   const pool = {
     connect() {
+      // A test that replaces db_connect with a factory mock has no pool() to give. Say so,
+      // rather than "getPool is not a function": the fix is to test the converted model
+      // in __tests__/db/, or to mock the model rather than the database under it.
+      if (typeof getPool !== 'function') {
+        return Promise.reject(new Error('kysely: db_connect has no pool() here, so it is mocked. ' +
+          'A model on the typed query layer is tested in __tests__/db/, not through a db_connect mock.'));
+      }
       const p = getPool();
       if (!p) return Promise.reject(new Error('kysely used before db.connect()'));
       return p.connect();

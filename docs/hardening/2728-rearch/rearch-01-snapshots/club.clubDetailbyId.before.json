@@ -1,0 +1,58 @@
+{
+  "function": "club.clubDetailbyId",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:39:48.985Z",
+  "cases": [
+    {
+      "label": "collegeGreen",
+      "args": [
+        61
+      ],
+      "result": [
+        {
+          "clubid": 61,
+          "name": "College Green",
+          "venue": "Tytherington School",
+          "address": "Tytherington School, Manchester Road, Macclesfield, SK10 2EE",
+          "clubvenueurl": "https://goo.gl/maps/Mc3Gc9oHHCr",
+          "matchNightText": "Thursday 7.30pm 2 courts",
+          "clubNightText": "Monday 7.30pm",
+          "clubWebsite": "http://www.collegegreenbadminton.com",
+          "matchvenuename": "Macclesfield Leisure Centre",
+          "matchvenueurl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8",
+          "Lat": 53.2675,
+          "Lng": -2.16155
+        }
+      ]
+    },
+    {
+      "label": "string",
+      "args": [
+        "61"
+      ],
+      "result": [
+        {
+          "clubid": 61,
+          "name": "College Green",
+          "venue": "Tytherington School",
+          "address": "Tytherington School, Manchester Road, Macclesfield, SK10 2EE",
+          "clubvenueurl": "https://goo.gl/maps/Mc3Gc9oHHCr",
+          "matchNightText": "Thursday 7.30pm 2 courts",
+          "clubNightText": "Monday 7.30pm",
+          "clubWebsite": "http://www.collegegreenbadminton.com",
+          "matchvenuename": "Macclesfield Leisure Centre",
+          "matchvenueurl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8",
+          "Lat": 53.2675,
+          "Lng": -2.16155
+        }
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        999
+      ],
+      "result": []
+    }
+  ]
+}

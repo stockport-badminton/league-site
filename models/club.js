@@ -1,11 +1,22 @@
+// @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require('./season');
+const { sql } = require('kysely');
+const { kysely, decrypt } = require('../db');
+
+// REARCH-01: on the typed query layer, except existsInSeason, which splices a season into
+// a table name and belongs to REARCH-02.
+//
+// Several keys below are lowercase on purpose (clubvenue, matchsecemail, clubid, …): they
+// are what the string queries returned, because Postgres folded their unquoted aliases,
+// and the views read them that way. Renaming one is a separate change with the views.
 
 // Whether a club of exactly this name existed in a season: the live table for the
 // current season, the club<season> archive otherwise. The stats pages ask this of a
 // `club-` filter, which can legitimately name a club that has since folded or been
 // renamed (Canute in 2024/25, Remnants now) and so must not be checked against the live
 // table alone.
+/** @param {string} name @param {string} season */
 exports.existsInSeason = async function(name, season) {
   const suffix = seasonModel.assertName(season)
   const [rows] = await (await db.otherConnect()).query(
@@ -14,9 +25,19 @@ exports.existsInSeason = async function(name, season) {
   return rows.length > 0
 }
 
+// Constant strings are written with sql.lit, as literals in the statement, the way the
+// string queries had them. As bound parameters (eb.val) they break: CONCAT takes "any",
+// so Postgres cannot infer a parameter's type there and refuses the statement.
+
+/**
+ * `first_name family_name`, as CONCAT gives it: a missing person is ' ', not NULL.
+ * @param {import('kysely').ExpressionBuilder<any, any>} eb @param {string} who a table alias
+ */
+const fullName = (eb, who) =>
+  eb.fn('concat', [eb.ref(`${who}.first_name`), sql.lit(' '), eb.ref(`${who}.family_name`)]);
+
 exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM club ORDER BY name ASC')
-  return result
+  return kysely.selectFrom('club').selectAll().orderBy('name', 'asc').execute()
 }
 
 // Every club that has a public page, one row each — the source for /clubs/:slug, the
@@ -25,113 +46,66 @@ exports.getAll = async function() {
 // Deliberately one row per club, unlike clubDetail() which fans out over teams and
 // leaves the caller to regroup. `excludeClubId` is the `No Club` sentinel that
 // released players are parked on; it has no page.
+/** @param {number} excludeClubId */
 exports.getPublicClubs = async function(excludeClubId) {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-      cl.id,
-      cl.name,
-      cl."clubNight",
-      cl."clubNightText",
-      cl."clubNightCourts",
-      cl."matchNightText",
-      cl."clubWebsite",
-      cl.facebook,
-      cl.instagram,
-      cl.twitter,
-      v.name AS "venueName",
-      v.address AS "venueAddress",
-      v."gMapUrl",
-      v."Lat",
-      v."Lng",
-      v."placeId"
-    FROM club cl
-    LEFT JOIN venue v ON cl.venue = v.id
-    WHERE cl.id <> ?
-    ORDER BY cl.name ASC`, [excludeClubId])
-  return result
+  return kysely.selectFrom('club as cl')
+    .leftJoin('venue as v', 'cl.venue', 'v.id')
+    .select(['cl.id', 'cl.name', 'cl.clubNight', 'cl.clubNightText', 'cl.clubNightCourts',
+      'cl.matchNightText', 'cl.clubWebsite', 'cl.facebook', 'cl.instagram', 'cl.twitter',
+      'v.name as venueName', 'v.address as venueAddress', 'v.gMapUrl', 'v.Lat', 'v.Lng', 'v.placeId'])
+    .where('cl.id', '<>', excludeClubId)
+    .orderBy('cl.name', 'asc')
+    .execute()
 }
 
 // A club's teams, with the division and the venue each one plays its home matches at
 // (which is not always the club's own venue). `excludeTeamId` is the `No Team`
 // sentinel.
+/** @param {number} clubId @param {number} excludeTeamId */
 exports.getTeamsForClub = async function(clubId, excludeTeamId) {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-      t.id,
-      t.name,
-      t."matchDay",
-      t.starttime AS "startTime",
-      d.name AS "divisionName",
-      v.name AS "venueName",
-      v.address AS "venueAddress",
-      v."gMapUrl"
-    FROM team t
-    LEFT JOIN division d ON t.division = d.id
-    LEFT JOIN venue v ON t.venue = v.id
-    WHERE t.club = ? AND t.id <> ? AND t.withdrawn IS NULL
-    ORDER BY t.name ASC`, [clubId, excludeTeamId])
-  return result
+  return kysely.selectFrom('team as t')
+    .leftJoin('division as d', 't.division', 'd.id')
+    .leftJoin('venue as v', 't.venue', 'v.id')
+    .select(['t.id', 't.name', 't.matchDay', 't.starttime as startTime', 'd.name as divisionName',
+      'v.name as venueName', 'v.address as venueAddress', 'v.gMapUrl'])
+    .where('t.club', '=', clubId).where('t.id', '<>', excludeTeamId).where('t.withdrawn', 'is', null)
+    .orderBy('t.name', 'asc')
+    .execute()
 }
 
+// Coordinates and the club-night day/time feed the SportsClub JSON-LD (geo +
+// openingHoursSpecification), which is what a "badminton clubs near me" query reads.
 exports.clubDetail = async function() {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-  club.id AS "clubId",
-  club.name,
-  team.name AS "teamName",
-  team."matchDay" AS "matchDay",
-  venue.name AS clubvenue,
-  venue."gMapUrl" AS clubgmap,
-  venue.address AS clubaddress,
-  -- Coordinates and the club-night day/time feed the SportsClub JSON-LD
-  -- (geo + openingHoursSpecification), which is what a "badminton clubs near me"
-  -- query actually reads. Quoted aliases: unquoted ones fold to lowercase.
-  venue."Lat" AS "clubLat",
-  venue."Lng" AS "clubLng",
-  club."clubNight",
-  club."clubNightCourts",
-  club.facebook,
-  club.instagram,
-  club.twitter,
-  club."matchNightText",
-  club."clubNightText",
-  club."clubWebsite",
-  club."matchVenue",
-  teamvenue.name AS teammatchvenue,
-  teamvenue."gMapUrl" AS teamgmap,
-  teamvenue.address AS teamaddress
-FROM
-  club
-  JOIN team ON team.club = club.id
-  JOIN venue ON venue.id = club.venue
-  JOIN venue teamvenue ON teamvenue.id = team.venue
-ORDER BY
-  name, "teamName"
-`)
-  return result
+  return kysely.selectFrom('club')
+    .innerJoin('team', 'team.club', 'club.id')
+    .innerJoin('venue', 'venue.id', 'club.venue')
+    .innerJoin('venue as teamvenue', 'teamvenue.id', 'team.venue')
+    .select(['club.id as clubId', 'club.name', 'team.name as teamName', 'team.matchDay as matchDay',
+      'venue.name as clubvenue', 'venue.gMapUrl as clubgmap', 'venue.address as clubaddress',
+      'venue.Lat as clubLat', 'venue.Lng as clubLng',
+      'club.clubNight', 'club.clubNightCourts', 'club.facebook', 'club.instagram', 'club.twitter',
+      'club.matchNightText', 'club.clubNightText', 'club.clubWebsite', 'club.matchVenue',
+      'teamvenue.name as teammatchvenue', 'teamvenue.gMapUrl as teamgmap', 'teamvenue.address as teamaddress'])
+    .orderBy('name').orderBy('teamName')
+    .execute()
 }
 
+/** @param {number} clubId */
 exports.clubDetailbyId = async function(clubId) {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT a.clubId, a.name, a.venue, a.address, a."gMapUrl" AS clubvenueurl,
-            a."matchNightText", a."clubNightText", a."clubWebsite",
-            venue.name AS matchvenuename, venue."gMapUrl" AS matchvenueurl,
-            venue."Lat", venue."Lng"
-     FROM (
-       SELECT club.id AS clubid, club.name, venue.name AS venue, venue."gMapUrl", venue.address,
-              club."matchNightText", club."clubNightText", club."clubWebsite", club."matchVenue"
-       FROM club JOIN venue ON venue.id = club.venue
-     ) AS a
-     JOIN venue ON a."matchVenue" = venue.id
-     WHERE a.clubId = ?
-     ORDER BY a.name`,
-    clubId
-  )
-  return result
+  return kysely
+    .selectFrom(eb => eb.selectFrom('club').innerJoin('venue', 'venue.id', 'club.venue')
+      .select(['club.id as clubid', 'club.name', 'venue.name as venue', 'venue.gMapUrl', 'venue.address',
+        'club.matchNightText', 'club.clubNightText', 'club.clubWebsite', 'club.matchVenue'])
+      .as('a'))
+    .innerJoin('venue', 'a.matchVenue', 'venue.id')
+    .select(['a.clubid', 'a.name', 'a.venue', 'a.address', 'a.gMapUrl as clubvenueurl',
+      'a.matchNightText', 'a.clubNightText', 'a.clubWebsite',
+      'venue.name as matchvenuename', 'venue.gMapUrl as matchvenueurl', 'venue.Lat', 'venue.Lng'])
+    .where('a.clubid', '=', clubId)
+    .orderBy('a.name')
+    .execute()
 }
 
-// The decryption key was written into this query as a string literal — the only
-// place in the codebase that didn't bind it from DB_PI_KEY. It happened to be the
-// right key, so nothing was visibly broken; it was just the production PI key
-// sitting in source control, and it would have silently started returning errors
-// the day the key was rotated. Bound as a parameter like everywhere else.
 // Every club secretary and match secretary of the given clubs who has a contact
 // email, for the missed-three notice. All of them, not one: College Green has two
 // of each and both should hear about it.
@@ -142,88 +116,87 @@ exports.clubDetailbyId = async function(clubId) {
 // up on another club's mail (see stale-officer-pointers in tools/audit/checks.js).
 // INNER is right here, and the role literal says so to optional-join-guard: the join
 // defines what each row is, and a club with no officers should return no rows.
+/** @param {Array<number | string> | null | undefined} clubIds */
 exports.getOfficerEmails = async function(clubIds) {
   if (!clubIds || !clubIds.length) return []
-  const key = process.env.DB_PI_KEY
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT DISTINCT club.id AS "clubId", club.name AS "clubName", p.id AS "playerId",
-            'club officer' AS role,
-            CONCAT(p.first_name, ' ', p.family_name) AS name,
-            TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text) AS email
-     FROM club
-     JOIN player p ON p.club = club.id
-      AND (p."clubSecretary" = 1 OR p."matchSecrertary" = 1
-           OR club."clubSec" = p.id OR club."matchSec" = p.id)
-     WHERE club.id = ANY(?::int[])
-       AND p."playerEmail" IS NOT NULL
-       AND COALESCE(NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), ''), '') <> ''
-     ORDER BY club.id, p.id`,
-    [key, clubIds.map(Number), key]
-  )
-  return result
+  return kysely.selectFrom('club')
+    .innerJoin('player as p', join => join.onRef('p.club', '=', 'club.id').on(eb => eb.or([
+      eb('p.clubSecretary', '=', 1), eb('p.matchSecrertary', '=', 1),
+      eb('club.clubSec', '=', eb.ref('p.id')), eb('club.matchSec', '=', eb.ref('p.id')),
+    ])))
+    .distinct()
+    .select(eb => ['club.id as clubId', 'club.name as clubName', 'p.id as playerId',
+      sql.lit('club officer').as('role'),
+      fullName(eb, 'p').as('name'),
+      eb.fn('trim', [decrypt(eb.ref('p.playerEmail'))]).as('email')])
+    .where('club.id', 'in', clubIds.map(Number))
+    .where('p.playerEmail', 'is not', null)
+    .where(eb => eb(eb.fn.coalesce(eb.fn('nullif', [eb.fn('trim', [decrypt(eb.ref('p.playerEmail'))]), sql.lit('')]), sql.lit('')), '<>', ''))
+    .orderBy('club.id').orderBy('p.id')
+    .execute()
 }
 
-exports.getContactDetailsById = async function(clubId) {
-  const key = process.env.DB_PI_KEY
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT club.name AS clubname, team.name AS teamname,
-            venue.id AS "venueId", venue.name AS venuename, venue.address AS address,
-            "matchVenue".id AS matchvenueid, "matchVenue".name AS matchvenuename, "matchVenue".address AS matchvenueaddress,
-            "matchNightText" AS matchnight,
-            CONCAT(matchSec.first_name, ' ', matchSec.family_name) AS matchsecretary,
-            pgp_sym_decrypt(matchSec."playerTel", ?)::text AS matchsectel,
-            pgp_sym_decrypt(matchSec."playerEmail", ?)::text AS matchsecemail,
-            CONCAT(clubSec.first_name, ' ', clubSec.family_name) AS clubsecretary,
-            pgp_sym_decrypt(clubSec."playerTel", ?)::text AS clubsectel,
-            pgp_sym_decrypt(clubSec."playerEmail", ?)::text AS clubsecemail,
-            CONCAT(teamCaptain.first_name, ' ', teamCaptain.family_name) AS teamcaptain,
-            pgp_sym_decrypt(teamCaptain."playerTel", ?)::text AS teamcaptaintel,
-            pgp_sym_decrypt(teamCaptain."playerEmail", ?)::text AS teamcaptainemail
-     FROM club
-     JOIN team ON team.club = club.id
-     JOIN venue ON club.venue = venue.id
-     JOIN venue "matchVenue" ON club."matchVenue" = "matchVenue".id
-     -- The two club officers are joined as *scalar subqueries*, one row each.
-     --
-     -- They used to be plain joins, and a club with more than one person flagged for a
-     -- role multiplied every other row by that count: College Green has two match
-     -- secretaries and two club secretaries, so its five teams came back as twenty rows
-     -- and the page listed each captain four times. Nothing in the club table stops a
-     -- second person being flagged, and several clubs have one.
-     --
-     -- These are club-level facts, not per-team ones, and the view has always read them
-     -- from clubrow[0] — so the extra rows never showed a second secretary, they only
-     -- duplicated the captains. LIMIT 1 with an explicit ORDER BY also makes the pick
-     -- deterministic; without it, which of the two secretaries appeared was down to
-     -- whatever order Postgres happened to return.
-     LEFT JOIN LATERAL (
-       SELECT p.* FROM player p
-       WHERE p.club = club.id AND p."matchSecrertary" = 1
-       ORDER BY p.id LIMIT 1
-     ) matchSec ON true
-     LEFT JOIN LATERAL (
-       SELECT p.* FROM player p
-       WHERE (p.club = club.id AND p."clubSecretary" = 1) OR club."clubSec" = p.id
-       ORDER BY p.id LIMIT 1
-     ) clubSec ON true
-     -- Likewise one captain per team, and LEFT so a team without one still lists.
-     -- This was an inner join, which meant a single team with no captain flagged removed
-     -- that team from the page entirely — the same trap as gotcha 1c.
-     LEFT JOIN LATERAL (
-       SELECT p.* FROM player p
-       WHERE (p.team = team.id AND p."teamCaptain" = 1) OR team.captain = p.id
-       ORDER BY p.id LIMIT 1
-     ) teamCaptain ON true
-     WHERE club.id = ?
-     -- No GROUP BY. It was there to collapse the duplicate rows the old joins produced,
-     -- and it could not: grouping by the captain's own columns keeps one row per distinct
-     -- (captain, match sec, club sec) combination, which is exactly the fan-out. The
-     -- subqueries above remove the cause, so there is nothing left to collapse.
-     ORDER BY team.name`,
-    [key, key, key, key, key, key, clubId]
-  )
-  return result
+exports.getContactDetailsById = async function(/** @type {number} */ clubId) {
+  return kysely.selectFrom('club')
+    .innerJoin('team', 'team.club', 'club.id')
+    .innerJoin('venue', 'club.venue', 'venue.id')
+    .innerJoin('venue as matchVenue', 'club.matchVenue', 'matchVenue.id')
+    // The two club officers are joined as *scalar subqueries*, one row each.
+    //
+    // They used to be plain joins, and a club with more than one person flagged for a
+    // role multiplied every other row by that count: College Green has two match
+    // secretaries and two club secretaries, so its five teams came back as twenty rows
+    // and the page listed each captain four times. Nothing in the club table stops a
+    // second person being flagged, and several clubs have one.
+    //
+    // These are club-level facts, not per-team ones, and the view has always read them
+    // from clubrow[0] — so the extra rows never showed a second secretary, they only
+    // duplicated the captains. LIMIT 1 with an explicit ORDER BY also makes the pick
+    // deterministic; without it, which of the two secretaries appeared was down to
+    // whatever order Postgres happened to return.
+    .leftJoinLateral(eb => eb.selectFrom('player as p').selectAll('p')
+      .whereRef('p.club', '=', 'club.id').where('p.matchSecrertary', '=', 1)
+      .orderBy('p.id').limit(1).as('matchSec'), join => join.onTrue())
+    .leftJoinLateral(eb => eb.selectFrom('player as p').selectAll('p')
+      .where(eb => eb.or([
+        eb.and([eb('p.club', '=', eb.ref('club.id')), eb('p.clubSecretary', '=', 1)]),
+        eb('club.clubSec', '=', eb.ref('p.id')),
+      ]))
+      .orderBy('p.id').limit(1).as('clubSec'), join => join.onTrue())
+    // Likewise one captain per team, and LEFT so a team without one still lists.
+    // This was an inner join, which meant a single team with no captain flagged removed
+    // that team from the page entirely — the same trap as gotcha 1c.
+    .leftJoinLateral(eb => eb.selectFrom('player as p').selectAll('p')
+      .where(eb => eb.or([
+        eb.and([eb('p.team', '=', eb.ref('team.id')), eb('p.teamCaptain', '=', 1)]),
+        eb('team.captain', '=', eb.ref('p.id')),
+      ]))
+      .orderBy('p.id').limit(1).as('teamCaptain'), join => join.onTrue())
+    .select(eb => ['club.name as clubname', 'team.name as teamname',
+      'venue.id as venueId', 'venue.name as venuename', 'venue.address as address',
+      'matchVenue.id as matchvenueid', 'matchVenue.name as matchvenuename', 'matchVenue.address as matchvenueaddress',
+      'club.matchNightText as matchnight',
+      fullName(eb, 'matchSec').as('matchsecretary'),
+      decrypt(eb.ref('matchSec.playerTel')).as('matchsectel'),
+      decrypt(eb.ref('matchSec.playerEmail')).as('matchsecemail'),
+      fullName(eb, 'clubSec').as('clubsecretary'),
+      decrypt(eb.ref('clubSec.playerTel')).as('clubsectel'),
+      decrypt(eb.ref('clubSec.playerEmail')).as('clubsecemail'),
+      fullName(eb, 'teamCaptain').as('teamcaptain'),
+      decrypt(eb.ref('teamCaptain.playerTel')).as('teamcaptaintel'),
+      decrypt(eb.ref('teamCaptain.playerEmail')).as('teamcaptainemail')])
+    .where('club.id', '=', clubId)
+    // No GROUP BY. It was there to collapse the duplicate rows the old joins produced,
+    // and it could not: grouping by the captain's own columns keeps one row per distinct
+    // (captain, match sec, club sec) combination, which is exactly the fan-out. The
+    // subqueries above remove the cause, so there is nothing left to collapse.
+    .orderBy('team.name')
+    .execute()
 }
+
+// `NULLIF(TRIM(first family), '')`: NULL for nobody, rather than CONCAT's ' '.
+/** @param {import('kysely').ExpressionBuilder<any, any>} eb @param {string} who */
+const nameOrNull = (eb, who) => eb.fn('nullif', [eb.fn('trim', [fullName(eb, who)]), sql.lit('')])
 
 // Lenient data source for the club registration form prefill. Unlike
 // getContactDetailsById (all-INNER-JOINs, returns nothing unless a match sec,
@@ -233,75 +206,75 @@ exports.getContactDetailsById = async function(clubId) {
 // req.user and the team-registration form's convention. DISTINCT ON collapses
 // the duplicate rows a club with two players flagged as secretary/captain would
 // otherwise produce.
+/** @param {string} clubName */
 exports.getClubRegistration = async function(clubName) {
-  const key = process.env.DB_PI_KEY
-  const conn = await db.otherConnect()
-
-  const [core] = await conn.query(
-    `SELECT DISTINCT ON (club.id) club.id, club.name AS "clubName",
-            club."clubWebsite", club."contactUs" AS "clubEmail",
-            club."matchNightText", club."clubNightText", club."clubNight", club."clubNightCourts",
-            venue.name AS "venueName", venue.address AS "venueAddress",
-            NULLIF(TRIM(CONCAT(cs.first_name, ' ', cs.family_name)), '') AS "clubSecName",
-            pgp_sym_decrypt(cs."playerTel", ?)::text AS "clubSecTel",
-            pgp_sym_decrypt(cs."playerEmail", ?)::text AS "clubSecEmail",
-            NULLIF(TRIM(CONCAT(ms.first_name, ' ', ms.family_name)), '') AS "matchSecName",
-            pgp_sym_decrypt(ms."playerTel", ?)::text AS "matchSecTel",
-            pgp_sym_decrypt(ms."playerEmail", ?)::text AS "matchSecEmail"
-     FROM club
-     LEFT JOIN venue ON club.venue = venue.id
-     LEFT JOIN player cs ON ((club.id = cs.club AND cs."clubSecretary" = 1) OR (club."clubSec" = cs.id))
-     LEFT JOIN player ms ON ((club.id = ms.club AND ms."matchSecrertary" = 1) OR (club."matchSec" = ms.id))
-     WHERE club.name = ?
-     ORDER BY club.id`,
-    [key, key, key, key, clubName]
-  )
+  const core = await kysely.selectFrom('club')
+    .leftJoin('venue', 'club.venue', 'venue.id')
+    .leftJoin('player as cs', join => join.on(eb => eb.or([
+      eb.and([eb('club.id', '=', eb.ref('cs.club')), eb('cs.clubSecretary', '=', 1)]),
+      eb('club.clubSec', '=', eb.ref('cs.id')),
+    ])))
+    .leftJoin('player as ms', join => join.on(eb => eb.or([
+      eb.and([eb('club.id', '=', eb.ref('ms.club')), eb('ms.matchSecrertary', '=', 1)]),
+      eb('club.matchSec', '=', eb.ref('ms.id')),
+    ])))
+    .distinctOn('club.id')
+    .select(eb => ['club.id', 'club.name as clubName',
+      'club.clubWebsite', 'club.contactUs as clubEmail',
+      'club.matchNightText', 'club.clubNightText', 'club.clubNight', 'club.clubNightCourts',
+      'venue.name as venueName', 'venue.address as venueAddress',
+      nameOrNull(eb, 'cs').as('clubSecName'),
+      decrypt(eb.ref('cs.playerTel')).as('clubSecTel'),
+      decrypt(eb.ref('cs.playerEmail')).as('clubSecEmail'),
+      nameOrNull(eb, 'ms').as('matchSecName'),
+      decrypt(eb.ref('ms.playerTel')).as('matchSecTel'),
+      decrypt(eb.ref('ms.playerEmail')).as('matchSecEmail')])
+    .where('club.name', '=', clubName)
+    .orderBy('club.id')
+    .execute()
   if (!core.length) return null
 
-  const [teams] = await conn.query(
-    `SELECT DISTINCT ON (team.id) team.id, team.name AS "teamName",
-            NULLIF(TRIM(CONCAT(cap.first_name, ' ', cap.family_name)), '') AS "captainName",
-            pgp_sym_decrypt(cap."playerTel", ?)::text AS "captainTel",
-            pgp_sym_decrypt(cap."playerEmail", ?)::text AS "captainEmail"
-     FROM team
-     JOIN club ON team.club = club.id
-     LEFT JOIN player cap ON ((team.id = cap.team AND cap."teamCaptain" = 1) OR (team.captain = cap.id))
-     WHERE club.name = ?
-     ORDER BY team.id`,
-    [key, key, clubName]
-  )
+  const teams = await kysely.selectFrom('team')
+    .innerJoin('club', 'team.club', 'club.id')
+    .leftJoin('player as cap', join => join.on(eb => eb.or([
+      eb.and([eb('team.id', '=', eb.ref('cap.team')), eb('cap.teamCaptain', '=', 1)]),
+      eb('team.captain', '=', eb.ref('cap.id')),
+    ])))
+    .distinctOn('team.id')
+    .select(eb => ['team.id', 'team.name as teamName',
+      nameOrNull(eb, 'cap').as('captainName'),
+      decrypt(eb.ref('cap.playerTel')).as('captainTel'),
+      decrypt(eb.ref('cap.playerEmail')).as('captainEmail')])
+    .where('club.name', '=', clubName)
+    .orderBy('team.id')
+    .execute()
   teams.sort((a, b) => a.teamName.localeCompare(b.teamName))
 
   return { core: core[0], teams }
 }
 
+/** @param {number} clubId */
 exports.getById = async function(clubId) {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM club WHERE id = ?', clubId)
-  return result
+  return kysely.selectFrom('club').selectAll().where('id', '=', clubId).execute()
 }
 
-// Insert a club from an object of {column: value} pairs. Only the provided
-// keys are written, so optional columns can be omitted entirely. camelCase
-// columns are double-quoted (Postgres folds unquoted identifiers to lowercase).
+// Insert or update a club from an object of {column: value} pairs; only the provided keys
+// are written. Kysely quotes every column, which is what the hand-built version did by
+// wrapping each key in double quotes. One difference to know about: a key whose value is
+// `undefined` is left out, where the string version wrote NULL. Its only caller,
+// clubController's buildClubObj, sets every key it includes to a value or to null.
+// Both return nothing; that caller never read the old rows array.
+/** @param {import('kysely').Insertable<import('../db/schema').Club>} clubObj */
 exports.createFull = async function(clubObj) {
   if (!db.isObject(clubObj)) throw new Error('not valid object')
-  const keys = Object.keys(clubObj)
-  const cols = keys.map(k => `"${k}"`).join(',')
-  const placeholders = keys.map(() => '?').join(',')
-  const sql = `INSERT INTO club (${cols}) VALUES (${placeholders})`
-  const [result] = await (await db.otherConnect()).query(sql, Object.values(clubObj))
-  return result
+  await kysely.insertInto('club').values(clubObj).execute()
 }
 
-// Update a club from an object of {column: value} pairs (only provided keys).
+/** @param {import('kysely').Updateable<import('../db/schema').Club>} clubObj @param {number} clubId */
 exports.updateFull = async function(clubObj, clubId) {
   if (!db.isObject(clubObj)) throw new Error('not valid object')
-  const setClauses = Object.keys(clubObj).map(k => `"${k}" = ?`).join(', ')
-  const sql = `UPDATE club SET ${setClauses} WHERE id = ?`
-  const [result] = await (await db.otherConnect()).query(sql, [...Object.values(clubObj), clubId])
-  return result
+  await kysely.updateTable('club').set(clubObj).where('id', '=', clubId).execute()
 }
-
 // The clubs whose Instagram handle we hold, for mentioning in a caption.
 //
 // Instagram turns a bare `@handle` in a caption into a real mention, so this is the one
@@ -317,11 +290,11 @@ exports.updateFull = async function(clubObj, clubId) {
 // `socialUrl` in utils/socialLinks.js is the same idea for links, and shares the rule that
 // anything not handle-shaped is dropped rather than guessed at.
 exports.getInstagramHandles = async function() {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT name, instagram FROM club
-      WHERE instagram IS NOT NULL AND TRIM(instagram) <> ''
-      ORDER BY name`
-  );
+  const rows = await kysely.selectFrom('club').select(['name', 'instagram'])
+    .where('instagram', 'is not', null)
+    .where(eb => eb(eb.fn('trim', ['instagram']), '<>', ''))
+    .orderBy('name')
+    .execute();
   return rows
     .map(r => ({ name: r.name, handle: String(r.instagram).trim().replace(/^@+/, '') }))
     .filter(r => /^[A-Za-z0-9._]+$/.test(r.handle));

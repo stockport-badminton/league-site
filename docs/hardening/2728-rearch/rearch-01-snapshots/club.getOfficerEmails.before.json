@@ -1,0 +1,150 @@
+{
+  "function": "club.getOfficerEmails",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:39:49.296Z",
+  "cases": [
+    {
+      "label": "twoEach",
+      "args": [
+        [
+          54,
+          55,
+          61
+        ]
+      ],
+      "result": [
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "playerId": 378,
+          "role": "club officer",
+          "name": "Sue  Orwin",
+          "email": "bigcoops+sueorwin@gmail.com"
+        },
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "playerId": 2274,
+          "role": "club officer",
+          "name": "Sue  Orwin",
+          "email": "bigcoops+sueorwin@gmail.com"
+        },
+        {
+          "clubId": 55,
+          "clubName": "Manor",
+          "playerId": 379,
+          "role": "club officer",
+          "name": "Gareth Moorhouse",
+          "email": "bigcoops+garethmoorhouse@gmail.com"
+        },
+        {
+          "clubId": 55,
+          "clubName": "Manor",
+          "playerId": 383,
+          "role": "club officer",
+          "name": "Jo Woolley",
+          "email": "bigcoops+jowoolley@gmail.com"
+        },
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "playerId": 185,
+          "role": "club officer",
+          "name": "Simon Owen",
+          "email": "bigcoops+simonowen@gmail.com"
+        },
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "playerId": 885,
+          "role": "club officer",
+          "name": "Miriam Turner",
+          "email": "bigcoops+miriamturner@gmail.com"
+        }
+      ]
+    },
+    {
+      "label": "empty",
+      "args": [
+        []
+      ],
+      "result": []
+    },
+    {
+      "label": "noClub",
+      "args": [
+        [
+          63
+        ]
+      ],
+      "result": [
+        {
+          "clubId": 63,
+          "clubName": "No Club",
+          "playerId": 0,
+          "role": "club officer",
+          "name": "No Player",
+          "email": "bigcoops+noplayer@gmail.com"
+        },
+        {
+          "clubId": 63,
+          "clubName": "No Club",
+          "playerId": 496,
+          "role": "club officer",
+          "name": "Pashyca Gill",
+          "email": "bigcoops+pashycagill@gmail.com"
+        }
+      ]
+    },
+    {
+      "label": "strings",
+      "args": [
+        [
+          "54",
+          "61"
+        ]
+      ],
+      "result": [
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "playerId": 378,
+          "role": "club officer",
+          "name": "Sue  Orwin",
+          "email": "bigcoops+sueorwin@gmail.com"
+        },
+        {
+          "clubId": 54,
+          "clubName": "Macclesfield",
+          "playerId": 2274,
+          "role": "club officer",
+          "name": "Sue  Orwin",
+          "email": "bigcoops+sueorwin@gmail.com"
+        },
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "playerId": 185,
+          "role": "club officer",
+          "name": "Simon Owen",
+          "email": "bigcoops+simonowen@gmail.com"
+        },
+        {
+          "clubId": 61,
+          "clubName": "College Green",
+          "playerId": 885,
+          "role": "club officer",
+          "name": "Miriam Turner",
+          "email": "bigcoops+miriamturner@gmail.com"
+        }
+      ]
+    },
+    {
+      "label": "null",
+      "args": [
+        null
+      ],
+      "result": []
+    }
+  ]
+}
