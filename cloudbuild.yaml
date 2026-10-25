@@ -12,15 +12,17 @@ steps:
   # documentation of what used to be checked.
   #
   # These need no database. `__tests__/setup.js` supplies the env they read and every
-  # suite mocks db_connect, which is why this can run before anything else exists.
+  # suite mocks db_connect, which is why this can run before anything else exists. The
+  # model SQL is tested against a real Postgres by the `db` step below.
   #
-  # Playwright deliberately isn't here. It drives a real server, and the only database
-  # this project has is production — `dev.env` carries the same DATABASE_URL as `.env`.
-  # Running it in the pipeline would point a browser suite at live league data. It stays
-  # a local gate (`npm run test:all`) until there is a separate database to point it at;
-  # that is HARD-13 in docs/hardening.
+  # Playwright deliberately isn't here. The reason it gave until Oct 2026 — that the only
+  # database was production — went with HARD-13 and the `pg` service below; what is left
+  # is a decision (browsers in the build image, minutes per build) recorded in
+  # REARCH-08. Until it is taken, the browser suite is a local gate (`npm run test:all`)
+  # run by whoever merges.
   - name: 'node:22'
     id: 'test'
+    waitFor: ['-']
     entrypoint: bash
     # Two workers, not Jest's default for this 2-CPU machine (one process, in band).
     # In band, every suite's leftovers stay in one heap, and on 17 Oct 2026 that heap
@@ -34,6 +36,35 @@ steps:
         set -e
         npm ci
         npm test -- --maxWorkers=2
+
+  # A real Postgres for the `db` Jest project (REARCH-08). Started first and in parallel
+  # with the step above, so its image pull costs nothing. Cloud Build runs every step on
+  # the `cloudbuild` Docker network, so the next steps reach it as host `pg`. Nothing is
+  # in it but what the suite builds: migrations/ and tools/local-db/test-seed.sql.
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pg'
+    waitFor: ['-']
+    args: ['run', '-d', '--network', 'cloudbuild', '--name', 'pg',
+           '-e', 'POSTGRES_PASSWORD=postgres', 'postgres:17']
+
+  - name: 'postgres:17'
+    id: 'pg-ready'
+    waitFor: ['pg']
+    entrypoint: bash
+    args:
+      - '-c'
+      - 'for _ in $$(seq 1 60); do pg_isready -q -h pg -U postgres && exit 0; sleep 1; done; echo "pg never became ready" >&2; exit 1'
+
+  # Model SQL against that database, every test in a rolled-back transaction. After
+  # `test` because that step's `npm ci` is what fills node_modules in /workspace; a
+  # failure here stops the build before an image is made, like a failure there.
+  - name: 'node:22'
+    id: 'db'
+    waitFor: ['test', 'pg-ready']
+    entrypoint: bash
+    env:
+      - 'TEST_DATABASE_URL=postgresql://postgres:postgres@pg:5432/sdbl_test'
+    args: ['-c', 'npm run test:db']
 
   # Pull the previous image so its layers seed the build cache below.
   # First ever build (no :latest yet) is a harmless no-op thanks to `|| true`.

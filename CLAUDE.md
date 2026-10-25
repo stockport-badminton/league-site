@@ -246,6 +246,28 @@ Two things follow, both of which cost days before they were understood:
 The suite is sized so this matters: the flake rate is a function of how many requests it
 makes, so it grows as the suite grows.
 
+### Model SQL is tested against a real Postgres (`npm run test:db`)
+
+**A model function's SQL is tested in `__tests__/db/`, or not at all.** A mocked-database
+test of a model is not evidence that its query works; every bug in the gap between SQL and
+what the wrapper returns (`insertId`, folded aliases, `[, info]`) passed one. Controller
+tests keep mocking models — that is a different seam. REARCH-08.
+
+- `jest.db.config.js`, separate from the default config so `npm test` needs no database.
+  Needs `tools/local-db.sh up`; it builds its own `sdbl_test` beside the development
+  database from `migrations/` and `tools/local-db/test-seed.sql` (synthetic, committed —
+  never the real-data `migrations/data/002_data.sql`), and never touches `sdbl`. CI runs it against a `postgres:17`
+  service step.
+- Every test is a rolled-back transaction: `pg`'s Pool is swapped for one connection
+  (`__tests__/db/helpers/onePool.js`), while `db_connect.js` stays real. Ids a test
+  inserts start above 1000; seed ids are small and fixed, so a test can name a row.
+- Compare result arrays with `[...rows]` — the wrapper hangs `affectedRows` on them and
+  `toEqual` counts it.
+
+For proving a query rewrite changes nothing against the **full** local seed, use
+`node tools/query-snapshot.js <model>.<fn> --args a.json --out before.json`, then
+`--compare before.json`. Local only and read-only by construction.
+
 ### Browser tests (Playwright)
 
 Jest renders routes with supertest but never runs the page's JavaScript. The

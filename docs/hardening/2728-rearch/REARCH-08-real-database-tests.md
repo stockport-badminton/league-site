@@ -101,3 +101,73 @@ image, adds minutes, and today's rule is that whoever merges runs it locally.
   the only test of SQL.
 - Playwright in CI (a decision, noted above).
 - Regenerating `002_data.sql` (the local seed's age is a separate concern).
+
+## Status — 25 Oct 2026
+
+All three parts built. Parts 1 and 2 verified locally; Part 3 verified in a local replica of
+the build and **not yet on Cloud Build**, so its "after" figure is still to be written here.
+
+### Part 1 — `tools/query-snapshot.js`
+
+Reads `dev.env` and never `.env` (`loadEnv({ localOnly: true })`), refuses any host that
+is not loopback, and opens every session with `default_transaction_read_only=on`. That
+goes further than the brief asked: a write function fails (`cannot execute UPDATE in a
+read-only transaction`, checked with `teams.updateById`) rather than writing. Writes are
+Part 2's job. Values are compared as well as keys; key *order* is not a difference, row
+order is unless `--unordered`; an error is recorded as a result, so a rewrite that starts
+throwing compares unequal.
+
+**The HARD-19 demonstration.** `club.getContactDetailsById` for clubs 39, 40, 43 and a
+missing id, snapshotted against the full local seed. Compared against itself: identical,
+exit 0. With `venue.id AS "venueId"` folded to `AS venueId`:
+
+```
+✗ case mellor [39]
+    [] (2 objects): keys only before: venueId
+    [] (2 objects): keys only after:  venueid
+… the same for shell and alderley …
+DIFFERENT from before.json            exit 1
+```
+
+Restored afterwards. `__tests__/unit/query-snapshot.test.js` pins the host guard and the
+diff rules; it needs no database, so it runs in the ordinary suite.
+
+### Part 2 — `npm run test:db`
+
+- `jest.db.config.js`, **not** a `projects` entry, so `npm test` and CI's first step still
+  need no database. The default config ignores `__tests__/db/`.
+- `__tests__/db/globalSetup.js` drops and recreates `sdbl_test` (it refuses any name not
+  ending `_test`), replays `migrations/` from Node — CI's `node:22` has no `psql` — with
+  `local-db.sh`'s "already exists" rule, and loads `tools/local-db/test-seed.sql`. About
+  0.2 s.
+- Rollback per test: `pg`'s `Pool` is replaced by `helpers/onePool.js`, one real
+  connection inside a transaction per test. `db_connect.js` itself is the real module, so
+  `pgify`, `[rows]` and `affectedRows` are what is tested. Each `pool.query` runs in its
+  own savepoint (so a failed statement does not poison the next, as with a real pool) and
+  `withTransaction`'s BEGIN/COMMIT/ROLLBACK become a savepoint. The suite tests its own
+  rollback.
+- The seed: three seasons (2024/25 and 2025/26 archived, the 2025/26 archive tables
+  created the way the rollover makes them, with history that differs from today), four
+  divisions of two teams, eight players a team including reserves at 99 and 100, officers
+  by flag and one team with no captain, 18-game fixtures, a tokenless draft, a tokened
+  one, a messer draft. Every NOT NULL draft column is filled from the schema, so a new
+  column does not break it.
+
+**Acceptance:** `__tests__/db/fixture.test.js`, 8 tests. Without `RETURNING id` in
+`createScorecard`, 2 fail (`Received length: 0`). With `supersedeEarlierDrafts` reading
+`[result, info]` / `info.rowCount`, its test fails. Each was reintroduced on purpose, seen
+to fail, and restored.
+
+### Part 3 — `cloudbuild.yaml`
+
+`pg` (`docker run -d --network cloudbuild postgres:17`) starts in parallel with the
+mocked `test` step; `pg-ready` waits on `pg_isready`; `db` runs `npm run test:db` after
+both, before any image is built. Replicated locally: a clean `node:22` with `npm ci`
+against a fresh `postgres:17` reached as host `pg` passed 8/8; with the bug reintroduced
+`npm run test:db` exits 1, which is what fails a Cloud Build step.
+
+**Build time before** (the 10 builds of 25 Oct 2026, 53ae3b9 … e910d89): 354–449 s in
+total, median ~370 s; the `test` step 207–250 s. **After:** to be measured on the first
+build that carries this — `gcloud builds list --project stockport-badminton-map --limit 5`.
+Expected cost: the `db` step's few seconds of Jest, since the Postgres pull runs alongside
+the `test` step.

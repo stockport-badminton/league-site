@@ -15,12 +15,22 @@
 // is explicit.
 const path = require('path');
 
+//
+// `localOnly` is for a tool that must never see production at all — query-snapshot.js
+// calls model functions, and some model functions write. `local` still loads .env second,
+// which fills in every live credential dev.env does not override; `localOnly` never reads
+// .env, so nothing production-shaped is even in the process.
 /**
- * @param {{ local?: boolean }} [opts] local: true loads the development database first.
+ * @param {{ local?: boolean, localOnly?: boolean }} [opts] local: true loads the
+ *   development database first; localOnly: true loads dev.env and nothing else.
  */
 function loadEnv(opts) {
   const local = !!(opts && opts.local);
   const at = name => path.join(__dirname, '..', '..', name);
+  if (opts && opts.localOnly) {
+    require('dotenv').config({ path: at('dev.env') });
+    return { local: true };
+  }
   const order = local ? ['dev.env', '.env'] : ['.env', 'dev.env'];
   for (const file of order) require('dotenv').config({ path: at(file) });
   return { local };
