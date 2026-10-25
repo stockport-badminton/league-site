@@ -12,7 +12,7 @@
 //   own autocommitted statement, so one failing does not poison the next; inside a single
 //   test transaction it would ("current transaction is aborted"), and a test asserting an
 //   error and then reading would fail for a reason production does not have.
-// - pool.connect() (db.withTransaction) maps BEGIN / COMMIT / ROLLBACK onto a savepoint,
+// - pool.connect() (db.withTransaction, and every Kysely query) maps BEGIN / COMMIT / ROLLBACK onto a savepoint,
 //   so a rolled-back transaction really does roll back and a committed one is still
 //   inside the test's outer transaction.
 // - Everything goes through one connection, serialised. A real pool would run a
@@ -64,8 +64,12 @@ class OnePool {
       query(text, params) {
         const verb = typeof text === 'string' ? text.trim().replace(/;$/, '').toUpperCase() : '';
         if (verb === 'BEGIN') { sp = `tx${++state.n}`; return state.client.query(`SAVEPOINT ${sp}`); }
-        if (verb === 'COMMIT') return state.client.query(`RELEASE SAVEPOINT ${sp}`);
-        if (verb === 'ROLLBACK') return state.client.query(`ROLLBACK TO SAVEPOINT ${sp}`);
+        if (verb === 'COMMIT') { const s = sp; sp = null; return state.client.query(`RELEASE SAVEPOINT ${s}`); }
+        if (verb === 'ROLLBACK') { const s = sp; sp = null; return state.client.query(`ROLLBACK TO SAVEPOINT ${s}`); }
+        // Outside a BEGIN, a checked-out client is autocommit, like pool.query — and that
+        // is how every Kysely query arrives (its driver always connects; it never calls
+        // pool.query). Inside one, a failure aborts the transaction, as it would for real.
+        if (sp === null) return inSavepoint(text, params);
         return state.client.query(text, params);
       },
       release() { release(); },

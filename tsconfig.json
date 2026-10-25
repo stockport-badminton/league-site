@@ -1,0 +1,20 @@
+{
+  // REARCH-01: type-checks JavaScript and emits nothing. Files stay .js and run exactly as
+  // before. A file is checked when it opts in with `// @ts-check` on its first line —
+  // checkJs is off so that checking db/ does not drag every file it requires (db_connect,
+  // utils/, and later each model's utils) into strict mode at once.
+  // `__tests__/unit/typed-sql-guard.test.js` fails if a file using the typed query layer
+  // has not opted in, so opting in is not something to remember.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": ["db/**/*", "models/**/*"]
+}

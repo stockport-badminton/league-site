@@ -36,6 +36,7 @@
     "jquery": "^3.3.1",
     "js-levenshtein": "^1.1.6",
     "jsonpath": "^1.1.1",
+    "kysely": "^0.28.18",
     "mailparser": "^3.9.26",
     "multer": "^2.2.0",
     "nodemailer": "^10.1.0",
@@ -61,7 +62,9 @@
     "build:email": "node tools/build-emails.js",
     "build:email:check": "node tools/build-emails.js --check",
     "preview:email": "node tools/preview-emails.js",
-    "test:db": "jest -c jest.db.config.js"
+    "test:db": "jest -c jest.db.config.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "db:types": "node tools/db-types.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -84,9 +87,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
+    "@types/pg": "^8.23.1",
     "jest": "^30.4.2",
+    "kysely-codegen": "^0.20.0",
     "mjml": "^5.4.0",
-    "supertest": "^7.3.1"
+    "supertest": "^7.3.1",
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "underscore": "^1.13.8",

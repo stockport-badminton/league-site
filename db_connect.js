@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const { regionEnd } = require('./utils/sqlScan');
+const { overClient } = require('./db/kysely');
 // Safe to require here even though instrument.js owns Sentry.init: an
 // uninitialised Sentry no-ops, so this stays inert under Jest (which mocks this
 // module anyway) and in any process that never calls init.
@@ -75,6 +76,13 @@ exports.sessionPool = function() {
       return state.pool.query(text, params);
     },
   };
+};
+
+// The Pool itself, for db/index.js — the typed query layer borrows clients from this one
+// pool rather than building its own (see db/kysely.js). A function, not a value: the pool
+// does not exist until connect() runs, and db/ is required before that.
+exports.pool = function() {
+  return state.pool;
 };
 
 // Exposed for logging/diagnostics; also lets a test assert the cap is applied.
@@ -188,8 +196,14 @@ exports.otherConnect = async function() {
 //
 // Note the pool cap: a transaction holds one of POOL_MAX slots for its whole
 // duration, so keep the body to queries and no awaited I/O.
+//
+// `fn` also gets a second argument, `trx`: a Kysely over the SAME checked-out client
+// (REARCH-01's transaction bridge, db/kysely.js). Old and converted model functions can
+// then share one transaction while the conversion is half done. Building it does no I/O,
+// so a body that ignores it runs exactly as before.
 exports.withTransaction = async function(fn) {
   const client = await state.pool.connect();
+  const trx = overClient(client);
   const conn = {
     query: async function(sql, params = []) {
       const normParams = Array.isArray(params) ? params : [params];
@@ -202,7 +216,7 @@ exports.withTransaction = async function(fn) {
   };
   try {
     await client.query('BEGIN');
-    const out = await fn(conn);
+    const out = await fn(conn, trx);
     await client.query('COMMIT');
     return out;
   } catch (err) {

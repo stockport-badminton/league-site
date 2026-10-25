@@ -23,6 +23,24 @@ const [results] = await (await db.otherConnect()).query(`
 `, [fixtureId]);
 ```
 
+### The typed query layer is replacing that wrapper (REARCH-01, in progress)
+
+`db/` holds a Kysely instance over the **same** Pool (`const { kysely, encrypt, decrypt } =
+require('../db')`), types generated from migrations into `db/schema.d.ts`, and
+`encrypt()`/`decrypt()` for the `pgp_sym_*` columns. Converted model files move to it one
+at a time; until then both styles coexist. Four rules:
+
+- **A file using it starts `// @ts-check`**, and `npm run typecheck` checks it. The guard
+  (`__tests__/unit/typed-sql-guard.test.js`) fails without the line, and on `sql.raw` or an uncast `sql`
+  template.
+- **Inside `db.withTransaction(async (conn, trx) => …)`, converted code uses `trx`**, never
+  the module-level `kysely` — that runs on another connection, outside the transaction,
+  and commits when the rest rolls back.
+- **A migration needs `npm run test:db && npm run db:types`** in the same commit; CI
+  verifies the committed types match.
+- **Kysely stays on 0.28.x.** 0.29 is ESM-only and Jest on Node 22 cannot load it, the
+  same trap as sanitize-html below.
+
 ### Common Table Patterns
 
 - **fixture**: `id, date, homeTeam (int), awayTeam (int), homeScore, awayScore, status ('complete'/'conceded'/etc)`

@@ -36,6 +36,9 @@ steps:
         set -e
         npm ci
         npm test -- --maxWorkers=2
+        # REARCH-01: type-check the files that have opted in with `// @ts-check` —
+        # db/ and each model converted to the typed query layer. Under a second.
+        npm run typecheck
 
   # A real Postgres for the `db` Jest project (REARCH-08). Started first and in parallel
   # with the step above, so its image pull costs nothing. Cloud Build runs every step on
@@ -64,7 +67,10 @@ steps:
     entrypoint: bash
     env:
       - 'TEST_DATABASE_URL=postgresql://postgres:postgres@pg:5432/sdbl_test'
-    args: ['-c', 'npm run test:db']
+    # Then the types the typed query layer checks against (db/schema.d.ts) are regenerated
+    # from the database test:db just built out of migrations/, and compared with the
+    # committed copy: a migration whose types were not regenerated fails here (REARCH-01).
+    args: ['-c', 'set -e; npm run test:db; npm run db:types -- --verify']
 
   # Pull the previous image so its layers seed the build cache below.
   # First ever build (no :latest yet) is a harmless no-op thanks to `|| true`.

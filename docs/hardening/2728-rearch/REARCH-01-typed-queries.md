@@ -8,6 +8,44 @@ if the `.ts` route is chosen in decision 1.
 `players.getPlayerGameData`** — those belong to REARCH-02.
 **Source:** the 24 Oct 2026 "build it from scratch" review.
 
+## Progress
+
+**Step 1 (infrastructure) landed 25 Oct 2026.** No model function is converted yet; step 2
+starts with `auth`. What is there, and what was decided on the way:
+
+- **The decisions below were taken as recommended**: JSDoc checked by `tsc`, Kysely, types
+  from a migrations-built database, no column renames.
+- **Kysely is `^0.28.18`, and must stay below 0.29.** 0.29 is ESM-only, and Jest 30 on
+  Node 22 cannot load it — the sanitize-html trap again (HARD-41), confirmed by a probe
+  suite that failed on 0.29.7 and passed on 0.28.18. A caret on a `0.x` version does not
+  cross a minor, so `npm update` cannot take it there; a deliberate bump can, and needs
+  Node 24.9+ first.
+- **`checkJs` is off; a file opts in with `// @ts-check` on line 1.** With `checkJs` on,
+  checking `db/` dragged in everything it requires — `db_connect.js`, then `utils/sqlScan.js`
+  — and each converted model would drag in its utils the same way. Opt-in is what keeps the
+  check scoped to converted files. `__tests__/unit/typed-sql-guard.test.js` fails if a file
+  that requires `kysely` or `db/` lacks the line, so it is not something to remember.
+  TypeScript is 7.x and takes under a second.
+- **Proved to catch the bugs it is for**, on a probe file that tsc rejected four times:
+  `row.clubSecEmail` on a row whose key is `clubsecemail` (NODE-12), a misspelt column, a
+  team name where `homeTeam` is an id, and `insertId` read off an insert without
+  `.returning`.
+- **The bridge does not change `withTransaction`'s BEGIN/COMMIT.** That path carries
+  `POST /scorecard-beta`, so instead of rebasing it on Kysely's own transactions, `fn` gets
+  a second argument, `trx`: a Kysely over the same checked-out client, which refuses
+  `.transaction()` rather than nesting (db/kysely.js). A body that ignores it runs exactly
+  as before. The rollback test runs on a **real multi-connection Pool** as well as the
+  one-connection test pool: on the test pool a removed bridge only deadlocks, and a timeout
+  is weak evidence. On the real one, replacing `trx` with a pool-wide Kysely makes the test
+  fail with the Kysely row still present after the rollback.
+- **A cast is an assertion.** tsc infers a `sql` template's type from whatever JSDoc says
+  — `@returns RawBuilder<number>` on `encrypt()` passes. So the guard's rule that every
+  template carries a cast buys a *stated* type a reviewer reads, not a checked one; the
+  builder is the checked path, and the allowlist (`db/encrypted.js` alone) should stay
+  short.
+- `npm run db:types` regenerates `db/schema.d.ts` from `sdbl_test` (run `npm run test:db`
+  first); CI runs it with `--verify` after the db step. The 53 season archives are excluded.
+
 ## Why
 
 `db_connect.js` makes Postgres look like mysql2: `?` placeholders, a `[rows]` tuple,

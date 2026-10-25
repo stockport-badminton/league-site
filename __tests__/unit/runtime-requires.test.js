@@ -21,7 +21,7 @@ const declared = new Set(Object.keys(pkg.dependencies || {}));
 
 // What the container actually runs. Deliberately not tools/ or scripts/, which are run by
 // hand on a machine with devDependencies present.
-const DIRS = ['controllers', 'models', 'utils', 'routes', 'middleware'];
+const DIRS = ['controllers', 'models', 'utils', 'routes', 'middleware', 'db'];
 const FILES = ['app.js', 'instrument.js', 'db_connect.js'];
 
 function sources() {
