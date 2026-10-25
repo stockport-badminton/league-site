@@ -1,0 +1,17 @@
+-- messer_scorecard."scoresheet-url": the photo a Messer scorecard was filed with.
+--
+-- Migration 003 does add this column — as its LAST statement. Its first statement adds
+-- "homeMan3", which 002 has since been changed to create, so replaying 003 against a fresh
+-- schema fails on that first line with "already exists". The replay rule (tools/local-db.sh
+-- load, and the db test suite's globalSetup) treats "already exists" as "this migration is
+-- a no-op" and ends the file there, so the rest of 003 never runs. Production ran 003 before
+-- 002 changed, and has the column; every database built from migrations/ did not.
+--
+-- Which meant a Messer scorecard could not be filed anywhere but production: the submit
+-- handler inserts "scoresheet-url", and the INSERT failed on the missing column. CLAUDE.md
+-- recorded it as "a column no migration creates", which was nearly right and pointed the
+-- wrong way.
+--
+-- Restated here with IF NOT EXISTS, matching production — character varying(256),
+-- nullable, no default, measured 26 Oct 2026 — so against production it changes nothing.
+ALTER TABLE messer_scorecard ADD COLUMN IF NOT EXISTS "scoresheet-url" VARCHAR(256);

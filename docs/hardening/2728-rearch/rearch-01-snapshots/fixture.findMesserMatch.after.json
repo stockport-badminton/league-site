@@ -1,0 +1,60 @@
+{
+  "function": "fixture.findMesserMatch",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:24:59.447Z",
+  "cases": [
+    {
+      "label": "exact",
+      "args": [
+        6,
+        25
+      ],
+      "result": {
+        "id": 1,
+        "section": "A",
+        "drawPos": 1,
+        "nextDrawPos": null,
+        "nextSlot": null,
+        "reversed": false
+      }
+    },
+    {
+      "label": "reversed",
+      "args": [
+        25,
+        6
+      ],
+      "result": {
+        "id": 1,
+        "section": "A",
+        "drawPos": 1,
+        "nextDrawPos": null,
+        "nextSlot": null,
+        "reversed": true
+      }
+    },
+    {
+      "label": "strings",
+      "args": [
+        "6",
+        "25"
+      ],
+      "result": {
+        "id": 1,
+        "section": "A",
+        "drawPos": 1,
+        "nextDrawPos": null,
+        "nextSlot": null,
+        "reversed": false
+      }
+    },
+    {
+      "label": "none",
+      "args": [
+        6,
+        7
+      ],
+      "result": null
+    }
+  ]
+}

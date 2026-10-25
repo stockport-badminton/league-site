@@ -60,8 +60,54 @@ function statements(src) {
   return found;
 }
 
+// The same rule, as the typed query layer (REARCH-01) spells it:
+//   .innerJoin('player as p', join => join.onRef(...).on('p.clubSecretary', '=', 1))
+// Each `.innerJoin('player…')` call is taken whole — balanced brackets — and flagged if
+// it tests a role, unless the function it sits in names the role it collects
+// (`sql.lit('club officer').as('role')`), the same permitted form as above.
+function builderJoins(src) {
+  const found = [];
+  const re = /\.innerJoin\(\s*'player\b/g;
+  let m;
+  while ((m = re.exec(src))) {
+    let depth = 0, i = m.index + '.innerJoin'.length;
+    for (; i < src.length; i++) {
+      if (src[i] === '(') depth++;
+      else if (src[i] === ')' && --depth === 0) break;
+    }
+    found.push({ call: src.slice(m.index, i + 1), at: m.index });
+  }
+  return found;
+}
+
+// The top-level function a position sits in: from the nearest top-level definition before
+// it to the next one after.
+function enclosing(src, at) {
+  const starts = [...src.matchAll(/^(?:exports\.\w+\s*=|(?:async\s+)?function\s+\w+|const\s+\w+\s*=)/gm)].map(x => x.index);
+  const from = Math.max(0, ...starts.filter(x => x <= at));
+  const to = Math.min(src.length, ...starts.filter(x => x > at));
+  return src.slice(from, to);
+}
+
+// A condition the scanner cannot read — a column built at runtime (`p.${flag}`), or a
+// condition passed in (`join.on(holds)`) — may be testing a role, and is treated as one.
+// getReminderContacts and getEmails are both written that way; without this, removing the
+// role literal from either went unnoticed (tried).
+const DYNAMIC = /\$\{|join\s*=>\s*join\.on\(\s*[A-Za-z_]\w*\s*\)/;
+
+function builderOffenders(file, src) {
+  const bad = [];
+  for (const { call, at } of builderJoins(src)) {
+    if (!ROLE.test(call) && !DYNAMIC.test(call)) continue;
+    if (/sql\.lit\([^)]*\)\s*\.as\(\s*'role'\s*\)/.test(enclosing(src, at))) continue;
+    bad.push(`${path.relative(root, file)}: ${call.replace(/\s+/g, ' ').slice(0, 90)}`);
+  }
+  return bad;
+}
+
 function offenders() {
   const bad = [];
+  for (const file of sources()) bad.push(...builderOffenders(file, fs.readFileSync(file, 'utf8')));
   for (const file of sources()) {
     for (const stmt of statements(fs.readFileSync(file, 'utf8'))) {
       // The permitted form: this statement selects a hardcoded role literal.
@@ -80,9 +126,17 @@ function offenders() {
 }
 
 describe('inner joins to an optional role', () => {
+  // Both spellings are counted: as REARCH-01 converts the models, string statements give
+  // way to builder calls, and a guard that only counted the first would read fewer and
+  // fewer queries without saying so.
   it('is reading the queries at all', () => {
-    const n = sources().reduce((t, f) => t + statements(fs.readFileSync(f, 'utf8')).length, 0);
+    const n = sources().reduce((t, f) => {
+      const src = fs.readFileSync(f, 'utf8');
+      return t + statements(src).length + (src.match(/\.selectFrom\(/g) || []).length;
+    }, 0);
     expect(n).toBeGreaterThan(40);
+    const builderJoinCount = sources().reduce((t, f) => t + builderJoins(fs.readFileSync(f, 'utf8')).length, 0);
+    expect(builderJoinCount).toBeGreaterThan(5);
   });
 
   it('finds none: an optional officer is joined with LEFT', () => {
@@ -105,5 +159,22 @@ describe('inner joins to an optional role', () => {
     const hit = [...stmt.matchAll(/(?<!LEFT\s)\bJOIN\s+player\s+(\w+)?\s*ON\s+([\s\S]*?)$/gi)]
       .some(m => ROLE.test(m[2]));
     expect(hit).toBe(false);
+  });
+
+  it('would catch an officer joined without LEFT in a typed query, and accepts the permitted form', () => {
+    const bad = `exports.f = async function() {
+  return kysely.selectFrom('club')
+    .innerJoin('player as p', join => join.onRef('p.club', '=', 'club.id').on('p.clubSecretary', '=', 1))
+    .select(['club.name']).execute()
+}`;
+    expect(builderOffenders('models/x.js', bad)).toHaveLength(1);
+    expect(builderOffenders('models/x.js', bad.replace('innerJoin', 'leftJoin'))).toEqual([]);
+    const definesRole = bad.replace("select(['club.name'])", "select([sql.lit('club Sec').as('role')])");
+    expect(builderOffenders('models/x.js', definesRole)).toEqual([]);
+    // A join that does not test a role is none of this guard's business.
+    expect(builderOffenders('models/x.js', bad.replace(".on('p.clubSecretary', '=', 1)", ''))).toEqual([]);
+    // One it cannot read is treated as testing a role.
+    expect(builderOffenders('models/x.js', bad.replace("'p.clubSecretary'", '`p.${flag}`'))).toHaveLength(1);
+    expect(builderOffenders('models/x.js', bad.replace(/join => join\.onRef[^)]*\)\.on\([^)]*\)/, 'join => join.on(holds)'))).toHaveLength(1);
   });
 });

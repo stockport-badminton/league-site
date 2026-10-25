@@ -1,0 +1,12 @@
+{
+  "function": "fixture.listMesserScorecardsForApproval",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:07:02.672Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": []
+    }
+  ]
+}

@@ -51,7 +51,9 @@ starts with `auth`. What is there, and what was decided on the way:
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
 `spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
 function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league`, `players` except the five below and REARCH-02's
-five (eight dead functions deleted first). `auth` has no SQL. Left: `fixture`.
+five (eight dead functions deleted first), `fixture` except the eleven below and REARCH-02's
+two (two dead functions deleted first). `auth` has no SQL. **Step 2 is complete for
+everything outside the off-season list and REARCH-02.**
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -64,6 +66,14 @@ list step 3 must clear before `pgQuery` can go:
 | `game.updateEloBatch` | `utils/eloChain`, the re-rate after a publish (takes its `conn`) |
 | `players.getMatchStats`, `getNominatedPlayers`, `getPrevRating`, `refreshRatings` | `full_fixture_post` |
 | `players.getRatingStateBefore` | `utils/eloChain`, inside the re-rate's transaction (takes its `conn`) |
+| `fixture.getScorecardById`, `createScorecard`, `supersedeEarlierDrafts` | `POST /email-scorecard` (filing) and `full_fixture_post` |
+| `fixture.getDraftSupersession`, `getFixtureDetailsById`, `getFixturesForTeams`, `resolveFixtureForResult`, `sendResultZap`, `updateById` | `full_fixture_post` |
+| `fixture.getFixtureDetails` | `utils/eloChain.rerateFrom`, after `full_fixture_post` commits |
+
+**`messer_scorecard."scoresheet-url"` needed one too (027).** It was in migration 003, but
+003's first statement now hits "already exists" and the replay rule ends the file, so a
+Messer scorecard could be filed only in production. **Production still needs 027
+recorded**, the same no-op way as 026.
 
 **`league.getAnnualInvoices` needed a migration first.** It reads `season."clubFee"`,
 which production had (`bigint NOT NULL DEFAULT 15`) and no migration created, so neither
@@ -125,6 +135,14 @@ run it; `--status` shows whether it has been).
   rewriting it as builder calls would be harder to read and easier to get wrong.
 - **Map callers before converting, and delete what has none.** Eight `players` functions
   were referenced nowhere but their own definition; they went in their own commit.
+- **`FROM a, b JOIN c ON …` binds the JOIN to `b` alone.** A comma list followed by joins
+  (`selectFrom(['fixture', 'season']).innerJoin(...)`) puts `fixture` out of scope in the ON
+  clause; join the second table instead. The snapshot caught it as an error.
+- **The db project runs on one worker** (`jest.db.config.js`): files inserting the same
+  fixed ids in parallel transactions deadlock.
+- **A guard that reads SQL strings has to learn the builder's spelling**, or it reads less
+  each conversion without saying so. `optional-join-guard` now scans `.innerJoin('player…')`
+  too, and treats a condition it cannot read as one that tests a role.
 - **A conflict target on an expression index** (`blocked_entry (kind, LOWER(value))`) is
   `oc.expression(…)` with a cast template: `ON CONSTRAINT` names constraints, not indexes.
 - **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database

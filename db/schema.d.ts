@@ -301,6 +301,7 @@ export interface MesserScorecard {
   homeMan3: number | null;
   homeTeam: number;
   id: Generated<number>;
+  "scoresheet-url": string | null;
   SecondMixedawayLady: number | null;
   SecondMixedawayMan: number | null;
   SecondMixedhomeLady: number | null;

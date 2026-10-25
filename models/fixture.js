@@ -25,6 +25,9 @@ const UK_TODAY = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE '
 const SIX_DAYS_AGO = /** @type {When} */ (sql`NOW() - INTERVAL '6 days'`)
 const UK_WEEK_END = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE 'Europe/London') + INTERVAL '7 days'`)
 
+/** A copy with every `undefined` value replaced by null, which the string queries bound it as. @param {Record<string, unknown>} obj */
+const definedOrNull = obj => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, v === undefined ? null : v]))
+
 /** `first_name family_name`, as CONCAT gives it. @param {any} eb @param {string} who */
 const fullName = (eb, who) => eb.fn('concat', [eb.ref(`${who}.first_name`), sql.lit(' '), eb.ref(`${who}.family_name`)])
 
@@ -1111,121 +1114,80 @@ exports.getMissingScorecardPhotos = async function(email) {
 
 // ── Messer scorecard methods ─────────────────────────────────────────────
 
-/** @param {any} messerObj */
+// Insert from a {column: value} object, only the keys given; an `undefined` value is
+// written as NULL, as the string version did. Returns `[{ id }]`.
+/** @param {Record<string, unknown>} messerObj */
 exports.createMesserScorecard = async function(messerObj) {
   if (!db.isObject(messerObj)) throw new Error('not object')
-  const fields = Object.keys(messerObj).map(k => `"${k}"`).join(',')
-  const placeholders = Object.keys(messerObj).map(() => '?').join(',')
-  const sql = `INSERT INTO messer_scorecard (${fields}) VALUES (${placeholders}) RETURNING id`
-  const [result] = await (await db.otherConnect()).query(sql, Object.values(messerObj))
-  return result
+  return kysely.insertInto('messer_scorecard').values(/** @type {any} */ (definedOrNull(messerObj)))
+    .returning('id').execute()
 }
 
-/** @param {any} scorecardId */
+// The twelve player slots, each joined to its player for a display name.
+const MESSER_SLOTS = /** @type {const} */ ([
+  ['hm1', 'homeMan1'], ['hm2', 'homeMan2'], ['hm3', 'homeMan3'], ['hl1', 'homeLady1'], ['hl2', 'homeLady2'], ['hl3', 'homeLady3'],
+  ['am1', 'awayMan1'], ['am2', 'awayMan2'], ['am3', 'awayMan3'], ['al1', 'awayLady1'], ['al2', 'awayLady2'], ['al3', 'awayLady3'],
+])
+
+/** @param {number} scorecardId */
 exports.getMesserScorecardById = async function(scorecardId) {
-  const [result] = await (await db.otherConnect()).query(`
-    SELECT
-      ms.*,
-      CONCAT(hm1.first_name, ' ', hm1.family_name) AS "homeMan1Name",
-      CONCAT(hm2.first_name, ' ', hm2.family_name) AS "homeMan2Name",
-      CONCAT(hm3.first_name, ' ', hm3.family_name) AS "homeMan3Name",
-      CONCAT(hl1.first_name, ' ', hl1.family_name) AS "homeLady1Name",
-      CONCAT(hl2.first_name, ' ', hl2.family_name) AS "homeLady2Name",
-      CONCAT(hl3.first_name, ' ', hl3.family_name) AS "homeLady3Name",
-      CONCAT(am1.first_name, ' ', am1.family_name) AS "awayMan1Name",
-      CONCAT(am2.first_name, ' ', am2.family_name) AS "awayMan2Name",
-      CONCAT(am3.first_name, ' ', am3.family_name) AS "awayMan3Name",
-      CONCAT(al1.first_name, ' ', al1.family_name) AS "awayLady1Name",
-      CONCAT(al2.first_name, ' ', al2.family_name) AS "awayLady2Name",
-      CONCAT(al3.first_name, ' ', al3.family_name) AS "awayLady3Name"
-    FROM messer_scorecard ms
-    LEFT JOIN player hm1 ON ms."homeMan1" = hm1.id
-    LEFT JOIN player hm2 ON ms."homeMan2" = hm2.id
-    LEFT JOIN player hm3 ON ms."homeMan3" = hm3.id
-    LEFT JOIN player hl1 ON ms."homeLady1" = hl1.id
-    LEFT JOIN player hl2 ON ms."homeLady2" = hl2.id
-    LEFT JOIN player hl3 ON ms."homeLady3" = hl3.id
-    LEFT JOIN player am1 ON ms."awayMan1" = am1.id
-    LEFT JOIN player am2 ON ms."awayMan2" = am2.id
-    LEFT JOIN player am3 ON ms."awayMan3" = am3.id
-    LEFT JOIN player al1 ON ms."awayLady1" = al1.id
-    LEFT JOIN player al2 ON ms."awayLady2" = al2.id
-    LEFT JOIN player al3 ON ms."awayLady3" = al3.id
-    WHERE ms.id = ?
-  `, scorecardId)
-  return result
+  /** @type {any} */
+  let q = kysely.selectFrom('messer_scorecard as ms')
+  for (const [alias, slot] of MESSER_SLOTS) q = q.leftJoin(`player as ${alias}`, `ms.${slot}`, `${alias}.id`)
+  return q.selectAll('ms')
+    .select((/** @type {any} */ eb) => MESSER_SLOTS.map(([alias, slot]) => fullName(eb, alias).as(`${slot}Name`)))
+    .where('ms.id', '=', scorecardId)
+    .execute()
 }
 
 exports.listMesserScorecardsForApproval = async function() {
-  const sql = `
-    SELECT
-      ms.id,
-      ms.date,
-      ht.name AS "homeTeam",
-      at.name AS "awayTeam",
-      ht.id AS "homeTeamId",
-      at.id AS "awayTeamId",
-      ms.email,
-      ms.status,
-      ms."created_at"
-    FROM messer_scorecard ms
-    JOIN team ht ON ms."homeTeam" = ht.id
-    JOIN team at ON ms."awayTeam" = at.id
-    WHERE ms.status = 'submitted'
-    ORDER BY ms."created_at" DESC
-  `
-  const [result] = await (await db.otherConnect()).query(sql)
-  return result
+  return kysely.selectFrom('messer_scorecard as ms')
+    .innerJoin('team as ht', 'ms.homeTeam', 'ht.id')
+    .innerJoin('team as at', 'ms.awayTeam', 'at.id')
+    .select(['ms.id', 'ms.date', 'ht.name as homeTeam', 'at.name as awayTeam', 'ht.id as homeTeamId',
+      'at.id as awayTeamId', 'ms.email', 'ms.status', 'ms.created_at'])
+    .where('ms.status', '=', 'submitted')
+    .orderBy('ms.created_at', 'desc')
+    .execute()
 }
 
-/** @param {any} scorecardId @param {any} status */
+// Returns nothing; the approval handler never read the old rows array.
+/** @param {number} scorecardId @param {string} status */
 exports.updateMesserScorecardStatus = async function(scorecardId, status) {
-  const sql = `UPDATE messer_scorecard SET status = ?, "updated_at" = NOW() WHERE id = ?`
-  const [result] = await (await db.otherConnect()).query(sql, [status, scorecardId])
-  return result
+  await kysely.updateTable('messer_scorecard').set(eb => ({ status, updated_at: eb.fn('now') }))
+    .where('id', '=', scorecardId).execute()
 }
 
-/** @param {any} resultObj */
+// Returns `[{ id }]`. Only the keys given are written; undefined is written as NULL.
+/** @param {Record<string, unknown>} resultObj */
 exports.createMesserResult = async function(resultObj) {
   if (!db.isObject(resultObj)) throw new Error('not object')
-  const fields = Object.keys(resultObj).map(k => `"${k}"`).join(',')
-  const placeholders = Object.keys(resultObj).map(() => '?').join(',')
-  const sql = `INSERT INTO messer_result (${fields}) VALUES (${placeholders}) RETURNING id`
-  const [result] = await (await db.otherConnect()).query(sql, Object.values(resultObj))
-  return result
+  return kysely.insertInto('messer_result').values(/** @type {any} */ (definedOrNull(resultObj)))
+    .returning('id').execute()
 }
 
-/** @param {any} messerId @param {any} scores */
+// Returns nothing; the approval handler never read the old rows array.
+/** @param {number} messerId @param {{ homeScore: number, awayScore: number, winningTeam: number }} scores */
 exports.updateMesserTable = async function(messerId, scores) {
   const { homeScore, awayScore, winningTeam } = scores
-  const sql = `
-    UPDATE messer
-    SET "homeScore" = ?, "awayScore" = ?, "winningTeam" = ?
-    WHERE id = ?
-  `
-  const [result] = await (await db.otherConnect()).query(sql, [homeScore, awayScore, winningTeam, messerId])
-  return result
+  await kysely.updateTable('messer').set({ homeScore, awayScore, winningTeam }).where('id', '=', messerId).execute()
 }
 
 // ── Messer bracket wiring & auto-advance ─────────────────────────────────
 
 // All draw slots for a section, with team names, ordered by drawPos.
 // Used by the admin wire-up screen and to validate the bracket.
-/** @param {any} section */
+/** @param {string} section */
 exports.getMesserBracket = async function(section) {
-  const [result] = await (await db.otherConnect()).query(`
-    SELECT
-      m.id, m.section, m."drawPos", m.round, m."nextDrawPos", m."nextSlot",
-      m."homeTeam", m."awayTeam", m."homeScore", m."awayScore", m."winningTeam",
-      ht.name AS "homeTeamName",
-      at.name AS "awayTeamName"
-    FROM messer m
-    LEFT JOIN team ht ON m."homeTeam" = ht.id
-    LEFT JOIN team at ON m."awayTeam" = at.id
-    WHERE m.section = ?
-    ORDER BY m."drawPos"
-  `, [section])
-  return result
+  return kysely.selectFrom('messer as m')
+    .leftJoin('team as ht', 'm.homeTeam', 'ht.id')
+    .leftJoin('team as at', 'm.awayTeam', 'at.id')
+    .select(['m.id', 'm.section', 'm.drawPos', 'm.round', 'm.nextDrawPos', 'm.nextSlot',
+      'm.homeTeam', 'm.awayTeam', 'm.homeScore', 'm.awayScore', 'm.winningTeam',
+      'ht.name as homeTeamName', 'at.name as awayTeamName'])
+    .where('m.section', '=', section)
+    .orderBy('m.drawPos')
+    .execute()
 }
 
 // Save the bracket links entered on the admin screen.
@@ -1253,18 +1215,19 @@ exports.saveMesserBracketLinks = async function(links) {
   const conflicts = []
   const rollback = new Error('messer bracket save conflict')
   try {
-    await db.withTransaction(async conn => {
+    await db.withTransaction(async (conn, trx) => {
       for (const l of changed) {
-        const [rows] = await conn.query(
-          `UPDATE messer SET "round" = ?, "nextDrawPos" = ?, "nextSlot" = ?
-           WHERE id = ? AND "round" IS NOT DISTINCT FROM ?
-             AND "nextDrawPos" IS NOT DISTINCT FROM ? AND "nextSlot" IS NOT DISTINCT FROM ?
-           RETURNING "drawPos"`,
-          [l.round, l.nextDrawPos, l.nextSlot, l.id, l.was.round, l.was.nextDrawPos, l.was.nextSlot]
-        )
-        if (rows.affectedRows !== 1) {
-          const [cur] = await conn.query(`SELECT "drawPos" FROM messer WHERE id = ?`, [l.id])
-          conflicts.push(cur[0] ? cur[0].drawPos : l.id)
+        const written = await trx.updateTable('messer')
+          .set({ round: l.round, nextDrawPos: l.nextDrawPos, nextSlot: l.nextSlot })
+          .where('id', '=', l.id)
+          .where('round', 'is not distinct from', l.was.round)
+          .where('nextDrawPos', 'is not distinct from', l.was.nextDrawPos)
+          .where('nextSlot', 'is not distinct from', l.was.nextSlot)
+          .returning('drawPos')
+          .executeTakeFirst()
+        if (!written) {
+          const cur = await trx.selectFrom('messer').select('drawPos').where('id', '=', l.id).executeTakeFirst()
+          conflicts.push(cur ? cur.drawPos : l.id)
         }
       }
       if (conflicts.length) throw rollback
@@ -1279,16 +1242,16 @@ exports.saveMesserBracketLinks = async function(links) {
 // The draw match between two teams, whichever way round the draw has them. `reversed`
 // is true when the draw has `awayTeamId` at home. The current draw only: archived
 // seasons live in their own messer<season> tables.
-/** @param {any} homeTeamId @param {any} awayTeamId */
+/** @param {number} homeTeamId @param {number} awayTeamId */
 exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT id, section, "drawPos", "nextDrawPos", "nextSlot",
-            ("homeTeam" = ?) AS "exact"
-     FROM messer
-     WHERE ("homeTeam" = ? AND "awayTeam" = ?) OR ("homeTeam" = ? AND "awayTeam" = ?)
-     ORDER BY "exact" DESC`,
-    [homeTeamId, homeTeamId, awayTeamId, awayTeamId, homeTeamId]
-  )
+  const rows = await kysely.selectFrom('messer')
+    .select(eb => ['id', 'section', 'drawPos', 'nextDrawPos', 'nextSlot', eb('homeTeam', '=', homeTeamId).as('exact')])
+    .where(eb => eb.or([
+      eb.and([eb('homeTeam', '=', homeTeamId), eb('awayTeam', '=', awayTeamId)]),
+      eb.and([eb('homeTeam', '=', awayTeamId), eb('awayTeam', '=', homeTeamId)]),
+    ]))
+    .orderBy('exact', 'desc')
+    .execute()
   if (!rows.length) return null
   const { exact, ...match } = rows[0]
   return { ...match, reversed: !exact }
@@ -1317,13 +1280,12 @@ exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
 //     it match.)
 /** @param {any} section @param {any} id */
 exports.swapMesserHomeAway = async function(section, id) {
-  return db.withTransaction(async conn => {
-    const [rows] = await conn.query(
-      `SELECT id, section, "drawPos", "homeTeam", "awayTeam", "homeScore", "awayScore"
-       FROM messer WHERE id = ? AND section = ? FOR UPDATE`,
-      [id, section]
-    )
-    const match = rows[0]
+  return db.withTransaction(async (conn, trx) => {
+    const match = await trx.selectFrom('messer')
+      .select(['id', 'section', 'drawPos', 'homeTeam', 'awayTeam', 'homeScore', 'awayScore'])
+      .where('id', '=', id).where('section', '=', section)
+      .forUpdate()
+      .executeTakeFirst()
     if (!match) {
       throw Object.assign(new Error('No such draw slot in this section'), { status: 404, code: 'missing' })
     }
@@ -1333,27 +1295,26 @@ exports.swapMesserHomeAway = async function(section, id) {
     if (match.homeScore != null || match.awayScore != null) {
       throw Object.assign(new Error('That match already has a result'), { status: 409, code: 'played' })
     }
-    const [pending] = await conn.query(
-      `SELECT id FROM messer_scorecard
-       WHERE "homeTeam" = ? AND "awayTeam" = ? AND status IN ('draft', 'submitted')`,
-      [match.homeTeam, match.awayTeam]
-    )
+    const pending = await trx.selectFrom('messer_scorecard').select('id')
+      .where('homeTeam', '=', match.homeTeam).where('awayTeam', '=', match.awayTeam)
+      .where('status', 'in', ['draft', 'submitted'])
+      .execute()
     if (pending.length) {
       throw Object.assign(new Error('A scorecard for that match is awaiting approval'), { status: 409, code: 'pending' })
     }
 
     // Postgres evaluates every SET expression against the old row, so this swaps.
-    await conn.query(
-      `UPDATE messer SET "homeTeam" = "awayTeam", "awayTeam" = "homeTeam" WHERE id = ?`,
-      [match.id]
-    )
-    const [flipped] = await conn.query(
-      `UPDATE messer
-       SET "nextSlot" = CASE "nextSlot" WHEN 'H' THEN 'A' ELSE 'H' END
-       WHERE section = ? AND "nextDrawPos" = ? AND "nextSlot" IN ('H', 'A')`,
-      [match.section, match.drawPos]
-    )
-    return { id: match.id, drawPos: match.drawPos, feedersFlipped: flipped.affectedRows }
+    await trx.updateTable('messer')
+      .set(eb => ({ homeTeam: eb.ref('awayTeam'), awayTeam: eb.ref('homeTeam') }))
+      .where('id', '=', match.id)
+      .execute()
+    const flipped = await trx.updateTable('messer')
+      .set(eb => ({ nextSlot: eb.case('nextSlot').when('H').then('A').else('H').end() }))
+      .where('section', '=', /** @type {string} */ (match.section))
+      .where('nextDrawPos', '=', match.drawPos)
+      .where('nextSlot', 'in', ['H', 'A'])
+      .executeTakeFirst()
+    return { id: match.id, drawPos: match.drawPos, feedersFlipped: Number(flipped.numUpdatedRows) }
   })
 }
 
@@ -1366,12 +1327,9 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
   if (match.nextDrawPos == null || !match.nextSlot) {
     return { advanced: false, reason: 'no-next-slot' } // section final, nothing to do
   }
-  const conn = await db.otherConnect()
-  const [targetRows] = await conn.query(
-    `SELECT id, "homeScore", "awayScore" FROM messer WHERE section = ? AND "drawPos" = ?`,
-    [match.section, match.nextDrawPos]
-  )
-  const target = targetRows && targetRows[0]
+  const target = await kysely.selectFrom('messer').select(['id', 'homeScore', 'awayScore'])
+    .where('section', '=', match.section).where('drawPos', '=', match.nextDrawPos)
+    .executeTakeFirst()
   if (!target) {
     return { advanced: false, reason: 'target-missing' }
   }
@@ -1379,11 +1337,10 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
   if (target.homeScore != null || target.awayScore != null) {
     return { advanced: false, reason: 'target-already-played', targetId: target.id }
   }
-  const slotCol = match.nextSlot === 'H' ? 'homeTeam' : 'awayTeam'
-  await conn.query(
-    `UPDATE messer SET "${slotCol}" = ? WHERE id = ?`,
-    [winningTeam, target.id]
-  )
+  await kysely.updateTable('messer')
+    .set(match.nextSlot === 'H' ? { homeTeam: winningTeam } : { awayTeam: winningTeam })
+    .where('id', '=', target.id)
+    .execute()
   return { advanced: true, targetId: target.id, slot: match.nextSlot }
 }
 
