@@ -1,15 +1,20 @@
+// @ts-check
 var db = require('../db_connect.js');
+const { kysely } = require('../db');
 
 // Fallback season derivation, used only until init() runs or if the DB lookup
 // fails. Matches the historical rule (rolls over on 1 August). offset 0 =
 // current, 1 = previous.
+/** @param {number} offset */
 function dateBasedSeason(offset) {
   var year = new Date().getFullYear();
   var startYear = (new Date().getMonth() < 7 ? year - 1 : year) - offset;
   return `${startYear}${startYear + 1}`;
 }
 
+/** @type {string | null} */
 var _current = null;
+/** @type {string | null} */
 var _previous = null;
 
 // Determine the current/previous season from the season table, picking the
@@ -22,15 +27,15 @@ var _previous = null;
 // on deploy/scaling. Call once at startup after db.connect().
 exports.init = async function() {
   try {
-    const [rows] = await (await db.otherConnect()).query(
-      'SELECT name FROM season WHERE "startDate" <= now() ORDER BY "startDate" DESC LIMIT 2'
-    );
-    if (rows && rows.length) {
+    const rows = await kysely.selectFrom('season').select('name')
+      .where(eb => eb('startDate', '<=', eb.fn('now'))).orderBy('startDate', 'desc').limit(2)
+      .execute();
+    if (rows.length) {
       _current = rows[0].name;
       _previous = rows[1] ? rows[1].name : dateBasedSeason(1);
     }
   } catch (err) {
-    console.error('season.init failed; using date-based fallback:', err.message);
+    console.error('season.init failed; using date-based fallback:', /** @type {Error} */ (err).message);
   }
   return { current: exports.current(), previous: exports.previous() };
 };
@@ -77,8 +82,10 @@ exports.getAll = async function() {
 // that passes can carry a quote, space, comment marker or semicolon.
 const NAME_PATTERN = /^20\d{6}$/;
 
+/** @type {Set<string> | null} */
 let _servable = null;   // null until init() succeeds; see isServable()
 
+/** @param {unknown} season */
 exports.isValidName = function(season) {
   return NAME_PATTERN.test(String(season));
 };
@@ -86,10 +93,11 @@ exports.isValidName = function(season) {
 // Throw rather than return false: a model reached with a bad season should fail
 // loudly, not quietly query the wrong table. Callers pass an empty/undefined season
 // to mean "the live tables", which is always allowed.
+/** @param {unknown} season */
 exports.assertName = function(season) {
   if (season === undefined || season === null || season === '') return '';
   if (!exports.isValidName(season)) {
-    const err = new Error('invalid season name: ' + JSON.stringify(String(season)));
+    const err = /** @type {Error & { status?: number }} */ (new Error('invalid season name: ' + JSON.stringify(String(season))));
     // A junk season in the URL is a bad request, not a server fault. The central
     // handler in routes/index.js renders a 404 for a 4xx status and skips Sentry,
     // so this does not refill the issue list the way NODE-Q did. Matters for
@@ -109,6 +117,7 @@ exports.assertName = function(season) {
 // Falls back to shape-only when the allowlist could not be loaded, so a DB hiccup
 // at boot degrades to "some 500s" rather than "every archive page 404s". Injection
 // is blocked by the pattern either way.
+/** @param {unknown} season */
 exports.isServable = function(season) {
   if (season === undefined || season === null || season === '') return true;
   if (!exports.isValidName(season)) return false;
@@ -120,12 +129,12 @@ exports.isServable = function(season) {
 exports.loadServable = async function() {
   try {
     const rows = await exports.getAll();
-    const set = new Set(rows.map(function(r) { return r.name; }));
+    const set = new Set(rows.map(function(/** @type {{ name: string }} */ r) { return r.name; }));
     set.add(exports.current());
     _servable = set;
     return set.size;
   } catch (err) {
-    console.error('season.loadServable failed; falling back to format-only checks:', err.message);
+    console.error('season.loadServable failed; falling back to format-only checks:', /** @type {Error} */ (err).message);
     _servable = null;
     return 0;
   }

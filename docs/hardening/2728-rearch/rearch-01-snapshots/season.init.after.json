@@ -1,0 +1,15 @@
+{
+  "function": "season.init",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:00:37.721Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": {
+        "current": "20262027",
+        "previous": "20252026"
+      }
+    }
+  ]
+}

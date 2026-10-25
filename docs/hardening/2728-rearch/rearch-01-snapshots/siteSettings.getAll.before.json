@@ -1,0 +1,17 @@
+{
+  "function": "siteSettings.getAll",
+  "database": "sdbl",
+  "taken": "2026-10-25T20:59:53.645Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "key": "homepage_gallery_tag",
+          "value": "messer2026"
+        }
+      ]
+    }
+  ]
+}
