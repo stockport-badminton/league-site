@@ -1,0 +1,328 @@
+{
+  "function": "liveScorecard.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:57:44.589Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        1
+      ],
+      "result": {
+        "id": 1,
+        "fixture_id": 6584,
+        "edit_token": "oft82k0fKiOTXYiU2CV3CWHz_n41RfyM",
+        "home_token": "rDFPbHT8Wset7CEk0bO_3BrjQhCyeVNm",
+        "away_token": "0WVitRSUTbeWt4k86gRjKSRrxKi8Jx_C",
+        "players": {
+          "awayMan1": 2134,
+          "awayMan2": 500,
+          "awayMan3": 2283,
+          "homeMan1": 1861,
+          "homeMan2": 68,
+          "homeMan3": 419,
+          "awayLady1": 495,
+          "awayLady2": 508,
+          "awayLady3": 509,
+          "homeLady1": 420,
+          "homeLady2": 422,
+          "homeLady3": 421
+        },
+        "games": {
+          "1": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:34.358Z",
+            "by": "Courtside tester"
+          },
+          "2": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.235Z",
+            "by": "Courtside tester"
+          },
+          "3": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.253Z",
+            "by": "Courtside tester"
+          },
+          "4": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.269Z",
+            "by": "Courtside tester"
+          },
+          "5": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.286Z",
+            "by": "Courtside tester"
+          },
+          "6": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.302Z",
+            "by": "Courtside tester"
+          },
+          "7": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.319Z",
+            "by": "Courtside tester"
+          },
+          "8": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.335Z",
+            "by": "Courtside tester"
+          },
+          "9": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.351Z",
+            "by": "Courtside tester"
+          },
+          "10": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.368Z",
+            "by": "Courtside tester"
+          },
+          "11": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.385Z",
+            "by": "Courtside tester"
+          },
+          "12": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.402Z",
+            "by": "Courtside tester"
+          },
+          "13": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.418Z",
+            "by": "Courtside tester"
+          },
+          "14": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.434Z",
+            "by": "Courtside tester"
+          },
+          "15": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.451Z",
+            "by": "Courtside tester"
+          },
+          "16": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.467Z",
+            "by": "Courtside tester"
+          },
+          "17": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.484Z",
+            "by": "Courtside tester"
+          },
+          "18": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.500Z",
+            "by": "Courtside tester"
+          }
+        },
+        "version": 31,
+        "rev": 35,
+        "status": "filed",
+        "home_signed_by": "Home Captain",
+        "home_signed_at": {
+          "$date": "2026-10-17T18:45:42.979Z"
+        },
+        "away_signed_by": "Away Captain",
+        "away_signed_at": {
+          "$date": "2026-10-17T18:45:43.105Z"
+        },
+        "draft_id": 2435,
+        "created_by": "dev|local",
+        "created_email": null,
+        "created_at": {
+          "$date": "2026-10-17T18:45:33.493Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-17T18:45:43.110Z"
+        }
+      }
+    },
+    {
+      "label": "string",
+      "args": [
+        "1"
+      ],
+      "result": {
+        "id": 1,
+        "fixture_id": 6584,
+        "edit_token": "oft82k0fKiOTXYiU2CV3CWHz_n41RfyM",
+        "home_token": "rDFPbHT8Wset7CEk0bO_3BrjQhCyeVNm",
+        "away_token": "0WVitRSUTbeWt4k86gRjKSRrxKi8Jx_C",
+        "players": {
+          "awayMan1": 2134,
+          "awayMan2": 500,
+          "awayMan3": 2283,
+          "homeMan1": 1861,
+          "homeMan2": 68,
+          "homeMan3": 419,
+          "awayLady1": 495,
+          "awayLady2": 508,
+          "awayLady3": 509,
+          "homeLady1": 420,
+          "homeLady2": 422,
+          "homeLady3": 421
+        },
+        "games": {
+          "1": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:34.358Z",
+            "by": "Courtside tester"
+          },
+          "2": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.235Z",
+            "by": "Courtside tester"
+          },
+          "3": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.253Z",
+            "by": "Courtside tester"
+          },
+          "4": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.269Z",
+            "by": "Courtside tester"
+          },
+          "5": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.286Z",
+            "by": "Courtside tester"
+          },
+          "6": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.302Z",
+            "by": "Courtside tester"
+          },
+          "7": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.319Z",
+            "by": "Courtside tester"
+          },
+          "8": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.335Z",
+            "by": "Courtside tester"
+          },
+          "9": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.351Z",
+            "by": "Courtside tester"
+          },
+          "10": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.368Z",
+            "by": "Courtside tester"
+          },
+          "11": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.385Z",
+            "by": "Courtside tester"
+          },
+          "12": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.402Z",
+            "by": "Courtside tester"
+          },
+          "13": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.418Z",
+            "by": "Courtside tester"
+          },
+          "14": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.434Z",
+            "by": "Courtside tester"
+          },
+          "15": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.451Z",
+            "by": "Courtside tester"
+          },
+          "16": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.467Z",
+            "by": "Courtside tester"
+          },
+          "17": {
+            "a": 15,
+            "h": 21,
+            "at": "2026-10-17T18:45:38.484Z",
+            "by": "Courtside tester"
+          },
+          "18": {
+            "a": 21,
+            "h": 17,
+            "at": "2026-10-17T18:45:38.500Z",
+            "by": "Courtside tester"
+          }
+        },
+        "version": 31,
+        "rev": 35,
+        "status": "filed",
+        "home_signed_by": "Home Captain",
+        "home_signed_at": {
+          "$date": "2026-10-17T18:45:42.979Z"
+        },
+        "away_signed_by": "Away Captain",
+        "away_signed_at": {
+          "$date": "2026-10-17T18:45:43.105Z"
+        },
+        "draft_id": 2435,
+        "created_by": "dev|local",
+        "created_email": null,
+        "created_at": {
+          "$date": "2026-10-17T18:45:33.493Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-17T18:45:43.110Z"
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        999
+      ],
+      "result": null
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "function": "liveScorecard.getForFixtures",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:57:45.553Z",
+  "cases": [
+    {
+      "label": "two",
+      "args": [
+        [
+          6584,
+          6583
+        ]
+      ],
+      "result": [
+        {
+          "id": 1,
+          "fixture_id": 6584,
+          "status": "filed",
+          "created_by": "dev|local"
+        },
+        {
+          "id": 2,
+          "fixture_id": 6583,
+          "status": "filed",
+          "created_by": "dev|local"
+        }
+      ]
+    },
+    {
+      "label": "empty",
+      "args": [
+        []
+      ],
+      "result": []
+    },
+    {
+      "label": "none",
+      "args": [
+        [
+          999999
+        ]
+      ],
+      "result": []
+    }
+  ]
+}

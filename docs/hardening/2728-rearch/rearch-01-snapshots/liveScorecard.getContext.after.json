@@ -1,0 +1,50 @@
+{
+  "function": "liveScorecard.getContext",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:57:46.039Z",
+  "cases": [
+    {
+      "label": "carded",
+      "args": [
+        6584
+      ],
+      "result": {
+        "fixtureId": 6584,
+        "fixtureStatus": "outstanding",
+        "dateText": "2026-10-17 00:00:00",
+        "dateLabel": "Saturday 17 October 2026",
+        "homeTeamId": 29,
+        "homeTeamName": "Mellor A",
+        "awayTeamId": 40,
+        "awayTeamName": "Parrswood C",
+        "divisionId": 9,
+        "divisionName": "Division 2"
+      }
+    },
+    {
+      "label": "plain",
+      "args": [
+        3
+      ],
+      "result": {
+        "fixtureId": 3,
+        "fixtureStatus": "complete",
+        "dateText": "2018-09-09 23:00:00",
+        "dateLabel": "Sunday 9 September 2018",
+        "homeTeamId": 8,
+        "homeTeamName": "Racketeers B",
+        "awayTeamId": 11,
+        "awayTeamName": "Carrington A",
+        "divisionId": 7,
+        "divisionName": "Premier"
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        999999
+      ],
+      "result": null
+    }
+  ]
+}
