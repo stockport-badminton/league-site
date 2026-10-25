@@ -19,22 +19,7 @@ exports.create = async function(first_name, family_name, team, club, gender) {
   return result
 }
 
-exports.createByName = async function(obj) {
-  if (!db.isObject(obj)) throw new Error('not object')
-  const sql = 'INSERT INTO player (first_name, family_name, gender, club, team, date_of_registration) VALUES (?, ?, ?, (SELECT id FROM club WHERE name = ?), (SELECT id FROM team WHERE name = ?), ?)'
-  const [result] = await (await db.otherConnect()).query(sql, [obj.first_name, obj.family_name, obj.gender, obj.clubName, obj.teamName, obj.date])
-  return result
-}
-
 // PATCH
-exports.updateById = async function(first_name, family_name, team, club, gender, playerId) {
-  const [result] = await (await db.otherConnect()).query(
-    'UPDATE player SET first_name = ?, family_name = ?, team = ?, club = ?, gender = ? WHERE id = ?',
-    [first_name, family_name, team, club, gender, playerId]
-  )
-  return result
-}
-
 // Columns updateBulk is allowed to write. It builds its SET clause from
 // caller-supplied field names, which was safe enough while every caller was
 // server-side — but it was also reachable as POST /player/batch-update, where the
@@ -84,11 +69,6 @@ exports.updateBulk = async function(BatchObj) {
 }
 
 // GET
-exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM player')
-  return result
-}
-
 exports.getNominatedPlayers = async function(teamName) {
   const [result] = await (await db.otherConnect()).query(
     "SELECT CONCAT(first_name,' ',family_name) AS name, gender FROM player JOIN team ON team.id = player.team WHERE team.name = ? AND player.rank IS NOT NULL ORDER BY gender, player.rank",
@@ -1010,14 +990,6 @@ exports.findElgiblePlayersFromTeamId = async function(id, gender) {
   return result
 }
 
-exports.findElgiblePlayersFromTeamIdAndSelected = async function(teamName, gender, first, second, third) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT player.id, player.first_name, player.family_name, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS first, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS second, CASE WHEN LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) < 6 THEN TRUE ELSE FALSE END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name,?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?",
-    [first, second, third, teamName, gender]
-  )
-  return result
-}
-
 exports.getEligiblePlayersAndSelectedById = async function(first, second, third, teamId, gender) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT player.id, player.first_name, player.family_name, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS first, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS second, CASE WHEN player.id = ? THEN 1 ELSE 0 END AS third FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND team.id = ?) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ?',
@@ -1070,14 +1042,6 @@ exports.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein = async functio
   return rows
 }
 
-exports.findElgiblePlayersFromTeamIdAndSelectedNew = async function(teamName, gender, first, second, third) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT player.id, player.first_name, player.family_name, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS first, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS second, LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name), ?) AS third, (LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?) + LEVENSHTEIN(CONCAT(player.first_name,' ',player.family_name),?)) AS totallev FROM (SELECT team.id, team.name, team.rank FROM (SELECT club.id, club.name, team.rank AS originalrank FROM team, club WHERE team.club = club.id AND LEVENSHTEIN(team.name, ?) < 1) AS a JOIN team ON a.id = team.club AND team.rank >= originalRank) AS b JOIN player ON player.team = b.id AND player.gender = ? ORDER BY totalLev ASC, first ASC, second ASC, third ASC",
-    [first, second, third, first, second, third, teamName, gender]
-  )
-  return result
-}
-
 exports.count = async function(searchTerm) {
   if (searchTerm == "") {
     const [result] = await (await db.otherConnect()).query('SELECT COUNT(*) AS players FROM player')
@@ -1086,22 +1050,6 @@ exports.count = async function(searchTerm) {
     const [result] = await (await db.otherConnect()).query('SELECT COUNT(*) AS players FROM player WHERE gender = ?', searchTerm)
     return result
   }
-}
-
-exports.getByName = async function(playerName) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT * FROM player WHERE LEVENSHTEIN(CONCAT(first_name,' ',family_name), ?) < 4",
-    playerName
-  )
-  return result
-}
-
-exports.getByNameAndTeam = async function(playerName, teamId, distance) {
-  const [result] = await (await db.otherConnect()).query(
-    "SELECT * FROM (SELECT player.id AS playerid, CONCAT(first_name,' ',family_name) AS playername, team.id AS teamid, team.name AS teamname FROM player JOIN team ON player.team = team.id) AS playerclub WHERE teamId=? AND LEVENSHTEIN(playerName,?) < ?",
-    [teamId, playerName, distance]
-  )
-  return result
 }
 
 exports.getById = async function(playerId) {
@@ -1117,14 +1065,6 @@ exports.getPlayerClubandTeamById = async function(playerId) {
   const [result] = await (await db.otherConnect()).query(
     "SELECT playerId AS \"playerId\", playerName AS \"playerName\", clubName AS \"clubName\", team.name AS \"teamName\", date_of_registration FROM (SELECT playerId, playerName, club.name AS clubname, teamId, date_of_registration FROM (SELECT player.id AS playerid, CONCAT(player.first_name,' ',player.family_name) AS playername, player.club AS clubid, player.team AS teamid, player.date_of_registration FROM player WHERE id = ?) AS a JOIN club ON clubId = club.id) AS b JOIN team ON teamId = team.id",
     [playerId]
-  )
-  return result
-}
-
-exports.findByName = async function(searchObject) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT * FROM player WHERE id = ?',
-    searchObject
   )
   return result
 }
