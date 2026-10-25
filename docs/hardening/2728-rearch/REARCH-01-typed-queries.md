@@ -73,7 +73,18 @@ Migration 026 adds it with `IF NOT EXISTS`. **Production still needs it recorded
 that only writes the `schema_migrations` row (the agent doing this was not permitted to
 run it; `--status` shows whether it has been).
 
-Idioms settled on the way, worth reusing:
+**Found while converting, and converted as they behave — each needs its own decision:**
+
+- **`fixture.getAll` and `getFixtureIdFromTeamNames` hardcode `season.id = 2`, which is
+  2019/20 in production.** `getAll` backs the public `/fixtures` route, so it serves
+  2019/20's fixtures; `getFixtureIdFromTeamNames` (`/fixture/home-:h/away-:a`) uses only
+  that season's *start*, so it matches every meeting of the pair since 2019 (seven for one
+  pairing in the local data). Fixing either changes what a route returns, which this
+  package does not do.
+- **`fixture.getClubFixtureDetails` has no caller** — REARCH-02 owns it, and may be able to
+  delete it rather than rewrite it.
+
+
 
 - **A snapshot that cannot fail is not evidence.** `season.init` falls back to a date rule
   that gives today's answer, `invoiceRun.findings` answers `[]` for an exempt season, and

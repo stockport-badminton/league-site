@@ -1,0 +1,71 @@
+{
+  "function": "fixture.getFixtureSummaryById",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:22.440Z",
+  "cases": [
+    {
+      "label": "complete",
+      "args": [
+        7679
+      ],
+      "result": [
+        {
+          "id": 7679,
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "status": "complete",
+          "homeScore": 16,
+          "awayScore": 2,
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B"
+        }
+      ]
+    },
+    {
+      "label": "outstanding",
+      "args": [
+        7694
+      ],
+      "result": [
+        {
+          "id": 7694,
+          "date": {
+            "$date": "2027-02-10T00:00:00.000Z"
+          },
+          "status": "outstanding",
+          "homeScore": null,
+          "awayScore": null,
+          "homeTeam": "Shell A",
+          "awayTeam": "Racketeers A"
+        }
+      ]
+    },
+    {
+      "label": "string",
+      "args": [
+        "7679"
+      ],
+      "result": [
+        {
+          "id": 7679,
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "status": "complete",
+          "homeScore": 16,
+          "awayScore": 2,
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B"
+        }
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999999
+      ],
+      "result": []
+    }
+  ]
+}

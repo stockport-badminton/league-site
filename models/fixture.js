@@ -1,11 +1,34 @@
+// @ts-check
 var db = require('../db_connect.js');
+const { sql } = require('kysely');
+const { kysely } = require('../db');
 const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
 const axios = require('axios');
 const { NO_TEAM_ID } = require('./roster');
 const SocialResultPost = require('./socialResultPost');
 
+// REARCH-01 is converting this file in batches; see the brief for which functions are on
+// the typed query layer and which wait for the off-season because the publish request
+// calls them.
 
+/** @typedef {import('kysely').RawBuilder<Date>} When */
+// Fixed moments the queries below compare fixture.date against. Written as SQL, because
+// they are computed by the database clock, as they always were.
+const NOW = /** @type {When} */ (sql`NOW()`)
+const WEEK_AGO = /** @type {When} */ (sql`NOW() - INTERVAL '7 days'`)
+const YESTERDAY = /** @type {When} */ (sql`NOW() - INTERVAL '1 day'`)
+const WEEK_AHEAD = /** @type {When} */ (sql`NOW() + INTERVAL '7 days'`)
+// Today in the UK, not in the database's UTC: fixture.date holds UK local midnight as a
+// naive timestamp, so the comparison is like for like (see getUpcomingWeek).
+const UK_TODAY = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE 'Europe/London')`)
+const UK_WEEK_END = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE 'Europe/London') + INTERVAL '7 days'`)
+
+/** `first_name family_name`, as CONCAT gives it. @param {any} eb @param {string} who */
+const fullName = (eb, who) => eb.fn('concat', [eb.ref(`${who}.first_name`), sql.lit(' '), eb.ref(`${who}.family_name`)])
+
+
+/** @param {any} fixtureId */
 exports.getScorecardById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT * FROM scorecardstore WHERE id = ?',
@@ -21,6 +44,7 @@ exports.getScorecardById = async function(fixtureId) {
 // did read `.insertId`, so every submitted scorecard redirected to
 // /populated-scorecard-beta/undefined and emailed the results secretary that same
 // dead link. Same shape as createMesserScorecard/createMesserResult below.
+/** @param {any} fixtureObj */
 exports.createScorecard = async function(fixtureObj) {
   if (!db.isObject(fixtureObj)) throw new Error('not object')
   const fields = Object.keys(fixtureObj).map(k => `"${k}"`).join(',')
@@ -48,6 +72,7 @@ exports.createScorecard = async function(fixtureObj) {
 // use, deliberately: superseding the WRONG draft would hide a real scorecard, so the safe
 // direction to be wrong in is to supersede too few. A captain who also corrects the date
 // leaves two current drafts, which is the state we already live with.
+/** @param {any} newId @param {any} match @param {any} conn */
 exports.supersedeEarlierDrafts = async function(newId, match, conn) {
   const c = conn || await db.otherConnect()
   const [result] = await c.query(
@@ -59,6 +84,7 @@ exports.supersedeEarlierDrafts = async function(newId, match, conn) {
 }
 
 // Is this draft still the current one for its match, and if not, which replaced it?
+/** @param {any} draftId */
 exports.getDraftSupersession = async function(draftId) {
   const [rows] = await (await db.otherConnect()).query(
     'SELECT id, "supersededBy" FROM scorecardstore WHERE id = ?', [draftId]
@@ -89,6 +115,7 @@ exports.getDraftSupersession = async function(draftId) {
 // inner alias without quoting every reference to it is how this gets turned from a blank
 // column into a 500.
 //
+/** @param {any} fixtureObj */
 exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   const searchTerms = []
   const sqlArray = []
@@ -140,7 +167,7 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
       'SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ?',
       ['public', archive]
     )
-    const has = new Set(cols.map(c => c.column_name))
+    const has = new Set(cols.map((/** @type {any} */ c) => c.column_name))
     if (has.has('team')) {
       let ranked = false
       if (has.has('rank')) {
@@ -169,18 +196,29 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   return result
 }
 
+// NOTE season.id = 2 is 2019/20 in production, so this returns that season's fixtures, not
+// the current one's. Converted as it behaves; see the REARCH-01 brief.
 exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT fixture.* FROM fixture, season WHERE season.id = 2 AND fixture.date > season."startDate" AND fixture.date < season."endDate"'
-  )
-  return result
+  return kysely.selectFrom(['fixture', 'season']).selectAll('fixture')
+    .where('season.id', '=', 2)
+    .whereRef('fixture.date', '>', 'season.startDate').whereRef('fixture.date', '<', 'season.endDate')
+    .execute()
 }
 
+// `maplink` is lowercase because the string version's unquoted alias folded; it is what
+// the page reads.
 exports.getRecent = async function() {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT a.date, a."homeTeam", team.name AS "awayTeam", a.address, a."venueName", a.mapLink, a."Lat", a."Lng", a."homeScore", a."awayScore" FROM (SELECT fixture.date, team.name AS "homeTeam", venue.address AS address, venue.name AS "venueName", venue."gMapUrl" AS maplink, venue."Lat", venue."Lng", fixture."homeScore", fixture."awayScore", fixture."awayTeam" FROM fixture JOIN team ON fixture."homeTeam" = team.id JOIN venue ON team.venue = venue.id) AS a JOIN team ON a."awayTeam" = team.id WHERE a."homeScore" IS NOT NULL AND date BETWEEN NOW() - INTERVAL \'7 days\' AND NOW() ORDER BY date'
-  )
-  return result
+  return kysely.selectFrom('fixture')
+    .innerJoin('team', 'fixture.homeTeam', 'team.id')
+    .innerJoin('venue', 'team.venue', 'venue.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .select(['fixture.date', 'team.name as homeTeam', 'awayTeam.name as awayTeam', 'venue.address as address',
+      'venue.name as venueName', 'venue.gMapUrl as maplink', 'venue.Lat', 'venue.Lng',
+      'fixture.homeScore', 'fixture.awayScore'])
+    .where('fixture.homeScore', 'is not', null)
+    .where(eb => eb.between('fixture.date', WEEK_AGO, NOW))
+    .orderBy('fixture.date')
+    .execute()
 }
 
 exports.getOutstandingScorecards = async function() {
@@ -246,47 +284,26 @@ exports.getCardsDueToday = async function() {
 // captains. The season join went for the same reason as before — it filtered on a
 // table the SELECT never touched.
 exports.getupComing = async function() {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-    fixture.id,
-    fixture.date,
-    homeTeam.name AS "homeTeam",
-    homeTeam.starttime AS "startTime",
-    homeTeam.endtime AS "endTime",
-    homeClub.name AS "homeClub",
-    homeClub."clubWebsite",
-    awayTeam.name AS "awayTeam",
-    awayClub.name AS "awayClub",
-    division.name AS "divisionName",
-    venue."Lat",
-    venue."Lng",
-    venue.name AS "venueName",
-    venue.address AS "venueAddress",
-    venue."gMapUrl" AS "venueLink",
-    fixture.status,
-    fixture."homeScore",
-    fixture."awayScore"
-FROM
-    fixture
-        JOIN
-    team homeTeam ON fixture."homeTeam" = homeTeam.id
-        JOIN
-    team awayTeam ON fixture."awayTeam" = awayTeam.id
-        LEFT JOIN
-    club homeClub ON homeTeam.club = homeClub.id
-        LEFT JOIN
-    club awayClub ON awayTeam.club = awayClub.id
-        LEFT JOIN
-    venue ON homeTeam.venue = venue.id
-        LEFT JOIN
-    division ON homeTeam.division = division.id
-WHERE
-    fixture."homeScore" IS NULL
-        AND fixture.status NOT IN ('rearranged','rearranging')
-        AND fixture.date BETWEEN NOW() - INTERVAL '1 day' AND NOW() + INTERVAL '7 days'
-ORDER BY date`)
-  return result
+  return kysely.selectFrom('fixture')
+    .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .leftJoin('club as homeClub', 'homeTeam.club', 'homeClub.id')
+    .leftJoin('club as awayClub', 'awayTeam.club', 'awayClub.id')
+    .leftJoin('venue', 'homeTeam.venue', 'venue.id')
+    .leftJoin('division', 'homeTeam.division', 'division.id')
+    .select(['fixture.id', 'fixture.date', 'homeTeam.name as homeTeam', 'homeTeam.starttime as startTime',
+      'homeTeam.endtime as endTime', 'homeClub.name as homeClub', 'homeClub.clubWebsite',
+      'awayTeam.name as awayTeam', 'awayClub.name as awayClub', 'division.name as divisionName',
+      'venue.Lat', 'venue.Lng', 'venue.name as venueName', 'venue.address as venueAddress',
+      'venue.gMapUrl as venueLink', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore'])
+    .where('fixture.homeScore', 'is', null)
+    .where('fixture.status', 'not in', ['rearranged', 'rearranging'])
+    .where(eb => eb.between('fixture.date', YESTERDAY, WEEK_AHEAD))
+    .orderBy('fixture.date')
+    .execute()
 }
 
+/** @param {any} fixtureObj */
 exports.getClubFixtureDetails = async function(fixtureObj) {
   const searchTerms = []
   const sqlArray = []
@@ -329,8 +346,10 @@ exports.getClubFixtureDetails = async function(fixtureObj) {
   return result
 }
 
+/** @param {any} searchObj */
 exports.getFixtureDetails = async function(searchObj) {
   const filterArray = ['season', 'division', 'club', 'team', 'status', 'endDate', 'startDate', 'type']
+  /** @type {Record<string, any>} */
   const fixtureObj = {}
 
   if (searchObj !== undefined) {
@@ -342,7 +361,7 @@ exports.getFixtureDetails = async function(searchObj) {
     }
   }
 
-  const checkSeason = function(season) {
+  const checkSeason = function(/** @type {any} */ season) {
     // Shape first — the parseInt pair below is not a guard. parseInt stops at the
     // first non-digit, so "20252026 AS t --" yielded 2025/2026 and passed every
     // check, then went into the query below as ${'team' + season}. That is the
@@ -467,12 +486,10 @@ exports.getFixtureDetails = async function(searchObj) {
 }
 
 exports.getAllSeasons = async function() {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT name, "startDate", "endDate" FROM season ORDER BY "startDate" ASC`
-  )
-  return rows
+  return kysely.selectFrom('season').select(['name', 'startDate', 'endDate']).orderBy('startDate', 'asc').execute()
 }
 
+/** @param {any} fixtureId */
 exports.getFixtureDetailsById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT a.fixtureId, a.date, a."homeTeam", team.name AS "awayTeam", a.status, a."homeScore", a."awayScore" FROM (SELECT team.name AS "homeTeam", fixture.id AS fixtureid, fixture.date AS date, fixture."awayTeam", fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN team ON team.id = fixture."homeTeam") AS a JOIN team ON team.id = a."awayTeam" AND fixtureId = ?',
@@ -487,26 +504,36 @@ exports.getFixtureDetailsById = async function(fixtureId) {
 // returns no rows for a fixture whose team has no captain flagged, which makes
 // "fixture does not exist" indistinguishable from "captain unset". This one can
 // only return zero rows when the fixture genuinely is not there.
+/** @param {number} fixtureId */
 exports.getFixtureSummaryById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT f.id, f.date, f.status,
-            f."homeScore" AS "homeScore", f."awayScore" AS "awayScore",
-            homeTeam.name AS "homeTeam", awayTeam.name AS "awayTeam"
-     FROM fixture f
-     LEFT JOIN team homeTeam ON f."homeTeam" = homeTeam.id
-     LEFT JOIN team awayTeam ON f."awayTeam" = awayTeam.id
-     WHERE f.id = ?`,
-    fixtureId
-  )
-  return result
+  return kysely.selectFrom('fixture as f')
+    .leftJoin('team as homeTeam', 'f.homeTeam', 'homeTeam.id')
+    .leftJoin('team as awayTeam', 'f.awayTeam', 'awayTeam.id')
+    .select(['f.id', 'f.date', 'f.status', 'f.homeScore', 'f.awayScore',
+      'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam'])
+    .where('f.id', '=', fixtureId)
+    .execute()
 }
 
+// One row per game of the fixture, with the four players named and both scores: the
+// game's own and the fixture's total. Inner joins throughout, as the nested version had,
+// so a game with an empty player slot is not listed.
+/** @param {number} fixtureId */
 exports.getScorecardDataById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT date, "homeTeam", "awayTeam", CONCAT(homePlayer1.first_name,' ',homePlayer1.family_name) AS "homePlayer1", CONCAT(homePlayer2.first_name,' ',homePlayer2.family_name) AS "homePlayer2", CONCAT(awayPlayer1.first_name,' ',awayPlayer1.family_name) AS "awayPlayer1", CONCAT(awayPlayer2.first_name,' ',awayPlayer2.family_name) AS "awayPlayer2", "homeScore", "awayScore", totalHomeScore AS "totalHomeScore", totalAwayScore AS "totalAwayScore" FROM (SELECT date, homeTeam.name AS "homeTeam", awayTeam.name AS "awayTeam", thisFixture."homePlayer1", thisFixture."homePlayer2", thisFixture."awayPlayer1", thisFixture."awayPlayer2", thisFixture."homeScore", thisFixture."awayScore", totalHomeScore, totalAwayScore FROM (SELECT fixture.date, fixture."homeTeam", fixture."awayTeam", fixture."homeScore" AS totalhomescore, fixture."awayScore" AS totalawayscore, thisGame."homePlayer1", thisGame."homePlayer2", thisGame."awayPlayer1", thisGame."awayPlayer2", thisGame."homeScore", thisGame."awayScore" FROM (SELECT * FROM game WHERE fixture = ?) AS thisgame JOIN fixture ON fixture.id = thisGame.fixture) AS thisfixture JOIN team homeTeam ON thisFixture."homeTeam" = homeTeam.id JOIN team awayTeam ON thisFixture."awayTeam" = awayTeam.id) AS teamfixture JOIN player homePlayer1 ON teamFixture."homePlayer1" = homePlayer1.id JOIN player homePlayer2 ON teamFixture."homePlayer2" = homePlayer2.id JOIN player awayPlayer1 ON teamFixture."awayPlayer1" = awayPlayer1.id JOIN player awayPlayer2 ON teamFixture."awayPlayer2" = awayPlayer2.id`,
-    fixtureId
-  )
-  return result
+  return kysely.selectFrom('game as g')
+    .innerJoin('fixture', 'fixture.id', 'g.fixture')
+    .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .innerJoin('player as homePlayer1', 'g.homePlayer1', 'homePlayer1.id')
+    .innerJoin('player as homePlayer2', 'g.homePlayer2', 'homePlayer2.id')
+    .innerJoin('player as awayPlayer1', 'g.awayPlayer1', 'awayPlayer1.id')
+    .innerJoin('player as awayPlayer2', 'g.awayPlayer2', 'awayPlayer2.id')
+    .select(eb => ['fixture.date', 'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam',
+      fullName(eb, 'homePlayer1').as('homePlayer1'), fullName(eb, 'homePlayer2').as('homePlayer2'),
+      fullName(eb, 'awayPlayer1').as('awayPlayer1'), fullName(eb, 'awayPlayer2').as('awayPlayer2'),
+      'g.homeScore', 'g.awayScore', 'fixture.homeScore as totalHomeScore', 'fixture.awayScore as totalAwayScore'])
+    .where('g.fixture', '=', fixtureId)
+    .execute()
 }
 
 // Everything /event/:id needs, in one row — and it must be one row, or none.
@@ -535,61 +562,38 @@ exports.getScorecardDataById = async function(fixtureId) {
 // Postgres folded them to `teamcaptain` while viewEventDetails.ejs read
 // `.teamCaptain` — meaning "Team Captain:" and "Match Secretary:" rendered blank
 // on every event page that *did* render, for as long as the page has existed.
+/** @param {number} fixtureId */
 exports.getFixtureEventById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-    fixture.id,
-    fixture.date,
-    homeTeam.name AS "homeTeam",
-    homeTeam.starttime AS "startTime",
-    homeTeam.endtime AS "endTime",
-    homeClub.name AS "homeClub",
-    homeClub."clubWebsite",
-    awayTeam.name AS "awayTeam",
-    awayClub.name AS "awayClub",
-    division.name AS "divisionName",
-    venue.name AS "venueName",
-    venue.address AS "venueAddress",
-    venue."gMapUrl" AS "venueLink",
-    venue."Lat",
-    venue."Lng",
-    venue."placeId",
-    fixture.status,
-    fixture."homeScore",
-    fixture."awayScore",
-    (SELECT CONCAT(p.first_name,' ',p.family_name) FROM player p
-      WHERE p.team = homeTeam.id AND p."teamCaptain" = 1
-      ORDER BY p.id LIMIT 1) AS "teamCaptain",
-    (SELECT p.id FROM player p
-      WHERE p.team = homeTeam.id AND p."teamCaptain" = 1
-      ORDER BY p.id LIMIT 1) AS "teamCaptainId",
-    (SELECT CONCAT(p.first_name,' ',p.family_name) FROM player p
-      WHERE p.club = homeClub.id AND p."matchSecrertary" = 1
-      ORDER BY p.id LIMIT 1) AS "matchSecretary",
-    (SELECT p.id FROM player p
-      WHERE p.club = homeClub.id AND p."matchSecrertary" = 1
-      ORDER BY p.id LIMIT 1) AS "matchSecretaryId"
-FROM
-    fixture
-        JOIN
-    team homeTeam ON fixture."homeTeam" = homeTeam.id
-        JOIN
-    team awayTeam ON fixture."awayTeam" = awayTeam.id
-        LEFT JOIN
-    club homeClub ON homeTeam.club = homeClub.id
-        LEFT JOIN
-    club awayClub ON awayTeam.club = awayClub.id
-        LEFT JOIN
-    venue ON homeTeam.venue = venue.id
-        LEFT JOIN
-    division ON homeTeam.division = division.id
-WHERE
-    fixture.id = ?
-      -- A reinstated team is a withdrawn row that exists only so historical fixtures
-      -- resolve (HARD-11). Its fixtures must not gain a public /event/ page: they would
-      -- render with no club, no division and no venue, all of which are reached through
-      -- the team, and the sitemap would then list ~14 of them. Owner's call, 14 Sep 2026.
-      AND homeTeam.withdrawn IS NULL AND awayTeam.withdrawn IS NULL`, fixtureId)
-  return result
+  /** The first player (by id) at `where` holding `flag`, as a name or an id. */
+  const officer = (/** @type {any} */ eb, /** @type {'team' | 'club'} */ on, /** @type {any} */ ref,
+    /** @type {'teamCaptain' | 'matchSecrertary'} */ flag, /** @type {'name' | 'id'} */ what) =>
+    eb.selectFrom('player as p')
+      .select(what === 'name' ? fullName(eb, 'p').as('v') : 'p.id')
+      .where(`p.${on}`, '=', eb.ref(ref)).where(`p.${flag}`, '=', 1)
+      .orderBy('p.id').limit(1)
+  return kysely.selectFrom('fixture')
+    .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .leftJoin('club as homeClub', 'homeTeam.club', 'homeClub.id')
+    .leftJoin('club as awayClub', 'awayTeam.club', 'awayClub.id')
+    .leftJoin('venue', 'homeTeam.venue', 'venue.id')
+    .leftJoin('division', 'homeTeam.division', 'division.id')
+    .select(eb => ['fixture.id', 'fixture.date', 'homeTeam.name as homeTeam', 'homeTeam.starttime as startTime',
+      'homeTeam.endtime as endTime', 'homeClub.name as homeClub', 'homeClub.clubWebsite',
+      'awayTeam.name as awayTeam', 'awayClub.name as awayClub', 'division.name as divisionName',
+      'venue.name as venueName', 'venue.address as venueAddress', 'venue.gMapUrl as venueLink',
+      'venue.Lat', 'venue.Lng', 'venue.placeId', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore',
+      officer(eb, 'team', 'homeTeam.id', 'teamCaptain', 'name').as('teamCaptain'),
+      officer(eb, 'team', 'homeTeam.id', 'teamCaptain', 'id').as('teamCaptainId'),
+      officer(eb, 'club', 'homeClub.id', 'matchSecrertary', 'name').as('matchSecretary'),
+      officer(eb, 'club', 'homeClub.id', 'matchSecrertary', 'id').as('matchSecretaryId')])
+    .where('fixture.id', '=', fixtureId)
+    // A reinstated team is a withdrawn row that exists only so historical fixtures
+    // resolve (HARD-11). Its fixtures must not gain a public /event/ page: they would
+    // render with no club, no division and no venue, all of which are reached through
+    // the team, and the sitemap would then list ~14 of them. Owner's call, 14 Sep 2026.
+    .where('homeTeam.withdrawn', 'is', null).where('awayTeam.withdrawn', 'is', null)
+    .execute()
 }
 
 // Fixtures whose /event/ pages belong in the sitemap, newest first.
@@ -602,42 +606,50 @@ WHERE
 //
 // The cap is a judgement call, not a limit of the format — a sitemap holds 50,000
 // URLs, so widening it is only a matter of changing the argument.
+/** @param {number | string} [monthsBack] */
 exports.getForSitemap = async function(monthsBack = 18) {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-      fixture.id,
-      fixture.date,
-      fixture.status,
-      homeTeam.name AS "homeTeam",
-      awayTeam.name AS "awayTeam"
-    FROM fixture
-      JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
-      JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
-    WHERE fixture.date >= NOW() - (? || ' months')::interval
-      -- Withdrawn teams are HARD-11's reinstated rows: they exist so historical fixtures
-      -- resolve, not so those fixtures gain public pages. getFixtureEventById excludes
-      -- them too, and the two must agree — a sitemap entry whose page does not render is
-      -- a soft 404, which the seo skill forbids in terms.
-      AND homeTeam.withdrawn IS NULL AND awayTeam.withdrawn IS NULL
-    ORDER BY fixture.date DESC`, [String(monthsBack)])
-  return result
+  const since = /** @type {When} */ (sql`NOW() - (${String(monthsBack)} || ' months')::interval`)
+  return kysely.selectFrom('fixture')
+    .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .select(['fixture.id', 'fixture.date', 'fixture.status', 'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam'])
+    .where('fixture.date', '>=', since)
+    // Withdrawn teams are HARD-11's reinstated rows: they exist so historical fixtures
+    // resolve, not so those fixtures gain public pages. getFixtureEventById excludes
+    // them too, and the two must agree — a sitemap entry whose page does not render is
+    // a soft 404, which the seo skill forbids in terms.
+    .where('homeTeam.withdrawn', 'is', null).where('awayTeam.withdrawn', 'is', null)
+    .orderBy('fixture.date', 'desc')
+    .execute()
 }
 
+// NOTE season.id = 2 is 2019/20 in production, and only its START is used, so this matches
+// every fixture between the pair since 2019 (seven locally) rather than this season's.
+// Converted as it behaves; see the REARCH-01 brief. The keys are lowercase because the
+// string version's unquoted aliases folded.
+/** @param {{ homeTeam: string, awayTeam: string }} obj */
 exports.getFixtureIdFromTeamNames = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT status, fixtureId, homeTeamName, team.name AS awayteamname, homeTeamId, team.id AS awayteamid FROM (SELECT status, fixtureId, team.name AS hometeamname, team.id AS hometeamid, "homeTeam", "awayTeam" FROM (SELECT fixture.status, fixture.id AS fixtureid, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.id = 2 AND fixture.date > season."startDate") AS a JOIN team ON team.id = a."homeTeam" AND team.name = ?) AS b JOIN team ON b."awayTeam" = team.id AND team.name = ? AND status != 'rearranged'`,
-    [obj.homeTeam, obj.awayTeam]
-  )
-  return result
+  // season is JOINed, not listed after a comma: `FROM fixture, season JOIN team ...` binds
+  // the JOIN to season alone, and `fixture` is then out of scope in its ON clause.
+  return kysely.selectFrom('fixture')
+    .innerJoin('season', join => join.on('season.id', '=', 2).onRef('fixture.date', '>', 'season.startDate'))
+    .innerJoin('team as home', join => join.onRef('home.id', '=', 'fixture.homeTeam').on('home.name', '=', obj.homeTeam))
+    .innerJoin('team as away', join => join.onRef('away.id', '=', 'fixture.awayTeam').on('away.name', '=', obj.awayTeam))
+    .select(['fixture.status', 'fixture.id as fixtureid', 'home.name as hometeamname', 'away.name as awayteamname',
+      'home.id as hometeamid', 'away.id as awayteamid'])
+    .where('fixture.status', '!=', 'rearranged')
+    .execute()
 }
 
+/** @param {{ homeTeam: number, awayTeam: number }} obj */
 exports.getFixtureId = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT id FROM (SELECT fixture.id, fixture."homeTeam", fixture."awayTeam" FROM fixture, season WHERE season.name=? AND fixture.date > season."startDate") AS a WHERE a."awayTeam" = ? AND a."homeTeam" = ?',
-    [seasonModel.current(), obj.awayTeam, obj.homeTeam]
-  )
-  return result
+  return kysely.selectFrom(['fixture', 'season']).select('fixture.id')
+    .where('season.name', '=', seasonModel.current())
+    .whereRef('fixture.date', '>', 'season.startDate')
+    .where('fixture.awayTeam', '=', obj.awayTeam).where('fixture.homeTeam', '=', obj.homeTeam)
+    .execute()
 }
 
 // Who the reminder popup offers to nudge about a missing scorecard: the home club's
@@ -647,6 +659,7 @@ exports.getFixtureId = async function(obj) {
 // Read from the role FLAGS, not the old pointer columns. Those
 // (club."clubSec" and friends) are being retired and can name someone who has since
 // left the club (CLAUDE.md, "An officer is recorded two ways").
+/** @param {any} fixtureId */
 exports.getReminderContacts = async function(fixtureId) {
   const [fixture] = await (await db.otherConnect()).query(
     `SELECT f.id, f.date, ht.name AS "homeTeam", at.name AS "awayTeam"
@@ -701,6 +714,7 @@ exports.getReminderContacts = async function(fixtureId) {
 //
 // `date` is optional; when given, an exact match on the day is preferred over anything
 // else, which is what makes the choice deterministic rather than lucky.
+/** @param {any} obj */
 exports.getFixturesForTeams = async function(obj) {
   if (!db.isObject(obj)) throw new Error('not object')
   const [result] = await (await db.otherConnect()).query(
@@ -722,9 +736,10 @@ exports.getFixturesForTeams = async function(obj) {
 // Returns { fixture, candidates } on success, or { conflict } describing why not, so
 // the caller can say something useful instead of throwing a developer's error string
 // at a captain. Never guesses between two equally plausible fixtures.
+/** @param {any} rows @param {any} submittedDate */
 exports.resolveFixtureForResult = function(rows, submittedDate) {
-  const day = d => (d instanceof Date ? d : new Date(d)).toISOString().slice(0, 10)
-  const outstanding = rows.filter(r => r.status === 'outstanding')
+  const day = (/** @type {any} */ d) => (d instanceof Date ? d : new Date(d)).toISOString().slice(0, 10)
+  const outstanding = rows.filter((/** @type {any} */ r) => r.status === 'outstanding')
 
   if (outstanding.length === 1) return { fixture: outstanding[0] }
 
@@ -732,19 +747,19 @@ exports.resolveFixtureForResult = function(rows, submittedDate) {
     // Prefer the one actually played on the submitted date. Only if that is
     // unambiguous — otherwise ask, rather than pick.
     if (submittedDate) {
-      const exact = outstanding.filter(r => day(r.date) === day(submittedDate))
+      const exact = outstanding.filter((/** @type {any} */ r) => day(r.date) === day(submittedDate))
       if (exact.length === 1) return { fixture: exact[0] }
     }
     return { conflict: { reason: 'ambiguous', candidates: outstanding } }
   }
 
-  const complete = rows.find(r => r.status === 'complete')
+  const complete = rows.find((/** @type {any} */ r) => r.status === 'complete')
   if (complete) return { conflict: { reason: 'already-recorded', fixture: complete } }
 
-  const rearranged = rows.find(r => r.status === 'rearranged' || r.status === 'rearranging')
+  const rearranged = rows.find((/** @type {any} */ r) => r.status === 'rearranged' || r.status === 'rearranging')
   if (rearranged) return { conflict: { reason: 'rearranged', fixture: rearranged } }
 
-  const conceded = rows.find(r => r.status === 'conceded')
+  const conceded = rows.find((/** @type {any} */ r) => r.status === 'conceded')
   if (conceded) return { conflict: { reason: 'conceded', fixture: conceded } }
 
   return { conflict: { reason: 'not-found' } }
@@ -767,8 +782,9 @@ exports.resolveFixtureForResult = function(rows, submittedDate) {
 //
 // Now: resolve both teams first, find the fixture explicitly, and do both writes in
 // one transaction. Throws with a `status` the controller can pass straight through.
+/** @param {any} message */
 function badRequest(message) {
-  const err = new Error(message);
+  const err = /** @type {Error & { status?: number }} */ (new Error(message));
   err.status = 400;
   return err;
 }
@@ -783,12 +799,13 @@ function badRequest(message) {
 // pointing at it. That is a NEW orphan, created by the very thing meant to stop them.
 //
 // This function writes, which is why it matters more than the other by-name lookups.
+/** @param {any} conn @param {any} homeTeam @param {any} awayTeam */
 async function findTeamIdsByName(conn, homeTeam, awayTeam) {
   const [rows] = await conn.query(
     'SELECT id, name FROM team WHERE (name = ? OR name = ?) AND withdrawn IS NULL',
     [homeTeam, awayTeam]
   );
-  const byName = new Map(rows.map(r => [r.name, r.id]));
+  const byName = new Map(rows.map((/** @type {any} */ r) => [r.name, r.id]));
   const missing = [homeTeam, awayTeam].filter(n => !byName.has(n));
   if (missing.length) {
     throw badRequest(`no team by that name: ${missing.map(n => JSON.stringify(n)).join(', ')}`);
@@ -799,6 +816,7 @@ async function findTeamIdsByName(conn, homeTeam, awayTeam) {
 // The latest fixture between this pairing in the current season. Matching on the
 // team *names* is the endpoint's contract (the JWT PATCH caller posts names), but
 // the ids are resolved first so the join is on the key, not the string.
+/** @param {any} conn @param {any} homeTeamId @param {any} awayTeamId */
 async function findCurrentSeasonFixture(conn, homeTeamId, awayTeamId) {
   const [rows] = await conn.query(
     `SELECT f.id
@@ -814,6 +832,7 @@ async function findCurrentSeasonFixture(conn, homeTeamId, awayTeamId) {
   return rows.length ? rows[0].id : null;
 }
 
+/** @param {any} updateObj */
 exports.rearrangeByTeamNames = async function(updateObj) {
   if (!db.isObject(updateObj)) throw badRequest('not object')
 
@@ -832,7 +851,7 @@ exports.rearrangeByTeamNames = async function(updateObj) {
 
     const fixtureId = await findCurrentSeasonFixture(conn, homeTeamId, awayTeamId)
     if (fixtureId == null) {
-      const err = new Error(`no current-season fixture for ${homeTeam} v ${awayTeam}`)
+      const err = /** @type {Error & { status?: number }} */ (new Error(`no current-season fixture for ${homeTeam} v ${awayTeam}`))
       err.status = 404
       throw err
     }
@@ -887,6 +906,7 @@ function resultTargets() {
 }
 exports.resultTargets = resultTargets
 
+/** @param {any} r */
 function resultMessage(r) {
   return `Result: ${r.homeTeam} vs ${r.awayTeam} : ${r.homeScore}-${r.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`
 }
@@ -896,6 +916,7 @@ function resultMessage(r) {
 // servers: interpolated raw, "Tatton A" put a literal space in the URL and Facebook answered
 // `Missing or invalid image file (324, OAuthException)` — the endpoint was fine, the URL
 // was not.
+/** @param {any} r */
 exports.resultPostContent = function(r) {
   return {
     imageUrls: absoluteUrl(resultImagePath(r)),
@@ -904,6 +925,7 @@ exports.resultPostContent = function(r) {
   }
 }
 
+/** @param {any} zapObject */
 exports.sendResultZap = async function(zapObject) {
   if (!db.isObject(zapObject)) throw new Error("you've not supplied an object")
   if (zapObject.host == '127.0.0.1:8080') {
@@ -987,8 +1009,8 @@ exports.sendResultZap = async function(zapObject) {
     }
     if (!zapObject.fixtureId) throw new Error('sendResultZap needs the fixture id to queue the post')
 
-    const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map(t => t.kind))
-    console.log(`result for fixture ${zapObject.fixtureId} queued for`, queued.map(q => q.target).join(', ') || 'nothing new')
+    const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map((/** @type {any} */ t) => t.kind))
+    console.log(`result for fixture ${zapObject.fixtureId} queued for`, queued.map((/** @type {any} */ q) => q.target).join(', ') || 'nothing new')
     return { queued }
   }
 
@@ -1027,6 +1049,7 @@ exports.sendResultZap = async function(zapObject) {
 // cannot be written atomically. See scorecardController.full_fixture_post, where the
 // gap between this and Game.createBatch left three fixtures last season holding a
 // score with no games behind them.
+/** @param {any} fixtureObj @param {any} fixtureId @param {any} conn */
 exports.updateById = async function(fixtureObj, fixtureId, conn) {
   if (!db.isObject(fixtureObj)) throw new Error('not object')
   const setClauses = Object.keys(fixtureObj).map(k => `"${k}" = ?`).join(', ')
@@ -1046,6 +1069,7 @@ exports.updateById = async function(fixtureObj, fixtureId, conn) {
 //
 // Without it, this was an unconditional overwrite keyed on an id from the URL — so any
 // fixture's photo could be replaced by anyone.
+/** @param {any} id @param {any} imgurl */
 exports.updateScorecardPhoto = async function(id, imgurl) {
   const [result] = await (await db.otherConnect()).query(
     `UPDATE scorecardstore SET "scoresheet-url" = ?
@@ -1055,6 +1079,7 @@ exports.updateScorecardPhoto = async function(id, imgurl) {
   return result
 }
 
+/** @param {any} email */
 exports.getMissingScorecardPhotos = async function(email) {
   const sql = `SELECT
 fixture.id AS fixtureid,
@@ -1090,6 +1115,7 @@ ${email == 'stockport.badders.results@gmail.com' ? '' : "AND email = ? \nAND sta
 
 // ── Messer scorecard methods ─────────────────────────────────────────────
 
+/** @param {any} messerObj */
 exports.createMesserScorecard = async function(messerObj) {
   if (!db.isObject(messerObj)) throw new Error('not object')
   const fields = Object.keys(messerObj).map(k => `"${k}"`).join(',')
@@ -1099,6 +1125,7 @@ exports.createMesserScorecard = async function(messerObj) {
   return result
 }
 
+/** @param {any} scorecardId */
 exports.getMesserScorecardById = async function(scorecardId) {
   const [result] = await (await db.otherConnect()).query(`
     SELECT
@@ -1155,12 +1182,14 @@ exports.listMesserScorecardsForApproval = async function() {
   return result
 }
 
+/** @param {any} scorecardId @param {any} status */
 exports.updateMesserScorecardStatus = async function(scorecardId, status) {
   const sql = `UPDATE messer_scorecard SET status = ?, "updated_at" = NOW() WHERE id = ?`
   const [result] = await (await db.otherConnect()).query(sql, [status, scorecardId])
   return result
 }
 
+/** @param {any} resultObj */
 exports.createMesserResult = async function(resultObj) {
   if (!db.isObject(resultObj)) throw new Error('not object')
   const fields = Object.keys(resultObj).map(k => `"${k}"`).join(',')
@@ -1170,6 +1199,7 @@ exports.createMesserResult = async function(resultObj) {
   return result
 }
 
+/** @param {any} messerId @param {any} scores */
 exports.updateMesserTable = async function(messerId, scores) {
   const { homeScore, awayScore, winningTeam } = scores
   const sql = `
@@ -1185,6 +1215,7 @@ exports.updateMesserTable = async function(messerId, scores) {
 
 // All draw slots for a section, with team names, ordered by drawPos.
 // Used by the admin wire-up screen and to validate the bracket.
+/** @param {any} section */
 exports.getMesserBracket = async function(section) {
   const [result] = await (await db.otherConnect()).query(`
     SELECT
@@ -1215,12 +1246,14 @@ exports.getMesserBracket = async function(section) {
 //
 // Returns { saved, conflicts } — `conflicts` is the drawPos of each row that changed
 // underneath the page, and when it is non-empty nothing was written.
+/** @param {any} links */
 exports.saveMesserBracketLinks = async function(links) {
-  const same = (a, b) => (a == null ? null : a) === (b == null ? null : b)
-  const changed = links.filter(l =>
+  const same = (/** @type {any} */ a, /** @type {any} */ b) => (a == null ? null : a) === (b == null ? null : b)
+  const changed = links.filter((/** @type {any} */ l) =>
     !same(l.round, l.was.round) || !same(l.nextDrawPos, l.was.nextDrawPos) || !same(l.nextSlot, l.was.nextSlot))
   if (!changed.length) return { saved: 0, conflicts: [] }
 
+  /** @type {any[]} */
   const conflicts = []
   const rollback = new Error('messer bracket save conflict')
   try {
@@ -1250,6 +1283,7 @@ exports.saveMesserBracketLinks = async function(links) {
 // The draw match between two teams, whichever way round the draw has them. `reversed`
 // is true when the draw has `awayTeamId` at home. The current draw only: archived
 // seasons live in their own messer<season> tables.
+/** @param {any} homeTeamId @param {any} awayTeamId */
 exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
   const [rows] = await (await db.otherConnect()).query(
     `SELECT id, section, "drawPos", "nextDrawPos", "nextSlot",
@@ -1285,6 +1319,7 @@ exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
 //     would make the approval record the result and silently skip updating the
 //     draw. (A draft filed the other way round is fine — the swap is what lets
 //     it match.)
+/** @param {any} section @param {any} id */
 exports.swapMesserHomeAway = async function(section, id) {
   return db.withTransaction(async conn => {
     const [rows] = await conn.query(
@@ -1330,6 +1365,7 @@ exports.swapMesserHomeAway = async function(section, id) {
 // `match` is a messer row that has just been decided (needs section,
 // nextDrawPos, nextSlot). Returns a small status object describing what happened
 // so the caller can surface a warning without failing the approval.
+/** @param {any} match @param {any} winningTeam */
 exports.advanceMesserWinner = async function(match, winningTeam) {
   if (match.nextDrawPos == null || !match.nextSlot) {
     return { advanced: false, reason: 'no-next-slot' } // section final, nothing to do
@@ -1395,32 +1431,20 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
 // the container's TZ to do so, which is the shape of the BST off-by-one-day bug this
 // codebase already has a helper (`localYmd`) and a comment apologising for.
 exports.getUpcomingWeek = async function() {
-  const [result] = await (await db.otherConnect()).query(`SELECT
-    fixture.id,
-    fixture.date,
-    to_char(fixture.date, 'Dy FMDD Mon') AS "dayLabel",
-    homeTeam.name AS "homeTeam",
-    awayTeam.name AS "awayTeam",
-    homeClub.name AS "homeClub",
-    awayClub.name AS "awayClub",
-    division.name AS "divisionName"
-FROM
-    fixture
-        JOIN
-    team homeTeam ON fixture."homeTeam" = homeTeam.id
-        JOIN
-    team awayTeam ON fixture."awayTeam" = awayTeam.id
-        LEFT JOIN
-    club homeClub ON homeTeam.club = homeClub.id
-        LEFT JOIN
-    club awayClub ON awayTeam.club = awayClub.id
-        LEFT JOIN
-    division ON homeTeam.division = division.id
-WHERE
-    fixture."homeScore" IS NULL
-        AND fixture.status NOT IN ('rearranged','rearranging')
-        AND fixture.date >= date_trunc('day', NOW() AT TIME ZONE 'Europe/London')
-        AND fixture.date < date_trunc('day', NOW() AT TIME ZONE 'Europe/London') + INTERVAL '7 days'
-ORDER BY fixture.date, homeTeam.name`)
-  return result
+  return kysely.selectFrom('fixture')
+    .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
+    .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .leftJoin('club as homeClub', 'homeTeam.club', 'homeClub.id')
+    .leftJoin('club as awayClub', 'awayTeam.club', 'awayClub.id')
+    .leftJoin('division', 'homeTeam.division', 'division.id')
+    .select(eb => ['fixture.id', 'fixture.date',
+      eb.fn('to_char', ['fixture.date', sql.lit('Dy FMDD Mon')]).as('dayLabel'),
+      'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam', 'homeClub.name as homeClub',
+      'awayClub.name as awayClub', 'division.name as divisionName'])
+    .where('fixture.homeScore', 'is', null)
+    .where('fixture.status', 'not in', ['rearranged', 'rearranging'])
+    .where('fixture.date', '>=', UK_TODAY)
+    .where('fixture.date', '<', UK_WEEK_END)
+    .orderBy('fixture.date').orderBy('homeTeam.name')
+    .execute()
 }

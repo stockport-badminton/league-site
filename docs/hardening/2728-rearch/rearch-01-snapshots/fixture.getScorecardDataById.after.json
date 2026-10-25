@@ -1,0 +1,299 @@
+{
+  "function": "fixture.getScorecardDataById",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:23.042Z",
+  "cases": [
+    {
+      "label": "withGames",
+      "args": [
+        7679
+      ],
+      "result": [
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Zoe Siu",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Anna Bellis",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 21,
+          "awayScore": 8,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Kery Kirkwood",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Hau Ta",
+          "homeScore": 21,
+          "awayScore": 19,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Tom Long",
+          "homePlayer2": "Kery Kirkwood",
+          "awayPlayer1": "Greg Mooney",
+          "awayPlayer2": "Hau Ta",
+          "homeScore": 21,
+          "awayScore": 12,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Stephanie Rowarth",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Rachel Flood",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 21,
+          "awayScore": 12,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Tom Long",
+          "homePlayer2": "Stephanie Rowarth",
+          "awayPlayer1": "Greg Mooney",
+          "awayPlayer2": "Rachel Flood",
+          "homeScore": 15,
+          "awayScore": 21,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Kery Kirkwood",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Hau Ta",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 21,
+          "awayScore": 5,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Tom Long",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Greg Mooney",
+          "homeScore": 12,
+          "awayScore": 21,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Tom Long",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Greg Mooney",
+          "homeScore": 21,
+          "awayScore": 14,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Zoe Siu",
+          "homePlayer2": "Stephanie Rowarth",
+          "awayPlayer1": "Anna Bellis",
+          "awayPlayer2": "Rachel Flood",
+          "homeScore": 21,
+          "awayScore": 13,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Zoe Siu",
+          "homePlayer2": "Stephanie Rowarth",
+          "awayPlayer1": "Anna Bellis",
+          "awayPlayer2": "Rachel Flood",
+          "homeScore": 21,
+          "awayScore": 15,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Kery Kirkwood",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Hau Ta",
+          "homeScore": 21,
+          "awayScore": 10,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Zoe Siu",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Anna Bellis",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 21,
+          "awayScore": 10,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Tom Long",
+          "homePlayer2": "Kery Kirkwood",
+          "awayPlayer1": "Greg Mooney",
+          "awayPlayer2": "Hau Ta",
+          "homeScore": 21,
+          "awayScore": 10,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Stephanie Rowarth",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Rachel Flood",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 21,
+          "awayScore": 12,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Zoe Siu",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Anna Bellis",
+          "homeScore": 21,
+          "awayScore": 17,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Jake White",
+          "homePlayer2": "Zoe Siu",
+          "awayPlayer1": "Chris Bellis",
+          "awayPlayer2": "Anna Bellis",
+          "homeScore": 21,
+          "awayScore": 17,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Tom Long",
+          "homePlayer2": "Stephanie Rowarth",
+          "awayPlayer1": "Greg Mooney",
+          "awayPlayer2": "Rachel Flood",
+          "homeScore": 21,
+          "awayScore": 16,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        },
+        {
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B",
+          "homePlayer1": "Kery Kirkwood",
+          "homePlayer2": "Kathryn Melling",
+          "awayPlayer1": "Hau Ta",
+          "awayPlayer2": "Araadhna Sinha",
+          "homeScore": 22,
+          "awayScore": 20,
+          "totalHomeScore": 16,
+          "totalAwayScore": 2
+        }
+      ]
+    },
+    {
+      "label": "noGames",
+      "args": [
+        7694
+      ],
+      "result": []
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999999
+      ],
+      "result": []
+    }
+  ]
+}

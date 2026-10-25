@@ -1,0 +1,1 @@
+{"match": [{"homeTeam": 6, "awayTeam": 4}], "strings": [{"homeTeam": "6", "awayTeam": "4"}], "reversed": [{"homeTeam": 4, "awayTeam": 6}], "nobody": [{"homeTeam": 999, "awayTeam": 998}]}

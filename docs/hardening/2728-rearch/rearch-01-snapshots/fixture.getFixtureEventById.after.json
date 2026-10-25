@@ -1,0 +1,91 @@
+{
+  "function": "fixture.getFixtureEventById",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:23.659Z",
+  "cases": [
+    {
+      "label": "complete",
+      "args": [
+        7679
+      ],
+      "result": [
+        {
+          "id": 7679,
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "startTime": "20:00",
+          "endTime": "22:00",
+          "homeClub": "Racketeer",
+          "clubWebsite": "",
+          "awayTeam": "Racketeers B",
+          "awayClub": "Racketeer",
+          "divisionName": "Premier",
+          "venueName": "David Lloyd Leisure",
+          "venueAddress": "David Lloyd Leisure, Royal Crescent, Cheadle Hulme, SK8 3FL",
+          "venueLink": "https://goo.gl/maps/4SqzfcYdjz72",
+          "Lat": 53.3777,
+          "Lng": -2.22093,
+          "placeId": "ChIJpcOGNs6ye0gRmn93qz8dbII",
+          "status": "complete",
+          "homeScore": 16,
+          "awayScore": 2,
+          "teamCaptain": "Kery Kirkwood",
+          "teamCaptainId": 516,
+          "matchSecretary": "Emily Stapley",
+          "matchSecretaryId": 538
+        }
+      ]
+    },
+    {
+      "label": "outstanding",
+      "args": [
+        7694
+      ],
+      "result": [
+        {
+          "id": 7694,
+          "date": {
+            "$date": "2027-02-10T00:00:00.000Z"
+          },
+          "homeTeam": "Shell A",
+          "startTime": "20:00",
+          "endTime": "22:30",
+          "homeClub": "Shell",
+          "clubWebsite": "http://www.shellbadminton.co.uk/",
+          "awayTeam": "Racketeers A",
+          "awayClub": "Racketeer",
+          "divisionName": "Premier",
+          "venueName": "Woods Lane Sports Centre",
+          "venueAddress": "Cheadle Hulme High School, Woods Ln, Cheadle Hulme, Cheadle SK8 7JY",
+          "venueLink": "https://maps.app.goo.gl/ax4pDDKhZBtLnKT87",
+          "Lat": 53.3638,
+          "Lng": -2.18831,
+          "placeId": "ChIJX9dGc85MekgRszoF6YRpxYQ",
+          "status": "outstanding",
+          "homeScore": null,
+          "awayScore": null,
+          "teamCaptain": "Laura Woodburn",
+          "teamCaptainId": 559,
+          "matchSecretary": "Anna Wiza",
+          "matchSecretaryId": 557
+        }
+      ]
+    },
+    {
+      "label": "noCaptain",
+      "args": [
+        7234
+      ],
+      "result": []
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999999
+      ],
+      "result": []
+    }
+  ]
+}

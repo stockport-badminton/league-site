@@ -1,0 +1,61 @@
+{
+  "function": "fixture.getUpcomingWeek",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:26.447Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 7378,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "dayLabel": "Wed 28 Oct",
+          "homeTeam": "Cheadle Hulme B",
+          "awayTeam": "Manor B",
+          "homeClub": "Cheadle Hulme",
+          "awayClub": "Manor",
+          "divisionName": "Division 3"
+        },
+        {
+          "id": 7184,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "dayLabel": "Wed 28 Oct",
+          "homeTeam": "Featherforce A",
+          "awayTeam": "College Green A",
+          "homeClub": "Featherforce",
+          "awayClub": "College Green",
+          "divisionName": "Premier"
+        },
+        {
+          "id": 7200,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "dayLabel": "Wed 28 Oct",
+          "homeTeam": "Shell B",
+          "awayTeam": "Remnants A",
+          "homeClub": "Shell",
+          "awayClub": "Remnants",
+          "divisionName": "Division 1"
+        },
+        {
+          "id": 7226,
+          "date": {
+            "$date": "2026-10-29T00:00:00.000Z"
+          },
+          "dayLabel": "Thu 29 Oct",
+          "homeTeam": "College Green B",
+          "awayTeam": "Featherforce B",
+          "homeClub": "College Green",
+          "awayClub": "Featherforce",
+          "divisionName": "Division 1"
+        }
+      ]
+    }
+  ]
+}

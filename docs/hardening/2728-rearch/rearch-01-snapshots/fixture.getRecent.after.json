@@ -1,0 +1,55 @@
+{
+  "function": "fixture.getRecent",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:21.365Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "date": {
+            "$date": "2026-10-19T23:00:00.000Z"
+          },
+          "homeTeam": "Remnants A",
+          "awayTeam": "Macclesfield A",
+          "address": "Lymm Leisure Centre, Oughtrington Ln, Lymm WA13 0RB",
+          "venueName": "Lymm Leisure Centre",
+          "maplink": "https://maps.app.goo.gl/kLDp7d5pWtqiqCSD9",
+          "Lat": 53.3787,
+          "Lng": -2.46058,
+          "homeScore": 5,
+          "awayScore": 13
+        },
+        {
+          "date": {
+            "$date": "2026-10-19T23:00:00.000Z"
+          },
+          "homeTeam": "Manor B",
+          "awayTeam": "College Green E",
+          "address": "Wilmslow Leisure Centre, Station Rd, Rectory Fields, Wilmslow, SK9 1BU",
+          "venueName": "Wilmslow Leisure Centre",
+          "maplink": "https://goo.gl/maps/HsDPHYgS67DbyPHH9",
+          "Lat": 53.3261,
+          "Lng": -2.22766,
+          "homeScore": 7,
+          "awayScore": 11
+        },
+        {
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "homeTeam": "Alderley Park B",
+          "awayTeam": "Shell B",
+          "address": "Everybody Sport and Recreation Fitness Centre, Alderley Park, Macclesfield, SK10 4TG. Please use South site entrance (just South of Alderley Edge bypass). NB this is a new building, NOT Mulberry's. Overflow carpark in front of Royal London building.",
+          "venueName": "Everybody Sport and Recreation",
+          "maplink": "https://maps.app.goo.gl/jxYfweGPAcS1fEaH8",
+          "Lat": 53.2745,
+          "Lng": -2.2323,
+          "homeScore": 6,
+          "awayScore": 12
+        }
+      ]
+    }
+  ]
+}

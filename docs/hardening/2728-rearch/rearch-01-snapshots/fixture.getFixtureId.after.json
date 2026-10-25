@@ -1,0 +1,65 @@
+{
+  "function": "fixture.getFixtureId",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:58:25.356Z",
+  "cases": [
+    {
+      "label": "match",
+      "args": [
+        {
+          "homeTeam": 6,
+          "awayTeam": 4
+        }
+      ],
+      "result": [
+        {
+          "id": 7131
+        },
+        {
+          "id": 7694
+        }
+      ]
+    },
+    {
+      "label": "strings",
+      "args": [
+        {
+          "homeTeam": "6",
+          "awayTeam": "4"
+        }
+      ],
+      "result": [
+        {
+          "id": 7131
+        },
+        {
+          "id": 7694
+        }
+      ]
+    },
+    {
+      "label": "reversed",
+      "args": [
+        {
+          "homeTeam": 4,
+          "awayTeam": 6
+        }
+      ],
+      "result": [
+        {
+          "id": 7123
+        }
+      ]
+    },
+    {
+      "label": "nobody",
+      "args": [
+        {
+          "homeTeam": 999,
+          "awayTeam": 998
+        }
+      ],
+      "result": []
+    }
+  ]
+}

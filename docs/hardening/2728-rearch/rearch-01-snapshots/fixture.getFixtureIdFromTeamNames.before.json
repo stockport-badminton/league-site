@@ -1,0 +1,151 @@
+{
+  "function": "fixture.getFixtureIdFromTeamNames",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:55:21.642Z",
+  "cases": [
+    {
+      "label": "match",
+      "args": [
+        {
+          "homeTeam": "Shell A",
+          "awayTeam": "Racketeers A"
+        }
+      ],
+      "result": [
+        {
+          "status": "complete",
+          "fixtureid": 755,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "complete",
+          "fixtureid": 4154,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "complete",
+          "fixtureid": 5108,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "complete",
+          "fixtureid": 5125,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "complete",
+          "fixtureid": 5466,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "complete",
+          "fixtureid": 6030,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        },
+        {
+          "status": "outstanding",
+          "fixtureid": 7694,
+          "hometeamname": "Shell A",
+          "awayteamname": "Racketeers A",
+          "hometeamid": 6,
+          "awayteamid": 4
+        }
+      ]
+    },
+    {
+      "label": "reversed",
+      "args": [
+        {
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Shell A"
+        }
+      ],
+      "result": [
+        {
+          "status": "complete",
+          "fixtureid": 738,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "complete",
+          "fixtureid": 4137,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "complete",
+          "fixtureid": 4552,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "complete",
+          "fixtureid": 5140,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "complete",
+          "fixtureid": 5483,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "complete",
+          "fixtureid": 6047,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        },
+        {
+          "status": "outstanding",
+          "fixtureid": 7123,
+          "hometeamname": "Racketeers A",
+          "awayteamname": "Shell A",
+          "hometeamid": 4,
+          "awayteamid": 6
+        }
+      ]
+    },
+    {
+      "label": "nobody",
+      "args": [
+        {
+          "homeTeam": "X",
+          "awayTeam": "Y"
+        }
+      ],
+      "result": []
+    }
+  ]
+}
