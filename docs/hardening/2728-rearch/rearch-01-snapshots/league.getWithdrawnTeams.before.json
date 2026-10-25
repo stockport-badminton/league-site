@@ -1,0 +1,282 @@
+{
+  "function": "league.getWithdrawnTeams",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:13:05.104Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 28,
+          "name": "Dome A",
+          "withdrawn": {
+            "$date": "2026-09-17T15:46:49.601Z"
+          },
+          "withdrawnReason": "not enough players",
+          "withdrawnDivision": 8,
+          "withdrawnFixtures": [
+            7198,
+            7206,
+            7214,
+            7222,
+            7228,
+            7229,
+            7230,
+            7231,
+            7232,
+            7234,
+            7239,
+            7247,
+            7255,
+            7263,
+            7233,
+            7227
+          ],
+          "withdrawnDivisionName": "Division 1",
+          "clubName": "Dome"
+        },
+        {
+          "id": 40,
+          "name": "Parrswood C",
+          "withdrawn": {
+            "$date": "2026-09-17T15:45:56.617Z"
+          },
+          "withdrawnReason": "no players available",
+          "withdrawnDivision": 10,
+          "withdrawnFixtures": [],
+          "withdrawnDivisionName": "Division 3",
+          "clubName": "No Club"
+        },
+        {
+          "id": 53,
+          "name": "Alderley Park D",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 16,
+          "name": "Altrincham Central",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 50,
+          "name": "Blue Triangle",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 21,
+          "name": "Bramhall Village A",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 48,
+          "name": "Bramhall Village B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 31,
+          "name": "CAP",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 11,
+          "name": "Carrington A",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 17,
+          "name": "Carrington B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 15,
+          "name": "Disley A",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 42,
+          "name": "Disley C",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 49,
+          "name": "Disley D",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 35,
+          "name": "GHAP",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 34,
+          "name": "Macclesfield B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 37,
+          "name": "Manor B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 44,
+          "name": "Manor C",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 41,
+          "name": "Mellor B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 36,
+          "name": "New Mills",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: owner.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 9,
+          "name": "Syddal Park B",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: archive.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        },
+        {
+          "id": 58,
+          "name": "Unknown team",
+          "withdrawn": {
+            "$date": "2026-09-14T21:36:14.571Z"
+          },
+          "withdrawnReason": "Reinstated by HARD-11 so historical fixtures resolve; team no longer plays. Name source: unknown.",
+          "withdrawnDivision": null,
+          "withdrawnFixtures": null,
+          "withdrawnDivisionName": null,
+          "clubName": "No Club"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "function": "league.getLeagueTable",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:14:01.502Z",
+  "cases": [
+    {
+      "label": "premierLive",
+      "args": [
+        "Premier"
+      ],
+      "result": [
+        {
+          "name": "GHAP A",
+          "played": "4",
+          "pointsFor": "44",
+          "pointsAgainst": "28"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "4",
+          "pointsFor": "41",
+          "pointsAgainst": "31"
+        },
+        {
+          "name": "Featherforce A",
+          "played": "2",
+          "pointsFor": "19",
+          "pointsAgainst": "17"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "2",
+          "pointsFor": "17",
+          "pointsAgainst": "19"
+        },
+        {
+          "name": "Racketeers A",
+          "played": "1",
+          "pointsFor": "16",
+          "pointsAgainst": "2"
+        },
+        {
+          "name": "Shell A",
+          "played": "1",
+          "pointsFor": "10",
+          "pointsAgainst": "8"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "1",
+          "pointsFor": "8",
+          "pointsAgainst": "10"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "2",
+          "pointsFor": "4",
+          "pointsAgainst": "32"
+        },
+        {
+          "name": "College Green A",
+          "played": "1",
+          "pointsFor": "3",
+          "pointsAgainst": "15"
+        }
+      ]
+    },
+    {
+      "label": "premierLast",
+      "args": [
+        "Premier",
+        "20252026"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "16",
+          "pointsFor": "237",
+          "pointsAgainst": "51"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "16",
+          "pointsFor": "173",
+          "pointsAgainst": "115"
+        },
+        {
+          "name": "Shell A",
+          "played": "16",
+          "pointsFor": "162",
+          "pointsAgainst": "126"
+        },
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "pointsFor": "158",
+          "pointsAgainst": "130"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "16",
+          "pointsFor": "147",
+          "pointsAgainst": "141"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "16",
+          "pointsFor": "123",
+          "pointsAgainst": "165"
+        },
+        {
+          "name": "College Green A",
+          "played": "16",
+          "pointsFor": "122",
+          "pointsAgainst": "166"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "16",
+          "pointsFor": "111",
+          "pointsAgainst": "177"
+        },
+        {
+          "name": "Remnants A",
+          "played": "16",
+          "pointsFor": "63",
+          "pointsAgainst": "225"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "function": "league.getAnnualInvoices",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:14:00.988Z",
+  "cases": [
+    {
+      "label": "all",
+      "args": [],
+      "result": {
+        "$error": "column season.clubFee does not exist"
+      }
+    },
+    {
+      "label": "one",
+      "args": [
+        "Mellor"
+      ],
+      "result": {
+        "$error": "column season.clubFee does not exist"
+      }
+    }
+  ]
+}

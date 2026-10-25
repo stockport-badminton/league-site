@@ -1,5 +1,15 @@
+// @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require('./season');
+const { kysely } = require('../db');
+
+// REARCH-01: getById and the withdrawal functions are on the typed query layer. Not
+// converted: getLeagueTable, getAllLeagueTables and getAllLeagueTablesWithTopBottomDetails
+// (season-switched, REARCH-02), and getAnnualInvoices, which reads season."clubFee" — a
+// column production has and no migration creates, so the generated types cannot name it
+// (see the REARCH-01 brief).
+
+/** @typedef {import('kysely').Kysely<import('../db/schema').DB>} Q */
 
 // A withdrawn team is out of the live league table (HARD-10) — clearing its division
 // already drops it, since every table query INNER JOINs division, but the filter is
@@ -10,15 +20,17 @@ var seasonModel = require('./season');
 // `withdrawn` column, and a team that folds in February must still appear in the
 // tables for the seasons it actually played — that is the whole reason the row is
 // kept rather than deleted.
+/** @param {string} alias @param {string} [season] */
 function WITHDRAWN_FILTER(alias, season) {
   return season ? '' : ` AND ${alias}.withdrawn IS NULL`
 }
 
+/** @param {number} leagueId */
 exports.getById = async function(leagueId) {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM league WHERE id = ?', leagueId)
-  return result
+  return kysely.selectFrom('league').selectAll().where('id', '=', leagueId).execute()
 }
 
+/** @param {string} division @param {string} [season] */
 exports.getLeagueTable = async function(division, season) {
   // Throws unless the season is 8 digits. It is interpolated into the SQL below as
   // a table-name suffix, which cannot be a bind parameter — see the validation
@@ -68,6 +80,7 @@ exports.getLeagueTable = async function(division, season) {
 // WHERE clause because `clubFilter` may already own the WHERE, and because a club
 // whose only team has withdrawn should drop out of the count rather than appear
 // with a phantom one.
+/** @param {string} [clubName] */
 exports.getAnnualInvoices = async function(clubName) {
   // `No Club` (63) is the sentinel a released player is parked on — Roster.NO_CLUB_ID —
   // and it holds `No Team` (52), so it looks like a club with two teams and would be
@@ -121,6 +134,7 @@ exports.getAnnualInvoices = async function(clubName) {
   return result
 }
 
+/** @param {string} [season] */
 exports.getAllLeagueTables = async function(season) {
   // Throws unless the season is 8 digits. It is interpolated into the SQL below as
   // a table-name suffix, which cannot be a bind parameter — see the validation
@@ -167,6 +181,7 @@ exports.getAllLeagueTables = async function(season) {
   return result
 }
 
+/** @param {string} [season] */
 exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
   // Throws unless the season is 8 digits. It is interpolated into the SQL below as
   // a table-name suffix, which cannot be a bind parameter — see the validation
@@ -331,114 +346,105 @@ LIMIT 100
 // "Not yet played": no score recorded, and a status that means the fixture is still
 // pending. 'complete', 'conceded', 'rearranged', 'rearranging' and an existing 'void'
 // are all excluded — a rearranged fixture has a replacement row which is itself
-// outstanding and gets voided in its own right.
-function outstandingFixture(alias) {
-  return `(${alias}."homeScore" IS NULL AND ${alias}."awayScore" IS NULL
-           AND (${alias}.status IS NULL OR ${alias}.status IN ('', 'outstanding')))`
+// outstanding and gets voided in its own right. (fixture_status_check no longer admits
+// NULL or '', so those two are defensive.)
+/** @param {import('kysely').ExpressionBuilder<any, any>} eb @param {string} f the fixture's alias */
+const unplayed = (eb, f) => eb.and([
+  eb(`${f}.homeScore`, 'is', null),
+  eb(`${f}.awayScore`, 'is', null),
+  eb.or([eb(`${f}.status`, 'is', null), eb(`${f}.status`, 'in', ['', 'outstanding'])]),
+])
+
+/** @param {string} message @param {number} status */
+function httpError(message, status) {
+  const err = /** @type {Error & { status?: number }} */ (new Error(message))
+  err.status = status
+  return err
 }
 
 // Read-only preview of what withdrawing a team would do. The confirmation page renders
 // this; nothing is written. Returns null if there is no such team.
+/** @param {number} teamId */
 exports.getWithdrawalImpact = async function(teamId) {
-  const conn = await db.otherConnect()
   const season = seasonModel.current()
 
-  const [teamRows] = await conn.query(
-    `SELECT t.id, t.name, t.division, t.withdrawn, t."withdrawnDivision" AS "withdrawnDivision",
-            t."withdrawnReason" AS "withdrawnReason",
-            d.name AS "divisionName", wd.name AS "withdrawnDivisionName",
-            c.name AS "clubName", c.id AS "clubId"
-     FROM team t
-     LEFT JOIN division d ON t.division = d.id
-     LEFT JOIN division wd ON t."withdrawnDivision" = wd.id
-     LEFT JOIN club c ON t.club = c.id
-     WHERE t.id = ?`,
-    [teamId]
-  )
-  if (!teamRows.length) return null
+  const team = await kysely.selectFrom('team as t')
+    .leftJoin('division as d', 't.division', 'd.id')
+    .leftJoin('division as wd', 't.withdrawnDivision', 'wd.id')
+    .leftJoin('club as c', 't.club', 'c.id')
+    .select(['t.id', 't.name', 't.division', 't.withdrawn', 't.withdrawnDivision', 't.withdrawnReason',
+      'd.name as divisionName', 'wd.name as withdrawnDivisionName', 'c.name as clubName', 'c.id as clubId'])
+    .where('t.id', '=', teamId)
+    .executeTakeFirst()
+  if (!team) return null
 
   // LEFT JOIN to fixture, not a comma join, so a team with no fixtures at all still
   // returns zeroes instead of losing the whole preview — the same trap as gotcha 1c.
-  const [countRows] = await conn.query(
-    `SELECT
-       COUNT(f.id) FILTER (WHERE ${outstandingFixture('f')}) AS outstanding,
-       COUNT(f.id) FILTER (WHERE NOT ${outstandingFixture('f')}) AS recorded
-     FROM season s
-     LEFT JOIN fixture f
-       ON (f."homeTeam" = ? OR f."awayTeam" = ?)
-      AND f.date > s."startDate" AND f.date < s."endDate"
-     WHERE s.name = ?`,
-    [teamId, teamId, season]
-  )
+  const counts = await kysely.selectFrom('season as s')
+    .leftJoin('fixture as f', join => join
+      .on(eb => eb.or([eb('f.homeTeam', '=', teamId), eb('f.awayTeam', '=', teamId)]))
+      .onRef('f.date', '>', 's.startDate')
+      .onRef('f.date', '<', 's.endDate'))
+    .select(eb => [
+      eb.fn.count('f.id').filterWhere(unplayed(eb, 'f')).as('outstanding'),
+      eb.fn.count('f.id').filterWhere(eb.not(unplayed(eb, 'f'))).as('recorded'),
+    ])
+    .where('s.name', '=', season)
+    .executeTakeFirst()
 
-  const [playerRows] = await conn.query(
-    'SELECT COUNT(*) AS players FROM player WHERE team = ?',
-    [teamId]
-  )
+  const players = await kysely.selectFrom('player').select(eb => eb.fn.countAll().as('players'))
+    .where('team', '=', teamId).executeTakeFirst()
 
-  const counts = countRows[0] || {}
   return {
-    team: teamRows[0],
+    team,
     season: season,
-    outstandingFixtures: Number(counts.outstanding || 0),
-    recordedFixtures: Number(counts.recorded || 0),
-    players: Number((playerRows[0] || {}).players || 0)
+    outstandingFixtures: Number((counts && counts.outstanding) || 0),
+    recordedFixtures: Number((counts && counts.recorded) || 0),
+    players: Number((players && players.players) || 0)
   }
 }
 
 // Ids of the players still attached to a team, in list order. Only used by the opt-in
 // "release the players too" step of a withdrawal; the release itself goes through
 // Roster.releasePlayer so the rank renumbering stays in the one place that owns it.
+/** @param {number} teamId */
 exports.getTeamPlayerIds = async function(teamId) {
-  const [rows] = await (await db.otherConnect()).query(
-    'SELECT id FROM player WHERE team = ? ORDER BY rank NULLS LAST, id',
-    [teamId]
-  )
+  const rows = await kysely.selectFrom('player').select('id').where('team', '=', teamId)
+    .orderBy('rank', ob => ob.asc().nullsLast()).orderBy('id').execute()
   return rows.map(r => Number(r.id))
 }
 
 // Teams currently withdrawn, newest first — the "Withdrawn" section of /admin/teams.
 exports.getWithdrawnTeams = async function() {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT t.id, t.name, t.withdrawn, t."withdrawnReason" AS "withdrawnReason",
-            t."withdrawnDivision" AS "withdrawnDivision",
-            t."withdrawnFixtures" AS "withdrawnFixtures",
-            d.name AS "withdrawnDivisionName", c.name AS "clubName"
-     FROM team t
-     LEFT JOIN division d ON t."withdrawnDivision" = d.id
-     LEFT JOIN club c ON t.club = c.id
-     WHERE t.withdrawn IS NOT NULL
-     ORDER BY t.withdrawn DESC, t.name`
-  )
-  return rows
+  return kysely.selectFrom('team as t')
+    .leftJoin('division as d', 't.withdrawnDivision', 'd.id')
+    .leftJoin('club as c', 't.club', 'c.id')
+    .select(['t.id', 't.name', 't.withdrawn', 't.withdrawnReason', 't.withdrawnDivision', 't.withdrawnFixtures',
+      'd.name as withdrawnDivisionName', 'c.name as clubName'])
+    .where('t.withdrawn', 'is not', null)
+    .orderBy('t.withdrawn', 'desc').orderBy('t.name')
+    .execute()
 }
 
+/** @param {string} message */
 function conflict(message) {
-  const err = new Error(message)
-  err.status = 409
-  return err
+  return httpError(message, 409)
 }
 
 // Withdraw a team. One transaction: void this season's outstanding fixtures, then clear
 // the division and stamp the withdrawal, recording enough to undo it. Players are left
 // alone — releasing them onto the No Club / No Team sentinels is a separate, opt-in step
 // in the controller, because it is the one part that cannot be reversed.
+/** @param {number} teamId @param {{ reason?: string }} [options] */
 exports.withdrawTeam = async function(teamId, options) {
   const opts = options || {}
   const season = seasonModel.current()
   const reason = (opts.reason || '').trim() || null
 
-  return db.withTransaction(async conn => {
-    const [teamRows] = await conn.query(
-      'SELECT id, name, division, withdrawn FROM team WHERE id = ? FOR UPDATE',
-      [teamId]
-    )
-    const team = teamRows[0]
-    if (!team) {
-      const err = new Error('No such team')
-      err.status = 404
-      throw err
-    }
+  return db.withTransaction(async (conn, trx) => {
+    const team = await trx.selectFrom('team').select(['id', 'name', 'division', 'withdrawn'])
+      .where('id', '=', teamId).forUpdate().executeTakeFirst()
+    if (!team) throw httpError('No such team', 404)
     // Refuses to run twice. Checked here so the message can name the team, and
     // repeated in the UPDATE below so a concurrent withdrawal cannot slip between.
     if (team.withdrawn) {
@@ -446,30 +452,29 @@ exports.withdrawTeam = async function(teamId, options) {
         + new Date(team.withdrawn).toISOString().slice(0, 10) + '.')
     }
 
-    const [voided] = await conn.query(
-      `UPDATE fixture AS f SET status = 'void'
-       WHERE (f."homeTeam" = ? OR f."awayTeam" = ?)
-         AND EXISTS (
-           SELECT 1 FROM season s
-           WHERE s.name = ? AND f.date > s."startDate" AND f.date < s."endDate")
-         AND ${outstandingFixture('f')}
-       RETURNING f.id`,
-      [teamId, teamId, season]
-    )
+    const voided = await trx.updateTable('fixture as f').set({ status: 'void' })
+      .where(eb => eb.and([
+        eb.or([eb('f.homeTeam', '=', teamId), eb('f.awayTeam', '=', teamId)]),
+        eb.exists(eb.selectFrom('season as s').select(eb.lit(1).as('one'))
+          .where('s.name', '=', season).whereRef('f.date', '>', 's.startDate').whereRef('f.date', '<', 's.endDate')),
+        unplayed(eb, 'f'),
+      ]))
+      .returning('f.id')
+      .execute()
     const voidedIds = voided.map(r => Number(r.id))
 
-    const [updated] = await conn.query(
-      `UPDATE team
-       SET withdrawn = now(),
-           "withdrawnDivision" = division,
-           "withdrawnReason" = ?,
-           "withdrawnFixtures" = ?::int[],
-           division = NULL
-       WHERE id = ? AND withdrawn IS NULL
-       RETURNING id`,
-      [reason, voidedIds, teamId]
-    )
-    if (!updated.length) throw conflict(team.name + ' is already withdrawn.')
+    const updated = await trx.updateTable('team')
+      .set(eb => ({
+        withdrawn: eb.fn('now'),
+        withdrawnDivision: eb.ref('division'),
+        withdrawnReason: reason,
+        withdrawnFixtures: voidedIds,
+        division: null,
+      }))
+      .where('id', '=', teamId).where('withdrawn', 'is', null)
+      .returning('id')
+      .executeTakeFirst()
+    if (!updated) throw conflict(team.name + ' is already withdrawn.')
 
     return {
       teamId: Number(teamId),
@@ -489,65 +494,58 @@ exports.withdrawTeam = async function(teamId, options) {
 // A restored fixture comes back as 'outstanding' rather than whatever it held before
 // (NULL, '' and 'outstanding' were all in use); all three count the same way in the
 // league table, and 'outstanding' is the only one that says so out loud.
+/** @param {number} teamId */
 exports.reinstateTeam = async function(teamId) {
-  return db.withTransaction(async conn => {
-    const [teamRows] = await conn.query(
-      `SELECT id, name, withdrawn, division, "withdrawnDivision" AS "withdrawnDivision",
-              "withdrawnFixtures" AS "withdrawnFixtures"
-       FROM team WHERE id = ? FOR UPDATE`,
-      [teamId]
-    )
-    const team = teamRows[0]
-    if (!team) {
-      const err = new Error('No such team')
-      err.status = 404
-      throw err
-    }
+  return db.withTransaction(async (conn, trx) => {
+    const team = await trx.selectFrom('team')
+      .select(['id', 'name', 'withdrawn', 'division', 'withdrawnDivision', 'withdrawnFixtures'])
+      .where('id', '=', teamId).forUpdate().executeTakeFirst()
+    if (!team) throw httpError('No such team', 404)
     if (!team.withdrawn) throw conflict(team.name + ' is not withdrawn.')
     if (team.withdrawnDivision == null) {
       throw conflict(team.name + ' has no division recorded to return to — set one on '
         + 'the edit form instead.')
     }
+    const division = team.withdrawnDivision
 
-    const [rankRows] = await conn.query(
-      'SELECT COALESCE(MAX("divRank"), 0) + 1 AS next FROM team WHERE division = ?',
-      [team.withdrawnDivision]
-    )
+    const rank = await trx.selectFrom('team')
+      .select(eb => eb(eb.fn.coalesce(eb.fn.max('divRank'), eb.lit(0)), '+', eb.lit(1)).as('next'))
+      .where('division', '=', division)
+      .executeTakeFirst()
 
     const fixtureIds = (team.withdrawnFixtures || []).map(Number)
+    /** @type {number[]} */
     let restored = []
     if (fixtureIds.length) {
       // The guard is repeated here: a fixture that has since been given a result, or
       // voided again for another reason, is left as it is.
-      const [rows] = await conn.query(
-        `UPDATE fixture AS f SET status = 'outstanding'
-         WHERE f.id = ANY(?::int[])
-           AND f.status = 'void'
-           AND f."homeScore" IS NULL AND f."awayScore" IS NULL
-         RETURNING f.id`,
-        [fixtureIds]
-      )
+      const rows = await trx.updateTable('fixture as f').set({ status: 'outstanding' })
+        .where('f.id', 'in', fixtureIds)
+        .where('f.status', '=', 'void')
+        .where('f.homeScore', 'is', null).where('f.awayScore', 'is', null)
+        .returning('f.id')
+        .execute()
       restored = rows.map(r => Number(r.id))
     }
 
-    const [updated] = await conn.query(
-      `UPDATE team
-       SET division = "withdrawnDivision",
-           "divRank" = ?,
-           withdrawn = NULL,
-           "withdrawnDivision" = NULL,
-           "withdrawnReason" = NULL,
-           "withdrawnFixtures" = NULL
-       WHERE id = ? AND withdrawn IS NOT NULL
-       RETURNING id`,
-      [(rankRows[0] || {}).next || 1, teamId]
-    )
-    if (!updated.length) throw conflict(team.name + ' is not withdrawn.')
+    const updated = await trx.updateTable('team')
+      .set(eb => ({
+        division: eb.ref('withdrawnDivision'),
+        divRank: (rank && rank.next) || 1,
+        withdrawn: null,
+        withdrawnDivision: null,
+        withdrawnReason: null,
+        withdrawnFixtures: null,
+      }))
+      .where('id', '=', teamId).where('withdrawn', 'is not', null)
+      .returning('id')
+      .executeTakeFirst()
+    if (!updated) throw conflict(team.name + ' is not withdrawn.')
 
     return {
       teamId: Number(teamId),
       name: team.name,
-      division: team.withdrawnDivision,
+      division: division,
       restoredFixtures: restored
     }
   })

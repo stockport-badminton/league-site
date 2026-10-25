@@ -1,0 +1,28 @@
+{
+  "function": "league.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:13:04.393Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        1
+      ],
+      "result": []
+    },
+    {
+      "label": "string",
+      "args": [
+        "1"
+      ],
+      "result": []
+    },
+    {
+      "label": "missing",
+      "args": [
+        999
+      ],
+      "result": []
+    }
+  ]
+}

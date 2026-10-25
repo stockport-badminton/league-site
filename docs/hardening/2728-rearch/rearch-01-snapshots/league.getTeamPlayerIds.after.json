@@ -1,0 +1,42 @@
+{
+  "function": "league.getTeamPlayerIds",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:13:59.472Z",
+  "cases": [
+    {
+      "label": "cgA",
+      "args": [
+        12
+      ],
+      "result": [
+        103,
+        1835,
+        199,
+        2051,
+        2209,
+        592
+      ]
+    },
+    {
+      "label": "string",
+      "args": [
+        "12"
+      ],
+      "result": [
+        103,
+        1835,
+        199,
+        2051,
+        2209,
+        592
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        999999
+      ],
+      "result": []
+    }
+  ]
+}

@@ -1,0 +1,615 @@
+{
+  "function": "league.getAllLeagueTables",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:14:00.490Z",
+  "cases": [
+    {
+      "label": "live",
+      "args": [],
+      "result": [
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "GHAP A",
+          "played": "4",
+          "pointsFor": "44",
+          "pointsAgainst": "28",
+          "divRank": 4
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Racketeers B",
+          "played": "4",
+          "pointsFor": "41",
+          "pointsAgainst": "31",
+          "divRank": 2
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Featherforce A",
+          "played": "2",
+          "pointsFor": "19",
+          "pointsAgainst": "17",
+          "divRank": 10
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Alderley Park A",
+          "played": "2",
+          "pointsFor": "17",
+          "pointsAgainst": "19",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Racketeers A",
+          "played": "1",
+          "pointsFor": "16",
+          "pointsAgainst": "2",
+          "divRank": 1
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Shell A",
+          "played": "1",
+          "pointsFor": "10",
+          "pointsAgainst": "8",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Syddal Park A",
+          "played": "1",
+          "pointsFor": "8",
+          "pointsAgainst": "10",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "David Lloyd A",
+          "played": "2",
+          "pointsFor": "4",
+          "pointsAgainst": "32",
+          "divRank": 11
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "College Green A",
+          "played": "1",
+          "pointsFor": "3",
+          "pointsAgainst": "15",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Parrswood A",
+          "played": "0",
+          "pointsFor": null,
+          "pointsAgainst": null,
+          "divRank": 1
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Featherforce B",
+          "played": "4",
+          "pointsFor": "50",
+          "pointsAgainst": "22",
+          "divRank": 9
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Shell B",
+          "played": "4",
+          "pointsFor": "41",
+          "pointsAgainst": "31",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Macclesfield A",
+          "played": "3",
+          "pointsFor": "36",
+          "pointsAgainst": "18",
+          "divRank": 10
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Remnants A",
+          "played": "3",
+          "pointsFor": "23",
+          "pointsAgainst": "31",
+          "divRank": 11
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Alderley Park B",
+          "played": "4",
+          "pointsFor": "19",
+          "pointsAgainst": "53",
+          "divRank": 12
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "College Green B",
+          "played": "1",
+          "pointsFor": "15",
+          "pointsAgainst": "3",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Syddal Park B",
+          "played": "3",
+          "pointsFor": "14",
+          "pointsAgainst": "40",
+          "divRank": 4
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Manor A",
+          "played": "0",
+          "pointsFor": null,
+          "pointsAgainst": null,
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Aerospace A",
+          "played": "4",
+          "pointsFor": "49",
+          "pointsAgainst": "23",
+          "divRank": 9
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Mellor A",
+          "played": "3",
+          "pointsFor": "30",
+          "pointsAgainst": "24",
+          "divRank": 11
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Shell C",
+          "played": "3",
+          "pointsFor": "27",
+          "pointsAgainst": "27",
+          "divRank": 2
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "College Green C",
+          "played": "2",
+          "pointsFor": "15",
+          "pointsAgainst": "21",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Dome B",
+          "played": "2",
+          "pointsFor": "14",
+          "pointsAgainst": "22",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Alderley Park C",
+          "played": "1",
+          "pointsFor": "7",
+          "pointsAgainst": "11",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Parrswood B",
+          "played": "1",
+          "pointsFor": "2",
+          "pointsAgainst": "16",
+          "divRank": 10
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Cheadle Hulme B",
+          "played": "0",
+          "pointsFor": null,
+          "pointsAgainst": null,
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Tatton A",
+          "played": "4",
+          "pointsFor": "39",
+          "pointsAgainst": "33",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "College Green D",
+          "played": "2",
+          "pointsFor": "32",
+          "pointsAgainst": "4",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Cheadle Hulme A",
+          "played": "2",
+          "pointsFor": "29",
+          "pointsAgainst": "7",
+          "divRank": 9
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "College Green E",
+          "played": "4",
+          "pointsFor": "23",
+          "pointsAgainst": "49",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Mellor B",
+          "played": "3",
+          "pointsFor": "20",
+          "pointsAgainst": "34",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Disley A",
+          "played": "2",
+          "pointsFor": "19",
+          "pointsAgainst": "17",
+          "divRank": 10
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Manor B",
+          "played": "3",
+          "pointsFor": "18",
+          "pointsAgainst": "36",
+          "divRank": 11
+        }
+      ]
+    },
+    {
+      "label": "last",
+      "args": [
+        "20252026"
+      ],
+      "result": [
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Racketeers A",
+          "played": "16",
+          "pointsFor": "237",
+          "pointsAgainst": "51",
+          "divRank": 1
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Racketeers B",
+          "played": "16",
+          "pointsFor": "173",
+          "pointsAgainst": "115",
+          "divRank": 2
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Shell A",
+          "played": "16",
+          "pointsFor": "162",
+          "pointsAgainst": "126",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "GHAP A",
+          "played": "16",
+          "pointsFor": "158",
+          "pointsAgainst": "130",
+          "divRank": 4
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Alderley Park A",
+          "played": "16",
+          "pointsFor": "147",
+          "pointsAgainst": "141",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Syddal Park A",
+          "played": "16",
+          "pointsFor": "123",
+          "pointsAgainst": "165",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "College Green A",
+          "played": "16",
+          "pointsFor": "122",
+          "pointsAgainst": "166",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Macclesfield A",
+          "played": "16",
+          "pointsFor": "111",
+          "pointsAgainst": "177",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Premier",
+          "division": 7,
+          "name": "Remnants A",
+          "played": "16",
+          "pointsFor": "63",
+          "pointsAgainst": "225",
+          "divRank": 9
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Featherforce A",
+          "played": "16",
+          "pointsFor": "238",
+          "pointsAgainst": "50",
+          "divRank": 9
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "David Lloyd A",
+          "played": "16",
+          "pointsFor": "180",
+          "pointsAgainst": "108",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Parrswood A",
+          "played": "16",
+          "pointsFor": "171",
+          "pointsAgainst": "117",
+          "divRank": 1
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "College Green B",
+          "played": "16",
+          "pointsFor": "163",
+          "pointsAgainst": "125",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Shell B",
+          "played": "16",
+          "pointsFor": "153",
+          "pointsAgainst": "135",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Syddal Park B",
+          "played": "16",
+          "pointsFor": "141",
+          "pointsAgainst": "147",
+          "divRank": 4
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Dome A",
+          "played": "16",
+          "pointsFor": "132",
+          "pointsAgainst": "156",
+          "divRank": 2
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Aerospace A",
+          "played": "16",
+          "pointsFor": "87",
+          "pointsAgainst": "201",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Division 1",
+          "division": 8,
+          "name": "Parrswood B",
+          "played": "16",
+          "pointsFor": "31",
+          "pointsAgainst": "257",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Alderley Park B",
+          "played": "14",
+          "pointsFor": "180",
+          "pointsAgainst": "72",
+          "divRank": 1
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "College Green C",
+          "played": "14",
+          "pointsFor": "153",
+          "pointsAgainst": "99",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Shell C",
+          "played": "14",
+          "pointsFor": "152",
+          "pointsAgainst": "100",
+          "divRank": 2
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Dome B",
+          "played": "14",
+          "pointsFor": "131",
+          "pointsAgainst": "121",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Manor A",
+          "played": "14",
+          "pointsFor": "110",
+          "pointsAgainst": "142",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Alderley Park C",
+          "played": "14",
+          "pointsFor": "101",
+          "pointsAgainst": "151",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Cheadle Hulme A",
+          "played": "14",
+          "pointsFor": "95",
+          "pointsAgainst": "157",
+          "divRank": 4
+        },
+        {
+          "divisionName": "Division 2",
+          "division": 9,
+          "name": "Disley A",
+          "played": "14",
+          "pointsFor": "86",
+          "pointsAgainst": "166",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Mellor A",
+          "played": "12",
+          "pointsFor": "172",
+          "pointsAgainst": "44",
+          "divRank": 1
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "College Green D",
+          "played": "12",
+          "pointsFor": "138",
+          "pointsAgainst": "78",
+          "divRank": 6
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Cheadle Hulme B",
+          "played": "12",
+          "pointsFor": "109",
+          "pointsAgainst": "107",
+          "divRank": 5
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "College Green E",
+          "played": "12",
+          "pointsFor": "108",
+          "pointsAgainst": "108",
+          "divRank": 8
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Tatton A",
+          "played": "12",
+          "pointsFor": "96",
+          "pointsAgainst": "120",
+          "divRank": 7
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Mellor C",
+          "played": "12",
+          "pointsFor": "76",
+          "pointsAgainst": "140",
+          "divRank": 3
+        },
+        {
+          "divisionName": "Division 3",
+          "division": 10,
+          "name": "Parrswood C",
+          "played": "12",
+          "pointsFor": "57",
+          "pointsAgainst": "159",
+          "divRank": 4
+        }
+      ]
+    }
+  ]
+}
