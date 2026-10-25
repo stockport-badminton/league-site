@@ -1,9 +1,12 @@
 // Fixture.rearrangeByTeamNames — the writes behind the rearrangement modal.
 //
-// The old version resolved team ids inline inside the INSERT, so an unmatched name
-// inserted a fixture with a NULL team instead of failing, and it ran the UPDATE and
-// the INSERT as two unrelated statements, so a pairing that archived nothing still
-// created a replacement. These pin both, plus the transaction.
+// What is left here is the validation, which refuses a request before any statement runs.
+// The writes moved to a real Postgres when the function went onto the typed query layer
+// (REARCH-01): team resolution, the current-season scope, both outcomes, the wall-clock
+// date and the transaction are in __tests__/db/fixture-scorecards.test.js and
+// __tests__/db/fixture.test.js. The old version resolved team ids inline inside the
+// INSERT, so an unmatched name inserted a fixture with a NULL team instead of failing, and
+// ran the UPDATE and the INSERT as two unrelated statements; both are pinned there.
 
 jest.mock('../../db_connect', () => ({
   isObject: obj => obj === Object(obj),
@@ -66,150 +69,5 @@ describe('validation — rejected before any statement runs', () => {
   it.each(cases)('rejects %s', async (_label, body) => {
     await expect(Fixture.rearrangeByTeamNames(body)).rejects.toMatchObject({ status: 400 });
     expect(db.withTransaction).not.toHaveBeenCalled();
-  });
-});
-
-describe('team resolution', () => {
-  it('refuses a name that matches no team, rather than inserting a NULL team', async () => {
-    const conn = fakeConn({ teams: [TEAMS[0]] });
-    runWith(conn);
-
-    await expect(Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospacce A', date: '2026-11-05',
-    })).rejects.toMatchObject({ status: 400 });
-
-    // Neither write may run: the point of resolving the ids first is that a bad
-    // name fails before anything is archived.
-    expect(conn.calls.some(c => /INSERT/.test(c.sql))).toBe(false);
-    expect(conn.calls.some(c => /UPDATE/.test(c.sql))).toBe(false);
-  });
-
-  it('names the team it could not find', async () => {
-    runWith(fakeConn({ teams: [TEAMS[0]] }));
-    await expect(Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospacce A', date: '2026-11-05',
-    })).rejects.toThrow(/Aerospacce A/);
-  });
-});
-
-describe('fixture resolution', () => {
-  it('archives nothing and inserts nothing when the pairing matches no fixture', async () => {
-    const conn = fakeConn({ fixtureId: null });
-    runWith(conn);
-
-    await expect(Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
-    })).rejects.toMatchObject({ status: 404 });
-
-    expect(conn.calls.some(c => /UPDATE|INSERT/.test(c.sql))).toBe(false);
-  });
-
-  it('scopes the search to the current season', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    await Fixture.rearrangeByTeamNames({ homeTeam: 'Mellor A', awayTeam: 'Aerospace A' });
-
-    const lookup = conn.calls.find(c => /FROM fixture f/.test(c.sql));
-    expect(lookup.params).toContain('20262027');
-    // Bound, not interpolated — the season name reaches SQL as a parameter.
-    expect(lookup.sql).not.toContain('20262027');
-  });
-});
-
-describe('the two outcomes', () => {
-  it("flags the fixture 'rearranging' and creates no replacement when no date is agreed", async () => {
-    const conn = fakeConn();
-    runWith(conn);
-
-    const out = await Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '',
-    });
-
-    expect(out).toMatchObject({ ok: true, action: 'rearranging', fixtureId: 7200, replacementId: null });
-    expect(conn.calls.some(c => /INSERT/.test(c.sql))).toBe(false);
-    expect(conn.calls.find(c => /UPDATE/.test(c.sql)).sql).toMatch(/'rearranging'/);
-  });
-
-  it('treats a missing date the same as a blank one', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    const out = await Fixture.rearrangeByTeamNames({ homeTeam: 'Mellor A', awayTeam: 'Aerospace A' });
-    expect(out.action).toBe('rearranging');
-  });
-
-  it("archives the old fixture and inserts the replacement against resolved team ids", async () => {
-    const conn = fakeConn();
-    runWith(conn);
-
-    const out = await Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
-    });
-
-    expect(out).toMatchObject({
-      ok: true, action: 'rearranged', fixtureId: 7200, replacementId: 7401, date: '2026-11-05',
-    });
-
-    expect(conn.calls.find(c => /UPDATE/.test(c.sql))).toMatchObject({ params: [7200] });
-
-    const insert = conn.calls.find(c => /INSERT/.test(c.sql));
-    expect(insert.params).toEqual([11, 22, '2026-11-05 00:00:00']);
-    // Ids, never a `(SELECT id FROM team WHERE name = ?)` that can yield NULL.
-    expect(insert.sql).not.toMatch(/SELECT id FROM team/);
-    // Postgres reports no insertId; without RETURNING the new id is undefined.
-    expect(insert.sql).toMatch(/RETURNING id/);
-  });
-
-  it('stores the date as a wall-clock string, not a JS Date', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    await Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
-    });
-    const dateParam = conn.calls.find(c => /INSERT/.test(c.sql)).params[2];
-    expect(typeof dateParam).toBe('string');
-    expect(dateParam).toBe('2026-11-05 00:00:00');
-  });
-
-  it('does both writes inside one transaction', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    await Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
-    });
-    expect(db.withTransaction).toHaveBeenCalledTimes(1);
-  });
-
-  it('trims surrounding whitespace off the team names the modal scrapes from the table', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    await Fixture.rearrangeByTeamNames({
-      homeTeam: '  Mellor A ', awayTeam: '\nAerospace A\t', date: '2026-11-05',
-    });
-    const lookup = conn.calls.find(c => /FROM team WHERE/.test(c.sql));
-    expect(lookup.params).toEqual(['Mellor A', 'Aerospace A']);
-  });
-});
-
-// A rearrangement must never resolve to a team that has been withdrawn.
-//
-// `findTeamIdsByName` builds `new Map(rows.map(r => [r.name, r.id]))`, which silently keeps
-// the LAST row for a duplicated key. Team names are reused — a club's team is deleted and
-// re-created under the same name with a new id, and four such pairs exist (Syddal Park B,
-// Disley A, Manor B, Mellor B). Once HARD-11's orphaned teams are reinstated as withdrawn
-// rows, those names exist twice in `team`, and without the filter a rearrangement could
-// resolve to the 2014 team and write a fixture pointing at it: a NEW orphan, created by
-// the very thing meant to stop them.
-//
-// This function writes, which is why it matters more than the other by-name lookups.
-describe('team resolution ignores withdrawn teams', () => {
-  it('filters them in SQL rather than after the fact', async () => {
-    const conn = fakeConn();
-    runWith(conn);
-    await Fixture.rearrangeByTeamNames({
-      homeTeam: 'Mellor A', awayTeam: 'Aerospace A', date: '2026-11-05',
-    });
-    const lookup = conn.calls.find(c => /FROM team WHERE/.test(c.sql));
-    expect(lookup).toBeDefined();
-    expect(lookup.sql).toMatch(/withdrawn IS NULL/);
   });
 });

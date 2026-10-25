@@ -1,0 +1,108 @@
+{
+  "function": "fixture.getReminderContacts",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:01:12.507Z",
+  "cases": [
+    {
+      "label": "outstanding",
+      "args": [
+        7694
+      ],
+      "result": {
+        "fixture": {
+          "id": 7694,
+          "date": {
+            "$date": "2027-02-10T00:00:00.000Z"
+          },
+          "homeTeam": "Shell A",
+          "awayTeam": "Racketeers A"
+        },
+        "contacts": [
+          {
+            "role": "Club secretary",
+            "name": "Anna Wiza",
+            "email": "bigcoops+annawiza@gmail.com"
+          },
+          {
+            "role": "Match secretary",
+            "name": "Anna Wiza",
+            "email": "bigcoops+annawiza@gmail.com"
+          },
+          {
+            "role": "Team captain",
+            "name": "Laura Woodburn",
+            "email": "bigcoops+laurawoodburn@gmail.com"
+          }
+        ]
+      }
+    },
+    {
+      "label": "complete",
+      "args": [
+        7679
+      ],
+      "result": {
+        "fixture": {
+          "id": 7679,
+          "date": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Racketeers B"
+        },
+        "contacts": [
+          {
+            "role": "Club secretary",
+            "name": "Emily Stapley",
+            "email": "bigcoops+emilystapley@gmail.com"
+          },
+          {
+            "role": "Match secretary",
+            "name": "Emily Stapley",
+            "email": "bigcoops+emilystapley@gmail.com"
+          },
+          {
+            "role": "Team captain",
+            "name": "Kery Kirkwood",
+            "email": "bigcoops+kerykirkwood@gmail.com"
+          }
+        ]
+      }
+    },
+    {
+      "label": "noCaptain",
+      "args": [
+        7234
+      ],
+      "result": {
+        "fixture": {
+          "id": 7234,
+          "date": {
+            "$date": "2027-03-17T00:00:00.000Z"
+          },
+          "homeTeam": "Dome A",
+          "awayTeam": "Featherforce B"
+        },
+        "contacts": [
+          {
+            "role": "Club secretary",
+            "name": "Steve Chu",
+            "email": "bigcoops+stevechu@gmail.com"
+          },
+          {
+            "role": "Match secretary",
+            "name": "Pauline Dunphy",
+            "email": "bigcoops+paulinedunphy@gmail.com"
+          }
+        ]
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999999
+      ],
+      "result": null
+    }
+  ]
+}

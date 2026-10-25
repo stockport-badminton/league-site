@@ -1,0 +1,167 @@
+{
+  "function": "fixture.getScorecardCandidates",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:01:58.764Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 6579,
+          "date": {
+            "$date": "2026-10-14T23:00:00.000Z"
+          },
+          "homeId": 54,
+          "homeName": "College Green E",
+          "awayId": 40,
+          "awayName": "Parrswood C",
+          "divisionId": 10
+        },
+        {
+          "id": 6580,
+          "date": {
+            "$date": "2026-10-12T23:00:00.000Z"
+          },
+          "homeId": 24,
+          "homeName": "Aerospace A",
+          "awayId": 23,
+          "awayName": "College Green B",
+          "divisionId": 9
+        },
+        {
+          "id": 6581,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "homeId": 24,
+          "homeName": "Aerospace A",
+          "awayId": 30,
+          "awayName": "Parrswood B",
+          "divisionId": 9
+        },
+        {
+          "id": 6582,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "homeId": 43,
+          "homeName": "College Green D",
+          "awayId": 40,
+          "awayName": "Parrswood C",
+          "divisionId": 10
+        },
+        {
+          "id": 6583,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "homeId": 33,
+          "homeName": "College Green C",
+          "awayId": 38,
+          "awayName": "Dome B",
+          "divisionId": 9
+        },
+        {
+          "id": 6584,
+          "date": {
+            "$date": "2026-10-16T23:00:00.000Z"
+          },
+          "homeId": 29,
+          "homeName": "Mellor A",
+          "awayId": 40,
+          "awayName": "Parrswood C",
+          "divisionId": 9
+        },
+        {
+          "id": 7129,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "homeId": 4,
+          "homeName": "Racketeers A",
+          "awayId": 55,
+          "awayName": "Featherforce A",
+          "divisionId": 7
+        },
+        {
+          "id": 7183,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "homeId": 55,
+          "homeName": "Featherforce A",
+          "awayId": 10,
+          "awayName": "Alderley Park A",
+          "divisionId": 7
+        },
+        {
+          "id": 7184,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "homeId": 55,
+          "homeName": "Featherforce A",
+          "awayId": 12,
+          "awayName": "College Green A",
+          "divisionId": 7
+        },
+        {
+          "id": 7200,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "homeId": 13,
+          "homeName": "Shell B",
+          "awayId": 14,
+          "awayName": "Remnants A",
+          "divisionId": 8
+        },
+        {
+          "id": 7226,
+          "date": {
+            "$date": "2026-10-29T00:00:00.000Z"
+          },
+          "homeId": 23,
+          "homeName": "College Green B",
+          "awayId": 57,
+          "awayName": "Featherforce B",
+          "divisionId": 8
+        },
+        {
+          "id": 7291,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "homeId": 38,
+          "homeName": "Dome B",
+          "awayId": 24,
+          "awayName": "Aerospace A",
+          "divisionId": 9
+        },
+        {
+          "id": 7310,
+          "date": {
+            "$date": "2026-10-21T23:00:00.000Z"
+          },
+          "homeId": 29,
+          "homeName": "Mellor A",
+          "awayId": 27,
+          "awayName": "Shell C",
+          "divisionId": 9
+        },
+        {
+          "id": 7378,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "homeId": 51,
+          "homeName": "Cheadle Hulme B",
+          "awayId": 56,
+          "awayName": "Manor B",
+          "divisionId": 10
+        }
+      ]
+    }
+  ]
+}

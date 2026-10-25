@@ -1,0 +1,315 @@
+{
+  "function": "fixture.getMissingScorecardPhotos",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:02:00.453Z",
+  "cases": [
+    {
+      "label": "resultsSecretary",
+      "args": [
+        "stockport.badders.results@gmail.com"
+      ],
+      "result": [
+        {
+          "fixtureid": 7200,
+          "status": "outstanding",
+          "id": 2479,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "wI-h0qys5wZONxiwNOuN91ezXZBf83Ho",
+          "homeTeam": "Shell B",
+          "awayTeam": "Remnants A"
+        },
+        {
+          "fixtureid": 7226,
+          "status": "outstanding",
+          "id": 2487,
+          "date": {
+            "$date": "2026-10-29T00:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "Xu2lmWIV--6ouI3K5_uFIXf6GWYX2tY4",
+          "homeTeam": "College Green B",
+          "awayTeam": "Featherforce B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2476,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "yF9DYN2B0bYZ_4xeX70hSjZFOhq_gzOX",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2477,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "3ZxS1_Mp00sDlTBI-GVMOTUBtwtuTeQi",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2478,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "Rk_CXnim07cCWHOCJK5Htew9NO2FrqVZ",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2480,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "cfWiqH9jXvEZoGz4VdaJnlaZB-k9ev4j",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2481,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "8w1C6j8Bm_rR7LxbM5XZeOv4h2yW61rR",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2482,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "oX9Rv_xcxBIbn92GrMjIIc1eAVD39x55",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2484,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "0VetxGQb1QPC4dLl94sk5sUGIJAI3tCQ",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2485,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "fHa4nNHuIsPZ16xjBKZhkRiU_9IvnODH",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2486,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "HlIn1gDg0C6hs_XEZRvG6OUg1E2a_O9l",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2488,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "4CE3JJ1kYcS6vMM_a9K77hZ1TK8G9cmE",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2489,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "-053s_W0nlYKwYSLKauyqqH85APK1Jc7",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2490,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "LI37ZUInfrxhJttf-ZucYO8RIY2gKH3W",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2494,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "RNA9cLr2UKiI5DMRUluKTOesall3MJ0r",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2492,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "6F6fFj8B6MQPWlE9w2uNfPCOFDQSRVha",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 6581,
+          "status": "outstanding",
+          "id": 2493,
+          "date": {
+            "$date": "2026-10-10T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "zV-FFGviEovda_Xwc76FclYgzjUhEEt5",
+          "homeTeam": "Aerospace A",
+          "awayTeam": "Parrswood B"
+        },
+        {
+          "fixtureid": 7310,
+          "status": "outstanding",
+          "id": 2491,
+          "date": {
+            "$date": "2026-10-21T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "ytt3mObjZ_t7PAFsQSX8yma0cmAFqYaA",
+          "homeTeam": "Mellor A",
+          "awayTeam": "Shell C"
+        },
+        {
+          "fixtureid": 6584,
+          "status": "outstanding",
+          "id": 2435,
+          "date": {
+            "$date": "2026-10-16T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "D-LOdyvX2USl4nEoZ6Q5BXLKQUtYMgi9",
+          "homeTeam": "Mellor A",
+          "awayTeam": "Parrswood C"
+        },
+        {
+          "fixtureid": 6583,
+          "status": "outstanding",
+          "id": 2436,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "1JvRhHg_CwCW7ad5E17mR39LLK5jMtzh",
+          "homeTeam": "College Green C",
+          "awayTeam": "Dome B"
+        },
+        {
+          "fixtureid": 7378,
+          "status": "outstanding",
+          "id": 2483,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "yu1sbsf0BIsqvMOW5VCkrD_dJ4QpKU1i",
+          "homeTeam": "Cheadle Hulme B",
+          "awayTeam": "Manor B"
+        },
+        {
+          "fixtureid": 7184,
+          "status": "outstanding",
+          "id": 2475,
+          "date": {
+            "$date": "2026-10-28T00:00:00.000Z"
+          },
+          "scoresheet-url": "",
+          "email": "",
+          "confirmToken": "9SghGfc8JSakJqa4ugDOjJYwmyveYnzw",
+          "homeTeam": "Featherforce A",
+          "awayTeam": "College Green A"
+        }
+      ]
+    },
+    {
+      "label": "captain",
+      "args": [
+        "bigcoops+draft2400@gmail.com"
+      ],
+      "result": []
+    },
+    {
+      "label": "nobody",
+      "args": [
+        "nobody@example.invalid"
+      ],
+      "result": []
+    }
+  ]
+}

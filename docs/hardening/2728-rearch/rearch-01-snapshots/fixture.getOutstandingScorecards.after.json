@@ -1,0 +1,79 @@
+{
+  "function": "fixture.getOutstandingScorecards",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:01:58.160Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "homeTeam": "Aerospace A",
+          "homeId": 24,
+          "awayTeam": "College Green B",
+          "awayId": 23,
+          "date": {
+            "$date": "2026-10-12T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        },
+        {
+          "homeTeam": "College Green E",
+          "homeId": 54,
+          "awayTeam": "Parrswood C",
+          "awayId": 40,
+          "date": {
+            "$date": "2026-10-14T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        },
+        {
+          "homeTeam": "Racketeers A",
+          "homeId": 4,
+          "awayTeam": "Featherforce A",
+          "awayId": 55,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        },
+        {
+          "homeTeam": "College Green D",
+          "homeId": 43,
+          "awayTeam": "Parrswood C",
+          "awayId": 40,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        },
+        {
+          "homeTeam": "Dome B",
+          "homeId": 38,
+          "awayTeam": "Aerospace A",
+          "awayId": 24,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        },
+        {
+          "homeTeam": "Featherforce A",
+          "homeId": 55,
+          "awayTeam": "Alderley Park A",
+          "awayId": 10,
+          "date": {
+            "$date": "2026-10-20T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "scoreCardId": null
+        }
+      ]
+    }
+  ]
+}

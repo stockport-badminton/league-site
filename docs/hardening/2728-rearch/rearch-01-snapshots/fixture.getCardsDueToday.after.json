@@ -1,0 +1,35 @@
+{
+  "function": "fixture.getCardsDueToday",
+  "database": "sdbl",
+  "taken": "2026-10-25T23:01:59.299Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "fixid": 6583,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "homeTeam": "College Green C",
+          "awayTeam": "Dome B",
+          "homeScore": null,
+          "awayScore": null
+        },
+        {
+          "fixid": 7129,
+          "date": {
+            "$date": "2026-10-18T23:00:00.000Z"
+          },
+          "status": "outstanding",
+          "homeTeam": "Racketeers A",
+          "awayTeam": "Featherforce A",
+          "homeScore": null,
+          "awayScore": null
+        }
+      ]
+    }
+  ]
+}
