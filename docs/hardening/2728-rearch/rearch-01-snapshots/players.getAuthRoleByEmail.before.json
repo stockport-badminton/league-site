@@ -1,0 +1,53 @@
+{
+  "function": "players.getAuthRoleByEmail",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:40:40.422Z",
+  "cases": [
+    {
+      "label": "byPlayerEmail",
+      "args": [
+        "bigcoops+jamiemegson@gmail.com"
+      ],
+      "result": {
+        "id": 805,
+        "first_name": "Jamie",
+        "family_name": "Megson",
+        "role": "admin",
+        "messerAdmin": 0,
+        "clubName": "Manor"
+      }
+    },
+    {
+      "label": "caseInsensitive",
+      "args": [
+        "BIGCOOPS+SimonBradshaw@gmail.com"
+      ],
+      "result": {
+        "id": 1791,
+        "first_name": "Simon",
+        "family_name": "Bradshaw",
+        "role": "admin",
+        "messerAdmin": 0,
+        "clubName": "No Club"
+      }
+    },
+    {
+      "label": "nobody",
+      "args": [
+        "nobody@example.invalid"
+      ],
+      "result": {
+        "$undefined": true
+      }
+    },
+    {
+      "label": "empty",
+      "args": [
+        ""
+      ],
+      "result": {
+        "$undefined": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "function": "players.getEmails",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:42:24.623Z",
+  "cases": [
+    {
+      "label": "all",
+      "args": [
+        {}
+      ],
+      "result": [
+        "bigcoops+amymagee@gmail.com",
+        "bigcoops+anderschristiansen@gmail.com",
+        "bigcoops+andrewforbes@gmail.com",
+        "bigcoops+andrewparsonage@gmail.com",
+        "bigcoops+andrewrobert@gmail.com",
+        "bigcoops+andybates@gmail.com",
+        "bigcoops+andybrown@gmail.com",
+        "bigcoops+andybuckley@gmail.com",
+        "bigcoops+andyhard@gmail.com",
+        "bigcoops+annawiza@gmail.com",
+        "bigcoops+annenorbury@gmail.com",
+        "bigcoops+ashleylawson@gmail.com",
+        "bigcoops+benhugget@gmail.com",
+        "bigcoops+benmorton@gmail.com",
+        "bigcoops+chisumhau@gmail.com",
+        "bigcoops+chrisjarvis@gmail.com",
+        "bigcoops+chrispetty@gmail.com",
+        "bigcoops+christinaconstantinou@gmail.com",
+        "bigcoops+christurner@gmail.com",
+        "bigcoops+claireinglis@gmail.com",
+        "bigcoops+clairenorbury@gmail.com",
+        "bigcoops+danielwilliams@gmail.com",
+        "bigcoops+davebarker@gmail.com",
+        "bigcoops+davehaigh@gmail.com",
+        "bigcoops+davelee@gmail.com",
+        "bigcoops+davidgreatorex@gmail.com",
+        "bigcoops+dellabrown@gmail.com",
+        "bigcoops+derekhillesdon@gmail.com",
+        "bigcoops+dianereid@gmail.com",
+        "bigcoops+douggrantch@gmail.com",
+        "bigcoops+emilystapley@gmail.com",
+        "bigcoops+garethmoorhouse@gmail.com",
+        "bigcoops+grahamwhite@gmail.com",
+        "bigcoops+hannahhernon@gmail.com",
+        "bigcoops+hannahwilkinson@gmail.com",
+        "bigcoops+jamesheppell@gmail.com",
+        "bigcoops+jamiestott@gmail.com",
+        "bigcoops+janecave@gmail.com",
+        "bigcoops+janinewhitelancashire@gmail.com",
+        "bigcoops+jasonslevin@gmail.com",
+        "bigcoops+jenniferszczepaniaksloane@gmail.com",
+        "bigcoops+jillnaylor@gmail.com",
+        "bigcoops+johnpawsey@gmail.com",
+        "bigcoops+jonsmith@gmail.com",
+        "bigcoops+josiechan@gmail.com",
+        "bigcoops+jowoolley@gmail.com",
+        "bigcoops+judithpeatman@gmail.com",
+        "bigcoops+juliancherryman@gmail.com",
+        "bigcoops+kararobinson@gmail.com",
+        "bigcoops+karlcramp@gmail.com",
+        "bigcoops+kateangus@gmail.com",
+        "bigcoops+katieforbes@gmail.com",
+        "bigcoops+kerrymoorhouse@gmail.com",
+        "bigcoops+kerykirkwood@gmail.com",
+        "bigcoops+laurawoodburn@gmail.com",
+        "bigcoops+lesleybeale@gmail.com",
+        "bigcoops+lornabeacockch@gmail.com",
+        "bigcoops+lornabeacock@gmail.com",
+        "bigcoops+louisethompson@gmail.com",
+        "bigcoops+markgodber@gmail.com",
+        "bigcoops+martinsykes@gmail.com",
+        "bigcoops+melcurwen@gmail.com",
+        "bigcoops+mikegreatorex@gmail.com",
+        "bigcoops+mikejones@gmail.com",
+        "bigcoops+millang@gmail.com",
+        "bigcoops+miriamturner@gmail.com",
+        "bigcoops+muhammadarfat@gmail.com",
+        "bigcoops+natalieclemmit@gmail.com",
+        "bigcoops+nathanmarshall@gmail.com",
+        "bigcoops+noplayer@gmail.com",
+        "bigcoops+ollywelch@gmail.com",
+        "bigcoops+pashycagill@gmail.com",
+        "bigcoops+paulakite@gmail.com",
+        "bigcoops+paulcapewell@gmail.com",
+        "bigcoops+paulinedunphy@gmail.com",
+        "bigcoops+petetaylor@gmail.com",
+        "bigcoops+philsantanareedy@gmail.com",
+        "bigcoops+rachelwellings@gmail.com",
+        "bigcoops+richardjakeman@gmail.com",
+        "bigcoops+richardlaws@gmail.com",
+        "bigcoops+robdixon@gmail.com",
+        "bigcoops+robwakefield@gmail.com",
+        "bigcoops+robwilson@gmail.com",
+        "bigcoops+rogerholmes@gmail.com",
+        "bigcoops+rossmclanachan@gmail.com",
+        "bigcoops+rossowen@gmail.com",
+        "bigcoops+rozbrant@gmail.com",
+        "bigcoops+ruthhaydon@gmail.com",
+        "bigcoops+ryantai@gmail.com",
+        "bigcoops+simonlees@gmail.com",
+        "bigcoops+simonowen@gmail.com",
+        "bigcoops+stephaniewyatt@gmail.com",
+        "bigcoops+steveadie@gmail.com",
+        "bigcoops+stevechu@gmail.com",
+        "bigcoops+stevelundie@gmail.com",
+        "bigcoops+stevevickers@gmail.com",
+        "bigcoops+stuartmccracken@gmail.com",
+        "bigcoops+sueorwin@gmail.com",
+        "bigcoops+susanforbes@gmail.com",
+        "bigcoops+tamsinsharp@gmail.com",
+        "bigcoops+timjacoby@gmail.com",
+        "bigcoops+tinazheng@gmail.com",
+        "bigcoops+usmanaslam@gmail.com"
+      ]
+    },
+    {
+      "label": "clubSecs",
+      "args": [
+        {
+          "role": "club Sec"
+        }
+      ],
+      "result": [
+        "bigcoops+annawiza@gmail.com",
+        "bigcoops+clairenorbury@gmail.com",
+        "bigcoops+davelee@gmail.com",
+        "bigcoops+dianereid@gmail.com",
+        "bigcoops+emilystapley@gmail.com",
+        "bigcoops+garethmoorhouse@gmail.com",
+        "bigcoops+jenniferszczepaniaksloane@gmail.com",
+        "bigcoops+johnpawsey@gmail.com",
+        "bigcoops+jowoolley@gmail.com",
+        "bigcoops+juliancherryman@gmail.com",
+        "bigcoops+kararobinson@gmail.com",
+        "bigcoops+lornabeacock@gmail.com",
+        "bigcoops+mikegreatorex@gmail.com",
+        "bigcoops+miriamturner@gmail.com",
+        "bigcoops+noplayer@gmail.com",
+        "bigcoops+pashycagill@gmail.com",
+        "bigcoops+robwakefield@gmail.com",
+        "bigcoops+rossowen@gmail.com",
+        "bigcoops+ruthhaydon@gmail.com",
+        "bigcoops+stevechu@gmail.com",
+        "bigcoops+sueorwin@gmail.com",
+        "bigcoops+tinazheng@gmail.com"
+      ]
+    },
+    {
+      "label": "captainsInDivision",
+      "args": [
+        {
+          "role": "team Captain",
+          "division": 7
+        }
+      ],
+      "result": [
+        "bigcoops+dianereid@gmail.com",
+        "bigcoops+emilystapley@gmail.com",
+        "bigcoops+jenniferszczepaniaksloane@gmail.com",
+        "bigcoops+judithpeatman@gmail.com",
+        "bigcoops+kerrymoorhouse@gmail.com",
+        "bigcoops+kerykirkwood@gmail.com",
+        "bigcoops+laurawoodburn@gmail.com",
+        "bigcoops+rossowen@gmail.com",
+        "bigcoops+ryantai@gmail.com"
+      ]
+    },
+    {
+      "label": "oneClub",
+      "args": [
+        {
+          "club": 61
+        }
+      ],
+      "result": [
+        "bigcoops+andybrown@gmail.com",
+        "bigcoops+benhugget@gmail.com",
+        "bigcoops+chisumhau@gmail.com",
+        "bigcoops+davehaigh@gmail.com",
+        "bigcoops+hannahwilkinson@gmail.com",
+        "bigcoops+jamiestott@gmail.com",
+        "bigcoops+jillnaylor@gmail.com",
+        "bigcoops+josiechan@gmail.com",
+        "bigcoops+judithpeatman@gmail.com",
+        "bigcoops+mikejones@gmail.com",
+        "bigcoops+miriamturner@gmail.com",
+        "bigcoops+ollywelch@gmail.com",
+        "bigcoops+paulakite@gmail.com",
+        "bigcoops+richardlaws@gmail.com",
+        "bigcoops+simonowen@gmail.com"
+      ]
+    },
+    {
+      "label": "oneTeam",
+      "args": [
+        {
+          "teamName": "College Green A"
+        }
+      ],
+      "result": [
+        "bigcoops+judithpeatman@gmail.com",
+        "bigcoops+mikejones@gmail.com",
+        "bigcoops+miriamturner@gmail.com",
+        "bigcoops+simonowen@gmail.com"
+      ]
+    },
+    {
+      "label": "everything",
+      "args": [
+        {
+          "role": "match Sec",
+          "division": "8",
+          "club": "54",
+          "teamName": "Macclesfield A"
+        }
+      ],
+      "result": [
+        "bigcoops+sueorwin@gmail.com"
+      ]
+    },
+    {
+      "label": "treasurers",
+      "args": [
+        {
+          "role": "treasurer"
+        }
+      ],
+      "result": [
+        "bigcoops+andrewrobert@gmail.com",
+        "bigcoops+andybates@gmail.com",
+        "bigcoops+annawiza@gmail.com",
+        "bigcoops+dianereid@gmail.com",
+        "bigcoops+douggrantch@gmail.com",
+        "bigcoops+emilystapley@gmail.com",
+        "bigcoops+jonsmith@gmail.com",
+        "bigcoops+lornabeacock@gmail.com",
+        "bigcoops+mikejones@gmail.com",
+        "bigcoops+natalieclemmit@gmail.com",
+        "bigcoops+richardjakeman@gmail.com",
+        "bigcoops+rossowen@gmail.com",
+        "bigcoops+ryantai@gmail.com",
+        "bigcoops+stevelundie@gmail.com",
+        "bigcoops+stuartmccracken@gmail.com",
+        "bigcoops+susanforbes@gmail.com",
+        "bigcoops+tamsinsharp@gmail.com"
+      ]
+    },
+    {
+      "label": "otherComms",
+      "args": [
+        {
+          "role": "otherComms"
+        }
+      ],
+      "result": [
+        "bigcoops+anderschristiansen@gmail.com",
+        "bigcoops+amymagee@gmail.com",
+        "bigcoops+jasonslevin@gmail.com",
+        "bigcoops+chrisjarvis@gmail.com",
+        "bigcoops+rogerholmes@gmail.com",
+        "bigcoops+robdixon@gmail.com",
+        "bigcoops+davebarker@gmail.com",
+        "bigcoops+steveadie@gmail.com",
+        "bigcoops+simonlees@gmail.com",
+        "bigcoops+andybrown@gmail.com",
+        "bigcoops+kararobinson@gmail.com",
+        "bigcoops+davehaigh@gmail.com",
+        "bigcoops+jamesheppell@gmail.com",
+        "bigcoops+andrewforbes@gmail.com",
+        "bigcoops+juliancherryman@gmail.com",
+        "bigcoops+lesleybeale@gmail.com",
+        "bigcoops+paulcapewell@gmail.com",
+        "bigcoops+ruthhaydon@gmail.com",
+        "bigcoops+grahamwhite@gmail.com",
+        "bigcoops+claireinglis@gmail.com",
+        "bigcoops+christurner@gmail.com",
+        "bigcoops+paulinedunphy@gmail.com",
+        "bigcoops+annawiza@gmail.com",
+        "bigcoops+ashleylawson@gmail.com",
+        "bigcoops+christinaconstantinou@gmail.com",
+        "bigcoops+jenniferszczepaniaksloane@gmail.com",
+        "bigcoops+danielwilliams@gmail.com",
+        "bigcoops+millang@gmail.com",
+        "bigcoops+rachelwellings@gmail.com",
+        "bigcoops+jowoolley@gmail.com",
+        "bigcoops+ollywelch@gmail.com",
+        "bigcoops+lornabeacockch@gmail.com",
+        "bigcoops+martinsykes@gmail.com",
+        "bigcoops+dianereid@gmail.com",
+        "bigcoops+natalieclemmit@gmail.com",
+        "bigcoops+nathanmarshall@gmail.com",
+        "bigcoops+philsantanareedy@gmail.com",
+        "bigcoops+jillnaylor@gmail.com",
+        "bigcoops+andybuckley@gmail.com",
+        "bigcoops+timjacoby@gmail.com",
+        "bigcoops+stevevickers@gmail.com",
+        "bigcoops+stevechu@gmail.com",
+        "bigcoops+annenorbury@gmail.com",
+        "bigcoops+petetaylor@gmail.com",
+        "bigcoops+karlcramp@gmail.com",
+        "bigcoops+jamiestott@gmail.com",
+        "bigcoops+louisethompson@gmail.com",
+        "bigcoops+rozbrant@gmail.com",
+        "bigcoops+benmorton@gmail.com",
+        "bigcoops+janecave@gmail.com",
+        "bigcoops+simonowen@gmail.com",
+        "bigcoops+markgodber@gmail.com",
+        "bigcoops+laurawoodburn@gmail.com",
+        "bigcoops+hannahwilkinson@gmail.com",
+        "bigcoops+kateangus@gmail.com",
+        "bigcoops+derekhillesdon@gmail.com",
+        "bigcoops+lornabeacock@gmail.com",
+        "bigcoops+paulakite@gmail.com",
+        "bigcoops+clairenorbury@gmail.com",
+        "bigcoops+stevelundie@gmail.com",
+        "bigcoops+rossowen@gmail.com",
+        "bigcoops+melcurwen@gmail.com",
+        "bigcoops+pashycagill@gmail.com",
+        "bigcoops+emilystapley@gmail.com"
+      ]
+    }
+  ]
+}

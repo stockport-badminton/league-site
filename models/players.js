@@ -2,14 +2,15 @@
 var db = require('../db_connect.js');
 var seasonModel = require("./season");
 const { sql } = require('kysely');
-const { kysely, decrypt } = require('../db');
+const { kysely, encrypt, decrypt } = require('../db');
 const levenshtein = require('js-levenshtein');
 const { rankByName } = require('../utils/nameMatch');
 
 
 // REARCH-01 is converting this file in batches. On the typed query layer so far: the
 // searches and lookups (getClubRoster, search, the eligibility lookups, count, getById,
-// getPlayerClubandTeamById, searchPlayers).
+// getPlayerClubandTeamById, searchPlayers), and the writes and the role and email reads
+// (create, updateBulk, getAuthRoleByEmail, setAuthRole, getEmails, setRatings).
 //
 // `first_name family_name`, as CONCAT gives it.
 /** @param {import('kysely').ExpressionBuilder<any, any>} eb */
@@ -34,14 +35,12 @@ const eligibleTeams = which => kysely
 // Fixture.createScorecard for the same bug in the scorecard flow. Prefer
 // models/roster.js:createPlayer for the roster pages; this one stays for the
 // standalone /player/create form.
-/** @param {any} first_name @param {any} family_name @param {any} team @param {any} club @param {any} gender */
+/** @param {string} first_name @param {string} family_name @param {number} team @param {number} club @param {string} gender */
 exports.create = async function(first_name, family_name, team, club, gender) {
-  var date_of_registration = new Date();
-  const [result] = await (await db.otherConnect()).query(
-    'INSERT INTO player (first_name,family_name,date_of_registration,team,club,gender) VALUES (?,?,?,?,?,?) RETURNING id',
-    [first_name, family_name, date_of_registration, team, club, gender]
-  )
-  return result
+  return kysely.insertInto('player')
+    .values({ first_name, family_name, date_of_registration: new Date(), team, club, gender })
+    .returning('id')
+    .execute()
 }
 
 // PATCH
@@ -58,7 +57,7 @@ const BULK_WRITABLE = new Set([
   'treasurer', 'otherComms', 'junior', 'date_of_registration'
 ])
 
-/** @param {any} BatchObj */
+/** @param {{ tablename?: string, fields: string[], data: unknown[][] }} BatchObj */
 exports.updateBulk = async function(BatchObj) {
   if (!db.isObject(BatchObj)) throw new Error('not object')
   // Authorization-bearing columns (role, messerAdmin, authEmail) are deliberately
@@ -67,30 +66,29 @@ exports.updateBulk = async function(BatchObj) {
   if (BatchObj.tablename && BatchObj.tablename !== 'player') {
     throw new Error(`updateBulk only writes the player table, got ${JSON.stringify(BatchObj.tablename)}`)
   }
-  const rejected = (BatchObj.fields || []).filter((/** @type {any} */ f) => !BULK_WRITABLE.has(f))
+  const rejected = (BatchObj.fields || []).filter(f => !BULK_WRITABLE.has(f))
   if (rejected.length) {
     throw new Error(`updateBulk cannot write these columns: ${rejected.join(', ')}`)
   }
-  const conn = await db.otherConnect()
   for (const x in BatchObj.data) {
     const row = BatchObj.data[x]
-    const setClauses = []
-    const params = []
+    /** @type {Record<string, unknown>} */
+    const values = {}
+    /** @type {any} */
     let whereId
-    for (const y in BatchObj.data[x]) {
-      if (BatchObj.fields[y] === 'id') {
+    for (const y in row) {
+      const field = BatchObj.fields[Number(y)]
+      if (field === 'id') {
         whereId = row[y]
-      } else if (BatchObj.fields[y] === 'playerTel' || BatchObj.fields[y] === 'playerEmail') {
-        // Two binds, value then key, in the order the placeholders appear in the clause.
-        setClauses.push(`"${BatchObj.fields[y]}" = pgp_sym_encrypt(?, ?)`)
-        params.push(String(row[y]), process.env.DB_PI_KEY)
+      } else if (field === 'playerTel' || field === 'playerEmail') {
+        values[field] = encrypt(String(row[y]))
       } else {
-        setClauses.push(`"${BatchObj.fields[y]}" = ?`)
-        params.push(row[y])
+        // undefined is written as NULL, as the string version bound it; Kysely would
+        // otherwise leave the column out.
+        values[field] = row[y] === undefined ? null : row[y]
       }
     }
-    params.push(whereId)
-    await conn.query(`UPDATE "${BatchObj.tablename}" SET ${setClauses.join(',')} WHERE id = ?`, params)
+    await kysely.updateTable('player').set(/** @type {any} */ (values)).where('id', '=', whereId).execute()
   }
 }
 
@@ -913,19 +911,22 @@ ORDER BY
 // "playerEmail" (contact email) — a player's login email is often not their
 // registered contact email, so relying on playerEmail alone misses most
 // admins (confirmed live: 82 of 151 during the initial backfill).
-/** @param {any} email */
+/** @param {string} email */
 exports.getAuthRoleByEmail = async function(email) {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT player.id, player.first_name, player.family_name, player.role, player."messerAdmin", club.name AS "clubName"
-     FROM player JOIN club ON club.id = player.club
-     WHERE (player.role IS NOT NULL OR player."messerAdmin" = 1)
-       AND (
-         (player."authEmail" IS NOT NULL AND LOWER(pgp_sym_decrypt(player."authEmail", ?)::text) = LOWER(?))
-         OR (player."playerEmail" IS NOT NULL AND LOWER(pgp_sym_decrypt(player."playerEmail", ?)::text) = LOWER(?))
-       )`,
-    [process.env.DB_PI_KEY, email, process.env.DB_PI_KEY, email]
-  )
-  return result[0]
+  /** `column` is set and decrypts to `email`, ignoring case. */
+  const matches = (/** @type {any} */ eb, /** @type {'authEmail' | 'playerEmail'} */ column) => eb.and([
+    eb(`player.${column}`, 'is not', null),
+    eb(eb.fn('lower', [decrypt(eb.ref(`player.${column}`))]), '=', eb.fn('lower', [eb.val(email)])),
+  ])
+  return kysely.selectFrom('player')
+    .innerJoin('club', 'club.id', 'player.club')
+    .select(['player.id', 'player.first_name', 'player.family_name', 'player.role', 'player.messerAdmin',
+      'club.name as clubName'])
+    .where(eb => eb.and([
+      eb.or([eb('player.role', 'is not', null), eb('player.messerAdmin', '=', 1)]),
+      eb.or([matches(eb, 'authEmail'), matches(eb, 'playerEmail')]),
+    ]))
+    .executeTakeFirst()
 }
 
 // Used by the superadmin-gated fields on the player edit form, and by the
@@ -942,66 +943,69 @@ exports.getAuthRoleByEmail = async function(email) {
 // club's contact page, which read playerEmail (Chris Petty, Alderley Park B).
 // A player who already has a contact email keeps it: the COALESCE/NULLIF guard
 // makes this an initialisation, never an overwrite.
-/** @param {any} playerId @param {any} opts */
+/**
+ * Returns nothing; neither caller (playerController, models/auth) read the old rows array.
+ * @param {number} playerId
+ * @param {{ role?: string | null, messerAdmin?: boolean, authEmail?: string }} opts
+ */
 exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail }) {
   if (authEmail) {
-    const [result] = await (await db.otherConnect()).query(
-      `UPDATE player SET
-         role = ?,
-         "messerAdmin" = ?,
-         "authEmail" = pgp_sym_encrypt(?, ?),
-         "playerEmail" = CASE
-           WHEN COALESCE(NULLIF(TRIM(pgp_sym_decrypt("playerEmail", ?)::text), ''), '') = ''
-             THEN pgp_sym_encrypt(?, ?)
-           ELSE "playerEmail"
-         END
-       WHERE id = ?`,
-      [
-        role || null, messerAdmin ? 1 : 0,
-        authEmail, process.env.DB_PI_KEY,
-        process.env.DB_PI_KEY,
-        authEmail, process.env.DB_PI_KEY,
-        playerId
-      ]
-    )
-    return result
+    await kysely.updateTable('player')
+      .set(eb => ({
+        role: role || null,
+        messerAdmin: messerAdmin ? 1 : 0,
+        authEmail: encrypt(authEmail),
+        playerEmail: eb.case()
+          .when(eb(eb.fn.coalesce(eb.fn('nullif', [eb.fn('trim', [decrypt(eb.ref('playerEmail'))]), sql.lit('')]), sql.lit('')), '=', ''))
+          .then(encrypt(authEmail))
+          .else(eb.ref('playerEmail'))
+          .end(),
+      }))
+      .where('id', '=', playerId)
+      .execute()
+    return
   }
-  const [result] = await (await db.otherConnect()).query(
-    'UPDATE player SET role = ?, "messerAdmin" = ? WHERE id = ?',
-    [role || null, messerAdmin ? 1 : 0, playerId]
-  )
-  return result
+  await kysely.updateTable('player').set({ role: role || null, messerAdmin: messerAdmin ? 1 : 0 })
+    .where('id', '=', playerId).execute()
 }
 
-/** @param {any} searchTerms */
+/** @param {{ role?: string, division?: number | string, club?: number | string, teamName?: string }} searchTerms */
 exports.getEmails = async function(searchTerms) {
-  const key = process.env.DB_PI_KEY
-  var sql = "SELECT DISTINCT b.\"playerEmail\" FROM (SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'match Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"matchSec\" = player.id OR (player.\"matchSecrertary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'club Sec' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON a.\"clubSec\" = player.id OR (player.\"clubSecretary\" = 1 AND a.id = player.club) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'team Captain' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"teamCaptain\" = 1 AND a.teamId = player.team) OR a.captain = player.id UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'treasurer' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.treasurer = 1 AND a.teamId = player.team) UNION ALL SELECT a.*, pgp_sym_decrypt(player.\"playerEmail\", ?)::text AS \"playerEmail\" FROM (SELECT club.id, club.name AS clubname, team.id AS teamid, team.name AS teamname, club.\"matchSec\", club.\"clubSec\", team.captain, team.division, 'otherComms' AS role FROM club JOIN team ON team.club = club.id) AS a JOIN player ON (player.\"otherComms\" = 1 AND a.teamId = player.team)) AS b"
-  // One bind per UNION branch, in the order the placeholders appear, then one per WHERE
-  // term. The key used to be pasted in as a string literal five times, which put it in the
-  // query TEXT — and so into anything that writes a statement down: the console.log that
-  // used to sit below this line (Cloud Logging, on every distribution-list send), a
-  // slow-query log, the message of a failed query.
-  const params = [key, key, key, key, key];
+  // Every (club, team) pair, tagged with the role a branch collects. The five branches
+  // below join it to the players who hold that role; a club-level role (match or club
+  // secretary) lands on every team of the club.
+  //
+  // An officer is the role flag OR the old pointer on the club or team (club."matchSec",
+  // club."clubSec", team.captain). Every pointer is NULL as of 25 Oct 2026, and REARCH-03
+  // drops them; until then they are read here exactly as before.
+  /** @param {string} role */
+  const clubTeams = role => kysely.selectFrom('club').innerJoin('team', 'team.club', 'club.id')
+    .select(['club.id', 'club.name as clubname', 'team.id as teamid', 'team.name as teamname',
+      'club.matchSec', 'club.clubSec', 'team.captain', 'team.division', sql.lit(role).as('role')])
+  /** @param {string} role @param {(eb: any) => any} holds */
+  const branch = (role, holds) => kysely.selectFrom(clubTeams(role).as('a'))
+    .innerJoin('player', join => join.on(holds))
+    .selectAll('a')
+    .select(eb => decrypt(eb.ref('player.playerEmail')).as('playerEmail'))
 
-  var whereTerms = [];
-  if (searchTerms.role) { whereTerms.push('b.role = ?'); params.push(searchTerms.role) }
-  if (searchTerms.division) { whereTerms.push('b.division = ?'); params.push(searchTerms.division) }
-  if (searchTerms.club) { whereTerms.push('b.id = ?'); params.push(searchTerms.club) }
-  // b.teamname, not b.teamName. The subquery aliases `team.name AS teamname`, and an
-  // unquoted camelCase reference folds to lowercase anyway — so this spelling is what
-  // Postgres has always been given. CLAUDE.md's alias rule, applied to a reference.
-  if (searchTerms.teamName) { whereTerms.push('b.teamname = ?'); params.push(searchTerms.teamName) }
+  const everyone = branch('match Sec', eb => eb.or([eb('a.matchSec', '=', eb.ref('player.id')),
+      eb.and([eb('player.matchSecrertary', '=', 1), eb('a.id', '=', eb.ref('player.club'))])]))
+    .unionAll(branch('club Sec', eb => eb.or([eb('a.clubSec', '=', eb.ref('player.id')),
+      eb.and([eb('player.clubSecretary', '=', 1), eb('a.id', '=', eb.ref('player.club'))])])))
+    .unionAll(branch('team Captain', eb => eb.or([
+      eb.and([eb('player.teamCaptain', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))]),
+      eb('a.captain', '=', eb.ref('player.id'))])))
+    .unionAll(branch('treasurer', eb => eb.and([eb('player.treasurer', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))])))
+    .unionAll(branch('otherComms', eb => eb.and([eb('player.otherComms', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))])))
 
-  if (whereTerms.length > 0) {
-    sql = sql + ' WHERE ' + whereTerms.join(' AND ')
-  }
-  // Logging `sql` would now be harmless — it carries placeholders where the key used to be.
-  // It is still not logged: it is 1.5KB of five-way UNION and nothing reads it.
-  const [result] = await (await db.otherConnect()).query(sql, params)
-  var emailArray = result.map((/** @type {any} */ row) => row.playerEmail)
-  emailArray = emailArray.filter((/** @type {any} */ email) => email && email.indexOf("@") != -1)
-  return emailArray
+  const result = await kysely.selectFrom(everyone.as('b'))
+    .select('b.playerEmail').distinct()
+    .$if(!!searchTerms.role, qb => qb.where('b.role', '=', /** @type {string} */ (searchTerms.role)))
+    .$if(!!searchTerms.division, qb => qb.where('b.division', '=', /** @type {any} */ (searchTerms.division)))
+    .$if(!!searchTerms.club, qb => qb.where('b.id', '=', /** @type {any} */ (searchTerms.club)))
+    .$if(!!searchTerms.teamName, qb => qb.where('b.teamname', '=', /** @type {string} */ (searchTerms.teamName)))
+    .execute()
+  return result.map(row => row.playerEmail).filter(email => email && email.indexOf("@") != -1)
 }
 
 // Filters only on the keys it knows, when truthy. Ordered by gender and rank only when a
@@ -1279,16 +1283,16 @@ exports.refreshRatings = async function(playerIds, conn) {
 // Writes [id, rating] pairs in one statement. The backfill's per-fixture rating write
 // went through updateBulk, which is one UPDATE per player — ~12 round trips a fixture
 // against production, once the game writes were batched.
-/** @param {any} pairs @param {any} conn */
-exports.setRatings = async function(pairs, conn) {
+// One statement for every pair, as two bound arrays: the placeholder count does not depend
+// on how many players there are. A raw statement, because the builder has no typed form of
+// `FROM unnest(...) AS v(id, rating)`; it returns nothing, which the cast says.
+/** @param {Array<[number, number]>} pairs [id, rating] @param {import('kysely').Kysely<import('../db/schema').DB>} [q] */
+exports.setRatings = async function(pairs, q = kysely) {
   if (!pairs || pairs.length === 0) return
-  const c = conn || await db.otherConnect()
-  await c.query(
-    `UPDATE player p SET rating = v.rating
-     FROM (VALUES ${pairs.map(() => '(?::int, ?::int)').join(',')}) AS v(id, rating)
-     WHERE p.id = v.id`,
-    pairs.flat()
-  )
+  const ids = pairs.map(p => Number(p[0]))
+  const ratings = pairs.map(p => Number(p[1]))
+  await /** @type {import('kysely').RawBuilder<never>} */ (sql`UPDATE player p SET rating = v.rating
+    FROM unnest(${ids}::int[], ${ratings}::int[]) AS v(id, rating) WHERE p.id = v.id`).execute(q)
 }
 
 // Returns ELO rating time-series for one or more player IDs.

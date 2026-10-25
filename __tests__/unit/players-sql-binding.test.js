@@ -1,18 +1,15 @@
-// The PI key, and every caller-supplied value, must reach Postgres as a PARAMETER —
-// never as text inside the statement.
+// Every caller-supplied value must reach Postgres as a PARAMETER — never as text inside
+// the statement. HARD-27: `getEmails` pasted DB_PI_KEY in as a string literal five times,
+// with `console.log(sql)` on the line above, so the key reached Cloud Logging on every
+// distribution-list send; `getById` and `updateBulk` had the same defect.
 //
-// `getEmails` pasted DB_PI_KEY in as a string literal five times, once per UNION branch,
-// and `console.log(sql)` sat on the line above it: so the key that encrypts every player's
-// email and phone number went into Cloud Logging on every distribution-list send. The log
-// line went on 7 Sep 2026; this is the rest of it (HARD-27).
+// Those three, and `search`, are on the typed query layer now (REARCH-01), where it holds
+// by construction: db/encrypted.js's encrypt() and decrypt() can only bind the key, and the
+// builder binds every value. That is tested in __tests__/db/kysely.test.js and, per
+// function, in __tests__/db/players-writes.test.js and players-search.test.js.
 //
-// Two more sites in the same file had the same defect and are not in the brief — `getById`
-// (twice) and `updateBulk` (a template literal, which is why a grep for `+ process.env`
-// misses it). The acceptance criterion is file-scoped for that reason.
-//
-// The WHERE terms were interpolated too. Not exploitable today — the only caller assigns
-// them from hardcoded arrays after matching the envelope recipient — but nothing in the
-// signature said the arguments had to be trusted, and the next caller would not know.
+// What is left here is newGetPairStats, which is still a string query until REARCH-02
+// rewrites it, and so is still checked by reading the statement it sends.
 
 const mockQuery = jest.fn().mockResolvedValue([[]]);
 jest.mock('../../db_connect', () => ({
@@ -32,72 +29,6 @@ const placeholders = sql => (sql.match(/\?/g) || []).length;
 
 beforeEach(() => mockQuery.mockClear());
 
-describe('the PI key is bound, not pasted into the statement', () => {
-  it('getEmails binds it once per UNION branch and never writes it into the SQL', async () => {
-    await Player.getEmails({});
-    const { sql, params } = lastCall();
-    expect(sql).not.toContain(KEY);
-    expect(params).toEqual([KEY, KEY, KEY, KEY, KEY]);
-  });
-
-  // getById moved to __tests__/db/players-search.test.js (REARCH-01): it goes through
-  // db/encrypted.js's decrypt(), which can only bind the key.
-
-  it('updateBulk binds it in the pgp_sym_encrypt clause', async () => {
-    await Player.updateBulk({
-      tablename: 'player',
-      fields: ['id', 'playerEmail'],
-      data: [[7, 'someone@example.com']],
-    });
-    const { sql, params } = lastCall();
-    expect(sql).not.toContain(KEY);
-    expect(sql).toContain('pgp_sym_encrypt(?, ?)');
-    // value, then key, then the id in the WHERE — the order the placeholders appear.
-    expect(params).toEqual(['someone@example.com', KEY, 7]);
-  });
-});
-
-describe('getEmails binds its search terms', () => {
-  it('parameterises every WHERE term rather than quoting it in', async () => {
-    await Player.getEmails({ role: 'club Sec', division: 8, club: 42, teamName: 'Mellor B' });
-    const { sql, params } = lastCall();
-    expect(sql).toContain('b.role = ? AND b.division = ? AND b.id = ? AND b.teamname = ?');
-    expect(params).toEqual([KEY, KEY, KEY, KEY, KEY, 'club Sec', 8, 42, 'Mellor B']);
-  });
-
-  it('keeps placeholders and parameters in step for every combination', async () => {
-    const terms = [
-      {}, { role: 'treasurer' }, { division: 10 }, { club: 39 }, { teamName: 'Tatton A' },
-      { role: 'team Captain', division: 7 },
-      { role: 'club Sec', division: 8, club: 42, teamName: 'Mellor B' },
-    ];
-    for (const t of terms) {
-      mockQuery.mockClear();
-      await Player.getEmails(t);
-      const { sql, params } = lastCall();
-      // The failure this catches is a bind added without its placeholder, or the reverse:
-      // Postgres then either errors or, worse, silently shifts every later parameter.
-      expect(placeholders(sql)).toBe(params.length);
-      expect(params.length).toBe(5 + Object.keys(t).length);
-    }
-  });
-
-  it('cannot have its statement altered by a search term', async () => {
-    const hostile = "x' OR '1'='1";
-    await Player.getEmails({ role: hostile, teamName: "'; DROP TABLE player; --" });
-    const { sql, params } = lastCall();
-    expect(sql).not.toContain(hostile);
-    expect(sql).not.toContain('DROP TABLE');
-    expect(params).toContain(hostile);
-    expect(placeholders(sql)).toBe(params.length);
-  });
-});
-
-// /pair-stats/* is behind `secured` alone, so any logged-in member reached this. Its
-// division, team, club and gameType came straight out of the URL path and were pasted
-// into the statement - `%27` decodes to a quote in req.params, and the query runs as a
-// role with BYPASSRLS, so a UNION could read any table. newGetPlayerStats beside it has
-// always bound the same four filters; this one never did (Oct 2026).
 describe('newGetPairStats binds its filters', () => {
   it('cannot have its statement altered by any filter in the URL', async () => {
     const hostile = "x' UNION SELECT sess::text FROM session /*";
@@ -150,6 +81,3 @@ describe('newGetPairStats reads clubs from the season it is showing', () => {
     expect(sql).toMatch(/JOIN club club ON club\.id = Player1\.club/);
   });
 });
-
-// `search` moved to __tests__/db/players-search.test.js when it went onto the typed query
-// layer (REARCH-01): a hostile term is shown to bind as a value against a real database.
