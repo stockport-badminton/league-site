@@ -14,14 +14,6 @@ exports.getScorecardById = async function(fixtureId) {
   return result
 }
 
-exports.deleteScorecardById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query(
-    'DELETE FROM scorecard WHERE id = ?',
-    fixtureId
-  )
-  return result
-}
-
 // Returns `[{ id }]` for the new draft — the caller needs it to build the
 // confirmation link. RETURNING is not optional here: Postgres reports nothing about
 // an inserted row unless asked, so the db wrapper's mysql2-shaped result has no
@@ -1175,14 +1167,6 @@ exports.createMesserResult = async function(resultObj) {
   const placeholders = Object.keys(resultObj).map(() => '?').join(',')
   const sql = `INSERT INTO messer_result (${fields}) VALUES (${placeholders}) RETURNING id`
   const [result] = await (await db.otherConnect()).query(sql, Object.values(resultObj))
-  return result
-}
-
-exports.getMesserResultByScorecard = async function(scorecardId) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT * FROM messer_result WHERE id = ?',
-    scorecardId
-  )
   return result
 }
 
