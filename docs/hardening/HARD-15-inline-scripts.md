@@ -4,6 +4,11 @@
 **Owns:** `views/**/*.ejs`, new files under `static/beta/js/`
 **Sources:** residual from HARD-12 (SEC-5)
 
+> **Absorbed by [REARCH-07](2728-rearch/REARCH-07-frontend-build.md) (24 Oct 2026).**
+> Re-measured: 52 of the 159 handlers are in `views/messer-scorecard.ejs.backup`, and 102
+> of the remaining 107 are in the three scorecard templates — the code REARCH-03 rewrites
+> around a shared rules module. This brief stays the reference for the method.
+
 ## Why
 
 HARD-12 shipped a Content-Security-Policy, but its `script-src` keeps `'unsafe-inline'`.

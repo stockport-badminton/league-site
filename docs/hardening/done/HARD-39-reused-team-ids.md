@@ -56,7 +56,10 @@ record into **"Ellie Harper"** (Female, GHAP B), and its 48 men's and mixed game
 it.
 
 Games and fixture lineups are read through the **live** `player` table, archive pages
-included (`models/fixture.js` joins `player homeMan1`). So those games were in Ellie
+included (`models/fixture.js` joins `player homeMan1`). *(25 Oct 2026: that was never a
+design decision. It is how the first rollover happened to be written, and
+[REARCH-02](../2728-rearch/REARCH-02-season-history.md) Part 2 changes past-season lineups
+to read the season they were played in.)* So those games were in Ellie
 Harper's history and ELO, and she showed in eight 2018/19 lineups. She has another record,
 839, with no games.
 
