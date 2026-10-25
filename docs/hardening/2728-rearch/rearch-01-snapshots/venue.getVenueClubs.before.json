@@ -1,0 +1,491 @@
+{
+  "function": "venue.getVenueClubs",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:03.855Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "venueName": "Avondale Life Leisure",
+          "Lat": 53.4009,
+          "Lng": -2.1852,
+          "address": "Avondale Life Leisure, Heathbank Rd, Cheadle Heath, Stockport SK3 0UP",
+          "gMapUrl": "https://maps.app.goo.gl/ToXRk2voxNaUkwHn9",
+          "matchTeams": [
+            {
+              "club": "Macclesfield",
+              "website": "https://www.manchesteredgeleybadmintonclub.org",
+              "team": "Macclesfield A",
+              "matchDay": "Monday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Macclesfield",
+              "website": "https://www.manchesteredgeleybadmintonclub.org",
+              "clubNightText": "Thursday 8 pm at Avondale"
+            }
+          ]
+        },
+        {
+          "venueName": "David Lloyd Leisure",
+          "Lat": 53.3777,
+          "Lng": -2.22093,
+          "address": "David Lloyd Leisure, Royal Crescent, Cheadle Hulme, SK8 3FL",
+          "gMapUrl": "https://goo.gl/maps/4SqzfcYdjz72",
+          "matchTeams": [
+            {
+              "club": "Racketeer",
+              "website": "",
+              "team": "Racketeers A",
+              "matchDay": "Monday 8pm 2 courts"
+            },
+            {
+              "club": "Racketeer",
+              "website": "",
+              "team": "Racketeers B",
+              "matchDay": "Monday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Racketeer",
+              "website": "",
+              "clubNightText": "NA"
+            }
+          ]
+        },
+        {
+          "venueName": "David Lloyd Trafford",
+          "Lat": 53.4709,
+          "Lng": -2.36419,
+          "address": "Barton Embankment, Trafford Park, Stretford, Manchester M17 8RH",
+          "gMapUrl": "https://goo.gl/maps/DVqnh4M3rrYD8fUs9",
+          "matchTeams": [
+            {
+              "club": "David Lloyd",
+              "website": null,
+              "team": "David Lloyd A",
+              "matchDay": "Friday 2 courts 7.30pm"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "David Lloyd",
+              "website": null,
+              "clubNightText": "NA"
+            }
+          ]
+        },
+        {
+          "venueName": "Disley Amalgamated Sports Club",
+          "Lat": 53.3606,
+          "Lng": -2.05312,
+          "address": "Disley Amalgamated Sports Club, Disley, SK12 2JR",
+          "gMapUrl": "https://goo.gl/maps/J9E56TuwGuC2",
+          "matchTeams": [
+            {
+              "club": "Disley",
+              "website": "http://www.disleysport.org/sport/badminton/",
+              "team": "Disley A",
+              "matchDay": "A team: Tuesday 1 court 7pm"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Disley",
+              "website": "http://www.disleysport.org/sport/badminton/",
+              "clubNightText": "Monday 7pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Egerton Youth Club",
+          "Lat": 53.3129,
+          "Lng": -2.38301,
+          "address": "Egerton Youth Club, Mereheath Lane, Knutsford, WA16 6SL",
+          "gMapUrl": "https://goo.gl/maps/v3exzjM9HMx",
+          "matchTeams": [
+            {
+              "club": "Tatton",
+              "website": "https://sites.google.com/site/gpbckn/Home",
+              "team": "Tatton A",
+              "matchDay": "Tuesday 7.30pm"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Tatton",
+              "website": "https://sites.google.com/site/gpbckn/Home",
+              "clubNightText": "Sunday 7.30pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Everybody Sport and Recreation",
+          "Lat": 53.2745,
+          "Lng": -2.2323,
+          "address": "Everybody Sport and Recreation Fitness Centre, Alderley Park, Macclesfield, SK10 4TG. Please use South site entrance (just South of Alderley Edge bypass). NB this is a new building, NOT Mulberry's. Overflow carpark in front of Royal London building.",
+          "gMapUrl": "https://maps.app.goo.gl/jxYfweGPAcS1fEaH8",
+          "matchTeams": [
+            {
+              "club": "Alderley Park",
+              "website": "https://alderleyparkbc.wixsite.com/alderleyparkbc",
+              "team": "Alderley Park A",
+              "matchDay": "Tues or Wednesday 8pm 2 courts"
+            },
+            {
+              "club": "Alderley Park",
+              "website": "https://alderleyparkbc.wixsite.com/alderleyparkbc",
+              "team": "Alderley Park B",
+              "matchDay": "Tues or Wednesday 8pm 2 courts"
+            },
+            {
+              "club": "Alderley Park",
+              "website": "https://alderleyparkbc.wixsite.com/alderleyparkbc",
+              "team": "Alderley Park C",
+              "matchDay": "Tues or Wednesday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Alderley Park",
+              "website": "https://alderleyparkbc.wixsite.com/alderleyparkbc",
+              "clubNightText": "Tues 8pm - 10pm Summer Club available, please contact for details"
+            }
+          ]
+        },
+        {
+          "venueName": "Ladybridge Park Residents Club",
+          "Lat": 53.3855,
+          "Lng": -2.18896,
+          "address": "Ladybridge Park Residents Club, Edenbridge Road, Cheadle Hulme, SK8 5PX",
+          "gMapUrl": "https://goo.gl/maps/69xqwY1exUx",
+          "matchTeams": [
+            {
+              "club": "Cheadle Hulme",
+              "website": "https://www.cheadlehulmebadmintonclub.co.uk/",
+              "team": "Cheadle Hulme A",
+              "matchDay": "Wednesday 8pm 2 courts"
+            },
+            {
+              "club": "Cheadle Hulme",
+              "website": "https://www.cheadlehulmebadmintonclub.co.uk/",
+              "team": "Cheadle Hulme B",
+              "matchDay": "Wednesday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Cheadle Hulme",
+              "website": "https://www.cheadlehulmebadmintonclub.co.uk/",
+              "clubNightText": "Monday 8pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Lymm Leisure Centre",
+          "Lat": 53.3787,
+          "Lng": -2.46058,
+          "address": "Lymm Leisure Centre, Oughtrington Ln, Lymm WA13 0RB",
+          "gMapUrl": "https://maps.app.goo.gl/kLDp7d5pWtqiqCSD9",
+          "matchTeams": [
+            {
+              "club": "Remnants",
+              "website": "https://remnants-badminton.co.uk",
+              "team": "Remnants A",
+              "matchDay": "Tuesday 7.55 for 8pm prompt: 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Remnants",
+              "website": "https://remnants-badminton.co.uk",
+              "clubNightText": "NA"
+            }
+          ]
+        },
+        {
+          "venueName": "Macclesfield Leisure Centre",
+          "Lat": 53.2675,
+          "Lng": -2.16155,
+          "address": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8",
+          "matchTeams": [
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "team": "College Green A",
+              "matchDay": "Thursday 7.30pm 2 courts"
+            },
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "team": "College Green B",
+              "matchDay": "Thursday 7.30pm 2 courts"
+            },
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "team": "College Green C",
+              "matchDay": "Thursday 7.30pm 2 courts"
+            },
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "team": "College Green D",
+              "matchDay": "Thursday 7.30pm 2 courts"
+            },
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "team": "College Green E",
+              "matchDay": "Thursday 7.30pm 2 courts"
+            }
+          ],
+          "clubNights": null
+        },
+        {
+          "venueName": "Mellor",
+          "Lat": 53.3935,
+          "Lng": -2.0397,
+          "address": "Mellor Sports Club, 215 Longhust Lane, Mellor SK6 5PN",
+          "gMapUrl": "https://goo.gl/maps/kC6bEqsZ4542",
+          "matchTeams": [
+            {
+              "club": "Mellor",
+              "website": "http://mellorbadminton.org.uk/",
+              "team": "Mellor A",
+              "matchDay": "Thursday 7pm 1 court"
+            },
+            {
+              "club": "Mellor",
+              "website": "http://mellorbadminton.org.uk/",
+              "team": "Mellor B",
+              "matchDay": "Thursday 7pm 1 court"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Mellor",
+              "website": "http://mellorbadminton.org.uk/",
+              "clubNightText": "Monday 8pm"
+            },
+            {
+              "club": "No Club",
+              "website": null,
+              "clubNightText": "None"
+            }
+          ]
+        },
+        {
+          "venueName": "Old Trafford Sports Barn",
+          "Lat": 53.4603,
+          "Lng": -2.27558,
+          "address": "Old Trafford Sports Barn, Seymour Park, Carver Street, Manchester, M16 9PQ",
+          "gMapUrl": "https://goo.gl/maps/VTrEC5axjxo",
+          "matchTeams": [
+            {
+              "club": "G.H.A.P",
+              "website": "http://www.ghap-badminton.com/",
+              "team": "GHAP A",
+              "matchDay": "Tuesday 7.30pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "G.H.A.P",
+              "website": "http://www.ghap-badminton.com/",
+              "clubNightText": "Wedsnesday 6pm - 9pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Parrswood Sports Centre",
+          "Lat": 53.4093,
+          "Lng": -2.21972,
+          "address": "Parrswood Sports Centre, Parrswood High School, Wilmslow Road, East Didsbury, M20 5PG",
+          "gMapUrl": "https://goo.gl/maps/3qRUW35DYRK2",
+          "matchTeams": [
+            {
+              "club": "Parrs Wood",
+              "website": "https://www.parrswoodbadminton.co.uk/",
+              "team": "Parrswood A",
+              "matchDay": "Tuesday 8pm 2 courts"
+            },
+            {
+              "club": "Parrs Wood",
+              "website": "https://www.parrswoodbadminton.co.uk/",
+              "team": "Parrswood B",
+              "matchDay": "Tuesday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Parrs Wood",
+              "website": "https://www.parrswoodbadminton.co.uk/",
+              "clubNightText": "Tuesday 8pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Salford City Academy",
+          "Lat": 53.4794,
+          "Lng": -2.38085,
+          "address": "Salford City Academy, Northfleet Rd, Peel Green, Eccles, Manchester M30 7PQ",
+          "gMapUrl": "https://maps.app.goo.gl/xL85FF5QtPLFWjMm9",
+          "matchTeams": [
+            {
+              "club": "Featherforce",
+              "website": null,
+              "team": "Featherforce A",
+              "matchDay": "Wednesday 8pm 2 courts"
+            },
+            {
+              "club": "Featherforce",
+              "website": null,
+              "team": "Featherforce B",
+              "matchDay": "Thursday 8pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Featherforce",
+              "website": null,
+              "clubNightText": "Weds & Thurs 8pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Tytherington School",
+          "Lat": 53.2693,
+          "Lng": -2.12976,
+          "address": "Tytherington School, Manchester Road, Macclesfield, SK10 2EE",
+          "gMapUrl": "https://goo.gl/maps/Mc3Gc9oHHCr",
+          "matchTeams": null,
+          "clubNights": [
+            {
+              "club": "College Green",
+              "website": "http://www.collegegreenbadminton.com",
+              "clubNightText": "Monday 7.30pm"
+            }
+          ]
+        },
+        {
+          "venueName": "William Hulme Grammar School",
+          "Lat": 53.4445,
+          "Lng": -2.24833,
+          "address": "William Hulme Grammar School, Spring Bridge Road, Whalley Range, M16 8PR",
+          "gMapUrl": "https://goo.gl/maps/HjMZA88noFF2",
+          "matchTeams": [
+            {
+              "club": "Dome",
+              "website": "https://www.domebadmintonclub.com/",
+              "team": "Dome B",
+              "matchDay": "Wednesday 2 courts 7.00pm"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Dome",
+              "website": "https://www.domebadmintonclub.com/",
+              "clubNightText": "Wednesday 7.00pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Wilmslow Leisure Centre",
+          "Lat": 53.3261,
+          "Lng": -2.22766,
+          "address": "Wilmslow Leisure Centre, Station Rd, Rectory Fields, Wilmslow, SK9 1BU",
+          "gMapUrl": "https://goo.gl/maps/HsDPHYgS67DbyPHH9",
+          "matchTeams": [
+            {
+              "club": "Manor",
+              "website": "http://manorbadminton.weebly.com/",
+              "team": "Manor A",
+              "matchDay": "Tuesday 7pm 2 courts"
+            },
+            {
+              "club": "Manor",
+              "website": "http://manorbadminton.weebly.com/",
+              "team": "Manor B",
+              "matchDay": "Tuesday 7pm 2 courts"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Manor",
+              "website": "http://manorbadminton.weebly.com/",
+              "clubNightText": "Tuesday 8pm"
+            }
+          ]
+        },
+        {
+          "venueName": "Woods Lane Sports Centre",
+          "Lat": 53.3638,
+          "Lng": -2.18831,
+          "address": "Cheadle Hulme High School, Woods Ln, Cheadle Hulme, Cheadle SK8 7JY",
+          "gMapUrl": "https://maps.app.goo.gl/ax4pDDKhZBtLnKT87",
+          "matchTeams": [
+            {
+              "club": "Aerospace",
+              "website": "http://aerospacebadminton.org.uk/",
+              "team": "Aerospace A",
+              "matchDay": "Tuesday 7pm 2 courts reduce to 1 court at 8pm"
+            },
+            {
+              "club": "Shell",
+              "website": "http://www.shellbadminton.co.uk/",
+              "team": "Shell A",
+              "matchDay": "Wednesday 8pm prompt 2 courts"
+            },
+            {
+              "club": "Shell",
+              "website": "http://www.shellbadminton.co.uk/",
+              "team": "Shell B",
+              "matchDay": "Wednesday 8pm prompt 2 courts"
+            },
+            {
+              "club": "Shell",
+              "website": "http://www.shellbadminton.co.uk/",
+              "team": "Shell C",
+              "matchDay": "Wednesday 8pm prompt 2 courts"
+            },
+            {
+              "club": "Syddal Park",
+              "website": "http://syddalpark.org.uk/",
+              "team": "Syddal Park A",
+              "matchDay": "Sunday 6pm 2 courts down to 1 at 7pm"
+            },
+            {
+              "club": "Syddal Park",
+              "website": "http://syddalpark.org.uk/",
+              "team": "Syddal Park B",
+              "matchDay": "Sunday 6pm 2 courts down to 1 at 7pm"
+            }
+          ],
+          "clubNights": [
+            {
+              "club": "Aerospace",
+              "website": "http://aerospacebadminton.org.uk/",
+              "clubNightText": "Tuesday 8pm"
+            },
+            {
+              "club": "Shell",
+              "website": "http://www.shellbadminton.co.uk/",
+              "clubNightText": "Wednesday 8pm"
+            },
+            {
+              "club": "Syddal Park",
+              "website": "http://syddalpark.org.uk/",
+              "clubNightText": "Sunday 7pm"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

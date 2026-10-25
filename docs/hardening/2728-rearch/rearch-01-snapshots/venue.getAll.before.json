@@ -1,0 +1,274 @@
+{
+  "function": "venue.getAll",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:03.612Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 25,
+          "name": "No Venue",
+          "address": "",
+          "gMapUrl": "",
+          "Lat": null,
+          "Lng": null,
+          "placeId": null
+        },
+        {
+          "id": 4,
+          "name": "Mellor",
+          "address": "Mellor Sports Club, 215 Longhust Lane, Mellor SK6 5PN",
+          "gMapUrl": "https://goo.gl/maps/kC6bEqsZ4542",
+          "Lat": 53.3935,
+          "Lng": -2.0397,
+          "placeId": "ChIJKRuT9qLKe0gROqemvrc5H0k"
+        },
+        {
+          "id": 5,
+          "name": "Woods Lane Sports Centre",
+          "address": "Cheadle Hulme High School, Woods Ln, Cheadle Hulme, Cheadle SK8 7JY",
+          "gMapUrl": "https://maps.app.goo.gl/ax4pDDKhZBtLnKT87",
+          "Lat": 53.3638,
+          "Lng": -2.18831,
+          "placeId": "ChIJX9dGc85MekgRszoF6YRpxYQ"
+        },
+        {
+          "id": 6,
+          "name": "Mulberry's Sports Complex",
+          "address": "Mulberry's Sports Complex, Astrazeneca, Alderley Park, Macclesfield, SK10 4TF (For Sat nav - closest postcode to use is SK10 4TD - use the entrance at traffic lights on the A34 opposite Bollington Lane)",
+          "gMapUrl": "https://goo.gl/maps/2RT2FEZ1SCr",
+          "Lat": 53.2692,
+          "Lng": -2.23788,
+          "placeId": "ChIJ_6mQTSJPekgRBjjHik00tEY"
+        },
+        {
+          "id": 7,
+          "name": "Manchester Enterprise Academy",
+          "address": "MEA High School, Simonsway, Wythenshawe, M22 9RH",
+          "gMapUrl": "https://goo.gl/maps/cWzpCSLyXdM2",
+          "Lat": 53.3805,
+          "Lng": -2.2738,
+          "placeId": "ChIJqXCngJite0gRpx1ck4R5Va0"
+        },
+        {
+          "id": 8,
+          "name": "Bramhall Village Club",
+          "address": "Bramhall Village Club, Lumb Lane, Bramhall,SK7 1LR",
+          "gMapUrl": "https://goo.gl/maps/DkCzptGpfZA2",
+          "Lat": 53.3574,
+          "Lng": -2.16243,
+          "placeId": "ChIJ9Zmr6KRMekgRyKZ2nnEIlq0"
+        },
+        {
+          "id": 9,
+          "name": "Wilmslow Preparatory School",
+          "address": "Wilmslow Preparatory School, Grove Avenue, Wilmslow, SK9 5EG",
+          "gMapUrl": "https://goo.gl/maps/GipbVq77oHm",
+          "Lat": 53.3273,
+          "Lng": -2.23704,
+          "placeId": "ChIJb_ZlPnZNekgRbm17ehxp2bg"
+        },
+        {
+          "id": 10,
+          "name": "St. James High School",
+          "address": "St. James High School, St. James Way, Cheadle Hulme, SK8 6PZ",
+          "gMapUrl": "https://goo.gl/maps/6z78GuAfr1K2",
+          "Lat": 53.3608,
+          "Lng": -2.2009,
+          "placeId": "ChIJS9Q4Y9dMekgRFadOKr15uTw"
+        },
+        {
+          "id": 11,
+          "name": "Egerton Youth Club",
+          "address": "Egerton Youth Club, Mereheath Lane, Knutsford, WA16 6SL",
+          "gMapUrl": "https://goo.gl/maps/v3exzjM9HMx",
+          "Lat": 53.3129,
+          "Lng": -2.38301,
+          "placeId": "ChIJn2hprej_ekgRP4I3vR9yRg0"
+        },
+        {
+          "id": 12,
+          "name": "Ladybridge Park Residents Club",
+          "address": "Ladybridge Park Residents Club, Edenbridge Road, Cheadle Hulme, SK8 5PX",
+          "gMapUrl": "https://goo.gl/maps/69xqwY1exUx",
+          "Lat": 53.3855,
+          "Lng": -2.18896,
+          "placeId": "ChIJU0RAcDmze0gRyf_oiJusjSA"
+        },
+        {
+          "id": 13,
+          "name": "Macclesfield Academy",
+          "address": "Macclesfield Academy, Park Lane, Macclesfield,SK11 8JR",
+          "gMapUrl": "https://goo.gl/maps/Lcx4Mxr9YiB2",
+          "Lat": 53.2504,
+          "Lng": -2.13557,
+          "placeId": "ChIJKcLu0y1JekgR4yVImBrOiH4"
+        },
+        {
+          "id": 14,
+          "name": "Tytherington School",
+          "address": "Tytherington School, Manchester Road, Macclesfield, SK10 2EE",
+          "gMapUrl": "https://goo.gl/maps/Mc3Gc9oHHCr",
+          "Lat": 53.2693,
+          "Lng": -2.12976,
+          "placeId": "ChIJuwF40UVJekgRF-ubB1J6wo8"
+        },
+        {
+          "id": 15,
+          "name": "David Lloyd Leisure",
+          "address": "David Lloyd Leisure, Royal Crescent, Cheadle Hulme, SK8 3FL",
+          "gMapUrl": "https://goo.gl/maps/4SqzfcYdjz72",
+          "Lat": 53.3777,
+          "Lng": -2.22093,
+          "placeId": "ChIJpcOGNs6ye0gRmn93qz8dbII"
+        },
+        {
+          "id": 16,
+          "name": "Disley Amalgamated Sports Club",
+          "address": "Disley Amalgamated Sports Club, Disley, SK12 2JR",
+          "gMapUrl": "https://goo.gl/maps/J9E56TuwGuC2",
+          "Lat": 53.3606,
+          "Lng": -2.05312,
+          "placeId": "ChIJKbUPC1k1ekgRjLmXGxgWKn8"
+        },
+        {
+          "id": 17,
+          "name": "William Hulme Grammar School",
+          "address": "William Hulme Grammar School, Spring Bridge Road, Whalley Range, M16 8PR",
+          "gMapUrl": "https://goo.gl/maps/HjMZA88noFF2",
+          "Lat": 53.4445,
+          "Lng": -2.24833,
+          "placeId": "ChIJhzMzUAWye0gR2xbZsIIq5G4"
+        },
+        {
+          "id": 18,
+          "name": "Old Trafford Sports Barn",
+          "address": "Old Trafford Sports Barn, Seymour Park, Carver Street, Manchester, M16 9PQ",
+          "gMapUrl": "https://goo.gl/maps/VTrEC5axjxo",
+          "Lat": 53.4603,
+          "Lng": -2.27558,
+          "placeId": "ChIJp7IqeQaue0gR6ROEJJGI01I"
+        },
+        {
+          "id": 19,
+          "name": "Bramhall Recreation Centre",
+          "address": "Bramhall Recreation Centre, Seal Road, Bramhall, SK7 2JR",
+          "gMapUrl": "https://goo.gl/maps/yeggUEJj3n42",
+          "Lat": 53.3668,
+          "Lng": -2.1554,
+          "placeId": "WMqJKpMekgRWHpnp4K9vpo"
+        },
+        {
+          "id": 20,
+          "name": "New Mills Town Hall",
+          "address": "New Mills Town Hall, Market Street, New Mills, SK22 4AT",
+          "gMapUrl": "https://goo.gl/maps/Kj4ogMFeSZ72",
+          "Lat": 53.3668,
+          "Lng": -2.1554,
+          "placeId": "ChIJ8f7Api41ekgRza3oJAKRhdc"
+        },
+        {
+          "id": 21,
+          "name": "Parrswood Sports Centre",
+          "address": "Parrswood Sports Centre, Parrswood High School, Wilmslow Road, East Didsbury, M20 5PG",
+          "gMapUrl": "https://goo.gl/maps/3qRUW35DYRK2",
+          "Lat": 53.4093,
+          "Lng": -2.21972,
+          "placeId": "ChIJ41uzqLSze0gRQGOAFzCRwwY"
+        },
+        {
+          "id": 22,
+          "name": "Poynton Civic Hall",
+          "address": "Poynton Civic Hall, Off Park Lane, Poynton, SK12 1RB",
+          "gMapUrl": "https://goo.gl/maps/iJGcWeBhsXq",
+          "Lat": 53.3491,
+          "Lng": -2.11751,
+          "placeId": "ChIJ6VuyDBZLekgRuD08l_pde38"
+        },
+        {
+          "id": 23,
+          "name": "Wilmslow Leisure Centre",
+          "address": "Wilmslow Leisure Centre, Station Rd, Rectory Fields, Wilmslow, SK9 1BU",
+          "gMapUrl": "https://goo.gl/maps/HsDPHYgS67DbyPHH9",
+          "Lat": 53.3261,
+          "Lng": -2.22766,
+          "placeId": "ChIJM2pHZnVNekgREEyyHdjZgF8"
+        },
+        {
+          "id": 24,
+          "name": "The Grammar",
+          "address": "Marlborough Rd, Bowdon, Hale, Altrincham WA14 2RS",
+          "gMapUrl": "https://g.page/the-grammar?share",
+          "Lat": 53.3754,
+          "Lng": -2.35272,
+          "placeId": "ChIJvUPJbKese0gRAQN8QpIkCgQ"
+        },
+        {
+          "id": 26,
+          "name": "Everybody Sport and Recreation",
+          "address": "Everybody Sport and Recreation Fitness Centre, Alderley Park, Macclesfield, SK10 4TG. Please use South site entrance (just South of Alderley Edge bypass). NB this is a new building, NOT Mulberry's. Overflow carpark in front of Royal London building.",
+          "gMapUrl": "https://maps.app.goo.gl/jxYfweGPAcS1fEaH8",
+          "Lat": 53.2745,
+          "Lng": -2.2323,
+          "placeId": "ChIJ_6mQTSJPekgRBjjHik00tEY"
+        },
+        {
+          "id": 27,
+          "name": "Macclesfield Leisure Centre",
+          "address": "Priory Lane, Macclesfield, Cheshire, SK10 4AF",
+          "gMapUrl": "https://goo.gl/maps/8kJEDL7aW2NbM2vr8",
+          "Lat": 53.2675,
+          "Lng": -2.16155,
+          "placeId": "ChIJx23MrbtOekgRq-2FXiK3yzo"
+        },
+        {
+          "id": 28,
+          "name": "David Lloyd Trafford",
+          "address": "Barton Embankment, Trafford Park, Stretford, Manchester M17 8RH",
+          "gMapUrl": "https://goo.gl/maps/DVqnh4M3rrYD8fUs9",
+          "Lat": 53.4709,
+          "Lng": -2.36419,
+          "placeId": "ChIJvWqSzLaue0gRC0LVMugBCAw"
+        },
+        {
+          "id": 30,
+          "name": "Avondale Life Leisure",
+          "address": "Avondale Life Leisure, Heathbank Rd, Cheadle Heath, Stockport SK3 0UP",
+          "gMapUrl": "https://maps.app.goo.gl/ToXRk2voxNaUkwHn9",
+          "Lat": 53.4009,
+          "Lng": -2.1852,
+          "placeId": "ChIJXWJWsBOze0gRUS-knjtZQy4"
+        },
+        {
+          "id": 31,
+          "name": "Priestnall High School",
+          "address": "Priestnall High School, Priestnall Road, SK4 3HP",
+          "gMapUrl": "https://maps.app.goo.gl/2SL5XzNipxhWdspM9",
+          "Lat": 53.417,
+          "Lng": -2.203,
+          "placeId": "ChIJUy7B0pSze0gRXU5smNA5fGU"
+        },
+        {
+          "id": 32,
+          "name": "Lymm Leisure Centre",
+          "address": "Lymm Leisure Centre, Oughtrington Ln, Lymm WA13 0RB",
+          "gMapUrl": "https://maps.app.goo.gl/kLDp7d5pWtqiqCSD9",
+          "Lat": 53.3787,
+          "Lng": -2.46058,
+          "placeId": "ChIJ5e1n1KWqe0gRP8veJ3i4Sgw"
+        },
+        {
+          "id": 33,
+          "name": "Salford City Academy",
+          "address": "Salford City Academy, Northfleet Rd, Peel Green, Eccles, Manchester M30 7PQ",
+          "gMapUrl": "https://maps.app.goo.gl/xL85FF5QtPLFWjMm9",
+          "Lat": 53.4794,
+          "Lng": -2.38085,
+          "placeId": "ChIJccVq4jape0gRaM3ptP-5kpI"
+        }
+      ]
+    }
+  ]
+}

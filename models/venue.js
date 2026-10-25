@@ -1,8 +1,9 @@
-var db = require('../db_connect.js');
+// @ts-check
+const { kysely } = require('../db');
+const { jsonBuildObject } = require('kysely/helpers/postgres');
 
 exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM venue')
-  return result
+  return kysely.selectFrom('venue').selectAll().execute()
 }
 
 /**
@@ -42,40 +43,43 @@ exports.getAll = async function() {
  * match-night summary`).
  */
 exports.getVenueClubs = async function() {
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT
-       venue.name      AS "venueName",
-       venue."Lat",
-       venue."Lng",
-       venue.address   AS "address",
-       venue."gMapUrl" AS "gMapUrl",
-       (
-         SELECT json_agg(
-                  json_build_object(
-                    'club',     club.name,
-                    'website',  club."clubWebsite",
-                    'team',     team.name,
-                    'matchDay', team."matchDay"
-                  ) ORDER BY club.name, team.name)
-         FROM team
-         JOIN club ON club.id = team.club
-         WHERE team.venue = venue.id
-           AND team.withdrawn IS NULL
-       ) AS "matchTeams",
-       (
-         SELECT json_agg(
-                  json_build_object(
-                    'club',          club.name,
-                    'website',       club."clubWebsite",
-                    'clubNightText', club."clubNightText"
-                  ) ORDER BY club.name)
-         FROM club
-         WHERE club.venue = venue.id
-       ) AS "clubNights"
-     FROM venue
-     WHERE EXISTS (SELECT 1 FROM team WHERE team.venue = venue.id AND team.withdrawn IS NULL)
-        OR EXISTS (SELECT 1 FROM club WHERE club.venue = venue.id)
-     ORDER BY venue.name`
-  )
-  return result
+  // json_agg directly, not kysely's jsonArrayFrom helper: that wraps the aggregate in
+  // coalesce(…, '[]'), and a venue with no teams has always come back with
+  // matchTeams: null. venue-popup.js reads both shapes today; a conversion keeps the one
+  // it had.
+  return kysely.selectFrom('venue')
+    .select(eb => [
+      'venue.name as venueName',
+      'venue.Lat',
+      'venue.Lng',
+      'venue.address as address',
+      'venue.gMapUrl as gMapUrl',
+      eb.selectFrom('team')
+        .innerJoin('club', 'club.id', 'team.club')
+        .select(eb => eb.fn.agg('json_agg', [jsonBuildObject({
+          club: eb.ref('club.name'),
+          website: eb.ref('club.clubWebsite'),
+          team: eb.ref('team.name'),
+          matchDay: eb.ref('team.matchDay'),
+        })]).orderBy('club.name').orderBy('team.name').as('agg'))
+        .whereRef('team.venue', '=', 'venue.id')
+        .where('team.withdrawn', 'is', null)
+        .as('matchTeams'),
+      eb.selectFrom('club')
+        .select(eb => eb.fn.agg('json_agg', [jsonBuildObject({
+          club: eb.ref('club.name'),
+          website: eb.ref('club.clubWebsite'),
+          clubNightText: eb.ref('club.clubNightText'),
+        })]).orderBy('club.name').as('agg'))
+        .whereRef('club.venue', '=', 'venue.id')
+        .as('clubNights'),
+    ])
+    .where(eb => eb.or([
+      eb.exists(eb.selectFrom('team').select(eb.lit(1).as('one'))
+        .whereRef('team.venue', '=', 'venue.id').where('team.withdrawn', 'is', null)),
+      eb.exists(eb.selectFrom('club').select(eb.lit(1).as('one'))
+        .whereRef('club.venue', '=', 'venue.id')),
+    ]))
+    .orderBy('venue.name')
+    .execute()
 }

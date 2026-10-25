@@ -167,31 +167,12 @@ describe('embedding the venue data in the page', () => {
   });
 });
 
-// The query itself cannot be exercised without a database — the unit tests above use
-// fixture data and the integration test mocks the model — so this guards the one
-// regression the whole change is about: going back to the club-level summary.
+// The query itself is tested against a real Postgres in __tests__/db/venue-division.test.js
+// (REARCH-01). Until it could be run, this file guarded it by reading its SQL as text —
+// team."matchDay" present, matchNightText absent, `withdrawn IS NULL` present — which is
+// the regression that matters here: going back to the club-level summary.
 //
 // Verified against production on 22 Sep 2026: 17 venues, and the pin for Salford City
 // Academy reads "Featherforce A: Wednesday 8pm 2 courts" / "Featherforce B: Thursday 8pm
 // 2 courts" with the club night listed separately, where it used to read the single
 // string "Weds & Thurs 8pm 2 courts" for both.
-describe('the venue query', () => {
-  const src = require('fs').readFileSync(require.resolve('../../models/venue.js'), 'utf8');
-  const query = src.slice(src.indexOf('exports.getVenueClubs'), src.indexOf('exports.getById'));
-  const code = query.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n');
-
-  it('takes the match night from the team, not the club summary', () => {
-    expect(code).toMatch(/team\."matchDay"/);
-    expect(code).not.toMatch(/matchNightText/);
-    expect(code).not.toMatch(/matchVenue/);
-  });
-
-  it('returns data, not markup — the escaping lives in venue-popup.js', () => {
-    expect(code).not.toMatch(/concat\(/i);
-    expect(code).not.toMatch(/<strong|<div|<a href/);
-  });
-
-  it('leaves withdrawn teams off the map', () => {
-    expect(code).toMatch(/withdrawn IS NULL/);
-  });
-});

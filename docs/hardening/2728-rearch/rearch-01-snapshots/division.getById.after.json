@@ -1,0 +1,42 @@
+{
+  "function": "division.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:42.673Z",
+  "cases": [
+    {
+      "label": "int",
+      "args": [
+        8
+      ],
+      "result": [
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1"
+        }
+      ]
+    },
+    {
+      "label": "string",
+      "args": [
+        "8"
+      ],
+      "result": [
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1"
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        999
+      ],
+      "result": []
+    }
+  ]
+}

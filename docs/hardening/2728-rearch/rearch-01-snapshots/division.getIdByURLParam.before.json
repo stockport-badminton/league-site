@@ -1,0 +1,43 @@
+{
+  "function": "division.getIdByURLParam",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:13.094Z",
+  "cases": [
+    {
+      "label": "hyphen",
+      "args": [
+        "Division-1"
+      ],
+      "result": [
+        {
+          "id": 8
+        }
+      ]
+    },
+    {
+      "label": "plain",
+      "args": [
+        "Premier"
+      ],
+      "result": [
+        {
+          "id": 7
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        "Division-9"
+      ],
+      "result": []
+    },
+    {
+      "label": "twoHyphens",
+      "args": [
+        "Division-1-x"
+      ],
+      "result": []
+    }
+  ]
+}

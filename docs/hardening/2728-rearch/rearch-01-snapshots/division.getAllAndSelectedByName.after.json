@@ -1,0 +1,126 @@
+{
+  "function": "division.getAllAndSelectedByName",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:44.111Z",
+  "cases": [
+    {
+      "label": "match",
+      "args": [
+        1,
+        "Division 2"
+      ],
+      "result": [
+        {
+          "id": 7,
+          "league": 1,
+          "rank": 1,
+          "name": "Premier",
+          "selected": false
+        },
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1",
+          "selected": false
+        },
+        {
+          "id": 9,
+          "league": 1,
+          "rank": 3,
+          "name": "Division 2",
+          "selected": true
+        },
+        {
+          "id": 10,
+          "league": 1,
+          "rank": 4,
+          "name": "Division 3",
+          "selected": false
+        }
+      ]
+    },
+    {
+      "label": "noMatch",
+      "args": [
+        1,
+        "Nope"
+      ],
+      "result": [
+        {
+          "id": 7,
+          "league": 1,
+          "rank": 1,
+          "name": "Premier",
+          "selected": false
+        },
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1",
+          "selected": false
+        },
+        {
+          "id": 9,
+          "league": 1,
+          "rank": 3,
+          "name": "Division 2",
+          "selected": false
+        },
+        {
+          "id": 10,
+          "league": 1,
+          "rank": 4,
+          "name": "Division 3",
+          "selected": false
+        }
+      ]
+    },
+    {
+      "label": "null",
+      "args": [
+        1,
+        null
+      ],
+      "result": [
+        {
+          "id": 7,
+          "league": 1,
+          "rank": 1,
+          "name": "Premier",
+          "selected": false
+        },
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1",
+          "selected": false
+        },
+        {
+          "id": 9,
+          "league": 1,
+          "rank": 3,
+          "name": "Division 2",
+          "selected": false
+        },
+        {
+          "id": 10,
+          "league": 1,
+          "rank": 4,
+          "name": "Division 3",
+          "selected": false
+        }
+      ]
+    },
+    {
+      "label": "otherLeague",
+      "args": [
+        2,
+        "Premier"
+      ],
+      "result": []
+    }
+  ]
+}

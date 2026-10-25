@@ -1,0 +1,49 @@
+{
+  "function": "division.getByName",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:03:43.155Z",
+  "cases": [
+    {
+      "label": "premier",
+      "args": [
+        "Premier"
+      ],
+      "result": [
+        {
+          "id": 7,
+          "league": 1,
+          "rank": 1,
+          "name": "Premier"
+        }
+      ]
+    },
+    {
+      "label": "spaced",
+      "args": [
+        "Division 1"
+      ],
+      "result": [
+        {
+          "id": 8,
+          "league": 1,
+          "rank": 2,
+          "name": "Division 1"
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        "Nope"
+      ],
+      "result": []
+    },
+    {
+      "label": "null",
+      "args": [
+        null
+      ],
+      "result": []
+    }
+  ]
+}
