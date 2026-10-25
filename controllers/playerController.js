@@ -877,14 +877,11 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
     gamesProcessed += rated.length
     gamesSkipped += games.length - rated.length
 
-    const playerUpdate = {
-      tablename: 'player',
-      data: Object.entries(fixturePlayers)
+    await Player.setRatings(
+      Object.entries(fixturePlayers)
         .filter(([id]) => parseInt(id, 10) > 0)
-        .map(([id, p]) => [id, p.rating]),
-      fields: ['id', 'rating']
-    }
-    if (playerUpdate.data.length > 0) await Player.updateBulk(playerUpdate)
+        .map(([id, p]) => [id, p.rating])
+    )
   }
 
   return { fixtures: rows.length, gamesProcessed, gamesSkipped, knownRatings }

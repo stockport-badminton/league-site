@@ -1224,6 +1224,20 @@ exports.refreshRatings = async function(playerIds, conn) {
   )
 }
 
+// Writes [id, rating] pairs in one statement. The backfill's per-fixture rating write
+// went through updateBulk, which is one UPDATE per player — ~12 round trips a fixture
+// against production, once the game writes were batched.
+exports.setRatings = async function(pairs, conn) {
+  if (!pairs || pairs.length === 0) return
+  const c = conn || await db.otherConnect()
+  await c.query(
+    `UPDATE player p SET rating = v.rating
+     FROM (VALUES ${pairs.map(() => '(?::int, ?::int)').join(',')}) AS v(id, rating)
+     WHERE p.id = v.id`,
+    pairs.flat()
+  )
+}
+
 // Returns ELO rating time-series for one or more player IDs.
 // Crosses season boundaries — used by the ELO chart pages.
 exports.getPlayerEloTimeSeries = async function(playerIds) {
