@@ -95,8 +95,41 @@ newly blank ranks are players with no rank that season, which is what red is for
 
 - Names as they were that season (REARCH-02).
 - The other inner joins in the same query: `JOIN player homeMan1` drops a fixture whose
-  lineup has a missing player id, in every season, current included. Not measured here;
-  worth its own look.
-- `newGetPlayerStats` / `newGetPairStats` already read `player${season}`. They inner-join
-  it, so the 3 players a season's archive lacks drop out of that season's stats. Small,
-  and REARCH-02's history tables are where it belongs.
+  lineup has a missing player id. **Measured and repaired the same day — see below.**
+- `newGetPlayerStats` / `newGetPairStats` already read `player${season}` and inner-join
+  it. **Measured: nothing is lost.** The only game player missing from any season's
+  archive is player 0, `No Player` (conceded games), which stats should leave out. The
+  "3 a season" first noted here were the merged ids below.
+
+## Follow-up: lineups pointing at deleted players (25 Oct 2026)
+
+116 fixtures dropped off `/fixture-players/:season` because a lineup slot named a player
+with no row. 7 ids, and none was a missing person:
+
+- **Five were merges that moved the games and not the lineups.** Four came from
+  `scripts/merge-players.js` on 29 Sep. Its column filter was `man[0-9]`, which matches
+  `homeMan1` and not `homeLady1`, so every women's merge left its lady slots behind
+  (Kathryn Melling 520 → 314, Karen Woo 1841/2186 → 761, Claire Missen 2270 → 2218). The
+  filter is now `(man|lady)`. 901 → 127 (Chris Turner) was an older merge with no
+  record. In every affected fixture the games already named the kept id.
+- **Two were second registrations deleted outright**: 18 → 73 Rob Wakefield (Aerospace A
+  2018/19) and 891 → 609 Elias Fernandes (Disley A 2019/20). In those seasons the deleted
+  id played everything and the survivor nothing; afterwards the reverse. Neil confirmed
+  both from the scorecards. 891 was registered to Disley B, but he played every match for
+  Disley A, so 609 kept its own Disley A registration.
+
+`scripts/repair-lineup-slots.js` (gitignored) repointed fixture, scorecardstore and
+messer_scorecard slots in one transaction. It also fixed each season's archive the way
+`merge-players.js` does (the kept row takes the team of whichever id played) and wrote
+every move to `scripts/lineup-slots-backup-2026-10-25T15-34-23-247Z.json`. Snapshot
+before and after: every past season gained rows (117 in all), each containing a merged
+player. No row was lost, no existing row changed, and the current season is identical.
+`--check all` was clean before and after.
+
+**ELO needed a full backfill**, because the merged careers had been rated as two separate
+careers. Elias restarted at 1500 in Oct 2022 when he had finished at 1830, and the
+forward chain from Sep 2019 can reach 1,557 of the 1,588 fixtures since. That is too far
+for `utils/eloChain.js`, which also walks only the current season.
+
+The 32 fixtures with an entirely empty lineup are conceded or void with no games. Not a
+gap.

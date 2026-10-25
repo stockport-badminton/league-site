@@ -866,7 +866,9 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
     // Shared with utils/eloChain, which re-rates forward from a late result and has to
     // produce exactly what this does.
     const rated = rateFixtureGames(games, fixturePlayers, fixture)
-    for (const { id, ...updateObj } of rated) await Game.updateById(updateObj, id)
+    // One statement per fixture, not one per game: against production each write is a
+    // network round trip, and these were 18 of the ~21 per fixture (40 min backfill).
+    await Game.updateEloBatch(rated)
     for (const game of games) {
       for (const slot of [game.homePlayer1, game.homePlayer2, game.awayPlayer1, game.awayPlayer2]) {
         if (slot != null && slot != 0) knownRatings[slot] = { ...fixturePlayers[slot] }
