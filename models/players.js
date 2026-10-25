@@ -338,6 +338,38 @@ exports.getNamesClubsTeams = async function(searchTerms) {
   }
 }
 
+// The season snapshots this database holds, as two relations keyed by season, for a query
+// that spans every season and so cannot name one archive table. Discovered from the
+// schema rather than listed, so a season archived at the next rollover is read without
+// anyone remembering to add it, and a season never played (2020/21) simply has no rows.
+//
+// The current season is left out even if a snapshot of it exists: until it ends, the
+// live tables are the record of it.
+async function seasonSnapshots(conn) {
+  const [tables] = await conn.query(
+    'SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name ~ ?',
+    ['public', '^(team|player)20[0-9]{6}$']
+  )
+  const current = seasonModel.current()
+  const seasonsOf = kind => tables
+    .map(t => t.table_name)
+    .filter(name => name.startsWith(kind))
+    .map(name => seasonModel.assertName(name.slice(kind.length)))
+    .filter(season => season !== current)
+    .sort()
+  const union = (rows, empty) => rows.length ? rows.join(' UNION ALL ') : empty
+  return {
+    teamThen: union(
+      seasonsOf('team').map(s => `SELECT '${s}'::text AS season, id, name, rank FROM team${s}`),
+      'SELECT NULL::text AS season, NULL::integer AS id, NULL::varchar AS name, NULL::integer AS rank WHERE false'
+    ),
+    playerThen: union(
+      seasonsOf('player').map(s => `SELECT '${s}'::text AS season, id, team FROM player${s}`),
+      'SELECT NULL::text AS season, NULL::integer AS id, NULL::integer AS team WHERE false'
+    ),
+  }
+}
+
 exports.getPlayerGameData = async function(id) {
   // LEFT JOIN, not INNER, and this is not a style preference (HARD-11).
   //
@@ -347,18 +379,32 @@ exports.getPlayerGameData = async function(id) {
   // everything ever recorded, affecting 677 of 904 players.** Measured 14 Sep 2026. Susan
   // Forbes played 716 rated games and this page showed her 256 of them.
   //
-  // The team name falls back rather than the row vanishing. Note ~half of those names are
-  // still recoverable from the season archives (team20212022 and friends — 9 of the 19
-  // orphaned ids), but reading them would mean hardcoding a list of archive tables that
-  // goes stale the moment a new season is archived, with nothing to catch it. Recorded as
-  // a possible follow-up instead.
+  // Each game shows its teams AS THEY WERE THAT SEASON (25 Oct 2026). Team ids are reused
+  // (HARD-39: 51, 54–57) and teams are renamed, so reading the live `team` showed whichever
+  // team holds the id today: 7,704 of 71,748 game sides on production. The season comes
+  // from the fixture's date, the team from that season's snapshot, falling back to the live
+  // row and then to 'Former team' — the current season, and the 14 fixtures dated outside
+  // every season, read live as before.
   //
-  // `hometeamrank` stays NULL for a missing team, so `teamAdjustment` below is NULL and
-  // the view's `teamAdjustment > 0` guard simply renders no bracket. Checked.
-  let sql = `WITH playerGames AS (SELECT game.*, fixture.date,
-COALESCE(homeTeam.name, 'Former team') AS hometeamname, homeTeam.rank AS hometeamrank,
-COALESCE(awayTeam.name, 'Former team') AS awayteamname, awayTeam.rank AS awayteamrank FROM game
+  // The "(+N)" playing-up bracket compares the player's OWN team that season (the season's
+  // player snapshot, from 2018/19) with the team they played for. Before 2018/19 there is
+  // no player snapshot and their own team falls back to today's, as it always did.
+  //
+  // A rank stays NULL when its team is missing, so `teamAdjustment` below is NULL and the
+  // view's `teamAdjustment > 0` guard simply renders no bracket. Checked.
+  const conn = await db.otherConnect()
+  const { teamThen, playerThen } = await seasonSnapshots(conn)
+  let sql = `WITH teamThen AS (${teamThen}),
+playerThen AS (${playerThen}),
+playerGames AS (SELECT game.*, fixture.date, fixtureSeason.name AS fixtureseason,
+COALESCE(homeThen.name, homeTeam.name, 'Former team') AS hometeamname,
+CASE WHEN homeThen.id IS NULL THEN homeTeam.rank ELSE homeThen.rank END AS hometeamrank,
+COALESCE(awayThen.name, awayTeam.name, 'Former team') AS awayteamname,
+CASE WHEN awayThen.id IS NULL THEN awayTeam.rank ELSE awayThen.rank END AS awayteamrank FROM game
 JOIN fixture ON game.fixture = fixture.id
+LEFT JOIN LATERAL (SELECT s.name FROM season s WHERE fixture.date > s."startDate" AND fixture.date < s."endDate" ORDER BY s."startDate" DESC LIMIT 1) fixtureSeason ON true
+LEFT JOIN teamThen homeThen ON homeThen.season = fixtureSeason.name AND homeThen.id = fixture."homeTeam"
+LEFT JOIN teamThen awayThen ON awayThen.season = fixtureSeason.name AND awayThen.id = fixture."awayTeam"
 LEFT JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
 LEFT JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
 WHERE
@@ -368,11 +414,12 @@ WHERE
   "awayPlayer1End" IS NOT NULL AND
   "awayPlayer2End" IS NOT NULL
 ))
-ORDER BY date DESC, id),
+),
 allGames AS (
   SELECT
   id,
   date,
+  fixtureseason,
   CASE WHEN "homePlayer1" = ? THEN homeTeamName
   WHEN "homePlayer2" = ? THEN homeTeamName
   WHEN "awayPlayer1" = ? THEN awayTeamName
@@ -435,7 +482,7 @@ SELECT
 allGames.id,
 date,
 teamname AS "teamName",
-team.rank - teamrank AS "teamAdjustment",
+CASE WHEN ownThen.id IS NULL THEN team.rank ELSE ownTeamThen.rank END - teamrank AS "teamAdjustment",
 CONCAT(player.first_name,' ',player.family_name) AS "playerName",
 CONCAT(partner.first_name,' ',partner.family_name) AS "partnerName",
 CONCAT(oppo1.first_name,' ',oppo1.family_name) AS "oppName1",
@@ -451,10 +498,19 @@ player ON player.id = allGames.playerName JOIN
 player partner ON partner.id = allGames.partner JOIN
 player oppo1 ON oppo1.id = allGames.oppo1 JOIN
 player oppo2 ON oppo2.id = allGames.oppo2
-JOIN team ON player.team = team.id`
+LEFT JOIN playerThen ownThen ON ownThen.season = allGames.fixtureseason AND ownThen.id = player.id
+LEFT JOIN teamThen ownTeamThen ON ownTeamThen.season = allGames.fixtureseason AND ownTeamThen.id = ownThen.team
+LEFT JOIN team ON player.team = team.id
+ORDER BY date DESC, allGames.id DESC`
+  // The order is the page's contract, so it is on the outer query. It used to sit inside
+  // the first CTE, where Postgres is free to ignore it, and on 25 Oct 2026 only 320 of 915
+  // players' histories came back in date order at all. The chart reverses these rows and
+  // keeps the last game it sees for each night, so newest first, and within a night the
+  // highest game id first — eloChain rates a fixture's games in id order, so reversed, the
+  // night's point is the rating after its last game.
 
   let idArray = Array(45).fill(id * 1)
-  const [result] = await (await db.otherConnect()).query(sql, idArray)
+  const [result] = await conn.query(sql, idArray)
   return result
 }
 

@@ -201,11 +201,19 @@ LEFT JOIN player     p ON p.id = f."homeMan1"
 - **Trim names during the backfill.** The live table was cleaned (3 untrimmed names left),
   but the 2024/25 archive still has **298**. Copying them as they are would bring
   stray-space names back onto every old page.
-- **A page about a person stays live.** `getPlayerGameData` and `getPlayerEloTimeSeries`
-  show one person across every season; their name should be what they are called now. *A
-  decision for Neil:* whether a game-history row should show that game's team as it was
-  then. If yes, `getPlayerGameData` moves into this package's set and REARCH-01 skips it
-  too.
+- **A page about a person keeps the person's name live, but not the team.**
+  `getPlayerGameData` and `getPlayerEloTimeSeries` show one person across every season, so
+  their name is what they are called now. **Decided 25 Oct 2026:** a game-history row
+  shows that game's team as it was that season. So `getPlayerGameData` is in this
+  package's set (a fifteenth function) and REARCH-01 skips it.
+  **Done early, the same day, on the current shape.** It matches each fixture to a season
+  by date and reads that season's `team${season}` / `player${season}` through a
+  `UNION ALL` built from `information_schema` (not a list), falling back to live and then
+  to 'Former team'; the "(+N)" bracket compares the player's own team that season. On
+  production 15,152 of 141,212 history rows changed team name and the bracket went from
+  40,778 rows to 11,778; nothing was lost and the current season was identical. What is
+  left here is replacing those two unions with `team_season` / `player_at`, which should
+  be snapshot-identical. Pinned by `__tests__/unit/player-history-season.test.js`.
 - Draft scorecards (`getScorecardDataById`, `getMesserScorecardById`) are viewed within the
   season they are filed in. They are not changed.
 

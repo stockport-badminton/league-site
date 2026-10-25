@@ -57,18 +57,26 @@ describe("a player's game history keeps games whose team was deleted", () => {
 
   // Without a fallback the row survives but renders as an empty cell, which looks like a
   // bug rather than a deleted team — and the view prints teamName straight out.
+  // The season's snapshot name comes first (player-history-season.test.js); the live name
+  // and then a readable placeholder are what stop the row vanishing.
   it('falls back to a readable name rather than NULL', () => {
-    expect(body).toMatch(/COALESCE\(homeTeam\.name,\s*'[^']+'\)\s+AS hometeamname/);
-    expect(body).toMatch(/COALESCE\(awayTeam\.name,\s*'[^']+'\)\s+AS awayteamname/);
+    expect(body).toMatch(/COALESCE\(homeThen\.name,\s*homeTeam\.name,\s*'[^']+'\)\s+AS hometeamname/);
+    expect(body).toMatch(/COALESCE\(awayThen\.name,\s*awayTeam\.name,\s*'[^']+'\)\s+AS awayteamname/);
   });
 
-  // The rank is deliberately NOT coalesced: it feeds `team.rank - teamrank AS
-  // "teamAdjustment"`, and the view guards with `teamAdjustment > 0`, so NULL renders no
-  // bracket. Substituting a number here would invent an adjustment that never happened.
+  // The rank is deliberately NOT coalesced: it feeds `"teamAdjustment"`, and the view
+  // guards with `teamAdjustment > 0`, so NULL renders no bracket. Substituting a number
+  // here would invent an adjustment that never happened.
   it('leaves the team rank null rather than inventing an adjustment', () => {
-    expect(body).toMatch(/homeTeam\.rank AS hometeamrank/);
-    expect(body).toMatch(/awayTeam\.rank AS awayteamrank/);
-    expect(body).not.toMatch(/COALESCE\(homeTeam\.rank/);
-    expect(body).not.toMatch(/COALESCE\(awayTeam\.rank/);
+    expect(body).toMatch(/ELSE homeThen\.rank END AS hometeamrank/);
+    expect(body).toMatch(/ELSE awayThen\.rank END AS awayteamrank/);
+    expect(body).not.toMatch(/COALESCE\([^)]*\.rank/);
+  });
+
+  // The player's own team is an attribute, not what the row is (gotcha 1c): a player
+  // whose team id has gone would otherwise lose every game they ever played.
+  it("LEFT JOINs the player's own team", () => {
+    expect(body).toMatch(/LEFT JOIN team ON player\.team = team\.id/);
+    expect(body).not.toMatch(/(?<!LEFT )JOIN team ON player\.team = team\.id/);
   });
 });

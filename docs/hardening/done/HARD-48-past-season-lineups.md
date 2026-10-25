@@ -120,7 +120,7 @@ with no row. 7 ids, and none was a missing person:
 
 `scripts/repair-lineup-slots.js` (gitignored) repointed fixture, scorecardstore and
 messer_scorecard slots in one transaction. It also fixed each season's archive the way
-`merge-players.js` does (the kept row takes the team of whichever id played) and wrote
+`scripts/merge-players.js` does (the kept row takes the team of whichever id played) and wrote
 every move to `scripts/lineup-slots-backup-2026-10-25T15-34-23-247Z.json`. Snapshot
 before and after: every past season gained rows (117 in all), each containing a merged
 player. No row was lost, no existing row changed, and the current season is identical.

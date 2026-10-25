@@ -75,11 +75,11 @@ So the split falls out naturally:
 - **REARCH-02 rewrites the 14** against the history table — once, and typed if REARCH-01's
   infrastructure has landed by then.
 - REARCH-02 does not touch the live tables, so nothing REARCH-01 converted is reopened.
-  One possible exception: REARCH-02 now also makes past-season lineups read the season they
-  were played in (added 25 Oct 2026). If Neil decides a player's game history should show
-  each game's team as it was then, `players.getPlayerGameData` joins the 14, and REARCH-01
-  skips it too. Settle that before REARCH-01 reaches `players.js`, which is near the end of
-  its order.
+  **One addition, decided 25 Oct 2026:** a player's game history shows each game's team as
+  it was that season, so `players.getPlayerGameData` belongs to REARCH-02 as a fifteenth
+  function and REARCH-01 skips it too. Done early the same day on the current shape: it reads
+  every season's `team`/`player` snapshot through a union discovered from the schema, so
+  REARCH-02's job there is the same snapshot-identical move as for the other 14.
 
 The real dependency between them is **infrastructure, not queries**: REARCH-02 wants
 REARCH-01's typed query builder and REARCH-08's snapshot harness to prove the 14 rewrites

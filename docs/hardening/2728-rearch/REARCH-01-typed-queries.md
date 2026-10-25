@@ -4,8 +4,8 @@
 **Blocked by:** REARCH-08's snapshot harness (step 0 below). Soft: HARD-41 (Node 24), only
 if the `.ts` route is chosen in decision 1.
 **Owns:** `db_connect.js`, a new `db/` (Kysely instance, generated types), `tsconfig.json`,
-`models/**` **except the 14 season-switched functions listed in the folder README** — those
-belong to REARCH-02.
+`models/**` **except the 14 season-switched functions listed in the folder README, and
+`players.getPlayerGameData`** — those belong to REARCH-02.
 **Source:** the 24 Oct 2026 "build it from scratch" review.
 
 ## Why
@@ -141,7 +141,7 @@ does not cost a Tuesday night's results.
 
 ## Out of scope
 
-- The 14 season-switched functions (REARCH-02).
+- The 14 season-switched functions, and `players.getPlayerGameData` (REARCH-02).
 - Renaming columns or returned keys (REARCH-03 does the one that matters).
 - Controllers and views, beyond what a changed import requires.
 - `tools/` and `scripts/` — they can adopt the builder later; `dbq.js` takes free SQL by
