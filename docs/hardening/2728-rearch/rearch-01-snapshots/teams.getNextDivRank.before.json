@@ -1,0 +1,35 @@
+{
+  "function": "teams.getNextDivRank",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:51:08.379Z",
+  "cases": [
+    {
+      "label": "premier",
+      "args": [
+        7
+      ],
+      "result": 12
+    },
+    {
+      "label": "string",
+      "args": [
+        "8"
+      ],
+      "result": 13
+    },
+    {
+      "label": "empty",
+      "args": [
+        999
+      ],
+      "result": 1
+    },
+    {
+      "label": "null",
+      "args": [
+        null
+      ],
+      "result": 1
+    }
+  ]
+}

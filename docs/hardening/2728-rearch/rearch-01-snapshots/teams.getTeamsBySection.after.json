@@ -1,0 +1,170 @@
+{
+  "function": "teams.getTeamsBySection",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:51:36.902Z",
+  "cases": [
+    {
+      "label": "A",
+      "args": [
+        "A"
+      ],
+      "result": [
+        {
+          "id": 10,
+          "name": "Alderley Park A"
+        },
+        {
+          "id": 19,
+          "name": "Alderley Park B"
+        },
+        {
+          "id": 12,
+          "name": "College Green A"
+        },
+        {
+          "id": 23,
+          "name": "College Green B"
+        },
+        {
+          "id": 25,
+          "name": "David Lloyd A"
+        },
+        {
+          "id": 28,
+          "name": "Dome A"
+        },
+        {
+          "id": 55,
+          "name": "Featherforce A"
+        },
+        {
+          "id": 57,
+          "name": "Featherforce B"
+        },
+        {
+          "id": 22,
+          "name": "GHAP A"
+        },
+        {
+          "id": 5,
+          "name": "Macclesfield A"
+        },
+        {
+          "id": 18,
+          "name": "Parrswood A"
+        },
+        {
+          "id": 30,
+          "name": "Parrswood B"
+        },
+        {
+          "id": 4,
+          "name": "Racketeers A"
+        },
+        {
+          "id": 8,
+          "name": "Racketeers B"
+        },
+        {
+          "id": 14,
+          "name": "Remnants A"
+        },
+        {
+          "id": 6,
+          "name": "Shell A"
+        },
+        {
+          "id": 13,
+          "name": "Shell B"
+        },
+        {
+          "id": 7,
+          "name": "Syddal Park A"
+        },
+        {
+          "id": 20,
+          "name": "Syddal Park B"
+        }
+      ]
+    },
+    {
+      "label": "B",
+      "args": [
+        "B"
+      ],
+      "result": [
+        {
+          "id": 24,
+          "name": "Aerospace A"
+        },
+        {
+          "id": 47,
+          "name": "Alderley Park C"
+        },
+        {
+          "id": 45,
+          "name": "Cheadle Hulme A"
+        },
+        {
+          "id": 51,
+          "name": "Cheadle Hulme B"
+        },
+        {
+          "id": 33,
+          "name": "College Green C"
+        },
+        {
+          "id": 43,
+          "name": "College Green D"
+        },
+        {
+          "id": 54,
+          "name": "College Green E"
+        },
+        {
+          "id": 32,
+          "name": "Disley A"
+        },
+        {
+          "id": 38,
+          "name": "Dome B"
+        },
+        {
+          "id": 26,
+          "name": "Manor A"
+        },
+        {
+          "id": 56,
+          "name": "Manor B"
+        },
+        {
+          "id": 29,
+          "name": "Mellor A"
+        },
+        {
+          "id": 46,
+          "name": "Mellor B"
+        },
+        {
+          "id": 40,
+          "name": "Parrswood C"
+        },
+        {
+          "id": 27,
+          "name": "Shell C"
+        },
+        {
+          "id": 39,
+          "name": "Tatton A"
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        "Z"
+      ],
+      "result": []
+    }
+  ]
+}

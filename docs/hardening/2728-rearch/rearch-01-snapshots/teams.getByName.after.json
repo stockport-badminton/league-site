@@ -1,0 +1,44 @@
+{
+  "function": "teams.getByName",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:51:34.985Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        "College Green A"
+      ],
+      "result": [
+        {
+          "id": 12,
+          "name": "College Green A",
+          "starttime": "19:30",
+          "endtime": "22:00",
+          "matchDay": "Thursday 7.30pm 2 courts",
+          "venue": 27,
+          "courtspace": 1,
+          "club": 61,
+          "division": 7,
+          "rank": 1,
+          "divRank": 7,
+          "penalties": 0,
+          "captain": null,
+          "section": "A",
+          "handicap": "-9",
+          "draw": 5,
+          "withdrawn": null,
+          "withdrawnDivision": null,
+          "withdrawnReason": null,
+          "withdrawnFixtures": null
+        }
+      ]
+    },
+    {
+      "label": "missing",
+      "args": [
+        "Nope"
+      ],
+      "result": []
+    }
+  ]
+}

@@ -1,0 +1,627 @@
+{
+  "function": "teams.getMesser",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:51:55.710Z",
+  "cases": [
+    {
+      "label": "live",
+      "args": [
+        {
+          "season": "",
+          "section": "A"
+        }
+      ],
+      "result": [
+        {
+          "homeTeamName": "Shell B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "Syddal Park B",
+          "awayTeamHandicap": "-3",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 3,
+          "id": 3,
+          "homeTeam": 13,
+          "awayTeam": 20
+        },
+        {
+          "homeTeamName": "Remnants A",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "Aerospace A",
+          "awayTeamHandicap": "-12",
+          "homeScore": 5,
+          "awayScore": 10,
+          "drawPos": 8,
+          "id": 8,
+          "homeTeam": 14,
+          "awayTeam": 24
+        },
+        {
+          "homeTeamName": "Parrswood A",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 4,
+          "awayScore": 11,
+          "drawPos": 12,
+          "id": 21,
+          "homeTeam": 18,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Syddal Park B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 15,
+          "id": 29,
+          "homeTeam": 20,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Syddal Park B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "Parrswood B",
+          "awayTeamHandicap": "-12",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 11,
+          "id": 26,
+          "homeTeam": 20,
+          "awayTeam": 30
+        },
+        {
+          "homeTeamName": "GHAP A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "Dome A",
+          "awayTeamHandicap": "Scr",
+          "homeScore": 6,
+          "awayScore": 9,
+          "drawPos": 2,
+          "id": 2,
+          "homeTeam": 22,
+          "awayTeam": 28
+        },
+        {
+          "homeTeamName": "College Green B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 5,
+          "awayScore": 10,
+          "drawPos": 10,
+          "id": 10,
+          "homeTeam": 23,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "Dome A",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "Featherforce A",
+          "awayTeamHandicap": "Scr H",
+          "homeScore": 3,
+          "awayScore": 12,
+          "drawPos": 7,
+          "id": 7,
+          "homeTeam": 28,
+          "awayTeam": 55
+        },
+        {
+          "homeTeamName": "Parrswood B",
+          "homeTeamHandicap": "-12",
+          "awayTeamName": "Alderley Park A",
+          "awayTeamHandicap": "Scr H",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 4,
+          "id": 4,
+          "homeTeam": 30,
+          "awayTeam": 10
+        },
+        {
+          "homeTeamName": "Macclesfield A",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 6,
+          "id": 6,
+          "homeTeam": 5,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Shell A",
+          "homeTeamHandicap": "-3H",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 1,
+          "id": 1,
+          "homeTeam": 6,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Syddal Park A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 14,
+          "id": 22,
+          "homeTeam": 7,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "Syddal Park A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "Racketeers A",
+          "awayTeamHandicap": "-12H",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 9,
+          "id": 9,
+          "homeTeam": 7,
+          "awayTeam": 4
+        },
+        {
+          "homeTeamName": "Racketeers B",
+          "homeTeamHandicap": "-6H",
+          "awayTeamName": "Parrswood A",
+          "awayTeamHandicap": "-6",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 5,
+          "id": 5,
+          "homeTeam": 8,
+          "awayTeam": 18
+        },
+        {
+          "homeTeamName": "Featherforce A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 13,
+          "awayScore": 2,
+          "drawPos": 16,
+          "id": 30,
+          "homeTeam": 55,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "Featherforce A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "Aerospace A",
+          "awayTeamHandicap": "-12",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 13,
+          "id": 27,
+          "homeTeam": 55,
+          "awayTeam": 24
+        }
+      ]
+    },
+    {
+      "label": "archive",
+      "args": [
+        {
+          "season": "20252026",
+          "section": "%"
+        }
+      ],
+      "result": [
+        {
+          "homeTeamName": "Shell A",
+          "homeTeamHandicap": "-3H",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-3",
+          "homeScore": 9,
+          "awayScore": 6,
+          "drawPos": 1,
+          "id": 1,
+          "homeTeam": 6,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "GHAP A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "Dome A",
+          "awayTeamHandicap": "-6",
+          "homeScore": 6,
+          "awayScore": 9,
+          "drawPos": 2,
+          "id": 2,
+          "homeTeam": 22,
+          "awayTeam": 28
+        },
+        {
+          "homeTeamName": "Shell B",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "Syddal Park B",
+          "awayTeamHandicap": "-3",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 3,
+          "id": 3,
+          "homeTeam": 13,
+          "awayTeam": 20
+        },
+        {
+          "homeTeamName": "Parrswood B",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "Alderley Park A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 4,
+          "id": 4,
+          "homeTeam": 30,
+          "awayTeam": 10
+        },
+        {
+          "homeTeamName": "Racketeers B",
+          "homeTeamHandicap": "-6H",
+          "awayTeamName": "Parrswood A",
+          "awayTeamHandicap": "-6",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 5,
+          "id": 5,
+          "homeTeam": 8,
+          "awayTeam": 18
+        },
+        {
+          "homeTeamName": "Macclesfield A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-3",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 6,
+          "id": 6,
+          "homeTeam": 5,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Dome A",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "Featherforce A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 3,
+          "awayScore": 12,
+          "drawPos": 7,
+          "id": 7,
+          "homeTeam": 28,
+          "awayTeam": 55
+        },
+        {
+          "homeTeamName": "Remnants A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "Aerospace A",
+          "awayTeamHandicap": "Scr",
+          "homeScore": 5,
+          "awayScore": 10,
+          "drawPos": 8,
+          "id": 8,
+          "homeTeam": 14,
+          "awayTeam": 24
+        },
+        {
+          "homeTeamName": "Syddal Park A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "Racketeers A",
+          "awayTeamHandicap": "-12H",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 9,
+          "id": 9,
+          "homeTeam": 7,
+          "awayTeam": 4
+        },
+        {
+          "homeTeamName": "College Green B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 5,
+          "awayScore": 10,
+          "drawPos": 10,
+          "id": 10,
+          "homeTeam": 23,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "No Team",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "No Team",
+          "awayTeamHandicap": "Scr",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 17,
+          "id": 11,
+          "homeTeam": 52,
+          "awayTeam": 52
+        },
+        {
+          "homeTeamName": "No Team",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "No Team",
+          "awayTeamHandicap": "Scr",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 18,
+          "id": 12,
+          "homeTeam": 52,
+          "awayTeam": 52
+        },
+        {
+          "homeTeamName": "Cheadle Hulme B",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "Parrswood C",
+          "awayTeamHandicap": "-3",
+          "homeScore": 14,
+          "awayScore": 1,
+          "drawPos": 19,
+          "id": 13,
+          "homeTeam": 51,
+          "awayTeam": 40
+        },
+        {
+          "homeTeamName": "Alderley Park C",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "No Team",
+          "awayTeamHandicap": "Scr",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 20,
+          "id": 14,
+          "homeTeam": 47,
+          "awayTeam": 52
+        },
+        {
+          "homeTeamName": "College Green E",
+          "homeTeamHandicap": "+3",
+          "awayTeamName": "Disley A",
+          "awayTeamHandicap": "-6",
+          "homeScore": 11,
+          "awayScore": 4,
+          "drawPos": 21,
+          "id": 15,
+          "homeTeam": 54,
+          "awayTeam": 32
+        },
+        {
+          "homeTeamName": "Alderley Park B",
+          "homeTeamHandicap": "-12",
+          "awayTeamName": "Mellor C",
+          "awayTeamHandicap": "-3",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 22,
+          "id": 16,
+          "homeTeam": 19,
+          "awayTeam": 46
+        },
+        {
+          "homeTeamName": "Manor A",
+          "homeTeamHandicap": "-12",
+          "awayTeamName": "Dome B",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 23,
+          "id": 17,
+          "homeTeam": 26,
+          "awayTeam": 38
+        },
+        {
+          "homeTeamName": "Cheadle Hulme A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "Shell C",
+          "awayTeamHandicap": "-12",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 24,
+          "id": 18,
+          "homeTeam": 45,
+          "awayTeam": 27
+        },
+        {
+          "homeTeamName": "Tatton A",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "College Green C",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 25,
+          "id": 19,
+          "homeTeam": 39,
+          "awayTeam": 33
+        },
+        {
+          "homeTeamName": "Mellor A",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "College Green D",
+          "awayTeamHandicap": "Scr",
+          "homeScore": 11,
+          "awayScore": 4,
+          "drawPos": 26,
+          "id": 20,
+          "homeTeam": 29,
+          "awayTeam": 43
+        },
+        {
+          "homeTeamName": "Parrswood A",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-3",
+          "homeScore": 4,
+          "awayScore": 11,
+          "drawPos": 12,
+          "id": 21,
+          "homeTeam": 18,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Syddal Park A",
+          "homeTeamHandicap": "Scr H",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 14,
+          "id": 22,
+          "homeTeam": 7,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "Cheadle Hulme B",
+          "homeTeamHandicap": "Scr",
+          "awayTeamName": "Alderley Park C",
+          "awayTeamHandicap": "-6",
+          "homeScore": 6,
+          "awayScore": 9,
+          "drawPos": 27,
+          "id": 23,
+          "homeTeam": 51,
+          "awayTeam": 47
+        },
+        {
+          "homeTeamName": "College Green E",
+          "homeTeamHandicap": "+3",
+          "awayTeamName": "Alderley Park B",
+          "awayTeamHandicap": "-12",
+          "homeScore": 6,
+          "awayScore": 9,
+          "drawPos": 28,
+          "id": 24,
+          "homeTeam": 54,
+          "awayTeam": 19
+        },
+        {
+          "homeTeamName": "Manor A",
+          "homeTeamHandicap": "-12",
+          "awayTeamName": "Cheadle Hulme A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 7,
+          "awayScore": 8,
+          "drawPos": 29,
+          "id": 25,
+          "homeTeam": 26,
+          "awayTeam": 45
+        },
+        {
+          "homeTeamName": "Syddal Park B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "Parrswood B",
+          "awayTeamHandicap": "Scr",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 11,
+          "id": 26,
+          "homeTeam": 20,
+          "awayTeam": 30
+        },
+        {
+          "homeTeamName": "Featherforce A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "Aerospace A",
+          "awayTeamHandicap": "Scr",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 13,
+          "id": 27,
+          "homeTeam": 55,
+          "awayTeam": 24
+        },
+        {
+          "homeTeamName": "College Green C",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "Mellor A",
+          "awayTeamHandicap": "-3",
+          "homeScore": 8,
+          "awayScore": 7,
+          "drawPos": 30,
+          "id": 28,
+          "homeTeam": 33,
+          "awayTeam": 29
+        },
+        {
+          "homeTeamName": "Syddal Park B",
+          "homeTeamHandicap": "-3",
+          "awayTeamName": "David Lloyd A",
+          "awayTeamHandicap": "-3",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 15,
+          "id": 29,
+          "homeTeam": 20,
+          "awayTeam": 25
+        },
+        {
+          "homeTeamName": "Featherforce A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 13,
+          "awayScore": 2,
+          "drawPos": 16,
+          "id": 30,
+          "homeTeam": 55,
+          "awayTeam": 12
+        },
+        {
+          "homeTeamName": "Alderley Park C",
+          "homeTeamHandicap": "-6",
+          "awayTeamName": "Alderley Park B",
+          "awayTeamHandicap": "-12",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 31,
+          "id": 31,
+          "homeTeam": 47,
+          "awayTeam": 19
+        },
+        {
+          "homeTeamName": "Cheadle Hulme A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "College Green C",
+          "awayTeamHandicap": "-9",
+          "homeScore": null,
+          "awayScore": null,
+          "drawPos": 32,
+          "id": 32,
+          "homeTeam": 45,
+          "awayTeam": 33
+        },
+        {
+          "homeTeamName": "Alderley Park A",
+          "homeTeamHandicap": "-9",
+          "awayTeamName": "College Green A",
+          "awayTeamHandicap": "-9",
+          "homeScore": 15,
+          "awayScore": 0,
+          "drawPos": 33,
+          "id": 33,
+          "homeTeam": 10,
+          "awayTeam": 12
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        {
+          "season": "",
+          "section": "Z"
+        }
+      ],
+      "result": []
+    }
+  ]
+}
