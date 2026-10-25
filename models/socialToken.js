@@ -1,110 +1,120 @@
+// @ts-check
 // Tokens the app renews itself. One row per platform, in `social_token`.
 //
 // See migrations/019_social_token.sql for why this is a table rather than an environment
 // variable, and why `generation` exists.
 //
-// The token is pgp_sym_encrypt'd. DB_PI_KEY is BOUND AS A PARAMETER on every statement
-// and never interpolated (__tests__/unit/no-secrets-in-sql.test.js enforces it).
+// The token is pgp_sym_encrypt'd, read and written only through db/encrypted.js, which
+// binds DB_PI_KEY as a parameter and has no way not to.
 
-const db = require('../db_connect.js');
+const { sql } = require('kysely');
+const { kysely, encrypt, decrypt } = require('../db');
 
-function key() {
-  const k = process.env.DB_PI_KEY;
-  if (!k) throw new Error('DB_PI_KEY is not set, so the social token cannot be read or stored');
-  return k;
-}
+/**
+ * `now() + make_interval(secs => n)`: when a token that lasts `secs` from now expires.
+ * @param {number} secs
+ */
+const fromNow = secs =>
+  /** @type {import('kysely').RawBuilder<Date>} */ (sql`now() + make_interval(secs => ${secs})`);
 
 // Everything except the token. Anything that only needs to *describe* the connection
 // (the admin page, the refresh job's decision) reads this and never decrypts.
-const STATUS_COLUMNS = `
-  platform,
-  account_id    AS "accountId",
-  username,
-  obtained_at   AS "obtainedAt",
-  expires_at    AS "expiresAt",
-  refreshed_at  AS "refreshedAt",
-  last_error    AS "lastError",
-  last_error_at AS "lastErrorAt",
-  generation,
-  updated_by    AS "updatedBy",
-  updated_at    AS "updatedAt"`;
+const STATUS_COLUMNS = /** @type {const} */ ([
+  'platform',
+  'account_id as accountId',
+  'username',
+  'obtained_at as obtainedAt',
+  'expires_at as expiresAt',
+  'refreshed_at as refreshedAt',
+  'last_error as lastError',
+  'last_error_at as lastErrorAt',
+  'generation',
+  'updated_by as updatedBy',
+  'updated_at as updatedAt',
+]);
 
+/** @param {string} platform */
 exports.status = async function(platform) {
-  const conn = await db.otherConnect();
-  const [rows] = await conn.query(
-    `SELECT ${STATUS_COLUMNS} FROM social_token WHERE platform = ?`, [platform]);
-  return rows[0] || null;
+  const row = await kysely.selectFrom('social_token').select(STATUS_COLUMNS)
+    .where('platform', '=', platform).executeTakeFirst();
+  return row || null;
 };
 
-/** The status plus the decrypted token. Only for code that is about to call the API. */
+/**
+ * The status plus the decrypted token. Only for code that is about to call the API.
+ * @param {string} platform
+ */
 exports.withToken = async function(platform) {
-  const conn = await db.otherConnect();
-  const [rows] = await conn.query(
-    `SELECT ${STATUS_COLUMNS}, pgp_sym_decrypt(token, ?)::text AS token
-     FROM social_token WHERE platform = ?`, [key(), platform]);
-  return rows[0] || null;
+  const row = await kysely.selectFrom('social_token').select(STATUS_COLUMNS)
+    .select(eb => decrypt(eb.ref('token')).as('token'))
+    .where('platform', '=', platform).executeTakeFirst();
+  return row || null;
 };
 
 /**
  * A person has just logged in. Replaces whatever was there, including a different
  * account, because a login is the recovery path and has to win.
+ * @param {string} platform
+ * @param {{ accountId: string | number, username?: string, token: string, expiresIn: number | string, updatedBy?: string }} login
  */
 exports.saveLogin = async function(platform, { accountId, username, token, expiresIn, updatedBy }) {
-  const conn = await db.otherConnect();
-  const [rows] = await conn.query(
-    `INSERT INTO social_token
-       (platform, account_id, username, token, obtained_at, expires_at,
-        refreshed_at, last_error, last_error_at, generation, updated_by, updated_at)
-     VALUES (?, ?, ?, pgp_sym_encrypt(?, ?), now(), now() + make_interval(secs => ?),
-             NULL, NULL, NULL, 1, ?, now())
-     ON CONFLICT (platform) DO UPDATE SET
-       account_id    = EXCLUDED.account_id,
-       username      = EXCLUDED.username,
-       token         = EXCLUDED.token,
-       obtained_at   = EXCLUDED.obtained_at,
-       expires_at    = EXCLUDED.expires_at,
-       refreshed_at  = NULL,
-       last_error    = NULL,
-       last_error_at = NULL,
-       generation    = social_token.generation + 1,
-       updated_by    = EXCLUDED.updated_by,
-       updated_at    = now()
-     RETURNING generation`,
-    [platform, String(accountId), username || null, token, key(), Number(expiresIn), updatedBy || null]);
-  return rows[0] ? rows[0].generation : null;
+  const row = await kysely.insertInto('social_token')
+    .values(eb => ({
+      platform, account_id: String(accountId), username: username || null, token: encrypt(token),
+      obtained_at: eb.fn('now'), expires_at: fromNow(Number(expiresIn)),
+      refreshed_at: null, last_error: null, last_error_at: null, generation: 1,
+      updated_by: updatedBy || null, updated_at: eb.fn('now'),
+    }))
+    .onConflict(oc => oc.column('platform').doUpdateSet(eb => ({
+      account_id: eb.ref('excluded.account_id'),
+      username: eb.ref('excluded.username'),
+      token: eb.ref('excluded.token'),
+      obtained_at: eb.ref('excluded.obtained_at'),
+      expires_at: eb.ref('excluded.expires_at'),
+      refreshed_at: null,
+      last_error: null,
+      last_error_at: null,
+      generation: eb('social_token.generation', '+', 1),
+      updated_by: eb.ref('excluded.updated_by'),
+      updated_at: eb.fn('now'),
+    })))
+    .returning('generation')
+    .executeTakeFirst();
+  return row ? row.generation : null;
 };
 
 /**
  * A refresh succeeded. Written only if the row is still the one the refresh read, so a
  * login that landed in between is kept. Returns the number of rows written, 0 or 1.
- *
- * The count is read from `rows.affectedRows`, NOT from a second tuple element. The
- * wrapper returns `[rows]` and nothing else (CLAUDE.md gotcha 2d).
+ * @param {string} platform
+ * @param {{ token: string, expiresIn: number | string, generation: number | string, updatedBy?: string }} refresh
  */
 exports.saveRefresh = async function(platform, { token, expiresIn, generation, updatedBy }) {
-  const conn = await db.otherConnect();
-  const [rows] = await conn.query(
-    `UPDATE social_token SET
-       token         = pgp_sym_encrypt(?, ?),
-       obtained_at   = now(),
-       expires_at    = now() + make_interval(secs => ?),
-       refreshed_at  = now(),
-       last_error    = NULL,
-       last_error_at = NULL,
-       generation    = generation + 1,
-       updated_by    = ?,
-       updated_at    = now()
-     WHERE platform = ? AND generation = ?`,
-    [token, key(), Number(expiresIn), updatedBy || null, platform, Number(generation)]);
-  return rows.affectedRows || 0;
+  const res = await kysely.updateTable('social_token')
+    .set(eb => ({
+      token: encrypt(token),
+      obtained_at: eb.fn('now'),
+      expires_at: fromNow(Number(expiresIn)),
+      refreshed_at: eb.fn('now'),
+      last_error: null,
+      last_error_at: null,
+      generation: eb('generation', '+', 1),
+      updated_by: updatedBy || null,
+      updated_at: eb.fn('now'),
+    }))
+    .where('platform', '=', platform).where('generation', '=', Number(generation))
+    .executeTakeFirst();
+  return Number(res.numUpdatedRows);
 };
 
-/** A refresh failed. The token is left alone: it may well still work until it expires. */
+/**
+ * A refresh failed. The token is left alone: it may well still work until it expires.
+ * @param {string} platform @param {unknown} message
+ */
 exports.recordError = async function(platform, message) {
-  const conn = await db.otherConnect();
-  await conn.query(
-    `UPDATE social_token SET last_error = ?, last_error_at = now() WHERE platform = ?`,
-    [String(message).slice(0, 1000), platform]);
+  await kysely.updateTable('social_token')
+    .set(eb => ({ last_error: String(message).slice(0, 1000), last_error_at: eb.fn('now') }))
+    .where('platform', '=', platform).execute();
 };
 
 /**
@@ -112,6 +122,7 @@ exports.recordError = async function(platform, message) {
  * this before doing anything, so a missing or expired token is a 503 that names the
  * recovery, never an attempt that fails halfway.
  */
+/** @param {string} platform */
 exports.usable = async function(platform) {
   const row = await exports.withToken(platform);
   if (!row) return { error: 'No Threads account is connected. Connect one at /admin/threads.' };

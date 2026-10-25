@@ -46,6 +46,40 @@ starts with `auth`. What is there, and what was decided on the way:
 - `npm run db:types` regenerates `db/schema.d.ts` from `sdbl_test` (run `npm run test:db`
   first); CI runs it with `--verify` after the db step. The 53 season archives are excluded.
 
+**Step 2, converted so far** (evidence in `rearch-01-snapshots/`, one commit per batch):
+`season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
+`socialToken`, and `socialResultPost` / `threadsResultPost` except `enqueue`. `auth` has no
+SQL.
+
+**Left on the wrapper for the off-season, because the publish request calls them** — the
+list step 3 must clear before `pgQuery` can go:
+
+| Function | Called from |
+|---|---|
+| `socialResultPost.enqueue` | `Fixture.sendResultZap`, inside `POST /scorecard-beta` |
+| `threadsResultPost.enqueue` | `scorecardController`, inside `POST /scorecard-beta` |
+
+Idioms settled on the way, worth reusing:
+
+- **A snapshot that cannot fail is not evidence.** `season.init` falls back to a date rule
+  that gives today's answer, `invoiceRun.findings` answers `[]` for an exempt season, and
+  `socialToken` has no local rows. Each got a database test that can tell the query from
+  the fallback — for `socialToken`, written and passed against the string queries first,
+  then run unchanged against the typed ones.
+- **Bind values exactly as before.** No `Number()` around an id: `undefined` bound as NULL
+  finds nothing, where `Number(undefined)` is NaN and Postgres rejects it. The JSDoc says
+  what the column holds; callers passing `'8'` keep working as they did.
+- **`now()` is `eb.fn('now')`**, including as a column value in `.set()`/`.values()`. A
+  raw `sql` template is for what the builder cannot say (`make_interval(secs => …)`), and
+  carries a cast.
+- **A jsonb column takes `JSON.stringify(value)`.** The `Json` type accepts an array, and
+  `pg` would send it as a Postgres array literal. The type does not catch this; the test
+  does.
+- **`json_agg` directly, not `jsonArrayFrom`**, where the old query could return NULL —
+  the helper coalesces to `[]`.
+- **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database
+  test of the same behaviour, not kept beside it.
+
 ## Why
 
 `db_connect.js` makes Postgres look like mysql2: `?` placeholders, a `[rows]` tuple,

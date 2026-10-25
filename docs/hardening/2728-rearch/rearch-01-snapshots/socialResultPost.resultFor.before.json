@@ -1,0 +1,70 @@
+{
+  "function": "socialResultPost.resultFor",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:10:29.900Z",
+  "cases": [
+    {
+      "label": "complete",
+      "args": [
+        3
+      ],
+      "result": {
+        "status": "complete",
+        "homeScore": 15,
+        "awayScore": 3,
+        "homeTeam": "Racketeers B",
+        "awayTeam": "Carrington A",
+        "division": "Premier"
+      }
+    },
+    {
+      "label": "outstanding",
+      "args": [
+        179
+      ],
+      "result": {
+        "status": "outstanding",
+        "homeScore": 6,
+        "awayScore": 12,
+        "homeTeam": "Dome A",
+        "awayTeam": "Shell C",
+        "division": null
+      }
+    },
+    {
+      "label": "conceded",
+      "args": [
+        148
+      ],
+      "result": {
+        "status": "conceded",
+        "homeScore": 18,
+        "awayScore": 0,
+        "homeTeam": "Altrincham Central",
+        "awayTeam": "Bramhall Village A",
+        "division": null
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999999
+      ],
+      "result": null
+    },
+    {
+      "label": "string",
+      "args": [
+        "3"
+      ],
+      "result": {
+        "status": "complete",
+        "homeScore": 15,
+        "awayScore": 3,
+        "homeTeam": "Racketeers B",
+        "awayTeam": "Carrington A",
+        "division": "Premier"
+      }
+    }
+  ]
+}
