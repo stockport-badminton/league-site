@@ -50,8 +50,9 @@ starts with `auth`. What is there, and what was decided on the way:
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
 `spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
-function), `game` except the two below, `liveScorecard`, `roster`. `auth` has no SQL. Next:
-`clubRegistration`.
+function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes. `auth` has no
+SQL. Next:
+`league`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:

@@ -1,3 +1,4 @@
+// @ts-check
 // Which clubs have sent their player registration form in, and who still needs chasing.
 //
 // One row per (season, club) in `club_registration`, created lazily. Absence means
@@ -6,6 +7,10 @@
 
 const db = require('../db_connect.js');
 const seasonModel = require('./season');
+const { kysely } = require('../db');
+
+// REARCH-01: the three writes are on the typed query layer. getStatus and getDigest belong
+// to REARCH-02 and are left as they are.
 
 // A club with no fixtures at all this season cannot have a deadline, and `No Club` (63)
 // is the sentinel a released player parks on — never a real club to chase.
@@ -84,6 +89,7 @@ const STATUS_SQL = `
 async function conn() { return db.otherConnect(); }
 
 // Every club with a fixture this season, each with its deadline and status.
+/** @param {string} [season] @returns {Promise<any[]>} */
 exports.getStatus = async function(season) {
   const name = seasonModel.assertName(season || seasonModel.current());
   const c = await conn();
@@ -92,12 +98,12 @@ exports.getStatus = async function(season) {
   const [officers] = await c.query(OFFICER_SQL, [process.env.DB_PI_KEY, NO_CLUB_ID]);
 
   const byClub = new Map();
-  officers.forEach(o => {
+  officers.forEach((/** @type {any} */ o) => {
     if (!byClub.has(o.clubId)) byClub.set(o.clubId, []);
     byClub.get(o.clubId).push({ name: o.name, email: o.email, role: o.role });
   });
 
-  return clubs.map(row => ({
+  return clubs.map((/** @type {any} */ row) => ({
     ...row,
     season: name,
     received: !!row.receivedAt,
@@ -111,6 +117,7 @@ exports.getStatus = async function(season) {
 // `dueWithin` is deliberately inclusive of clubs whose first fixture has already gone:
 // a deadline that has passed is more urgent than one three days out, not less, and
 // dropping it the morning it expires is how a club plays a match unregistered.
+/** @param {string} [season] @param {number} [withinDays] */
 exports.getDigest = async function(season, withinDays = 3) {
   const clubs = await exports.getStatus(season);
   const outstanding = clubs.filter(c => !c.received);
@@ -126,35 +133,43 @@ exports.getDigest = async function(season, withinDays = 3) {
 
 // The upserts. All three target the (season, club) unique index, so a club with no row
 // gets one on its first event and nothing has to pre-populate the table.
-async function upsert(season, clubId, sets, params, updatedBy) {
+//
+// `values` is what a first event inserts; `onConflict` is what a later one sets, given the
+// expression builder so it can say now() or chase_count + 1.
+/**
+ * @param {string} season @param {number | string} clubId @param {string | null | undefined} updatedBy
+ * @param {import('kysely').Insertable<import('../db/schema').ClubRegistration>} values
+ * @param {(eb: import('kysely').ExpressionBuilder<import('../db/schema').DB, 'club_registration'>) => import('kysely').UpdateObject<import('../db/schema').DB, 'club_registration'>} onConflict
+ */
+async function upsert(season, clubId, updatedBy, values, onConflict) {
   const name = seasonModel.assertName(season);
-  const c = await conn();
-  const [rows] = await c.query(
-    `INSERT INTO club_registration (season, club, ${sets.map(s => s.column).join(', ')}, updated_by)
-     VALUES (?, ?, ${sets.map(() => '?').join(', ')}, ?)
-     ON CONFLICT (season, club) DO UPDATE SET
-       ${sets.map(s => `${s.column} = ${s.onConflict}`).join(', ')},
-       updated_by = EXCLUDED.updated_by,
-       updated_at = now()
-     RETURNING id`,
-    [name, Number(clubId), ...params, updatedBy || null]);
-  return rows[0] && rows[0].id;
-};
+  const row = await kysely.insertInto('club_registration')
+    .values({ ...values, season: name, club: Number(clubId), updated_by: updatedBy || null })
+    .onConflict(oc => oc.columns(['season', 'club']).doUpdateSet(eb => ({
+      ...onConflict(eb),
+      updated_by: eb.ref('excluded.updated_by'),
+      updated_at: eb.fn('now'),
+    })))
+    .returning('id')
+    .executeTakeFirst();
+  return row && row.id;
+}
 
+/** @param {string} season @param {number | string} clubId @param {string | null} [updatedBy] */
 exports.markReceived = (season, clubId, updatedBy) =>
-  upsert(season, clubId,
-    [{ column: 'received_at', onConflict: 'now()' }], [new Date()], updatedBy);
+  upsert(season, clubId, updatedBy, /** @type {any} */ ({ received_at: new Date() }),
+    eb => ({ received_at: eb.fn('now') }));
 
+/** @param {string} season @param {number | string} clubId @param {string | null} [updatedBy] */
 exports.markNotReceived = (season, clubId, updatedBy) =>
-  upsert(season, clubId,
-    [{ column: 'received_at', onConflict: 'NULL' }], [null], updatedBy);
+  upsert(season, clubId, updatedBy, /** @type {any} */ ({ received_at: null }),
+    () => ({ received_at: null }));
 
 // chase_count increments rather than being set, so "chased twice" is visible. A first
 // chase inserts 1.
+/** @param {string} season @param {number | string} clubId @param {string | null} [updatedBy] */
 exports.recordChase = (season, clubId, updatedBy) =>
-  upsert(season, clubId, [
-    { column: 'chased_at',   onConflict: 'now()' },
-    { column: 'chase_count', onConflict: 'club_registration.chase_count + 1' },
-  ], [new Date(), 1], updatedBy);
+  upsert(season, clubId, updatedBy, /** @type {any} */ ({ chased_at: new Date(), chase_count: 1 }),
+    eb => ({ chased_at: eb.fn('now'), chase_count: eb('club_registration.chase_count', '+', 1) }));
 
 exports.NO_CLUB_ID = NO_CLUB_ID;
