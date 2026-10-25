@@ -1,0 +1,12 @@
+{
+  "function": "invoiceRun.findings",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:08:04.658Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": []
+    }
+  ]
+}
