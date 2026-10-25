@@ -1,0 +1,61 @@
+{
+  "function": "registrationRequest.list",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:28:17.511Z",
+  "cases": [
+    {
+      "label": "pending",
+      "args": [
+        "pending"
+      ],
+      "result": [
+        {
+          "id": 1,
+          "receivedAt": {
+            "$date": "2026-10-17T18:45:26.275Z"
+          },
+          "forwardedBy": "Neil Cooper <neil@example.com>",
+          "originalFrom": "Jane Secretary <jane@example.com>",
+          "subject": "Fwd: New players",
+          "candidates": [
+            {
+              "raw": "Mary Whitle (F)",
+              "team": "Dome A",
+              "first": "Mary",
+              "family": "Whitle",
+              "gender": "Female",
+              "outcome": null,
+              "playerId": null
+            },
+            {
+              "raw": "Newby Playerton - M",
+              "team": "Dome A",
+              "first": "Newby",
+              "family": "Playerton",
+              "gender": "Male",
+              "outcome": null,
+              "playerId": null
+            }
+          ],
+          "status": "pending",
+          "closedAt": null,
+          "closedBy": null
+        }
+      ]
+    },
+    {
+      "label": "done",
+      "args": [
+        "done"
+      ],
+      "result": []
+    },
+    {
+      "label": "dismissed",
+      "args": [
+        "dismissed"
+      ],
+      "result": []
+    }
+  ]
+}

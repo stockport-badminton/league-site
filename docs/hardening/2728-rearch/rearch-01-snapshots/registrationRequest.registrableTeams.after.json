@@ -1,0 +1,557 @@
+{
+  "function": "registrationRequest.registrableTeams",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:28:56.781Z",
+  "cases": [
+    {
+      "label": "noClub",
+      "args": [
+        63
+      ],
+      "result": [
+        {
+          "id": 24,
+          "name": "Aerospace A",
+          "clubId": 42,
+          "clubName": "Aerospace"
+        },
+        {
+          "id": 10,
+          "name": "Alderley Park A",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 19,
+          "name": "Alderley Park B",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 47,
+          "name": "Alderley Park C",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 45,
+          "name": "Cheadle Hulme A",
+          "clubId": 49,
+          "clubName": "Cheadle Hulme"
+        },
+        {
+          "id": 51,
+          "name": "Cheadle Hulme B",
+          "clubId": 49,
+          "clubName": "Cheadle Hulme"
+        },
+        {
+          "id": 12,
+          "name": "College Green A",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 23,
+          "name": "College Green B",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 33,
+          "name": "College Green C",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 43,
+          "name": "College Green D",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 54,
+          "name": "College Green E",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 25,
+          "name": "David Lloyd A",
+          "clubId": 50,
+          "clubName": "David Lloyd"
+        },
+        {
+          "id": 32,
+          "name": "Disley A",
+          "clubId": 51,
+          "clubName": "Disley"
+        },
+        {
+          "id": 28,
+          "name": "Dome A",
+          "clubId": 52,
+          "clubName": "Dome"
+        },
+        {
+          "id": 38,
+          "name": "Dome B",
+          "clubId": 52,
+          "clubName": "Dome"
+        },
+        {
+          "id": 55,
+          "name": "Featherforce A",
+          "clubId": 64,
+          "clubName": "Featherforce"
+        },
+        {
+          "id": 57,
+          "name": "Featherforce B",
+          "clubId": 64,
+          "clubName": "Featherforce"
+        },
+        {
+          "id": 22,
+          "name": "GHAP A",
+          "clubId": 53,
+          "clubName": "G.H.A.P"
+        },
+        {
+          "id": 5,
+          "name": "Macclesfield A",
+          "clubId": 54,
+          "clubName": "Macclesfield"
+        },
+        {
+          "id": 26,
+          "name": "Manor A",
+          "clubId": 55,
+          "clubName": "Manor"
+        },
+        {
+          "id": 56,
+          "name": "Manor B",
+          "clubId": 55,
+          "clubName": "Manor"
+        },
+        {
+          "id": 29,
+          "name": "Mellor A",
+          "clubId": 39,
+          "clubName": "Mellor"
+        },
+        {
+          "id": 46,
+          "name": "Mellor B",
+          "clubId": 39,
+          "clubName": "Mellor"
+        },
+        {
+          "id": 18,
+          "name": "Parrswood A",
+          "clubId": 57,
+          "clubName": "Parrs Wood"
+        },
+        {
+          "id": 30,
+          "name": "Parrswood B",
+          "clubId": 57,
+          "clubName": "Parrs Wood"
+        },
+        {
+          "id": 4,
+          "name": "Racketeers A",
+          "clubId": 59,
+          "clubName": "Racketeer"
+        },
+        {
+          "id": 8,
+          "name": "Racketeers B",
+          "clubId": 59,
+          "clubName": "Racketeer"
+        },
+        {
+          "id": 14,
+          "name": "Remnants A",
+          "clubId": 47,
+          "clubName": "Remnants"
+        },
+        {
+          "id": 6,
+          "name": "Shell A",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 13,
+          "name": "Shell B",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 27,
+          "name": "Shell C",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 7,
+          "name": "Syddal Park A",
+          "clubId": 41,
+          "clubName": "Syddal Park"
+        },
+        {
+          "id": 20,
+          "name": "Syddal Park B",
+          "clubId": 41,
+          "clubName": "Syddal Park"
+        },
+        {
+          "id": 39,
+          "name": "Tatton A",
+          "clubId": 60,
+          "clubName": "Tatton"
+        }
+      ]
+    },
+    {
+      "label": "none",
+      "args": [
+        -1
+      ],
+      "result": [
+        {
+          "id": 24,
+          "name": "Aerospace A",
+          "clubId": 42,
+          "clubName": "Aerospace"
+        },
+        {
+          "id": 10,
+          "name": "Alderley Park A",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 19,
+          "name": "Alderley Park B",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 47,
+          "name": "Alderley Park C",
+          "clubId": 43,
+          "clubName": "Alderley Park"
+        },
+        {
+          "id": 45,
+          "name": "Cheadle Hulme A",
+          "clubId": 49,
+          "clubName": "Cheadle Hulme"
+        },
+        {
+          "id": 51,
+          "name": "Cheadle Hulme B",
+          "clubId": 49,
+          "clubName": "Cheadle Hulme"
+        },
+        {
+          "id": 12,
+          "name": "College Green A",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 23,
+          "name": "College Green B",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 33,
+          "name": "College Green C",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 43,
+          "name": "College Green D",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 54,
+          "name": "College Green E",
+          "clubId": 61,
+          "clubName": "College Green"
+        },
+        {
+          "id": 25,
+          "name": "David Lloyd A",
+          "clubId": 50,
+          "clubName": "David Lloyd"
+        },
+        {
+          "id": 32,
+          "name": "Disley A",
+          "clubId": 51,
+          "clubName": "Disley"
+        },
+        {
+          "id": 28,
+          "name": "Dome A",
+          "clubId": 52,
+          "clubName": "Dome"
+        },
+        {
+          "id": 38,
+          "name": "Dome B",
+          "clubId": 52,
+          "clubName": "Dome"
+        },
+        {
+          "id": 55,
+          "name": "Featherforce A",
+          "clubId": 64,
+          "clubName": "Featherforce"
+        },
+        {
+          "id": 57,
+          "name": "Featherforce B",
+          "clubId": 64,
+          "clubName": "Featherforce"
+        },
+        {
+          "id": 22,
+          "name": "GHAP A",
+          "clubId": 53,
+          "clubName": "G.H.A.P"
+        },
+        {
+          "id": 5,
+          "name": "Macclesfield A",
+          "clubId": 54,
+          "clubName": "Macclesfield"
+        },
+        {
+          "id": 26,
+          "name": "Manor A",
+          "clubId": 55,
+          "clubName": "Manor"
+        },
+        {
+          "id": 56,
+          "name": "Manor B",
+          "clubId": 55,
+          "clubName": "Manor"
+        },
+        {
+          "id": 29,
+          "name": "Mellor A",
+          "clubId": 39,
+          "clubName": "Mellor"
+        },
+        {
+          "id": 46,
+          "name": "Mellor B",
+          "clubId": 39,
+          "clubName": "Mellor"
+        },
+        {
+          "id": 53,
+          "name": "Alderley Park D",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 16,
+          "name": "Altrincham Central",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 50,
+          "name": "Blue Triangle",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 21,
+          "name": "Bramhall Village A",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 48,
+          "name": "Bramhall Village B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 31,
+          "name": "CAP",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 11,
+          "name": "Carrington A",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 17,
+          "name": "Carrington B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 15,
+          "name": "Disley A",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 42,
+          "name": "Disley C",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 49,
+          "name": "Disley D",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 35,
+          "name": "GHAP",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 34,
+          "name": "Macclesfield B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 37,
+          "name": "Manor B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 44,
+          "name": "Manor C",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 41,
+          "name": "Mellor B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 36,
+          "name": "New Mills",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 52,
+          "name": "No Team",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 40,
+          "name": "Parrswood C",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 9,
+          "name": "Syddal Park B",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 58,
+          "name": "Unknown team",
+          "clubId": 63,
+          "clubName": "No Club"
+        },
+        {
+          "id": 18,
+          "name": "Parrswood A",
+          "clubId": 57,
+          "clubName": "Parrs Wood"
+        },
+        {
+          "id": 30,
+          "name": "Parrswood B",
+          "clubId": 57,
+          "clubName": "Parrs Wood"
+        },
+        {
+          "id": 4,
+          "name": "Racketeers A",
+          "clubId": 59,
+          "clubName": "Racketeer"
+        },
+        {
+          "id": 8,
+          "name": "Racketeers B",
+          "clubId": 59,
+          "clubName": "Racketeer"
+        },
+        {
+          "id": 14,
+          "name": "Remnants A",
+          "clubId": 47,
+          "clubName": "Remnants"
+        },
+        {
+          "id": 6,
+          "name": "Shell A",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 13,
+          "name": "Shell B",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 27,
+          "name": "Shell C",
+          "clubId": 40,
+          "clubName": "Shell"
+        },
+        {
+          "id": 7,
+          "name": "Syddal Park A",
+          "clubId": 41,
+          "clubName": "Syddal Park"
+        },
+        {
+          "id": 20,
+          "name": "Syddal Park B",
+          "clubId": 41,
+          "clubName": "Syddal Park"
+        },
+        {
+          "id": 39,
+          "name": "Tatton A",
+          "clubId": 60,
+          "clubName": "Tatton"
+        }
+      ]
+    }
+  ]
+}

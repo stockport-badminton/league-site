@@ -1,0 +1,94 @@
+{
+  "function": "registrationRequest.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:28:56.305Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        1
+      ],
+      "result": {
+        "id": 1,
+        "receivedAt": {
+          "$date": "2026-10-17T18:45:26.275Z"
+        },
+        "forwardedBy": "Neil Cooper <neil@example.com>",
+        "originalFrom": "Jane Secretary <jane@example.com>",
+        "subject": "Fwd: New players",
+        "bodyText": "---------- Forwarded message ---------\nFrom: Jane Secretary <jane@example.com>\nSubject: New players\n\nPlease register these for Dome A:\n\nMary Whitle (F)\nNewby Playerton - M\n\nThanks,\nJane",
+        "attachments": [],
+        "candidates": [
+          {
+            "raw": "Mary Whitle (F)",
+            "team": "Dome A",
+            "first": "Mary",
+            "family": "Whitle",
+            "gender": "Female",
+            "outcome": null,
+            "playerId": null
+          },
+          {
+            "raw": "Newby Playerton - M",
+            "team": "Dome A",
+            "first": "Newby",
+            "family": "Playerton",
+            "gender": "Male",
+            "outcome": null,
+            "playerId": null
+          }
+        ],
+        "status": "pending",
+        "closedAt": null,
+        "closedBy": null
+      }
+    },
+    {
+      "label": "string",
+      "args": [
+        "1"
+      ],
+      "result": {
+        "id": 1,
+        "receivedAt": {
+          "$date": "2026-10-17T18:45:26.275Z"
+        },
+        "forwardedBy": "Neil Cooper <neil@example.com>",
+        "originalFrom": "Jane Secretary <jane@example.com>",
+        "subject": "Fwd: New players",
+        "bodyText": "---------- Forwarded message ---------\nFrom: Jane Secretary <jane@example.com>\nSubject: New players\n\nPlease register these for Dome A:\n\nMary Whitle (F)\nNewby Playerton - M\n\nThanks,\nJane",
+        "attachments": [],
+        "candidates": [
+          {
+            "raw": "Mary Whitle (F)",
+            "team": "Dome A",
+            "first": "Mary",
+            "family": "Whitle",
+            "gender": "Female",
+            "outcome": null,
+            "playerId": null
+          },
+          {
+            "raw": "Newby Playerton - M",
+            "team": "Dome A",
+            "first": "Newby",
+            "family": "Playerton",
+            "gender": "Male",
+            "outcome": null,
+            "playerId": null
+          }
+        ],
+        "status": "pending",
+        "closedAt": null,
+        "closedBy": null
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999
+      ],
+      "result": null
+    }
+  ]
+}

@@ -48,8 +48,8 @@ starts with `auth`. What is there, and what was decided on the way:
 
 **Step 2, converted so far** (evidence in `rearch-01-snapshots/`, one commit per batch):
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
-`socialToken`, and `socialResultPost` / `threadsResultPost` except `enqueue`. `auth` has no
-SQL.
+`socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
+`spamControls`, `registrationRequest`. `auth` has no SQL. Next: `club`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -77,6 +77,11 @@ Idioms settled on the way, worth reusing:
   does.
 - **`json_agg` directly, not `jsonArrayFrom`**, where the old query could return NULL —
   the helper coalesces to `[]`.
+- **Write a model's database test against the string queries first**, and only then
+  convert. If it does not pass on the old code it describes the new code, not the
+  behaviour. Two of this round's first drafts failed that way, both the test's fault.
+- **A conflict target on an expression index** (`blocked_entry (kind, LOWER(value))`) is
+  `oc.expression(…)` with a cast template: `ON CONSTRAINT` names constraints, not indexes.
 - **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database
   test of the same behaviour, not kept beside it.
 

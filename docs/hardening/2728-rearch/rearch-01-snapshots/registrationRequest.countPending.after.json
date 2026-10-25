@@ -1,0 +1,12 @@
+{
+  "function": "registrationRequest.countPending",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:28:55.823Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": 1
+    }
+  ]
+}
