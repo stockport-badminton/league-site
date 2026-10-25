@@ -104,8 +104,8 @@ image, adds minutes, and today's rule is that whoever merges runs it locally.
 
 ## Status — 25 Oct 2026
 
-All three parts built. Parts 1 and 2 verified locally; Part 3 verified in a local replica of
-the build and **not yet on Cloud Build**, so its "after" figure is still to be written here.
+All three parts built and verified; Part 3 on Cloud Build as well (build 143a48f7, `1ffb641`,
+25 Oct 2026: the `db` step ran 8 tests, 8 passed).
 
 ### Part 1 — `tools/query-snapshot.js`
 
@@ -167,7 +167,12 @@ against a fresh `postgres:17` reached as host `pg` passed 8/8; with the bug rein
 `npm run test:db` exits 1, which is what fails a Cloud Build step.
 
 **Build time before** (the 10 builds of 25 Oct 2026, 53ae3b9 … e910d89): 354–449 s in
-total, median ~370 s; the `test` step 207–250 s. **After:** to be measured on the first
-build that carries this — `gcloud builds list --project stockport-badminton-map --limit 5`.
-Expected cost: the `db` step's few seconds of Jest, since the Postgres pull runs alongside
-the `test` step.
+total, median ~370 s; the `test` step 207–250 s.
+
+**After** (build 143a48f7, `1ffb641`): 466 s in total. What this package added to the
+critical path is the `db` step, **4 s**: `pg` (32 s, mostly the image pull) and `pg-ready`
+(3 s) ran alongside the 236 s `test` step. The rest of the difference is elsewhere: that
+commit changed `package.json`, so the image's `npm ci` layer missed the cache (docker build
+40 s against the usual 5–6 s, push 33 s against ~16 s), and the deploy took 108 s, inside
+its usual 84–125 s. A build that leaves `package.json` alone should come in at the old
+figure plus about 4 s.
