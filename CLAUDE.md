@@ -435,11 +435,17 @@ lists for every division it plays in. Found 18 Sep 2026 from a permanent bounce 
 `club."matchSec"` for a club whose B team plays that division. It surfaced only because her
 mailbox had been disabled.
 
-The pointers are being retired and most are already NULL — but
-**`stale-officer-pointers` reports `flagged_equivalents` because that column decides what
-to do with a row.** 25 of the 29 remaining pointers have a flagged equivalent and clearing
-them changes nothing; the rest are the *only* record of that officer, so the obvious sweep
-would leave three real teams with no captain at all.
+**Every pointer is NULL as of 25 Oct 2026; the flags are the one record.** The last 25
+were 21 that agreed with a flag, 3 on the No Club / No Team placeholders (pointing at
+player 0, `No Player`) and 1 on the withdrawn Parrswood C. They were cleared by
+`scripts/null-all-officer-pointers.js` (gitignored; it refuses to clear a pointer that is
+the only record of an officer on a live team, and the values are in
+`scripts/officer-pointers-backup-2026-10-25T12-54-37-487Z.json`). Every reader was
+snapshotted before and after: all division and real-club lists identical; only No Club's
+own views changed. The columns and the pointer half of every reader are still there until
+REARCH-03 part A step 3 drops them. **Nothing in the UI writes them** (the admin forms
+build from allowlists), so they stay NULL; the one route that could is `PATCH /team/:id`,
+which writes the raw request body (HARD-49).
 
 One lesson already encoded there: **a data check must not inner-join to the data it is
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was

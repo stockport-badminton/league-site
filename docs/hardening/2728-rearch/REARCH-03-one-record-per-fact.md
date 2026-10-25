@@ -17,6 +17,18 @@ separately, and the copies have already disagreed.
 
 ## Part A — an officer is recorded one way
 
+> **Steps 1 and 2 done, 25 Oct 2026.** Parrswood C has withdrawn (No Club, no
+> division), so its captain pointer was dead rather than a design question, and Neil chose
+> option 1. All 25 pointers were cleared by `scripts/null-all-officer-pointers.js`:
+> 21 redundant, 3 on placeholders (player 0, `No Player`), 1 on the withdrawn team. Backup
+> of the values in `scripts/officer-pointers-backup-2026-10-25T12-54-37-487Z.json`. Every
+> pointer reader was snapshotted before and after (163 calls, emails hashed): 158
+> identical, every division and real-club list among them. The 5 that changed are all
+> No Club or Parrswood C. **What is left is step 3** (drop the columns, take the pointer half
+> out of `getEmails` and the four `club.js` readers) **and step 4.** Found on the way: 21
+> players still carry role flags at No Club / No Team, which is the flag-side version of the
+> same leftover; they reach no real list. And HARD-49.
+
 ### Why
 
 CLAUDE.md, *An officer is recorded two ways*: a pointer on the club or team
