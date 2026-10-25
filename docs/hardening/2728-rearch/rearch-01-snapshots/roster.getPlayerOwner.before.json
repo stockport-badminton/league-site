@@ -1,0 +1,78 @@
+{
+  "function": "roster.getPlayerOwner",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:01:16.989Z",
+  "cases": [
+    {
+      "label": "one",
+      "args": [
+        592
+      ],
+      "result": {
+        "id": 592,
+        "name": "Emma Hillesdon",
+        "gender": "Female",
+        "rank": 4,
+        "teamId": 12,
+        "teamName": "College Green A",
+        "teamClubId": 61,
+        "clubName": "College Green"
+      }
+    },
+    {
+      "label": "string",
+      "args": [
+        "103"
+      ],
+      "result": {
+        "id": 103,
+        "name": "Cameron Owen",
+        "gender": "Male",
+        "rank": 1,
+        "teamId": 12,
+        "teamName": "College Green A",
+        "teamClubId": 61,
+        "clubName": "College Green"
+      }
+    },
+    {
+      "label": "noTeam",
+      "args": [
+        2325
+      ],
+      "result": {
+        "id": 2325,
+        "name": "tameside scorecards",
+        "gender": "Other",
+        "rank": null,
+        "teamId": null,
+        "teamName": null,
+        "teamClubId": null,
+        "clubName": null
+      }
+    },
+    {
+      "label": "nullRank",
+      "args": [
+        2277
+      ],
+      "result": {
+        "id": 2277,
+        "name": "Neil Hutchinson",
+        "gender": "Male",
+        "rank": null,
+        "teamId": 47,
+        "teamName": "Alderley Park C",
+        "teamClubId": 43,
+        "clubName": "Alderley Park"
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        9999999
+      ],
+      "result": null
+    }
+  ]
+}

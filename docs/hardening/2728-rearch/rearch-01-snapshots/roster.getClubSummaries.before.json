@@ -1,0 +1,121 @@
+{
+  "function": "roster.getClubSummaries",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:01:16.517Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 42,
+          "name": "Aerospace",
+          "teams": 1,
+          "players": 21
+        },
+        {
+          "id": 43,
+          "name": "Alderley Park",
+          "teams": 3,
+          "players": 44
+        },
+        {
+          "id": 49,
+          "name": "Cheadle Hulme",
+          "teams": 2,
+          "players": 21
+        },
+        {
+          "id": 61,
+          "name": "College Green",
+          "teams": 5,
+          "players": 50
+        },
+        {
+          "id": 50,
+          "name": "David Lloyd",
+          "teams": 1,
+          "players": 24
+        },
+        {
+          "id": 51,
+          "name": "Disley",
+          "teams": 1,
+          "players": 19
+        },
+        {
+          "id": 52,
+          "name": "Dome",
+          "teams": 1,
+          "players": 33
+        },
+        {
+          "id": 64,
+          "name": "Featherforce",
+          "teams": 2,
+          "players": 26
+        },
+        {
+          "id": 53,
+          "name": "G.H.A.P",
+          "teams": 1,
+          "players": 37
+        },
+        {
+          "id": 54,
+          "name": "Macclesfield",
+          "teams": 1,
+          "players": 28
+        },
+        {
+          "id": 55,
+          "name": "Manor",
+          "teams": 2,
+          "players": 27
+        },
+        {
+          "id": 39,
+          "name": "Mellor",
+          "teams": 2,
+          "players": 34
+        },
+        {
+          "id": 57,
+          "name": "Parrs Wood",
+          "teams": 2,
+          "players": 26
+        },
+        {
+          "id": 59,
+          "name": "Racketeer",
+          "teams": 2,
+          "players": 59
+        },
+        {
+          "id": 47,
+          "name": "Remnants",
+          "teams": 1,
+          "players": 19
+        },
+        {
+          "id": 40,
+          "name": "Shell",
+          "teams": 3,
+          "players": 34
+        },
+        {
+          "id": 41,
+          "name": "Syddal Park",
+          "teams": 2,
+          "players": 30
+        },
+        {
+          "id": 60,
+          "name": "Tatton",
+          "teams": 1,
+          "players": 24
+        }
+      ]
+    }
+  ]
+}

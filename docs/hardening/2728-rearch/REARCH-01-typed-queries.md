@@ -50,7 +50,8 @@ starts with `auth`. What is there, and what was decided on the way:
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
 `spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
-function), `game` except the two below, `liveScorecard`. `auth` has no SQL. Next: `roster`.
+function), `game` except the two below, `liveScorecard`, `roster`. `auth` has no SQL. Next:
+`clubRegistration`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -90,6 +91,14 @@ Idioms settled on the way, worth reusing:
   pass `undefined`, map it to `null` (`game.updateById` does).
 - **A converted model reached through a `db_connect` mock fails**, with a message saying
   so. A unit test that read SQL out of that mock moves to `__tests__/db/` as a behaviour test.
+- **Inside `db.withTransaction(async (conn, trx) => …)`, a converted helper takes a query
+  builder `q`** — `kysely` by default, `trx` inside a transaction (`roster` is the worked
+  example). Handing it the module-wide `kysely` there runs that statement on another
+  connection: on the one-connection test pool it deadlocks, which is how the tests notice.
+- **`NULLS LAST` is `orderBy(col, ob => ob.asc().nullsLast())`**, not a `sql` fragment.
+- **A unit test that faked the database to check behaviour is ported, not deleted.**
+  `roster`'s 29 rank cases became `__tests__/db/roster.test.js`, each asserted on the ranks
+  stored; a simulated failure became a real one (a trigger, inside the rolled-back test).
 - **A conflict target on an expression index** (`blocked_entry (kind, LOWER(value))`) is
   `oc.expression(…)` with a cast template: `ON CONSTRAINT` names constraints, not indexes.
 - **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database

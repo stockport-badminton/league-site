@@ -201,6 +201,12 @@ exports.otherConnect = async function() {
 // (REARCH-01's transaction bridge, db/kysely.js). Old and converted model functions can
 // then share one transaction while the conversion is half done. Building it does no I/O,
 // so a body that ignores it runs exactly as before.
+/**
+ * @template T
+ * @param {(conn: { query: (sql: string, params?: unknown) => Promise<any[]> },
+ *          trx: import('kysely').Kysely<import('./db/schema').DB>) => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
 exports.withTransaction = async function(fn) {
   const client = await state.pool.connect();
   const trx = overClient(client);

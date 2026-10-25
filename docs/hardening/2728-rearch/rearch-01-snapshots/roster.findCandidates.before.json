@@ -1,0 +1,177 @@
+{
+  "function": "roster.findCandidates",
+  "database": "sdbl",
+  "taken": "2026-10-25T22:01:17.493Z",
+  "cases": [
+    {
+      "label": "ownClub",
+      "args": [
+        "owen",
+        "College Green"
+      ],
+      "result": {
+        "unattached": [],
+        "otherClubs": [
+          {
+            "playerId": 330,
+            "name": "Ross Owen",
+            "gender": "Male",
+            "clubName": "G.H.A.P",
+            "clubId": 53,
+            "teamName": "GHAP A",
+            "match": "contains"
+          },
+          {
+            "playerId": 533,
+            "name": "Paul Owens",
+            "gender": "Male",
+            "clubName": "Racketeer",
+            "clubId": 59,
+            "teamName": "Racketeers B",
+            "match": "contains"
+          },
+          {
+            "playerId": 2086,
+            "name": "Megan Cowen",
+            "gender": "Female",
+            "clubName": "Racketeer",
+            "clubId": 59,
+            "teamName": "Racketeers B",
+            "match": "contains"
+          }
+        ],
+        "ownClub": [
+          {
+            "playerId": 103,
+            "name": "Cameron Owen",
+            "gender": "Male",
+            "clubName": "College Green",
+            "clubId": 61,
+            "teamName": "College Green A",
+            "match": "contains"
+          },
+          {
+            "playerId": 185,
+            "name": "Simon Owen",
+            "gender": "Male",
+            "clubName": "College Green",
+            "clubId": 61,
+            "teamName": "College Green C",
+            "match": "contains"
+          }
+        ]
+      }
+    },
+    {
+      "label": "noClub",
+      "args": [
+        "smith",
+        null
+      ],
+      "result": {
+        "unattached": [
+          {
+            "playerId": 253,
+            "name": "Helen Smith",
+            "gender": "Female",
+            "clubName": "No Club",
+            "clubId": 63,
+            "teamName": "No Team",
+            "match": "contains"
+          },
+          {
+            "playerId": 2050,
+            "name": "Robbie Smith",
+            "gender": "Male",
+            "clubName": "No Club",
+            "clubId": 63,
+            "teamName": "No Team",
+            "match": "contains"
+          },
+          {
+            "playerId": 1860,
+            "name": "Sue Smith",
+            "gender": "Female",
+            "clubName": "No Club",
+            "clubId": 63,
+            "teamName": "No Team",
+            "match": "contains"
+          }
+        ],
+        "otherClubs": [
+          {
+            "playerId": 44,
+            "name": "Henry Skinner-Smith",
+            "gender": "Male",
+            "clubName": "Alderley Park",
+            "clubId": 43,
+            "teamName": "Alderley Park B",
+            "match": "contains"
+          },
+          {
+            "playerId": 787,
+            "name": "Alex Smith",
+            "gender": "Male",
+            "clubName": "G.H.A.P",
+            "clubId": 53,
+            "teamName": "GHAP A",
+            "match": "contains"
+          },
+          {
+            "playerId": 13,
+            "name": "Jon Smith",
+            "gender": "Male",
+            "clubName": "Aerospace",
+            "clubId": 42,
+            "teamName": "Aerospace A",
+            "match": "contains"
+          },
+          {
+            "playerId": 47,
+            "name": "Lynsey Smith",
+            "gender": "Female",
+            "clubName": "Alderley Park",
+            "clubId": 43,
+            "teamName": "Alderley Park B",
+            "match": "contains"
+          }
+        ],
+        "ownClub": []
+      }
+    },
+    {
+      "label": "typo",
+      "args": [
+        "Marry Whitle",
+        "Mellor"
+      ],
+      "result": {
+        "unattached": [],
+        "otherClubs": [
+          {
+            "playerId": 163,
+            "name": "Marry Whitle",
+            "gender": "Female",
+            "clubName": "Parrs Wood",
+            "clubId": 57,
+            "teamName": "Parrswood B",
+            "match": "exact"
+          }
+        ],
+        "ownClub": []
+      }
+    },
+    {
+      "label": "empty",
+      "args": [
+        "",
+        "Mellor"
+      ],
+      "result": {
+        "unattached": [],
+        "otherClubs": [],
+        "ownClub": []
+      }
+    }
+  ]
+}
