@@ -161,7 +161,7 @@ the season explicitly from the controller everywhere means a query never asks th
 
 ## Part 2 — past-season lineups read the season they were played in
 
-> **Mostly done early, as [HARD-48](../HARD-48-past-season-lineups.md) (25 Oct 2026).**
+> **Mostly done early, as [HARD-48](../done/HARD-48-past-season-lineups.md) (25 Oct 2026).**
 > `getMatchPlayerOrderDetails` now reads rank and team from `player${season}`, with a
 > live fallback and LEFT joins. What is left here is **names**, plus moving that
 > function from `player${season}` to `player_at`. That move should now be a pure,
