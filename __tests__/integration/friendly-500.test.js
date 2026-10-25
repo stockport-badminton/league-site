@@ -75,8 +75,8 @@ function referenceFrom(html) {
 }
 
 async function failingRequest(host) {
-  Fixture.getAll.mockRejectedValue(pgError());
-  const req = request(app).get('/fixtures');
+  Fixture.getFixtureId.mockRejectedValue(pgError());
+  const req = request(app).get('/fixture/homeId-1/awayId-2');
   if (host) req.set('Host', host);
   return req;
 }
@@ -208,7 +208,7 @@ describe('the error pages under a spoofed Host', () => {
   it('500: canonical is the public origin', async () => {
     const res = await failingRequest(CLOUD_RUN_HOST);
     expect(res.text).not.toContain('run.app');
-    expect(res.text).toContain('https://stockport-badminton.co.uk/fixtures');
+    expect(res.text).toContain('https://stockport-badminton.co.uk/fixture/homeId-1/awayId-2');
   });
 
   it('404: canonical is the public origin', async () => {
@@ -223,13 +223,13 @@ describe('the error pages under a spoofed Host', () => {
     // season from models/season.js, assertClubAccess's 403) renders 404/403, not 500.
     const err = new Error('invalid season name: "20252027 AS team WHERE false --"');
     err.status = 404;
-    Fixture.getAll.mockRejectedValue(err);
+    Fixture.getFixtureId.mockRejectedValue(err);
 
-    const res = await request(app).get('/fixtures').set('Host', CLOUD_RUN_HOST);
+    const res = await request(app).get('/fixture/homeId-1/awayId-2').set('Host', CLOUD_RUN_HOST);
 
     expect(res.status).toBe(404);
     expect(res.text).not.toContain('run.app');
-    expect(res.text).toContain('https://stockport-badminton.co.uk/fixtures');
+    expect(res.text).toContain('https://stockport-badminton.co.uk/fixture/homeId-1/awayId-2');
     // A bad request is not a fault of ours, so it still must not spend a Sentry event.
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });

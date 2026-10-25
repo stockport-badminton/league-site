@@ -200,15 +200,6 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   return result
 }
 
-// NOTE season.id = 2 is 2019/20 in production, so this returns that season's fixtures, not
-// the current one's. Converted as it behaves; see the REARCH-01 brief.
-exports.getAll = async function() {
-  return kysely.selectFrom(['fixture', 'season']).selectAll('fixture')
-    .where('season.id', '=', 2)
-    .whereRef('fixture.date', '>', 'season.startDate').whereRef('fixture.date', '<', 'season.endDate')
-    .execute()
-}
-
 // `maplink` is lowercase because the string version's unquoted alias folded; it is what
 // the page reads.
 exports.getRecent = async function() {
@@ -638,25 +629,6 @@ exports.getForSitemap = async function(monthsBack = 18) {
     // a soft 404, which the seo skill forbids in terms.
     .where('homeTeam.withdrawn', 'is', null).where('awayTeam.withdrawn', 'is', null)
     .orderBy('fixture.date', 'desc')
-    .execute()
-}
-
-// NOTE season.id = 2 is 2019/20 in production, and only its START is used, so this matches
-// every fixture between the pair since 2019 (seven locally) rather than this season's.
-// Converted as it behaves; see the REARCH-01 brief. The keys are lowercase because the
-// string version's unquoted aliases folded.
-/** @param {{ homeTeam: string, awayTeam: string }} obj */
-exports.getFixtureIdFromTeamNames = async function(obj) {
-  if (!db.isObject(obj)) throw new Error('not object')
-  // season is JOINed, not listed after a comma: `FROM fixture, season JOIN team ...` binds
-  // the JOIN to season alone, and `fixture` is then out of scope in its ON clause.
-  return kysely.selectFrom('fixture')
-    .innerJoin('season', join => join.on('season.id', '=', 2).onRef('fixture.date', '>', 'season.startDate'))
-    .innerJoin('team as home', join => join.onRef('home.id', '=', 'fixture.homeTeam').on('home.name', '=', obj.homeTeam))
-    .innerJoin('team as away', join => join.onRef('away.id', '=', 'fixture.awayTeam').on('away.name', '=', obj.awayTeam))
-    .select(['fixture.status', 'fixture.id as fixtureid', 'home.name as hometeamname', 'away.name as awayteamname',
-      'home.id as hometeamid', 'away.id as awayteamid'])
-    .where('fixture.status', '!=', 'rearranged')
     .execute()
 }
 

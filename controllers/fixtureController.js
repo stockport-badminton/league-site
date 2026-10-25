@@ -62,20 +62,6 @@ exports.getLateScorecards = async function(req, res, next) {
 
 
 // Display list of all Fixtures
-exports.fixture_list = async function(req, res, next) {
-  try {
-    const row = await Fixture.getAll();
-    res.send(row);
-  } catch (err) {
-    // Was `res.send(err)` — an Error serialises to `{}` and goes out with the default
-    // status, so a failed request answered **HTTP 200** with an empty body. A visitor
-    // saw a blank page, Sentry heard nothing because Express thought it succeeded, and
-    // a crawler banked it as a real page. That is what blanked 48 /event/ pages.
-    next(err);
-  }
-};
-
-// Display list of all Fixtures
 exports.get_fixture_players_details = async function(req, res, next) {
   try {
     var searchObj = {}
@@ -105,16 +91,6 @@ exports.get_fixture_players_details = async function(req, res, next) {
 exports.fixture_id = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureId({ "homeTeam": req.params.homeTeam, "awayTeam": req.params.awayTeam });
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Return fixture id given home and away team names
-exports.fixture_id_from_team_names = async function(req, res, next) {
-  try {
-    const row = await Fixture.getFixtureIdFromTeamNames({ "homeTeam": req.params.homeTeam, "awayTeam": req.params.awayTeam });
     res.send(row);
   } catch (err) {
     next(err);

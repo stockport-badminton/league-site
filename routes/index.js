@@ -500,7 +500,6 @@ router.get('/fixture/outstanding', requireLateScorecardCaller, fixture_controlle
 router.post('/fixture/rearrangement', secured, requireClubAccess.requireSuperAdmin, fixture_controller.fixture_rearrange_by_team_name);
 router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
 router.get('/fixture/:id/update', fixture_controller.fixture_update_get);
-router.get('/fixture/home-:homeTeam/away-:awayTeam', fixture_controller.fixture_id_from_team_names);
 router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixture_id);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', fixture_controller.fixture_event_detail);
 router.get('/scorecard/fixture/:id(\\d+)', fixture_controller.getScorecard);
@@ -510,7 +509,6 @@ router.get('/fixture-players/club-:club?', fixture_controller.get_fixture_player
 router.get('/fixture-players/:season?', fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/team-:team?/season-:season?', fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/club-:club?/:season?', fixture_controller.get_fixture_players_details);
-router.get('/fixtures', fixture_controller.fixture_list);
 
 // Game routes
 router.get('/game/create', game_controller.game_create_get);

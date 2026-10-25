@@ -85,12 +85,10 @@ run it; `--status` shows whether it has been).
 
 **Found while converting, and converted as they behave — each needs its own decision:**
 
-- **`fixture.getAll` and `getFixtureIdFromTeamNames` hardcode `season.id = 2`, which is
-  2019/20 in production.** `getAll` backs the public `/fixtures` route, so it serves
-  2019/20's fixtures; `getFixtureIdFromTeamNames` (`/fixture/home-:h/away-:a`) uses only
-  that season's *start*, so it matches every meeting of the pair since 2019 (seven for one
-  pairing in the local data). Fixing either changes what a route returns, which this
-  package does not do.
+- **`fixture.getAll` and `getFixtureIdFromTeamNames` hardcoded `season.id = 2`** — 2019/20
+  in production — behind `/fixtures` and `/fixture/home-:h/away-:a`. Thirty days of
+  request logs held one call between them, nothing linked to either, and both were
+  **deleted on 26 Oct 2026**, routes, handlers and model functions.
 - **`fixture.getClubFixtureDetails` has no caller** — REARCH-02 owns it, and may be able to
   delete it rather than rewrite it.
 

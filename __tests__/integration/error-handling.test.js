@@ -39,12 +39,10 @@ beforeEach(() => {
 });
 
 describe('a failing fixture read', () => {
-  // The three that are reachable without a token. `fixture_detail` shares the fault but
-  // sits behind checkJwt, so it is covered by the repo-level guard instead.
+  // There were three. /fixtures and /fixture/home-:h/away-:a were removed on 26 Oct 2026
+  // (unused, and both read a hardcoded 2019/20 season); see fixtures.test.js.
   const cases = [
-    { name: 'fixture list', path: '/fixtures', model: 'getAll' },
     { name: 'fixture id by team ids', path: '/fixture/homeId-1/awayId-2', model: 'getFixtureId' },
-    { name: 'fixture id by team names', path: '/fixture/home-Shell%20A/away-Mellor%20A', model: 'getFixtureIdFromTeamNames' },
   ];
 
   cases.forEach(({ name, path, model }) => {

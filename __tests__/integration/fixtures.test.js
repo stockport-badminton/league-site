@@ -36,24 +36,23 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-// GET /fixtures — unauthenticated, returns JSON via Fixture.getAll
-describe('GET /fixtures', () => {
-  it('returns 200 with fixtures array', async () => {
-    Fixture.getAll.mockResolvedValue([
-      { id: 1, homeTeam: 'Mellor A', awayTeam: 'Disley A', status: 'complete' },
-      { id: 2, homeTeam: 'Dome A', awayTeam: 'Shell A', status: 'outstanding' },
-    ]);
-    const res = await request(app).get('/fixtures');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(2);
-    expect(res.body[0].homeTeam).toBe('Mellor A');
+// GET /fixtures and GET /fixture/home-:homeTeam/away-:awayTeam were removed on 26 Oct 2026.
+// Both read `season.id = 2`, which is 2019/20 in production: /fixtures served that season's
+// fixtures, and the team-names lookup matched every meeting of a pairing since 2019. Thirty
+// days of request logs held one call between them (the owner, checking), and nothing in
+// this repo or in remnants-badminton — which reads /fixtures/club/..., a different route —
+// linked to either. Deleted rather than fixed.
+describe('the removed fixture JSON routes', () => {
+  it.each(['/fixtures', '/fixture/home-Shell%20A/away-Mellor%20A'])('%s answers 404', async path => {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(404);
+    expect(Object.keys(Fixture).some(k => /^getAll$|^getFixtureIdFromTeamNames$/.test(k))).toBe(false);
   });
 
-  it('returns empty array when no fixtures', async () => {
-    Fixture.getAll.mockResolvedValue([]);
-    const res = await request(app).get('/fixtures');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+  // /fixtures/club/... is the route remnants-badminton reads, and must not go with it.
+  it('leaves /fixtures/club/... in place', async () => {
+    const res = await request(app).get('/fixtures/club/Remnants');
+    expect(res.status).not.toBe(404);
   });
 });
 
