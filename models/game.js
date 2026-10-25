@@ -1,5 +1,12 @@
+// @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require("./season");
+const { kysely } = require('../db');
+
+// REARCH-01: on the typed query layer except createBatch and updateEloBatch. Both run on the
+// publish path — createBatch writes a result's games inside POST /scorecard-beta's
+// transaction, updateEloBatch re-rates after it (utils/eloChain) — and take a `conn` from
+// the old wrapper. The brief keeps the publish path for the off-season.
 
 
 // ── ELO tuning constants ──────────────────────────────────────────────────
@@ -28,6 +35,7 @@ const MAX_GAME_MARGIN = 21
 // split toward the weaker partner; a near-zero gap barely skews it at all.
 const PARTNER_SKEW_SCALE = 186
 
+/** @param {number | undefined} gamesCount */
 function perPlayerK(gamesCount) {
   const played = typeof gamesCount === 'number' ? gamesCount : Infinity
   return played < PROVISIONAL_GAMES_THRESHOLD ? PROVISIONAL_K : ESTABLISHED_K
@@ -41,6 +49,7 @@ function perPlayerK(gamesCount) {
 // Equal-rated partners (gapA = 0) still get the identical pairDelta each,
 // exactly like before. deltaB is the exact complement of the rounded deltaA
 // against a 2×pairDelta total, so nothing leaks.
+/** @param {number} pairDelta @param {number} ratingA @param {number} ratingB */
 function splitPairDelta(pairDelta, ratingA, ratingB) {
   const pairAvg = (ratingA + ratingB) / 2
   const gapA = pairAvg - ratingA
@@ -53,9 +62,10 @@ function splitPairDelta(pairDelta, ratingA, ratingB) {
 
 // `conn` is optional, so a caller can write the games inside the same transaction as
 // the fixture result they belong to. See Fixture.updateById for why that matters.
+/** @param {any} batchObj @param {any} [conn] */
 exports.createBatch = async function(batchObj, conn) {
   if (!db.isObject(batchObj)) throw new Error('not object')
-  const fields = batchObj.fields.map(f => `"${f}"`).join(',')
+  const fields = batchObj.fields.map((/** @type {string} */ f) => `"${f}"`).join(',')
   const rows = Object.values(batchObj.data).map(row => Object.values(row))
   const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
   const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
@@ -64,20 +74,20 @@ exports.createBatch = async function(batchObj, conn) {
   return result
 }
 
+/** @param {number} fixtureId */
 exports.getByFixture = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query(
-    'SELECT * FROM game WHERE fixture = ? ORDER BY id ASC',
-    fixtureId
-  )
-  return result
+  return kysely.selectFrom('game').selectAll().where('fixture', '=', fixtureId).orderBy('id', 'asc').execute()
 }
 
+// Writes the columns given. An `undefined` value is written as NULL, as the string version
+// did — Kysely would otherwise leave the column out, and the caller (the ELO backfill in
+// playerController) passes calculateRating's output, whose values come from lookups.
+// Returns nothing; that caller never read the old rows array.
+/** @param {Record<string, unknown>} gameObj @param {number} gameId */
 exports.updateById = async function(gameObj, gameId) {
   if (!db.isObject(gameObj)) throw new Error('not valid object')
-  const setClauses = Object.keys(gameObj).map(k => `"${k}" = ?`).join(', ')
-  const sql = `UPDATE game SET ${setClauses} WHERE id = ?`
-  const [result] = await (await db.otherConnect()).query(sql, [...Object.values(gameObj), gameId])
-  return result
+  const values = Object.fromEntries(Object.entries(gameObj).map(([k, v]) => [k, v === undefined ? null : v]))
+  await kysely.updateTable('game').set(/** @type {any} */ (values)).where('id', '=', gameId).execute()
 }
 
 const ELO_COLUMNS = [
@@ -88,6 +98,7 @@ const ELO_COLUMNS = [
 // Writes the eight ELO columns for many games in one statement: rows are
 // [{ id, homePlayer1Start, ..., awayPlayer2End }]. One round trip rather than one per
 // game, because utils/eloChain runs this after a publish, in front of Firebase's 60s.
+/** @param {any[]} rows @param {any} [conn] */
 exports.updateEloBatch = async function(rows, conn) {
   if (!rows || rows.length === 0) return
   const values = rows.map(() => `(${['?::int', ...ELO_COLUMNS.map(() => '?::int')].join(',')})`).join(',')
@@ -101,6 +112,7 @@ exports.updateEloBatch = async function(rows, conn) {
   )
 }
 
+/** @param {any} game @param {Record<string, any>} fixturePlayers @param {unknown} endDate @param {number} division */
 exports.calculateRating = function(game, fixturePlayers, endDate, division) {
   let updateObj = {}
   let prevRatingDates = {}
@@ -169,63 +181,57 @@ exports.calculateRating = function(game, fixturePlayers, endDate, division) {
   return { updateObj, prevRatingDates }
 }
 
+// The eight ELO columns cast to integers and keyed by their own names, in the order the
+// audit tool has always received them.
+const ELO_ORDER = /** @type {const} */ ([
+  'homePlayer1Start', 'homePlayer1End', 'homePlayer2Start', 'homePlayer2End',
+  'awayPlayer1Start', 'awayPlayer1End', 'awayPlayer2Start', 'awayPlayer2End',
+])
+/** @param {import('kysely').ExpressionBuilder<import('../db/schema').DB, 'game' | 'fixture' | 'season'>} eb */
+const eloInts = eb => ELO_ORDER.map(k => eb.cast(eb.ref(`game.${k}`), 'integer').as(k))
+
+/** Every ELO column set to 0, for the two resets. */
+const ELO_ZERO = Object.fromEntries(ELO_COLUMNS.map(k => [k, 0]))
+
+// A fixture in the named season: after its start and before its end, as every season
+// window here is drawn.
+/** @param {string} sName */
+const fixturesInSeason = sName => kysely.selectFrom('fixture')
+  .innerJoin('season', join => join
+    .onRef('fixture.date', '>', 'season.startDate')
+    .onRef('fixture.date', '<', 'season.endDate')
+    .on('season.name', '=', sName))
+
 // Returns all ELO-processed games for a season in chronological order.
 // Used by the audit tool to check rating chain consistency.
+/** @param {string} [seasonName] */
 exports.getSeasonGamesOrdered = async function(seasonName) {
   const sName = seasonName || seasonModel.current()
-  const [result] = await (await db.otherConnect()).query(`
-    SELECT
-      game.id,
-      game."homePlayer1", game."homePlayer2", game."awayPlayer1", game."awayPlayer2",
-      game."homePlayer1Start"::int AS "homePlayer1Start",
-      game."homePlayer1End"::int   AS "homePlayer1End",
-      game."homePlayer2Start"::int AS "homePlayer2Start",
-      game."homePlayer2End"::int   AS "homePlayer2End",
-      game."awayPlayer1Start"::int AS "awayPlayer1Start",
-      game."awayPlayer1End"::int   AS "awayPlayer1End",
-      game."awayPlayer2Start"::int AS "awayPlayer2Start",
-      game."awayPlayer2End"::int   AS "awayPlayer2End",
-      fixture.date,
-      fixture.id AS "fixtureId"
-    FROM game
-    JOIN fixture ON game.fixture = fixture.id
-    JOIN season ON (fixture.date > season."startDate" AND fixture.date < season."endDate" AND season.name = ?)
-    WHERE game."homePlayer1End" IS NOT NULL AND game."homePlayer1End" != 0
-    ORDER BY fixture.date ASC, game.id ASC
-  `, [sName])
-  return result
+  return kysely.selectFrom('game')
+    .innerJoin('fixture', 'game.fixture', 'fixture.id')
+    .innerJoin('season', join => join
+      .onRef('fixture.date', '>', 'season.startDate')
+      .onRef('fixture.date', '<', 'season.endDate')
+      .on('season.name', '=', sName))
+    .select(eb => ['game.id', 'game.homePlayer1', 'game.homePlayer2', 'game.awayPlayer1', 'game.awayPlayer2',
+      ...eloInts(eb), 'fixture.date', 'fixture.id as fixtureId'])
+    .where('game.homePlayer1End', 'is not', null).where('game.homePlayer1End', '!=', 0)
+    .orderBy('fixture.date', 'asc').orderBy('game.id', 'asc')
+    .execute()
 }
 
 // Zeros out ELO start/end values across every game in the DB. Used before a
 // full backfill so no stale values from previous runs influence new calculations.
 exports.resetAllElo = async function() {
-  await (await db.otherConnect()).query(`
-    UPDATE game SET
-      "homePlayer1Start" = 0, "homePlayer2Start" = 0,
-      "awayPlayer1Start" = 0, "awayPlayer2Start" = 0,
-      "homePlayer1End"   = 0, "homePlayer2End"   = 0,
-      "awayPlayer1End"   = 0, "awayPlayer2End"   = 0
-  `)
+  await kysely.updateTable('game').set(ELO_ZERO).execute()
 }
 
 // Zeros out all ELO start/end values for a season so it can be recalculated
 // from scratch in date order.  Defaults to the current season.
+/** @param {string} [seasonName] */
 exports.resetSeasonElo = async function(seasonName) {
   const sName = seasonName || seasonModel.current()
-  await (await db.otherConnect()).query(`
-    UPDATE game SET
-      "homePlayer1Start" = 0, "homePlayer2Start" = 0,
-      "awayPlayer1Start" = 0, "awayPlayer2Start" = 0,
-      "homePlayer1End"   = 0, "homePlayer2End"   = 0,
-      "awayPlayer1End"   = 0, "awayPlayer2End"   = 0
-    WHERE fixture IN (
-      SELECT fixture.id FROM fixture
-      JOIN season ON (
-        fixture.date > season."startDate"
-        AND fixture.date < season."endDate"
-        AND season.name = ?
-      )
-      WHERE fixture.status = 'complete'
-    )
-  `, [sName])
+  await kysely.updateTable('game').set(ELO_ZERO)
+    .where('fixture', 'in', fixturesInSeason(sName).select('fixture.id').where('fixture.status', '=', 'complete'))
+    .execute()
 }

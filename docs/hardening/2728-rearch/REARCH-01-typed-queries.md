@@ -49,7 +49,8 @@ starts with `auth`. What is there, and what was decided on the way:
 **Step 2, converted so far** (evidence in `rearch-01-snapshots/`, one commit per batch):
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
-`spamControls`, `registrationRequest`. `auth` has no SQL. Next: `club`.
+`spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
+function), `game` except the two below. `auth` has no SQL. Next: `liveScorecard`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -58,6 +59,8 @@ list step 3 must clear before `pgQuery` can go:
 |---|---|
 | `socialResultPost.enqueue` | `Fixture.sendResultZap`, inside `POST /scorecard-beta` |
 | `threadsResultPost.enqueue` | `scorecardController`, inside `POST /scorecard-beta` |
+| `game.createBatch` | `scorecardController`, inside the publish transaction (takes its `conn`) |
+| `game.updateEloBatch` | `utils/eloChain`, the re-rate after a publish (takes its `conn`) |
 
 Idioms settled on the way, worth reusing:
 
@@ -80,6 +83,13 @@ Idioms settled on the way, worth reusing:
 - **Write a model's database test against the string queries first**, and only then
   convert. If it does not pass on the old code it describes the new code, not the
   behaviour. Two of this round's first drafts failed that way, both the test's fault.
+- **Constant strings are `sql.lit(…)`, not `eb.val(…)`.** A bound parameter inside
+  `CONCAT(first, ' ', last)` is refused — CONCAT takes `any`, so Postgres cannot type it.
+- **Kysely leaves out a key whose value is `undefined`; the wrapper wrote NULL.** Where a
+  model writes a caller's object (`createFull`, `updateById`), read the caller: if it can
+  pass `undefined`, map it to `null` (`game.updateById` does).
+- **A converted model reached through a `db_connect` mock fails**, with a message saying
+  so. A unit test that read SQL out of that mock moves to `__tests__/db/` as a behaviour test.
 - **A conflict target on an expression index** (`blocked_entry (kind, LOWER(value))`) is
   `oc.expression(…)` with a cast template: `ON CONSTRAINT` names constraints, not indexes.
 - **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database
