@@ -485,19 +485,6 @@ exports.player_create = async function(req, res, next) {
   }
 }
 
-exports.player_batch_create = async function(req, res, next) {
-  try {
-    const result = await Player.createBatch(req.body);
-    res.send(result);
-  } catch (err) {
-    // Was `res.send(err)` — an Error serialises to `{}` and goes out with the default
-    // status, so a failed request answered **HTTP 200** with an empty body. A visitor
-    // saw a blank page, Sentry heard nothing because Express thought it succeeded, and
-    // a crawler banked it as a real page. That is what blanked 48 /event/ pages.
-    next(err);
-  }
-}
-
 // player_batch_update used to live here, behind POST /player/batch-update: it
 // passed req.body straight to Player.updateBulk, which took the table name and
 // column list from that body. Any logged-in user could therefore UPDATE any column
@@ -509,16 +496,6 @@ exports.player_batch_create = async function(req, res, next) {
 // Display Player delete form on GET
 exports.player_delete_get = function(req, res) {
   res.send('NOT IMPLEMENTED: Player delete GET');
-};
-
-// Handle Player delete on POST
-exports.player_delete = async function(req, res, next) {
-  try {
-    const row = await Player.deleteById(req.params.id);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
 };
 
 // Both the edit form and its POST are scoped to the viewer's own club. `secured`

@@ -6,15 +6,6 @@ const { NO_TEAM_ID } = require('./roster');
 const SocialResultPost = require('./socialResultPost');
 
 
-exports.create = async function(fixtureObj) {
-  if (!db.isObject(fixtureObj)) throw new Error('not object')
-  const fields = Object.keys(fixtureObj).map(k => `"${k}"`).join(',')
-  const placeholders = Object.keys(fixtureObj).map(() => '?').join(',')
-  const sql = `INSERT INTO fixture (${fields}) VALUES (${placeholders})`
-  const [result] = await (await db.otherConnect()).query(sql, Object.values(fixtureObj))
-  return result
-}
-
 exports.getScorecardById = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT * FROM scorecardstore WHERE id = ?',
@@ -81,16 +72,6 @@ exports.getDraftSupersession = async function(draftId) {
     'SELECT id, "supersededBy" FROM scorecardstore WHERE id = ?', [draftId]
   )
   return rows[0] || null
-}
-
-exports.createBatch = async function(batchObj) {
-  if (!db.isObject(batchObj)) throw new Error('not object')
-  const fields = batchObj.fields.map(f => `"${f}"`).join(',')
-  const rows = Object.values(batchObj.data).map(row => Object.values(row))
-  const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
-  const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
-  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
-  return result
 }
 
 // Every player column on /fixture-players was blank, and so was Opposition.
@@ -536,11 +517,6 @@ exports.getScorecardDataById = async function(fixtureId) {
   return result
 }
 
-exports.getById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM fixture WHERE id = ?', fixtureId)
-  return result
-}
-
 // Everything /event/:id needs, in one row — and it must be one row, or none.
 //
 // This query used to lose 48 of the 272 fixtures in the 2026/27 season, and the
@@ -651,11 +627,6 @@ exports.getForSitemap = async function(monthsBack = 18) {
       -- a soft 404, which the seo skill forbids in terms.
       AND homeTeam.withdrawn IS NULL AND awayTeam.withdrawn IS NULL
     ORDER BY fixture.date DESC`, [String(monthsBack)])
-  return result
-}
-
-exports.deleteById = async function(fixtureId) {
-  const [result] = await (await db.otherConnect()).query('DELETE FROM fixture WHERE id = ?', fixtureId)
   return result
 }
 

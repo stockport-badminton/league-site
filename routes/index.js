@@ -5,8 +5,6 @@ const secured = require('../middleware/secured');
 const devOnly = require('../middleware/devOnly');
 const mailer = require('../utils/mailer');
 const { absoluteUrl } = require('../utils/canonical');
-const { expressjwt: jwt } = require('express-jwt');
-const jwksRsa = require('jwks-rsa');
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
@@ -85,16 +83,6 @@ const Fixture = require('../models/fixture');
 
 var userInViews = require('../models/userInViews');
 var auth_controller = require('../models/auth.js');
-
-const checkJwt = jwt({
-  secret: jwksRsa.expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
-  }),
-  algorithms: ['RS256']
-});
 
 router.use(userInViews());
 
@@ -430,9 +418,7 @@ router.post('/contact-us', contactLimiter, spamGate({ endpoint: '/contact-us' })
 // only possible through POST /api/roster/club-:club/players, which is authorized
 // against the club in the URL and derives the club from the destination team.
 router.post('/player/create', secured, requireClubAccess.requireSuperAdmin, player_controller.player_create);
-router.post('/player/batch-create', checkJwt, player_controller.player_batch_create);
 router.get('/player/:id/delete', player_controller.player_delete_get);
-router.delete('/player/:id', checkJwt, player_controller.player_delete);
 router.get('/player/:id/update', secured, player_controller.player_update_get);
 router.get('/player/:id', player_controller.player_detail);
 router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
@@ -447,23 +433,16 @@ router.get('/players/matching/:name/:gender', secured, player_controller.find_cl
 
 // Team routes
 router.get('/team/create', team_controller.team_create_get);
-router.post('/team/create', checkJwt, team_controller.team_create_post);
-router.post('/team/batch-create', checkJwt, team_controller.teams_batch_create);
 router.get('/team/:id(\\d+)/delete', team_controller.team_delete_get);
-router.delete('/team/:id(\\d+)', checkJwt, team_controller.team_delete_post);
 router.get('/team/:id(\\d+)/update', team_controller.team_update_get);
-router.patch('/team/:id(\\d+)', checkJwt, team_controller.team_update_post);
 router.get('/team/:id(\\d+)', team_controller.team_detail);
 router.get('/teams', team_controller.team_list);
 router.post('/teams', team_controller.team_search);
 
 // League routes
 router.get('/league/create', league_controller.league_create_get);
-router.post('/league/create', checkJwt, league_controller.league_create_post);
 router.get('/league/:id/delete', league_controller.league_delete_get);
-router.delete('/league/:id', checkJwt, league_controller.league_delete);
 router.get('/league/:id/update', league_controller.league_update_get);
-router.patch('/league/:id', checkJwt, league_controller.league_update);
 // A superadmin session OR the Cloud Scheduler token. These were unauthenticated,
 // protected by nothing but a check that today is the annual invoice date — so on that one
 // day of the year any caller could send every club its invoice, repeatedly, from our own
@@ -479,7 +458,6 @@ router.post('/league/sendInvoices', requireInvoiceCaller,
 router.post('/league/sendInvoice/:club', requireInvoiceCaller,
   publicFormLimiter, contact_controller.send_invoices);
 router.get('/league/:id', league_controller.league_detail);
-router.get('/leagues', checkJwt, league_controller.league_list);
 router.get('/tables/All', league_controller.all_league_tables);
 router.get('/tables/All/:season', validateSeason, league_controller.all_league_tables);
 router.get('/tables/:division', league_controller.league_table);
@@ -487,12 +465,8 @@ router.get('/tables/:division/:season', validateSeason, league_controller.league
 
 // Club routes
 router.get('/club/create', club_controller.club_create_get);
-router.post('/club/create', checkJwt, club_controller.club_create_post);
-router.post('/club/batch-create', checkJwt, club_controller.club_batch_create);
 router.get('/club/:id/delete', club_controller.club_delete_get);
-router.delete('/club/:id', checkJwt, club_controller.club_delete_post);
 router.get('/club/:id/update', club_controller.club_update_get);
-router.patch('/club/:id', checkJwt, club_controller.club_update_post);
 router.get('/clubs', club_controller.club_list);
 // A public page per club — the surface for "badminton club near me", which
 // /info/clubs cannot rank for because all 18 clubs share that one URL. Matched by
@@ -503,14 +477,8 @@ router.get('/info/clubs', club_controller.club_list_detail);
 
 // Division routes
 router.get('/division/create', division_controller.division_create_get);
-router.post('/division/create', checkJwt, division_controller.division_create_post);
-router.post('/division/batch-create', checkJwt, division_controller.division_batch_create);
 router.get('/division/:id/delete', division_controller.division_delete_get);
-router.delete('/division/:id', checkJwt, division_controller.division_delete_post);
 router.get('/division/:id/update', division_controller.division_update_get);
-router.patch('/division/:id', checkJwt, division_controller.division_update_post);
-router.get('/division/:id', checkJwt, division_controller.division_detail);
-router.get('/divisions', checkJwt, division_controller.division_list);
 
 // Fixture routes
 router.get('/fixture/create', fixture_controller.fixture_create_get);
@@ -523,8 +491,6 @@ router.post('/fixture/reminder', secured, requireClubAccess.requireSuperAdmin, s
 // used GET, so a token-carrying GET keeps a rollback one env var away rather than one
 // deploy away.
 router.get('/fixture/outstanding', requireLateScorecardCaller, fixture_controller.getLateScorecards);
-router.post('/fixture/create', checkJwt, fixture_controller.fixture_create_post);
-router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_create);
 // Superadmin only. This was unauthenticated behind nothing but a rate limit until
 // Sep 2026 — anyone who could POST could set a fixture to 'rearranged' and insert a
 // replacement at a date of their choosing. The only client is the rearrangement modal
@@ -532,14 +498,10 @@ router.post('/fixture/batch-create', checkJwt, fixture_controller.fixture_batch_
 // says what the UI always assumed. Captains request rearrangements by email; they have
 // never had this form.
 router.post('/fixture/rearrangement', secured, requireClubAccess.requireSuperAdmin, fixture_controller.fixture_rearrange_by_team_name);
-router.patch('/fixture/rearrange', checkJwt, fixture_controller.fixture_rearrange_by_team_name);
 router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
-router.delete('/fixture/:id', checkJwt, fixture_controller.fixture_delete_post);
 router.get('/fixture/:id/update', fixture_controller.fixture_update_get);
 router.get('/fixture/home-:homeTeam/away-:awayTeam', fixture_controller.fixture_id_from_team_names);
 router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixture_id);
-router.patch('/fixture/:id', checkJwt, fixture_controller.fixture_update_post);
-router.get('/fixture/:id(\\d+)', checkJwt, fixture_controller.fixture_detail);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', fixture_controller.fixture_event_detail);
 router.get('/scorecard/fixture/:id(\\d+)', fixture_controller.getScorecard);
 router.get('/fixture-players', fixture_controller.get_fixture_players_details);
@@ -552,24 +514,13 @@ router.get('/fixtures', fixture_controller.fixture_list);
 
 // Game routes
 router.get('/game/create', game_controller.game_create_get);
-router.post('/game/create', checkJwt, game_controller.game_create_post);
-router.post('/game/batch-create', checkJwt, game_controller.game_batch_create);
 router.get('/game/:id/delete', game_controller.game_delete_get);
-router.delete('/game/:id', checkJwt, game_controller.game_delete_post);
 router.get('/game/:id/update', game_controller.game_update_get);
-router.patch('/game/:id', checkJwt, game_controller.game_update_post);
-router.get('/game/:id', checkJwt, game_controller.game_detail);
-router.get('/games', checkJwt, game_controller.game_list);
 
 // Venue routes
 router.get('/venue/create', venue_controller.venue_create_get);
-router.post('/venue/create', checkJwt, venue_controller.venue_create_post);
-router.post('/venue/batch-create', checkJwt, venue_controller.venue_batch_create);
 router.get('/venue/:id/delete', venue_controller.venue_delete_get);
-router.delete('/venue/:id', checkJwt, venue_controller.venue_delete_post);
 router.get('/venue/:id/update', venue_controller.venue_update_get);
-router.patch('/venue/:id', checkJwt, venue_controller.venue_update_post);
-router.get('/venue/:id', checkJwt, venue_controller.venue_detail);
 router.get('/venues', venue_controller.venue_list);
 
 // Homepage and gallery
@@ -602,7 +553,7 @@ router.post('/api/roster/club-:club/players', secured, requireClubAccess, roster
 router.post('/api/roster/club-:club/attach', secured, requireClubAccess, roster_controller.api_player_attach);
 router.post('/api/roster/club-:club/transfer', secured, requireClubAccess, roster_controller.api_transfer_request);
 
-router.post('/player/:id', secured, player_controller.player_update_post);
+router.post('/player/:id(\\d+)', secured, player_controller.player_update_post);
 router.get('/admin/results/*', secured, fixture_controller.fixture_detail_byDivision);
 router.get('/admin/results/:division/:season', secured, fixture_controller.fixture_detail_byDivision);
 

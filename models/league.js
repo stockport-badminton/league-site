@@ -14,34 +14,8 @@ function WITHDRAWN_FILTER(alias, season) {
   return season ? '' : ` AND ${alias}.withdrawn IS NULL`
 }
 
-exports.create = async function(name, admin, url) {
-  const [result] = await (await db.otherConnect()).query(
-    'INSERT INTO league (name,admin,url) VALUES (?,?,?)',
-    [name, admin, url]
-  )
-  return result
-}
-
-exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM league')
-  return result
-}
-
 exports.getById = async function(leagueId) {
   const [result] = await (await db.otherConnect()).query('SELECT * FROM league WHERE id = ?', leagueId)
-  return result
-}
-
-exports.deleteById = async function(leagueId) {
-  const [result] = await (await db.otherConnect()).query('DELETE FROM league WHERE id = ?', leagueId)
-  return result
-}
-
-exports.updateById = async function(name, admin, url, leagueId) {
-  const [result] = await (await db.otherConnect()).query(
-    'UPDATE league SET name = ?, admin = ?, url = ? WHERE id = ?',
-    [name, admin, url, leagueId]
-  )
   return result
 }
 

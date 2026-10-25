@@ -1,24 +1,6 @@
 var db = require('../db_connect.js');
 var seasonModel = require('./season');
 
-exports.create = async function(name, venue) {
-  const [result] = await (await db.otherConnect()).query(
-    'INSERT INTO club (name,venue) VALUES (?,?)',
-    [name, venue]
-  )
-  return result
-}
-
-exports.createBatch = async function(batchObj) {
-  if (!db.isObject(batchObj)) throw new Error('not object')
-  const fields = batchObj.fields.map(f => `"${f}"`).join(',')
-  const rows = Object.values(batchObj.data).map(row => Object.values(row))
-  const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
-  const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
-  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
-  return result
-}
-
 // Whether a club of exactly this name existed in a season: the live table for the
 // current season, the club<season> archive otherwise. The stats pages ask this of a
 // `club-` filter, which can legitimately name a club that has since folded or been
@@ -295,19 +277,6 @@ exports.getClubRegistration = async function(clubName) {
 
 exports.getById = async function(clubId) {
   const [result] = await (await db.otherConnect()).query('SELECT * FROM club WHERE id = ?', clubId)
-  return result
-}
-
-exports.deleteById = async function(clubId) {
-  const [result] = await (await db.otherConnect()).query('DELETE FROM club WHERE id = ?', clubId)
-  return result
-}
-
-exports.updateById = async function(name, venue, clubId) {
-  const [result] = await (await db.otherConnect()).query(
-    'UPDATE club SET name = ?, venue = ? WHERE id = ?',
-    [name, venue, clubId]
-  )
   return result
 }
 

@@ -46,63 +46,14 @@ exports.team_create_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Team create GET');
 };
 
-// Handle Team create on POST
-exports.team_create_post = async function(req, res, next) {
-  try {
-    const row = await Team.create(req.body.name, req.body.startTime, req.body.endTime, req.body.matchDay, req.body.venue, req.body.courtspace, req.body.club, req.body.division, req.body.rank);
-    // console.log(req.body);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    console.log(err);
-    next(err);
-  }
-};
-
-exports.teams_batch_create = async function(req, res, next) {
-  try {
-    const result = await Team.createBatch(req.body);
-    // console.log(result)
-    res.send(result);
-  } catch (err) {
-    console.log(err);
-    next(err);
-  }
-};
-
 // Display Team delete form on GET
 exports.team_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Team delete GET');
 };
 
-// Handle Team delete on POST
-exports.team_delete_post = async function(req, res, next) {
-  try {
-    const row = await Team.deleteById(req.params.id);
-    // console.log(req.params)
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display Team update form on GET
 exports.team_update_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Team update GET');
-};
-
-// Handle Team update on POST
-exports.team_update_post = async function(req, res, next) {
-  try {
-    const row = await Team.updateById(req.body, req.params.id);
-    // console.log(req.body);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    console.log(err);
-    next(err);
-  }
 };
 
 exports.messer_draw = function(req, res, next) {

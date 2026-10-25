@@ -443,9 +443,9 @@ the only record of an officer on a live team, and the values are in
 `scripts/officer-pointers-backup-2026-10-25T12-54-37-487Z.json`). Every reader was
 snapshotted before and after: all division and real-club lists identical; only No Club's
 own views changed. The columns and the pointer half of every reader are still there until
-REARCH-03 part A step 3 drops them. **Nothing in the UI writes them** (the admin forms
-build from allowlists), so they stay NULL; the one route that could is `PATCH /team/:id`,
-which writes the raw request body (HARD-49).
+REARCH-03 part A step 3 drops them. **Nothing writes them** (the admin forms build from
+allowlists), so they stay NULL. The one route that could, `PATCH /team/:id`, went with the
+rest of the token-guarded machine API in HARD-49.
 
 One lesson already encoded there: **a data check must not inner-join to the data it is
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was

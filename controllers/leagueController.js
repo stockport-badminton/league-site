@@ -1,18 +1,6 @@
 var League = require('../models/league.js');
 const { canonicalFor } = require('../utils/canonical');
 
-// Display list of all Leagues
-exports.league_list = async function(req, res, next) {
-  try {
-    const rows = await League.getAll();
-    // console.log(rows);
-    res.send(rows);
-  } catch (err) {
-    console.log(err);
-    next(err);
-  }
-};
-
 // Display detail page for a specific League
 exports.league_detail = async function(req, res, next) {
   try {
@@ -29,30 +17,6 @@ exports.league_create_get = function(req, res) {
     res.send('NOT IMPLEMENTED: League create GET');
 };
 
-// Handle League create on POST
-exports.league_create_post = async function(req, res, next) {
-  try {
-    const row = await League.create(req.body.name, req.body.admin, req.body.url);
-    // console.log(req.body);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Handle League delete on DELETE
-exports.league_delete = async function(req, res, next) {
-  try {
-    const row = await League.deleteById(req.params.id);
-    // console.log(req.params)
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display League delete on GET
 exports.league_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: League delete GET');
@@ -61,18 +25,6 @@ exports.league_delete_get = function(req, res) {
 // Display League update form on GET
 exports.league_update_get = function(req, res) {
     res.send('NOT IMPLEMENTED: League update GET');
-};
-
-// Handle League update on PATCH
-exports.league_update = async function(req, res, next) {
-  try {
-    const row = await League.updateById(req.body.name, req.body.admin, req.body.url, req.params.id);
-    // console.log(req.body);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
 };
 
 // Display list of all Leagues

@@ -111,3 +111,32 @@ body-to-SQL problem. Some handlers are shared with live routes —
 
 - Auth0 tenant configuration (hosting).
 - REARCH-04's wider route-access declarations, which this feeds into but does not wait for.
+
+## Outcome (25 Oct 2026)
+
+Took the recommendation: **removed, not repaired.**
+
+- **37 route lines out of `routes/index.js`**, with `checkJwt` and its two requires.
+  `express-jwt`, `jwks-rsa` and `jsonwebtoken` (already unused) uninstalled.
+- **36 handlers removed**: every one that only those lines reached. Each was checked for
+  any other reference first. `fixture_rearrange_by_team_name` stays, because it also serves
+  the superadmin `POST /fixture/rearrangement`.
+- **30 model functions removed**: the ones those handlers called that nothing else does,
+  checked by resolving each file's own `require` binding, so `Club.getAll` is not confused
+  with `Division.getAll`. The gitignored `scripts/` were checked too; they use
+  `Club.getAll` and `Player.create`, and both stay.
+- **Something worse than item 2 turned up in the removed code.** Every `createBatch` took
+  the **table name** from the request body (`INSERT INTO "${BatchObj.tablename}"`). So a
+  token holder could insert rows into any table, `player` and the session store included.
+- **`POST /player/:id` now matches numeric ids only.** With `POST /player/batch-create`
+  gone, that path fell through to the session-gated player update, with `batch-create` as
+  the id. The same fix `/team/:id` got in `bf3c4ae`. The update form posts a numeric id, so
+  nothing legitimate changes.
+
+Not done: `app.js` still refuses to start without `AUTH0_AUDIENCE`, which nothing reads
+now. Harmless; removing it is a config tidy for another day.
+
+**Test:** `__tests__/integration/machine-api-removed.test.js` sends each of the 37, with a
+bearer token, and expects not-found (the response-stamp guard proves the 404 is ours).
+`GET /fixtures/club-Remnants` is the control and must still answer JSON. **Against the old
+code: 37 failed, 2 passed** (the count and the control); with the change, 39 of 39.

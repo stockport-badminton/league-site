@@ -2,24 +2,6 @@ var db = require('../db_connect.js');
 var seasonModel = require('./season');
 
 
-exports.create = async function(name, starttime, endtime, matchDay, venue, courtspace, club, division, rank) {
-  const [result] = await (await db.otherConnect()).query(
-    'INSERT INTO team (name,starttime,endtime,"matchDay",venue,courtspace,club,division,rank) VALUES (?,?,?,?,?,?,?,?,?)',
-    [name, starttime, endtime, matchDay, venue, courtspace, club, division, rank]
-  )
-  return result
-}
-
-exports.createBatch = async function(batchObj) {
-  if (!db.isObject(batchObj)) throw new Error('not object')
-  const fields = batchObj.fields.map(f => `"${f}"`).join(',')
-  const rows = Object.values(batchObj.data).map(row => Object.values(row))
-  const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
-  const sql = `INSERT INTO "${batchObj.tablename}" (${fields}) VALUES ${valueClauses}`
-  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
-  return result
-}
-
 exports.getAll = async function() {
   const [result] = await (await db.otherConnect()).query('SELECT * FROM team')
   return result
@@ -100,11 +82,6 @@ exports.getAllAndSelectedById = async function(teamId, divisionId) {
     'SELECT *, CASE WHEN team.id = ? THEN true ELSE false END as selected FROM team WHERE division = ?',
     [teamId, divisionId]
   )
-  return result
-}
-
-exports.deleteById = async function(teamId) {
-  const [result] = await (await db.otherConnect()).query('DELETE FROM team WHERE id = ?', teamId)
   return result
 }
 

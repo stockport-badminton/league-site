@@ -234,65 +234,14 @@ exports.club_create_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Club create GET');
 };
 
-// Handle Club create on POST
-exports.club_create_post = async function(req, res, next) {
-  try {
-    const row = await Club.create(req.body.name, req.body.venue);
-    //console.log(req.body);
-    //console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.club_batch_create = async function(req, res, next) {
-  try {
-    const result = await Club.createBatch(req.body);
-    // console.log(result)
-    res.send(result);
-  } catch (err) {
-    // Was `res.send(err)` — an Error serialises to `{}` and goes out with the default
-    // status, so a failed request answered **HTTP 200** with an empty body. A visitor
-    // saw a blank page, Sentry heard nothing because Express thought it succeeded, and
-    // a crawler banked it as a real page. That is what blanked 48 /event/ pages.
-    next(err);
-    //console.log(err);
-  }
-};
-
 // Display Club delete form on GET
 exports.club_delete_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Club delete GET');
 };
 
-// Handle Club delete on POST
-exports.club_delete_post = async function(req, res, next) {
-  try {
-    const row = await Club.deleteById(req.params.id);
-    //console.log(req.params)
-    //console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display Club update form on GET
 exports.club_update_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Club update GET');
-};
-
-// Handle Club update on POST
-exports.club_update_post = async function(req, res, next) {
-  try {
-    const row = await Club.updateById(req.body.name, req.body.venue, req.params.id);
-    //console.log(req.body);
-    //console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
 };
 
 // ---------------------------------------------------------------------------

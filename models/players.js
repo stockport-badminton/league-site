@@ -26,16 +26,6 @@ exports.createByName = async function(obj) {
   return result
 }
 
-exports.createBatch = async function(BatchObj) {
-  if (!db.isObject(BatchObj)) throw new Error('not object')
-  const fields = BatchObj.fields.map(f => `"${f}"`).join(',')
-  const rows = Object.values(BatchObj.data).map(row => Object.values(row))
-  const valueClauses = rows.map(row => '(' + row.map(() => '?').join(',') + ')').join(',')
-  const sql = `INSERT INTO "${BatchObj.tablename}" (${fields}) VALUES ${valueClauses}`
-  const [result] = await (await db.otherConnect()).query(sql, rows.flat())
-  return result
-}
-
 // PATCH
 exports.updateById = async function(first_name, family_name, team, club, gender, playerId) {
   const [result] = await (await db.otherConnect()).query(
@@ -1079,14 +1069,6 @@ exports.findByName = async function(searchObject) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT * FROM player WHERE id = ?',
     searchObject
-  )
-  return result
-}
-
-exports.deleteById = async function(playerId) {
-  const [result] = await (await db.otherConnect()).query(
-    'DELETE FROM player WHERE id = ?',
-    playerId
   )
   return result
 }

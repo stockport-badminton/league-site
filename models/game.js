@@ -51,15 +51,6 @@ function splitPairDelta(pairDelta, ratingA, ratingB) {
   return [deltaA, deltaB]
 }
 
-exports.create = async function(gameObj) {
-  if (!db.isObject(gameObj)) throw new Error('not game object')
-  const fields = Object.keys(gameObj).map(k => `"${k}"`).join(',')
-  const placeholders = Object.keys(gameObj).map(() => '?').join(',')
-  const sql = `INSERT INTO game (${fields}) VALUES (${placeholders})`
-  const [result] = await (await db.otherConnect()).query(sql, Object.values(gameObj))
-  return result
-}
-
 // `conn` is optional, so a caller can write the games inside the same transaction as
 // the fixture result they belong to. See Fixture.updateById for why that matters.
 exports.createBatch = async function(batchObj, conn) {
@@ -73,26 +64,11 @@ exports.createBatch = async function(batchObj, conn) {
   return result
 }
 
-exports.getAll = async function() {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM game')
-  return result
-}
-
-exports.getById = async function(gameId) {
-  const [result] = await (await db.otherConnect()).query('SELECT * FROM game WHERE id = ?', gameId)
-  return result
-}
-
 exports.getByFixture = async function(fixtureId) {
   const [result] = await (await db.otherConnect()).query(
     'SELECT * FROM game WHERE fixture = ? ORDER BY id ASC',
     fixtureId
   )
-  return result
-}
-
-exports.deleteById = async function(gameId) {
-  const [result] = await (await db.otherConnect()).query('DELETE FROM game WHERE id = ?', gameId)
   return result
 }
 

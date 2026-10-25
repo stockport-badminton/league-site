@@ -122,16 +122,6 @@ exports.fixture_id_from_team_names = async function(req, res, next) {
 };
 
 // Display detail page for a specific Fixture
-exports.fixture_detail = async function(req, res, next) {
-  try {
-    const row = await Fixture.getById(req.params.id);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Display detail page for a specific Fixture
 //
 // The missing-row case has to be a real 404. `row[0].homeTeam` on an empty result
 // threw a TypeError, and the old `catch { res.send(err) }` serialised the Error to
@@ -452,18 +442,6 @@ exports.fixture_create_get = function(req, res,next) {
     res.send('NOT IMPLEMENTED: Fixture create GET');
 };
 
-// Handle Fixture create on POST
-exports.fixture_create_post = async function(req, res, next) {
-  try {
-    const row = await Fixture.create(req.body);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
-
-
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = async function(req, res, next) {
   try {
@@ -522,15 +500,6 @@ exports.fixture_get_offline_home = async function(req, res, next) {
   }
 };
 
-exports.fixture_batch_create = async function(req, res, next) {
-  try {
-    const result = await Fixture.createBatch(req.body);
-    res.send(result);
-  } catch (err) {
-    next(err);
-  }
-}
-
 // POST /fixture/rearrangement (superadmin session) and PATCH /fixture/rearrange (JWT).
 //
 // Answers JSON either way. The 4xx cases here are all "you named a team or a pairing
@@ -554,31 +523,11 @@ exports.fixture_delete_get = function(req, res,next) {
     res.send('NOT IMPLEMENTED: Fixture delete GET');
 };
 
-// Handle Fixture delete on POST
-exports.fixture_delete_post = async function(req, res, next) {
-  try {
-    const row = await Fixture.deleteById(req.params.id);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display Fixture update form on GET
 exports.fixture_update_get = function(req, res, next) {
     res.send('NOT IMPLEMENTED: Fixture update GET');
 };
 
-
-// Handle Fixture update on POST
-exports.fixture_update_post = async function(req, res, next) {
-  try {
-    const row = await Fixture.updateById(req.body, req.params.id);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
 
 function isSuperAdmin(req) {
   return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
