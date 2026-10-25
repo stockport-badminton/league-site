@@ -21,13 +21,19 @@ cd "$(dirname "$0")/.."
 COMPOSE="docker compose -f docker-compose.local.yml"
 CONTAINER=sdbl-local-db
 DB_USER=sdbl
-DB_NAME=sdbl
+DB_NAME="${LOCAL_DB_NAME:-sdbl}"   # override only to rehearse against a scratch database
 PORT=5433
 # Not a secret, and deliberately not the production one: this database must not be able to
 # decrypt production data, nor production this.
 LOCAL_DB_PI_KEY="${LOCAL_DB_PI_KEY:-local-dev-not-a-secret}"
 
 psql_in() { docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" "$@"; }
+
+# Of the file's bytes — the same digest run-migration.js's fileHash() computes, so a
+# replayed row and an applied one compare equal. shasum on a Mac, sha256sum elsewhere.
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1
+}
 
 wait_healthy() {
   for _ in $(seq 1 60); do
@@ -52,8 +58,10 @@ case "${1:-}" in
     psql_in -q -c 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;'
 
     echo "→ schema (001_initial + the numbered migrations)"
-    # psql, not tools/run-migration.js: that splits on ';' without regard for comments and
-    # would cut these files in the wrong place (HARD-18).
+    # psql, not run-migration.js: this is a bulk replay into a schema just dropped, and the
+    # runner applies one file to a database that keeps a history. (Its old reason — the
+    # runner split on ';' inside comments — went with HARD-18.) The replay is recorded in
+    # schema_migrations below, once every file has gone in.
     #
     # Some migrations are no-ops against a freshly built schema, because the file they
     # fixed has since been corrected in place. 003 is the example: it adds "homeMan3" to
@@ -72,6 +80,16 @@ case "${1:-}" in
         exit 1
       fi
     done
+
+    # Recorded, or the local database looks permanently un-migrated and run-migration.js
+    # would try to apply every file again (HARD-32). Only reached when every file above
+    # replayed. `how` says replayed, not applied: the rows record that this database was
+    # rebuilt from these exact files, which is a different claim from production's.
+    echo "→ recording the replay in schema_migrations"
+    for f in migrations/0*.sql; do
+      printf "INSERT INTO schema_migrations (filename, sha256, how) VALUES ('%s', '%s', 'replayed');\n" \
+        "$(basename "$f")" "$(sha256_of "$f")"
+    done | psql_in -q -f -
 
     if [ -f migrations/data/002_data.sql ]; then
       echo "→ seed data (migrations/data/002_data.sql)"

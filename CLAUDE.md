@@ -494,6 +494,11 @@ half-applied load is worse than none and throwing a local database away costs no
   fixed in HARD-18 by sharing `utils/sqlScan.js` with `pgify`, which had the identical bug
   one layer down. **`--local` is how you rehearse**; without it the runner targets
   production, like every other tool.
+  **`node run-migration.js --status` answers "has this run against production yet?"**
+  (HARD-32). Every file the runner applies is recorded in `schema_migrations` with a hash
+  of its bytes; applying it again is a recorded no-op, and a file **edited after it ran is
+  refused** — write a new migration for the difference. `load` records its replay as
+  `replayed`; production's 001–024 were recorded as `backfilled` on schema evidence.
   Some migrations are no-ops replayed from nothing — 003 adds a column 002 now creates —
   so an "already exists" is reported and skipped while **any other error stops the load**.
 - **Data comes from `migrations/data/002_data.sql`**, which is **gitignored**, so a fresh
