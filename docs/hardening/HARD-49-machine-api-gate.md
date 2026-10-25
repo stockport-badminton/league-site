@@ -41,9 +41,43 @@ admin-form callers build the object from allowlists (`buildClubObj`, `buildTeamO
 those are safe today. `team_update_post` is the caller that is not. Check the other
 `PATCH` handlers behind `checkJwt` for the same pattern.
 
+## Is anything using it? No — checked 25 Oct 2026
+
+Neil's account of where these came from: they were the original API, guarded by Auth0 tokens,
+from before everything moved behind the superadmin UI. The evidence agrees:
+
+- **Request logs, 25 Sep – 25 Oct 2026** (the whole 30-day retention):
+  - **0 requests** to any of the 37, by method and path, and that includes the GETs
+    (`/divisions`, `/games`, `/leagues`, `/division/:id`, `/game/:id`, `/venue/:id`,
+    `/fixture/:id`). Cloud Run logs a request whatever its status, so a caller being turned
+    away with 401 would still show.
+  - The only near-matches were other routes: `POST /player/:id` (the session-gated player
+    form, 7) and `GET /scorecard/fixture/:id`.
+
+  ```
+  gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="league-site"
+    AND timestamp>="2026-09-25T00:00:00Z" AND httpRequest.requestMethod!="GET"
+    AND httpRequest.requestUrl=~"/(club|division|fixture|game|league|player|team|venue)/(create|batch-create|rearrange|[0-9]+)([?#]|$)"' …
+  gcloud logging read '… httpRequest.requestMethod="GET"
+    AND httpRequest.requestUrl=~"/(divisions|games|leagues|division/[0-9]+|game/[0-9]+|venue/[0-9]+|fixture/[0-9]+)([?#]|$)"' …
+  ```
+- **No caller in the repo.** Nothing in `views/`, `static/`, `tools/`, `scripts/`,
+  `controllers/` or `e2e/` names one. The near-misses are different routes:
+  `/fixture/rearrangement` is the superadmin form, not the machine `PATCH /fixture/rearrange`;
+  `/games/:n` is the live scorecard's endpoint; `/player/create` is session-gated.
+- **No Cloud Scheduler job targets one** (all 13 listed), and every Make.com scenario has been
+  disabled since 15 Sep 2026.
+
+Three independent sources, none of them a time window alone. **Recommendation: remove the
+37 route lines** rather than fix the gate. Removing them also removes the `PATCH /team/:id`
+body-to-SQL problem. Some handlers are shared with live routes —
+`fixture_rearrange_by_team_name` also serves `POST /fixture/rearrangement` — so remove the
+*route lines*, then delete only the handlers and model functions nothing else reaches.
+`checkJwt`, `express-jwt` and `jwks-rsa` go too if nothing else uses them.
+
 ## What to do
 
-1. **Find out whether anything uses these routes.** Request logs (30 days; always a
+1. ~~**Find out whether anything uses these routes.**~~ Done above: nothing does. Request logs (30 days; always a
    `timestamp>=` filter — CLAUDE.md, *Asking production what is actually used*) for each of
    the 37, by method. They look like the original batch-import API. **Never delete on log
    silence alone**: corroborate with no caller in the repo, in `tools/`, and in anything

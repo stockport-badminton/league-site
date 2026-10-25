@@ -26,8 +26,9 @@ separately, and the copies have already disagreed.
 > identical, every division and real-club list among them. The 5 that changed are all
 > No Club or Parrswood C. **What is left is step 3** (drop the columns, take the pointer half
 > out of `getEmails` and the four `club.js` readers) **and step 4.** Found on the way: 21
-> players still carry role flags at No Club / No Team, which is the flag-side version of the
-> same leftover; they reach no real list. And HARD-49.
+> players still carry role flags at No Club / No Team. **Left alone deliberately: Neil's
+> call (25 Oct) is that a player who leaves a club keeps their roles.** They reach no real
+> list. Also found: HARD-49.
 
 ### Why
 
