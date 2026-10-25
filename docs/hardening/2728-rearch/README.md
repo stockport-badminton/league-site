@@ -87,6 +87,10 @@ inert. It does not want REARCH-01 to be *finished*.
 
 ## The packages
 
+Landed packages move to [`done/`](done/), as HARD ones do, so the top level is what is still
+open. A package that is partly done (02 and 03 have steps landed early) stays here until the
+rest of it lands.
+
 | | Package | Size | Window |
 |---|---|---|---|
 | [REARCH-01](REARCH-01-typed-queries.md) | A typed query layer replaces the MySQL wrapper | L | In-season OK, except the publish path |
@@ -96,7 +100,7 @@ inert. It does not want REARCH-01 to be *finished*.
 | [REARCH-05](REARCH-05-outbox.md) | One outbox for every side effect | M | Off-season only |
 | [REARCH-06](REARCH-06-config-schema.md) | Environment variables declared in one place | S | In-season OK |
 | [REARCH-07](REARCH-07-frontend-build.md) | Inline scripts out, a bundler for shared code | M | Wizard off-season; other pages in-season OK |
-| [REARCH-08](REARCH-08-real-database-tests.md) | Tests that run against a real Postgres | M | In-season OK |
+| [REARCH-08](done/REARCH-08-real-database-tests.md) | Tests that run against a real Postgres | M | **Done** 25 Oct 2026 |
 | [REARCH-09](REARCH-09-small-defaults.md) | Small defaults: session user, logging, draft tokens | S each | Mixed; see the package |
 
 ## Dependencies
