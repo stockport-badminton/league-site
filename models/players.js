@@ -128,10 +128,19 @@ exports.getClubRoster = async function(clubName) {
 // A team with fewer than three results this season cannot have a player who has
 // missed three, so it is left out rather than judged on the matches it has.
 // No Club's teams are the holding pen for released players, not a club.
+// A typed `sql` template rather than the builder: seven CTEs, window functions and a
+// five-way UNION read better as the SQL they are, and the row type below says what comes
+// back. The statement is the one the string version sent; the three `?` are now template
+// parameters, bound as before.
+/**
+ * @typedef {{ team_id: number, team_name: string, club: number, team_rank: number,
+ *   playerID: number, first_name: string, family_name: string, gender: string,
+ *   numPlayed: string | number, next_team_name: string | null }} MissedThreeRow
+ */
 exports.getMissedThreePlayers = async function() {
   const Roster = require('./roster');
-  const [result] = await (await db.otherConnect()).query(`WITH season_window AS (
-  SELECT "startDate", "endDate" FROM season WHERE name = ?
+  const { rows } = await /** @type {import('kysely').RawBuilder<MissedThreeRow>} */ (sql`WITH season_window AS (
+  SELECT "startDate", "endDate" FROM season WHERE name = ${seasonModel.current()}
 ),
 team_fixtures AS (
   SELECT
@@ -229,7 +238,7 @@ nom_players AS (
     p.family_name,
     p.gender
   FROM player p
-  WHERE p."rank" IS NULL OR p."rank" < ?
+  WHERE p."rank" IS NULL OR p."rank" < ${Roster.RESERVE_BASE}
 ),
 team_filtered AS (
   SELECT
@@ -237,7 +246,7 @@ team_filtered AS (
     COUNT(*) OVER (PARTITION BY t.club) AS club_team_count,
     MAX(t."rank") OVER (PARTITION BY t.club) AS club_lowest_rank
   FROM team t
-  WHERE t.club <> ?
+  WHERE t.club <> ${Roster.NO_CLUB_ID}
 )
 SELECT
   t.id   AS team_id,
@@ -273,9 +282,8 @@ WHERE
     COALESCE(mu.menDistinctUsed, 0) >= 3
     AND COALESCE(lu.ladiesDistinctUsed, 0) >= 3
   )
-ORDER BY t.club, t."rank", np.family_name, np.first_name;`,
-    [seasonModel.current(), Roster.RESERVE_BASE, Roster.NO_CLUB_ID])
-  return result
+ORDER BY t.club, t."rank", np.family_name, np.first_name;`).execute(kysely)
+  return rows
 }
 
 /** @param {any} fixtureId */
@@ -1305,25 +1313,24 @@ exports.getPlayerEloTimeSeries = async function(playerIds) {
 
   // One batched query for every requested player instead of one query each —
   // the game table has no index on the player-id columns, so per-player
-  // queries scale linearly with player count; a single ANY(?) scan doesn't.
-  const [rows] = await (await db.otherConnect()).query(`
-    SELECT
-      fixture.date,
-      game."homePlayer1", game."homePlayer2", game."awayPlayer1", game."awayPlayer2",
-      game."homePlayer1End", game."homePlayer2End", game."awayPlayer1End", game."awayPlayer2End"
-    FROM game
-    JOIN fixture ON game.fixture = fixture.id
-    WHERE (game."homePlayer1" = ANY(?) OR game."homePlayer2" = ANY(?) OR game."awayPlayer1" = ANY(?) OR game."awayPlayer2" = ANY(?))
-      AND game."homePlayer1End" IS NOT NULL AND game."homePlayer1End" != 0
-      AND game."homePlayer2End" IS NOT NULL AND game."homePlayer2End" != 0
-      AND game."awayPlayer1End" IS NOT NULL AND game."awayPlayer1End" != 0
-      AND game."awayPlayer2End" IS NOT NULL AND game."awayPlayer2End" != 0
-    ORDER BY fixture.date ASC, game.id ASC
-  `, [numIds, numIds, numIds, numIds])
+  // queries scale linearly with player count; a single scan doesn't.
+  const rows = await kysely.selectFrom('game')
+    .innerJoin('fixture', 'game.fixture', 'fixture.id')
+    .select(['fixture.date', 'game.homePlayer1', 'game.homePlayer2', 'game.awayPlayer1', 'game.awayPlayer2',
+      'game.homePlayer1End', 'game.homePlayer2End', 'game.awayPlayer1End', 'game.awayPlayer2End'])
+    .where(eb => eb.and([
+      eb.or([eb('game.homePlayer1', 'in', numIds), eb('game.homePlayer2', 'in', numIds),
+        eb('game.awayPlayer1', 'in', numIds), eb('game.awayPlayer2', 'in', numIds)]),
+      ...(/** @type {const} */ (['game.homePlayer1End', 'game.homePlayer2End', 'game.awayPlayer1End', 'game.awayPlayer2End']))
+        .flatMap(col => [eb(col, 'is not', null), eb(col, '!=', 0)]),
+    ]))
+    .orderBy('fixture.date', 'asc').orderBy('game.id', 'asc')
+    .execute()
 
-  const [nameRows] = await (await db.otherConnect()).query(
-    `SELECT id, CONCAT(first_name, ' ', family_name) AS name FROM player WHERE id = ANY(?)`, [numIds]
-  )
+  const nameRows = await kysely.selectFrom('player')
+    .select(eb => ['id', eb.fn('concat', [eb.ref('first_name'), sql.lit(' '), eb.ref('family_name')]).as('name')])
+    .where('id', 'in', numIds)
+    .execute()
   /** @type {Record<string, any>} */
   const nameById = {}
   nameRows.forEach((/** @type {any} */ r) => { nameById[r.id] = r.name })

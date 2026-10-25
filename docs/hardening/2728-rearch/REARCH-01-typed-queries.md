@@ -50,7 +50,8 @@ starts with `auth`. What is there, and what was decided on the way:
 `season.init`, `siteSettings`, `division`, `venue`, `emailEvent`, `invoiceRun`,
 `socialToken`, `socialResultPost` / `threadsResultPost` except `enqueue`, `homepageContent`,
 `spamControls`, `registrationRequest`, `club` and `teams` (both except REARCH-02's
-function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league`. `auth` has no SQL. Left: `players`, `fixture`.
+function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league`, `players` except the five below and REARCH-02's
+five (eight dead functions deleted first). `auth` has no SQL. Left: `fixture`.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -61,6 +62,8 @@ list step 3 must clear before `pgQuery` can go:
 | `threadsResultPost.enqueue` | `scorecardController`, inside `POST /scorecard-beta` |
 | `game.createBatch` | `scorecardController`, inside the publish transaction (takes its `conn`) |
 | `game.updateEloBatch` | `utils/eloChain`, the re-rate after a publish (takes its `conn`) |
+| `players.getMatchStats`, `getNominatedPlayers`, `getPrevRating`, `refreshRatings` | `full_fixture_post` |
+| `players.getRatingStateBefore` | `utils/eloChain`, inside the re-rate's transaction (takes its `conn`) |
 
 **`league.getAnnualInvoices` needed a migration first.** It reads `season."clubFee"`,
 which production had (`bigint NOT NULL DEFAULT 15`) and no migration created, so neither
@@ -106,6 +109,11 @@ Idioms settled on the way, worth reusing:
 - **A unit test that faked the database to check behaviour is ported, not deleted.**
   `roster`'s 29 rank cases became `__tests__/db/roster.test.js`, each asserted on the ranks
   stored; a simulated failure became a real one (a trigger, inside the rolled-back test).
+- **A long analytic query is a typed `sql` template, not a rebuild.** `getMissedThreePlayers`
+  (seven CTEs, windows, a five-way UNION) keeps its SQL verbatim with a declared row type;
+  rewriting it as builder calls would be harder to read and easier to get wrong.
+- **Map callers before converting, and delete what has none.** Eight `players` functions
+  were referenced nowhere but their own definition; they went in their own commit.
 - **A conflict target on an expression index** (`blocked_entry (kind, LOWER(value))`) is
   `oc.expression(…)` with a cast template: `ON CONSTRAINT` names constraints, not indexes.
 - **A test that read SQL as source text** (`venue-popup.test.js`) is replaced by a database
