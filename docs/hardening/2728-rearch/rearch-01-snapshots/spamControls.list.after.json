@@ -1,0 +1,1212 @@
+{
+  "function": "spamControls.list",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:26:17.735Z",
+  "cases": [
+    {
+      "label": "0",
+      "args": [],
+      "result": [
+        {
+          "id": 109,
+          "kind": "email",
+          "value": "zekisuquc419@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 89,
+          "kind": "email",
+          "value": "saniaftab464@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 90,
+          "kind": "email",
+          "value": "schuhmann5586@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 91,
+          "kind": "email",
+          "value": "simpsonmiddleton1111@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 92,
+          "kind": "email",
+          "value": "simpsonmiddleton@bankingandfinanceconsultantsltd.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 93,
+          "kind": "email",
+          "value": "smithduncan610@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 94,
+          "kind": "email",
+          "value": "steven.green@m-solv.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 95,
+          "kind": "email",
+          "value": "stevenlove88@163.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 96,
+          "kind": "email",
+          "value": "susan@wikiexpertiinc.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 97,
+          "kind": "email",
+          "value": "tbartol54@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 98,
+          "kind": "email",
+          "value": "test@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 99,
+          "kind": "email",
+          "value": "testflood1488@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 100,
+          "kind": "email",
+          "value": "w.wojcik1000@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 101,
+          "kind": "email",
+          "value": "williamgrebos605@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 102,
+          "kind": "email",
+          "value": "wilmafoxchildren@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 103,
+          "kind": "email",
+          "value": "winsatall4ever@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 104,
+          "kind": "email",
+          "value": "xiceruxuk02@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 105,
+          "kind": "email",
+          "value": "xingsong@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 106,
+          "kind": "email",
+          "value": "yawiviseya67@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 107,
+          "kind": "email",
+          "value": "yjdisantoyjdissemin@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 108,
+          "kind": "email",
+          "value": "yourmail@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 21,
+          "kind": "email",
+          "value": "333dino88@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 22,
+          "kind": "email",
+          "value": "5rdhp2fe29yb@beconfidential.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 23,
+          "kind": "email",
+          "value": "aferinohis056@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 24,
+          "kind": "email",
+          "value": "ahmed.abdulla00175@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 25,
+          "kind": "email",
+          "value": "ameyjeffrey@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 26,
+          "kind": "email",
+          "value": "anepivepaz038@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 27,
+          "kind": "email",
+          "value": "arachnid@notdot.net",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 28,
+          "kind": "email",
+          "value": "arikerer278@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 29,
+          "kind": "email",
+          "value": "artweb.agency@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 30,
+          "kind": "email",
+          "value": "axobajigufo34@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 31,
+          "kind": "email",
+          "value": "bahmmbi3@aghemfondom.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 32,
+          "kind": "email",
+          "value": "bassproshops28@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 33,
+          "kind": "email",
+          "value": "bfifield@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 34,
+          "kind": "email",
+          "value": "boboyobe@yahoo.com.hk",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 35,
+          "kind": "email",
+          "value": "breiner@cljfarmaceutisch.nl",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 36,
+          "kind": "email",
+          "value": "bsara5865@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 37,
+          "kind": "email",
+          "value": "carlosc@optonline.net",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 38,
+          "kind": "email",
+          "value": "chris@schoolconnection.co.uk",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 39,
+          "kind": "email",
+          "value": "cikoliag@yandex.ru",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 40,
+          "kind": "email",
+          "value": "derylcvnq@hotmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 41,
+          "kind": "email",
+          "value": "dinanikolskaya99@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 42,
+          "kind": "email",
+          "value": "drbreiner233@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 43,
+          "kind": "email",
+          "value": "duqotayowud23@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 44,
+          "kind": "email",
+          "value": "ebojajuje04@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 45,
+          "kind": "email",
+          "value": "elviemcxa@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 46,
+          "kind": "email",
+          "value": "ericpetersonpa@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 47,
+          "kind": "email",
+          "value": "evalidator.test@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 48,
+          "kind": "email",
+          "value": "floodservice.bot@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 49,
+          "kind": "email",
+          "value": "help@aweb.sbs",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 50,
+          "kind": "email",
+          "value": "hrhbah-mbi@aghemfondom.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 51,
+          "kind": "email",
+          "value": "hrhmbambi@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 52,
+          "kind": "email",
+          "value": "htbabd@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 53,
+          "kind": "email",
+          "value": "hymen8ojw@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 54,
+          "kind": "email",
+          "value": "irinademenkova86@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 55,
+          "kind": "email",
+          "value": "ixutikob077@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 56,
+          "kind": "email",
+          "value": "j.anderson51@outlook.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 57,
+          "kind": "email",
+          "value": "jalenb8dd@aol.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 58,
+          "kind": "email",
+          "value": "jamescook312@outlook.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 59,
+          "kind": "email",
+          "value": "jaronni9o@zohomail.eu",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 60,
+          "kind": "email",
+          "value": "jhuball@sbcglobal.net",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 61,
+          "kind": "email",
+          "value": "june_mandap@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 62,
+          "kind": "email",
+          "value": "kaenquirynicholls@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 63,
+          "kind": "email",
+          "value": "kayleighbpsteamship@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 64,
+          "kind": "email",
+          "value": "lucido.leinteract@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 65,
+          "kind": "email",
+          "value": "lyraedwards@msn.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 66,
+          "kind": "email",
+          "value": "m5062n@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 67,
+          "kind": "email",
+          "value": "mark@mtbgreentechnologies.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 68,
+          "kind": "email",
+          "value": "meifan36@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 69,
+          "kind": "email",
+          "value": "miklom1012@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 70,
+          "kind": "email",
+          "value": "moot888@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 71,
+          "kind": "email",
+          "value": "moqagides18@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 72,
+          "kind": "email",
+          "value": "mr.bumbaster81@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 73,
+          "kind": "email",
+          "value": "n-dixie@hotmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 74,
+          "kind": "email",
+          "value": "nhu-tran@sac-city.k12.ca.us",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 75,
+          "kind": "email",
+          "value": "nikitafofanov46@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 76,
+          "kind": "email",
+          "value": "nomin.momin+229a5@mail.ru",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 77,
+          "kind": "email",
+          "value": "normandmercier@sbcglobal.net",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 78,
+          "kind": "email",
+          "value": "ocopesuq299@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 79,
+          "kind": "email",
+          "value": "oknabalkonekb@rambler.ru",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 80,
+          "kind": "email",
+          "value": "olivier@balzcavocte.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 81,
+          "kind": "email",
+          "value": "oscar7ctj@mail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 82,
+          "kind": "email",
+          "value": "parmazanov@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 83,
+          "kind": "email",
+          "value": "peichun22@yahoo.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 84,
+          "kind": "email",
+          "value": "projectdept@kanzalshamsprojectmgt.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 85,
+          "kind": "email",
+          "value": "projectoffice111@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 86,
+          "kind": "email",
+          "value": "rayanwmlp@zohomail.eu",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 87,
+          "kind": "email",
+          "value": "rescueplumbhifi@gmail.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 88,
+          "kind": "email",
+          "value": "rhickey@gvtc.com",
+          "note": "Seeded from the hardcoded list in contactusController.js",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 19,
+          "kind": "ip",
+          "value": "165.231.182.103",
+          "note": "Hardcoded in app.js before this table existed",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 20,
+          "kind": "ip",
+          "value": "65.0.96.6",
+          "note": "Hardcoded in app.js before this table existed",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 18,
+          "kind": "ip",
+          "value": "136.243.212.110",
+          "note": "Hardcoded in app.js before this table existed",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.295Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 5,
+          "kind": "phrase",
+          "value": "blockchain",
+          "note": "Crypto spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 6,
+          "kind": "phrase",
+          "value": "cryptocurrency",
+          "note": "Crypto spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 7,
+          "kind": "phrase",
+          "value": "@Cryptaxbot",
+          "note": "Crypto spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 8,
+          "kind": "phrase",
+          "value": "forex",
+          "note": "Finance spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 9,
+          "kind": "phrase",
+          "value": "adultdating",
+          "note": "Adult spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 10,
+          "kind": "phrase",
+          "value": "xrated",
+          "note": "Adult spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 11,
+          "kind": "phrase",
+          "value": "000***",
+          "note": "Seen in finance spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 12,
+          "kind": "phrase",
+          "value": "@FeedbackMessages",
+          "note": "Bot signature",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 13,
+          "kind": "phrase",
+          "value": "messages exploitation",
+          "note": "Bot signature",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 14,
+          "kind": "phrase",
+          "value": "Financial Strategic Firm",
+          "note": "Finance spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 15,
+          "kind": "phrase",
+          "value": "Business Financial Team",
+          "note": "Finance spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 16,
+          "kind": "phrase",
+          "value": "wininphone",
+          "note": "Bot signature",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 17,
+          "kind": "phrase",
+          "value": "corta.co",
+          "note": "Spam domain",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 2,
+          "kind": "phrase",
+          "value": "https://",
+          "note": "Link spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 1,
+          "kind": "phrase",
+          "value": "http://",
+          "note": "Link spam — the single most effective rule",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 3,
+          "kind": "phrase",
+          "value": "brokerage",
+          "note": "Finance spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        },
+        {
+          "id": 4,
+          "kind": "phrase",
+          "value": "pharm",
+          "note": "Pharma spam",
+          "created_at": {
+            "$date": "2026-10-17T18:45:25.294Z"
+          },
+          "created_by": "migration 010",
+          "active": true
+        }
+      ]
+    }
+  ]
+}

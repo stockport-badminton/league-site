@@ -1,0 +1,60 @@
+{
+  "function": "homepageContent.getById",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:26:15.830Z",
+  "cases": [
+    {
+      "label": "first",
+      "args": [
+        1
+      ],
+      "result": {
+        "id": 1,
+        "title": "Baxter Trophy Champions!",
+        "teaser_html": "Congratulations to our Baxter Trophy team who retained their title this afternoon at Hazel Grove Sports Centre, beating teams from Crewe, Chester and Wirral leagues.<br /><br />Well played everyone! As winners we will be hosting again this time next year.<br />Photo L-R: Tom Huggon, Cat Golds, Chris Bellis, James Kee, Greg Mooney, Hannah Hernon, Rachel Flood, Anna Bellis",
+        "modal_body_html": "<p>Photo L-R: Tom Huggon, Cat Golds, Chris Bellis, James Kee, Greg Mooney, Hannah Hernon, Rachel Flood, Anna Bellis</p>",
+        "image_url": "https://res.cloudinary.com/hvunsveuh/image/upload/ar_3:2,c_fill,f_auto/c_scale,w_auto:breakpoints_200_1920_30_5:300/2026/baxter-trophy-2026.jpg",
+        "show_gallery_link": false,
+        "sort_order": 1,
+        "active": true,
+        "created_at": {
+          "$date": "2026-10-17T18:45:25.088Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-17T18:45:25.088Z"
+        }
+      }
+    },
+    {
+      "label": "string",
+      "args": [
+        "1"
+      ],
+      "result": {
+        "id": 1,
+        "title": "Baxter Trophy Champions!",
+        "teaser_html": "Congratulations to our Baxter Trophy team who retained their title this afternoon at Hazel Grove Sports Centre, beating teams from Crewe, Chester and Wirral leagues.<br /><br />Well played everyone! As winners we will be hosting again this time next year.<br />Photo L-R: Tom Huggon, Cat Golds, Chris Bellis, James Kee, Greg Mooney, Hannah Hernon, Rachel Flood, Anna Bellis",
+        "modal_body_html": "<p>Photo L-R: Tom Huggon, Cat Golds, Chris Bellis, James Kee, Greg Mooney, Hannah Hernon, Rachel Flood, Anna Bellis</p>",
+        "image_url": "https://res.cloudinary.com/hvunsveuh/image/upload/ar_3:2,c_fill,f_auto/c_scale,w_auto:breakpoints_200_1920_30_5:300/2026/baxter-trophy-2026.jpg",
+        "show_gallery_link": false,
+        "sort_order": 1,
+        "active": true,
+        "created_at": {
+          "$date": "2026-10-17T18:45:25.088Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-17T18:45:25.088Z"
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "args": [
+        99999
+      ],
+      "result": {
+        "$undefined": true
+      }
+    }
+  ]
+}

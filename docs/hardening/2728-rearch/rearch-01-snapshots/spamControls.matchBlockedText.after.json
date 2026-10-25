@@ -1,0 +1,31 @@
+{
+  "function": "spamControls.matchBlockedText",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:26:17.256Z",
+  "cases": [
+    {
+      "label": "phrase",
+      "args": [
+        "see http://spam.example now"
+      ],
+      "result": {
+        "kind": "phrase",
+        "value": "http://"
+      }
+    },
+    {
+      "label": "clear",
+      "args": [
+        "Can we rearrange Tuesday?"
+      ],
+      "result": null
+    },
+    {
+      "label": "null",
+      "args": [
+        null
+      ],
+      "result": null
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "function": "spamControls.isBlockedEmail",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:25:18.010Z",
+  "cases": [
+    {
+      "label": "blocked",
+      "args": [
+        "333dino88@gmail.com"
+      ],
+      "result": true
+    },
+    {
+      "label": "caseAndSpace",
+      "args": [
+        "  333DINO88@gmail.com "
+      ],
+      "result": true
+    },
+    {
+      "label": "clear",
+      "args": [
+        "someone@example.com"
+      ],
+      "result": false
+    }
+  ]
+}

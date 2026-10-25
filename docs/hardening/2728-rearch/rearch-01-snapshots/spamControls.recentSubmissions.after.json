@@ -1,0 +1,26 @@
+{
+  "function": "spamControls.recentSubmissions",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:26:18.210Z",
+  "cases": [
+    {
+      "label": "default",
+      "args": [],
+      "result": []
+    },
+    {
+      "label": "ten",
+      "args": [
+        10
+      ],
+      "result": []
+    },
+    {
+      "label": "capped",
+      "args": [
+        10000
+      ],
+      "result": []
+    }
+  ]
+}

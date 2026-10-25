@@ -1,0 +1,28 @@
+{
+  "function": "spamControls.isBlockedIp",
+  "database": "sdbl",
+  "taken": "2026-10-25T21:26:16.304Z",
+  "cases": [
+    {
+      "label": "blocked",
+      "args": [
+        "136.243.212.110"
+      ],
+      "result": true
+    },
+    {
+      "label": "clear",
+      "args": [
+        "10.0.0.1"
+      ],
+      "result": false
+    },
+    {
+      "label": "empty",
+      "args": [
+        ""
+      ],
+      "result": false
+    }
+  ]
+}
