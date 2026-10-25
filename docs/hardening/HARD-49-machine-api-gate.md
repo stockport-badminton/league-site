@@ -68,6 +68,15 @@ from before everything moved behind the superadmin UI. The evidence agrees:
 - **No Cloud Scheduler job targets one** (all 13 listed), and every Make.com scenario has been
   disabled since 15 Sep 2026.
 
+**Not to be confused with the public JSON API, which IS used.** `GET /fixtures/*`
+(`fixture_detail_byDivision`) is a separate, ungated route. It answers **JSON for any
+path containing `fixtures`**, whatever the `Accept` header says, and renders the page for
+`/results/*`. The Remnants club site (`~/remnants-badminton`,
+`scripts/scrape-fixtures.mjs` and `scripts/build-calendars.mjs`) reads
+`/fixtures/club-Remnants` from it: 60 requests in the same 30 days, all 200. It is not
+behind `checkJwt` and must survive this package. When REARCH-04 declares route access, it
+is `access.public` on purpose, with that consumer named.
+
 Three independent sources, none of them a time window alone. **Recommendation: remove the
 37 route lines** rather than fix the gate. Removing them also removes the `PATCH /team/:id`
 body-to-SQL problem. Some handlers are shared with live routes —
