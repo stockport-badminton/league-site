@@ -2,10 +2,6 @@ var Venue = require('../models/venue');
 var { generateVenuesMap } = require('../utils/venues-map-generator');
 const { canonicalFor } = require('../utils/canonical');
 
-function isSuperadmin(req) {
-  return req.user?._json?.['https://my-app.example.com/role'] === 'superadmin';
-}
-
 // Fire-and-forget: never awaited by callers, never blocks/fails the CRUD
 // response. Logged rather than thrown so a Google Static Maps hiccup can't
 // break venue create/update/delete.
@@ -39,7 +35,6 @@ exports.venue_list = async function(req, res, next) {
 // covers the case where the fire-and-forget regen above failed, or an
 // admin wants to force a rebuild without a data change.
 exports.venues_map_refresh = async function(req, res, next) {
-  if (!isSuperadmin(req)) return res.status(403).send('Access denied');
 
   try {
     await generateVenuesMap();

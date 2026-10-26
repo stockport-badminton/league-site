@@ -158,10 +158,6 @@ exports.new_messer_draw = async function(req, res, next) {
 // (mirrors the homepage-content pattern; role enforced in-controller)
 // ---------------------------------------------------------------------------
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
 // Editable team fields from the form. name/club/division/venue are required;
 // rank/divRank are NOT NULL in the DB and managed by the controller (defaulted
 // on create, recomputed on division change), so they are not in this object.
@@ -199,7 +195,6 @@ function buildTeamObj(body) {
 }
 
 exports.admin_team_list = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [teams, divisionRows, clubs, tableRows, withdrawn] = await Promise.all([
       Team.getAll(), Division.getAll(), Club.getAll(), League.getAllLeagueTables(),
@@ -267,7 +262,6 @@ exports.admin_team_list = async function(req, res, next) {
 };
 
 exports.admin_team_createForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [clubs, divisions, venues, teams] = await Promise.all([
       Club.getAll(), Division.getAll(), Venue.getAll(), Team.getAll()
@@ -312,7 +306,6 @@ exports.admin_team_createForm = async function(req, res, next) {
 };
 
 exports.admin_team_create = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const teamObj = buildTeamObj(req.body);
     if (!teamObj.name) return res.status(400).send('Team name is required');
@@ -331,7 +324,6 @@ exports.admin_team_create = async function(req, res, next) {
 };
 
 exports.admin_team_editForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [team] = await Team.getById(req.params.id);
     if (!team) return res.status(404).send('Not found');
@@ -354,7 +346,6 @@ exports.admin_team_editForm = async function(req, res, next) {
 };
 
 exports.admin_team_update = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [existing] = await Team.getById(req.params.id);
     if (!existing) return res.status(404).send('Not found');
@@ -389,7 +380,6 @@ exports.admin_team_update = async function(req, res, next) {
 // One-click promote (up) / relegate (down): move a team to the adjacent
 // division by rank within its own league.
 exports.admin_team_move = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [team] = await Team.getById(req.params.id);
     if (!team) return res.status(404).send('Not found');
@@ -425,7 +415,6 @@ exports.admin_team_move = async function(req, res, next) {
 // ---------------------------------------------------------------------------
 
 exports.admin_team_withdrawForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const impact = await League.getWithdrawalImpact(req.params.id);
     if (!impact) return res.status(404).send('Not found');
@@ -444,7 +433,6 @@ exports.admin_team_withdrawForm = async function(req, res, next) {
 };
 
 exports.admin_team_withdraw = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const impact = await League.getWithdrawalImpact(req.params.id);
     if (!impact) return res.status(404).send('Not found');
@@ -493,7 +481,6 @@ exports.admin_team_withdraw = async function(req, res, next) {
 };
 
 exports.admin_team_reinstate = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     await League.reinstateTeam(req.params.id);
     res.redirect('/admin/teams');

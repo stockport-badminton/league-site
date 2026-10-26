@@ -214,14 +214,18 @@ is ever revisited, 2.17.7 is the floor.
   - `_json['https://my-app.example.com/messeradmin']` — boolean flag for messer admin
 
 
-### Secured Routes
+### Route access (REARCH-04)
 
-Use `/middleware/secured.js` middleware for auth-gated pages:
+Every route starts with one declaration from `middleware/access.js`, and
+`docs/routes.md` lists them all:
 ```javascript
-router.get('/scorecard-beta', secured, scorecard_controller.scorecard_beta);
+router.get('/scorecard-beta', access.member, scorecard_controller.scorecard_beta);
+router.get('/admin/spam', access.superadmin, spam_admin_controller.form);
 ```
 
-**Behavior**:
+`access.member` (and every level built on it) runs `middleware/secured.js`.
+
+**`secured`'s behaviour**:
 - If authenticated, proceeds
 - If **DEV_MODE=true** and **NODE_ENV ≠ production**, injects mock user (any role/permissions)
 - Otherwise redirects to `/login`

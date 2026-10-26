@@ -233,10 +233,6 @@ exports.club_detail = async function(req, res, next) {
 // Superadmin admin UI — add / edit clubs (mirrors the homepage-content pattern)
 // ---------------------------------------------------------------------------
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
 // Build a {column: value} object from the club form. name is required; every
 // other field becomes null when left blank so edits can clear values. FK/int
 // columns are coerced to integers. matchSec/clubSec are intentionally excluded
@@ -255,7 +251,6 @@ function buildClubObj(body) {
 }
 
 exports.admin_club_list = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const clubs = await Club.getAll();
     res.render('admin/club-list', {
@@ -272,7 +267,6 @@ exports.admin_club_list = async function(req, res, next) {
 };
 
 exports.admin_club_createForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const venues = await Venue.getAll();
     res.render('admin/club-form', {
@@ -290,7 +284,6 @@ exports.admin_club_createForm = async function(req, res, next) {
 };
 
 exports.admin_club_create = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const clubObj = buildClubObj(req.body);
     if (!clubObj.name) return res.status(400).send('Club name is required');
@@ -302,7 +295,6 @@ exports.admin_club_create = async function(req, res, next) {
 };
 
 exports.admin_club_editForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [club] = await Club.getById(req.params.id);
     if (!club) return res.status(404).send('Not found');
@@ -322,7 +314,6 @@ exports.admin_club_editForm = async function(req, res, next) {
 };
 
 exports.admin_club_update = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const clubObj = buildClubObj(req.body);
     if (!clubObj.name) return res.status(400).send('Club name is required');

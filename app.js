@@ -38,6 +38,8 @@ if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
 // IP blacklist below has been comparing a Google internal address against a list of
 // spammers and matching nothing since the day it was written.
 const { clientIp: getClientIp } = require('./utils/clientIp');
+// Who may call each route — the first middleware of every route here and in routes/ (REARCH-04).
+const access = require('./middleware/access');
 
 var app = express();
 
@@ -188,7 +190,7 @@ app.set('views', __dirname + '/views');
 // Must be registered before the `rootfiles` static mount below, or that
 // mount shadows this route and the service worker never gets a fresh
 // per-deploy cache version.
-app.get('/sw.js', function(req, res) {
+app.get('/sw.js', access.public, function(req, res) {
   res.set('Content-Type', 'application/javascript');
   res.set('Cache-Control', 'no-cache');
   res.render('sw', { cacheVersion: process.env.K_REVISION || 'dev-local' });
@@ -200,7 +202,7 @@ app.get('/sw.js', function(req, res) {
 // path so the service worker's existing /static/generated/* caching rule
 // applies with no changes.
 var venuesMapS3 = new S3Client({ region: 'eu-west-1' });
-app.get('/static/generated/venues-map.png', async function(req, res) {
+app.get('/static/generated/venues-map.png', access.public, async function(req, res) {
   try {
     var obj = await venuesMapS3.send(new GetObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME,
@@ -269,8 +271,8 @@ async function healthCheck(req, res) {
   }
 }
 
-app.get('/health', healthCheck);
-app.get('/healthz', healthCheck);
+app.get('/health', access.public, healthCheck);
+app.get('/healthz', access.public, healthCheck);
 
 // Where the report-only CSP sends its violations.
 //
@@ -305,7 +307,7 @@ function logSafe(value) {
 // scripts; webkit-masked-url: is what Safari substitutes for one rather than naming it.
 var IGNORED_SCHEMES = /^(?:(?:chrome|moz|safari|safari-web|ms-browser)-extension|webkit-masked-url|about):/i;
 
-app.post('/csp-report', require('./middleware/rateLimit').cspReportLimiter, cspBodyParser, function(req, res) {
+app.post('/csp-report', access.public, require('./middleware/rateLimit').cspReportLimiter, cspBodyParser, function(req, res) {
   // Answer first and unconditionally. A report endpoint that can 4xx teaches a browser
   // nothing useful and gives an attacker a probe; there is nothing for the client to do
   // with the answer either way.
@@ -358,7 +360,7 @@ app.use(express.static('rootfiles'));
 // livePollLimiter in middleware/rateLimit.js for why a sports hall's worth of phones on one
 // IP cannot share the sitewide budget. A GET with its token in the query, so it needs no
 // body parser and no session.
-app.get('/api/live-scorecard/:id/state',
+app.get('/api/live-scorecard/:id/state', access.token('live-scorecard link'),
   require('./middleware/rateLimit').livePollLimiter,
   require('./controllers/liveScorecardController').state);
 

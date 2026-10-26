@@ -26,9 +26,7 @@ const { buildMissedThreeNotice } = require('../utils/missedThreeEmail');
 const mailer = require('../utils/mailer');
 const { rateFixtureGames } = require('../utils/eloChain');
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
+const { isSuperAdmin } = require('../middleware/requireClubAccess');
 
 // Club admins see only their own club's stats; superadmins (club 'All') and
 // users with no role see everything. Mutates searchObj in place. Reads the
@@ -561,13 +559,6 @@ exports.player_update_post = async function(req, res, next) {
 };
 
 exports.player_elo_populate = async function(req, res, next) {
-  // Was reachable by anyone: the route carries no `secured` and this had no check of
-  // its own, so any visitor could rewrite ELO values. Same gate as the other ELO tools.
-  const isSuperAdmin = req.user &&
-    req.user._json['https://my-app.example.com/role'] === 'superadmin'
-  if (!isSuperAdmin && !(process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production')) {
-    return res.status(403).send('Forbidden')
-  }
   try {
     const rows = await Fixture.getFixtureDetails({ "status": "complete", "type": "eloSetting" });
     let totalFixtures = rows.length
@@ -648,9 +639,6 @@ exports.player_elo_populate = async function(req, res, next) {
 }
 
 exports.player_stats_debug = async function(req, res, next) {
-  if (process.env.DEV_MODE !== 'true' || process.env.NODE_ENV === 'production') {
-    return res.status(404).send('Not found')
-  }
   try {
     const rawResult = await Player.newGetPlayerStats({})
     const playerGroups = {}
@@ -679,9 +667,6 @@ exports.player_stats_debug = async function(req, res, next) {
 // Shows raw Start/End ELO values from game records for a player across all seasons,
 // in chronological order. Use this to diagnose whether the stored values are correct.
 exports.player_elo_raw = async function(req, res, next) {
-  if (process.env.DEV_MODE !== 'true' || process.env.NODE_ENV === 'production') {
-    return res.status(404).send('Not found')
-  }
   try {
     const playerId = parseInt(req.params.playerId, 10)
     const db = require('../db_connect')
@@ -734,9 +719,6 @@ exports.player_elo_raw = async function(req, res, next) {
 // Scans all current-season games in date order and reports cases where a
 // player's start rating doesn't match the end rating from their previous game.
 exports.player_elo_audit = async function(req, res, next) {
-  if (process.env.DEV_MODE !== 'true' || process.env.NODE_ENV === 'production') {
-    return res.status(404).send('Not found')
-  }
   try {
     const games = await Game.getSeasonGamesOrdered()
 
@@ -876,11 +858,6 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
 // Zeros ELO for one season then reprocesses every complete fixture in date order.
 // Omit ?season to target the current season.
 exports.player_elo_full_recalc = async function(req, res, next) {
-  const isSuperAdmin = req.user &&
-    req.user._json['https://my-app.example.com/role'] === 'superadmin'
-  if (!isSuperAdmin && !(process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production')) {
-    return res.status(403).send('Forbidden')
-  }
   try {
     const seasonParam = req.query.season || undefined
     const result = await recalcSeasonElo(seasonParam)
@@ -895,11 +872,6 @@ exports.player_elo_full_recalc = async function(req, res, next) {
 // across season boundaries.  Ratings carry over: each season seeds from the
 // previous season's final game ratings.
 exports.player_elo_backfill_all = async function(req, res, next) {
-  const isSuperAdmin = req.user &&
-    req.user._json['https://my-app.example.com/role'] === 'superadmin'
-  if (!isSuperAdmin && !(process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production')) {
-    return res.status(403).send('Forbidden')
-  }
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Transfer-Encoding', 'chunked')
   res.setHeader('X-Content-Type-Options', 'nosniff')

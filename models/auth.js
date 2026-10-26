@@ -46,7 +46,6 @@ exports.getUserByAuthId = async function(userId) {
 // player row to link them to before anything is written.
 exports.approve_signup_get = async function(req, res, next) {
   try {
-    if (!isSuperAdmin(req)) return res.status(403).send('Forbidden')
     const user = await module.exports.getUserByAuthId(req.params.userId)
     if (!user) return next('No matching Auth0 user found')
     const existingLink = await Player.getAuthRoleByEmail(user.email)
@@ -71,7 +70,6 @@ exports.approve_signup_get = async function(req, res, next) {
 // was chosen.
 exports.approve_signup_post = async function(req, res, next) {
   try {
-    if (!isSuperAdmin(req)) return res.status(403).send('Forbidden')
     const user = await module.exports.getUserByAuthId(req.params.userId)
     if (!user) return next('No matching Auth0 user found')
 

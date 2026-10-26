@@ -1,12 +1,7 @@
 var SiteSettings = require('../models/siteSettings');
 const { canonicalFor } = require('../utils/canonical');
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
 exports.form = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const settings = await SiteSettings.getAll();
     res.render('admin/site-settings-form', {
@@ -22,7 +17,6 @@ exports.form = async function(req, res, next) {
 };
 
 exports.update = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     await SiteSettings.set('homepage_gallery_tag', req.body.homepage_gallery_tag || '');
     res.redirect('/admin/site-settings');

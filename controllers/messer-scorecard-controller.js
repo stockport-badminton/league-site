@@ -5,7 +5,7 @@ const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
-const { isMesserAdmin: isMesserAdminUser, userEmail } = require('../utils/sessionUser');
+const { userEmail } = require('../utils/sessionUser');
 const { normalisePhotoUrl, isPhotoUrl } = require('../utils/scorecardLinks');
 const { sendPhoto } = require('../utils/scorecardPhoto');
 
@@ -491,16 +491,6 @@ exports.messer_teams_by_section = async function(req, res, next) {
 // GET /messer-results — list pending submissions (admin only)
 exports.messer_results_list = async function(req, res, next) {
   try {
-    // Verify only Neil can access this
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
-      return res.status(403).render('403-error', {
-        static_path: '/static',
-        pageTitle: 'Access Denied',
-        pageDescription: 'Access Denied',
-        canonical: canonicalFor(req),
-      });
-    }
-
     const results = await Fixture.listMesserScorecardsForApproval();
     res.render('messer-results-list', {
       static_path: '/static',
@@ -522,7 +512,6 @@ exports.messer_results_list = async function(req, res, next) {
 // reason GET /scorecard-photo/:id is.
 exports.messer_scorecard_photo = async function(req, res, next) {
   try {
-    if (!isMesserAdmin(req)) return res.status(403).end();
     const rows = await Fixture.getMesserScorecardById(req.params.id);
     if (!rows || !rows.length) return res.status(404).end();
     return await sendPhoto(res, rows[0]['scoresheet-url']);
@@ -534,16 +523,6 @@ exports.messer_scorecard_photo = async function(req, res, next) {
 // GET /messer-result/:id — view detail (admin only)
 exports.messer_result_detail = async function(req, res, next) {
   try {
-    // Verify only Neil can access this
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
-      return res.status(403).render('403-error', {
-        static_path: '/static',
-        pageTitle: 'Access Denied',
-        pageDescription: 'Access Denied',
-        canonical: canonicalFor(req),
-      });
-    }
-
     const scorecardId = req.params.id;
     const scorecard = await Fixture.getMesserScorecardById(scorecardId);
 
@@ -587,11 +566,6 @@ exports.messer_result_detail = async function(req, res, next) {
 // POST /messer-result/:id/approve — approve and write to messer table
 exports.messer_result_approve = async function(req, res, next) {
   try {
-    // Verify only Neil can approve
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const scorecardId = req.params.id;
     const scorecard = await Fixture.getMesserScorecardById(scorecardId);
 
@@ -741,11 +715,6 @@ exports.messer_result_approve = async function(req, res, next) {
 // POST /messer-result/:id/reject — reject submission
 exports.messer_result_reject = async function(req, res, next) {
   try {
-    // Verify only Neil can reject
-    if (req.user._json["https://my-app.example.com/role"] !== 'superadmin' && !req.user._json["https://my-app.example.com/messeradmin"]) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const scorecardId = req.params.id;
 
     // Fetch the scorecard to get details
@@ -827,10 +796,6 @@ exports.messer_result_reject = async function(req, res, next) {
 
 // ── Admin: wire up the messer bracket ────────────────────────────────────
 
-function isMesserAdmin(req) {
-  return isMesserAdminUser(req.user);
-}
-
 // Sanity-check a section's wiring; returns an array of human-readable warnings.
 function validateBracket(rows) {
   const warnings = [];
@@ -868,7 +833,6 @@ function validateBracket(rows) {
 
 // GET /admin/messer-bracket — pick a section
 exports.messer_bracket_landing = async function(req, res, next) {
-  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
   try {
     res.render('admin/messer-bracket-landing', {
       static_path: '/static',
@@ -883,7 +847,6 @@ exports.messer_bracket_landing = async function(req, res, next) {
 
 // GET /admin/messer-bracket/:section — edit the wiring for a section
 exports.messer_bracket_edit = async function(req, res, next) {
-  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const section = (req.params.section || '').toUpperCase().charAt(0);
     if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
@@ -908,7 +871,6 @@ exports.messer_bracket_edit = async function(req, res, next) {
 
 // POST /admin/messer-bracket/:section — save the wiring
 exports.messer_bracket_save = async function(req, res, next) {
-  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const section = (req.params.section || '').toUpperCase().charAt(0);
     if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
@@ -963,7 +925,6 @@ exports.messer_bracket_save = async function(req, res, next) {
 // Swap button the draw page shows a messer admin. The outcome goes back as a code
 // rather than text, so nothing from the request is echoed into the page.
 exports.messer_draw_swap = async function(req, res, next) {
-  if (!isMesserAdmin(req)) return res.status(403).send('Forbidden');
   const section = (req.params.section || '').toUpperCase().charAt(0);
   if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
   const id = parseInt(req.params.id, 10);

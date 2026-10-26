@@ -10,12 +10,7 @@ const SANITIZE_OPTS = {
   }
 };
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
 exports.list = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const announcements = await HomepageContent.getAll();
     res.render('admin/homepage-content-list', {
@@ -31,7 +26,6 @@ exports.list = async function(req, res, next) {
 };
 
 exports.createForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   res.render('admin/homepage-content-form', {
     static_path: '/static',
     pageTitle: 'New Announcement',
@@ -42,7 +36,6 @@ exports.createForm = async function(req, res, next) {
 };
 
 exports.create = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     await HomepageContent.create({
       title: req.body.title,
@@ -60,7 +53,6 @@ exports.create = async function(req, res, next) {
 };
 
 exports.editForm = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const announcement = await HomepageContent.getById(req.params.id);
     if (!announcement) return res.status(404).send('Not found');
@@ -77,7 +69,6 @@ exports.editForm = async function(req, res, next) {
 };
 
 exports.update = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     await HomepageContent.updateById(req.params.id, {
       title: req.body.title,
@@ -95,7 +86,6 @@ exports.update = async function(req, res, next) {
 };
 
 exports.remove = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     await HomepageContent.deleteById(req.params.id);
     res.redirect('/admin/homepage-content');

@@ -4,12 +4,7 @@ const ExcelJS = require('exceljs');
 const { scrapeAll, OUTPUT_PATH } = require('../utils/shuttle-scraper');
 const { canonicalFor } = require('../utils/canonical');
 
-function isSuperadmin(req) {
-  return req.user?._json?.['https://my-app.example.com/role'] === 'superadmin';
-}
-
 exports.shuttlePrices = async function(req, res, next) {
-  if (!isSuperadmin(req)) return res.status(403).send('Access denied');
 
   let data = null;
   try {
@@ -30,7 +25,6 @@ exports.shuttlePrices = async function(req, res, next) {
 };
 
 exports.exportPrices = async function(req, res, next) {
-  if (!isSuperadmin(req)) return res.status(403).send('Access denied');
 
   let data;
   try {
@@ -164,7 +158,6 @@ exports.exportPrices = async function(req, res, next) {
 };
 
 exports.refreshPrices = async function(req, res, next) {
-  if (!isSuperadmin(req)) return res.status(403).send('Access denied');
 
   try {
     await scrapeAll();

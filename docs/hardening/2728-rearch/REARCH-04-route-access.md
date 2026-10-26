@@ -109,19 +109,54 @@ did not exist for any of the five above.
    also shadowed `GET /player/create`, which now renders, and is now superadmin-only like
    its POST. `__tests__/integration/scaffold-routes-removed.test.js` covers all of this.
    `/league/create` and `/club/create` now fall through to the real `GET /league/:id` and
-   `GET /club/:id`.
-1. `middleware/access.js` and the walker test, with the walker initially **reporting**,
-   not failing. The walker reads `router.stack` from `require('./routes')` (and `app`'s
-   own stack for the 6 in `app.js`); requiring the router under `__tests__/setup.js` is
-   enough, no server needed. Note that `requireCronCaller(...)` returns an anonymous
-   closure, so the walker cannot name today's gates from `fn.name` — `access.*` should tag
-   its middleware (e.g. a `.access` property) so the table reads the declaration, not a
-   guess.
-2. Declare every route. Mechanical for the ~120 with gating middleware already; the
-   in-handler superadmin routes need reading. For every route currently with nothing, write
-   down in the PR why it is public, or gate it. Expect to find at least one surprise — every
-   previous pass did.
-3. Flip the walker to failing. Commit `docs/routes.md`.
+   `GET /club/:id`. That leaves **214 routes**: 208 in `routes/index.js` and 6 in `app.js`.
+1. ✓ **Done 26 Oct 2026.** `middleware/access.js` provides `public`, `member`,
+   `superadmin`, `messerAdmin`, `clubScoped`, `cron(gate)`, `publish`, `sns`, `devOnly` and
+   `token(what)`, each tagged `.access`. `access.cron()` accepts only a gate built by
+   `requireCronCaller`, which now marks its output with `.cronEnvVar`. `access.sns` is the
+   one level that carries a limiter and a body parser (`webhookLimiter`, `multer().none()`,
+   `verifySns`, in the order `/mail` and `/ses-events` already had), because verifying
+   needs the body. The walker is `__tests__/helpers/routeTable.js`, tested on a small app
+   in `__tests__/unit/routeTable.test.js`. It reads the `.access` tag, not `fn.name`:
+   `requireCronCaller` returns an anonymous closure.
+2. ✓ **Done 26 Oct 2026.** All 214 routes are declared: 67 public, 65 superadmin, 38
+   member, 9 messerAdmin, 6 clubScoped, 14 cron, 8 token (3 draft link, 5 live
+   scorecard), 4 devOnly, 2 sns, 1 publish. The in-handler checks the declaration now
+   covers are deleted: 32 superadmin guards across 8 controllers and `models/auth.js`,
+   the 9 Messer checks, the 3 ELO "superadmin or dev" checks and the 3 `/dev/*`
+   `DEV_MODE` checks. Of the 8 private `isSuperAdmin`/`isSuperadmin` copies, 7 are
+   deleted and `playerController`'s is now an import.
+   `utils/authz.js` re-exports `requireClubAccess.isSuperAdmin`, and
+   `adminNavCounts` uses it. Checks that show a superadmin *more*
+   (`player_update_*`, `club_roster`, `club_picker`) stay in the handler, through the
+   shared helper.
+   - **Behaviour changes, all deliberate:** a refused caller now gets the central 403
+     page (or the `/api/` JSON) instead of each handler's own `Forbidden` text. An
+     anonymous visitor to a superadmin route is sent to log in rather than refused.
+     `GET /players/eloPop` (no route gate, only a check in the handler) and
+     `GET /players/eloBackfillAdmin` (a `secured` admin page with no role check) are
+     now `access.superadmin`. On `POST /scorecard-beta` the gate moved ahead of
+     `publicFormLimiter`.
+   - **For the owner to decide** (left as they are, declared honestly):
+     - `POST /email-scorecard` is public while `GET /email-scorecard` is `secured`. It
+       files a draft and emails the results secretary. Gating it risks losing a captain's
+       result when a session expires mid-form, the trade-off `requirePublishAuthority`
+       documents.
+     - `GET /club-api/:id` (any member) returns decrypted officer contacts for any club.
+       That's the same data as the member-only `/club/:id` page, so it's no new exposure.
+       But nothing calls it now, because the reminder modal moved to
+       `/fixture/:id/reminder-contacts`.
+     - `GET /team/:id` and `GET /league/:id` are public JSON from the old scaffold, with
+       `selectAll()` and no caller. No personal data today, but any column added to
+       `team` or `league` would be published automatically.
+     - `GET /sign-s3` still lets an anonymous caller upload a JPEG to `scorecards/`. This
+       is a known residual, documented on the route.
+3. ✓ **Done 26 Oct 2026.** `route-access.test.js` fails on a route with no declaration,
+   one that is not first, or two. It also fails when `docs/routes.md` differs from the
+   live table. Regenerate with `UPDATE_ROUTE_TABLE=1 npx jest route-access`. Both
+   failure modes were demonstrated: removing `GET /rules`'s declaration fails the
+   coverage check, and downgrading `GET /admin/spam` to `member` fails as a one-line
+   table diff.
 4. **Split `routes/index.js` by area** — `results`, `scorecard`, `messer`, `rosters`,
    `registrations`, `social`, `admin`, `email`, `static`, `api`. Pure moves, one PR, with the
    route table proving no route changed path or access. Do this early in the programme:

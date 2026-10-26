@@ -119,11 +119,13 @@ describe('GET /playerStats/:id/:fullName', () => {
 });
 
 // /players/eloPop rewrites ELO values and had no gate at all: no `secured` on the route
-// and no check in the handler. It answered anybody.
+// and no check in the handler. It answered anybody. Since REARCH-04 the route declares
+// access.superadmin, so an anonymous visitor is sent to log in rather than refused.
 describe('GET /players/eloPop', () => {
-  it('refuses a visitor who is not a superadmin, without touching anything', async () => {
+  it('turns away a visitor who is not logged in, without touching anything', async () => {
     const res = await request(app).get('/players/eloPop');
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/^\/login/);
     expect(Fixture.getFixtureDetails).not.toHaveBeenCalled();
     expect(Game.updateById).not.toHaveBeenCalled();
   });

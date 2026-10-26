@@ -80,8 +80,13 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 
 ## Auth
 
-- Session cookie must be `__session` (Firebase). Gate pages with `middleware/secured.js`;
-  club-scoped endpoints also need `requireClubAccess`.
+- Session cookie must be `__session` (Firebase).
+- **Every route's first middleware is exactly one `access.*`** (`middleware/access.js`):
+  `public`, `member`, `superadmin`, `messerAdmin`, `clubScoped`, `cron(gate)`, `publish`,
+  `sns`, `devOnly`, `token(what)`. A limiter goes after it. Then
+  `UPDATE_ROUTE_TABLE=1 npx jest route-access` and read the `docs/routes.md` diff.
+- A role check stays in a handler only when a superadmin sees *more* there; use
+  `isSuperAdmin` from `middleware/requireClubAccess.js`, never a new copy.
 - `DEV_MODE=true` with `NODE_ENV≠production` injects a mock superadmin/messeradmin user.
 - **`req.user.email` does not exist.** Use `userEmail(req.user)` from `utils/sessionUser.js`.
 - Role: `req.user._json['https://my-app.example.com/role']`; Messer admin:

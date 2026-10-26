@@ -15,7 +15,6 @@ const { isSuperAdmin } = require('../utils/authz');
 const KINDS = ['ip', 'email', 'phrase', 'word'];
 
 exports.form = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const [entries, stats, recent] = await Promise.all([
       Spam.list(),
@@ -41,7 +40,6 @@ exports.form = async function(req, res, next) {
 };
 
 exports.add = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const kind = String(req.body.kind || '').trim();
     const value = String(req.body.value || '').trim();
@@ -76,7 +74,6 @@ exports.add = async function(req, res, next) {
 };
 
 exports.toggle = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).send('Forbidden');
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) {

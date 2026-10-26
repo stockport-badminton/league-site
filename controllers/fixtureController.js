@@ -490,15 +490,10 @@ exports.fixture_rearrange_by_team_name = async function(req, res, next) {
 }
 
 
-function isSuperAdmin(req) {
-  return !!(req.user && req.user._json && req.user._json['https://my-app.example.com/role'] === 'superadmin');
-}
-
 // Inline date edit from the admin results grid (session-secured, superadmin only).
 // Edits the existing fixture's date in place — distinct from the rearrangement flow,
 // which archives the old fixture and inserts a new one.
 exports.admin_fixture_date_update = async function(req, res, next) {
-  if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   const date = (req.body.date || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'Invalid date — expected YYYY-MM-DD' });
