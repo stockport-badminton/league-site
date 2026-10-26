@@ -53,7 +53,8 @@ starts with `auth`. What is there, and what was decided on the way:
 function), `game` except the two below, `liveScorecard`, `roster`, `clubRegistration`'s writes, `league`, `players` except the five below and REARCH-02's
 five (eight dead functions deleted first), `fixture` except the eleven below and REARCH-02's
 two (two dead functions deleted first). `auth` has no SQL. **Step 2 is complete for
-everything outside the off-season list and REARCH-02.**
+everything outside the off-season list and REARCH-02** — so nothing of REARCH-01 is left
+in-season; step 3 below waits for May 2027.
 
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
@@ -72,16 +73,15 @@ list step 3 must clear before `pgQuery` can go:
 
 **`messer_scorecard."scoresheet-url"` needed one too (027).** It was in migration 003, but
 003's first statement now hits "already exists" and the replay rule ends the file, so a
-Messer scorecard could be filed only in production. **Production still needs 027
-recorded**, the same no-op way as 026.
+Messer scorecard could be filed only in production. Recorded in production 25 Oct 2026
+(23:32), the same no-op way as 026.
 
 **`league.getAnnualInvoices` needed a migration first.** It reads `season."clubFee"`,
 which production had (`bigint NOT NULL DEFAULT 15`) and no migration created, so neither
 the generated types nor any local database had it and the query ran nowhere else.
-Migration 026 adds it with `IF NOT EXISTS`. **Production still needs it recorded:**
-`node run-migration.js 026_season_club_fee.sql` — a no-op against the existing column
-that only writes the `schema_migrations` row (the agent doing this was not permitted to
-run it; `--status` shows whether it has been).
+Migration 026 adds it with `IF NOT EXISTS`, a no-op against production's existing column
+that only wrote the `schema_migrations` row; recorded 25 Oct 2026 (22:50), confirmed by
+`node run-migration.js --status --prod` on 26 Oct.
 
 **Found while converting, and converted as they behave — each needs its own decision:**
 
