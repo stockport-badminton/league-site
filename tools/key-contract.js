@@ -33,7 +33,7 @@
 // Read-only. It calls nothing whose name suggests a write, because DATABASE_URL is
 // production. Model stdout is silenced: models/players.js logs its SQL and that SQL has
 // DB_PI_KEY interpolated as a literal (HARD-27), so running it would print the key.
-// Production by default; see tools/lib/loadEnv.js for why the order matters.
+// The local database unless --prod is given; see tools/lib/loadEnv.js.
 require('./lib/loadEnv').loadEnv();
 
 const fs = require('fs');

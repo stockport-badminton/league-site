@@ -18,8 +18,7 @@
 //
 // 2. It called dotenv directly, which loads `.env` and nothing else — so it could only
 //    ever target PRODUCTION, with no way to rehearse. It goes through tools/lib/loadEnv
-//    like every other tool now: production by default, `--local` to ask for the
-//    development database deliberately.
+//    like every other tool now: the local database by default, `--prod` for production.
 //
 // 3. Nothing recorded which migrations had run (HARD-32). Re-applying was safe only
 //    because the files say IF NOT EXISTS, and "has this run against production yet?" was
@@ -28,11 +27,11 @@
 //    and a file edited since it ran is refused rather than reported as done.
 //
 // usage:
-//   node run-migration.js <file.sql> [--local]                 apply it, and record it
-//   node run-migration.js <file.sql> --record-only [--local]   record it WITHOUT running it,
+//   node run-migration.js <file.sql> [--prod]                  apply it, and record it
+//   node run-migration.js <file.sql> --record-only [--prod]    record it WITHOUT running it,
 //                                                              for a file the schema shows
 //                                                              already applied
-//   node run-migration.js --status [--local]                   every file against the record
+//   node run-migration.js --status [--prod]                    every file against the record
 
 const fs = require('fs');
 const path = require('path');
@@ -162,17 +161,17 @@ function targetHost() {
 }
 
 async function main(args) {
-  const local = args.includes('--local');
   const recordOnly = args.includes('--record-only');
   const file = args.filter(a => !a.startsWith('--'))[0];
 
-  require('./tools/lib/loadEnv').loadEnv({ local });
+  const { prod } = require('./tools/lib/loadEnv').loadEnv({ argv: args });
+  const label = prod ? '  (PRODUCTION)' : '  (local)';
   const db = require('./db_connect');
   db.connect();
   const conn = await db.otherConnect();
 
   if (args.includes('--status')) {
-    console.log(`target: ${targetHost()}${local ? '  (--local)' : ''}`);
+    console.log(`target: ${targetHost()}${label}`);
     const s = await status(conn);
     if (!s.hasLedger) console.log(`no schema_migrations table: apply ${LEDGER_MIGRATION} first`);
     for (const f of s.files) {
@@ -183,7 +182,7 @@ async function main(args) {
   }
 
   if (!file) {
-    console.error('usage: node run-migration.js <file.sql> [--record-only] [--local] | --status [--local]');
+    console.error('usage: node run-migration.js <file.sql> [--record-only] [--prod] | --status [--prod]');
     process.exit(1);
   }
   const full = path.join(MIGRATIONS, file);
@@ -193,7 +192,7 @@ async function main(args) {
   }
 
   console.log(`${recordOnly ? 'Recording' : 'Running'} migration: ${file}`);
-  console.log(`  target: ${targetHost()}${local ? '  (--local)' : ''}`);
+  console.log(`  target: ${targetHost()}${label}`);
   const outcome = await applyMigration(conn, file, fs.readFileSync(full), { recordOnly });
   if (outcome === 'applied') console.log(`✓ Migration ${file} completed successfully, and recorded`);
 }

@@ -10,9 +10,11 @@ const schema = require('./schema');
 
 // Under test, __tests__/setup.js declares the whole environment, so nothing is inherited
 // from .env (HARD-26). The browser suite's server has already loaded exactly what it
-// should in e2e/server-env.js, and loading .env again would put back every undeclared
-// secret that file kept out.
-if (process.env.NODE_ENV !== 'test' && process.env.E2E_SERVER !== '1') require('dotenv').config();
+// should in e2e/server-env.js, and a tool has loaded exactly one file through
+// tools/lib/loadEnv.js; loading .env again would put back what they kept out.
+if (process.env.NODE_ENV !== 'test' && process.env.E2E_SERVER !== '1' && process.env.CONFIG_ENV_LOADED !== '1') {
+  require('dotenv').config();
+}
 
 function isAbsent(entry, raw) {
   return raw === undefined || (raw === '' && !entry.emptyIsValue);

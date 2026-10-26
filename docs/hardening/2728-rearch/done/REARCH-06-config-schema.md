@@ -1,6 +1,6 @@
 # REARCH-06 — environment variables declared in one place
 
-**Status:** ✓ Done 26 Oct 2026. The `--target` question below is still open.
+**Status:** ✓ Done 26 Oct 2026. The `--target` question below: Neil chose local by default with `--prod` to ask for production (done the same day).
 
 **Size:** S · **Window:** in-season OK
 **Blocked by:** nothing.

@@ -12,23 +12,34 @@
 // numbers.
 //
 // So the ordering is no longer something each tool gets right or wrong: it lives in
-// tools/lib/loadEnv.js, production is the default, and asking for the development
-// database is explicit (`dbq --local`). This asserts nothing drifts back.
+// tools/lib/loadEnv.js. Since 26 Oct 2026 the local database is the default and production
+// is asked for with --prod. This asserts nothing drifts back.
 
 const fs = require('fs');
 const path = require('path');
 
 const TOOLS = path.join(__dirname, '../../tools');
 
-const files = fs.readdirSync(TOOLS)
-  .filter(f => f.endsWith('.js'))
+// Subfolders too: the sweep used to read tools/*.js only, and three tools under
+// fixture-import/ and gap-finder/ loaded .env themselves — one of them a writer.
+// local-db/sync.js reads the production URL on purpose (copying it is its job) and parses
+// .env rather than loading it; sentry/ needs only a Sentry token, given on its command line.
+const EXEMPT = ['local-db/sync.js', 'sentry/sentry-issues.js'];
+function walk(dir) {
+  return fs.readdirSync(path.join(TOOLS, dir), { withFileTypes: true }).flatMap(d => {
+    const rel = path.join(dir, d.name);
+    if (d.isDirectory()) return d.name === 'node_modules' || d.name === 'generated' ? [] : walk(rel);
+    return d.name.endsWith('.js') && !EXEMPT.includes(rel) && rel !== path.join('lib', 'loadEnv.js') ? [rel] : [];
+  });
+}
+const files = walk('')
   .map(f => ({ name: f, source: fs.readFileSync(path.join(TOOLS, f), 'utf8') }));
 
 const stripComments = src =>
   src.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
 
 describe('tools load their environment through one helper', () => {
-  const usingEnv = files.filter(f => /dev\.env|loadEnv/.test(stripComments(f.source)));
+  const usingEnv = files.filter(f => /dev\.env|\.env'|loadEnv|dotenv/.test(stripComments(f.source)));
 
   it('there are tools to check', () => {
     // If this reaches zero the sweep below is vacuous and would pass for ever.
@@ -45,10 +56,58 @@ describe('tools load their environment through one helper', () => {
     });
   }
 
-  // The helper itself is the one place allowed to care, and it must default to production.
-  it('the helper defaults to production and takes an explicit opt-in for local', () => {
-    const helper = fs.readFileSync(path.join(TOOLS, 'lib/loadEnv.js'), 'utf8');
-    const code = stripComments(helper);
-    expect(code).toMatch(/local \? \['dev\.env', '\.env'\] : \['\.env', 'dev\.env'\]/);
+  it('finds the subfolder tools', () => {
+    expect(usingEnv.map(f => f.name)).toEqual(expect.arrayContaining([
+      path.join('fixture-import', 'publish-fixtures.js'), path.join('gap-finder', 'dump.js'),
+    ]));
+  });
+});
+
+// Since 26 Oct 2026: local unless --prod. Run in a child, because loadEnv may exit.
+describe('tools/lib/loadEnv.js', () => {
+  const { spawnSync } = require('child_process');
+  const root = path.join(TOOLS, '..');
+  function run(opts, args = []) {
+    const code = `
+      const r = require('./tools/lib/loadEnv').loadEnv(${JSON.stringify(opts)});
+      console.log('@@' + JSON.stringify({ r, marker: process.env.CONFIG_ENV_LOADED,
+        host: (String(process.env.DATABASE_URL || '').match(/@([^:/?]+)/) || [])[1] || null }));`;
+    // A clean environment: the test process's own fake DATABASE_URL must not decide anything.
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME };
+    const p = spawnSync(process.execPath, ['-e', code, '--', ...args], { cwd: root, env, encoding: 'utf8' });
+    const line = (p.stdout || '').split('\n').find(l => l.startsWith('@@'));
+    return { status: p.status, stderr: p.stderr, out: line ? JSON.parse(line.slice(2)) : null };
+  }
+  const hasDevEnv = fs.existsSync(path.join(root, 'dev.env'));
+
+  it('defaults to local, and never reads .env to get there', () => {
+    const { status, stderr, out } = run({});
+    if (!hasDevEnv) {
+      // A clean checkout (CI): refusing is right, and it must not fall back to .env.
+      expect(status).toBe(2);
+      return expect(stderr).toMatch(/dev\.env not found/);
+    }
+    expect(stderr).toMatch(/local database/);
+    expect(out.r).toEqual({ local: true, prod: false });
+    expect(out.marker).toBe('1');
+    expect(out.host || '').not.toMatch(/supabase/);
+  });
+
+  it("ignores a caller's { local: false }: old scripts cannot default to production", () => {
+    const { out, status } = run({ local: false });
+    if (!hasDevEnv) return expect(status).toBe(2);
+    expect(out.r.prod).toBe(false);
+  });
+
+  it('refuses --prod for a local-only tool', () => {
+    const { status, stderr } = run({ localOnly: true }, ['--prod']);
+    expect(status).toBe(2);
+    expect(stderr).toMatch(/never runs against production/);
+  });
+
+  it('refuses to run a production-only tool without --prod, saying why', () => {
+    const { status, stderr } = run({ prodOnly: 'it reads the bucket.' });
+    expect(status).toBe(2);
+    expect(stderr).toMatch(/needs --prod: it reads the bucket/);
   });
 });

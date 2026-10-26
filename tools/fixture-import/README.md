@@ -18,7 +18,7 @@ in this folder is the worked 2026/27 example — replace its contents each seaso
 
 1. **Dump the skeleton** — pull every pairing + its fixture id from the DB:
    ```
-   node scripts/fixture-import/dump-skeleton.js
+   node tools/fixture-import/dump-skeleton.js --prod
    ```
    → writes `generated/skeleton.json`. Note the division ids it prints; the
    transcription and publish guard are scoped to those.
@@ -46,8 +46,9 @@ in this folder is the worked 2026/27 example — replace its contents each seaso
 5. **Publish** — dry-run first (default), then apply. Refuses on any blank/clash/
    out-of-season date; backs up current dates to `generated/` before writing:
    ```
-   node scripts/fixture-import/publish-fixtures.js approved.json            # dry run
-   node scripts/fixture-import/publish-fixtures.js approved.json --apply     # write
+   node tools/fixture-import/publish-fixtures.js approved.json --prod            # dry run
+   node tools/fixture-import/publish-fixtures.js approved.json --prod --apply    # write
+   (without --prod both run against the local database, to rehearse)
    ```
 
 ## Restore

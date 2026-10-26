@@ -1,8 +1,9 @@
 /*
  * Publish approved fixture dates (exported from the review artifact) to the live `fixture` table.
  *
- *   node scripts/fixture-import/publish-fixtures.js approved.json            # DRY RUN (default)
- *   node scripts/fixture-import/publish-fixtures.js approved.json --apply     # writes to DB (after backup)
+ *   node tools/fixture-import/publish-fixtures.js approved.json                   # DRY RUN, local database
+ *   node tools/fixture-import/publish-fixtures.js approved.json --apply           # rehearse the write locally
+ *   node tools/fixture-import/publish-fixtures.js approved.json --prod --apply    # writes to PRODUCTION (after backup)
  *
  * Safe by design:
  *  - refuses to run if the export has any blank/bad/out-of-season date, team clash, or both-legs clash
@@ -10,13 +11,14 @@
  *  - always writes a timestamped backup of current dates to generated/ before applying
  */
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+// The local database unless --prod (tools/lib/loadEnv.js), so the write can be rehearsed.
+require('../lib/loadEnv').loadEnv();
 const fs = require('fs');
 const db = require('../../db_connect.js');
 const GEN = path.join(__dirname, 'generated');
 fs.mkdirSync(GEN, { recursive: true });
 
-const file = process.argv[2];
+const file = process.argv.slice(2).find(a => !a.startsWith('--'));
 const APPLY = process.argv.includes('--apply');
 if (!file) { console.error('Usage: node scratch_publish_fixtures.js <approved.json> [--apply]'); process.exit(1); }
 

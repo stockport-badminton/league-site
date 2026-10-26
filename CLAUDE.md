@@ -64,15 +64,17 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 
 ### Querying and migrations
 
-- One-off reads: `node tools/dbq.js "SELECT …"` (`--schema t`, `--check all`, `--json`).
-  It refuses writes.
-- **Tools read PRODUCTION**; `--local` asks for the development database. Never call
-  `dotenv` directly in a tool (`tool-env-order.test.js`).
+- One-off reads: `node tools/dbq.js --prod "SELECT …"` (`--schema t`, `--check all`,
+  `--json`). It refuses writes.
+- **Tools read the LOCAL database unless given `--prod`** (since 26 Oct 2026; it used to be
+  the other way round). Production-only tools (`dmarc`, `check-inbound-email`,
+  `scorecard-photo-audit`, `gap-finder`) refuse without it. Never call `dotenv` directly in
+  a tool (`tool-env-order.test.js`).
 - Writes to production data go in a gitignored `scripts/` file: dry by default, `--apply`
   to write, guard repeated in the write's `WHERE`, and it ends by re-reading what it
-  changed. **Check the top of any script** — they load `dev.env` first and so target the
-  local database.
-- Single migration: `node run-migration.js <file> [--local]`; `--status` says what
+  changed. **Check the top of any script**: the newer ones use `loadEnv` (`--prod`); older
+  ones load `dev.env` first and so target the local database.
+- Single migration: `node run-migration.js <file> [--prod]`; `--status --prod` says what
   production has run. An edited, already-applied migration is refused; write a new one.
   Supabase/host configuration does not belong in `migrations/`.
 - Local database: `tools/local-db.sh up && tools/local-db.sh load`. `npm run dev` uses it;

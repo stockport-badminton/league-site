@@ -49,18 +49,16 @@ Do not hand-write database boilerplate. It was the single largest waste in the a
 ```bash
 node tools/dbq.js "SELECT id, name FROM team LIMIT 5"   # ad-hoc read (refuses writes)
 node tools/dbq.js --schema player                        # columns of a table
-node tools/dbq.js --check all                            # every integrity check
+node tools/dbq.js --prod --check all                     # every integrity check, live data
 node tools/dbq.js --check orphan-results                 # the offending rows
 ```
 
 `tools/audit/checks.js` holds the checks. **Every package below that changes data or
 data-handling must run `--check all` before and after, and report the difference.**
 
-**`dbq.js` reads production.** `tools/lib/loadEnv.js` loads `.env` ahead of `dev.env` for
-every tool, so an ad-hoc query answers about the live database; `--local` asks for the
-development one deliberately. `dev.env` itself has pointed at a local Postgres in Docker
-since HARD-13 — the tools do not follow it, on purpose, and that one-place decision exists
-because it silently went wrong the day the local database arrived (dotenv does not
+**`dbq.js` reads the local database unless given `--prod`** (since 26 Oct 2026; before
+that, production was the default and `--local` the opt-in). The choice is made in one
+place because it silently went wrong the day the local database arrived (dotenv does not
 overwrite an already-set variable, so whichever file loads first wins, and every tool
 loaded `dev.env` first — `--check all` ran for days against a two-year-old local seed).
 

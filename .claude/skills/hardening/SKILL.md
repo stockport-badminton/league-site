@@ -76,14 +76,12 @@ is usually worth more than starting another.
   ```bash
   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"
   node tools/dbq.js --schema player
-  node tools/dbq.js --check all          # integrity checks, before and after data work
-  node tools/dbq.js --check orphan-results
+  node tools/dbq.js --prod --check all   # integrity checks on live data, before and after
+  node tools/dbq.js --prod --check orphan-results
   ```
-  It refuses anything that is not a single read, and **it reads production**:
-  `tools/lib/loadEnv.js` loads `.env` ahead of `dev.env` for every tool, so `dbq` answers
-  about the live database unless you pass `--local`. (`dev.env` itself points at the local
-  Postgres — that has been true since HARD-13, and the tools deliberately do not follow
-  it.) A write belongs in a reviewed script under `scripts/` with a dry run, modelled on
+  It refuses anything that is not a single read. **Without `--prod` it reads the local
+  database** (`tools/lib/loadEnv.js`, since 26 Oct 2026), so an audit of the live data
+  needs the flag. A write belongs in a reviewed script under `scripts/` with a dry run, modelled on
   `scripts/backfill-contact-emails.js` — but note those scripts load `dev.env` FIRST and
   so target the LOCAL database. Check the top of any script before trusting what it
   reports.

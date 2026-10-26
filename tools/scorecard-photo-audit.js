@@ -18,8 +18,8 @@
 //   node tools/scorecard-photo-audit.js
 //   node tools/scorecard-photo-audit.js --json out.json   # full per-row detail
 //
-// Production by default; see tools/lib/loadEnv.js for why the order matters.
-require('./lib/loadEnv').loadEnv();
+// Reconciles production rows against the production bucket; tools/lib/loadEnv.js.
+require('./lib/loadEnv').loadEnv({ prodOnly: 'it reconciles production rows against the production bucket.' });
 
 const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const db = require('../db_connect.js');

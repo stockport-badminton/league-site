@@ -1,13 +1,13 @@
 /*
  * Build the unified cross-league dataset for the calendar gap-finder.
- *   node tools/gap-finder/dump.js
+ *   node tools/gap-finder/dump.js --prod
  * Reads BOTH Supabase projects (Stockport = DATABASE_URL, Tameside =
  * TAMESIDE_DATABASE_URL) read-only, reconciles clubs/venues by name, infers each
  * team's usual home night from its home-fixture weekdays, and writes
  * generated/data.json for gen-artifact.js. Prints a summary + existing collisions.
  */
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+require('../lib/loadEnv').loadEnv({ prodOnly: "Tameside's database exists only in production." });
 const fs = require('fs');
 const { Pool } = require('pg');
 

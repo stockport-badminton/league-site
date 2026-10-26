@@ -52,6 +52,10 @@ module.exports = /** @type {const} */ ({
     kind: 'string', test: 'unset', e2e: 'local',
     doc: "'1' only in the browser suite's server (e2e/server-env.js sets it); /health reports it so the suite refuses to adopt any other server.",
   },
+  CONFIG_ENV_LOADED: {
+    kind: 'string', test: 'unset', e2e: 'unset',
+    doc: "'1' when tools/lib/loadEnv.js has loaded the one env file a tool asked for; config/index.js then loads no .env of its own.",
+  },
   ALLOW_PRODUCTION_DB: {
     kind: 'string', test: 'unset', e2e: 'unset',
     doc: "'i-know-what-i-am-doing' lets a non-production server use the production database (npm run prodlocal). See utils/devDatabaseGuard.js.",

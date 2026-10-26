@@ -1,5 +1,5 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+require('../lib/loadEnv').loadEnv();
 const fs = require('fs');
 const db = require('../../db_connect.js');
 const GEN = path.join(__dirname, 'generated');

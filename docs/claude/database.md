@@ -115,11 +115,12 @@ Note the blank is sometimes `NULL` and sometimes `pgp_sym_encrypt('')`, so a pla
 **Don't hand-write dotenv/db.connect boilerplate for a one-off query.** Use:
 
 ```bash
-node tools/dbq.js "SELECT id, name FROM team LIMIT 5"
-node tools/dbq.js --schema player        # columns and types
-node tools/dbq.js --check all            # data-integrity checks
-node tools/dbq.js --check orphan-results # the offending rows
-node tools/dbq.js --json "SELECT ..."    # machine-readable
+# The local database without --prod; add it for the live one.
+node tools/dbq.js --prod "SELECT id, name FROM team LIMIT 5"
+node tools/dbq.js --prod --schema player        # columns and types
+node tools/dbq.js --prod --check all            # data-integrity checks
+node tools/dbq.js --prod --check orphan-results # the offending rows
+node tools/dbq.js --json "SELECT ..."           # machine-readable, local
 node tools/key-contract.js               # do consumers read the keys queries return?
 node tools/key-contract.js --coverage    # ...and what it could not check
 ```
@@ -177,10 +178,14 @@ tools/local-db.sh nuke                            # stop and delete it
 tools/local-db.sh sync [--apply]                  # production's current season on top
 ```
 
-**Tools read PRODUCTION, not the local database.** `tools/lib/loadEnv.js` decides, and
-every tool goes through it — `dbq`, `key-contract`, `dmarc`, `scorecard-photo-audit`,
-`check-inbound-email`. `node tools/dbq.js --local "…"` asks for the development one
-deliberately.
+**Tools read the local database unless given `--prod`.** `tools/lib/loadEnv.js` decides,
+and every tool goes through it: `dbq`, `key-contract`, `dmarc`, `scorecard-photo-audit`,
+`check-inbound-email`, `run-migration.js`, `fixture-import/` and `gap-finder/`. Local reads
+`dev.env` alone and `--prod` reads `.env` alone, and each run prints which on stderr. Tools
+that only make sense against production say so and refuse without the flag. Until
+26 Oct 2026 production was the default and `--local` the opt-in. It was flipped so that
+forgetting a flag costs a confusing local answer, not a live write. `--local` is still
+accepted and does nothing.
 
 That is a one-place decision because it silently went wrong the day the local database
 arrived: dotenv does not overwrite a variable that is already set, so whichever env file
@@ -191,23 +196,23 @@ because a query returned "no rows" for drafts that plainly existed, and it could
 have been a data decision taken on the wrong numbers.
 `__tests__/unit/tool-env-order.test.js` fails if a tool calls `dotenv` directly again.
 
-**The write scripts under `scripts/` have the same shape and are gitignored**, so they are
-not covered by that test. They load `dev.env` then `.env`, which now means a script
-written to fix production data will target the LOCAL one. Cuts both ways — an accidental
-run is now harmless — but check the top of any script before trusting what it reports.
+**The write scripts under `scripts/` are gitignored**, so that test does not cover them.
+The newer ones go through `loadEnv`, which ignores whatever they pass and decides only
+from `--prod`/`--production`. The older ones load `dev.env` then `.env`, so they target the
+local database. Check the top of any script before trusting what it reports.
 
 `load` is destructive and idempotent: it drops the schema and rebuilds, because a
 half-applied load is worse than none and throwing a local database away costs nothing.
 
 - **Schema comes from `migrations/001_initial.sql`** (60 tables — 12 live, 48 season
   archives) plus the numbered migrations. Applied with `psql -f`, which is still the right
-  tool for a bulk load. For a single migration use `node run-migration.js <file> [--local]`
+  tool for a bulk load. For a single migration use `node run-migration.js <file> [--prod]`
   (repo root, not `tools/`). It used to split the file on `;` with `String.split`, so a
   semicolon in a comment was a statement boundary and the statement behind it never ran —
   fixed in HARD-18 by sharing `utils/sqlScan.js` with `pgify`, which had the identical bug
-  one layer down. **`--local` is how you rehearse**; without it the runner targets
-  production, like every other tool.
-  **`node run-migration.js --status` answers "has this run against production yet?"**
+  one layer down. Without `--prod` it rehearses against the local database, like every
+  other tool.
+  **`node run-migration.js --status --prod` answers "has this run against production yet?"**
   (HARD-32). Every file the runner applies is recorded in `schema_migrations` with a hash
   of its bytes; applying it again is a recorded no-op, and a file **edited after it ran is
   refused** — write a new migration for the difference. `load` records its replay as

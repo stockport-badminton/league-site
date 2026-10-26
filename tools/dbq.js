@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Read-only query runner for the league database.
 //
-//   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"
+//   node tools/dbq.js "SELECT id, name FROM team LIMIT 5"      the LOCAL database
+//   node tools/dbq.js --prod "SELECT ..."         production
 //   node tools/dbq.js --json "SELECT ..."          machine-readable
 //   node tools/dbq.js --file q.sql                 query from a file
 //   node tools/dbq.js --schema player              columns of one table
@@ -13,16 +14,15 @@
 // live in the project root because that is where dotenv looks. That is a lot of
 // tokens to spend on saying "SELECT".
 //
-// **DATABASE_URL is production.** dev.env carries the same connection string as
-// .env, so there is no local copy to practise on. This tool therefore refuses
+// It may well be production (--prod), so this tool refuses
 // anything that is not a single read: no INSERT/UPDATE/DELETE, no DDL, no
 // multiple statements. Writes belong in a reviewed script under scripts/, with a
 // dry run, the way scripts/backfill-contact-emails.js does it.
 
-// PRODUCTION by default — that is what this tool is for, and what every audit check is
-// about. `--local` asks for the development database from HARD-13 instead. The ordering
-// subtlety that makes this matter lives in tools/lib/loadEnv.js.
-require('./lib/loadEnv').loadEnv({ local: process.argv.includes('--local') });
+// The local database unless --prod is given (tools/lib/loadEnv.js). Audit checks are about
+// production, so `--check` is usually wanted with --prod.
+const { loadEnv, PROD_FLAGS } = require('./lib/loadEnv');
+loadEnv();
 
 const fs = require('fs');
 const db = require('../db_connect.js');
@@ -98,7 +98,8 @@ function renderTable(rows) {
 }
 
 async function main() {
-  const argv = process.argv.slice(2).filter(a => a !== '--local');
+  // --local is the default now; still accepted so an old command does not become a query.
+  const argv = process.argv.slice(2).filter(a => a !== '--local' && !PROD_FLAGS.includes(a));
   const json = argv.includes('--json');
   const rest = argv.filter(a => a !== '--json');
 

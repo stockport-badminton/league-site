@@ -17,8 +17,8 @@
 //   node tools/check-inbound-email.js --watch    # wait for the next one to land
 //
 // Never reads an object body — these are real emails. Keys and timestamps only.
-// Production by default; see tools/lib/loadEnv.js for why the order matters.
-require('./lib/loadEnv').loadEnv();
+// The bucket and the SES rule exist only in production; tools/lib/loadEnv.js.
+require('./lib/loadEnv').loadEnv({ prodOnly: 'it reads the SES receipt rule and the production bucket.' });
 
 const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 

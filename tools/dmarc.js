@@ -18,8 +18,8 @@
 // FAIL: either someone spoofing us, or a real sender that moving to p=reject would start
 // binning. A clean run is the evidence for that move.
 
-// Production by default; see tools/lib/loadEnv.js for why the order matters.
-require('./lib/loadEnv').loadEnv();
+// The reports are in the production bucket; tools/lib/loadEnv.js.
+require('./lib/loadEnv').loadEnv({ prodOnly: 'the DMARC reports are in the production bucket.' });
 
 const dmarc = require('../utils/dmarcReports');
 

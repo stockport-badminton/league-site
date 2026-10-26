@@ -19,7 +19,7 @@ commitments across two separate databases at once.
 ## Usage
 
 ```
-node tools/gap-finder/dump.js          # pull + reconcile both DBs -> generated/data.json
+node tools/gap-finder/dump.js --prod   # pull + reconcile both DBs -> generated/data.json
 node tools/gap-finder/gen-artifact.js  # build generated/gap-finder.html
 ```
 
