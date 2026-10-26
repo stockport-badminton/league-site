@@ -21,8 +21,9 @@
 
 // The local database unless --prod is given (tools/lib/loadEnv.js). Audit checks are about
 // production, so `--check` is usually wanted with --prod.
+// Only when run, not when a test requires assertReadOnly.
 const { loadEnv, PROD_FLAGS } = require('./lib/loadEnv');
-loadEnv();
+if (require.main === module) loadEnv();
 
 const fs = require('fs');
 const db = require('../db_connect.js');

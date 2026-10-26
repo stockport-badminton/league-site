@@ -31,6 +31,12 @@ const PROD_FLAGS = ['--prod', '--production'];
  * @returns {{ local: boolean, prod: boolean }}
  */
 function loadEnv(opts = {}) {
+  // Under Jest, config/schema.js has already declared the whole environment
+  // (__tests__/setup.js), and a test that requires a tool for one of its functions must not
+  // read an env file into the test process. The old helper did exactly that: requiring
+  // tools/dbq.js from dbq-guard.test.js loaded .env, production DATABASE_URL and Meta tokens
+  // included, after testEnvGuard had already passed the run (HARD-26 by a side door).
+  if (process.env.NODE_ENV === 'test' && !opts.argv) return { local: true, prod: false, skipped: true };
   const argv = opts.argv || process.argv;
   const prod = PROD_FLAGS.some(f => argv.includes(f));
 

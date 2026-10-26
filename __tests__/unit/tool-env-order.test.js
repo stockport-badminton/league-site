@@ -99,6 +99,21 @@ describe('tools/lib/loadEnv.js', () => {
     expect(out.r.prod).toBe(false);
   });
 
+  it('loads nothing into a test process, and a tool can still be required from a test', () => {
+    // dbq-guard.test.js requires tools/dbq.js. Under the old helper that put .env (production)
+    // into the Jest worker; under the first version of this one, CI (no dev.env) exited.
+    const p = spawnSync(process.execPath, ['-e', `
+      const before = Object.keys(process.env).length;
+      const r = require('./tools/lib/loadEnv').loadEnv();
+      require('./tools/dbq.js');
+      console.log('@@' + JSON.stringify({ r, added: Object.keys(process.env).length - before }));`],
+    { cwd: root, env: { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: 'test' }, encoding: 'utf8' });
+    const out = JSON.parse(p.stdout.split('\n').find(l => l.startsWith('@@')).slice(2));
+    expect(p.status).toBe(0);
+    expect(out.r.skipped).toBe(true);
+    expect(out.added).toBe(0);
+  });
+
   it('refuses --prod for a local-only tool', () => {
     const { status, stderr } = run({ localOnly: true }, ['--prod']);
     expect(status).toBe(2);
