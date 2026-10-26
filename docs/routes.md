@@ -43,8 +43,8 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 33 | POST | `/admin/threads/refresh` | cron:SOCIAL_CRON_TOKEN |
 | 34 | GET | `/social-video/:aspect` | public |
 | 35 | GET | `/api/social/generate-weekly-video` | cron:SOCIAL_CRON_TOKEN |
-| 36 | POST | `/mail` | sns |
-| 37 | POST | `/ses-events` | sns |
+| 36 | POST | `/mail` | sns:SNS_MAIL_TOPIC_ARN |
+| 37 | POST | `/ses-events` | sns:SNS_EVENTS_TOPIC_ARN |
 | 38 | POST | `/new-users-v2` | public |
 | 39 | GET | `/contact-us` | public |
 | 40 | POST | `/contact-us` | public |

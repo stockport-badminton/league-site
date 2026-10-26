@@ -45,8 +45,9 @@ jest.mock('../../middleware/verifySns', () => {
     req.snsMessage = req.body;
     next();
   };
-  mw.isAmazonSubscribeUrl = url => /^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\//.test(url || '');
-  return mw;
+  const forTopic = () => mw;
+  forTopic.isAmazonSubscribeUrl = url => /^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\//.test(url || '');
+  return forTopic;
 });
 
 const EmailEvent = require('../../models/emailEvent');

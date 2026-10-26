@@ -55,7 +55,7 @@ it('tags every level for the route table', () => {
   expect(access.messerAdmin.access).toBe('messerAdmin');
   expect(access.clubScoped.access).toBe('clubScoped');
   expect(access.publish.access).toBe('publish');
-  expect(access.sns.access).toBe('sns');
+  expect(access.sns('SNS_MAIL_TOPIC_ARN').access).toBe('sns:SNS_MAIL_TOPIC_ARN');
   expect(access.devOnly.access).toBe('devOnly');
   expect(access.token('draft link').access).toBe('token:draft link');
 });

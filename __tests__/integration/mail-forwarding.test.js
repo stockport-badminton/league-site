@@ -35,6 +35,13 @@ jest.mock('nodemailer', () => ({
   createTransport: jest.fn(() => ({ sendMail: mockSendMail })),
 }));
 
+// The S3 path: SES stores anything over SNS's 256KB in the bucket and sends a pointer.
+const mockS3Send = jest.fn();
+jest.mock('@aws-sdk/client-s3', () => ({
+  ...jest.requireActual('@aws-sdk/client-s3'),
+  S3Client: jest.fn(() => ({ send: mockS3Send })),
+}));
+
 // The signature check is not what these tests are about — mail-relay.test.js covers
 // rejecting a forgery. Here the message is treated as verified so the forwarding runs.
 jest.mock('../../middleware/verifySns', () => {
@@ -42,8 +49,9 @@ jest.mock('../../middleware/verifySns', () => {
     req.snsMessage = JSON.parse(req.body.Message ? JSON.stringify(req.body) : '{}');
     next();
   };
-  mw.isAmazonSubscribeUrl = () => true;
-  return mw;
+  const forTopic = () => mw;
+  forTopic.isAmazonSubscribeUrl = () => true;
+  return forTopic;
 });
 
 const Player = require('../../models/players');
@@ -100,6 +108,36 @@ const sent = () => {
   expect(mockSendMail).toHaveBeenCalled();
   return mockSendMail.mock.calls[0][0];
 };
+
+describe('POST /mail — a message stored in S3', () => {
+  const pointer = bucketName => request(app).post('/mail').type('json').send({
+    Type: 'Notification',
+    Message: JSON.stringify({
+      receipt: {
+        recipients: ['division3@stockport-badminton.co.uk'],
+        action: { type: 'S3', bucketName, objectKey: 'inbound/abc' },
+      },
+    }),
+  });
+
+  it('fetches from our own bucket and forwards it', async () => {
+    const mime = rawEmail({ from: 'anne@someclub.org.uk', subject: 'big one', text: 'hi' });
+    mockS3Send.mockResolvedValueOnce({ Body: { transformToByteArray: async () => Buffer.from(mime) } });
+    const res = await pointer(process.env.S3_BUCKET_NAME);
+    expect(res.status).toBe(200);
+    expect(mockS3Send.mock.calls[0][0].input).toEqual({ Bucket: process.env.S3_BUCKET_NAME, Key: 'inbound/abc' });
+    expect(sent().subject).toBe('big one');
+  });
+
+  it('refuses a pointer to any other bucket, reading and sending nothing', async () => {
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const res = await pointer('someone-elses-bucket');
+    err.mockRestore();
+    expect(res.status).toBe(500);
+    expect(mockS3Send).not.toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
+  });
+});
 
 describe('POST /mail — the forwarded message', () => {
   const mime = () => rawEmail({

@@ -88,8 +88,11 @@ exports.publish = declare('publish', function (req, res, next) { return requireP
 // A message signed by Amazon SNS. The one level that carries a limiter and a body parser:
 // verifySns reads req.body, so the body has to be parsed before the check, and the limiter
 // stays ahead of both so a flood of unsigned POSTs never reaches the certificate fetch.
-// Same order /mail and /ses-events had before REARCH-04.
-exports.sns = declare('sns', compose([webhookLimiter, multer().none(), verifySns]));
+// Same order /mail and /ses-events had before REARCH-04. Takes the config variable naming
+// the one SNS topic the route accepts — each endpoint has its own (middleware/verifySns.js).
+exports.sns = function (topicVar) {
+  return declare('sns:' + topicVar, compose([webhookLimiter, multer().none(), verifySns(topicVar)]));
+};
 
 // Exists only on a dev server; anywhere else it falls through to the 404.
 exports.devOnly = declare('devOnly', function (req, res, next) { return devOnly(req, res, next); });

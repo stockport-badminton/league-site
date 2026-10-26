@@ -17,13 +17,13 @@ const { publicFormLimiter, contactLimiter } = require('../middleware/rateLimit')
 // verifySns runs first: without it this endpoint accepted any POST that set the
 // x-amz-sns-message-type header, and forwarded the attached MIME message to a real
 // distribution list.
-router.post('/mail', access.sns, contact_controller.distribution_list);
+router.post('/mail', access.sns('SNS_MAIL_TOPIC_ARN'), contact_controller.distribution_list);
 
 // SES delivery events from the baddersEmail configuration set's SNS topic, stored so the
 // weekly digest can report a failed send. verifySns for the same reason /mail has it:
 // without it anyone could POST invented bounces, and they would appear in the results
 // secretary's weekly email as fact.
-router.post('/ses-events', access.sns,
+router.post('/ses-events', access.sns('SNS_EVENTS_TOPIC_ARN'),
   email_event_controller.ses_events);
 
 // Tells the results secretary that somebody has signed up and is waiting on approval.

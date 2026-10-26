@@ -61,7 +61,13 @@ function canonicalString(msg) {
   return out;
 }
 
-async function isAuthentic(msg, { fetch = fetchCert } = {}) {
+// `topic` is the one TopicArn this endpoint accepts, and without one nothing is accepted.
+// A valid signature proves only that Amazon sent the message, not that it came from OUR
+// topic: anyone with an AWS account can create a topic, subscribe /mail to it (the handler
+// confirms subscriptions automatically) and publish a Notification whose SES payload they
+// wrote — recipients, MIME body, S3 pointer and SPF/DKIM verdicts included. Until Oct 2026
+// the topic check ran only when SNS_TOPIC_ARN was set, and production never set it.
+async function isAuthentic(msg, { fetch = fetchCert, topic } = {}) {
   if (!msg || typeof msg !== 'object') return false;
   if (!SIGNED_FIELDS[msg.Type]) return false;
   if (!msg.Signature || !msg.SigningCertURL) return false;
@@ -75,8 +81,7 @@ async function isAuthentic(msg, { fetch = fetchCert } = {}) {
   if (certUrl.protocol !== 'https:' || !CERT_HOST.test(certUrl.hostname)) return false;
   if (!certUrl.pathname.endsWith('.pem')) return false;
 
-  const expectedTopic = config.SNS_TOPIC_ARN;
-  if (expectedTopic && msg.TopicArn !== expectedTopic) return false;
+  if (!topic || msg.TopicArn !== topic) return false;
 
   const canonical = canonicalString(msg);
   if (canonical === null) return false;
@@ -103,7 +108,21 @@ async function isAuthentic(msg, { fetch = fetchCert } = {}) {
 // The body arrives as text (bodyParser.text) and the handler parses it itself, so
 // parse here too rather than changing that contract. The parsed message is attached
 // as req.snsMessage so the handler doesn't parse a third time.
-function verifySns(req, res, next) {
+/**
+ * The middleware for one endpoint. `topicVar` names the config/schema.js variable holding
+ * the topic it subscribes to; the topics are not secrets, so the schema carries the real
+ * ones as defaults and there is no value that turns the check off.
+ * @param {string} topicVar
+ * @param {{ fetch?: Function }} [opts] a cert fetcher, for tests.
+ */
+function forTopic(topicVar, opts = {}) {
+  if (!require('../config/schema')[topicVar]) throw new Error(`${topicVar} is not declared in config/schema.js`);
+  const mw = (req, res, next) => verifySns(req, res, next, { ...opts, topic: config[topicVar] });
+  mw.snsTopicVar = topicVar;
+  return mw;
+}
+
+function verifySns(req, res, next, options) {
   let msg;
   try {
     msg = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -111,7 +130,7 @@ function verifySns(req, res, next) {
     return res.status(400).send('bad request');
   }
 
-  isAuthentic(msg).then(ok => {
+  isAuthentic(msg, options).then(ok => {
     if (!ok) {
       // Deliberately terse to the caller, loud in the logs — a forged message here is
       // an attempt to relay mail through us, and worth seeing in Sentry.
@@ -139,7 +158,7 @@ function isAmazonSubscribeUrl(value) {
   }
 }
 
-module.exports = verifySns;
+module.exports = forTopic;
 module.exports.isAuthentic = isAuthentic;
 module.exports.canonicalString = canonicalString;
 module.exports.isAmazonSubscribeUrl = isAmazonSubscribeUrl;

@@ -35,7 +35,8 @@ function notification(over = {}) {
   return msg;
 }
 
-const fetchStub = { fetch: async () => certificate };
+// The topic every fixture is published on, which isAuthentic now insists on being told.
+const fetchStub = { fetch: async () => certificate, topic: 'arn:aws:sns:eu-west-1:1:inbound-mail' };
 
 describe('canonicalString', () => {
   it('uses the documented field order for a Notification', () => {
@@ -118,13 +119,65 @@ describe('isAuthentic', () => {
     await expect(isAuthentic('a string', fetchStub)).resolves.toBe(false);
   });
 
-  it('enforces the expected topic when SNS_TOPIC_ARN is set', async () => {
-    const prev = process.env.SNS_TOPIC_ARN;
-    process.env.SNS_TOPIC_ARN = 'arn:aws:sns:eu-west-1:1:inbound-mail';
+  it('accepts only the topic it is given, and nothing without one', async () => {
+    const { fetch } = fetchStub;
     await expect(isAuthentic(notification(), fetchStub)).resolves.toBe(true);
     await expect(isAuthentic(notification({ TopicArn: 'arn:aws:sns:eu-west-1:1:other' }), fetchStub))
       .resolves.toBe(false);
-    if (prev === undefined) delete process.env.SNS_TOPIC_ARN; else process.env.SNS_TOPIC_ARN = prev;
+    // Until Oct 2026 no topic meant no check, and production set none.
+    await expect(isAuthentic(notification(), { fetch })).resolves.toBe(false);
+    await expect(isAuthentic(notification(), { fetch, topic: '' })).resolves.toBe(false);
+  });
+});
+
+describe('the middleware for an endpoint', () => {
+  // The attack this closes: a stranger's own SNS topic, subscribed to /mail. Amazon signs
+  // their messages exactly as it signs ours, so the signature alone accepts them.
+  function call(mw, body) {
+    return new Promise(resolve => {
+      const res = { status: code => ({ send: () => resolve(code) }) };
+      mw({ body: JSON.stringify(body), ip: '1.2.3.4' }, res, err => resolve(err || 'next'));
+    });
+  }
+  const mail = () => verifySns('SNS_MAIL_TOPIC_ARN', fetchStub);
+
+  it("passes a signed message from the endpoint's own topic", async () => {
+    expect(await call(mail(), notification({ TopicArn: process.env.SNS_MAIL_TOPIC_ARN }))).toBe('next');
+  });
+
+  it("refuses a validly signed message from somebody else's topic", async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(await call(mail(), notification({ TopicArn: 'arn:aws:sns:eu-west-1:999999999999:attacker' }))).toBe(403);
+    // /ses-events' topic is ours, but not /mail's.
+    expect(await call(mail(), notification({ TopicArn: process.env.SNS_EVENTS_TOPIC_ARN }))).toBe(403);
+    warn.mockRestore();
+  });
+
+  it('cannot be switched off from the environment', async () => {
+    // Unset or empty is the real topic, never "any topic", which is what unset used to mean.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const prev = process.env.SNS_MAIL_TOPIC_ARN;
+    try {
+      for (const value of ['', undefined]) {
+        if (value === undefined) delete process.env.SNS_MAIL_TOPIC_ARN; else process.env.SNS_MAIL_TOPIC_ARN = value;
+        expect(await call(mail(), notification({ TopicArn: 'arn:aws:sns:eu-west-1:999999999999:attacker' }))).toBe(403);
+        expect(await call(mail(), notification({ TopicArn: 'arn:aws:sns:eu-west-1:758376057067:incomingEmail' }))).toBe('next');
+      }
+    } finally {
+      process.env.SNS_MAIL_TOPIC_ARN = prev;
+      warn.mockRestore();
+    }
+  });
+
+  it('will not be built for a topic the schema does not declare', () => {
+    expect(() => verifySns('SNS_TOPIC_ARN')).toThrow(/not declared/);
+  });
+
+  it('defaults to the real topics, so production checks without setting anything', () => {
+    const { createConfig } = require('../../config');
+    const c = createConfig({});
+    expect(c.SNS_MAIL_TOPIC_ARN).toBe('arn:aws:sns:eu-west-1:758376057067:incomingEmail');
+    expect(c.SNS_EVENTS_TOPIC_ARN).toBe('arn:aws:sns:eu-west-1:758376057067:emailInfo');
   });
 });
 
@@ -152,7 +205,7 @@ describe('the middleware', () => {
   it('403s a forged message and does not call next', async () => {
     const r = res();
     const next = jest.fn();
-    verifySns({ body: JSON.stringify({ Type: 'Notification', Message: 'spam' }), ip: '1.2.3.4' }, r, next);
+    verifySns('SNS_MAIL_TOPIC_ARN')({ body: JSON.stringify({ Type: 'Notification', Message: 'spam' }), ip: '1.2.3.4' }, r, next);
     await new Promise(setImmediate);
     expect(r.statusCode).toBe(403);
     expect(next).not.toHaveBeenCalled();
@@ -161,7 +214,7 @@ describe('the middleware', () => {
   it('400s an unparseable body', () => {
     const r = res();
     const next = jest.fn();
-    verifySns({ body: 'not json', ip: '1.2.3.4' }, r, next);
+    verifySns('SNS_MAIL_TOPIC_ARN')({ body: 'not json', ip: '1.2.3.4' }, r, next);
     expect(r.statusCode).toBe(400);
     expect(next).not.toHaveBeenCalled();
   });

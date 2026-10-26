@@ -23,10 +23,12 @@ Declaring an environment means deciding, per variable, whether **absence is mean
 - **credentials** get obviously-fake values that resolve nowhere;
 - **some variables are safe *because* they are unset** and are `delete`d, not assigned —
   an unset `AUDIT_EMAIL_TO` is what makes the suite incapable of emailing the results
-  secretary, an unset cron token *closes* that path, an unset `SNS_TOPIC_ARN` skips the
-  topic check the signature fixtures rely on, and an unset `AUDIT_EMAIL_FROM` falls back to
-  the league address the digest test asserts. Declaring fakes for those last two is the
-  mistake that broke three tests when this was written;
+  secretary, an unset cron token *closes* that path, and an unset `AUDIT_EMAIL_FROM` falls
+  back to the league address the digest test asserts. Declaring a fake for that last one
+  (and for the old `SNS_TOPIC_ARN`) is the mistake that broke three tests when this was
+  written. The opposite mistake was worse: "unset skips the topic check" was what
+  production ran on until Oct 2026. The SNS topics are now schema defaults that cannot be
+  turned off, and tests get the fixtures' topic as a fake;
 - **`S3_BUCKET_NAME` keeps its real value on purpose** — tests build URLs from it and
   compare against `normalisePhotoUrl`, which checks the host against it. Renaming it makes
   those tests wrong rather than safer; the dead credentials are what make the bucket

@@ -119,10 +119,17 @@ module.exports = /** @type {const} */ ({
     kind: 'string', required: true, test: 'real', testValue: 'badmintontemp',
     doc: 'The badmintontemp bucket. Real even in tests: normalisePhotoUrl checks hosts against it, and the dead credentials are what make it unreachable.',
   },
-  SNS_TOPIC_ARN: {
-    kind: 'id', test: 'unset', e2e: 'unset',
-    unset: 'verifySns accepts any topic (signature still checked)',
-    doc: 'The SES → SNS topic POST /mail and /ses-events must come from.',
+  // Not secrets, so the real ARNs are the defaults: unset or '' still means our topic, and
+  // the check in middleware/verifySns.js cannot be switched off from the environment.
+  SNS_MAIL_TOPIC_ARN: {
+    kind: 'id', default: 'arn:aws:sns:eu-west-1:758376057067:incomingEmail',
+    test: 'fake', testValue: 'arn:aws:sns:eu-west-1:1:inbound-mail', e2e: 'local',
+    doc: 'The only topic POST /mail accepts: the SES receipt rule inbound-badders-email.',
+  },
+  SNS_EVENTS_TOPIC_ARN: {
+    kind: 'id', default: 'arn:aws:sns:eu-west-1:758376057067:emailInfo',
+    test: 'fake', testValue: 'arn:aws:sns:eu-west-1:1:ses-events', e2e: 'local',
+    doc: 'The only topic POST /ses-events accepts: the baddersEmail configuration set.',
   },
 
   // ── Mail ───────────────────────────────────────────────────────────────────

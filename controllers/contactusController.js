@@ -620,6 +620,12 @@ exports.distribution_list = async function(req,res,next) {
         buffer = Buffer.from(notification.content, "base64");
       } else if (notification.receipt && notification.receipt.action && notification.receipt.action.type === "S3") {
         const { bucketName, objectKey } = notification.receipt.action;
+        // Our SES receipt rule writes only to our own bucket. The pointer is part of the
+        // message, so without this a message that got past the topic check could make our
+        // credentials read any object they can reach and mail it to a list.
+        if (bucketName !== config.S3_BUCKET_NAME) {
+          throw new Error(`refusing inbound email stored in a bucket that is not ours: ${bucketName}`);
+        }
         console.log(`fetching raw email from s3://${bucketName}/${objectKey}`);
         const s3 = new S3Client({ region: 'eu-west-1' });
         const obj = await s3.send(new GetObjectCommand({ Bucket: bucketName, Key: objectKey }));

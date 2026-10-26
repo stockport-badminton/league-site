@@ -43,8 +43,9 @@ jest.mock('../../middleware/verifySns', () => {
     req.snsMessage = JSON.parse(req.body.Message ? JSON.stringify(req.body) : '{}');
     next();
   };
-  mw.isAmazonSubscribeUrl = () => true;
-  return mw;
+  const forTopic = () => mw;
+  forTopic.isAmazonSubscribeUrl = () => true;
+  return forTopic;
 });
 
 const Requests = require('../../models/registrationRequest');
