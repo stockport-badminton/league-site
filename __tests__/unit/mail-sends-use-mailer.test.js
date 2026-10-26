@@ -173,7 +173,7 @@ describe('outbound email goes through the mailer', () => {
   });
 
   it('the signup notification is on the pipeline', () => {
-    const routes = fs.readFileSync(path.join(ROOT, 'routes/index.js'), 'utf8');
+    const routes = fs.readFileSync(path.join(ROOT, 'routes/email.js'), 'utf8');
     expect(routes).toMatch(/template:\s*'access-request'/);
     expect(fs.existsSync(path.join(ROOT, 'emails/access-request.mjml'))).toBe(true);
     expect(fs.existsSync(path.join(ROOT, 'views/emails/access-request.ejs'))).toBe(true);

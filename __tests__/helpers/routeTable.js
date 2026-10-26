@@ -40,4 +40,42 @@ function routeTable(app) {
   return routesOf(app._router.stack, []).map((r, i) => ({ order: i + 1, ...r }));
 }
 
-module.exports = { routeTable };
+function routeLayers(stack, out = []) {
+  for (const layer of stack) {
+    if (layer.route) out.push(layer);
+    else if (layer.handle && Array.isArray(layer.handle.stack)) routeLayers(layer.handle.stack, out);
+  }
+  return out;
+}
+
+// URLs a route's own pattern should answer: each parameter filled with a number, a word and
+// a season, each `*` with two segments. A filled-in URL that the route's own regexp rejects
+// (a word in a `(\d+)` slot) is dropped.
+function sampleUrls(layer) {
+  const p = layer.route.path;
+  const fill = v => p
+    .replace(/:\w+\(\\d\+\)/g, '7')
+    .replace(/:\w+\??/g, v)
+    .replace(/\*/g, 'a/b');
+  return [...new Set([fill('7'), fill('x'), fill('20242025')])].filter(u => layer.match(u));
+}
+
+// Every route whose own URLs are answered first by a different route — first match wins,
+// so such a route never runs for them. That is how GET /player/:id hid GET /player/create.
+function shadowedRoutes(app) {
+  const layers = routeLayers(app._router.stack);
+  const out = [];
+  for (const layer of layers) {
+    for (const method of Object.keys(layer.route.methods)) {
+      for (const url of sampleUrls(layer)) {
+        const first = layers.find(o => (o.route.methods[method] || o.route.methods._all) && o.match(url));
+        if (first !== layer) {
+          out.push({ route: `${method.toUpperCase()} ${layer.route.path}`, url, answeredBy: first.route.path });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+module.exports = { routeTable, shadowedRoutes };

@@ -5,7 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const { GROUPS, NAV_SHORTLIST, shortlist } = require('../../utils/adminTools');
 
-const ROUTES = fs.readFileSync(path.join(__dirname, '../../routes/index.js'), 'utf8');
+// Every routes/*.js: the routes are split by area since REARCH-04.
+const ROUTES_DIR = path.join(__dirname, '../../routes');
+const ROUTES = fs.readdirSync(ROUTES_DIR).filter(f => f.endsWith('.js'))
+  .map(f => fs.readFileSync(path.join(ROUTES_DIR, f), 'utf8')).join('\n');
 const GET_PATHS = new Set([...ROUTES.matchAll(/router\.get\(\s*'([^']+)'/g)].map(m => m[1]));
 
 describe('adminTools', () => {

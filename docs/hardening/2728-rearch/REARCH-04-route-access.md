@@ -157,15 +157,22 @@ did not exist for any of the five above.
    failure modes were demonstrated: removing `GET /rules`'s declaration fails the
    coverage check, and downgrading `GET /admin/spam` to `member` fails as a one-line
    table diff.
-4. **Split `routes/index.js` by area** — `results`, `scorecard`, `messer`, `rosters`,
-   `registrations`, `social`, `admin`, `email`, `static`, `api`. Pure moves, one PR, with the
-   route table proving no route changed path or access. Do this early in the programme:
-   every other package appends routes, and one 898-line file is where they collide.
-   **Order matters in the split:** `router.use(userInViews())` is first and the 404 and
-   error handlers are last; the area routers mount between them, and overlapping patterns
-   (`/fixture/outstanding` before `/fixture/:id`, `/tables/All` before `/tables/:division`)
-   must keep their relative order — the route table should record registration order so
-   the diff shows a reorder.
+4. ✓ **Done 26 Oct 2026.** `routes/index.js` keeps `userInViews`, mounts ten area
+   routers (`auth`, `social`, `email`, `scorecard`, `static`, `messer`, `rosters`,
+   `results`, `registrations`, `admin`, in that order), and keeps the 404 and error
+   handlers. The split is a pure move:
+   - A script sliced the original by line ranges, and every line landed exactly once.
+   - The 208 route lines are byte-identical before and after.
+   - `docs/routes.md` holds the same 214 (method, path, access) rows, only reordered.
+   - For each of 388 sample URLs, the same route answers first as before.
+   - There are no undefined or newly unused names.
+
+   That last check became `__tests__/integration/route-shadowing.test.js`: every route
+   must be the first to answer URLs built from its own pattern. Putting
+   `GET /player/:id` back in front of `GET /player/create` fails it. It found one known
+   exception, `GET /admin/results/:division/:season`, which `GET /admin/results/*` (same
+   handler, same access) has always answered first. It's harmless and unreachable, so
+   delete it on its own.
 
 ## Acceptance criteria
 
