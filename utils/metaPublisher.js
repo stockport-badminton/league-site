@@ -37,10 +37,11 @@
 // fail the write it is reporting — a captain's result is saved before any of this runs,
 // and `utils/afterCommit.js` explains at length why that separation is not optional.
 
+const config = require('../config');
 const axios = require('axios');
 
 const GRAPH = 'https://graph.facebook.com';
-const VERSION = process.env.META_GRAPH_VERSION || 'v21.0';
+const VERSION = config.META_GRAPH_VERSION;
 
 // Instagram's rules, from Meta's own documentation and confirmed by what it refused.
 const JPEG_PATH = /\.jpe?g($|\?)/i;
@@ -462,14 +463,14 @@ async function publishingQuota(igUserId, token) {
  * absence closes the path rather than opening it.
  */
 function targets() {
-  const pageToken = process.env.META_PAGE_TOKEN;
-  const igId = process.env.META_IG_USER_ID;
+  const pageToken = config.META_PAGE_TOKEN;
+  const igId = config.META_IG_USER_ID;
   return {
-    stockportPage: process.env.META_PAGE_ID && pageToken
-      ? { id: process.env.META_PAGE_ID, token: pageToken } : null,
+    stockportPage: config.META_PAGE_ID && pageToken
+      ? { id: config.META_PAGE_ID, token: pageToken } : null,
     instagram: igId && pageToken ? { id: igId, token: pageToken } : null,
-    tamesidePage: process.env.META_TAMESIDE_PAGE_ID && process.env.META_TAMESIDE_PAGE_TOKEN
-      ? { id: process.env.META_TAMESIDE_PAGE_ID, token: process.env.META_TAMESIDE_PAGE_TOKEN } : null,
+    tamesidePage: config.META_TAMESIDE_PAGE_ID && config.META_TAMESIDE_PAGE_TOKEN
+      ? { id: config.META_TAMESIDE_PAGE_ID, token: config.META_TAMESIDE_PAGE_TOKEN } : null,
   };
 }
 
@@ -482,7 +483,7 @@ function targets() {
  * yet, so the first story after switching it on is the measurement.
  */
 function pageStoryTarget(t = targets()) {
-  if (process.env.SOCIAL_POST_FB_STORY !== 'true' || !t.stockportPage) return null;
+  if (!config.SOCIAL_POST_FB_STORY || !t.stockportPage) return null;
   return { ...t.stockportPage, name: 'Stockport page story', kind: 'page-story' };
 }
 

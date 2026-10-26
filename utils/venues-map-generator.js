@@ -12,6 +12,7 @@
  * Export: generateVenuesMap() → uploads to S3 and returns the object key
  */
 
+const config = require('../config');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const Venue = require('../models/venue');
 const db = require('../db_connect');
@@ -39,7 +40,7 @@ function buildStaticMapUrl(venues) {
     size: SIZE,
     map_id: MAP_ID,
     markers: 'color:red|' + locations.join('|'),
-    key: process.env.GMAPS_STATIC_API_KEY
+    key: config.GMAPS_STATIC_API_KEY
   });
 
   return 'https://maps.googleapis.com/maps/api/staticmap?' + params.toString();
@@ -56,7 +57,7 @@ async function generateVenuesMap() {
   const buffer = Buffer.from(await resp.arrayBuffer());
 
   await s3.send(new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: config.S3_BUCKET_NAME,
     Key: S3_KEY,
     Body: buffer,
     ContentType: 'image/png'

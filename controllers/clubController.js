@@ -1,3 +1,4 @@
+var config = require('../config');
 var Club = require('../models/club');
 var Venue = require('../models/venue');
 var Team = require('../models/teams');
@@ -84,8 +85,8 @@ exports.club_list_detail = async function(req, res, next) {
          pageDescription : "Find your local badminton clubs, when they play, where they play.",
          result: newClubArray,
          error: false,
-         recaptcha : process.env.RECAPTCHA,
-         mapsApiKey: process.env.GMAPSAPIKEY,
+         recaptcha : config.RECAPTCHA,
+         mapsApiKey: config.GMAPSAPIKEY,
          // Raw rows, not a JSON string: the view embeds them with `jsonForScript()`,
          // which escapes the characters that would let a free-text address close the
          // <script> block early. The popup markup is built client-side from these by
@@ -206,7 +207,7 @@ exports.club_detail = async function(req, res, next) {
         // team table, so it gets the de-duplicated list.
         clubrow: teams,
         error: false,
-        mapsApiKey: process.env.GMAPSAPIKEY,
+        mapsApiKey: config.GMAPSAPIKEY,
         canonical:canonicalFor(req)
     });
   } catch (err) {

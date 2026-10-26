@@ -21,6 +21,7 @@
 //   POST /admin/player-requests/:id/candidates      add a person the reading missed
 //   POST /admin/player-requests/:id/status          done / dismissed / reopen
 
+const config = require('../config')
 const Requests = require('../models/registrationRequest')
 const Roster = require('../models/roster')
 const { parseRegistrationEmail } = require('../utils/registrationEmail')
@@ -53,8 +54,7 @@ function parseIndex(value, label) {
 // automatically, so the risk this guards is noise rather than harm — but an address
 // anyone can fill is an address somebody will.
 function allowedSenders() {
-  return String(process.env.REGISTRATION_INBOX_SENDERS || '')
-    .split(',').map(s => s.trim().toLowerCase()).filter(s => s.includes('@'))
+  return config.REGISTRATION_INBOX_SENDERS.map(s => s.toLowerCase()).filter(s => s.includes('@'))
 }
 
 // The From header proves nothing by itself, so SES's own verdicts must agree that it is

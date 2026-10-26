@@ -15,6 +15,7 @@
 // content type rather than from the filename, so a `.jpg` claiming to be `text/html`
 // is refused rather than renamed.
 
+const config = require('../config');
 const crypto = require('crypto');
 
 // The bucket lives in eu-west-1 and `/sign-s3` has always hardcoded that, in both the
@@ -116,7 +117,7 @@ function buildUploadKey(contentType, hint, now = new Date(), prefix = PREFIX, ty
 // The key is not escaped, and does not need to be: `buildUploadKey` emits letters,
 // digits, dashes, slashes and one dot. Anything else would be a bug there, not here.
 function objectUrl(key) {
-  const bucket = String(process.env.S3_BUCKET_NAME || '').trim();
+  const bucket = String(config.S3_BUCKET_NAME || '').trim();
   return `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`;
 }
 
@@ -139,7 +140,7 @@ async function storeImage({ buffer, contentType, hint, prefix, types }, deps = {
   } = deps.s3 || require('@aws-sdk/client-s3');
   const client = new S3Client({ region: REGION });
   await client.send(new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: config.S3_BUCKET_NAME,
     Key: key,
     ContentType: contentType,
     Body: buffer,

@@ -1,5 +1,6 @@
 // Logging in and out, and the signed-in user's profile page.
 // Mounted by routes/index.js, in the order listed there (REARCH-04).
+const config = require('../config');
 const express = require('express');
 const router = express.Router();
 const access = require('../middleware/access');
@@ -17,7 +18,6 @@ router.get('/callback', access.public, function(req, res, next) {
     if (!user) {
       res.render('failed-login', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
         pageTitle: 'Access Denied',
         pageDescription: 'Access Denied',
         query: req.query,
@@ -37,7 +37,7 @@ router.get('/callback', access.public, function(req, res, next) {
 router.get('/logout', access.public, function(req, res, next) {
   req.logout(function(err) {
     if (err) { return next(err); }
-    res.redirect('https://' + process.env.AUTH0_DOMAIN + '/v2/logout?clientid=' + process.env.AUTH0_CLIENTID + '&returnTo=https://' + req.headers.host);
+    res.redirect('https://' + config.AUTH0_DOMAIN + '/v2/logout?clientid=' + config.AUTH0_CLIENTID + '&returnTo=https://' + req.headers.host);
   });
 });
 
@@ -46,7 +46,6 @@ router.get('/user', access.member, async function(req, res) {
   res.render('user', {
     userProfile: JSON.stringify(userProfile, null, 2),
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: 'User Profile',
     pageDescription: 'User Profile',
     canonical: ('https://' + req.get('host') + req.originalUrl).replace('www.\'', '').replace('.com', '.co.uk').replace('-badders.herokuapp', '-badminton')

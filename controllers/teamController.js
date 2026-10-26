@@ -35,8 +35,6 @@ exports.messer_draw = function(req, res, next) {
    //console.log(renderstring)
   res.render(renderstring, {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle : "Messer Tropy Draws and results",
     pageDescription : "Messer Trophy Draws and results",
     canonical:canonicalFor(req)
@@ -126,8 +124,6 @@ exports.new_messer_draw = async function(req, res, next) {
     //console.log(JSON.stringify(rows));
     res.render('messer-draw-a-section', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       teams: otherArray,
       section: req.params.section.toUpperCase().at(0),
       swapped: mayAdminDraw && /^\d+$/.test(req.query.swapped || '') ? parseInt(req.query.swapped, 10) : null,

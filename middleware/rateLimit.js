@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 const { MemoryStore } = require('express-rate-limit');
 const { clientIp } = require('../utils/clientIp');
+const config = require('../config');
 
 // Rate limits for the public surface.
 //
@@ -147,7 +148,7 @@ function skipCrawlSurface(req) {
 // Production never sets it, so production gets 600.
 const globalLimiter = makeLimiter({
   windowMs: 15 * 60 * 1000,
-  limit: Number(process.env.GLOBAL_RATE_LIMIT) || 600,
+  limit: config.GLOBAL_RATE_LIMIT,
   skip: skipCrawlSurface,
 });
 

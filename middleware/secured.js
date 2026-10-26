@@ -1,6 +1,7 @@
+const config = require('../config');
 module.exports = function secured(req, res, next) {
   // Allow access if authenticated OR if dev mode is enabled (non-production only)
-  const isDevMode = process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
+  const isDevMode = config.DEV_MODE && config.NODE_ENV !== 'production';
   if (req.isAuthenticated() || isDevMode) { return next(); }
 
   // An /api/ caller is fetch() or $.ajax, not a person, so a redirect does nothing

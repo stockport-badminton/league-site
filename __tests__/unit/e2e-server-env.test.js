@@ -20,7 +20,9 @@ const fs = require('fs');
 const root = path.join(__dirname, '..', '..');
 
 const REPORT = `
+  const before = new Set(Object.keys(process.env));
   require('./e2e/server-env.js');
+  const schema = require('./config/schema');
   const { liveCredentials } = require('./utils/testEnvGuard');
   console.log('@@' + JSON.stringify({
     live: liveCredentials(process.env),
@@ -31,6 +33,7 @@ const REPORT = `
     marker: process.env.E2E_SERVER,
     auditTo: process.env.AUDIT_EMAIL_TO,
     cronToken: process.env.AUDIT_CRON_TOKEN,
+    added: Object.keys(process.env).filter(k => !before.has(k) && !schema[k]),
   }));
 `;
 
@@ -79,6 +82,12 @@ describe('e2e/server-env.js', () => {
     it('leaves unset the variables that are safe because they are unset', () => {
       expect(env.auditTo).toBeUndefined();
       expect(env.cronToken).toBeUndefined();
+    });
+
+    it('takes nothing from dev.env or .env that config/schema.js does not declare', () => {
+      // .env carries old Twitter, RDS, Make and SendGrid secrets the app never reads.
+      // Before REARCH-06 every one of them was loaded into this server.
+      expect(env.added).toEqual([]);
     });
 
     it('marks itself, so globalSetup can tell this server from somebody else\'s', () => {

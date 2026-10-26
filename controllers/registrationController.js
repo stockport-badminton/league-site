@@ -16,6 +16,7 @@
 const Registration = require('../models/clubRegistration');
 const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const seasonModel = require('../models/season');
+const config = require('../config');
 const documents = require('./documentsController');
 const mailer = require('../utils/mailer');
 const { absoluteUrl, canonicalFor } = require('../utils/canonical');
@@ -33,8 +34,8 @@ const DEFAULT_DUE_DAYS = 3;
 // locally: dev.env points at production, so a stray run would otherwise mail 18 real club
 // secretaries. Same rule as AUDIT_EMAIL_TO.
 function digestRecipients() {
-  return String(process.env.REGISTRATION_EMAIL_TO || process.env.AUDIT_EMAIL_TO || '')
-    .split(',').map(s => s.trim()).filter(s => s.includes('@'));
+  const to = config.REGISTRATION_EMAIL_TO.length ? config.REGISTRATION_EMAIL_TO : config.AUDIT_EMAIL_TO;
+  return to.filter(s => s.includes('@'));
 }
 
 // ---------------------------------------------------------------------------

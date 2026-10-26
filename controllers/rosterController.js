@@ -6,6 +6,7 @@
 // registration .docx as a side effect of every GET, and shipped a page whose only
 // write path was an arbitrary UPDATE.
 
+const config = require('../config');
 const Club = require('../models/club')
 const { userEmail, userDisplayName } = require('../utils/sessionUser')
 const Roster = require('../models/roster')
@@ -14,7 +15,7 @@ const mailer = require('../utils/mailer')
 const { assertClubAccess, isSuperAdmin } = require('../middleware/requireClubAccess')
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
-const RESULTS_SECRETARY = process.env.RESULTS_EMAIL || 'results@stockport-badminton.co.uk'
+const RESULTS_SECRETARY = config.RESULTS_EMAIL
 const MAIL_SOURCE = 'results@stockport-badminton.co.uk'
 
 function unknownClub(club) {
@@ -125,8 +126,6 @@ async function loadClub(req) {
 function viewBase(req, extra) {
   return Object.assign({
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     canonical: canonicalFor(req)
   }, extra)
 }

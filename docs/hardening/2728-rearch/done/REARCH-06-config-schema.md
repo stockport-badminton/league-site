@@ -1,5 +1,7 @@
 # REARCH-06 — environment variables declared in one place
 
+**Status:** ✓ Done 26 Oct 2026. The `--target` question below is still open.
+
 **Size:** S · **Window:** in-season OK
 **Blocked by:** nothing.
 **Owns:** a new `config/` module; every `process.env` read in `app.js`, `instrument.js`,
@@ -68,13 +70,38 @@ of this package does not depend on it.
 
 ## What to do
 
-1. `config/schema.js` and `config/index.js`, describing all 55. For each, the `unset`
+1. ✓ **Done 26 Oct 2026.** Re-measured: 58 names read by our code, plus 5 cron tokens
+   read by name, plus 6 the AWS SDK reads itself and one read only by a tool. That makes
+   67 entries. `THEME` and `FLASK_DEBUG` (71 of the reads) went instead: they were set
+   nowhere and read by no template. `AUTH0_AUDIENCE` went too: it was checked at startup
+   and used by nothing. **`config.X` is a getter, not a frozen snapshot**, a deviation
+   from the design above: 43 test files set and restore variables around a test, and
+   several replace `process.env` wholesale, so the default config reads `() => process.env`.
+   What is frozen is the set of names; an undeclared one throws, and `requireCronCaller`
+   refuses an undeclared token when it is built. Required: the Auth0 trio, `DATABASE_URL`,
+   `DB_PI_KEY`, `S3_BUCKET_NAME`, and `SESSION_SECRET` in production only (it used to fall
+   back to `'ThisisMySecret'`). `node tools/env-table.js --cloud-run` confirmed production
+   sets all of them.
+   Original step: `config/schema.js` and `config/index.js`, describing all 55. For each, the `unset`
    meaning comes from CLAUDE.md or from reading the code — where the two disagree, the code
    wins and the doc is corrected in the same commit.
-2. Replace `process.env.X` reads with `config.X`, a directory per PR.
-3. A test that fails on `process.env` outside `config/` (and outside `tools/`, `scripts/`,
+2. ✓ **Done 26 Oct 2026**, in one commit rather than one per directory: every read was
+   mechanical except the flags, numbers and lists, which were converted by hand, and their
+   inline fallbacks moved into the schema. `views/header.ejs` reads `config` from `app.locals`.
+   Original step: replace `process.env.X` reads with `config.X`, a directory per PR.
+3. ✓ **Done 26 Oct 2026.** `__tests__/unit/config.test.js` also fails on a `config.X` the
+   schema lacks. Both checks were shown to fail when a read and a typo were put back.
+   Original step: a test that fails on `process.env` outside `config/` (and outside `tools/`, `scripts/`,
    `e2e/`, `__tests__/`).
-4. Generate the test and e2e environments from the schema. Then repeat HARD-26's
+4. ✓ **Done 26 Oct 2026.** `config/testEnv.js`: `applyForJest` and `applyForE2E`. The e2e
+   server now takes **only declared variables** from `dev.env`/`.env`. Before, the old
+   Twitter, RDS, Make and SendGrid secrets in `.env` were all loaded into it.
+   `testEnvGuard` matches each schema `shape` against every value. For the demonstration,
+   an `AKIA…` key planted under a new name first went **unnoticed**, because the guard
+   only checked AWS shapes on `AWS_ACCESS_KEY_ID`. With the shape added to the schema, it
+   and an `AIza…` key both abort the run with `Tests: 0 total`. Full Jest (2525), `test:db`
+   (188) and four Playwright specs pass.
+   Original step: generate the test and e2e environments from the schema. Then repeat HARD-26's
    demonstration: plant a real-shaped secret under a new name, run the suite, watch it
    abort with `Tests: 0 total`.
 

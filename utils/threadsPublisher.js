@@ -22,11 +22,12 @@
 //
 // It publishes or it throws, like metaPublisher. The caller decides what a failure means.
 
+const config = require('../config');
 const axios = require('axios');
 const { ThreadsError, describeFailure } = require('./threadsAuth');
 
 const GRAPH = 'https://graph.threads.net';
-const VERSION = process.env.META_THREADS_GRAPH_VERSION || 'v1.0';
+const VERSION = config.META_THREADS_GRAPH_VERSION;
 
 const MAX_TEXT = 500;
 const MIN_CAROUSEL = 2;

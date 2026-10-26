@@ -1,7 +1,7 @@
 // The environment the browser suite's dev server runs in.
 //
 // Preloaded with `node -r ./e2e/server-env.js app.js` from playwright.config.js, so it
-// runs before app.js and therefore before app.js's own dotenv.config().
+// runs before app.js reads anything.
 //
 // Why this exists: HARD-26 made the Jest process incapable of reaching anything real, but
 // nothing had done the same for the browser suite. It starts a REAL server, and that
@@ -18,93 +18,27 @@
 //
 // What this file does NOT touch is dev.env itself, so `npm run dev` is unaffected and
 // still has working credentials for real local work.
-//
-// Load order matters and is the same trick tools/lib/loadEnv.js relies on: dotenv never
-// overwrites a variable that is already set, so assigning the dead credentials FIRST means
-// neither dev.env nor .env can put the real ones back.
 
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
 
 const root = path.join(__dirname, '..');
 
-// ── 1. Dead credentials, assigned before anything is loaded ──────────────────
+// ── 1–3. The environment, derived from config/schema.js ──────────────────────
 //
-// Same shapes as __tests__/setup.js. The AWS block closes the fallback chain as well as
-// the keys: without it the SDK would look at ~/.aws/credentials and the EC2 metadata
-// service and could still find something that works.
-process.env.AWS_ACCESS_KEY_ID = 'e2e-access-key-id';
-process.env.AWS_SECRET_ACCESS_KEY = 'e2e-secret-access-key';
-process.env.AWS_SESSION_TOKEN = '';
-process.env.AWS_SHARED_CREDENTIALS_FILE = '/dev/null/no-such-credentials';
-process.env.AWS_CONFIG_FILE = '/dev/null/no-such-config';
-process.env.AWS_EC2_METADATA_DISABLED = 'true';
-process.env.AWS_PROFILE = '';
-
-process.env.AUTH0_CLIENT_SECRET = 'e2e-auth0-client-secret';
-process.env.RECAPTCHA_SECRET = 'e2e-recaptcha-secret';
-process.env.CLOUDINARY_KEY = 'e2e-cloudinary-key';
-process.env.CLOUDINARY_SECRET = 'e2e-cloudinary-secret';
-process.env.GMAPS_STATIC_API_KEY = 'e2e-gmaps-static-key';
-process.env.SESSION_SECRET = 'e2e-session-secret';
-process.env.TAMESIDE_DATABASE_URL = 'postgresql://e2e:e2e@127.0.0.1:1/nowhere';
-
-// ── 2. The real local configuration ──────────────────────────────────────────
-//
-// dev.env supplies DATABASE_URL (the local Postgres) and DB_PI_KEY (the local key the
-// sanitised contact details were re-encrypted under). Neither may be faked: the pages
-// under test read real rows and decrypt real columns.
-//
-// .env is then loaded for the remainder, so that app.js's own dotenv.config() finds
-// everything already set and is a no-op. That matters — it means the guard below sees
-// exactly the environment app.js will run in, rather than a snapshot taken before .env
-// had its say.
-for (const file of ['dev.env', '.env']) {
+// Each schema entry's `e2e` field decides it: 'fake' gets a value that resolves nowhere
+// (the AWS block closes the SDK's fallback chain as well as the keys), 'unset' is deleted
+// (an unset AUDIT_EMAIL_TO is what makes this server incapable of emailing the results
+// secretary; an unset cron token closes that path), and 'local' comes from dev.env — the
+// local Postgres and the key the sanitised contact details were re-encrypted under — then
+// .env. Only declared variables are taken from those files, so nothing undeclared in .env
+// reaches this server, and config/index.js skips its own dotenv call when E2E_SERVER is set.
+const envFiles = ['dev.env', '.env'].map(file => {
   const at = path.join(root, file);
-  if (fs.existsSync(at)) require('dotenv').config({ path: at });
-}
-
-// ── 3. Variables that are safe BECAUSE they are absent ───────────────────────
-//
-// Deleted after loading, since .env sets several of them. An unset AUDIT_EMAIL_TO is what
-// makes the server incapable of emailing the results secretary; an unset cron token CLOSES
-// that path rather than opening it. Setting a fake would arm the thing, not secure it —
-// the mistake that broke three tests when HARD-26 was written.
-delete process.env.AUDIT_EMAIL_TO;
-delete process.env.REGISTRATION_EMAIL_TO;
-// Unset closes the registrations@ queue; a test that needs it open sets it itself.
-delete process.env.REGISTRATION_INBOX_SENDERS;
-delete process.env.SENTRY_DSN;
-// Unset means header.ejs loads no PostHog at all.
-delete process.env.POSTHOG_KEY;
-
-// By PATTERN, not by a list of names, and that is not tidiness.
-//
-// This block was a list, and on 15 Sep 2026 it went stale twice in one afternoon:
-// LATE_SCORECARD_CRON_TOKEN was added to `__tests__/setup.js` and not here, and then the
-// Meta credentials were too. The second one is what caught it — `assertNothingLive()`
-// below refused to start the browser server, which is the guard doing its job, but the
-// first had already slipped through silently because no guard was watching for it yet.
-//
-// **This file and `__tests__/setup.js` are counterparts and drift apart by default.** A
-// fix applied to one is a fix applied to one. Matching on shape is what makes a new
-// variable safe in both without anybody remembering.
-for (const name of Object.keys(process.env)) {
-  // Any scheduled-job secret. Unset CLOSES that path rather than opening it.
-  if (/_CRON_TOKEN$/.test(name)) delete process.env[name];
-  // Every Meta credential. The Page tokens do not expire and can publish to the league's
-  // Facebook Pages and its Instagram account — there is no sandbox Meta and no clock.
-  if (/^META_/.test(name)) delete process.env[name];
-}
-
-delete process.env.SNS_TOPIC_ARN;
-delete process.env.CSP_ENFORCE;
-delete process.env.K_SERVICE;
-delete process.env.K_REVISION;
-
-// S3_BUCKET_NAME keeps its real value for HARD-26's reason: normalisePhotoUrl checks a
-// photo's host against it, so renaming the bucket makes the page wrong rather than safer.
-// The dead credentials above are what make it unreachable.
+  return fs.existsSync(at) ? dotenv.parse(fs.readFileSync(at)) : {};
+});
+require('../config/testEnv').applyForE2E(process.env, envFiles);
 
 // ── 4. Refuse to start if anything live survived ─────────────────────────────
 const { liveCredentials, refusalMessage } = require('../utils/testEnvGuard');

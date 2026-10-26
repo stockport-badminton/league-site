@@ -25,6 +25,7 @@
 // Ranks are per (team, gender) because a fixture picks 3 men and 3 ladies
 // independently — a team's number 1 man and number 1 lady both hold rank 1.
 
+const config = require('../config')
 const db = require('../db_connect.js')
 const { sql } = require('kysely')
 const { kysely, decrypt } = require('../db')
@@ -44,8 +45,8 @@ const { rankByName } = require('../utils/nameMatch')
 //
 // These were bare literals in views/team-admin.ejs — `"data":[[id,63,52,99]]` —
 // with nothing anywhere naming them.
-const NO_CLUB_ID = parseInt(process.env.NO_CLUB_ID || '', 10) || 63
-const NO_TEAM_ID = parseInt(process.env.NO_TEAM_ID || '', 10) || 52
+const NO_CLUB_ID = config.NO_CLUB_ID
+const NO_TEAM_ID = config.NO_TEAM_ID
 
 const RESERVE_BASE = 99
 

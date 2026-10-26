@@ -1,3 +1,4 @@
+const config = require('../config');
 const crypto = require('crypto');
 const https = require('https');
 
@@ -74,7 +75,7 @@ async function isAuthentic(msg, { fetch = fetchCert } = {}) {
   if (certUrl.protocol !== 'https:' || !CERT_HOST.test(certUrl.hostname)) return false;
   if (!certUrl.pathname.endsWith('.pem')) return false;
 
-  const expectedTopic = process.env.SNS_TOPIC_ARN;
+  const expectedTopic = config.SNS_TOPIC_ARN;
   if (expectedTopic && msg.TopicArn !== expectedTopic) return false;
 
   const canonical = canonicalString(msg);

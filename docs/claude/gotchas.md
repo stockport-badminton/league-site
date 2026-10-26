@@ -172,5 +172,5 @@ Moved out of `CLAUDE.md`, word for word, so that file holds only the rules most 
 4. **Session cookie name**: Must be `__session` for Cloud Run (Firebase requirement).
 5. **DEV_MODE is safe**: Only works outside production; injects mock user for local testing without Auth0.
 6. **Model exports are async**: Always await model calls — they return promises.
-7. **Test setup**: `__tests__/setup.js` runs before any test, sets env vars (don't rely on .env in tests).
+7. **Test setup**: `__tests__/setup.js` runs before any test and applies the environment `config/schema.js` declares (don't rely on .env in tests).
 

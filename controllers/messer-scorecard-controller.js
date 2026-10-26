@@ -1,3 +1,4 @@
+const config = require('../config');
 const Division = require('../models/division');
 const Team = require('../models/teams');
 const Player = require('../models/players');
@@ -181,13 +182,12 @@ exports.messer_scorecard_beta = async function(req, res, next) {
 
     res.render('messer-scorecard', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       result: true, // Signal to view to show the form modal
       scorecard,
       data,
       pageTitle: 'Enter Messer Result',
       pageDescription: 'Enter Messer Result',
-      devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
+      devMode: config.DEV_MODE || config.NODE_ENV === 'development',
       canonical: canonicalFor(req),
     });
   } catch (err) {
@@ -276,11 +276,10 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
 
     res.render('messer-scorecard', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       result: true,
       scorecard,
       data: testData,
-      devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
+      devMode: config.DEV_MODE || config.NODE_ENV === 'development',
       pageTitle: 'Enter Messer Result (Test Data)',
       pageDescription: 'Enter Messer Result',
       canonical: canonicalFor(req),
@@ -308,12 +307,11 @@ exports.full_messer_fixture_post = async function(req, res, next) {
       const scorecard = { homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
       return res.render('messer-scorecard', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
         result: true,
         scorecard,
         data,
         errors: errors.array(),
-        devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
+        devMode: config.DEV_MODE || config.NODE_ENV === 'development',
         pageTitle: 'Enter Messer Result',
         pageDescription: 'Enter Messer Result',
         canonical: canonicalFor(req),
@@ -457,11 +455,10 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
 
     res.render('messer-scorecard', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       result: true,
       scorecard,
       data,
-      devMode: process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development',
+      devMode: config.DEV_MODE || config.NODE_ENV === 'development',
       pageTitle: 'Messer Result Submitted',
       pageDescription: 'Your messer result has been submitted',
       canonical: canonicalFor(req),
@@ -494,7 +491,6 @@ exports.messer_results_list = async function(req, res, next) {
     const results = await Fixture.listMesserScorecardsForApproval();
     res.render('messer-results-list', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       results: results,
       pageTitle: 'Messer Results Pending Approval',
       pageDescription: 'Review and approve messer match results',
@@ -549,7 +545,6 @@ exports.messer_result_detail = async function(req, res, next) {
 
     res.render('messer-result-detail', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       scorecard: scorecard[0],
       homeWins,
       awayWins,
@@ -836,7 +831,6 @@ exports.messer_bracket_landing = async function(req, res, next) {
   try {
     res.render('admin/messer-bracket-landing', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       user: req.user,
       pageTitle: 'Messer Bracket Setup',
       pageDescription: 'Wire up the messer draw for auto-advance',
@@ -854,7 +848,6 @@ exports.messer_bracket_edit = async function(req, res, next) {
     const rows = await Fixture.getMesserBracket(section);
     res.render('admin/messer-bracket-edit', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       user: req.user,
       section,
       rows,

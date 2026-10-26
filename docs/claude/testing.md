@@ -6,16 +6,19 @@ Moved out of `CLAUDE.md`, word for word, so that file holds only the rules most 
 
 ### The test process holds no production credential
 
-`app.js` and `instrument.js` skip `dotenv.config()` under `NODE_ENV=test`, so
-`__tests__/setup.js` **declares the whole environment** rather than inheriting it. A
-variable a test needs must be stated there.
+`config/index.js` skips `dotenv.config()` under `NODE_ENV=test`, so the test process
+**declares the whole environment** rather than inheriting it. Since REARCH-06 the
+declaration is `config/schema.js`: `__tests__/setup.js` calls `applyForJest`, which gives
+each variable the treatment its entry's `test` field names. A variable a test needs is
+declared there (`test: 'fake'`) or set by the test itself and restored.
 
 That inverts the old default, which had been patched three times variable by variable —
 Sentry reporting our own test runs as production errors, then `npm test` writing **two real
 objects into the production bucket** — each patch one variable behind whatever went into
 `.env` next. Of the 40 variables the code reads, `setup.js` used to set 15.
 
-Declaring an environment means deciding, per variable, whether **absence is meaningful**:
+Declaring an environment means deciding, per variable, whether **absence is meaningful**
+(the schema's `test: 'fake' | 'unset' | 'real'`):
 
 - **credentials** get obviously-fake values that resolve nowhere;
 - **some variables are safe *because* they are unset** and are `delete`d, not assigned —
@@ -32,7 +35,9 @@ Declaring an environment means deciding, per variable, whether **absence is mean
 `utils/testEnvGuard.js`, wired into `setupAfterEnv.js`, refuses the whole run if anything
 live is present. It checks **shapes, not names** — a `supabase` host, an `AKIA`/`ASIA` key
 id, a set cron token — which is what stops it going one variable out of date the way the
-patches did. Demonstrated by removing a line from `setup.js` and confirming it fires.
+patches did. It also refuses any schema secret the tests run without, and any value shaped
+like a schema `shape` under a name not declared public. Demonstrated by planting a
+real-shaped key under a new name and watching the run abort with `Tests: 0 total`.
 
 ### supertest binds 127.0.0.1, and that is load-bearing
 
@@ -150,9 +155,10 @@ npm run test:all      # jest, then playwright
 
 **The server the suite starts is configured by `e2e/server-env.js`** — the browser
 counterpart of `__tests__/setup.js`, preloaded with `node -r ./e2e/server-env.js app.js`.
-It takes the local database and `DB_PI_KEY` from `dev.env`, assigns dead credentials for
-everything outbound, deletes the variables that are safe *because* they are unset, and
-**refuses to start** if anything live survives. `npm run dev` is untouched and still has
+Each variable gets its schema entry's `e2e` treatment: the local database and `DB_PI_KEY`
+from `dev.env`, dead credentials for everything outbound, the variables that are safe
+*because* they are unset deleted — and **nothing the schema does not declare** is taken
+from `dev.env` or `.env` at all. It **refuses to start** if anything live survives. `npm run dev` is untouched and still has
 real credentials for actual local work.
 
 Two traps it closes, neither of which was obvious (HARD-33):

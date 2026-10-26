@@ -1,3 +1,4 @@
+const config = require('./config');
 const { Pool } = require('pg');
 const { regionEnd } = require('./utils/sqlScan');
 const { overClient } = require('./db/kysely');
@@ -24,11 +25,11 @@ const state = { pool: null };
 // PG_POOL_MAX exists so this can be raised without a deploy once the connection
 // string moves to the transaction pooler (6543), where multiplexing makes the
 // 15-client ceiling stop being the constraint.
-const POOL_MAX = parseInt(process.env.PG_POOL_MAX, 10) || 5;
+const POOL_MAX = config.PG_POOL_MAX;
 
 exports.connect = function() {
   state.pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: config.DATABASE_URL,
     max: POOL_MAX,
     // Hand idle connections back rather than holding a session-mode slot open.
     idleTimeoutMillis: 10000,

@@ -1,5 +1,6 @@
 // Filing a league result: uploads, drafts, publishing, the photo read path, the live scorecard.
 // Mounted by routes/index.js, in the order listed there (REARCH-04).
+const config = require('../config');
 const express = require('express');
 const router = express.Router();
 const access = require('../middleware/access');
@@ -54,7 +55,7 @@ router.get('/sign-s3', access.public, publicFormLimiter, async (req, res, next) 
     const { key } = buildUploadKey(req.query['file-type'], req.query['file-name']);
     const s3 = new S3Client({ region: 'eu-west-1' });
     const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
+      Bucket: config.S3_BUCKET_NAME,
       Key: key,
       ContentType: String(req.query['file-type']).toLowerCase().trim()
     });

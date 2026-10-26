@@ -110,6 +110,7 @@
 // ---------------------------------------------------------------------------
 // Enforced now
 // ---------------------------------------------------------------------------
+const config = require('../config');
 const ENFORCED = {
   // Clickjacking. The package's stated motivation — the site can be framed today. No
   // page of ours is meant to be embedded anywhere, and X-Frame-Options is set alongside
@@ -268,9 +269,9 @@ const OBSERVED = {
     // thing found in the report-only period. Derived from the env var rather than
     // hardcoded, so it follows the bucket rather than going stale; both host spellings
     // because the archive contains both (see utils/scorecardPhoto.js).
-    ...(process.env.S3_BUCKET_NAME
-      ? [`https://${process.env.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com`,
-         `https://${process.env.S3_BUCKET_NAME}.s3-eu-west-1.amazonaws.com`]
+    ...(config.S3_BUCKET_NAME
+      ? [`https://${config.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com`,
+         `https://${config.S3_BUCKET_NAME}.s3-eu-west-1.amazonaws.com`]
       : []),
     // Analytics only, unlike the three above. GA's ga-audiences beacon goes to the
     // viewer's local Google domain, so this list grows one TLD at a time as visitors
@@ -324,18 +325,16 @@ const OBSERVED = {
 //   https://o4508301910540288.ingest.de.sentry.io/api/4508301914800208/security/
 //     ?sentry_key=41a5442332daa78ebc9dba9dfe8da392
 //
-// Set CSP_REPORT_URI='' to emit no reporting directives at all.
-const DEFAULT_REPORT_URI = '/csp-report';
+// Set CSP_REPORT_URI='' to emit no reporting directives at all; unset is '/csp-report'
+// (config/schema.js).
 const REPORT_GROUP = 'csp-endpoint';
 
 function reportUri() {
-  return process.env.CSP_REPORT_URI === undefined
-    ? DEFAULT_REPORT_URI
-    : process.env.CSP_REPORT_URI;
+  return config.CSP_REPORT_URI;
 }
 
 function isEnforcing() {
-  return process.env.CSP_ENFORCE === 'true';
+  return config.CSP_ENFORCE;
 }
 
 // HSTS, as a value rather than a literal in app.js — so it can be tested without booting
@@ -361,7 +360,7 @@ const HSTS_MAX_AGE = 31536000; // one year
 function strictTransportSecurity() {
   return {
     maxAge: HSTS_MAX_AGE,
-    includeSubDomains: process.env.HSTS_INCLUDE_SUBDOMAINS === 'true',
+    includeSubDomains: config.HSTS_INCLUDE_SUBDOMAINS,
     preload: false,
   };
 }
@@ -405,7 +404,6 @@ module.exports = {
   ENFORCED,
   OBSERVED,
   REPORT_GROUP,
-  DEFAULT_REPORT_URI,
   reportUri,
   isEnforcing,
   strictTransportSecurity,

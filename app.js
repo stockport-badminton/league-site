@@ -1,16 +1,8 @@
 // Sentry instrumentation — must load before express and other modules.
 require('./instrument');
+const config = require('./config');
 const Sentry = require('@sentry/node');
 
-// Not under test. __tests__/setup.js declares the whole environment instead, so a
-
-// variable a test needs is stated rather than inherited from production — see
-
-// docs/hardening/done/HARD-26. Without this the 31 suites that require app.js load
-
-// the real DATABASE_URL, DB_PI_KEY and both cron tokens.
-
-if (process.env.NODE_ENV !== 'test') require('dotenv').config();
 
 var express = require('express');
 var session = require('express-session');
@@ -29,9 +21,9 @@ const { S3_KEY: VENUES_MAP_S3_KEY } = require('./utils/venues-map-generator');
 // on.
 var db = require('./db_connect');
 
-if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
-  throw 'Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file';
-}
+// Refuses to start, naming every missing variable. The required ones are declared in
+// config/schema.js; this used to check AUTH0_AUDIENCE, which nothing read after HARD-49.
+config.validate();
 
 // See utils/clientIp.js for why this is not `req.connection.remoteAddress` — the short
 // version is that behind Firebase → Cloud Run that value is a Google frontend, so the
@@ -145,6 +137,8 @@ app.locals.backgroundPreloads = require('./utils/backgroundPreload').backgroundP
 // Exposed for the browser-Sentry origin check in views/header.ejs, which needs to know
 // which host is legitimately ours at runtime — see the note there.
 app.locals.siteOrigin = require('./utils/canonical').siteOrigin;
+// The environment, for views/header.ejs (PostHog key, Sentry environment). See config/schema.js.
+app.locals.config = config;
 app.locals.socialLinksFor = require('./utils/socialLinks').socialLinksFor;
 // The superadmin's short Admin dropdown (views/nav.ejs); see utils/adminTools.js.
 app.locals.adminNavShortlist = require('./utils/adminTools').shortlist;
@@ -193,7 +187,7 @@ app.set('views', __dirname + '/views');
 app.get('/sw.js', access.public, function(req, res) {
   res.set('Content-Type', 'application/javascript');
   res.set('Cache-Control', 'no-cache');
-  res.render('sw', { cacheVersion: process.env.K_REVISION || 'dev-local' });
+  res.render('sw', { cacheVersion: config.K_REVISION });
 });
 
 // Same reasoning/ordering as /sw.js above: registered before the /static
@@ -205,7 +199,7 @@ var venuesMapS3 = new S3Client({ region: 'eu-west-1' });
 app.get('/static/generated/venues-map.png', access.public, async function(req, res) {
   try {
     var obj = await venuesMapS3.send(new GetObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
+      Bucket: config.S3_BUCKET_NAME,
       Key: VENUES_MAP_S3_KEY
     }));
     res.set('Content-Type', 'image/png');
@@ -263,7 +257,7 @@ async function healthCheck(req, res) {
     // the production database and bucket. e2e/global-setup.js refuses to run without this
     // field. Nothing in production sets E2E_SERVER, so production can never emit it, and
     // its ABSENCE is what fails the check — which is the right way round.
-    if (process.env.E2E_SERVER === '1') body.e2e = true;
+    if (config.E2E_SERVER === '1') body.e2e = true;
     res.status(200).json(body);
   } catch (err) {
     console.error('health: database unreachable:', err.message);
@@ -382,10 +376,10 @@ var Player = require('./models/players');
 
 var strategy = new Auth0Strategy(
   {
-    domain: process.env.AUTH0_DOMAIN,
-    clientID: process.env.AUTH0_CLIENTID,
-    clientSecret: process.env.AUTH0_CLIENT_SECRET,
-    callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://127.0.0.1:8080/callback'
+    domain: config.AUTH0_DOMAIN,
+    clientID: config.AUTH0_CLIENTID,
+    clientSecret: config.AUTH0_CLIENT_SECRET,
+    callbackURL: config.AUTH0_CALLBACK_URL
   },
   function(accessToken, refreshToken, extraParams, profile, done) {
     // Enrich the profile with role/club/messeradmin from the player table
@@ -415,12 +409,12 @@ var sess = {
   // The app's own pool, not a connection string: given one, the store builds a second
   // Pool of 10 and starves Supabase's 15-slot pooler (db_connect.sessionPool).
   store: new pgSession({ pool: db.sessionPool(), createTableIfMissing: true }),
-  secret: process.env.SESSION_SECRET || 'ThisisMySecret',
+  secret: config.SESSION_SECRET,
   cookie: {},
   resave: false,
   saveUninitialized: false
 };
-if (process.env.NODE_ENV === 'production') {
+if (config.NODE_ENV === 'production') {
   // `true`, not `1`. There are two proxies in front of this app (Firebase Hosting and
   // the Cloud Run frontend), so trusting a single hop left `req.ip` as a Google
   // address — which would put every visitor in one rate-limit bucket. Trusting the
@@ -451,7 +445,7 @@ app.use(require('./routes'));
 // Sentry error handler — must be after all routes, before any other error middleware.
 Sentry.setupExpressErrorHandler(app);
 
-var port = process.env.PORT || 8080;
+var port = config.PORT;
 
 // ---------------------------------------------------------------------------
 // Staying alive, and dying tidily
@@ -515,14 +509,14 @@ if (require.main === module) {
   // Before anything connects. See utils/devDatabaseGuard.js — a dev server has written to
   // the live database before, and a warning here would be read once and then scroll past.
   const devDbGuard = require('./utils/devDatabaseGuard');
-  const devDbRefusal = devDbGuard.refusalReason(process.env);
+  const devDbRefusal = devDbGuard.refusalReason(config);
   if (devDbRefusal) {
     console.error(devDbRefusal);
     process.exit(1);
   }
   // And when the override IS in force, say so unmissably. An escape hatch nobody can see
   // they are standing on is the original hazard with extra steps.
-  const devDbOverride = devDbGuard.overrideWarning(process.env);
+  const devDbOverride = devDbGuard.overrideWarning(config);
   if (devDbOverride) console.warn(devDbOverride);
 
   try {

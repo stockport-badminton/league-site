@@ -27,6 +27,7 @@
 //      historical URLs. Rewriting that column is a one-way door and is left to the
 //      owner.
 
+const config = require('../config');
 const { normalisePhotoUrl } = require('./scorecardLinks');
 const { ALLOWED_TYPES } = require('./uploads');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
@@ -112,7 +113,7 @@ function photoKeyFromStored(stored) {
   const value = stored.trim();
   if (!value) return null;
 
-  const bucket = String(process.env.S3_BUCKET_NAME || '').trim().toLowerCase();
+  const bucket = String(config.S3_BUCKET_NAME || '').trim().toLowerCase();
   if (!bucket) return null;
 
   // A bare key. Anything with a scheme has to be validated as a URL first.
@@ -210,7 +211,7 @@ async function sendPhoto(res, stored) {
   const s3 = new S3Client({ region: 'eu-west-1' });
   let obj;
   try {
-    obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+    obj = await s3.send(new GetObjectCommand({ Bucket: config.S3_BUCKET_NAME, Key: key }));
   } catch (err) {
     // A key the bucket does not hold is a 404, not a 500. There are rows whose key was
     // corrupted on the way in years ago (the upload page used to rewrite %20 as '+'),

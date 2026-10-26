@@ -17,12 +17,13 @@
 // that sends as our domain and does NOT align — either someone spoofing us, or a real
 // sender that a move to `p=reject` would silently start binning.
 
+const config = require('../config');
 const zlib = require('zlib');
 const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 
-const BUCKET = process.env.S3_BUCKET_NAME || 'badmintontemp';
+const BUCKET = config.S3_BUCKET_NAME;
 const PREFIX = 'inbound-email/';
-const REGION = process.env.AWS_REGION || 'eu-west-1';
+const REGION = config.AWS_REGION;
 
 // Google sends .zip, Microsoft sends .gz. Both turn up, so handle both rather than
 // whichever one you happened to test against.

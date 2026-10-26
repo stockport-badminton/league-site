@@ -98,7 +98,7 @@ rest of it lands.
 | [REARCH-03](REARCH-03-one-record-per-fact.md) | One record per fact: officers, drafts, names | M | Officers in-season OK; drafts off-season only |
 | [REARCH-04](done/REARCH-04-route-access.md) | Every route declares who may call it | M | **Done** 26 Oct 2026 |
 | [REARCH-05](REARCH-05-outbox.md) | One outbox for every side effect | M | Off-season only |
-| [REARCH-06](REARCH-06-config-schema.md) | Environment variables declared in one place | S | In-season OK |
+| [REARCH-06](done/REARCH-06-config-schema.md) | Environment variables declared in one place | S | **Done** 26 Oct 2026 |
 | [REARCH-07](REARCH-07-frontend-build.md) | Inline scripts out, a bundler for shared code | M | Wizard off-season; other pages in-season OK |
 | [REARCH-08](done/REARCH-08-real-database-tests.md) | Tests that run against a real Postgres | M | **Done** 25 Oct 2026 |
 | [REARCH-09](REARCH-09-small-defaults.md) | Small defaults: session user, logging, draft tokens | S each | Mixed; see the package |

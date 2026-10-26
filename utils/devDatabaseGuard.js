@@ -29,7 +29,7 @@ function hostOf(connectionString) {
  * @returns {string|null} the reason to refuse, or null to proceed.
  */
 function refusalReason(env) {
-  const e = env || process.env;
+  const e = env;
 
   // Production is production: Cloud Run sets K_SERVICE, and NODE_ENV is production there.
   if (e.NODE_ENV === 'production' || e.K_SERVICE) return null;
@@ -77,7 +77,7 @@ function refusalReason(env) {
  * @returns {string|null} null when the override is not in play.
  */
 function overrideWarning(env) {
-  const e = env || process.env;
+  const e = env;
   if (e.NODE_ENV === 'production' || e.K_SERVICE) return null;
   if (e.ALLOW_PRODUCTION_DB !== 'i-know-what-i-am-doing') return null;
 

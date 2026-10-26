@@ -19,7 +19,7 @@
      *
      * Same condition instrument.js uses for the server side, so the two agree.
      * Cloud Run sets K_SERVICE. */
-    var monitoringEnabled = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE;
+    var monitoringEnabled = config.NODE_ENV === 'production' || !!config.K_SERVICE;
     %>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -67,7 +67,7 @@
       return servedByUs;
     })();
 
-    <% if (process.env.POSTHOG_KEY) { %>
+    <% if (config.POSTHOG_KEY) { %>
     // PostHog: web analytics on every page, and session recordings on the
     // results-entry pages only. Running alongside Google Analytics from Oct 2026 to
     // see whether it can replace it.
@@ -118,7 +118,7 @@
         // load is a new session, so the wizard and its confirmation page are two
         // recordings.
         var storage = record ? { persistence: 'memory' } : { cookieless_mode: 'always' };
-        window.posthog.init('<%= process.env.POSTHOG_KEY %>', Object.assign({
+        window.posthog.init('<%= config.POSTHOG_KEY %>', Object.assign({
           api_host: 'https://eu.i.posthog.com',
           person_profiles: 'never',
           // Names the element behind each LCP/INP/CLS reading (and splits LCP into its
@@ -168,7 +168,7 @@
         // Label events instead of letting them all default to "production" — this
         // block only loads in production now, but a mislabelled event is worse than
         // an unlabelled one if that ever changes.
-        environment: "<%= process.env.NODE_ENV || 'production' %>",
+        environment: "<%= config.NODE_ENV || 'production' %>",
         tracesSampleRate: 0,
       });
 

@@ -13,7 +13,7 @@ are in `docs/claude/`. **Read the matching file before touching its area:**
 | [docs/claude/social.md](docs/claude/social.md) | result cards, weekly tables/fixtures posts, Meta, Threads, anything that was on Make.com |
 | [docs/claude/storage.md](docs/claude/storage.md) | the `badmintontemp` bucket, its lifecycle rules, failed-analysis uploads |
 | [docs/claude/security.md](docs/claude/security.md) | spam controls, rate limits, `/fixture/rearrangement`, helmet and the CSP |
-| [docs/claude/env-vars.md](docs/claude/env-vars.md) | any environment variable, cron token or `META_*` credential |
+| [docs/claude/env-vars.md](docs/claude/env-vars.md) | `config/`, any environment variable, cron token or `META_*` credential |
 | [docs/claude/production-logs.md](docs/claude/production-logs.md) | deciding whether a route is used, before deleting anything |
 | [docs/claude/gotchas.md](docs/claude/gotchas.md) | the full story behind each numbered gotcha below |
 
@@ -96,8 +96,10 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 
 - `npm test` (Jest), `npm run test:db` (model SQL against a real Postgres; needs
   `tools/local-db.sh up`), `npm run test:e2e` (Playwright). Use Node 22.
-- **`__tests__/setup.js` declares the whole test environment**; a variable a test needs is
-  stated there. `testEnvGuard` refuses the run if anything live is present.
+- **`config/schema.js` declares every environment variable**, and the test environment is
+  derived from it. Code reads `config.X`, never `process.env` (`__tests__/unit/config.test.js`). A new
+  variable is one schema entry, including its `test` treatment. `testEnvGuard` refuses
+  the run if anything live is present.
 - **A model function's SQL is tested in `__tests__/db/`, or not at all.** Mocked-database
   tests of models prove nothing.
 - **A fix needs a test that fails without it**, verified by removing the fix.
@@ -182,4 +184,4 @@ Code comments cite these numbers; the full account of each is in
 4. **Session cookie name** must be `__session`.
 5. **DEV_MODE is safe**: only outside production.
 6. **Model exports are async**: always await them.
-7. **Test setup**: `__tests__/setup.js` sets env vars; don't rely on `.env` in tests.
+7. **Test setup**: the test environment is derived from `config/schema.js`; don't rely on `.env` in tests.

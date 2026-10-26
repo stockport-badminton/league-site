@@ -15,6 +15,7 @@
 // 2,400, so every scorecard ever filed could be walked by counting, and an outsider
 // could confirm a result neither captain had agreed. Hence the per-draft token below.
 
+const config = require('../config');
 const crypto = require('crypto');
 const { absoluteUrl } = require('./canonical');
 
@@ -150,7 +151,7 @@ function normalisePhotoUrl(raw) {
   const value = raw.trim();
   if (!value || HOSTILE.test(value)) throw badPhotoUrl();
 
-  const bucket = String(process.env.S3_BUCKET_NAME || '').trim().toLowerCase();
+  const bucket = String(config.S3_BUCKET_NAME || '').trim().toLowerCase();
   if (!bucket) throw badPhotoUrl();
 
   let url;

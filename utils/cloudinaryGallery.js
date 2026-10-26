@@ -15,6 +15,7 @@
 // at most TIMEOUT_MS. A failed refresh keeps serving the last good listing: a gallery a
 // few minutes out of date is fine, an empty one because Cloudinary hiccupped is not.
 
+const config = require('../config');
 const axios = require('axios')
 
 const FRESH_MS = 10 * 60 * 1000
@@ -48,7 +49,7 @@ function fetchTag(tag) {
     {
       // Credentials as `auth`, not in the URL, so they are not part of any error's
       // config.url that ends up in a log line or a Sentry event.
-      auth: { username: process.env.CLOUDINARY_KEY, password: process.env.CLOUDINARY_SECRET },
+      auth: { username: config.CLOUDINARY_KEY, password: config.CLOUDINARY_SECRET },
       params: { max_results: MAX_RESULTS, context: true },
       timeout: TIMEOUT_MS,
       signal: controller.signal,

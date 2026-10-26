@@ -32,9 +32,10 @@
 
 const crypto = require('crypto');
 const { isSuperAdmin } = require('../utils/authz');
+const config = require('../config');
 
 function tokenOk(envVar, header, req) {
-  const expected = process.env[envVar] || '';
+  const expected = config[envVar] || '';
   if (!expected) return false;
   const presented = req.get(header) || '';
   if (!presented) return false;
@@ -55,6 +56,9 @@ function tokenOk(envVar, header, req) {
  */
 function requireCronCaller(opts) {
   const { envVar, header, describe, callerProp } = opts;
+  // At build time, so an undeclared token fails when routes load rather than 500ing every
+  // scheduled call. The schema's `test: 'unset'` is what keeps it out of test processes.
+  if (!require('../config/schema')[envVar]) throw new Error(`${envVar} is not declared in config/schema.js`);
 
   const gate = function (req, res, next) {
     if (tokenOk(envVar, header, req)) {

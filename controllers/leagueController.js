@@ -9,8 +9,6 @@ exports.league_table = async function(req, res, next) {
     res.status(200);
     res.render('tables', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "League Table: "+ req.params.division.replace('-',' '),
         pageDescription : "Find out how your teams are peforming this season",
         division : req.params.division.replace('-',' '),
@@ -32,8 +30,6 @@ exports.all_league_tables = async function(req, res, next) {
     res.status(200);
     res.render('all-tables', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "League Tables",
         pageDescription : "Find out how your teams are peforming this season",
         result : result,

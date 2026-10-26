@@ -1,3 +1,4 @@
+var config = require('../config');
 var Division = require('../models/division');
 var seasonModel = require("../models/season");
 var Team = require('../models/teams');
@@ -121,7 +122,7 @@ exports.fixture_event_detail = async function(req, res, next) {
       pageTitle: 'Event Details: ' + row[0].homeTeam + " vs " + row[0].awayTeam,
       pageDescription: "View scorecard for this match",
       fixtureDetails: row[0],
-      mapsApiKey: process.env.GMAPSAPIKEY,
+      mapsApiKey: config.GMAPSAPIKEY,
       // SportsEvent markup, built in utils/structuredData.js. header.ejs used to
       // assemble this as literal JSON, keyed off `pageTitle.indexOf("Event")`.
       jsonLd: [SD.jsonLd(SD.sportsEvent(row[0]))],

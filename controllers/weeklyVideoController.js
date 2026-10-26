@@ -24,6 +24,7 @@
 // audio track is not a problem — but `FINISHED` from Meta means *it will publish*, not
 // *it looks good*, and only the first of those is answerable from an API.
 
+const config = require('../config');
 const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { canonicalFor, absoluteUrl, socialVideoPath } = require('../utils/canonical');
 const meta = require('../utils/metaPublisher');
@@ -79,7 +80,7 @@ function captions(weekLabel) {
 async function videoFreshness(now = Date.now()) {
   try {
     const head = await s3.send(new HeadObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME, Key: VIDEO_KEYS[POST_ASPECT],
+      Bucket: config.S3_BUCKET_NAME, Key: VIDEO_KEYS[POST_ASPECT],
     }));
     const ageMs = now - head.LastModified.getTime();
     if (ageMs > MAX_VIDEO_AGE_MS) {
@@ -171,7 +172,6 @@ exports.preview = async function (req, res, next) {
   try {
     res.render('admin/weekly-video-preview', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'Weekly video post',
       pageDescription: 'What the weekly results video post will contain',
       canonical: canonicalFor(req),

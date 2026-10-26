@@ -1,3 +1,4 @@
+const config = require('../config');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
@@ -6,9 +7,9 @@ const { isSuperAdmin } = require('../utils/authz');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
 
 exports.getManagementAPIKey = async function() {
-  const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-    client_id: process.env.AUTH0_CLIENTID,
-    client_secret: process.env.AUTH0_CLIENT_SECRET,
+  const response = await axios.post(`https://${config.AUTH0_DOMAIN}/oauth/token`, {
+    client_id: config.AUTH0_CLIENTID,
+    client_secret: config.AUTH0_CLIENT_SECRET,
     audience: 'https://stockport-badminton.eu.auth0.com/api/v2/',
     grant_type: 'client_credentials'
   })
@@ -17,9 +18,9 @@ exports.getManagementAPIKey = async function() {
 }
 
 exports.getAPIKey = async function() {
-  const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-    client_id: process.env.AUTH0_CLIENTID,
-    client_secret: process.env.AUTH0_CLIENT_SECRET,
+  const response = await axios.post(`https://${config.AUTH0_DOMAIN}/oauth/token`, {
+    client_id: config.AUTH0_CLIENTID,
+    client_secret: config.AUTH0_CLIENT_SECRET,
     audience: 'http://stockport-badminton.co.uk',
     grant_type: 'client_credentials'
   })
@@ -34,7 +35,7 @@ exports.getAPIKey = async function() {
 exports.getUserByAuthId = async function(userId) {
   const apiKey = await module.exports.getManagementAPIKey()
   const response = await axios.get(
-    'https://' + process.env.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + userId + '&fields=email,nickname,name',
+    'https://' + config.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + userId + '&fields=email,nickname,name',
     { headers: { Authorization: 'Bearer ' + apiKey } }
   )
   return response.data[0]
@@ -52,7 +53,6 @@ exports.approve_signup_get = async function(req, res, next) {
 
     res.render('approve-signup', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'Approve New Signup',
       pageDescription: 'Approve a new signup and assign them to a player',
       userId: req.params.userId,
@@ -76,7 +76,7 @@ exports.approve_signup_post = async function(req, res, next) {
     // Gates real login access via a separate Auth0 Action — keep as-is.
     const apiKey = await module.exports.getManagementAPIKey()
     await axios.patch(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${req.params.userId}`,
+      `https://${config.AUTH0_DOMAIN}/api/v2/users/${req.params.userId}`,
       { app_metadata: { betaAccess: true } },
       { headers: { Authorization: `Bearer ${apiKey}` } }
     )
@@ -105,8 +105,6 @@ exports.approve_signup_post = async function(req, res, next) {
 
     res.render('contact-us-form-delivered', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: 'Signup Approved',
       pageDescription: 'Signup Approved',
       message: `Approved ${user.email} — linked to player #${req.body.playerId} as ${req.body.role || 'no special role'}.`,

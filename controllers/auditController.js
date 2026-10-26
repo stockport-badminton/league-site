@@ -28,6 +28,7 @@
 //    fails answers 200 with the reason rather than a 500, because a 500 to Cloud
 //    Scheduler produces a retry storm against a job whose whole output is one email.
 
+const config = require('../config');
 const ejs = require('ejs');
 const db = require('../db_connect.js');
 const checks = require('../tools/audit/checks');
@@ -49,14 +50,11 @@ const TOKEN_HEADER = 'x-audit-token';
 // dropped rather than passed to SES, which rejects the whole call on one bad address —
 // so a stray trailing comma cannot cost the good recipients their email.
 function recipients() {
-  return String(process.env.AUDIT_EMAIL_TO || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s.includes('@'));
+  return config.AUDIT_EMAIL_TO.filter(s => s.includes('@'));
 }
 
 function source() {
-  return process.env.AUDIT_EMAIL_FROM || DEFAULT_SOURCE;
+  return config.AUDIT_EMAIL_FROM || DEFAULT_SOURCE;
 }
 
 // ---------------------------------------------------------------------------

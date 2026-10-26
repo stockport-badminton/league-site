@@ -1,3 +1,4 @@
+const config = require('../config');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
@@ -85,7 +86,7 @@ exports.serveWeeklyVideo = async function(req, res, next) {
 
     let obj;
     try {
-      obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+      obj = await s3.send(new GetObjectCommand({ Bucket: config.S3_BUCKET_NAME, Key: key }));
     } catch (err) {
       // Not generated yet is a 404, not a 500 — and must not be cached either.
       return res.status(404).set('Cache-Control', 'no-store').type('text/plain')
@@ -147,11 +148,11 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         // Check if videos exist and are recent
         console.log(`[DEDUP] Checking if videos exist in S3...`);
         const head4_5 = await s3.send(new HeadObjectCommand({
-          Bucket: process.env.S3_BUCKET_NAME,
+          Bucket: config.S3_BUCKET_NAME,
           Key: s3Keys['4-5']
         }));
         const head1_1 = await s3.send(new HeadObjectCommand({
-          Bucket: process.env.S3_BUCKET_NAME,
+          Bucket: config.S3_BUCKET_NAME,
           Key: s3Keys['1-1']
         }));
 
@@ -182,7 +183,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       try {
         console.log(`[DEDUP] Checking if lock file exists...`);
         const lockStat = await s3.send(new HeadObjectCommand({
-          Bucket: process.env.S3_BUCKET_NAME,
+          Bucket: config.S3_BUCKET_NAME,
           Key: s3Keys['lock']
         }));
 
@@ -222,7 +223,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
           // immediately by "Lock file already created by another instance".
           console.log(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), removing it`);
           await s3.send(new DeleteObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME,
+            Bucket: config.S3_BUCKET_NAME,
             Key: s3Keys['lock'],
           }));
         }
@@ -240,7 +241,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     console.log(`[DEDUP] Creating lock file to signal other instances...`);
     try {
       await s3.send(new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: config.S3_BUCKET_NAME,
         Key: s3Keys['lock'],
         Body: Buffer.from(''),
         ContentType: 'text/plain',
@@ -311,7 +312,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     console.log(`[DEDUP] Videos uploaded, deleting lock file...`);
     try {
       await s3.send(new DeleteObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: config.S3_BUCKET_NAME,
         Key: s3Keys['lock']
       }));
       console.log(`[DEDUP] Lock file deleted successfully`);
@@ -335,7 +336,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     // Try to clean up lock file on error too
     try {
       await s3.send(new DeleteObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: config.S3_BUCKET_NAME,
         Key: `${S3_PREFIX}/.generating`
       }));
       console.log(`[DEDUP] Lock file cleaned up after error`);
@@ -593,7 +594,7 @@ async function uploadVideoToS3(localFilePath, s3Key) {
   try {
     const fileContent = await fs.readFile(localFilePath);
     await s3.send(new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
+      Bucket: config.S3_BUCKET_NAME,
       Key: s3Key,
       Body: fileContent,
       ContentType: 'video/mp4'

@@ -12,6 +12,7 @@
 // This file stores the token. It does not post anything; that comes later, and reads the
 // token through models/socialToken.withToken.
 
+const config = require('../config');
 const crypto = require('crypto');
 const SocialToken = require('../models/socialToken');
 const threads = require('../utils/threadsAuth');
@@ -52,7 +53,7 @@ function render(req, res, { status = 200, error = null, notice = null, row = nul
     pageDescription: 'Connect the league Threads account',
     canonical: canonicalFor(req),
     missing: threads.missingConfig(),
-    expectedId: process.env.META_THREADS_USER_ID || null,
+    expectedId: config.META_THREADS_USER_ID || null,
     redirectUri: redirectUri(),
     row,
     daysLeft: row ? daysLeft(row.expiresAt) : null,
@@ -137,7 +138,7 @@ exports.callback = async function(req, res, next) {
     // The trap from 26 Sep: the browser was signed in to Neil's personal Instagram, and
     // that is the account Threads connected. Storing that token would make the league's
     // posts come from a person. Refuse anything but the configured account.
-    if (account.id !== String(process.env.META_THREADS_USER_ID)) {
+    if (account.id !== String(config.META_THREADS_USER_ID)) {
       return render(req, res, {
         status: 400, row: await SocialToken.status(PLATFORM),
         error: `That login was for @${account.username || account.id}, which is not the ` +

@@ -244,7 +244,6 @@ exports.preview = async function (req, res, next) {
     const text = await captions(rows);
     res.render('admin/weekly-fixtures-preview', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'Weekly fixtures post',
       pageDescription: 'What the weekly fixtures post will contain',
       canonical: canonicalFor(req),

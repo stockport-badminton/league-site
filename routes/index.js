@@ -97,7 +97,6 @@ router.use(function(error, req, res, next) {
     res.status(status);
     return res.render(view, {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: status === 403 ? 'Access Denied' : 'Can\'t find the page your looking for',
       pageDescription: 'HTTP ' + status + ' Error',
       canonical: canonicalFor(req)

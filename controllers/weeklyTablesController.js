@@ -204,7 +204,6 @@ exports.preview = async function (req, res, next) {
     const text = await captions();
     res.render('admin/weekly-tables-preview', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'Weekly tables post',
       pageDescription: 'What the weekly league tables post will contain',
       canonical: canonicalFor(req),

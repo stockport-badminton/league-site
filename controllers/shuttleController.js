@@ -16,7 +16,6 @@ exports.shuttlePrices = async function(req, res, next) {
 
   res.render('shuttle-prices', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: 'Shuttle Prices',
     pageDescription: 'Feather shuttle price comparison',
     canonical: canonicalFor(req),

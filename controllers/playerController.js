@@ -104,8 +104,6 @@ exports.players_missed_three = async function(req, res, next) {
     }
     res.render('missed-three-list', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Players that have missed three matches",
       pageDescription: "Players that have missed three matches",
       result: rows,
@@ -139,8 +137,6 @@ exports.missed_three_notice_preview = async function(req, res, next) {
     const notice = await missedThreeNotice(req);
     res.render('missed-three-notice', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: 'Missed three: ' + notice.subject,
       pageDescription: 'Preview the missed-three notice before it is sent',
       notice,
@@ -190,8 +186,6 @@ exports.player_game_data = async function(req, res, next) {
     const rows = await Player.getPlayerGameData(req.params.id);
     res.render('player-game-stats', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Player Game Data:" + req.params.fullName,
       pageDescription: "Information about games that " + req.params.fullName + "played in this season",
       result: rows,
@@ -210,8 +204,6 @@ exports.player_list_clubs_teams = async function(req, res, next) {
     const rows = await Player.getNamesClubsTeams(req.params);
     res.render('player-list', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Player Registrations",
       pageDescription: "List of players registered to teams in the Stockport League",
       result: rows,
@@ -354,8 +346,6 @@ exports.all_player_stats = async function(req, res, next) {
       .filter((value, index, self) => self.indexOf(value) === index)
     res.render('player-stats', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Player Stats",
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
@@ -417,8 +407,6 @@ exports.all_pair_stats = async function(req, res, next) {
     let teams = result.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index)
     res.render('pair-stats', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Pair Stats",
       pageDescription: "Geek out on Stockport League Player stats!",
       filter: true,
@@ -514,8 +502,6 @@ exports.player_update_get = async function(req, res, next) {
     const result = await Player.getById(req.params.id);
     res.render('player_update_form', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Pair Stats",
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
@@ -932,7 +918,6 @@ exports.player_elo_backfill_admin = async function(req, res, next) {
     const seasons = await Fixture.getAllSeasons()
     res.render('elo-backfill', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'ELO Backfill Admin',
       pageDescription: 'ELO rating backfill admin tool',
       seasons,
@@ -992,7 +977,6 @@ exports.player_elo_chart = async function(req, res, next) {
     ])
     res.render('elo-chart', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'ELO Chart',
       pageDescription: 'Compare player ELO ratings over time',
       seriesData: JSON.stringify(seriesData),

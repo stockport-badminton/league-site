@@ -31,6 +31,7 @@ function renderHeader(env, user) {
       pageDescription: 'd',
       theme: 'flatly',
       siteOrigin,
+      config: require('../../config'),
       asset: require('../../utils/assets').asset,
       backgroundPreloads: require('../../utils/backgroundPreload').backgroundPreloads,
       ...(user ? { user } : {}),

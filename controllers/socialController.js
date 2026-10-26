@@ -662,7 +662,6 @@ exports.tablesSocial = async function(req, res, next) {
 
     res.render('league-table-social', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: 'Table Social Images',
       pageDescription: 'Table Social Images',
       query: req.query,

@@ -17,7 +17,6 @@ module.exports = function validateSeason(req, res, next) {
 
   return res.status(404).render('404-error', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: "Can't find the page you're looking for",
     pageDescription: 'HTTP 404 Error',
     canonical: ('https://' + req.get('host') + req.originalUrl)

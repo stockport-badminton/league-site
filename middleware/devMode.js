@@ -1,7 +1,8 @@
 // Development mode middleware - injects mock user locally
 // SAFE: Only works if NODE_ENV is NOT production
+const config = require('../config');
 module.exports = function devMode(req, res, next) {
-  const isDevMode = process.env.DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
+  const isDevMode = config.DEV_MODE && config.NODE_ENV !== 'production';
 
   if (isDevMode) {
     // Inject mock user for dev mode (LOCAL TESTING ONLY)

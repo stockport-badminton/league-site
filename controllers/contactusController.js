@@ -1,3 +1,4 @@
+var config = require('../config');
 var Club = require('../models/club.js');
 var seasonModel = require("../models/season");
 var League = require('../models/league.js');
@@ -48,8 +49,8 @@ const UNSUBSCRIBE_MAILBOX = 'results@stockport-badminton.co.uk';
 // Honest about what this is: a mitigation, not a guarantee. Gmail publishes no threshold.
 // If transient bounces keep arriving, the next lever is fewer recipients per list or a
 // slower cadence, and the two knobs below are env vars so that does not need a deploy.
-const LIST_CHUNK = Number(process.env.LIST_SEND_CHUNK || 6);
-const LIST_BUDGET_MS = Number(process.env.LIST_SEND_BUDGET_MS || 10000);
+const LIST_CHUNK = config.LIST_SEND_CHUNK;
+const LIST_BUDGET_MS = config.LIST_SEND_BUDGET_MS;
 
 const chunk = (arr, size) => {
   const out = [];
@@ -130,7 +131,7 @@ async function validCaptcha(value, { req }) {
   try {
     const response = await axios.post('https://www.google.com/recaptcha/api/siteverify', null, {
       params: {
-        secret: process.env.RECAPTCHA_SECRET,
+        secret: config.RECAPTCHA_SECRET,
         response: value,
         remoteip: req.ip // Optional: include user's IP for additional security
       }
@@ -295,8 +296,6 @@ exports.contactus = async function(req, res, next) {
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle: 'Contact Us - Success',
         pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
         message: 'Success - we\'ve sent your email to your chosen contact',
@@ -354,8 +353,6 @@ exports.contactus = async function(req, res, next) {
       console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle: 'Contact Us - Success',
         pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
         message: 'Success - we\'ve sent your email to your chosen contact',
@@ -986,11 +983,9 @@ exports.contactus_get = async function(req, res, next) {
     const rows = await Club.getAll();
     res.render('contact-us-form', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: "Contact Us",
       pageDescription: "Get in touch with your league representatives, or club secretaries",
-      recaptcha: process.env.RECAPTCHA,
+      recaptcha: config.RECAPTCHA,
       clubs: rows,
       // The club pages link here as /contact-us?club=<id> so the dropdown arrives
       // already set to the club the visitor came from.

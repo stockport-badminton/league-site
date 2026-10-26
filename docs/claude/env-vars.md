@@ -1,18 +1,28 @@
 # Environment variables
 
-Moved out of `CLAUDE.md`, word for word, so that file holds only the rules most tasks need.
+**`config/schema.js` is the list.** Every variable the app reads has one entry there: its
+kind, what *unset* means, whether startup refuses without it, and what the Jest and
+Playwright processes get. Application code reads `config.X` (`require('../config')`), never
+`process.env` — `__tests__/unit/config.test.js` fails on a `process.env` anywhere outside
+`config/`, and on a `config.X` the schema does not declare.
 
-## Environment Variables
+- `node tools/env-table.js` prints the table.
+- `node tools/env-table.js --cloud-run` compares it with the Cloud Run service (names only):
+  a required variable production lacks would stop the next deploy starting.
+- **Adding a variable** is one schema entry. Its `test` field decides what `npm test` gets
+  and `e2e` what the browser suite's server gets (`config/testEnv.js`); there is no second
+  list to forget. A secret that is safe *because* it is unset is `test: 'unset'`; a fake
+  would arm it.
+- **`required`** variables make `app.js` refuse to start, naming each one. Mark one required
+  only if `--cloud-run` shows production sets it. `SESSION_SECRET` is required in production
+  only; dev runs on a default.
+- **`config.X` reads the environment when asked**, not at startup, so a test can set a
+  variable and restore it. Module-level constants (`PG_POOL_MAX`, `NO_CLUB_ID`, the Graph
+  versions) are still read once, at require time.
 
-Key vars (see `.env` for examples):
-- `AUTH0_DOMAIN`, `AUTH0_CLIENTID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE` — Auth0 config
-- `DATABASE_URL` — PostgreSQL connection string (Supabase)
-- `SENDGRID_API_KEY` — Email sending
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — S3 access
-- `NODE_ENV` — `'production'` or `'development'`
-- `DEV_MODE` — `'true'` for local auth bypass (dev/test only)
-- `PORT` — Server port (default 8080)
-- `SESSION_SECRET` — Session encryption key
+The rest of this file is the story behind the variables that need one: the schema's `doc`
+holds the one-line meaning, and what follows is why.
+
 - `CSP_ENFORCE` — `'true'` promotes the Content-Security-Policy resource allowlist from
   report-only to enforcing. **Leave unset** until the prerequisites in
   `utils/securityHeaders.js` are met; a wrong policy blanks pages silently, and the
@@ -80,7 +90,7 @@ Key vars (see `.env` for examples):
   their role on the Page. Each can publish to that Page, and the Stockport one can publish
   to the league's Instagram account, so **these are the sharpest credentials in `.env`** —
   there is no sandbox Meta to point them at and no expiry to save us.
-  `__tests__/setup.js` deletes every `META_*` variable and `utils/testEnvGuard.js` refuses
+  the test environment (`config/testEnv.js`) deletes every `META_*` variable and `utils/testEnvGuard.js` refuses
   the whole run if one survives, matching **both** by value (`EAA…`, which catches a token
   stored under a name nobody anticipated) and by name pattern (`META_*TOKEN`/`*SECRET`,
   which survives a variable being added). Demonstrated by planting a real one and watching

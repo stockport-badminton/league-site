@@ -14,10 +14,11 @@
 // Both read the key when the query is BUILT, not when the module loads, so a test that
 // sets DB_PI_KEY in setup.js is honoured, and a process without one fails at the query
 // that needed it rather than quietly decrypting to NULL.
+const config = require('../config');
 const { sql } = require('kysely');
 
 function key() {
-  const k = process.env.DB_PI_KEY;
+  const k = config.DB_PI_KEY;
   if (!k) throw new Error('DB_PI_KEY is not set: cannot read or write an encrypted column');
   return k;
 }

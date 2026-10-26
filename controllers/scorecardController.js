@@ -1,3 +1,4 @@
+var config = require('../config');
 var Division = require('../models/division');
 var Team = require('../models/teams');
 var Player = require('../models/players');
@@ -245,7 +246,6 @@ exports.full_fixture_post = async function(req, res, next) {
       const scorecard = await errorRenderData(data);
       res.render('index-scorecard', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
         pageTitle: "Scorecard Received - Errors",
         pageDescription: "Something went wrong",
         scorecard,
@@ -460,7 +460,7 @@ exports.full_fixture_post = async function(req, res, next) {
     // Threads is posted later too, by the `sbl-results-threads` job: its containers have to
     // be waited on, which cannot happen inside this request (threadsResultsController). This
     // only queues the fixture. Unset `SOCIAL_POST_THREADS` queues nothing.
-    if (process.env.SOCIAL_POST_THREADS === 'true') {
+    if (config.SOCIAL_POST_THREADS) {
       await afterCommit('threads result queue', () => ThreadsResultPost.enqueue(FixtureIdResult[0].id));
     }
 
@@ -546,7 +546,6 @@ exports.full_fixture_post = async function(req, res, next) {
 
     res.render('index-scorecard', {
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
       pageTitle: "Scorecard Received - No Errors",
       pageDescription: "Enter some results!",
       scorecardData: gameObject,
@@ -580,7 +579,6 @@ const afterCommit = (label, fn) =>
 function renderSubmissionConflict(req, res, conflict) {
   const view = {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: 'Scorecard not recorded',
     pageDescription: 'We could not match this scorecard to a fixture',
     conflict,
@@ -975,7 +973,6 @@ function renderLinkRefused(req, res, status) {
   res.status(status);
   return res.render('scorecard-link-invalid', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: 'Scorecard link not valid',
     pageDescription: 'This confirmation link cannot be opened',
     notFound: status === 404,
@@ -988,7 +985,6 @@ function renderLinkRefused(req, res, status) {
       const rows = await Division.getAllByLeague(1);
       res.render('index-scorecard', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
         pageTitle: "Scorecard",
         pageDescription: "Enter some results!",
         result: rows,
@@ -1019,7 +1015,7 @@ function renderLinkRefused(req, res, status) {
       try {
         const apiKey = await Auth.getManagementAPIKey();
         const response = await axios.get(
-          'https://' + process.env.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + req.user.id, {
+          'https://' + config.AUTH0_DOMAIN + '/api/v2/users?q=user_id:' + req.user.id, {
             headers: { 'Authorization': 'Bearer ' + apiKey }
           });
         const email = response && response.data && response.data[0] && response.data[0].email;
@@ -1035,7 +1031,6 @@ function renderLinkRefused(req, res, status) {
 
       res.render('index-scorecard', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
         pageTitle: "Scorecard",
         pageDescription: "Enter some results!",
         result: rows,
@@ -1048,8 +1043,6 @@ function renderLinkRefused(req, res, status) {
   exports.scorecard_upload = function(req, res) {
     res.render('scorecard-upload', {
         static_path: '/static',
-        theme: process.env.THEME || 'flatly',
-        flask_debug: process.env.FLASK_DEBUG || 'false',
         pageTitle : "Stockport & District Badminton League Scorecard Upload",
         pageDescription : "Upload your scorecard and send to the website",
         canonical:canonicalFor(req)

@@ -5,6 +5,7 @@
 // "nothing received, nothing chased", which is what makes the season rollover free —
 // see migrations/013_club_registration.sql.
 
+const config = require('../config');
 const db = require('../db_connect.js');
 const seasonModel = require('./season');
 const { kysely } = require('../db');
@@ -95,7 +96,7 @@ exports.getStatus = async function(season) {
   const c = await conn();
 
   const [clubs] = await c.query(STATUS_SQL, [name, name, NO_CLUB_ID]);
-  const [officers] = await c.query(OFFICER_SQL, [process.env.DB_PI_KEY, NO_CLUB_ID]);
+  const [officers] = await c.query(OFFICER_SQL, [config.DB_PI_KEY, NO_CLUB_ID]);
 
   const byClub = new Map();
   officers.forEach((/** @type {any} */ o) => {

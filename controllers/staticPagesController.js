@@ -1,3 +1,4 @@
+const config = require('../config');
 const axios = require('axios');
 var seasonModel = require("../models/season");
 const { canonicalFor } = require('../utils/canonical');
@@ -6,8 +7,6 @@ const { canonicalFor } = require('../utils/canonical');
 exports.privacy_policy = function(req, res) {
   res.render('privacy', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Stockport & District Badminton League Privacy Policy',
     pageDescription: 'Privacy Policy for the Stockport and District Badminton League',
     canonical: canonicalFor(req)
@@ -19,8 +18,6 @@ exports.privacy_policy = function(req, res) {
 exports.history = function(req, res) {
   res.render('history', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'History — Past Seasons & Archive',
     pageDescription: 'Results, tables and documents from past Stockport & District Badminton League seasons',
     canonical: canonicalFor(req)
@@ -30,8 +27,6 @@ exports.history = function(req, res) {
 exports.messer_rules = function(req, res) {
   res.render('messer-rules', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Messer Tropy Rules',
     pageDescription: "Rules and regulations around the Stockrt and District Badminton Leagues' cup competition",
     canonical: canonicalFor(req)
@@ -41,7 +36,7 @@ exports.messer_rules = function(req, res) {
 exports.get_gallery = async function(req, res, next) {
   try {
     const response = await axios.get(
-      'https://'+process.env.CLOUDINARY_KEY+':'+process.env.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=100&context=true&fields=tags,context,url'
+      'https://'+config.CLOUDINARY_KEY+':'+config.CLOUDINARY_SECRET+'@api.cloudinary.com/v1_1/hvunsveuh/resources/image?max_results=100&context=true&fields=tags,context,url'
     )
     const assets = response.data
     const justwebsite = assets.resources.filter(asset => asset.tags.some(tag => tag == 'website'))
@@ -60,8 +55,6 @@ exports.get_gallery = async function(req, res, next) {
     res.render('gallery', {
       assets: galleryObj,
       static_path: '/static',
-      theme: process.env.THEME || 'flatly',
-      flask_debug: process.env.FLASK_DEBUG || 'false',
       pageTitle: 'Stockport & District Badminton League Gallery',
       pageDescription: 'Photos from the Stockport & District Badminton League presentations, tournaments etc.',
       canonical: canonicalFor(req)
@@ -75,8 +68,6 @@ exports.rules = function(req, res) {
   res.render('rules', {
     season: seasonModel.current(),
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
-    flask_debug: process.env.FLASK_DEBUG || 'false',
     pageTitle: 'Stockport & District Badminton League Rules',
     pageDescription: 'Rules and regulations for the Stockport and District Badminton League',
     canonical: canonicalFor(req)

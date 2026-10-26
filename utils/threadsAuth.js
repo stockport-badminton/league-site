@@ -30,11 +30,12 @@
 // Nothing here logs or rethrows an axios error. Its `config` carries the app secret and the
 // token in its params, and Sentry would serialise all of it.
 
+const config = require('../config');
 const axios = require('axios');
 
 const AUTHORIZE = 'https://threads.net/oauth/authorize';
 const GRAPH = 'https://graph.threads.net';
-const VERSION = process.env.META_THREADS_GRAPH_VERSION || 'v1.0';
+const VERSION = config.META_THREADS_GRAPH_VERSION;
 const SCOPES = ['threads_basic', 'threads_content_publish'];
 
 // Threads refuses to refresh a token younger than this.
@@ -86,12 +87,12 @@ async function call(method, path, params, step) {
  */
 function missingConfig() {
   return ['META_THREADS_APP_ID', 'META_THREADS_APP_SECRET', 'META_THREADS_USER_ID']
-    .filter(name => !process.env[name]);
+    .filter(name => !config[name]);
 }
 
 function authorizeUrl({ state, redirectUri }) {
   const q = new URLSearchParams({
-    client_id: process.env.META_THREADS_APP_ID,
+    client_id: config.META_THREADS_APP_ID,
     redirect_uri: redirectUri,
     scope: SCOPES.join(','),
     response_type: 'code',
@@ -109,8 +110,8 @@ async function exchangeCode({ code, redirectUri }) {
   // sends the fragment to a server, but a code pasted by hand keeps it.
   const clean = String(code || '').replace(/#_$/, '');
   const data = await call('POST', 'oauth/access_token', {
-    client_id: process.env.META_THREADS_APP_ID,
-    client_secret: process.env.META_THREADS_APP_SECRET,
+    client_id: config.META_THREADS_APP_ID,
+    client_secret: config.META_THREADS_APP_SECRET,
     grant_type: 'authorization_code',
     redirect_uri: redirectUri,
     code: clean,
@@ -129,7 +130,7 @@ function expectLongLived(data, step) {
 async function longLived(shortToken) {
   const data = await call('GET', 'access_token', {
     grant_type: 'th_exchange_token',
-    client_secret: process.env.META_THREADS_APP_SECRET,
+    client_secret: config.META_THREADS_APP_SECRET,
     access_token: shortToken,
   }, 'the long-lived token exchange');
   return expectLongLived(data, 'the long-lived token exchange');

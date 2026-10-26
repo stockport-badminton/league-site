@@ -21,6 +21,7 @@
 // The canonical host is a property of the site, not of the request, so it is not
 // read from the request at all. SITE_ORIGIN exists so a staging deploy can
 // declare itself rather than claim to be production.
+const config = require('../config');
 const DEFAULT_ORIGIN = 'https://stockport-badminton.co.uk';
 
 // Params that identify a click, not a page. Left in the canonical they split one
@@ -33,7 +34,7 @@ const TRACKING_PARAMS = [
 ];
 
 function siteOrigin() {
-  return (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
+  return (config.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 }
 
 // `req.originalUrl` is the raw request target, so it keeps the percent-encoding

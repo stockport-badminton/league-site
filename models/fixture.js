@@ -1,4 +1,5 @@
 // @ts-check
+var config = require('../config');
 var db = require('../db_connect.js');
 const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
@@ -874,7 +875,7 @@ exports.rearrangeByTeamNames = async function(updateObj) {
 function resultTargets() {
   const meta = require('../utils/metaPublisher')
   const t = meta.targets()
-  const story = process.env.SOCIAL_POST_STORY === 'true' && t.instagram
+  const story = config.SOCIAL_POST_STORY && t.instagram
   return [
     t.stockportPage && { ...t.stockportPage, name: 'Stockport page', kind: 'page' },
     t.instagram && { ...t.instagram, name: 'Instagram', kind: 'instagram' },
@@ -965,7 +966,7 @@ exports.sendResultZap = async function(zapObject) {
   // per configured target and returns, and `sbl-results-meta` posts them
   // (controllers/metaResultsController.js). Nothing may be posted from here after the
   // response either: Cloud Run throttles the CPU once a response is sent.
-  if (process.env.SOCIAL_POST_DIRECT === 'true') {
+  if (config.SOCIAL_POST_DIRECT) {
     const configured = resultTargets()
 
     // **No targets is a failure, not a quiet success**, and this very nearly shipped as the

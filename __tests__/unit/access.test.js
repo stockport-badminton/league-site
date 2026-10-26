@@ -104,16 +104,16 @@ it('devOnly falls through to the 404 outside a dev server, through the wrapper',
 });
 
 describe('cron', () => {
-  const gate = requireCronCaller({ envVar: 'TEST_ACCESS_TOKEN', header: 'x-test', describe: 'a test', callerProp: 'testCaller' });
+  const gate = requireCronCaller({ envVar: 'AUDIT_CRON_TOKEN', header: 'x-test', describe: 'a test', callerProp: 'testCaller' });
 
   it('is tagged with the token it checks', () => {
-    expect(access.cron(gate).access).toBe('cron:TEST_ACCESS_TOKEN');
+    expect(access.cron(gate).access).toBe('cron:AUDIT_CRON_TOKEN');
   });
   it('refuses to label anything requireCronCaller did not build', () => {
     expect(() => access.cron((rq, rs, next) => next())).toThrow(/requireCronCaller/);
   });
   it('admits the token, refuses without it', async () => {
-    process.env.TEST_ACCESS_TOKEN = 's3cret';
+    process.env.AUDIT_CRON_TOKEN = 's3cret';
     const ok = req({ get: h => (h === 'x-test' ? 's3cret' : undefined) });
     expect(await run(access.cron(gate), ok)).toBe('ok');
     expect(ok.testCaller).toBe('scheduler');

@@ -66,7 +66,6 @@ function respondBland(req, res) {
   }
   return res.status(200).render('contact-us-form-delivered', {
     static_path: '/static',
-    theme: process.env.THEME || 'flatly',
     pageTitle: 'Contact Us - Message Sent',
     pageDescription: 'Your message has been sent',
     message: "Thanks — your message has been sent.",

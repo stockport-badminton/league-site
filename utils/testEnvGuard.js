@@ -3,7 +3,9 @@
 // A pure predicate so it can be tested directly; wired into __tests__/setupAfterEnv.js,
 // which runs before every suite.
 //
-// The point is that it is an ALLOWLIST of shapes, not a denylist of variable names. The
+// The schema (config/schema.js) decides what the test environment IS; this checks what it
+// actually turned out to be, which is a different question. The point is that it is an
+// ALLOWLIST of shapes, not a denylist of variable names. The
 // exposure this closes had already been patched three times variable by variable — Sentry
 // reporting our own test runs, then two real objects written into the production bucket —
 // and each patch was one variable behind the next one added to .env. Checking the SHAPE of
@@ -26,7 +28,7 @@ function hostOf(connectionString) {
  * @returns {string[]} one message per live credential found; empty means clean.
  */
 function liveCredentials(env) {
-  const e = env || process.env;
+  const e = env;
   const found = [];
 
   for (const name of ['DATABASE_URL', 'TAMESIDE_DATABASE_URL']) {
@@ -86,6 +88,26 @@ function liveCredentials(env) {
     if (e[name]) found.push(`${name} is set, so a test could send real mail`);
   }
 
+  // From config/schema.js (REARCH-06). A secret the tests are meant to run without, if
+  // present, is live by definition; and a value shaped like a declared secret is caught
+  // under ANY name except one the schema declares public (GMAPSAPIKEY holds a real AIza key
+  // in the browser suite, and is meant to).
+  const schema = require('../config/schema');
+  for (const [name, entry] of Object.entries(schema)) {
+    if (entry.kind === 'secret' && entry.test === 'unset' && e[name] && !found.some(f => f.startsWith(name + ' '))) {
+      found.push(`${name} is set`);
+    }
+  }
+  for (const [secret, entry] of Object.entries(schema)) {
+    if (!entry.shape) continue;
+    for (const [name, value] of Object.entries(e)) {
+      if (schema[name] && schema[name].kind === 'public') continue;
+      // The name's own check above has already said so.
+      if (name === secret && found.some(f => f.startsWith(name + ' '))) continue;
+      if (entry.shape.test(String(value || ''))) found.push(`${name} holds what looks like a real ${secret}`);
+    }
+  }
+
   return found;
 }
 
@@ -96,10 +118,9 @@ function refusalMessage(found) {
     '',
     ...found.map(f => '  - ' + f),
     '',
-    '__tests__/setup.js is meant to declare the entire environment — app.js and',
-    'instrument.js skip dotenv under NODE_ENV=test precisely so nothing is inherited.',
-    'Something has put these back: a shell export, a changed setup.js, or a new variable',
-    'in .env that setup.js does not neutralise.',
+    'config/schema.js declares the entire test environment — config/index.js skips',
+    'dotenv under NODE_ENV=test precisely so nothing is inherited. Something has put',
+    'these back: a shell export, or a variable the schema does not declare.',
     '',
     'See docs/hardening/done/HARD-26-test-process-carries-production-secrets.md — this has',
     'already cost two real objects written into the production bucket.',

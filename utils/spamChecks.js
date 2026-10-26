@@ -1,3 +1,4 @@
+const config = require('../config');
 const crypto = require('crypto');
 
 // Two checks that cost a legitimate visitor nothing and catch naive bots outright.
@@ -39,7 +40,7 @@ function formStamp(now = Date.now()) {
 }
 
 function sign(ts) {
-  const key = process.env.SESSION_SECRET || 'dev-only-fallback';
+  const key = config.SESSION_SECRET;
   return crypto.createHmac('sha256', key).update(ts).digest('base64url').slice(0, 22);
 }
 
