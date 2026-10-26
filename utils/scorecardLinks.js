@@ -27,25 +27,14 @@ function newDraftToken() {
   return crypto.randomBytes(TOKEN_BYTES).toString('base64url');
 }
 
-// Whether this draft is one that has to prove itself.
+// Whether this draft carries a token at all.
 //
-// **Grandfather clause.** A draft filed before the token column existed has no token,
-// and its confirmation link is already sitting in a captain's inbox. Those drafts get
-// confirmed within days, but rejecting one would silently lock a captain out of
-// confirming a result they have already played — the exact class of failure this
-// backlog exists to prevent — so a stored token of NULL/'' means "no token required".
-// A draft WITH a token always has to match.
-//
-// Deliberately no backfill: minting tokens for existing rows is precisely what would
-// invalidate the links this clause protects.
-//
-// **What removes it:** once no unconfirmed draft is left without a token, delete this
-// function's early-out and make a missing token a refusal.
-//
-//   node tools/dbq.js "SELECT count(*) FROM scorecardstore WHERE \"confirmToken\" IS NULL"
-//
-// (that count only falls as old drafts are processed; it will not reach zero on its own
-// while the rows are kept, so the judgement is "no *outstanding* tokenless draft".)
+// A draft filed before migration 011 has none. Until REARCH-09 those opened for anyone
+// with the id (HARD-03's grandfather clause), because their links were already sitting in
+// captains' inboxes. The clause ended on 26 Oct 2026: the newest tokenless draft was for a
+// match on 6 May 2026, every one of them published, and the 30 days of request logs before
+// then held no tokenless open of one. They now open for a superadmin session only — see
+// `mayOpenDraft`. Still no backfill: a minted token would be one nobody was ever sent.
 function draftRequiresToken(storedToken) {
   return typeof storedToken === 'string' && storedToken.trim() !== '';
 }
@@ -60,8 +49,10 @@ function tokenMatches(storedToken, providedToken) {
 }
 
 // True when this draft may be shown to whoever asked, given the token they presented.
-function mayOpenDraft(storedToken, providedToken) {
-  if (!draftRequiresToken(storedToken)) return true;
+// A tokenless draft has nothing to present, so it opens for a superadmin session only
+// (`isSuperAdmin(req)` from middleware/requireClubAccess.js); anyone else is refused.
+function mayOpenDraft(storedToken, providedToken, { superAdmin = false } = {}) {
+  if (!draftRequiresToken(storedToken)) return superAdmin === true;
   return tokenMatches(storedToken, providedToken);
 }
 
@@ -69,10 +60,10 @@ function mayOpenDraft(storedToken, providedToken) {
 // to the league table, insert 18 game rows and fire the social post.
 //
 // This is deliberately STRICTER than `mayOpenDraft`, and the difference is the whole
-// point of having two functions. `mayOpenDraft` grandfathers a tokenless draft open
-// (HARD-03: links filed before migration 011 are already sitting in captains' inboxes,
-// and minting tokens for those rows is exactly what would break them). Reading an old
-// draft is the behaviour we promised to keep. **Publishing one is not.**
+// point of having two functions. `mayOpenDraft` used to grandfather a tokenless draft
+// open to anyone (HARD-03: links filed before migration 011 were already sitting in
+// captains' inboxes); since REARCH-09 it still opens one for a superadmin. Publishing
+// one by token was never allowed.
 //
 // Reusing `mayOpenDraft` here would have been the obvious move and would have left the
 // hole almost exactly as wide as it was found: at the time of writing 1,557 of 1,562

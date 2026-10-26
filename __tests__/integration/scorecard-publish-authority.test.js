@@ -55,6 +55,7 @@ jest.mock('../../db_connect', () => ({
 }));
 
 const Division = require('../../models/division');
+const Team = require('../../models/teams');
 const Player = require('../../models/players');
 const Fixture = require('../../models/fixture');
 const Game = require('../../models/game');
@@ -218,14 +219,13 @@ describe('POST /scorecard-beta — publish authority (HARD-24)', () => {
     assertNothingWritten();
   });
 
-  // The trap this package nearly walked into. `mayOpenDraft` grandfathers a tokenless
-  // draft OPEN, because links filed before migration 011 are already in captains' inboxes
-  // (HARD-03). At the time of writing 1,557 of 1,562 drafts are tokenless, so a publish
-  // gate built on `mayOpenDraft` would have admitted anonymous publishes for 99.7% of
-  // them — while looking, in review and in a passing test, exactly like a fix.
-  //
-  // Reading an old draft stays grandfathered. Publishing one does not.
-  it('refuses a TOKENLESS draft even though the same draft may still be READ', async () => {
+  // The trap this package nearly walked into. `mayOpenDraft` then grandfathered a
+  // tokenless draft OPEN to anyone, because links filed before migration 011 were in
+  // captains' inboxes (HARD-03). 1,557 of 1,562 drafts were tokenless, so a publish gate
+  // built on `mayOpenDraft` would have admitted anonymous publishes for 99.7% of them —
+  // while looking, in review and in a passing test, exactly like a fix. A superadmin may
+  // still open one (REARCH-09); nobody publishes one by token.
+  it('refuses a TOKENLESS draft even though a superadmin may still READ it', async () => {
     Fixture.getScorecardById.mockResolvedValue([
       { id: 7, confirmToken: null, email: 'captain@example.com' },
     ]);
@@ -237,11 +237,8 @@ describe('POST /scorecard-beta — publish authority (HARD-24)', () => {
     expect(res.status).toBe(403);
     assertNothingWritten();
 
-    // ...and the same row still opens for reading, which is the behaviour HARD-03
-    // promised to keep. If this ever starts failing, the grandfather clause has been
-    // removed and old confirmation links have stopped working.
     const { mayOpenDraft, mayPublishDraft } = require('../../utils/scorecardLinks');
-    expect(mayOpenDraft(null, '')).toBe(true);
+    expect(mayOpenDraft(null, '', { superAdmin: true })).toBe(true);
     expect(mayPublishDraft(null, '')).toBe(false);
   });
 
@@ -295,5 +292,68 @@ describe('the "website updated" recipient is derived server-side (HARD-24)', () 
     expect(sent[0].to).toEqual([mailer.RESULTS_MAILBOX]);
 
     spy.mockRestore();
+  });
+});
+
+// REARCH-09 part C: the end of HARD-03's grandfather clause. A draft filed before
+// migration 011 has no token, and opened for anyone who knew (or counted to) its id.
+// Now it opens for a superadmin session only, on every route that reads a draft.
+describe('a TOKENLESS draft opens for a superadmin only (REARCH-09)', () => {
+  const tokenless = () => [{
+    id: 7, division: 1, homeTeam: 10, awayTeam: 20,
+    homeMan1: 1, homeMan2: 2, homeMan3: 3, homeLady1: 4, homeLady2: 5, homeLady3: 6,
+    awayMan1: 7, awayMan2: 8, awayMan3: 9, awayLady1: 10, awayLady2: 11, awayLady3: 12,
+    'scoresheet-url': '', confirmToken: null,
+  }];
+
+  beforeEach(() => {
+    Fixture.getScorecardById.mockResolvedValue(tokenless());
+    Division.getAllAndSelectedById.mockResolvedValue([{ id: 1, name: 'Division 1', selected: 1 }]);
+    Team.getAllAndSelectedById.mockResolvedValue([{ id: 10, name: 'Mellor A', selected: 1 }]);
+    Player.getEligiblePlayersAndSelectedById.mockResolvedValue([
+      { id: 1, first_name: 'Player', family_name: 'One', first: 1 },
+    ]);
+  });
+
+  it('refuses the confirmation page to an anonymous visitor, showing the invalid-link page', async () => {
+    const res = await request(app).get('/populated-scorecard-beta/7');
+
+    expect(res.status).toBe(403);
+    expect(res.text).toMatch(/Scorecard link not valid/);
+    expect(res.text).not.toContain('Player One');
+  });
+
+  it('refuses it to a logged-in captain', async () => {
+    mockCurrentUser = CAPTAIN;
+    const res = await request(app).get('/populated-scorecard-beta/7');
+
+    expect(res.status).toBe(403);
+    expect(res.text).not.toContain('Player One');
+  });
+
+  it('opens it for a superadmin', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).get('/populated-scorecard-beta/7');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Player One');
+  });
+
+  // The draft has no photo, so a request that gets past the gate is a 404 from the photo
+  // lookup: 403 against 404 is the gate's answer, with nothing fetched from the bucket.
+  it('refuses the photo to an anonymous visitor, and lets a superadmin past the gate', async () => {
+    expect((await request(app).get('/scorecard-photo/7')).status).toBe(403);
+
+    mockCurrentUser = SUPERADMIN;
+    expect((await request(app).get('/scorecard-photo/7')).status).toBe(404);
+  });
+
+  it('refuses an anonymous photo upload, and writes nothing', async () => {
+    const res = await request(app)
+      .post('/add-scorecard-photo/7')
+      .send({ imgURL: 'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/photo.jpg' });
+
+    expect(res.status).toBe(403);
+    expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
   });
 });

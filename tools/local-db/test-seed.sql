@@ -205,7 +205,7 @@ END $$ LANGUAGE plpgsql;
 
 -- Both for return fixtures still outstanding.
 -- 1: Southgate A v Northfield A (302), filed before migration 011, so no token — the
---    grandfathered shape (HARD-03).
+--    shape only a superadmin may open (HARD-03, REARCH-09).
 -- 2: Northfield B v Eastbank A (304), a current draft carrying one.
 SELECT pg_temp.seed_insert('scorecardstore', jsonb_build_object(
   'id', 1, 'division', 1, 'homeTeam', 2, 'awayTeam', 1, 'date', '2027-02-10',

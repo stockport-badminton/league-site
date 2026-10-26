@@ -12,6 +12,26 @@ const request = require('supertest');
 
 jest.mock('../../middleware/secured', () => (req, res, next) => next());
 
+// The drafts here are tokenless by default, and since REARCH-09 only a superadmin session
+// opens one, so that is the session unless a test clears it. The token tests below hold
+// either way: a draft WITH a token needs it, whoever is asking.
+const mockSuperAdmin = {
+  id: 'auth0|boss',
+  _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' },
+};
+let mockCurrentUser = mockSuperAdmin;
+jest.mock('passport', () => {
+  const actual = jest.requireActual('passport');
+  actual.session = () => (req, res, next) => {
+    if (mockCurrentUser) {
+      req.user = mockCurrentUser;
+      req.isAuthenticated = () => true;
+    }
+    next();
+  };
+  return actual;
+});
+
 jest.mock('../../models/division');
 jest.mock('../../models/teams');
 jest.mock('../../models/players');
@@ -80,6 +100,7 @@ const draft = (overrides = {}) => [Object.assign({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCurrentUser = mockSuperAdmin;
   process.env.S3_BUCKET_NAME = BUCKET;
   mockS3Objects.clear();
   mockS3Sends.length = 0;
@@ -163,11 +184,18 @@ describe('GET /scorecard-photo/:id', () => {
       expect(res.status).toBe(200);
     });
 
-    // The same grandfather clause as the confirmation page: links filed before
-    // migration 011 are already in captains' inboxes and have no token to present.
-    it('serves a tokenless draft, as the confirmation page does', async () => {
+    // A draft filed before migration 011 has no token to present. The same rule as the
+    // confirmation page: a superadmin session, and nobody else (REARCH-09).
+    it('serves a tokenless draft to a superadmin, as the confirmation page does', async () => {
       const res = await request(app).get('/scorecard-photo/7');
       expect(res.status).toBe(200);
+    });
+
+    it('refuses a tokenless draft to anyone else, without fetching it', async () => {
+      mockCurrentUser = null;
+      const res = await request(app).get('/scorecard-photo/7');
+      expect(res.status).toBe(403);
+      expect(mockS3Sends.filter(c => c.__type === 'GetObject')).toHaveLength(0);
     });
   });
 

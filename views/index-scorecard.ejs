@@ -109,8 +109,8 @@
                     data-token is the draft's confirmation token, posted back by the
                     handler below. /add-scorecard-photo/:id used to take the id alone as
                     authorisation, which meant anyone could replace any scorecard's photo.
-                    Empty for a draft filed before migration 011, which the endpoint
-                    grandfathers — see utils/scorecardLinks.js.
+                    Empty for a draft filed before migration 011, which only a
+                    superadmin may add to — see utils/scorecardLinks.js.
                   %>
                   <input type="file" class="scorecardimages" name="scorecard-image-<%= fixture.id %>" id="scorecard-image-<%= fixture.id %>" data-token="<%= fixture.confirmToken || '' %>"
                     accept="image/*,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
@@ -1553,7 +1553,7 @@
                 method: "POST",
                 // The draft's own token: the id alone was never authorisation for this
                 // write. Blank for a draft filed before migration 011, which the
-                // endpoint grandfathers.
+                // endpoint accepts from a superadmin only.
                 body: JSON.stringify({ imgURL: photoUrl, token: input.dataset.token || '' }),
                 headers: { "Content-Type": "application/json" },
               });

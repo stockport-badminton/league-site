@@ -53,8 +53,8 @@ END $$;
 
 -- ── a draft carrying a confirmation token ────────────────────────────────────
 -- /populated-scorecard-beta/:id requires one (HARD-03); the seed's 1,557 drafts all
--- predate the column, and the app grandfathers those by opening them without a token —
--- so without this there is nothing to test the token path against.
+-- predate the column, and those open for a superadmin only (REARCH-09) — so without
+-- this there is nothing to test the token path against.
 UPDATE scorecardstore
    SET "confirmToken" = 'local-dev-token-not-a-secret'
  WHERE id = (SELECT id FROM scorecardstore ORDER BY id DESC LIMIT 1);

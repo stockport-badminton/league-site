@@ -95,7 +95,8 @@ scorecard ever filed could be walked by counting, and confirmed by an outsider.
   member publish any outstanding fixture, and it would break the results secretary
   publishing from the emailed link on a device with no session.
   **The token test is `mayPublishDraft`, not `mayOpenDraft`.** Reading a tokenless draft
-  is grandfathered open (HARD-03); publishing one is not. Reusing `mayOpenDraft` here
+  is open to a superadmin only (HARD-03, narrowed by REARCH-09); publishing one by token
+  never was. Reusing `mayOpenDraft` here, when it still opened tokenless drafts to anyone,
   would have left 1,557 of 1,562 drafts anonymously publishable while passing review and
   its own tests — which is why the two rules sit next to each other in
   `utils/scorecardLinks.js`, each saying why it is not the other.

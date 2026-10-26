@@ -19,6 +19,7 @@ const { escapeHtml } = require('../utils/html');
 const { parseRecipients, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const eloChain = require('../utils/eloChain');
+const { isSuperAdmin } = require('../middleware/requireClubAccess');
 const {
   newDraftToken, mayOpenDraft, confirmationPath, confirmationUrl,
   // `photoUrl` is aliased because full_fixture_post already has a local of that name
@@ -882,10 +883,9 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
 
     // The token that makes this link unguessable. Before it, the URL was the draft's
     // sequential primary key and nothing else: about 2,400 of them, so every scorecard
-    // ever filed could be read — and confirmed — by counting. See
-    // utils/scorecardLinks.js for the grandfather clause that keeps links already sitting
-    // in captains' inboxes working.
-    if (!mayOpenDraft(rows[0].confirmToken, req.query.t)) {
+    // ever filed could be read — and confirmed — by counting. A draft filed before the
+    // token existed opens for a superadmin only; see utils/scorecardLinks.js.
+    if (!mayOpenDraft(rows[0].confirmToken, req.query.t, { superAdmin: isSuperAdmin(req) })) {
       return renderLinkRefused(req, res, 403);
     }
 
@@ -940,8 +940,8 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       // Carried into the publish form as hidden fields, so a results secretary following
       // the emailed link can publish without a session (HARD-24). Not a new disclosure:
       // whoever is reading this page has already presented this exact token to open it.
-      // A tokenless draft renders an empty string here and is publishable by a superadmin
-      // session only — `mayPublishDraft` does not grandfather the way `mayOpenDraft` does.
+      // A tokenless draft (only a superadmin can open one) renders an empty string here
+      // and is publishable by that superadmin session only — `mayPublishDraft` refuses it.
       draftId: req.params.id,
       draftToken: String(rows[0].confirmToken || ''),
       // The scorecard photo, through GET /scorecard-photo/:id rather than from the
@@ -1161,9 +1161,9 @@ exports.add_scorecard_photo = async function(req, res, next) {
     }
     const draft = rows[0];
 
-    // Same grandfather clause as the confirmation page: a draft filed before the token
-    // column existed has none, and the page offering the upload was rendered without one.
-    if (!mayOpenDraft(draft.confirmToken, req.body.token)) {
+    // The same rule as the confirmation page that offered the upload: the draft's token,
+    // or a superadmin session for a draft filed before tokens existed.
+    if (!mayOpenDraft(draft.confirmToken, req.body.token, { superAdmin: isSuperAdmin(req) })) {
       return res.status(403).json({ error: 'That link is not valid for this scorecard.' });
     }
 

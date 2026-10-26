@@ -628,9 +628,8 @@ describe('GET /populated-scorecard-beta/:id', () => {
   });
 
   // A draft filed before migration 011 has no token, and 1,557 of them are in that state.
-  // The page still opens — that is HARD-03's grandfather clause, and the links are already
-  // in captains' inboxes — but it must not hand out a token that would publish it. Those
-  // are publishable by a superadmin session only, which is how all 1,557 were published.
+  // It opens for a superadmin (this file's session; REARCH-09), but the page must not hand
+  // out a token that would publish it: those are publishable by that session only.
   it('renders an empty token for a tokenless draft, which cannot publish by token', async () => {
     const res = await request(app).get('/populated-scorecard-beta/42');
 
@@ -1337,8 +1336,9 @@ describe('GET /populated-scorecard-beta/:id with tokens', () => {
     expect(res.text).toContain('Player One');
   });
 
-  // Grandfather clause: the links already in captains' inboxes have no token.
-  it('still renders a draft that has no token stored', async () => {
+  // This file's session is a superadmin; anyone else is refused a tokenless draft, which
+  // scorecard-publish-authority.test.js covers (REARCH-09).
+  it('renders a draft that has no token stored for a superadmin', async () => {
     Fixture.getScorecardById.mockResolvedValue(draft());
 
     const res = await request(app).get('/populated-scorecard-beta/42');

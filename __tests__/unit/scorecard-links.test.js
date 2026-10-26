@@ -67,8 +67,8 @@ describe('tokenMatches', () => {
 });
 
 describe('draftRequiresToken', () => {
-  // The grandfather clause. A draft filed before the column existed has no token and
-  // its link is already in a captain's inbox; those must keep working.
+  // A draft filed before the column existed has no token. Since REARCH-09 it opens for a
+  // superadmin only — see mayOpenDraft.
   it('is false for a draft that has no token stored', () => {
     expect(draftRequiresToken(null)).toBe(false);
     expect(draftRequiresToken(undefined)).toBe(false);

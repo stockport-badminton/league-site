@@ -53,9 +53,13 @@ function eligible(pool) {
   }));
 }
 
+// A current draft carries its token, and the link presents it (a tokenless one opens for
+// a superadmin only since REARCH-09).
+const TOKEN = 't'.repeat(32);
+
 function draft(over = {}) {
   const base = {
-    id: 2432, division: 1, homeTeam: 10, awayTeam: 11, confirmToken: null,
+    id: 2432, division: 1, homeTeam: 10, awayTeam: 11, confirmToken: TOKEN,
     homeMan1: 50, homeMan2: 60, homeMan3: 70,
     homeLady1: 22, homeLady2: 739, homeLady3: 900,
     awayMan1: 50, awayMan2: 60, awayMan3: 70,
@@ -116,7 +120,7 @@ describe('GET /populated-scorecard-beta/:id — a stored 0 means No Player', () 
   ])('shows No Player in %s when it is stored as 0', async (field, side) => {
     Fixture.getScorecardById.mockResolvedValue([draft({ [field]: 0 })]);
 
-    const res = await request(app).get('/populated-scorecard-beta/2432');
+    const res = await request(app).get('/populated-scorecard-beta/2432?t=' + TOKEN);
     expect(res.status).toBe(200);
 
     const shown = displayed(optionsOf(res.text, field));
@@ -128,7 +132,7 @@ describe('GET /populated-scorecard-beta/:id — a stored 0 means No Player', () 
 
   it('picks the No Player option matching the side, not the other one', async () => {
     Fixture.getScorecardById.mockResolvedValue([draft({ awayLady2: 0 })]);
-    const res = await request(app).get('/populated-scorecard-beta/2432');
+    const res = await request(app).get('/populated-scorecard-beta/2432?t=' + TOKEN);
     // Both carry value 0, so this is cosmetic — but "No Player Home Team" in an away
     // dropdown reads like a bug of its own.
     expect(displayed(optionsOf(res.text, 'awayLady2')).label).toBe('No Player Away Team');
@@ -138,7 +142,7 @@ describe('GET /populated-scorecard-beta/:id — a stored 0 means No Player', () 
   // sticky when somebody did play.
   it('still selects the real player when one is stored', async () => {
     Fixture.getScorecardById.mockResolvedValue([draft()]);
-    const res = await request(app).get('/populated-scorecard-beta/2432');
+    const res = await request(app).get('/populated-scorecard-beta/2432?t=' + TOKEN);
 
     expect(displayed(optionsOf(res.text, 'homeLady2')).label).toBe('Alison Cosadinos');
     expect(displayed(optionsOf(res.text, 'ThirdMixedhomeLady3')).label).toBe('Pat Nolan');
@@ -149,7 +153,7 @@ describe('GET /populated-scorecard-beta/:id — a stored 0 means No Player', () 
 
   it('leaves every other select alone when one field is zeroed', async () => {
     Fixture.getScorecardById.mockResolvedValue([draft({ ThirdMixedhomeLady3: 0 })]);
-    const res = await request(app).get('/populated-scorecard-beta/2432');
+    const res = await request(app).get('/populated-scorecard-beta/2432?t=' + TOKEN);
 
     expect(displayed(optionsOf(res.text, 'ThirdMixedhomeLady3')).value).toBe('0');
     expect(displayed(optionsOf(res.text, 'SecondMixedhomeLady2')).label).toBe('Alison Cosadinos');

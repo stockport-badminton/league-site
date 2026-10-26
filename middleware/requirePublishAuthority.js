@@ -40,8 +40,8 @@
 // is the kind of thing discovered at the worst possible moment, mid-validation.
 //
 // The token test is `mayPublishDraft`, NOT `mayOpenDraft`. See the comment on it in
-// utils/scorecardLinks.js: reading a tokenless draft is grandfathered open and publishing
-// one is not.
+// utils/scorecardLinks.js: a superadmin may read a tokenless draft, and nobody publishes
+// one by token.
 
 const { isSuperAdmin } = require('./requireClubAccess');
 const { mayPublishDraft } = require('../utils/scorecardLinks');

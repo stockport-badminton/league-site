@@ -109,7 +109,7 @@ two controllers still largely duplicated. Constraints if it is done:
 - **Draft ids are in captains' inboxes** (`/populated-scorecard-beta/:id?t=…`) and messer
   approval links. `scorecardstore` ids must be kept as they are; messer drafts need ids
   that do not collide — a separate range, or a mapping kept for old links.
-- `confirmToken` and the grandfather rule for tokenless drafts move with the rows
+- `confirmToken` and the superadmin-only rule for tokenless drafts move with the rows
   (`utils/scorecardLinks.js` — `mayOpenDraft` vs `mayPublishDraft` stay distinct).
 - HARD-17's draft-vs-games divergence detection reads both; it moves with it.
 - `sync.js` and `sanitise.sql` both name the draft tables and their plaintext `email`.

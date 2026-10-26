@@ -76,7 +76,14 @@ produced it — which is why the HARD-47 timing work had to invent its own
 
 ## Part C — end the tokenless-draft clause
 
-**Window:** at the start of 2027/28 — it is defined by a date.
+**Done 26 Oct 2026**, ahead of its window. The date stood in for "the newest tokenless
+draft is old and published", and that was already true: the newest was for a match on
+6 May 2026 (last season), and the 30 days of request logs from 26 Sep held four
+`/populated-scorecard-beta/` requests without `?t=`, all Google Read-Aloud fetching
+*tokened* drafts (correctly refused). `mayOpenDraft` now takes `{ superAdmin }`, passed
+`isSuperAdmin(req)` by the page, the photo read and the photo upload.
+
+**Window (as written):** at the start of 2027/28 — it is defined by a date.
 
 `draftRequiresToken` treats a draft with no `confirmToken` as openable by anyone with its
 id, because links filed before migration 011 were already in captains' inboxes (HARD-03).

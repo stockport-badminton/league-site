@@ -36,7 +36,7 @@ async function latestScorecardDraftId() {
  * The token is read through to_jsonb rather than as a column so that this works both
  * before and after migrations/011_scorecard_confirm_token.sql is applied — `->>` on a
  * key that isn't there is NULL, where a missing column is an error. A draft with no
- * token is grandfathered by the app and opens without one.
+ * token opens for a superadmin only (REARCH-09), which DEV_MODE's mock user is.
  */
 async function latestScorecardDraftPath() {
   const rows = await query(

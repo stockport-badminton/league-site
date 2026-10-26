@@ -140,7 +140,7 @@ describe('contentTypeFor', () => {
 });
 
 // Built here rather than beside a caller, for the same reason confirmationPath is: the
-// token rule (including the grandfather clause) has exactly one definition.
+// token rule (including what a tokenless draft gets) has exactly one definition.
 describe('photoPath / photoUrl', () => {
   it('carries the draft token when the draft has one', () => {
     expect(photoPath(42, 'tok-en')).toBe('/scorecard-photo/42?t=tok-en');

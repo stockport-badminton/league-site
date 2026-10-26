@@ -135,8 +135,8 @@
            <%# Who may publish this result (HARD-24). A superadmin session needs neither of
                these; they are what lets the results secretary publish from the emailed
                link on a device with no session. Empty for a draft filed before migration
-               011 — those are publishable by a superadmin session only, deliberately:
-               `mayPublishDraft` does not grandfather the way `mayOpenDraft` does. %>
+               011 — only a superadmin can open one, and only that session can publish it:
+               `mayPublishDraft` refuses a tokenless draft. %>
            <% if (locals.draftId) { %>
              <input type="hidden" name="draftId" value="<%= draftId %>">
              <input type="hidden" name="t" value="<%= locals.draftToken || '' %>">

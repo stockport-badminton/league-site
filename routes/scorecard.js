@@ -13,6 +13,7 @@ const { buildUploadKey, objectUrl } = require('../utils/uploads');
 // The read path for a scorecard photo (HARD-02b) — see GET /scorecard-photo/:id below.
 const { sendPhoto } = require('../utils/scorecardPhoto');
 const { mayOpenDraft } = require('../utils/scorecardLinks');
+const { isSuperAdmin } = require('../middleware/requireClubAccess');
 const Fixture = require('../models/fixture');
 const { publicFormLimiter, mediaLimiter } = require('../middleware/rateLimit');
 
@@ -105,8 +106,8 @@ router.get('/populated-scorecard-beta/:id', access.token('draft link'), (req, re
 //
 //   - the draft must exist, and must have a photo (404 otherwise);
 //   - **who may see it is exactly who may see the draft** — `mayOpenDraft`, the same
-//     per-draft token as the confirmation page (HARD-03), including the same
-//     grandfather clause for links filed before migration 011. There is deliberately
+//     per-draft token as the confirmation page (HARD-03), and a superadmin session for
+//     a draft filed before migration 011, which has none. There is deliberately
 //     not a second authorization model for photos: a photo of a scorecard is the
 //     scorecard;
 //   - the key comes from `photoKeyFromStored`, which accepts only an object in our own
@@ -127,7 +128,7 @@ router.get('/scorecard-photo/:id', access.token('draft link'), mediaLimiter, asy
     if (!rows || !rows.length) return res.status(404).end();
     const draft = rows[0];
 
-    if (!mayOpenDraft(draft.confirmToken, req.query.t)) return res.status(403).end();
+    if (!mayOpenDraft(draft.confirmToken, req.query.t, { superAdmin: isSuperAdmin(req) })) return res.status(403).end();
 
     return await sendPhoto(res, draft['scoresheet-url']);
   } catch (err) {
