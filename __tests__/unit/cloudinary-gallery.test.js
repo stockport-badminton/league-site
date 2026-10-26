@@ -44,22 +44,26 @@ describe('cloudinaryGallery.getGallery', () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 
-  it('serves the stale listing without waiting while it refreshes', async () => {
+  // Inside the request, not behind it: on Cloud Run a refresh left running after the
+  // response is CPU-throttled past its deadline and fails (25 Oct 2026, see the module).
+  it('refreshes a stale listing inside the request that finds it stale', async () => {
     axios.get.mockResolvedValueOnce(listing(3));
     await gallery.getGallery('t');
     now += gallery.FRESH_MS + 1;
-    let release;
-    axios.get.mockImplementation(() => new Promise(r => { release = r; }));
-    // Resolves immediately with the old listing although the refresh is still pending.
-    expect(await gallery.getGallery('t')).toHaveLength(3);
-    expect(axios.get).toHaveBeenCalledTimes(2);
-    // Settle the refresh before the test ends. Left hanging, its deadline fires 1.5 s
-    // later and logs after the file has finished, and Jest answers that with exit code 1
-    // although every test passed. That failed the Cloud Build of 3edbe3f, where the
-    // suite runs in one process; locally each file's worker exited first and hid it.
-    release(listing(4));
-    await new Promise(setImmediate);
+    axios.get.mockResolvedValueOnce(listing(4));
     expect(await gallery.getGallery('t')).toHaveLength(4);
+    expect(axios.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves the stale listing, within the deadline, when the refresh hangs', async () => {
+    axios.get.mockResolvedValueOnce(listing(3));
+    await gallery.getGallery('t');
+    now += gallery.FRESH_MS + 1;
+    // The deadline is a real setTimeout, so the wait is measured on a real clock.
+    axios.get.mockImplementation(hang);
+    const started = performance.now();
+    expect(await gallery.getGallery('t')).toHaveLength(3);
+    expect(performance.now() - started).toBeLessThan(2000);
   });
 
   it('keeps the last good listing when a refresh fails, and backs off before retrying', async () => {
@@ -67,14 +71,11 @@ describe('cloudinaryGallery.getGallery', () => {
     await gallery.getGallery('t');
     now += gallery.FRESH_MS + 1;
     axios.get.mockRejectedValueOnce(new Error('Request failed with status code 500'));
-    await gallery.getGallery('t');        // starts the failing refresh
-    await new Promise(setImmediate);      // let it settle
+    expect(await gallery.getGallery('t')).toHaveLength(3); // the failing refresh, awaited
     expect(await gallery.getGallery('t')).toHaveLength(3);
     expect(axios.get).toHaveBeenCalledTimes(2); // no retry inside the back-off
     now += gallery.FAILURE_MS + 1;
     axios.get.mockResolvedValueOnce(listing(5));
-    await gallery.getGallery('t');
-    await new Promise(setImmediate);
     expect(await gallery.getGallery('t')).toHaveLength(5);
   });
 

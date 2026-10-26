@@ -10,10 +10,18 @@
 // - most of the calls were a robot's. A Sentry uptime monitor on `/` asks once a
 //   minute, and the Admin API is rate-limited per hour.
 //
-// So the listing is cached per tag, a request never waits on a refresh when it has
-// something to show, and a request that does wait (the first after a cold start) waits
-// at most TIMEOUT_MS. A failed refresh keeps serving the last good listing: a gallery a
-// few minutes out of date is fine, an empty one because Cloudinary hiccupped is not.
+// So the listing is cached per tag, a refresh happens at most once per FRESH_MS, and the
+// request that does it waits at most TIMEOUT_MS. A failed refresh keeps serving the last
+// good listing: a gallery a few minutes out of date is fine, an empty one because
+// Cloudinary hiccupped is not.
+//
+// The refresh is awaited inside the request, never left running behind the response.
+// It used to be — serve the stale listing, refresh in the background — and on Cloud Run
+// that refresh almost never finished: CPU is throttled once the response is sent, so the
+// TLS handshake and request could not finish inside the deadline. 25 Oct 2026: 46
+// "timed out after 1500 ms" on 10 of 17 instances, each 2.5–3.3 s after a homepage
+// request that had answered in 0.1 s, while Cloudinary answers in ~0.35 s. An instance
+// kept its cold-start listing for life. (HARD-47 point 3 is the same rule.)
 
 const config = require('../config');
 const log = require('./log');
@@ -86,8 +94,9 @@ async function getGallery(tag) {
     entry = { assets: null, expires: 0, inflight: null }
     cache.set(tag, entry)
   }
-  if (entry.assets === null) return refresh(tag, entry) // cold: wait, bounded by the timeout
-  if (Date.now() >= entry.expires) refresh(tag, entry)   // stale: serve it, refresh behind
+  // Cold or stale: refresh now, bounded by the timeout. See the top of this file for why
+  // never behind the response.
+  if (entry.assets === null || Date.now() >= entry.expires) return refresh(tag, entry)
   return entry.assets
 }
 
