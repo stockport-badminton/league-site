@@ -12,21 +12,6 @@ exports.league_detail = async function(req, res, next) {
   }
 };
 
-// Display League create form on GET
-exports.league_create_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: League create GET');
-};
-
-// Display League delete on GET
-exports.league_delete_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: League delete GET');
-};
-
-// Display League update form on GET
-exports.league_update_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: League update GET');
-};
-
 // Display list of all Leagues
 exports.league_table = async function(req, res, next) {
   try {

@@ -272,16 +272,6 @@ exports.eligible_players_list = async function(req, res, next) {
   }
 };
 
-// Display detail page for a specific Player
-exports.player_detail = async function(req, res, next) {
-  try {
-    const rows = await Player.getById(req.params.id);
-    res.send(rows);
-  } catch (err) {
-    next(err);
-  }
-};
-
 
 exports.all_player_stats = async function(req, res, next) {
   const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
@@ -492,11 +482,6 @@ exports.player_create = async function(req, res, next) {
 // it — they take an ordered list of player ids and a destination, and build their
 // own SQL. Nothing should reintroduce a route that forwards a request body into
 // updateBulk.
-
-// Display Player delete form on GET
-exports.player_delete_get = function(req, res) {
-  res.send('NOT IMPLEMENTED: Player delete GET');
-};
 
 // Both the edit form and its POST are scoped to the viewer's own club. `secured`
 // alone only proved someone was logged in, so any captain could read and rewrite

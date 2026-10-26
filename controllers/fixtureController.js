@@ -413,11 +413,6 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
 };
 
 
-// Display Fixture create form on GET
-exports.fixture_create_get = function(req, res,next) {
-    res.send('NOT IMPLEMENTED: Fixture create GET');
-};
-
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = async function(req, res, next) {
   try {
@@ -493,16 +488,6 @@ exports.fixture_rearrange_by_team_name = async function(req, res, next) {
     next(err);
   }
 }
-
-// Display Fixture delete form on GET
-exports.fixture_delete_get = function(req, res,next) {
-    res.send('NOT IMPLEMENTED: Fixture delete GET');
-};
-
-// Display Fixture update form on GET
-exports.fixture_update_get = function(req, res, next) {
-    res.send('NOT IMPLEMENTED: Fixture update GET');
-};
 
 
 function isSuperAdmin(req) {

@@ -229,21 +229,6 @@ exports.club_detail = async function(req, res, next) {
   }
 };
 
-// Display Club create form on GET
-exports.club_create_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Club create GET');
-};
-
-// Display Club delete form on GET
-exports.club_delete_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Club delete GET');
-};
-
-// Display Club update form on GET
-exports.club_update_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Club update GET');
-};
-
 // ---------------------------------------------------------------------------
 // Superadmin admin UI — add / edit clubs (mirrors the homepage-content pattern)
 // ---------------------------------------------------------------------------

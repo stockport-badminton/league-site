@@ -13,8 +13,6 @@ var venue_controller = require('../controllers/venueController');
 var team_controller = require('../controllers/teamController');
 var player_controller = require('../controllers/playerController');
 var club_controller = require('../controllers/clubController');
-var division_controller = require('../controllers/divisionController');
-var game_controller = require('../controllers/gameController');
 var fixture_controller = require('../controllers/fixtureController');
 var scorecard_controller = require('../controllers/scorecardController');
 var scorecard_analysis_controller = require('../controllers/scorecardAnalysisController');
@@ -418,9 +416,7 @@ router.post('/contact-us', contactLimiter, spamGate({ endpoint: '/contact-us' })
 // only possible through POST /api/roster/club-:club/players, which is authorized
 // against the club in the URL and derives the club from the destination team.
 router.post('/player/create', secured, requireClubAccess.requireSuperAdmin, player_controller.player_create);
-router.get('/player/:id/delete', player_controller.player_delete_get);
 router.get('/player/:id/update', secured, player_controller.player_update_get);
-router.get('/player/:id', player_controller.player_detail);
 router.get('/playerStats/:id/:fullName', player_controller.player_game_data);
 router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_list);
 // `/players/club-:clubid?/team-:teamid?/gender-:gender?` used to be declared here,
@@ -432,17 +428,11 @@ router.get('/eligiblePlayers/:id/:gender', player_controller.eligible_players_li
 router.get('/players/matching/:name/:gender', secured, player_controller.find_closest_matched_player);
 
 // Team routes
-router.get('/team/create', team_controller.team_create_get);
-router.get('/team/:id(\\d+)/delete', team_controller.team_delete_get);
-router.get('/team/:id(\\d+)/update', team_controller.team_update_get);
 router.get('/team/:id(\\d+)', team_controller.team_detail);
 router.get('/teams', team_controller.team_list);
 router.post('/teams', team_controller.team_search);
 
 // League routes
-router.get('/league/create', league_controller.league_create_get);
-router.get('/league/:id/delete', league_controller.league_delete_get);
-router.get('/league/:id/update', league_controller.league_update_get);
 // A superadmin session OR the Cloud Scheduler token. These were unauthenticated,
 // protected by nothing but a check that today is the annual invoice date — so on that one
 // day of the year any caller could send every club its invoice, repeatedly, from our own
@@ -464,9 +454,6 @@ router.get('/tables/:division', league_controller.league_table);
 router.get('/tables/:division/:season', validateSeason, league_controller.league_table);
 
 // Club routes
-router.get('/club/create', club_controller.club_create_get);
-router.get('/club/:id/delete', club_controller.club_delete_get);
-router.get('/club/:id/update', club_controller.club_update_get);
 router.get('/clubs', club_controller.club_list);
 // A public page per club — the surface for "badminton club near me", which
 // /info/clubs cannot rank for because all 18 clubs share that one URL. Matched by
@@ -475,13 +462,7 @@ router.get('/clubs', club_controller.club_list);
 router.get('/clubs/:slug', club_controller.club_public_page);
 router.get('/info/clubs', club_controller.club_list_detail);
 
-// Division routes
-router.get('/division/create', division_controller.division_create_get);
-router.get('/division/:id/delete', division_controller.division_delete_get);
-router.get('/division/:id/update', division_controller.division_update_get);
-
 // Fixture routes
-router.get('/fixture/create', fixture_controller.fixture_create_get);
 // Superadmin only since Oct 2026, because the popup now lets the results secretary
 // edit the recipients — see fixture_reminder_post. No limiter: a busy week can have a
 // dozen cards due at once, and the gate is the control now, as for rearrangement.
@@ -498,8 +479,6 @@ router.get('/fixture/outstanding', requireLateScorecardCaller, fixture_controlle
 // says what the UI always assumed. Captains request rearrangements by email; they have
 // never had this form.
 router.post('/fixture/rearrangement', secured, requireClubAccess.requireSuperAdmin, fixture_controller.fixture_rearrange_by_team_name);
-router.get('/fixture/:id/delete', fixture_controller.fixture_delete_get);
-router.get('/fixture/:id/update', fixture_controller.fixture_update_get);
 router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', fixture_controller.fixture_id);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', fixture_controller.fixture_event_detail);
 router.get('/scorecard/fixture/:id(\\d+)', fixture_controller.getScorecard);
@@ -510,15 +489,7 @@ router.get('/fixture-players/:season?', fixture_controller.get_fixture_players_d
 router.get('/fixture-players/team-:team?/season-:season?', fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/club-:club?/:season?', fixture_controller.get_fixture_players_details);
 
-// Game routes
-router.get('/game/create', game_controller.game_create_get);
-router.get('/game/:id/delete', game_controller.game_delete_get);
-router.get('/game/:id/update', game_controller.game_update_get);
-
 // Venue routes
-router.get('/venue/create', venue_controller.venue_create_get);
-router.get('/venue/:id/delete', venue_controller.venue_delete_get);
-router.get('/venue/:id/update', venue_controller.venue_update_get);
 router.get('/venues', venue_controller.venue_list);
 
 // Homepage and gallery
@@ -633,7 +604,7 @@ router.get('/manage-players/club-:club/edit', secured, requireClubAccess, roster
 router.get('/manage-players/club-:club/registration.docx', secured, requireClubAccess, roster_controller.registration_docx);
 router.get('/manage-players/club-:club', secured, roster_controller.club_roster);
 router.get('/manage-players', secured, roster_controller.club_picker);
-router.get('/player/create', secured, player_controller.player_create_get);
+router.get('/player/create', secured, requireClubAccess.requireSuperAdmin, player_controller.player_create_get);
 router.get('/players/eloPop', player_controller.player_elo_populate);
 router.get('/dev/player-stats-debug', player_controller.player_stats_debug);
 router.get('/dev/elo-audit', player_controller.player_elo_audit);

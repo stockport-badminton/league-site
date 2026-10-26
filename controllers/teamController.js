@@ -41,21 +41,6 @@ exports.team_detail = async function(req, res, next) {
   }
 };
 
-// Display Team create form on GET
-exports.team_create_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Team create GET');
-};
-
-// Display Team delete form on GET
-exports.team_delete_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Team delete GET');
-};
-
-// Display Team update form on GET
-exports.team_update_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Team update GET');
-};
-
 exports.messer_draw = function(req, res, next) {
   let renderstring = `beta/messer-draw-${req.params.section}`
    //console.log(renderstring)

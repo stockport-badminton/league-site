@@ -35,21 +35,6 @@ exports.venue_list = async function(req, res, next) {
   }
 };
 
-// Display Venue create form on GET
-exports.venue_create_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Venue create GET');
-};
-
-// Display Venue delete form on GET
-exports.venue_delete_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Venue delete GET');
-};
-
-// Display Venue update form on GET
-exports.venue_update_get = function(req, res) {
-    res.send('NOT IMPLEMENTED: Venue update GET');
-};
-
 // Manual override: mirrors the existing /shuttle-prices/refresh gating -
 // covers the case where the fire-and-forget regen above failed, or an
 // admin wants to force a rebuild without a data change.
