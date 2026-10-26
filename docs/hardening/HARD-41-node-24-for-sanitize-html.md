@@ -10,7 +10,13 @@
 
 Dependabot #331 and #333 are two stored-XSS advisories against `sanitize-html` 2.17.5
 (GHSA-g8qq-57p8-ggw5, SVG/SMIL URI-list bypass; GHSA-jxwj-j7wr-gfrw, `</textarea/>`
-mutation XSS). The package is pinned exactly at 2.17.5 because every fixed release breaks
+mutation XSS).
+
+**26 Oct 2026: two more**, GHSA-x3q4-9hxx-gx8m (the `nonTextTags` discard region ends
+early) and GHSA-cv27-6wvh-8x7j (an incomplete fix for `meta http-equiv=refresh`). Fixed in
+2.18.1, so the same ESM wall. Exposure is unchanged: the only caller is the homepage CMS
+(`controllers/homepageContentController.js`), superadmin-only input, with an allowlist
+holding no `svg`, `meta` or `textarea` — the tags these bypasses go through. The package is pinned exactly at 2.17.5 because every fixed release breaks
 the Jest suite — CLAUDE.md has the history.
 
 **What changed on 11 Oct is that the cause is now known precisely, and so is the fix.**
