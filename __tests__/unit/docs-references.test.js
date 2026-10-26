@@ -44,13 +44,16 @@ const KNOWN_ABSENT = {
     'was still being pasted into SQL, plus a second assertion whose whole job was to ' +
     'confirm the bug still existed — a test that fails when you fix something. Replaced ' +
     'by no-secrets-in-sql.test.js. HARD-27 and the README describe it in the past tense.',
+  'divisionController.js':
+    'deleted on purpose in REARCH-04 step 0 (26 Oct 2026): it held only three ' +
+    'NOT IMPLEMENTED scaffold stubs. HARD-05, which is done, names it as a file it owned.',
 };
 
 function docFiles() {
   const out = [];
   const add = f => { if (fs.existsSync(path.join(ROOT, f))) out.push(f); };
   add('CLAUDE.md');
-  for (const dir of ['docs/hardening', 'docs/hardening/done']) {
+  for (const dir of ['docs/claude', 'docs/hardening', 'docs/hardening/done']) {
     const abs = path.join(ROOT, dir);
     if (!fs.existsSync(abs)) continue;
     for (const e of fs.readdirSync(abs)) if (e.endsWith('.md')) add(path.join(dir, e));
