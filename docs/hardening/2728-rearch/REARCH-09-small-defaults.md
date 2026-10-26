@@ -53,6 +53,19 @@ short cache. Ask whether it matters; it is a one-line change once the shape is o
 
 ## Part B — structured logs with a request id
 
+**Done 26 Oct 2026.** `utils/log.js`: pino, `severity`/`message` for Cloud Logging, the
+trace from `X-Cloud-Trace-Context` through AsyncLocalStorage (`app.use(log.requestIds)`
+first in app.js), a readable one-line format off Cloud Run, Sentry breadcrumbs kept by a
+`logMethod` hook, and an `err` serializer that keeps type/message/stack/code/status only
+(pino's default would copy an axios error's request config, Meta tokens included). All
+~240 `console.` calls in app code converted; `__tests__/unit/no-console.test.js` guards it.
+`[timing]` is `jsonPayload.timing`; the query is in the HARD-47 brief and
+docs/claude/production-logs.md. Whole-email and reCAPTCHA dumps from `/mail` and the
+contact form went to `debug` (dropped in production) or were removed; `console.log(err)`
+before `next(err)` was deleted — the 500 handler logs it with its reference.
+**Cost check:** 25 Oct had 305 stdout/stderr entries (~0.5 MB as gcloud JSON), far inside
+the free allowance; JSON lines change nothing that matters at this volume.
+
 **Window:** in-season OK.
 
 There are 305 `console.log/error/warn` calls in application code. Cloud Run sends them to

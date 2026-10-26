@@ -1,4 +1,5 @@
 var config = require('../config');
+const log = require('../utils/log');
 var Club = require('../models/club.js');
 var seasonModel = require("../models/season");
 var League = require('../models/league.js');
@@ -78,8 +79,8 @@ async function sendSpread(transporter, config, bcc) {
     if (i > 0) await pause(gap);
     last = await transporter.sendMail(Object.assign({}, config, { bcc: groups[i] }));
   }
-  console.log('list send: ' + bcc.length + ' recipients in ' + groups.length +
-              ' chunks, ' + gap + 'ms apart');
+  log.info({ recipients: bcc.length, chunks: groups.length, gapMs: gap },
+    `list send: ${bcc.length} recipients in ${groups.length} chunks, ${gap}ms apart`);
   return last;
 }
 
@@ -137,23 +138,23 @@ async function validCaptcha(value, { req }) {
       }
     });
 
-    console.log('reCAPTCHA response:', response.data);
+    log.debug({ recaptcha: response.data }, 'reCAPTCHA response');
 
     if (!response.data.success) {
       // Log specific error codes for debugging
-      console.log('reCAPTCHA errors:', response.data['error-codes']);
+      log.info({ errorCodes: response.data['error-codes'] }, 'reCAPTCHA refused');
       throw new Error('reCAPTCHA verification failed');
     }
 
     // For reCAPTCHA v3, you can also check the score
     if (response.data.score && response.data.score < 0.5) {
-      console.log('Low reCAPTCHA score:', response.data.score);
+      log.info({ score: response.data.score }, 'Low reCAPTCHA score');
       throw new Error('reCAPTCHA score too low');
     }
 
     return true;
   } catch (error) {
-    console.error('reCAPTCHA validation error:', error.message);
+    log.error({ err: error }, 'reCAPTCHA validation error');
     throw new Error('reCAPTCHA verification failed');
   }
 }
@@ -201,10 +202,7 @@ exports.validateContactUs = [
 exports.contactus = async function(req, res, next) {
   var errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log("errors array");
-    for (i of errors.array()) {
-      console.log(i)
-    }
+    log.info({ errors: errors.array().map(e => ({ path: e.path, msg: e.msg })) }, 'contact-us: validation failed');
     // `req._spamReason` is set by the blocklist validators; anything else that failed
     // validation is a real person getting a field wrong, which is worth telling apart
     // from spam in the log.
@@ -240,7 +238,7 @@ exports.contactus = async function(req, res, next) {
 
   try {
     if (req.body.contactType == 'Clubs') {
-      console.log(`clubSelect ${req.body.clubSelect}`)
+      log.info(`clubSelect ${req.body.clubSelect}`)
       const rows = await Club.getContactDetailsById(req.body.clubSelect);
       // `clubsecemail`, lowercase, because that is what the query returns.
       //
@@ -267,7 +265,7 @@ exports.contactus = async function(req, res, next) {
       // The league inbox is already on the Bcc, so this only decides who it is addressed
       // to; losing the enquiry to an exception is the one outcome worth avoiding.
       if (!clubRecipients.length) {
-        console.warn(`contact-us: no club secretary address for club ${req.body.clubSelect}` +
+        log.warn(`contact-us: no club secretary address for club ${req.body.clubSelect}` +
                      ` — sending to the league inbox instead`);
         Sentry.captureMessage('contact-us: club has no secretary address', {
           level: 'warning', tags: { club: String(req.body.clubSelect) },
@@ -293,7 +291,6 @@ exports.contactus = async function(req, res, next) {
           aboutClub: rows.length ? rows[0].clubname : '',
         },
       });
-      console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
         pageTitle: 'Contact Us - Success',
@@ -350,7 +347,6 @@ exports.contactus = async function(req, res, next) {
           aboutClub: '',
         },
       });
-      console.log(msg);
       res.render('contact-us-form-delivered', {
         static_path: '/static',
         pageTitle: 'Contact Us - Success',
@@ -365,7 +361,7 @@ exports.contactus = async function(req, res, next) {
     // `Error: Sorry something went wrong sending your email.` with a stack of nothing but
     // Express internals, which is why NODE-12 took a database session to diagnose rather
     // than a glance. Report the cause, then render the friendly page.
-    console.error('contact-us send failed:', error && error.stack ? error.stack : error);
+    log.error({ err: error }, 'contact-us send failed');
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
     return next(new Error('Sorry something went wrong sending your email.'));
   }
@@ -395,7 +391,7 @@ async function runInvoiceSend(req) {
     status: result.status,
     outcomes: result.outcomes,
   }), { stage: 'invoices' });
-  if (recorded !== null) console.log(`[invoices] recorded as invoice_run ${recorded} (status ${result.status})`);
+  if (recorded !== null) log.info(`[invoices] recorded as invoice_run ${recorded} (status ${result.status})`);
   const lines = recorded === null
     ? result.lines.concat(['Warning: this run could not be recorded, so next week\'s data-health email may report the invoices as not sent.'])
     : result.lines;
@@ -430,7 +426,7 @@ async function sendInvoices(req) {
   const forced = wantsForce(req) && req.invoiceCaller === 'superadmin';
 
   if (!inWindow && !forced) {
-    console.warn(`[invoices] refused: ${daysOut} days from the invoice date, caller=${req.invoiceCaller}`);
+    log.warn(`[invoices] refused: ${daysOut} days from the invoice date, caller=${req.invoiceCaller}`);
     return {
       status: 409,
       lines: [
@@ -442,7 +438,7 @@ async function sendInvoices(req) {
     };
   }
 
-  console.log(`[invoices] running: caller=${req.invoiceCaller} daysOut=${daysOut} forced=${forced} clubs=${rows.length}`);
+  log.info(`[invoices] running: caller=${req.invoiceCaller} daysOut=${daysOut} forced=${forced} clubs=${rows.length}`);
 
   const ejs = require('ejs');
   let allData = [];
@@ -495,7 +491,7 @@ async function sendInvoices(req) {
     // would notice. Fail this club loudly and keep going for the rest.
     if (!Number.isFinite(Number(data.teamsCost)) || !Number.isFinite(Number(data.feesTotal))) {
       const detail = `teamsCount=${JSON.stringify(club.teamsCount)} clubFee=${JSON.stringify(club.clubFee)}`;
-      console.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
+      log.error(`[invoices] ${data.name}: refusing to send, non-numeric total (${detail})`);
       report(data.name, false, `${data.name} invoice NOT sent: total did not compute (${detail})`);
       continue;
     }
@@ -511,7 +507,7 @@ async function sendInvoices(req) {
         // call for that club. Reported and skipped instead, so the invoice run
         // continues and the gap is visible.
         if (!currentData.email || !String(currentData.email).includes('@')) {
-          console.warn(`invoices: no club secretary address for ${currentData.name} — skipped`);
+          log.warn(`invoices: no club secretary address for ${currentData.name} — skipped`);
           Sentry.captureMessage('invoices: club has no secretary address', {
             level: 'warning', tags: { club: String(currentData.name) },
           });
@@ -550,7 +546,7 @@ async function sendInvoices(req) {
         await sesUtil.sendEmail(params);
         report(currentData.name, true, `${currentData.name} invoice sent successfully`);
       } catch (sendErr) {
-        console.log(sendErr.toString());
+        log.error({ err: sendErr, club: currentData.name }, `${currentData.name} invoice failed`);
         report(currentData.name, false, `${currentData.name} invoice failed: ${sendErr}`);
       }
     }
@@ -587,22 +583,16 @@ exports.distribution_list = async function(req,res,next) {
     // pattern rather than followed on trust — otherwise a confirmation message is an
     // SSRF primitive pointed at anything reachable from inside GCP.
     if (!verifySns.isAmazonSubscribeUrl(msgBody.SubscribeURL)) {
-      console.warn('Refusing to fetch non-SNS SubscribeURL:', msgBody.SubscribeURL)
+      log.warn({ subscribeUrl: msgBody.SubscribeURL }, 'Refusing to fetch non-SNS SubscribeURL')
       return res.status(400).send('bad SubscribeURL')
     }
-    console.log(`found message header: ${msgBody.SubscribeURL}`)
+    log.info(`found message header: ${msgBody.SubscribeURL}`)
 
     https.get(msgBody.SubscribeURL, (res) => {
-    console.log('statusCode:', res.statusCode);
-    console.log('headers:', res.headers);
-
-    res.on('data', (d) => {
-      process.stdout.write(d);
-    });
-
+    log.info({ status: res.statusCode }, 'mail: subscription confirmation returned ' + res.statusCode);
+    res.resume();
   }).on('error', (e) => {
-    console.error("error:")
-    console.error(e);
+    log.error({ err: e }, 'mail: subscription confirmation failed');
   });
   }
   else if (snsMsg.Type === 'Notification'){
@@ -626,7 +616,7 @@ exports.distribution_list = async function(req,res,next) {
         if (bucketName !== config.S3_BUCKET_NAME) {
           throw new Error(`refusing inbound email stored in a bucket that is not ours: ${bucketName}`);
         }
-        console.log(`fetching raw email from s3://${bucketName}/${objectKey}`);
+        log.info(`fetching raw email from s3://${bucketName}/${objectKey}`);
         const s3 = new S3Client({ region: 'eu-west-1' });
         const obj = await s3.send(new GetObjectCommand({ Bucket: bucketName, Key: objectKey }));
         buffer = Buffer.from(await obj.Body.transformToByteArray());
@@ -636,9 +626,7 @@ exports.distribution_list = async function(req,res,next) {
 
       // Parse the email using mailparser
       const parsedEmail = await simpleParser(buffer);
-      console.log("Parsed email:", JSON.stringify(parsedEmail));
-      console.log(`parsed email to: ${JSON.stringify(parsedEmail.to.value)}`)
-      console.log(`parsed email to: ${JSON.stringify(parsedEmail.from.value)}`)
+      log.debug({ to: parsedEmail.to && parsedEmail.to.value, from: parsedEmail.from && parsedEmail.from.value, subject: parsedEmail.subject }, 'mail: parsed')
 
       // Use the envelope recipients SES actually matched, not the To header.
       // A BCC'd list address (common for distribution lists) never appears in
@@ -669,11 +657,10 @@ exports.distribution_list = async function(req,res,next) {
           Sentry.captureException(err, { tags: { step: 'registration request queue' } })
           outcome = { queued: null, reason: 'queue failed: ' + err.message }
         }
-        console.log('registration request: ' + outcome.reason)
+        log.info('registration request: ' + outcome.reason)
         if (outcome.queued || outcome.duplicate) return res.sendStatus(200)
       }
-      console.log("recipients: " + JSON.stringify(recipients))
-      console.log("stockportrecipients: " + JSON.stringify(stockportrecips))
+      log.info({ recipients, leagueRecipients: stockportrecips }, 'mail: recipients')
       
       
 
@@ -683,7 +670,6 @@ exports.distribution_list = async function(req,res,next) {
       subject = parsedEmail.subject || "No Subject";
       textBody = parsedEmail.text || "No text content";
       htmlBody = parsedEmail.html || parsedEmail.textAsHtml || parsedEmail.text;
-      console.log(JSON.stringify(parsedEmail))
 
       // Extract attachments (if any)
       const attachments = await parsedEmail.attachments.map((attachment) => ({
@@ -695,7 +681,7 @@ exports.distribution_list = async function(req,res,next) {
       
       // recipient = recipient.substring(0,recipient.indexOf("@"));
       // recipient = recipient.replace("\"","")
-      console.log("recipint : stockport.badders.results\+"+recipient+"@gmail.com")
+      log.debug({ recipient }, 'mail: list address')
 
       var msg = {
         "to": ["stockport.badders.results\+"+recipient+"@gmail.com"],
@@ -875,7 +861,7 @@ exports.distribution_list = async function(req,res,next) {
           var tempArray = msg.to
           msg.to = tempArray.concat(rows)
           const info = await sendSpread(transporter, nodemailconfig, tempArray.concat(rows));
-          console.log(info.messageId);
+          log.info({ messageId: info.messageId, recipients: tempArray.length + rows.length }, 'mail: forwarded to list');
           res.sendStatus(200)
         } else {
           msg.html = msg.html.replace("<body>", "<body><p id=\"emaillist\"></p>")
@@ -883,32 +869,26 @@ exports.distribution_list = async function(req,res,next) {
           msg.html = msg.html.replace("<body><p id=\"emaillist\">", "<body><p id=\"emaillist\">" + rows.join() + "<br/>")
           nodemailconfig.html = nodemailconfig.html.replace("</body>", "<p id=\"emaillist\"></p></body>")
           nodemailconfig.html = nodemailconfig.html.replace("<p id=\"emaillist\"></p></body>", "<p id=\"emaillist\">" + rows.join() + "<br/></p></body>")
-          console.log("--- NODEMAIL HTML---- ")
-          console.log(nodemailconfig.html)
           // The 'test' branch mails only the league's own address, so there is nothing to
           // spread -- but it goes through the same call so the two cannot drift.
           const info = await sendSpread(transporter, nodemailconfig, nodemailconfig.bcc);
-          console.log(info.envelope);
-          console.log(info.messageId);
+          log.info({ messageId: info.messageId, envelope: info.envelope }, 'mail: test send');
           res.sendStatus(200)
         }
       } else {
-        console.log("nodeemailconfig" + JSON.stringify(nodemailconfig))
         const info = await sendSpread(transporter, nodemailconfig, nodemailconfig.bcc);
-        console.log(JSON.stringify(info))
-        console.log(info.envelope);
-        console.log(info.messageId);
+        log.info({ messageId: info.messageId, envelope: info.envelope }, 'mail: forwarded');
         res.sendStatus(200)
       }
       
     } catch (error) {
-        console.error("Error processing message:", error);
+        log.error({ err: error }, "Error processing message");
         // res.status(500).send("Internal Server Error");
         next(error)
     }
   }
   else {
-    console.log(`didn't find message header: ${JSON.stringify(req.body)}`)
+    log.warn({ type: snsMsg && snsMsg.Type }, 'mail: not a subscription confirmation or a notification')
   }
 
    //console.log("from: " + req.body.from);

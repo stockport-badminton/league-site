@@ -29,6 +29,7 @@
 //    Scheduler produces a retry storm against a job whose whole output is one email.
 
 const config = require('../config');
+const log = require('../utils/log');
 const ejs = require('ejs');
 const db = require('../db_connect.js');
 const checks = require('../tools/audit/checks');
@@ -134,7 +135,7 @@ exports.audit_run = async function(req, res, next) {
     // Not an error: an unconfigured deploy is the safe state, and this is the message
     // that tells whoever is looking why no email arrived. Cloud Scheduler records the
     // response body, so it is visible without reading application logs.
-    console.warn('[audit] AUDIT_EMAIL_TO is not set — digest built but not sent:', digest.subject);
+    log.warn({ subject: digest.subject }, '[audit] AUDIT_EMAIL_TO is not set — digest built but not sent');
     return res.json(Object.assign({}, summary, {
       sent: false,
       reason: 'AUDIT_EMAIL_TO is not set, so there is nobody to send the digest to.',
@@ -153,7 +154,7 @@ exports.audit_run = async function(req, res, next) {
   } catch (sendErr) {
     // A 500 here would have Cloud Scheduler retry, and a retry that succeeds after a
     // throttle sends the digest twice. Report the failure in the response instead.
-    console.error('[audit] digest send failed:', sendErr.toString());
+    log.error({ err: sendErr }, '[audit] digest send failed');
     return res.json(Object.assign({}, summary, {
       sent: false,
       reason: sendErr.message || String(sendErr),

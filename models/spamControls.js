@@ -1,5 +1,6 @@
 // @ts-check
 const { sql } = require('kysely');
+const log = require('../utils/log');
 const { kysely } = require('../db');
 
 // Blocklists and the submission log — see migrations/010_spam_controls.sql.
@@ -53,7 +54,7 @@ async function ensureLoaded() {
   try {
     return await load();
   } catch (err) {
-    console.error('spamControls: could not load blocklists:', /** @type {Error} */ (err).message);
+    log.error({ err }, 'spamControls: could not load blocklists');
     // Push the clock forward so a broken DB isn't retried on every single request.
     cache.loadedAt = Date.now();
     return cache;
@@ -160,7 +161,7 @@ exports.logSubmission = async function(entry) {
       excerpt: (entry.excerpt || '').slice(0, 200) || null,
     }).execute();
   } catch (err) {
-    console.error('spamControls: could not log submission:', /** @type {Error} */ (err).message);
+    log.error({ err }, 'spamControls: could not log submission');
   }
 };
 

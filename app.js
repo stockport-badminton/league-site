@@ -1,6 +1,7 @@
 // Sentry instrumentation — must load before express and other modules.
 require('./instrument');
 const config = require('./config');
+const log = require('./utils/log');
 const Sentry = require('@sentry/node');
 
 
@@ -34,6 +35,10 @@ const { clientIp: getClientIp } = require('./utils/clientIp');
 const access = require('./middleware/access');
 
 var app = express();
+
+// First, so every line logged while handling a request carries its id — and, on Cloud
+// Run, the trace field that files it under the request in Cloud Logging (utils/log.js).
+app.use(log.requestIds);
 
 // ---------------------------------------------------------------------------
 // Security response headers
@@ -171,7 +176,7 @@ app.use(function(req, res, next) {
   if (!spamControls.isBlockedIpSync(ipAddress)) {
     return next();
   }
-  console.log(`traffic from ${ipAddress} blocked`);
+  log.info({ ip: ipAddress }, 'blocked IP refused');
   res.status(403).send('Forbidden');
 });
 
@@ -260,7 +265,7 @@ async function healthCheck(req, res) {
     if (config.E2E_SERVER === '1') body.e2e = true;
     res.status(200).json(body);
   } catch (err) {
-    console.error('health: database unreachable:', err.message);
+    log.error({ err }, 'health: database unreachable');
     res.status(503).json({ ok: false, error: 'database unreachable' });
   }
 }
@@ -332,10 +337,12 @@ app.post('/csp-report', access.public, require('./middleware/rateLimit').cspRepo
     // fix. Left in, they are the overwhelming majority of the volume and the reason a
     // report-only period gets abandoned as noise.
     if (r.blocked && IGNORED_SCHEMES.test(r.blocked)) return;
-    console.warn('csp-report: ' + logSafe(r.directive) +
-      ' blocked=' + logSafe(r.blocked) +
-      ' page=' + logSafe(r.document) +
-      ' source=' + logSafe(r.source));
+    log.warn({
+      csp: {
+        directive: logSafe(r.directive), blocked: logSafe(r.blocked),
+        page: logSafe(r.document), source: logSafe(r.source),
+      },
+    }, 'csp-report: ' + logSafe(r.directive));
   });
 });
 
@@ -461,7 +468,7 @@ var port = config.PORT;
 // to drop the requests of everyone currently using the site.
 process.on('unhandledRejection', function(reason) {
   const err = reason instanceof Error ? reason : new Error('Unhandled rejection: ' + reason);
-  console.error('unhandledRejection (kept serving):', err.message);
+  log.error({ err }, 'unhandledRejection (kept serving)');
   Sentry.captureException(err, { tags: { source: 'unhandled-rejection' } });
 });
 
@@ -470,7 +477,7 @@ process.on('unhandledRejection', function(reason) {
 // wrong answers. Report, flush, and exit non-zero so Cloud Run replaces the instance —
 // still far better than dying silently with nothing recorded.
 process.on('uncaughtException', function(err) {
-  console.error('uncaughtException (exiting):', err && err.message);
+  log.fatal({ err }, 'uncaughtException (exiting)');
   Sentry.captureException(err, { tags: { source: 'uncaught-exception' } });
   Sentry.flush(2000).catch(function() {}).finally(function() {
     process.exit(1);
@@ -487,12 +494,12 @@ process.on('uncaughtException', function(err) {
 // request cannot hold the shutdown past the point where we are killed anyway.
 const SHUTDOWN_GRACE_MS = 8000;
 function shutdown(signal, server) {
-  console.log(`${signal} received — draining`);
+  log.info(`${signal} received — draining`);
   const done = function(code) {
     db.end().catch(function() {}).finally(function() { process.exit(code); });
   };
   const timer = setTimeout(function() {
-    console.error('drain timed out; exiting anyway');
+    log.error('drain timed out; exiting anyway');
     done(1);
   }, SHUTDOWN_GRACE_MS);
   timer.unref();
@@ -500,7 +507,7 @@ function shutdown(signal, server) {
   if (!server) return done(0);
   server.close(function() {
     clearTimeout(timer);
-    console.log('drained cleanly');
+    log.info('drained cleanly');
     done(0);
   });
 }
@@ -511,13 +518,13 @@ if (require.main === module) {
   const devDbGuard = require('./utils/devDatabaseGuard');
   const devDbRefusal = devDbGuard.refusalReason(config);
   if (devDbRefusal) {
-    console.error(devDbRefusal);
+    log.fatal(devDbRefusal);
     process.exit(1);
   }
   // And when the override IS in force, say so unmissably. An escape hatch nobody can see
   // they are standing on is the original hazard with extra steps.
   const devDbOverride = devDbGuard.overrideWarning(config);
-  if (devDbOverride) console.warn(devDbOverride);
+  if (devDbOverride) log.warn(devDbOverride);
 
   try {
     db.connect();
@@ -531,7 +538,7 @@ if (require.main === module) {
         const current = seasonModel.current();
         app.locals.pastSeasons = all.filter(function(s) { return s.name !== current; });
       } catch (err) {
-        console.error('pastSeasons load failed:', err.message);
+        log.error({ err }, 'pastSeasons load failed');
       }
       // Which seasons the archive can actually serve, for the /tables season guard
       // (middleware/validateSeason.js). Falls back to format-only checks if this
@@ -539,18 +546,18 @@ if (require.main === module) {
       // page — see models/season.js.
       try {
         const servable = await seasonModel.loadServable();
-        console.log('Servable seasons loaded:', servable);
+        log.info(`Servable seasons loaded: ${servable}`);
       } catch (err) {
-        console.error('servable seasons load failed:', err.message);
+        log.error({ err }, 'servable seasons load failed');
       }
       // Division/season option lists for the filter toolbar. Runs after
       // season.init() because the current season decides which seasons are
       // offerable (see middleware/filterState.js).
       try {
         const counts = await require('./middleware/filterState').init();
-        console.log('Filter options loaded:', counts.divisions, 'divisions,', counts.seasons, 'seasons');
+        log.info(counts, `Filter options loaded: ${counts.divisions} divisions, ${counts.seasons} seasons`);
       } catch (err) {
-        console.error('filterState load failed:', err.message);
+        log.error({ err }, 'filterState load failed');
       }
       // Warm the blocklist cache before serving, because the IP check on every request
       // reads it synchronously. A failure here leaves the lists empty rather than
@@ -558,28 +565,28 @@ if (require.main === module) {
       // timer below picks it up on the next tick.
       try {
         await spamControls.refresh();
-        console.log('Blocklists loaded');
+        log.info('Blocklists loaded');
       } catch (err) {
-        console.error('blocklist load failed:', err.message);
+        log.error({ err }, 'blocklist load failed');
       }
       // Keep the cache fresh so an admin change lands within a minute on every instance
       // without needing a restart or cross-instance invalidation. unref() so this timer
       // never holds the process open.
       setInterval(function() {
         spamControls.refresh().catch(function(err) {
-          console.error('blocklist refresh failed:', err.message);
+          log.error({ err }, 'blocklist refresh failed');
         });
       }, 60 * 1000).unref();
     }).finally(function() {
       const server = app.listen(port, function() {
-        console.log('Server running at http://127.0.0.1:' + port + '/');
+        log.info('Server running at http://127.0.0.1:' + port + '/');
       });
       ['SIGTERM', 'SIGINT'].forEach(function(sig) {
         process.on(sig, function() { shutdown(sig, server); });
       });
     });
   } catch {
-    console.log('Unable to connect to database.');
+    log.fatal('Unable to connect to database.');
     process.exit(1);
   }
 }

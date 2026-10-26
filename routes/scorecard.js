@@ -1,6 +1,7 @@
 // Filing a league result: uploads, drafts, publishing, the photo read path, the live scorecard.
 // Mounted by routes/index.js, in the order listed there (REARCH-04).
 const config = require('../config');
+const log = require('../utils/log');
 const express = require('express');
 const router = express.Router();
 const access = require('../middleware/access');
@@ -70,7 +71,7 @@ router.get('/sign-s3', access.public, publicFormLimiter, async (req, res, next) 
     res.json({ signedUrl, signedRequest: signedUrl, url, key });
   } catch (err) {
     if (err.status === 400) return res.status(400).json({ error: err.message });
-    console.error('sign-s3 failed:', err.message);
+    log.error({ err }, 'sign-s3 failed');
     next(err);
   }
 });

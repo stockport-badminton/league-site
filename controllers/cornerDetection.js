@@ -4,6 +4,7 @@
 // that transform to the text-block coordinates — no image warping, no opencv.
 
 const vision = require('@google-cloud/vision');
+const log = require('../utils/log');
 const sharp  = require('sharp');
 
 const visionClient = new vision.ImageAnnotatorClient();
@@ -329,7 +330,7 @@ async function detectText(imageBuffer, delays = VISION_RETRY_DELAYS_MS) {
       throw new Error(`Vision could not process the image (code ${code}): ${message}`);
     }
     if (attempt >= delays.length) throw visionBusyError(message);
-    console.warn(`[ocr] Vision busy (code 8), retry ${attempt + 1} of ${delays.length}`);
+    log.warn(`[ocr] Vision busy (code 8), retry ${attempt + 1} of ${delays.length}`);
     await sleep(delays[attempt]);
   }
 }
@@ -388,7 +389,7 @@ async function runOCR(imageBuffer) {
       .jpeg({ quality: 90 })
       .toBuffer();
   } catch (err) {
-    console.warn('[ocr] enhance failed, sending the original to Vision:', err.message);
+    log.warn({ err }, '[ocr] enhance failed, sending the original to Vision');
     enhanced = imageBuffer;
   }
 

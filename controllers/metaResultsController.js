@@ -12,6 +12,7 @@
 // Meta cannot have published anything (`metaPublisher.mayHavePublished`).
 
 const SocialResultPost = require('../models/socialResultPost');
+const log = require('../utils/log');
 const Fixture = require('../models/fixture');
 const meta = require('../utils/metaPublisher');
 
@@ -56,7 +57,7 @@ async function postOne(row) {
     const message = live
       ? `${err.message} — no answer to the publish, so it may be live; check ${target.name} before retrying`
       : err.message;
-    console.error(`result for fixture ${row.fixtureId} -> ${target.name} failed:`, message);
+    log.error({ fixtureId: row.fixtureId, target: target.name, retry }, `result for fixture ${row.fixtureId} -> ${target.name} failed: ${message}`);
     if (retry) await SocialResultPost.release(row.id, message);
     else await SocialResultPost.markFailed(row.id, message);
     return { outcome: retry ? 'retrying' : 'failed', error: message };
@@ -66,7 +67,7 @@ async function postOne(row) {
   // must not be mistaken for a Meta failure and released for another go; the row stays
   // `posting`, and the audit digest asks a person to look.
   await SocialResultPost.markPosted(row.id, out.posted[0].id);
-  console.log(`result for fixture ${row.fixtureId} posted to ${target.name}`, out.posted[0].id);
+  log.info({ fixtureId: row.fixtureId, target: target.name, postId: out.posted[0].id }, `result for fixture ${row.fixtureId} posted to ${target.name}`);
   return { outcome: 'posted', id: out.posted[0].id };
 }
 

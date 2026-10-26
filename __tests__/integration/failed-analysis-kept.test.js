@@ -68,6 +68,7 @@ jest.mock('../../utils/documentImage', () => {
 });
 
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
 const app = require('../../app');
 const { storeImage, FAILED_PREFIX, FAILED_UPLOAD_TYPES } = require('../../utils/uploads');
 const { extractEmbeddedImage } = require('../../utils/documentImage');
@@ -256,13 +257,13 @@ describe('when no image can be pulled out of a document', () => {
     });
 
   it('says which check refused it, and where the file went', async () => {
-    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const err = captureLog(['error']);
     await uploadDoc('/api/convert-scorecard-document');
 
-    const logged = err.mock.calls.map(c => c.join(' ')).join('\n');
+    const logged = err.text();
     expect(logged).toMatch(/no image could be extracted/);
     expect(logged).toMatch(new RegExp(FAILED_PREFIX));
-    err.mockRestore();
+    err.restore();
   });
 
   it('tells the captain the same thing as before, leaking nothing', async () => {
@@ -302,7 +303,7 @@ describe('a document that converts fine', () => {
 // captains' signatures. "Keep everything we refused" is the easy rule and the wrong one.
 describe('a photo sent to the document endpoint', () => {
   it('is refused and logged, but not kept', async () => {
-    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const err = captureLog(['error']);
 
     const res = await request(app)
       .post('/api/convert-scorecard-document')
@@ -312,10 +313,10 @@ describe('a photo sent to the document endpoint', () => {
     expect(res.body.error).toMatch(/not a PDF or Word file/i);
     expect(storeImage).not.toHaveBeenCalled();
 
-    const logged = err.mock.calls.map(c => c.join(' ')).join('\n');
+    const logged = err.text();
     expect(logged).toMatch(/not a document/);
     expect(logged).toMatch(/image\/jpeg/);          // the whole diagnosis, in the line
     expect(logged).toMatch(/nothing to learn from it/);
-    err.mockRestore();
+    err.restore();
   });
 });

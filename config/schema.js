@@ -44,6 +44,14 @@ module.exports = /** @type {const} */ ({
     kind: 'string', default: 'dev-local', test: 'unset', e2e: 'unset',
     doc: "Set by Cloud Run; the service worker's cache version, so each deploy refreshes it.",
   },
+  GCP_PROJECT: {
+    kind: 'id', default: 'stockport-badminton-map', ...ALWAYS_LOCAL,
+    doc: 'The Google Cloud project, named in each log line\'s trace field so it groups under its request (utils/log.js).',
+  },
+  LOG_LEVEL: {
+    kind: 'string', default: 'info', ...ALWAYS_LOCAL,
+    doc: 'Lowest pino level written: debug, info, warn or error. Jest is always silent (utils/log.js).',
+  },
   DEV_MODE: {
     kind: 'flag', ...ALWAYS_LOCAL,
     doc: 'Injects a mock superadmin/messeradmin user. Ignored when NODE_ENV=production (gotcha 5).',

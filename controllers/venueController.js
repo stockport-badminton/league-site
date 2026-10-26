@@ -1,4 +1,5 @@
 var Venue = require('../models/venue');
+const log = require('../utils/log');
 var { generateVenuesMap } = require('../utils/venues-map-generator');
 const { canonicalFor } = require('../utils/canonical');
 
@@ -7,7 +8,7 @@ const { canonicalFor } = require('../utils/canonical');
 // break venue create/update/delete.
 function regenerateVenuesMap() {
   generateVenuesMap().catch(function(err) {
-    console.error('[venues-map] regen failed:', err);
+    log.error({ err }, '[venues-map] regen failed');
   });
 }
 

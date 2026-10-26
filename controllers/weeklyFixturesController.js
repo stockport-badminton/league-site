@@ -22,6 +22,7 @@
 // fixtures in a given week while the other three do.
 
 const { canonicalFor, absoluteUrl, fixturesImagePath } = require('../utils/canonical');
+const log = require('../utils/log');
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
 const Fixture = require('../models/fixture');
@@ -162,8 +163,8 @@ exports.run = async function (req, res, next) {
       caption: text.instagram,
     });
 
-    for (const f of out.failed) console.error(`weekly fixtures -> ${f.target} failed:`, f.error.message);
-    if (out.posted.length) console.log('weekly fixtures posted to', out.posted.map(p => p.target).join(', '));
+    for (const f of out.failed) log.error({ err: f.error, target: f.target }, `weekly fixtures -> ${f.target} failed`);
+    if (out.posted.length) log.info({ posted: out.posted }, 'weekly fixtures posted to ' + out.posted.map(p => p.target).join(', '));
 
     // 207 when some targets took it and some did not — reporting only success would make a
     // half failure indistinguishable from a whole one.
@@ -223,13 +224,13 @@ exports.runThreads = async function (req, res, next) {
       const out = urls.length === 1
         ? await threads.publishImage(account.accountId, account.token, { imageUrl: urls[0], text })
         : await threads.publishCarousel(account.accountId, account.token, { imageUrls: urls, text });
-      console.log('weekly fixtures posted to Threads', out.mediaId);
+      log.info({ target: 'Threads', postId: out.mediaId }, 'weekly fixtures posted to Threads');
       return res.json({
         ok: true, images: urls, fixtures: rows.length,
         posted: [{ target: 'Threads', id: out.mediaId }], caller: req.socialCaller,
       });
     } catch (err) {
-      console.error('weekly fixtures -> Threads failed:', err.message);
+      log.error({ err }, 'weekly fixtures -> Threads failed');
       return res.status(502).json({ ok: false, images: urls, error: err.message, caller: req.socialCaller });
     }
   } catch (err) {

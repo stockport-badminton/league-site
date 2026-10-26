@@ -69,6 +69,21 @@ why a retry today does not double-post.
 
 - The Make.com path (`SOCIAL_POST_DIRECT` unset). It is a webhook and returns quickly.
 
+## Reading the timing lines since REARCH-09
+
+From REARCH-09 part B the `[timing] …` text lines are structured: each is a JSON log line
+with `jsonPayload.timing = { stage, step, ms, outcome }` and, on Cloud Run, the request's
+trace — so they group under the `POST /scorecard-beta` that wrote them instead of by time.
+
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="league-site"
+  AND jsonPayload.timing.stage:* AND timestamp>="2026-10-24T00:00:00Z"' \
+  --project stockport-badminton-map --limit=500 \
+  --format='value(timestamp,trace,jsonPayload.timing.stage,jsonPayload.timing.step,jsonPayload.timing.ms,jsonPayload.timing.outcome)'
+```
+
+Lines from before that deploy are still text: `textPayload:"[timing]"`.
+
 ## Step 1: the split, measured 18–24 Oct 2026
 
 Six publishes, every one a 200. The `[timing]` lines carry no trace id, so they were grouped by

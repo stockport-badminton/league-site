@@ -27,7 +27,7 @@ router.get('/callback', access.public, function(req, res, next) {
       var returnTo = req.session.returnTo || '/';
       delete req.session.returnTo;
       req.logIn(user, function(err) {
-        if (err) { console.log(err); return next(err); }
+        if (err) return next(err);
         res.redirect(returnTo);
       });
     }

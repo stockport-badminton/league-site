@@ -1,4 +1,5 @@
 const config = require('./config');
+const log = require('./utils/log');
 const { Pool } = require('pg');
 const { regionEnd } = require('./utils/sqlScan');
 const { overClient } = require('./db/kysely');
@@ -56,7 +57,7 @@ exports.connect = function() {
   // client, and the next query gets a fresh one. We capture it so the event is
   // still visible in Sentry, just handled rather than fatal.
   state.pool.on('error', function(err) {
-    console.error('pg pool: idle client error (connection discarded):', err.message);
+    log.error({ err }, 'pg pool: idle client error (connection discarded)');
     Sentry.captureException(err, { tags: { source: 'pg-pool-idle-client' } });
   });
 };
@@ -104,7 +105,7 @@ exports.end = async function() {
   } catch (err) {
     // Already closing, or a client died on the way out. Nothing useful to do while the
     // process is on its way down.
-    console.error('pg pool: error while closing:', err.message);
+    log.error({ err }, 'pg pool: error while closing');
   }
 };
 
@@ -232,7 +233,7 @@ exports.withTransaction = async function(fn) {
     } catch (rollbackErr) {
       // A failed rollback means the connection is already unusable; the original
       // error is the one worth reporting.
-      console.error('ROLLBACK failed:', rollbackErr.message);
+      log.error({ err: rollbackErr }, 'ROLLBACK failed');
     }
     throw err;
   } finally {

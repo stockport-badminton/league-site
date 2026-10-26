@@ -9,6 +9,7 @@
 // the results secretary's weekly email as fact.
 
 const https = require('https');
+const log = require('../utils/log');
 const Sentry = require('@sentry/node');
 const verifySns = require('../middleware/verifySns');
 const EmailEvent = require('../models/emailEvent');
@@ -22,13 +23,13 @@ exports.ses_events = async function(req, res, next) {
   // GCP. Same reasoning, and the same helper, as /mail.
   if (msg.Type === 'SubscriptionConfirmation') {
     if (!verifySns.isAmazonSubscribeUrl(msg.SubscribeURL)) {
-      console.warn('ses-events: refusing non-SNS SubscribeURL:', msg.SubscribeURL);
+      log.warn({ subscribeUrl: msg.SubscribeURL }, 'ses-events: refusing non-SNS SubscribeURL');
       return res.status(400).send('bad SubscribeURL');
     }
     https.get(msg.SubscribeURL, r => {
-      console.log('ses-events: subscription confirmation returned', r.statusCode);
+      log.info({ status: r.statusCode }, 'ses-events: subscription confirmation returned ' + r.statusCode);
       r.resume();
-    }).on('error', e => console.error('ses-events: confirm failed:', e.message));
+    }).on('error', e => log.error({ err: e }, 'ses-events: confirm failed'));
     return res.sendStatus(200);
   }
 
@@ -38,15 +39,15 @@ exports.ses_events = async function(req, res, next) {
     const event = JSON.parse(msg.Message);
     const rows = EmailEvent.rowsFrom(event);
     const written = await EmailEvent.record(rows);
-    console.log(`ses-events: ${event.eventType} for ${rows.length} recipient(s), ` +
-                `${written} new`);
+    log.info({ eventType: event.eventType, recipients: rows.length, written },
+      `ses-events: ${event.eventType} for ${rows.length} recipient(s), ${written} new`);
     // 200 regardless of whether anything was new: a duplicate is not an error, and SNS
     // retries anything that is not a 2xx — which would spin on a message we have already
     // stored.
     res.sendStatus(200);
   } catch (err) {
     // Do NOT 500. SNS would retry a malformed message forever. Log it and accept it.
-    console.error('ses-events: could not handle notification:', err.message);
+    log.error({ err }, 'ses-events: could not handle notification');
     Sentry.captureException(err);
     res.sendStatus(200);
   }

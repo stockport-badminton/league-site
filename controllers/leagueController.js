@@ -18,7 +18,6 @@ exports.league_table = async function(req, res, next) {
         canonical:canonicalFor(req)
     });
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };
@@ -37,7 +36,6 @@ exports.all_league_tables = async function(req, res, next) {
         canonical:canonicalFor(req)
     });
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };

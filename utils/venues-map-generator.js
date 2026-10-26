@@ -13,6 +13,7 @@
  */
 
 const config = require('../config');
+const log = require('./log');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const Venue = require('../models/venue');
 const db = require('../db_connect');
@@ -63,7 +64,7 @@ async function generateVenuesMap() {
     ContentType: 'image/png'
   }));
 
-  console.log('[venues-map-generator] Uploaded ' + S3_KEY + ' (' + venues.length + ' venues, ' + buffer.length + ' bytes)');
+  log.info({ venues: venues.length, bytes: buffer.length }, '[venues-map-generator] Uploaded ' + S3_KEY);
   return S3_KEY;
 }
 
@@ -74,7 +75,7 @@ module.exports = { generateVenuesMap, S3_KEY };
 if (require.main === module) {
   db.connect();
   generateVenuesMap().catch(function(err) {
-    console.error(err);
+    log.fatal({ err }, '[venues-map-generator] failed');
     process.exit(1);
   });
 }

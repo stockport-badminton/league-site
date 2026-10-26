@@ -8,6 +8,7 @@
  */
 
 const path = require('path');
+const log = require('./log');
 const fs = require('fs').promises;
 const cheerio = require('cheerio');
 
@@ -139,7 +140,7 @@ async function getDBProductUrls() {
       });
       await sleep(300);
     } catch (e) {
-      console.error(`  DB brand page failed (${brand}): ${e.message}`);
+      log.error(`  DB brand page failed (${brand}): ${e.message}`);
     }
   }
   return [...seen];
@@ -230,26 +231,22 @@ async function scrapeDBProduct(urlPath) {
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function scrapeAll() {
-  console.log('[shuttle-scraper] Scraping Central Sports...');
+  log.info('[shuttle-scraper] Scraping Central Sports...');
   const csProducts = await scrapeCentralSports();
-  console.log(`[shuttle-scraper]   ${csProducts.length} products found`);
+  log.info(`[shuttle-scraper]   ${csProducts.length} products found`);
 
-  console.log('[shuttle-scraper] Discovering Direct Badminton URLs...');
+  log.info('[shuttle-scraper] Discovering Direct Badminton URLs...');
   const dbUrls = await getDBProductUrls();
-  console.log(`[shuttle-scraper]   ${dbUrls.length} candidate product URLs`);
+  log.info(`[shuttle-scraper]   ${dbUrls.length} candidate product URLs`);
 
-  console.log('[shuttle-scraper] Scraping Direct Badminton product pages...');
+  log.info('[shuttle-scraper] Scraping Direct Badminton product pages...');
   const dbProducts = [];
   for (const urlPath of dbUrls) {
     const product = await scrapeDBProduct(urlPath);
-    if (product) {
-      dbProducts.push(product);
-      process.stdout.write('.');
-    }
+    if (product) dbProducts.push(product);
     await sleep(250);
   }
-  process.stdout.write('\n');
-  console.log(`[shuttle-scraper]   ${dbProducts.length} feather shuttle products found`);
+  log.info(`[shuttle-scraper]   ${dbProducts.length} feather shuttle products found`);
 
   const result = {
     scraped_at: new Date().toISOString(),
@@ -258,7 +255,7 @@ async function scrapeAll() {
 
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, JSON.stringify(result, null, 2));
-  console.log(`[shuttle-scraper] Written to ${OUTPUT_PATH}`);
+  log.info(`[shuttle-scraper] Written to ${OUTPUT_PATH}`);
 
   return result;
 }
@@ -268,7 +265,7 @@ module.exports = { scrapeAll, OUTPUT_PATH };
 // CLI entry point
 if (require.main === module) {
   scrapeAll().catch(err => {
-    console.error(err);
+    log.fatal({ err }, '[shuttle-scraper] failed');
     process.exit(1);
   });
 }

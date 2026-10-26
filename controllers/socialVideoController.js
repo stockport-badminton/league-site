@@ -1,4 +1,5 @@
 const config = require('../config');
+const log = require('../utils/log');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
@@ -141,12 +142,12 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     const s3Keys = { ...VIDEO_KEYS, lock: LOCK_KEY };
 
     // Try to acquire lock and check for recent videos (retry once if lock is active)
-    console.log(`[DEDUP] Attempt 0: checking for recent videos and lock...`);
+    log.info(`[DEDUP] Attempt 0: checking for recent videos and lock...`);
     for (let attempt = 0; attempt < 2; attempt++) {
-      console.log(`[DEDUP] Attempt ${attempt}: starting dedup check`);
+      log.info(`[DEDUP] Attempt ${attempt}: starting dedup check`);
       try {
         // Check if videos exist and are recent
-        console.log(`[DEDUP] Checking if videos exist in S3...`);
+        log.info(`[DEDUP] Checking if videos exist in S3...`);
         const head4_5 = await s3.send(new HeadObjectCommand({
           Bucket: config.S3_BUCKET_NAME,
           Key: s3Keys['4-5']
@@ -160,10 +161,10 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         const age4_5 = now - head4_5.LastModified.getTime();
         const age1_1 = now - head1_1.LastModified.getTime();
 
-        console.log(`[DEDUP] Videos exist: 4-5 age=${Math.round(age4_5 / 1000)}s, 1-1 age=${Math.round(age1_1 / 1000)}s (dedupeWindow=${dedupeWindow / 1000}s)`);
+        log.info(`[DEDUP] Videos exist: 4-5 age=${Math.round(age4_5 / 1000)}s, 1-1 age=${Math.round(age1_1 / 1000)}s (dedupeWindow=${dedupeWindow / 1000}s)`);
 
         if (age4_5 < dedupeWindow && age1_1 < dedupeWindow) {
-          console.log(`[DEDUP] Videos are recent! Returning cached URLs.`);
+          log.info(`[DEDUP] Videos are recent! Returning cached URLs.`);
           return res.json({
             success: true,
             week: weekLabel,
@@ -174,14 +175,14 @@ exports.generateWeeklyVideo = async function(req, res, next) {
             }
           });
         }
-        console.log(`[DEDUP] Videos exist but are stale (older than ${dedupeWindow / 1000}s), proceeding to check lock...`);
+        log.info(`[DEDUP] Videos exist but are stale (older than ${dedupeWindow / 1000}s), proceeding to check lock...`);
       } catch (err) {
-        console.log(`[DEDUP] Videos don't exist yet (${err.Code || err.message}), proceeding to check lock...`);
+        log.info(`[DEDUP] Videos don't exist yet (${err.Code || err.message}), proceeding to check lock...`);
       }
 
       // Check if another instance is generating
       try {
-        console.log(`[DEDUP] Checking if lock file exists...`);
+        log.info(`[DEDUP] Checking if lock file exists...`);
         const lockStat = await s3.send(new HeadObjectCommand({
           Bucket: config.S3_BUCKET_NAME,
           Key: s3Keys['lock']
@@ -190,17 +191,17 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         const now = Date.now();
         const lockAge = now - lockStat.LastModified.getTime();
 
-        console.log(`[DEDUP] Lock file exists! Age=${Math.round(lockAge / 1000)}s (lockTimeout=${lockTimeout / 1000}s)`);
+        log.info(`[DEDUP] Lock file exists! Age=${Math.round(lockAge / 1000)}s (lockTimeout=${lockTimeout / 1000}s)`);
 
         if (lockAge < lockTimeout) {
           // Lock is active - another instance is generating
           if (attempt === 0) {
-            console.log(`[DEDUP] Lock is active, waiting 30s before retry...`);
+            log.info(`[DEDUP] Lock is active, waiting 30s before retry...`);
             await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30s and retry
             continue; // Retry from top (check for videos again)
           } else {
             // Second attempt, lock still active - return error
-            console.log(`[DEDUP] Second attempt and lock still active, returning 202 Accepted`);
+            log.info(`[DEDUP] Second attempt and lock still active, returning 202 Accepted`);
             return res.status(202).json({
               success: false,
               message: 'Video generation in progress, please retry in 30 seconds'
@@ -221,24 +222,24 @@ exports.generateWeeklyVideo = async function(req, res, next) {
           // answering 202 for 115 days. Verified 19 Sep 2026 by reading the [DEDUP] trace:
           // "Lock file is stale (9963441s > 120s), proceeding with generation" followed
           // immediately by "Lock file already created by another instance".
-          console.log(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), removing it`);
+          log.info(`[DEDUP] Lock file is stale (${Math.round(lockAge / 1000)}s > ${lockTimeout / 1000}s), removing it`);
           await s3.send(new DeleteObjectCommand({
             Bucket: config.S3_BUCKET_NAME,
             Key: s3Keys['lock'],
           }));
         }
       } catch (err) {
-        console.log(`[DEDUP] No lock file found (${err.Code || err.message}), safe to proceed with generation`);
+        log.info(`[DEDUP] No lock file found (${err.Code || err.message}), safe to proceed with generation`);
       }
 
       // No recent videos, lock not active → we can generate
-      console.log(`[DEDUP] Proceeding with generation (breaking loop)`);
+      log.info(`[DEDUP] Proceeding with generation (breaking loop)`);
       break;
     }
 
     // Create lock file atomically before starting generation
     // IfNoneMatch: '*' ensures only we create it if it doesn't exist (prevents race condition)
-    console.log(`[DEDUP] Creating lock file to signal other instances...`);
+    log.info(`[DEDUP] Creating lock file to signal other instances...`);
     try {
       await s3.send(new PutObjectCommand({
         Bucket: config.S3_BUCKET_NAME,
@@ -247,11 +248,11 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         ContentType: 'text/plain',
         IfNoneMatch: '*'  // Only create if lock doesn't exist
       }));
-      console.log(`[DEDUP] Lock file created successfully (atomic)`);
+      log.info(`[DEDUP] Lock file created successfully (atomic)`);
     } catch (err) {
       // If PreconditionFailed, another instance created the lock - check for new videos
       if (err.Code === 'PreconditionFailed' || err.name === 'PreconditionFailed') {
-        console.log(`[DEDUP] Lock file already created by another instance, checking for new videos...`);
+        log.info(`[DEDUP] Lock file already created by another instance, checking for new videos...`);
         // Re-check from the top (another instance might have finished by now)
         return res.status(202).json({
           success: false,
@@ -259,7 +260,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         });
       }
       // Other errors are real failures
-      console.error(`[DEDUP] Failed to create lock file: ${err.message}`);
+      log.error(`[DEDUP] Failed to create lock file: ${err.message}`);
       return res.status(500).json({ error: `Failed to create lock file: ${err.message}` });
     }
 
@@ -267,7 +268,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
 
     // Query fixtures from last 7 days
     const fixtures = await queryFixturesWithResults(startDate, endDate);
-    console.log(`Found ${fixtures.length} fixtures with results for week: ${weekLabel}`);
+    log.info(`Found ${fixtures.length} fixtures with results for week: ${weekLabel}`);
 
     if (fixtures.length === 0) {
       return res.status(404).json({ error: `No fixtures with results found for ${weekLabel}` });
@@ -275,7 +276,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
 
     // Generate result images for each fixture
     const resultImages = await generateResultImages(fixtures);
-    console.log(`Generated ${resultImages.length} result images`);
+    log.info(`Generated ${resultImages.length} result images`);
 
     if (resultImages.length === 0) {
       return res.status(500).json({ error: 'Failed to generate any result images' });
@@ -289,7 +290,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     const totalDuration = calculateTotalDuration(resultImages.length, duration, transitionDuration);
 
     if (['4-5', 'both'].includes(aspect)) {
-      console.log('Creating 16:9 video...');
+      log.info('Creating 16:9 video...');
       const video4_5 = await createVideoFromImageSequence(
         resultImages, duration, transitionDuration, framerate, VIDEO_SIZES['4-5'], outputDir, '4-5'
       );
@@ -299,7 +300,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     }
 
     if (['1-1', 'both'].includes(aspect)) {
-      console.log('Creating 1:1 video...');
+      log.info('Creating 1:1 video...');
       const video1_1 = await createVideoFromImageSequence(
         resultImages, duration, transitionDuration, framerate, VIDEO_SIZES['1-1'], outputDir, '1-1'
       );
@@ -309,15 +310,15 @@ exports.generateWeeklyVideo = async function(req, res, next) {
     }
 
     // Delete lock file to signal other instances
-    console.log(`[DEDUP] Videos uploaded, deleting lock file...`);
+    log.info(`[DEDUP] Videos uploaded, deleting lock file...`);
     try {
       await s3.send(new DeleteObjectCommand({
         Bucket: config.S3_BUCKET_NAME,
         Key: s3Keys['lock']
       }));
-      console.log(`[DEDUP] Lock file deleted successfully`);
+      log.info(`[DEDUP] Lock file deleted successfully`);
     } catch (err) {
-      console.warn(`[DEDUP] Warning: failed to delete lock file: ${err.message}`);
+      log.warn(`[DEDUP] Warning: failed to delete lock file: ${err.message}`);
       // Don't fail the response if cleanup fails
     }
 
@@ -331,7 +332,7 @@ exports.generateWeeklyVideo = async function(req, res, next) {
       videos,
     });
   } catch (err) {
-    console.error('generateWeeklyVideo error:', err);
+    log.error({ err }, 'generateWeeklyVideo error');
 
     // Try to clean up lock file on error too
     try {
@@ -339,9 +340,9 @@ exports.generateWeeklyVideo = async function(req, res, next) {
         Bucket: config.S3_BUCKET_NAME,
         Key: `${S3_PREFIX}/.generating`
       }));
-      console.log(`[DEDUP] Lock file cleaned up after error`);
+      log.info(`[DEDUP] Lock file cleaned up after error`);
     } catch (cleanupErr) {
-      console.warn(`[DEDUP] Could not clean lock file after error: ${cleanupErr.message}`);
+      log.warn(`[DEDUP] Could not clean lock file after error: ${cleanupErr.message}`);
     }
 
     res.status(500).json({ error: err.message });
@@ -365,7 +366,7 @@ async function queryFixturesWithResults(startDate, endDate) {
     `, [startDate, endDate]);
     return results || [];
   } catch (err) {
-    console.error('queryFixturesWithResults error:', err);
+    log.error({ err }, 'queryFixturesWithResults error');
     throw err;
   }
 }
@@ -411,7 +412,7 @@ async function generateResultImages(fixtures) {
       // it is worse than the drop it replaced: a missing result is invisible, a card saying
       // "null" is not.
       if (!String(division || '').trim()) {
-        console.warn(`Skipping ${homeTeam} v ${awayTeam}: no division on the home team`);
+        log.warn(`Skipping ${homeTeam} v ${awayTeam}: no division on the home team`);
         continue;
       }
 
@@ -436,9 +437,9 @@ async function generateResultImages(fixtures) {
       await sharp(buf).toFile(`${fileBase}.jpg`);
       images.push(`${fileBase}.jpg`);
 
-      console.log(`Generated image: ${fileBase}.jpg`);
+      log.info(`Generated image: ${fileBase}.jpg`);
     } catch (err) {
-      console.error(`Error generating image for ${fixture.homeTeam} vs ${fixture.awayTeam}:`, err);
+      log.error({ err }, `Error generating image for ${fixture.homeTeam} vs ${fixture.awayTeam}`);
     }
   }
 
@@ -490,7 +491,7 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
   const tempSeqDir = path.join(outputDir, `temp-seq-${Date.now()}-${aspectLabel}`);
 
   try {
-    console.log(`Building frame sequence for ${aspectLabel}...`);
+    log.info(`Building frame sequence for ${aspectLabel}...`);
     await fs.mkdir(tempSeqDir, { recursive: true });
 
     const framesPerSlide = Math.round(duration * framerate);
@@ -498,20 +499,20 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
     let frameNum = 1;
 
     // Step 1a: Pre-resize all images once (major optimization)
-    console.log('Pre-resizing images...');
+    log.info('Pre-resizing images...');
     const resizedImages = [];
     for (let i = 0; i < imageFiles.length; i++) {
       const resizedPath = path.join(tempSeqDir, `resized-${i}.jpg`);
       await execFileAsync('convert', letterboxArgs(imageFiles[i], resizedPath, scale));
       resizedImages.push(resizedPath);
-      console.log(`  Resized image ${i + 1}/${imageFiles.length}`);
+      log.info(`  Resized image ${i + 1}/${imageFiles.length}`);
     }
 
     // Step 1b: Interleave slide frames and transitions
-    console.log('Creating slide frames and transitions...');
+    log.info('Creating slide frames and transitions...');
     for (let slideIdx = 0; slideIdx < resizedImages.length; slideIdx++) {
       // Create slide frames
-      console.log(`  Slide ${slideIdx + 1}/${resizedImages.length} (${framesPerSlide} frames)...`);
+      log.info(`  Slide ${slideIdx + 1}/${resizedImages.length} (${framesPerSlide} frames)...`);
       const resizedImg = resizedImages[slideIdx];
       const imgBuffer = await fs.readFile(resizedImg);
 
@@ -523,7 +524,7 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
 
       // Create transition frames to next slide (if not last slide)
       if (slideIdx < resizedImages.length - 1) {
-        console.log(`    Transition ${slideIdx + 1}->${slideIdx + 2} (${transitionFrames} frames)...`);
+        log.info(`    Transition ${slideIdx + 1}->${slideIdx + 2} (${transitionFrames} frames)...`);
         const currentImg = resizedImages[slideIdx];
         const nextImg = resizedImages[slideIdx + 1];
 
@@ -550,7 +551,7 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
     const sequencePattern = path.join(tempSeqDir, 'frame-%06d.jpg');
     const totalDuration = calculateTotalDuration(imageFiles.length, duration, transitionDuration);
 
-    console.log(`Encoding ${frameNum - 1} frames as video (${totalDuration.toFixed(1)}s)...`);
+    log.info(`Encoding ${frameNum - 1} frames as video (${totalDuration.toFixed(1)}s)...`);
     await execFileAsync('ffmpeg', [
       '-y',
       '-framerate', framerate.toString(),
@@ -561,10 +562,10 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
       outputFile
     ]);
 
-    console.log(`Video created (${aspectLabel}): ${outputFile}`);
+    log.info(`Video created (${aspectLabel}): ${outputFile}`);
     return outputFile;
   } catch (err) {
-    console.error(`createVideoFromImageSequence error (${aspectLabel}):`, err);
+    log.error({ err }, `createVideoFromImageSequence error (${aspectLabel})`);
     throw err;
   } finally {
     // Clean up temp directory
@@ -575,7 +576,7 @@ async function createVideoFromImageSequence(imageFiles, duration, transitionDura
       }
       await fs.rmdir(tempSeqDir);
     } catch (err) {
-      console.warn(`Failed to clean temp sequence directory: ${err.message}`);
+      log.warn(`Failed to clean temp sequence directory: ${err.message}`);
     }
   }
 }
@@ -599,9 +600,9 @@ async function uploadVideoToS3(localFilePath, s3Key) {
       Body: fileContent,
       ContentType: 'video/mp4'
     }));
-    console.log(`Uploaded ${s3Key} to S3`);
+    log.info(`Uploaded ${s3Key} to S3`);
   } catch (err) {
-    console.error(`Error uploading ${s3Key} to S3:`, err);
+    log.error({ err }, `Error uploading ${s3Key} to S3`);
     throw err;
   }
 }

@@ -38,6 +38,7 @@
 // and `utils/afterCommit.js` explains at length why that separation is not optional.
 
 const config = require('../config');
+const log = require('./log');
 const axios = require('axios');
 
 const GRAPH = 'https://graph.facebook.com';
@@ -515,7 +516,7 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
 
   for (const t of (targets || []).filter(Boolean)) {
     // Targets run in sequence, so each one's time adds to the caller's. Logged rather than
-    // returned so no caller's contract changes (HARD-47; grep Cloud Logging for `[timing]`).
+    // returned so no caller's contract changes (HARD-47; `jsonPayload.timing.stage="meta"`).
     const started = Date.now();
     const before = failed.length;
     try {
@@ -543,7 +544,9 @@ async function publishEverywhere(targets, { imageUrls, message, caption, storyIm
     } catch (err) {
       failed.push({ target: t.name, error: err });
     }
-    console.log(`[timing] meta: ${t.name} ${Date.now() - started}ms ${failed.length > before ? 'failed' : 'ok'}`);
+    const ms = Date.now() - started;
+    const outcome = failed.length > before ? 'failed' : 'ok';
+    log.info({ timing: { stage: 'meta', step: t.name, ms, outcome } }, `timing meta: ${t.name} ${ms}ms ${outcome}`);
   }
 
   return { posted, failed, ok: failed.length === 0 };

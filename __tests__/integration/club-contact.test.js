@@ -1,4 +1,5 @@
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
 
 // GET /club/:id — the club contact page.
 //
@@ -123,21 +124,19 @@ describe('GET /club/:id', () => {
   // database. The handler used to log every decrypted row to stdout on every request,
   // which put them in Cloud Logging in plain text for anyone with log access.
   it('does not log decrypted contact details', async () => {
-    const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const spy = captureLog();
     Club.getContactDetailsById.mockResolvedValue([row('College Green A', 'Judith Peatman')]);
 
     await request(app).get('/club/61');
 
-    // Serialised with util.inspect, not String(): the handler logged the whole row
-    // *object*, and String({...}) is '[object Object]', so a naive join would have found
-    // nothing and this test would have passed against the very code it exists to catch.
-    // It did, on the first run.
-    const util = require('util');
-    const logged = spy.mock.calls
-      .map(c => c.map(a => (typeof a === 'string' ? a : util.inspect(a))).join(' '))
-      .join('\n');
+    // Every level, with field objects serialised, not String()ed: the handler logged the
+    // whole row *object*, and String({...}) is '[object Object]', so a naive join would
+    // have found nothing and this test would have passed against the very code it exists
+    // to catch. It did, on the first run. (A console call cannot come back:
+    // no-console.test.js.)
+    const logged = spy.text();
     expect(logged).not.toContain('07700 900002');
     expect(logged).not.toContain('paula@example.com');
-    spy.mockRestore();
+    spy.restore();
   });
 });

@@ -70,7 +70,6 @@ router.post('/new-users-v2', access.public, publicFormLimiter, async (req, res, 
     });
     res.sendStatus(200);
   } catch (err) {
-    console.log(err.toString());
     next(err);
   }
 });

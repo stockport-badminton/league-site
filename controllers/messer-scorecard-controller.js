@@ -1,4 +1,5 @@
 const config = require('../config');
+const log = require('../utils/log');
 const Division = require('../models/division');
 const Team = require('../models/teams');
 const Player = require('../models/players');
@@ -191,7 +192,7 @@ exports.messer_scorecard_beta = async function(req, res, next) {
       canonical: canonicalFor(req),
     });
   } catch (err) {
-    console.error('messer_scorecard_beta error:', err);
+    log.error({ err }, 'messer_scorecard_beta error');
     next(err);
   }
 };
@@ -285,7 +286,7 @@ exports.messer_scorecard_beta_test = async function(req, res, next) {
       canonical: canonicalFor(req),
     });
   } catch (err) {
-    console.error('messer_scorecard_beta_test error:', err);
+    log.error({ err }, 'messer_scorecard_beta_test error');
     next(err);
   }
 };
@@ -380,7 +381,7 @@ exports.full_messer_fixture_post = async function(req, res, next) {
     // Redirect to confirmation page
     res.redirect(`/populated-messer-scorecard/${scorecardId}`);
   } catch (err) {
-    console.error('full_messer_fixture_post error:', err);
+    log.error({ err }, 'full_messer_fixture_post error');
     next(err);
   }
 };
@@ -464,7 +465,7 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
       canonical: canonicalFor(req),
     });
   } catch (err) {
-    console.error('messer_fixture_populate_scorecard_fromId error:', err);
+    log.error({ err }, 'messer_fixture_populate_scorecard_fromId error');
     next(err);
   }
 };
@@ -480,7 +481,7 @@ exports.messer_teams_by_section = async function(req, res, next) {
     const teams = await Team.getTeamsBySection(section);
     res.json(teams);
   } catch (err) {
-    console.error('messer_teams_by_section error:', err);
+    log.error({ err }, 'messer_teams_by_section error');
     res.status(500).json({ error: err.message });
   }
 };
@@ -497,7 +498,7 @@ exports.messer_results_list = async function(req, res, next) {
       canonical: canonicalFor(req),
     });
   } catch (err) {
-    console.error('messer_results_list error:', err);
+    log.error({ err }, 'messer_results_list error');
     next(err);
   }
 };
@@ -553,7 +554,7 @@ exports.messer_result_detail = async function(req, res, next) {
       canonical: canonicalFor(req),
     });
   } catch (err) {
-    console.error('messer_result_detail error:', err);
+    log.error({ err }, 'messer_result_detail error');
     next(err);
   }
 };
@@ -667,7 +668,7 @@ exports.messer_result_approve = async function(req, res, next) {
       // Auto-advance the winner into its next-round slot (if the bracket is wired up).
       advanceResult = await Fixture.advanceMesserWinner(messerMatch, winningTeam);
       if (advanceResult && !advanceResult.advanced && advanceResult.reason === 'target-already-played') {
-        console.warn(`Messer auto-advance skipped: next slot (drawPos ${messerMatch.nextDrawPos}) already has a result.`);
+        log.warn(`Messer auto-advance skipped: next slot (drawPos ${messerMatch.nextDrawPos}) already has a result.`);
       }
     }
 
@@ -702,7 +703,7 @@ exports.messer_result_approve = async function(req, res, next) {
     if (!captainTold) message += '; the captain could NOT be emailed';
     res.json({ success: true, message, advance: advanceResult, captainNotified: !!captainTold });
   } catch (err) {
-    console.error('messer_result_approve error:', err);
+    log.error({ err }, 'messer_result_approve error');
     res.status(500).json({ error: err.message });
   }
 };
@@ -784,7 +785,7 @@ exports.messer_result_reject = async function(req, res, next) {
       captainNotified: !!captainTold,
     });
   } catch (err) {
-    console.error('messer_result_reject error:', err);
+    log.error({ err }, 'messer_result_reject error');
     res.status(500).json({ error: err.message });
   }
 };
@@ -909,7 +910,7 @@ exports.messer_bracket_save = async function(req, res, next) {
     }
     res.redirect(`${back}?saved=${out.saved}`);
   } catch (err) {
-    console.error('messer_bracket_save error:', err);
+    log.error({ err }, 'messer_bracket_save error');
     next(err);
   }
 };

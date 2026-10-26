@@ -1,4 +1,5 @@
 var config = require('../config');
+const log = require('../utils/log');
 var Division = require('../models/division');
 var seasonModel = require("../models/season");
 var Team = require('../models/teams');
@@ -56,7 +57,7 @@ exports.getLateScorecards = async function(req, res, next) {
 
     res.json({ ok: true, sent: true, fixtures: fixtures.length });
   } catch (err) {
-    console.error('getLateScorecards failed:', err.message);
+    log.error({ err }, 'getLateScorecards failed');
     next(err);
   }
 };

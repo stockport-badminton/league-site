@@ -20,6 +20,7 @@
 // A bad or missing token is a 404, never a 403: a 403 would confirm the card exists.
 
 const QRCode = require('qrcode');
+const log = require('../utils/log');
 const LiveScorecard = require('../models/liveScorecard');
 const Fixture = require('../models/fixture');
 const Player = require('../models/players');
@@ -227,7 +228,7 @@ exports.state = async function(req, res) {
     res.json(live.publicState(card));
   } catch (err) {
     const status = err.status || 500;
-    if (status >= 500) console.error('live scorecard state:', err.message);
+    if (status >= 500) log.error({ err }, 'live scorecard state');
     res.status(status).json({ ok: false, error: status < 500 ? err.message : 'Something went wrong' });
   }
 };

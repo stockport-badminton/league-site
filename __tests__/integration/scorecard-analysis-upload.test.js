@@ -9,6 +9,7 @@
 // why they tried a second file rather than converting the first.
 
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
 
 // Logged in by default: both routes here are `secured`, and the real caller was. Mutable
 // so one case can exercise the anonymous path, following the pattern in
@@ -261,7 +262,7 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
       err.status = 422;
       err.detail = 'Missing corner anchors: STOCKPORT=not-on-card';
       analyseImage.mockRejectedValueOnce(err);
-      const logged = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const logged = captureLog(['error']);
 
       const res = await request(app).post('/api/analyse-scorecard')
         .attach('scorecard', fixture('scorecard-docx-jpeg.docx'), {
@@ -276,9 +277,9 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
       expect(mockS3Puts[0].ContentType).toBe('image/jpeg');
       expect(mockS3Puts[0].Body.slice(0, 3).toString('hex')).toBe('ffd8ff');
       // And the log names that key, not "[image: not stored]".
-      const line = logged.mock.calls.map(c => c.join(' ')).find(l => /analysis failed/.test(l));
+      const line = logged.text().split('\n').find(l => /analysis failed/.test(l));
       expect(line).toContain(mockS3Puts[0].Key);
-      logged.mockRestore();
+      logged.restore();
     });
 
     // An image is stored from the bytes already here, rather than left to a second upload
@@ -316,10 +317,8 @@ describe('POST /api/analyse-scorecard -- document scorecards', () => {
     // the URL must be null rather than absent.
     it('still returns the OCR for an image when the store fails', async () => {
       mockPutFails = true;
-      const err = jest.spyOn(console, 'error').mockImplementation(() => {});
       const res = await request(app).post('/api/analyse-scorecard')
         .attach('scorecard', JPEG, { filename: 'card.jpg', contentType: 'image/jpeg' });
-      err.mockRestore();
       expect(res.status).toBe(200);
       expect(res.body.photoStored).toBe(false);
       expect(res.body.photoUrl).toBeNull();
@@ -613,11 +612,9 @@ describe('the header the page is given', () => {
   // The candidates are a hint; losing them must not lose the auto-fill.
   it('still reads the card when the fixture query fails', async () => {
     Fixture.getScorecardCandidates.mockRejectedValue(new Error('connection reset'));
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const res = await analyse({ homeTeam: 'Shell B', awayTeam: 'Syddal Park B' });
     expect(res.status).toBe(200);
     expect(res.body.homeTeam).toBe('30');
-    warn.mockRestore();
   });
 });
 

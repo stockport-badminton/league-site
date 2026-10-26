@@ -19,7 +19,7 @@ describe('season.init reads the season table', () => {
     await run(`INSERT INTO season (id, name, "startDate", "endDate", label) VALUES
       (1001, '20982099', now() - interval '1 hour', now() + interval '1 year', 'started'),
       (1002, '20992100', now() + interval '1 day', now() + interval '1 year', 'not yet')`);
-    const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errors = jest.spyOn(require('../../utils/log'), 'error').mockImplementation(() => {});
 
     expect(await Season.init()).toEqual({ current: '20982099', previous: latest.name });
     expect(errors).not.toHaveBeenCalled();

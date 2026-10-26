@@ -25,7 +25,6 @@ exports.team_search = async function(req, res, next) {
     // console.log(result)
     res.send(rows);
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };
@@ -133,7 +132,6 @@ exports.new_messer_draw = async function(req, res, next) {
       canonical:canonicalFor(req)
     });
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };

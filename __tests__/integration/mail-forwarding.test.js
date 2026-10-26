@@ -130,9 +130,7 @@ describe('POST /mail — a message stored in S3', () => {
   });
 
   it('refuses a pointer to any other bucket, reading and sending nothing', async () => {
-    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
     const res = await pointer('someone-elses-bucket');
-    err.mockRestore();
     expect(res.status).toBe(500);
     expect(mockS3Send).not.toHaveBeenCalled();
     expect(mockSendMail).not.toHaveBeenCalled();

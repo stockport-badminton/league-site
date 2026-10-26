@@ -60,13 +60,11 @@ describe('GET /', () => {
   it('renders without the gallery, in under 2 s, when Cloudinary never answers', async () => {
     setupHomepageMocks();
     axios.get.mockImplementation(() => new Promise(() => {}));
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     const started = Date.now();
     const res = await request(app).get('/');
     expect(res.status).toBe(200);
     expect(Date.now() - started).toBeLessThan(2000);
     expect(res.text).not.toMatch(/class="carousel-item/);
-    console.error.mockRestore();
   });
 
   it('does not fetch gallery images with the page, only when the modal opens', async () => {

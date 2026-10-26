@@ -1,5 +1,6 @@
 // @ts-check
 var config = require('../config');
+const log = require('../utils/log');
 var db = require('../db_connect.js');
 const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
@@ -908,7 +909,7 @@ exports.resultPostContent = function(r) {
 exports.sendResultZap = async function(zapObject) {
   if (!db.isObject(zapObject)) throw new Error("you've not supplied an object")
   if (zapObject.host == '127.0.0.1:8080') {
-    console.log('zap not sent!')
+    log.info('zap not sent!')
     return 'test env'
   }
 
@@ -989,7 +990,7 @@ exports.sendResultZap = async function(zapObject) {
     if (!zapObject.fixtureId) throw new Error('sendResultZap needs the fixture id to queue the post')
 
     const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map((/** @type {any} */ t) => t.kind))
-    console.log(`result for fixture ${zapObject.fixtureId} queued for`, queued.map((/** @type {any} */ q) => q.target).join(', ') || 'nothing new')
+    log.info(`result for fixture ${zapObject.fixtureId} queued for ` + (queued.map((/** @type {any} */ q) => q.target).join(', ') || 'nothing new'))
     return { queued }
   }
 

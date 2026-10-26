@@ -21,6 +21,7 @@
 // nobody remembers to flip is not a feature worth reproducing.
 
 const { canonicalFor, absoluteUrl, leagueTableImagePath, tournamentImagePath } = require('../utils/canonical');
+const log = require('../utils/log');
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
 const { TOURNAMENT_POSTERS } = require('./socialController');
@@ -137,8 +138,8 @@ exports.run = async function (req, res, next) {
       caption: text.instagram,
     });
 
-    for (const f of out.failed) console.error(`weekly tables -> ${f.target} failed:`, f.error.message);
-    if (out.posted.length) console.log('weekly tables posted to', out.posted.map(p => p.target).join(', '));
+    for (const f of out.failed) log.error({ err: f.error, target: f.target }, `weekly tables -> ${f.target} failed`);
+    if (out.posted.length) log.info({ posted: out.posted }, 'weekly tables posted to ' + out.posted.map(p => p.target).join(', '));
 
     // 207 when some targets took it and some did not. Reporting only success would make a
     // half failure indistinguishable from a whole one, which is the mistake this codebase
@@ -186,10 +187,10 @@ exports.runThreads = async function (req, res, next) {
     const text = await captions();
     try {
       const out = await threads.publishCarousel(row.accountId, row.token, { imageUrls: urls, text: text.threads });
-      console.log('weekly tables posted to Threads', out.mediaId);
+      log.info({ target: 'Threads', postId: out.mediaId }, 'weekly tables posted to Threads');
       return res.json({ ok: true, images: urls, posted: [{ target: 'Threads', id: out.mediaId }], caller: req.socialCaller });
     } catch (err) {
-      console.error('weekly tables -> Threads failed:', err.message);
+      log.error({ err }, 'weekly tables -> Threads failed');
       return res.status(502).json({ ok: false, images: urls, error: err.message, caller: req.socialCaller });
     }
   } catch (err) {

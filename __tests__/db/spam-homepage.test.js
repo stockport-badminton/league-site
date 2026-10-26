@@ -55,9 +55,11 @@ describe('spamControls', () => {
   });
 
   it('logSubmission never throws, even when the write fails', async () => {
-    const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errors = jest.spyOn(require('../../utils/log'), 'error').mockImplementation(() => {});
     await expect(Spam.logSubmission({ endpoint: '/x', verdict: null })).resolves.toBeUndefined();
-    expect(errors).toHaveBeenCalledWith('spamControls: could not log submission:', expect.stringMatching(/null value/));
+    expect(errors).toHaveBeenCalledWith(
+      { err: expect.objectContaining({ message: expect.stringMatching(/null value/) }) },
+      'spamControls: could not log submission');
     errors.mockRestore();
   });
 });

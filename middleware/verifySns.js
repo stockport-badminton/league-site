@@ -1,4 +1,5 @@
 const config = require('../config');
+const log = require('../utils/log');
 const crypto = require('crypto');
 const https = require('https');
 
@@ -91,7 +92,7 @@ async function isAuthentic(msg, { fetch = fetchCert, topic } = {}) {
   try {
     cert = await fetch(certUrl.href);
   } catch (err) {
-    console.error('SNS cert fetch failed:', err.message);
+    log.error({ err }, 'SNS cert fetch failed');
     return false;
   }
 
@@ -100,7 +101,7 @@ async function isAuthentic(msg, { fetch = fetchCert, topic } = {}) {
     verifier.update(canonical, 'utf8');
     return verifier.verify(cert, msg.Signature, 'base64');
   } catch (err) {
-    console.error('SNS signature verification threw:', err.message);
+    log.error({ err }, 'SNS signature verification threw');
     return false;
   }
 }
@@ -134,12 +135,14 @@ function verifySns(req, res, next, options) {
     if (!ok) {
       // Deliberately terse to the caller, loud in the logs — a forged message here is
       // an attempt to relay mail through us, and worth seeing in Sentry.
-      console.warn('Rejected unverified SNS message', JSON.stringify({
-        type: msg && msg.Type,
-        topic: msg && msg.TopicArn,
-        certUrl: msg && msg.SigningCertURL,
-        ip: req.ip,
-      }));
+      log.warn({
+        sns: {
+          type: msg && msg.Type,
+          topic: msg && msg.TopicArn,
+          certUrl: msg && msg.SigningCertURL,
+          ip: req.ip,
+        },
+      }, 'Rejected unverified SNS message');
       return res.status(403).send('forbidden');
     }
     req.snsMessage = msg;

@@ -13,6 +13,7 @@
 // instead, per row, and only where Threads cannot have published anything.
 
 const ThreadsResultPost = require('../models/threadsResultPost');
+const log = require('../utils/log');
 const SocialToken = require('../models/socialToken');
 const threads = require('../utils/threadsPublisher');
 const { absoluteUrl, resultImagePath } = require('../utils/canonical');
@@ -65,7 +66,7 @@ async function postOne(row, account) {
     const message = mayHavePublished(err)
       ? `${err.message} — no answer to the publish, so it may be live; check Threads before retrying`
       : err.message;
-    console.error(`result for fixture ${row.fixtureId} -> Threads failed:`, message);
+    log.error({ fixtureId: row.fixtureId, target: 'Threads', retry }, `result for fixture ${row.fixtureId} -> Threads failed: ${message}`);
     if (retry) await ThreadsResultPost.release(row.id, message);
     else await ThreadsResultPost.markFailed(row.id, message);
     return { outcome: retry ? 'retrying' : 'failed', error: message };
@@ -75,7 +76,7 @@ async function postOne(row, account) {
   // be mistaken for a Threads failure and released for another go; it throws, the row stays
   // `posting`, and the audit digest asks a person to look.
   await ThreadsResultPost.markPosted(row.id, out.mediaId);
-  console.log(`result for fixture ${row.fixtureId} posted to Threads`, out.mediaId);
+  log.info({ fixtureId: row.fixtureId, target: 'Threads', postId: out.mediaId }, `result for fixture ${row.fixtureId} posted to Threads`);
   return { outcome: 'posted', id: out.mediaId };
 }
 

@@ -1,4 +1,5 @@
 var express = require('express');
+const log = require('../utils/log');
 var router = express.Router();
 const Sentry = require('@sentry/node');
 
@@ -72,8 +73,7 @@ router.use(function(error, req, res, next) {
   var reference = errorReference();
 
   // Log as well as report — see the note on the HTML handler below.
-  console.error('500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl) +
-                ' — ' + (error && error.stack ? error.stack : error));
+  log.error({ err: error, reference }, '500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl));
 
   Sentry.captureException(error, { tags: { reference: reference } });
   res.status(status).json({
@@ -119,8 +119,7 @@ router.use(function(error, req, res, next) {
   //
   // In production it lands in Cloud Logging beside the request, and the same reference
   // ties the log line to the Sentry event and to the page the visitor was shown.
-  console.error('500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl) +
-                ' — ' + (error && error.stack ? error.stack : error));
+  log.error({ err: error, reference }, '500 [' + reference + '] ' + (req && req.method) + ' ' + (req && req.originalUrl));
 
   Sentry.captureException(error, { tags: { reference: reference } });
   Sentry.flush(2000).catch(() => {}).finally(function() {

@@ -154,6 +154,9 @@ yourself), deciding what a failure means, or anything that writes.
   and a limiter. Blocklists live in `/admin/spam`, never in code.
 - **A new CDN in a view** goes in `OBSERVED` in `utils/securityHeaders.js`. Keep
   `'unsafe-inline'` in `script-src`; never add a nonce.
+- **Logging**: `const log = require('../utils/log')` — `log.info('msg')`,
+  `log.error({ err, fixtureId }, 'msg')`. Never `console.` in app code
+  (`no-console.test.js`); tests read logs with `__tests__/helpers/captureLog.js`.
 - **Every runtime `require()` names a production dependency.**
 - **`sanitize-html` stays pinned at exactly 2.17.5** until HARD-41 (Node 24.9+).
 - **Anything that publishes to Meta and can exceed 60s** is called on the Cloud Run URL

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
 
 // Security response headers (HARD-12).
 //
@@ -322,7 +323,6 @@ describe('POST /csp-report', () => {
   // sitewide limiter those reports would spend a real visitor's request budget and then
   // rate-limit the pages they were trying to read.
   it('does not consume the sitewide rate limit', async () => {
-    const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     for (let i = 0; i < 40; i++) {
       const res = await request(app)
         .post('/csp-report')
@@ -330,7 +330,6 @@ describe('POST /csp-report', () => {
         .send(JSON.stringify({ 'csp-report': { 'blocked-uri': 'inline' } }));
       expect(res.status).toBe(204);
     }
-    spy.mockRestore();
     const page = await homepage();
     expect(page.status).toBe(200);
   });
@@ -338,28 +337,31 @@ describe('POST /csp-report', () => {
   // The report body is attacker-controlled and goes to Cloud Logging, where a newline
   // would forge a log line of its own.
   it('cannot inject a line into the log', async () => {
-    const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = captureLog(['warn']);
     await request(app)
       .post('/csp-report')
       .set('Content-Type', 'application/csp-report')
       .send(JSON.stringify({
         'csp-report': { 'blocked-uri': 'https://x/\n\rcsp-report: forged' }
       }));
-    const logged = spy.mock.calls.map(c => c.join(' ')).join('');
+    // The raw strings, message and fields both: in production each is a JSON value, but a
+    // terminal prints them as they are.
+    const logged = spy.strings().join(' ');
     expect(logged).toContain('csp-report');
+    expect(logged).toContain('https://x/');
     expect(logged).not.toMatch(/[\n\r]/);
-    spy.mockRestore();
+    spy.restore();
   });
 
   it('ignores browser-extension noise rather than logging it', async () => {
-    const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = captureLog(['warn']);
     await request(app)
       .post('/csp-report')
       .set('Content-Type', 'application/csp-report')
       .send(JSON.stringify({
         'csp-report': { 'blocked-uri': 'chrome-extension://abcdef/inject.js' }
       }));
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    expect(spy.calls()).toEqual([]);
+    spy.restore();
   });
 });

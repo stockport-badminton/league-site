@@ -20,6 +20,7 @@
 // know how to parse.
 
 var db = require('../db_connect.js');
+const log = require('../utils/log');
 var seasonModel = require('../models/season');
 
 // Segments written as `<key>-<value>`. Anything else is positional: a bare
@@ -52,7 +53,7 @@ exports.init = async function () {
       return { id: String(r.id), name: r.name, value: r.name.replace(/\s+/g, '-') };
     });
   } catch (err) {
-    console.error('filterState.init: divisions lookup failed:', err.message);
+    log.error({ err }, 'filterState.init: divisions lookup failed');
   }
 
   try {
@@ -74,7 +75,7 @@ exports.init = async function () {
         return { value: r.name, label: r.label || seasonLabel(r.name) };
       });
   } catch (err) {
-    console.error('filterState.init: seasons lookup failed:', err.message);
+    log.error({ err }, 'filterState.init: seasons lookup failed');
   }
 
   return { divisions: _divisions.length, seasons: _seasons.length };

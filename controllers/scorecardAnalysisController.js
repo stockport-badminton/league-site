@@ -1,4 +1,5 @@
 const multer   = require('multer');
+const log = require('../utils/log');
 const Sentry   = require('@sentry/node');
 const { extractEmbeddedImage, isRefusedArchive } = require('../utils/documentImage');
 const { storeImage, FAILED_PREFIX, FAILED_UPLOAD_TYPES } = require('../utils/uploads');
@@ -425,7 +426,7 @@ async function storeExtracted(extracted, file) {
       hint: file.originalname,
     });
   } catch (err) {
-    console.error('scorecard upload: storing the photo failed:', err.message);
+    log.error({ err }, 'scorecard upload: storing the photo failed');
     Sentry.captureException(err);
     return null;
   }
@@ -466,7 +467,7 @@ async function keepUnreadableUpload(req) {
     });
     return key;
   } catch (storeErr) {
-    console.warn('Could not keep the unreadable upload:', storeErr.message);
+    log.warn({ err: storeErr }, 'Could not keep the unreadable upload');
     return null;
   }
 }
@@ -489,16 +490,15 @@ async function keepUnreadableUpload(req) {
 // complaint is that we could not read the thing, needs the thing.
 async function refuseUpload(req, res, status, error, reason, { keep = true } = {}) {
   const key = keep ? await keepUnreadableUpload(req) : null;
-  console.error(
-    'Scorecard upload refused:', reason,
-    key ? `[file: ${key}]` : keep ? '[file: not stored]' : '[file: not kept, nothing to learn from it]');
+  const file = key || (keep ? 'not stored' : 'not kept, nothing to learn from it');
+  log.error({ reason, file }, `Scorecard upload refused: ${reason} [file: ${file}]`);
   return res.status(status).json({ error });
 }
 
 exports.convert_scorecard_document = async function(req, res) {
   try {
     if (!req.file) {
-      console.error('Scorecard upload refused: no file on the request [file: not stored]');
+      log.error('Scorecard upload refused: no file on the request [file: not stored]');
       return res.status(400).json({ error: 'No file uploaded' });
     }
     if (!isDocumentUpload(req.file)) {
@@ -527,7 +527,7 @@ exports.convert_scorecard_document = async function(req, res) {
 
     res.json({ url: stored.url, contentType: extracted.contentType });
   } catch (err) {
-    console.error('convert-scorecard-document failed:', err.message);
+    log.error({ err }, 'convert-scorecard-document failed');
     Sentry.captureException(err);
     res.status(500).json({ error: 'Could not convert that file.' });
   }
@@ -566,7 +566,7 @@ async function storeFailedImage(req, extracted) {
   } catch (storeErr) {
     // Deliberately not Sentry: the analysis failure is the event worth seeing, and a
     // second exception beside every one of them is how a project stops being read.
-    console.warn('Could not keep the unreadable scorecard image:', storeErr.message);
+    log.warn({ err: storeErr }, 'Could not keep the unreadable scorecard image');
     return null;
   }
 }
@@ -619,7 +619,7 @@ exports.analyse_scorecard = async function(req, res) {
       Team.getAll(), Division.getAll(),
       Promise.resolve().then(() => Fixture.getScorecardCandidates())
         .then(rows => rows || [])
-        .catch(err => { console.warn('scorecard analysis: no fixture candidates:', err.message); return []; }),
+        .catch(err => { log.warn({ err }, 'scorecard analysis: no fixture candidates'); return []; }),
     ]);
     // Retired teams (no division) are never the answer, and share names with live ones.
     const teams = allTeams.filter(t => t.division != null);
@@ -665,13 +665,15 @@ exports.analyse_scorecard = async function(req, res) {
     // only way to learn why the header was wrong was to re-run Vision over the stored
     // photos, which is how the Sep 2026 figures above were produced. Team names and ids
     // only — no player names, which are on the card and not needed here.
-    console.log('Scorecard analysed:', JSON.stringify({
-      home: metadata.homeTeam, away: metadata.awayTeam, division: metadata.division,
-      fixtureId: fixture ? fixture.id : null, candidates: candidates.length,
-      homeTeamId, awayTeamId, divisionId,
-      players: Object.keys(playerFields).length,
-      slots: !!(homeSlots && awaySlots),
-    }));
+    log.info({
+      analysis: {
+        home: metadata.homeTeam, away: metadata.awayTeam, division: metadata.division,
+        fixtureId: fixture ? fixture.id : null, candidates: candidates.length,
+        homeTeamId, awayTeamId, divisionId,
+        players: Object.keys(playerFields).length,
+        slots: !!(homeSlots && awaySlots),
+      },
+    }, 'Scorecard analysed');
 
     // The photo is stored only now, once the card has been READ.
     //
@@ -753,9 +755,8 @@ exports.analyse_scorecard = async function(req, res) {
     // league's record of a result and is kept; this is diagnostic scrap with twelve
     // players' names on it and is not.
     const failedKey = await storeFailedImage(req, extracted);
-    console.error(
-      'Scorecard analysis failed:', err.detail || err.message,
-      failedKey ? `[image: ${failedKey}]` : '[image: not stored]');
+    const image = failedKey || 'not stored';
+    log.error({ err, detail: err.detail, image }, `Scorecard analysis failed: ${err.detail || err.message} [image: ${image}]`);
 
     // Google refusing for capacity is a 5xx that is neither our fault nor the captain's,
     // and the honest answer differs from both: the card is fine, so try again shortly.

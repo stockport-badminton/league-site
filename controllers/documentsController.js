@@ -1,4 +1,5 @@
 const fs = require('fs');
+const log = require('../utils/log');
 const path = require('path');
 const { PDFDocument, StandardFonts, rgb, PDFName, PDFString } = require('pdf-lib');
 const seasonModel = require('../models/season');
@@ -211,7 +212,7 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
       if (reserveRows.length <= ROWS_PER_TABLE) {
         fillStaticRows(form, reserveFieldNames, reserveRows, ROWS_PER_TABLE);
       } else {
-        console.warn(`Team registration form: reserves overflow for club "${club}"`);
+        log.warn(`Team registration form: reserves overflow for club "${club}"`);
         fillStaticRows(form, reserveFieldNames, reserveRows.slice(0, ROWS_PER_TABLE), ROWS_PER_TABLE);
         await renderSections(doc, form, null, null, [
           { title: 'Reserves Registration (continued)', rows: reserveRows.slice(ROWS_PER_TABLE) },
@@ -220,7 +221,7 @@ exports.teamRegistrationFormPrefilled = async function(req, res, next) {
     } else {
       // Nominated overflows: the static Reserves table can't be moved out of the
       // way, so redraw both sections fresh, Nominated in full before Reserves.
-      console.warn(`Team registration form: nominated overflow for club "${club}"`);
+      log.warn(`Team registration form: nominated overflow for club "${club}"`);
       const page1 = doc.getPages()[0];
       blankLowerPage1(page1);
       await renderSections(doc, form, page1, PAGE1_START_Y, [
@@ -439,7 +440,7 @@ exports.clubRegistrationFormPrefilled = async function(req, res, next) {
     setField(form, 'Match Play Match play notesRow1', core.matchNightText);
 
     if (teams.length > CLUB_TEAM_FIELDS.length) {
-      console.warn(`Club registration form: ${teams.length} teams for "${club}", template only has ${CLUB_TEAM_FIELDS.length} rows`);
+      log.warn(`Club registration form: ${teams.length} teams for "${club}", template only has ${CLUB_TEAM_FIELDS.length} rows`);
     }
     teams.slice(0, CLUB_TEAM_FIELDS.length).forEach((team, i) => {
       const f = CLUB_TEAM_FIELDS[i];

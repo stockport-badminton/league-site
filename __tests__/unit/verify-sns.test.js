@@ -146,16 +146,13 @@ describe('the middleware for an endpoint', () => {
   });
 
   it("refuses a validly signed message from somebody else's topic", async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     expect(await call(mail(), notification({ TopicArn: 'arn:aws:sns:eu-west-1:999999999999:attacker' }))).toBe(403);
     // /ses-events' topic is ours, but not /mail's.
     expect(await call(mail(), notification({ TopicArn: process.env.SNS_EVENTS_TOPIC_ARN }))).toBe(403);
-    warn.mockRestore();
   });
 
   it('cannot be switched off from the environment', async () => {
     // Unset or empty is the real topic, never "any topic", which is what unset used to mean.
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const prev = process.env.SNS_MAIL_TOPIC_ARN;
     try {
       for (const value of ['', undefined]) {
@@ -165,8 +162,7 @@ describe('the middleware for an endpoint', () => {
       }
     } finally {
       process.env.SNS_MAIL_TOPIC_ARN = prev;
-      warn.mockRestore();
-    }
+      }
   });
 
   it('will not be built for a topic the schema does not declare', () => {

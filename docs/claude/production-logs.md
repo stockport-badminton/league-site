@@ -1,5 +1,17 @@
 # Asking production what is used
 
+## Application log lines are JSON (since REARCH-09)
+
+Everything the app logs goes through `utils/log.js` (pino), one JSON line each, so Cloud
+Logging files it under `jsonPayload` with a real `severity` and, on Cloud Run, the
+request's `trace` — the console's request view shows a request's own lines beneath it.
+Filter on fields, not text: `severity>=WARNING`, `jsonPayload.message:"ses-events"`,
+`jsonPayload.fixtureId=7301`, `jsonPayload.timing.stage="meta"`, `trace="projects/…/traces/<id>"`.
+An error is `jsonPayload.err` (`type`, `message`, `stack`, `code`, `status` — deliberately
+not the axios request config, which holds tokens). Lines from before the change are
+`textPayload`. `LOG_LEVEL` (default `info`) drops `log.debug`, which is where the inbound
+mail and reCAPTCHA detail went.
+
 Moved out of `CLAUDE.md`, word for word, so that file holds only the rules most tasks need.
 
 ## Asking production what is actually used

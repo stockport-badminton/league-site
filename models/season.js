@@ -1,5 +1,6 @@
 // @ts-check
 var db = require('../db_connect.js');
+const log = require('../utils/log');
 const { kysely } = require('../db');
 
 // Fallback season derivation, used only until init() runs or if the DB lookup
@@ -35,7 +36,7 @@ exports.init = async function() {
       _previous = rows[1] ? rows[1].name : dateBasedSeason(1);
     }
   } catch (err) {
-    console.error('season.init failed; using date-based fallback:', /** @type {Error} */ (err).message);
+    log.error({ err }, 'season.init failed; using date-based fallback');
   }
   return { current: exports.current(), previous: exports.previous() };
 };
@@ -134,7 +135,7 @@ exports.loadServable = async function() {
     _servable = set;
     return set.size;
   } catch (err) {
-    console.error('season.loadServable failed; falling back to format-only checks:', /** @type {Error} */ (err).message);
+    log.error({ err }, 'season.loadServable failed; falling back to format-only checks');
     _servable = null;
     return 0;
   }

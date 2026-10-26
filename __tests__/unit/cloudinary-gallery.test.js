@@ -12,7 +12,6 @@ beforeEach(() => {
   gallery._reset();
   now = 1_000_000;
   jest.spyOn(Date, 'now').mockImplementation(() => now);
-  jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => jest.restoreAllMocks());
 

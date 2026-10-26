@@ -16,6 +16,7 @@
 // few minutes out of date is fine, an empty one because Cloudinary hiccupped is not.
 
 const config = require('../config');
+const log = require('./log');
 const axios = require('axios')
 
 const FRESH_MS = 10 * 60 * 1000
@@ -67,7 +68,7 @@ function refresh(tag, entry) {
       return assets
     })
     .catch(err => {
-      console.error('Cloudinary fetch failed:', err.message)
+      log.error({ err }, 'Cloudinary fetch failed')
       // Keep serving whatever we had (nothing, on a cold start) and try again in a
       // minute rather than on the very next request.
       if (entry.assets === null) entry.assets = []

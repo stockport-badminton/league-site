@@ -25,6 +25,7 @@
 // *it looks good*, and only the first of those is answerable from an API.
 
 const config = require('../config');
+const log = require('../utils/log');
 const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { canonicalFor, absoluteUrl, socialVideoPath } = require('../utils/canonical');
 const meta = require('../utils/metaPublisher');
@@ -149,8 +150,8 @@ exports.run = async function (req, res, next) {
       videoUrl: url, message: text.facebook, caption: text.instagram,
     });
 
-    for (const f of out.failed) console.error(`weekly video -> ${f.target} failed:`, f.error.message);
-    if (out.posted.length) console.log('weekly video posted to', out.posted.map(p => p.target).join(', '));
+    for (const f of out.failed) log.error({ err: f.error, target: f.target }, `weekly video -> ${f.target} failed`);
+    if (out.posted.length) log.info({ posted: out.posted }, 'weekly video posted to ' + out.posted.map(p => p.target).join(', '));
 
     // 207 when some targets took it and some did not. Reporting only success would make a
     // half failure indistinguishable from a whole one.

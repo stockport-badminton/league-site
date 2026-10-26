@@ -1,4 +1,5 @@
 var config = require('../config');
+const log = require('../utils/log');
 var Division = require('../models/division');
 var Team = require('../models/teams');
 var Player = require('../models/players');
@@ -639,7 +640,7 @@ exports.fixture_populate_scorecard_errors = async function(req, res, next) {
     // value instead reported every photo-less submission as a rejection, because an array
     // of empty strings is truthy — two of the first three Sentry events were that.
     if (candidates.length && !photoUrl) {
-      console.warn('scorecard: dropped a scoresheet-url that is not an object in our bucket');
+      log.warn('scorecard: dropped a scoresheet-url that is not an object in our bucket');
       Sentry.captureMessage('scorecard: rejected scoresheet-url on draft submission', {
         level: 'warning',
         tags: { stage: 'scorecard-draft' },
@@ -1023,7 +1024,7 @@ function renderLinkRefused(req, res, status) {
       } catch (lookupErr) {
         // Reported, not thrown. The captain gets the form; we get to see that the lookup
         // is failing rather than it being invisible behind a working page.
-        console.warn('email_scorecard: could not load the missing-photo list:', lookupErr.message);
+        log.warn({ err: lookupErr }, 'email_scorecard: could not load the missing-photo list');
         Sentry.captureMessage('email_scorecard: missing-photo lookup failed', {
           level: 'warning', tags: { stage: 'scorecard-entry' },
         });
@@ -1122,7 +1123,6 @@ function renderLinkRefused(req, res, status) {
       });
       res.json({ ok: true, sent: addresses.length });
     } catch (err) {
-      console.log(err.toString());
       next(err);
     }
   }
@@ -1204,7 +1204,6 @@ exports.add_scorecard_photo = async function(req, res, next) {
     });
     res.sendStatus(200);
   } catch (err) {
-    console.log(err.toString());
     next(err);
   }
 }

@@ -1,4 +1,5 @@
 const Spam = require('../models/spamControls');
+const log = require('../utils/log');
 const { honeypotTripped, timingProblem, HONEYPOT_FIELD } = require('../utils/spamChecks');
 const { clientIp, forwardedChain } = require('../utils/clientIp');
 
@@ -51,7 +52,7 @@ function spamGate(options = {}) {
     }
 
     Spam.logSubmission({ ...base, verdict: 'rejected', reason });
-    console.log(`spamGate rejected ${endpoint} from ${ip}: ${reason}`);
+    log.info(`spamGate rejected ${endpoint} from ${ip}: ${reason}`);
     return respondBland(req, res);
   };
 }

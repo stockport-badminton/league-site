@@ -1,4 +1,5 @@
 var Club = require('../models/club');
+const log = require('../utils/log');
 var Division = require('../models/division');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
@@ -592,7 +593,7 @@ exports.player_elo_populate = async function(req, res, next) {
               try {
                 await Game.updateById(rateResult.updateObj, game.id)
               } catch (ratingErr) {
-                console.error(`ratingErr: ${ratingErr}`)
+                log.error({ err: ratingErr }, `rating update failed for game ${game.id}`)
               }
               gamesprocessed++
             }
@@ -609,9 +610,9 @@ exports.player_elo_populate = async function(req, res, next) {
           if (playerUpdate.data.length > 0) {
             try {
               await Player.updateBulk(playerUpdate)
-              console.log(`Player rankings updated again`)
+              log.info(`Player rankings updated again`)
             } catch (playerErr) {
-              console.error(`playerErr: ${playerErr}`)
+              log.error({ err: playerErr }, 'player rating bulk update failed')
             }
           }
         }

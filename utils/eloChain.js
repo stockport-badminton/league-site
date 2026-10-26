@@ -22,6 +22,7 @@
 // row against a full backfill.
 
 const db = require('../db_connect')
+const log = require('./log');
 const Fixture = require('../models/fixture')
 const Game = require('../models/game')
 const Player = require('../models/players')
@@ -140,7 +141,7 @@ async function rerateFrom(fixtureId, opts = {}) {
 
     await Game.updateEloBatch(writes, conn)
     if (writes.length > 0) await Player.refreshRatings([...dirty], conn)
-    if (rerated > 1) console.log(`[elo-chain] fixture ${fixtureId}: re-rated ${rerated} fixtures, ${writes.length} games, ${dirty.size} players`)
+    if (rerated > 1) log.info(`[elo-chain] fixture ${fixtureId}: re-rated ${rerated} fixtures, ${writes.length} games, ${dirty.size} players`)
     return { fixtures: rerated, games: writes.length, players: dirty.size, maxShift }
   })
 }

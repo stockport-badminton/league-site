@@ -41,7 +41,7 @@ describe('pg pool error handling', () => {
   beforeEach(() => {
     created.length = 0;
     Sentry.captureException.mockClear();
-    errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    errSpy = jest.spyOn(require('../../utils/log'), 'error').mockImplementation(() => {});
     db.connect();
   });
 
