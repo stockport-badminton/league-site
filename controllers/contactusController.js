@@ -202,7 +202,7 @@ exports.validateContactUs = [
 exports.contactus = async function(req, res, next) {
   var errors = validationResult(req);
   if (!errors.isEmpty()) {
-    log.info({ errors: errors.array().map(e => ({ path: e.path, msg: e.msg })) }, 'contact-us: validation failed');
+    log.info({ errors: errors.array().map(e => ({ field: e.param || e.path, msg: e.msg })) }, 'contact-us: validation failed');
     // `req._spamReason` is set by the blocklist validators; anything else that failed
     // validation is a real person getting a field wrong, which is worth telling apart
     // from spam in the log.
