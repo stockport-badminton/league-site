@@ -96,7 +96,7 @@ rest of it lands.
 | [REARCH-01](REARCH-01-typed-queries.md) | A typed query layer replaces the MySQL wrapper | L | In-season OK, except the publish path |
 | [REARCH-02](REARCH-02-season-history.md) | Season archives become one history table per entity | M | Additive steps any time; the drop is off-season, after the 2027 rollover |
 | [REARCH-03](REARCH-03-one-record-per-fact.md) | One record per fact: officers, drafts, names | M | Officers in-season OK; drafts off-season only |
-| [REARCH-04](REARCH-04-route-access.md) | Every route declares who may call it | M | In-season OK |
+| [REARCH-04](done/REARCH-04-route-access.md) | Every route declares who may call it | M | **Done** 26 Oct 2026 |
 | [REARCH-05](REARCH-05-outbox.md) | One outbox for every side effect | M | Off-season only |
 | [REARCH-06](REARCH-06-config-schema.md) | Environment variables declared in one place | S | In-season OK |
 | [REARCH-07](REARCH-07-frontend-build.md) | Inline scripts out, a bundler for shared code | M | Wizard off-season; other pages in-season OK |

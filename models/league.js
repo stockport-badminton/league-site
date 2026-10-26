@@ -23,11 +23,6 @@ function WITHDRAWN_FILTER(alias, season) {
   return season ? '' : ` AND ${alias}.withdrawn IS NULL`
 }
 
-/** @param {number} leagueId */
-exports.getById = async function(leagueId) {
-  return kysely.selectFrom('league').selectAll().where('id', '=', leagueId).execute()
-}
-
 /** @param {string} division @param {string} [season] */
 exports.getLeagueTable = async function(division, season) {
   // Throws unless the season is 8 digits. It is interpolated into the SQL below as

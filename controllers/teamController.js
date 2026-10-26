@@ -30,17 +30,6 @@ exports.team_search = async function(req, res, next) {
   }
 };
 
-// Display detail page for a specific Team
-exports.team_detail = async function(req, res, next) {
-  try {
-    const row = await Team.getById(req.params.id);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 exports.messer_draw = function(req, res, next) {
   let renderstring = `beta/messer-draw-${req.params.section}`
    //console.log(renderstring)

@@ -9,11 +9,9 @@
 const { shadowedRoutes } = require('../helpers/routeTable');
 const app = require('../../app');
 
-const KNOWN = {
-  'GET /admin/results/:division/:season':
-    'Unreachable since before REARCH-04: GET /admin/results/* above it has the same handler ' +
-    'and the same access, so it answers every URL this would. Harmless; delete it on its own.',
-};
+// GET /admin/results/:division/:season was the first entry: GET /admin/results/* had always
+// answered for it. Deleted 26 Oct 2026.
+const KNOWN = {};
 
 it('lets every route answer its own URLs', () => {
   const found = shadowedRoutes(app).filter(s => !KNOWN[s.route]);

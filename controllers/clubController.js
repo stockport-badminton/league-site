@@ -164,20 +164,6 @@ exports.club_public_page = async function(req, res, next) {
   }
 };
 
-exports.club_detail_api = async function(req, res, next) {
-  try {
-    const clubrow = await Club.getContactDetailsById(req.params.id);
-    if (typeof clubrow == 'undefined' || clubrow.length == 0) {
-      res.status(500);
-      return next(new Error('Club not found'));
-    }
-    res.send(clubrow);
-  } catch (err) {
-    res.status(500);
-    next(err);
-  }
-};
-
 // Display detail page for a specific Club
 exports.club_detail = async function(req, res, next) {
   //console.log(req.session)

@@ -15,13 +15,11 @@ router.get('/playerStats/:id/:fullName', access.public, player_controller.player
 router.get('/eligiblePlayers/:id/:gender', access.public, player_controller.eligible_players_list);
 
 // Team routes
-router.get('/team/:id(\\d+)', access.public, team_controller.team_detail);
 router.get('/teams', access.public, team_controller.team_list);
 router.post('/teams', access.public, team_controller.team_search);
 
 // League routes
 
-router.get('/league/:id', access.public, league_controller.league_detail);
 router.get('/tables/All', access.public, league_controller.all_league_tables);
 router.get('/tables/All/:season', access.public, validateSeason, league_controller.all_league_tables);
 router.get('/tables/:division', access.public, league_controller.league_table);
@@ -56,7 +54,6 @@ router.get('/calendars/*', access.public, fixture_controller.fixture_calendars);
 router.get('/results-grid/*', access.public, fixture_controller.fixture_detail_byDivision);
 
 router.get('/admin/results/*', access.member, fixture_controller.fixture_detail_byDivision);
-router.get('/admin/results/:division/:season', access.member, fixture_controller.fixture_detail_byDivision);
 
 router.get('/api/player-elo', access.public, player_controller.player_elo_history_api);
 router.get('/api/players/search', access.public, player_controller.player_search_api);
@@ -68,7 +65,6 @@ router.get('/pair-stats/*', access.member, player_controller.all_pair_stats);
 router.get('/pair-stats', access.member, player_controller.all_pair_stats);
 
 router.get('/club/:id', access.member, club_controller.club_detail);
-router.get('/club-api/:id', access.member, club_controller.club_detail_api);
 router.get('/admin/info/clubs', access.member, club_controller.club_list_detail);
 
 module.exports = router;

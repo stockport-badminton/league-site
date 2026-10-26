@@ -1,17 +1,6 @@
 var League = require('../models/league.js');
 const { canonicalFor } = require('../utils/canonical');
 
-// Display detail page for a specific League
-exports.league_detail = async function(req, res, next) {
-  try {
-    const row = await League.getById(req.params.id);
-    // console.log(row);
-    res.send(row);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Display list of all Leagues
 exports.league_table = async function(req, res, next) {
   try {

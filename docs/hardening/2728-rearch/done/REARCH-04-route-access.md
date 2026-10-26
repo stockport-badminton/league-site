@@ -1,5 +1,6 @@
 # REARCH-04 — every route declares who may call it
 
+**Status:** ✓ Done 26 Oct 2026 (`ca7ee51`, `5dce72b`, `b819f82` and the review-list follow-up).
 **Size:** M · **Window:** in-season OK
 **Blocked by:** nothing. Soft: REARCH-09 part A (the normalised session user) makes the
 role checks one line, but this package can read the current shape.
@@ -137,20 +138,16 @@ did not exist for any of the five above.
      `GET /players/eloBackfillAdmin` (a `secured` admin page with no role check) are
      now `access.superadmin`. On `POST /scorecard-beta` the gate moved ahead of
      `publicFormLimiter`.
-   - **For the owner to decide** (left as they are, declared honestly):
-     - `POST /email-scorecard` is public while `GET /email-scorecard` is `secured`. It
-       files a draft and emails the results secretary. Gating it risks losing a captain's
-       result when a session expires mid-form, the trade-off `requirePublishAuthority`
-       documents.
-     - `GET /club-api/:id` (any member) returns decrypted officer contacts for any club.
-       That's the same data as the member-only `/club/:id` page, so it's no new exposure.
-       But nothing calls it now, because the reminder modal moved to
-       `/fixture/:id/reminder-contacts`.
-     - `GET /team/:id` and `GET /league/:id` are public JSON from the old scaffold, with
-       `selectAll()` and no caller. No personal data today, but any column added to
-       `team` or `league` would be published automatically.
-     - `GET /sign-s3` still lets an anonymous caller upload a JPEG to `scorecards/`. This
-       is a known residual, documented on the route.
+   - **Decided by the owner, 26 Oct 2026:**
+     - `POST /email-scorecard` stays public. Gating it risks losing a captain's result
+       when a session expires mid-form.
+     - `GET /club-api/:id` is deleted. It gave any member every club officer's decrypted
+       contacts, and nothing called it.
+     - `GET /team/:id` and `GET /league/:id` are deleted, with `League.getById`. They
+       were public `selectAll()` JSON with no caller.
+     - `GET /sign-s3` stays as it is; the anonymous-upload residual is accepted.
+     - `GET /admin/results/:division/:season` is deleted. It was unreachable behind
+       `/admin/results/*`.
 3. ✓ **Done 26 Oct 2026.** `route-access.test.js` fails on a route with no declaration,
    one that is not first, or two. It also fails when `docs/routes.md` differs from the
    live table. Regenerate with `UPDATE_ROUTE_TABLE=1 npx jest route-access`. Both

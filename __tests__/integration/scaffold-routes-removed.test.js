@@ -21,11 +21,11 @@ jest.mock('../../middleware/secured', () => (req, res, next) => {
 });
 jest.mock('../../models/players');
 jest.mock('../../models/club');
-jest.mock('../../models/league');
+jest.mock('../../models/teams');
 
 const Player = require('../../models/players');
 const Club = require('../../models/club');
-const League = require('../../models/league');
+const Team = require('../../models/teams');
 const app = require('../../app');
 
 const SUPERADMIN = { id: 'a', displayName: 'Results Secretary', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
@@ -47,7 +47,6 @@ beforeEach(() => {
   mockCurrentUser = null;
   Player.getById.mockResolvedValue([{ id: 5, first_name: 'A', family_name: 'B', playerEmail: 'a@example.com', playerTel: '0161' }]);
   Club.getAll.mockResolvedValue([{ id: 1, name: 'Dome' }]);
-  League.getById.mockResolvedValue([]);
 });
 
 describe('GET /player/:id is gone', () => {
@@ -77,14 +76,31 @@ describe('GET /player/create', () => {
   });
 });
 
+// REARCH-04's review list, decided 26 Oct 2026: JSON routes with no caller, and one route
+// nothing could reach. /club-api/:id gave any member every club officer's decrypted
+// contacts; /team/:id and /league/:id published whole rows with selectAll(), so any column
+// added later would have gone public too.
+describe('the uncalled JSON routes are gone', () => {
+  it.each([
+    ['/club-api/5', CLUB_ADMIN],
+    ['/team/5', null],
+    ['/league/5', null],
+  ])('GET %s', async (path, user) => {
+    mockCurrentUser = user;
+    const res = await request(app).get(path);
+    expect(res.status).toBe(404);
+    expect(Club.getContactDetailsById).not.toHaveBeenCalled();
+    expect(Team.getById).not.toHaveBeenCalled();
+  });
+});
+
 describe('the NOT IMPLEMENTED scaffold is gone', () => {
   it('lists all 22', () => {
     expect(STUBS).toHaveLength(22);
   });
 
-  // Two now fall through to real routes, GET /league/:id and GET /club/:id, so those are
-  // asserted only on the body.
-  const FALLS_THROUGH = ['/league/create', '/club/create'];
+  // /club/create falls through to the real GET /club/:id, so it is asserted only on the body.
+  const FALLS_THROUGH = ['/club/create'];
   it.each(STUBS)('GET %s', async (path) => {
     const res = await request(app).get(path);
     expect(res.text).not.toContain('NOT IMPLEMENTED');
