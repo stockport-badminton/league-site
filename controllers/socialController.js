@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 const Fixture = require('../models/fixture');
+const seasonModel = require('../models/season');
 const { canonicalFor } = require('../utils/canonical');
 // The shared card chrome — background lookup, dark panel, division letter, and the
 // league's name and host. See utils/socialCard.js for why the letter and the panel are
@@ -281,6 +282,12 @@ const SOCIAL_IMAGE_MISS_CACHE_CONTROL = 'no-store';
 // GET /league-table-image/:division — one division's table, as a JPEG, built now.
 exports.leagueTableImage = async function (req, res, next) {
   try {
+    // A season with no archive (2020/21, say) would reach the SQL as `relation
+    // "team20202021" does not exist` and 500. The /tables routes refuse it with
+    // validateSeason; that renders the HTML 404 page, and a miss here is plain and uncached.
+    if (req.params.season && !seasonModel.isServable(req.params.season)) {
+      return res.status(404).set('Cache-Control', SOCIAL_IMAGE_MISS_CACHE_CONTROL).type('text/plain').send('No league table for that season');
+    }
     const wanted = stripImageExt(req.params.division).trim().toLowerCase();
     const result = await getAllLeagueTables(req.params.season);
 

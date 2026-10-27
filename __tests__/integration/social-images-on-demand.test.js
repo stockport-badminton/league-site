@@ -111,6 +111,30 @@ describe('GET /league-table-image/:division', () => {
     }
   });
 
+  // A season with no archive (2020/21 was never played) reached the SQL as
+  // `relation "team20202021" does not exist` and 500'd. /tables/:division/:season had
+  // validateSeason; this route did not. Refused before the model, as a plain uncached 404
+  // like every other miss here, not the HTML 404 page.
+  it('404s a season the site cannot serve, without reaching the model', async () => {
+    const seasonModel = require('../../models/season');
+    const { getAllLeagueTables } = require('../../models/league');
+    const servable = jest.spyOn(seasonModel, 'isServable').mockImplementation(s => !s || s === '20242025');
+    try {
+      getAllLeagueTables.mockClear();
+      const res = await request(app).get('/league-table-image/Premier/20202021');
+      expect(res.status).toBe(404);
+      expect(res.headers['cache-control']).toBe('no-store');
+      expect(res.headers['content-type']).toMatch(/^text\/plain/);
+      expect(getAllLeagueTables).not.toHaveBeenCalled();
+
+      const served = await request(app).get('/league-table-image/Premier/20242025');
+      expect(served.status).toBe(200);
+      expect(getAllLeagueTables).toHaveBeenCalledWith('20242025');
+    } finally {
+      servable.mockRestore();
+    }
+  });
+
   it('does still cache a hit, which is the whole point of generating on demand', async () => {
     const res = await request(app).get('/league-table-image/Premier.jpg');
     expect(res.status).toBe(200);
