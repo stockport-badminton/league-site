@@ -7,7 +7,7 @@ are in `docs/claude/`. **Read the matching file before touching its area:**
 
 | File | Read before touching |
 |---|---|
-| [docs/claude/database.md](docs/claude/database.md) | Supabase settings, RLS, the `player` email columns, officer pointers, `dbq`, the local database and `sync` |
+| [docs/claude/database.md](docs/claude/database.md) | Supabase settings, RLS, the `player` email columns, officer flags, `dbq`, the local database and `sync` |
 | [docs/claude/testing.md](docs/claude/testing.md) | `__tests__/setup.js`, the supertest binding, `npm run test:db`, anything under `e2e/` |
 | [docs/claude/patterns.md](docs/claude/patterns.md) | admin tools, `asset()`, `icon()`, scorecard links and the photo endpoint, `afterCommit`, Messer, lazy requires, the `sanitize-html` pin, auth and dev mode, the hardening backlog |
 | [docs/claude/social.md](docs/claude/social.md) | result cards, weekly tables/fixtures posts, Meta, Threads, anything that was on Make.com |
@@ -39,7 +39,7 @@ PostgreSQL (Supabase) behind a MySQL-looking wrapper in `db_connect.js`:
 - **`player` has two encrypted email columns:** `authEmail` is the login identity,
   `playerEmail` the contact address. A blank is `NULL` or `pgp_sym_encrypt('')`.
 - **Officers are recorded by the player flags** (`teamCaptain`, `clubSecretary`,
-  `matchSecrertary`); the club/team pointer columns are all NULL and nothing writes them.
+  `matchSecrertary`) and nothing else; migration 029 dropped the club/team pointer columns.
 
 ### The typed query layer (REARCH-01, in progress)
 

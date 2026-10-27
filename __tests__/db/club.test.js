@@ -26,13 +26,14 @@ describe('club writes', () => {
   it('updateFull writes the keys given, nulls included, and leaves the rest alone', async () => {
     await Club.createFull(form());
     const [{ id }] = await run("SELECT id FROM club WHERE name = 'Zebra BC'");
-    await run('UPDATE club SET "matchSec" = 0 WHERE id = ?', [id]);
+    const update = form({ matchNightText: null, clubNightCourts: 4 });
+    delete update.instagram;
 
-    await Club.updateFull(form({ matchNightText: null, clubNightCourts: 4 }), id);
+    await Club.updateFull(update, id);
     const [after] = await Club.getById(id);
-    expect(after).toMatchObject({ name: 'Zebra BC', matchNightText: null, clubNightCourts: 4, instagram: 'zebra_bc' });
+    expect(after).toMatchObject({ name: 'Zebra BC', matchNightText: null, clubNightCourts: 4 });
     // Not in the form, so not touched.
-    expect(after.matchSec).toBe(0);
+    expect(after.instagram).toBe('zebra_bc');
   });
 
   it('refuses anything that is not an object', async () => {
@@ -66,40 +67,27 @@ describe('club writes', () => {
 });
 
 // An officer is the role flag on a player at that club or team (REARCH-03). The old
-// pointers (club."clubSec", club."matchSec", team.captain) were a second record that
-// could disagree with the flags; none of the officer readers follows one any more.
-describe('club officers come from the role flags only', () => {
-  const KEY = () => process.env.DB_PI_KEY;
-  let CLUB, TEAM;
-  beforeEach(async () => {
-    const [club] = await run('SELECT id, name, venue, "matchVenue" FROM club WHERE venue IS NOT NULL AND "matchVenue" IS NOT NULL AND id <> 63 ORDER BY id LIMIT 1');
-    CLUB = club;
-    [{ id: TEAM }] = await run(`SELECT id FROM team WHERE club = ? ORDER BY id LIMIT 1`, [club.id]);
-    // Nobody at the club is flagged, so a pointer is the only thing that could name an
-    // officer — and it names a member of the club who holds no role.
+// pointers (club."clubSec", club."matchSec", team.captain) were a second record that could
+// disagree with the flags, and kept a player who had left a club on its division's list
+// (18 Sep 2026). Migration 029 dropped them; a reader that went back to one would fail on
+// a missing column, and this says why the column must not come back.
+describe('officers have one record', () => {
+  it('club and team have no officer pointer columns', async () => {
+    expect(await run(`SELECT table_name, column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name IN ('club', 'team')
+        AND column_name IN ('matchSec', 'clubSec', 'captain')`)).toEqual([]);
+  });
+
+  it('the officer readers name only flagged players', async () => {
+    const [club] = await run('SELECT id, name FROM club WHERE venue IS NOT NULL AND "matchVenue" IS NOT NULL AND id <> 63 ORDER BY id LIMIT 1');
     await run('UPDATE player SET "clubSecretary" = 0, "matchSecrertary" = 0, "teamCaptain" = 0 WHERE club = ?', [club.id]);
-    await run(`INSERT INTO player (id, first_name, family_name, gender, club, team, rank, "playerEmail")
-      VALUES (30101, 'Pointed', 'Unflagged', 'Female', ?, ?, 1, pgp_sym_encrypt('pointed@example.invalid', ?))`, [club.id, TEAM, KEY()]);
-    await run('UPDATE club SET "clubSec" = 30101, "matchSec" = 30101 WHERE id = ?', [club.id]);
-    await run('UPDATE team SET captain = 30101 WHERE id = ?', [TEAM]);
-  });
-
-  it('getOfficerEmails does not list a player the club pointer names', async () => {
-    const rows = await Club.getOfficerEmails([CLUB.id]);
-    expect(rows.map(r => r.playerId)).not.toContain(30101);
-  });
-
-  it('getContactDetailsById does not show them as club secretary or captain', async () => {
-    const rows = await Club.getContactDetailsById(CLUB.id);
-    expect(rows.length).toBeGreaterThan(0);
-    for (const r of rows) {
-      expect([r.clubsecretary, r.matchsecretary, r.teamcaptain]).not.toContain('Pointed Unflagged');
+    expect(await Club.getOfficerEmails([club.id])).toEqual([]);
+    const { core, teams } = await Club.getClubRegistration(club.name);
+    expect([core.clubSecName, core.matchSecName]).toEqual([null, null]);
+    expect(teams.every(t => t.captainName === null)).toBe(true);
+    for (const r of await Club.getContactDetailsById(club.id)) {
+      // fullName gives ' ' for nobody here (CONCAT), unlike getClubRegistration's NULLIF.
+      expect([r.clubsecretary, r.matchsecretary, r.teamcaptain].map(n => (n || '').trim())).toEqual(['', '', '']);
     }
-  });
-
-  it('getClubRegistration does not prefill them', async () => {
-    const { core, teams } = await Club.getClubRegistration(CLUB.name);
-    expect([core.clubSecName, core.matchSecName]).not.toContain('Pointed Unflagged');
-    expect(teams.map(t => t.captainName)).not.toContain('Pointed Unflagged');
   });
 });

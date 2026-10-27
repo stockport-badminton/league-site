@@ -133,16 +133,16 @@ write, and the guard repeated in the `WHERE` clause of the write itself so a row
 changed between the read and the write can't be clobbered.
 
 `tools/audit/checks.js` holds the integrity checks — orphaned results, orphaned drafts,
-impossible scores, duplicate ranks, ghost teams, fixtures pointing at deleted teams,
-officer pointers that disagree with the role flags. Each one found something real. Run
+impossible scores, duplicate ranks, ghost teams, fixtures pointing at deleted teams.
+Each one found something real. Run
 `--check all` before and after any data work.
 
-**An officer is recorded two ways and they are not kept in step.** The old way is a
+**An officer is recorded one way: the flag on the player.** It used to be two. The old way was a
 pointer on the club or team — `club."matchSec"`, `club."clubSec"`, `team.captain` — and
 the new way is a flag on the player (`matchSecrertary`, `clubSecretary`, `teamCaptain`)
-read with that player's own club or team. `Player.getEmails` matches on **either**, per
-UNION branch, and the pointer side never looks at where the player actually is. So a
-pointer left behind when somebody changes club keeps them on that club's distribution
+read with that player's own club or team. `Player.getEmails` matched on **either**, per
+UNION branch, and the pointer side never looked at where the player actually was. So a
+pointer left behind when somebody changed club kept them on that club's distribution
 lists for every division it plays in. Found 18 Sep 2026 from a permanent bounce on
 `division1@`: the recipient's record read "No Club / No Team" and she was still
 `club."matchSec"` for a club whose B team plays that division. It surfaced only because her
@@ -155,10 +155,11 @@ player 0, `No Player`) and 1 on the withdrawn Parrswood C. They were cleared by
 the only record of an officer on a live team, and the values are in
 `scripts/officer-pointers-backup-2026-10-25T12-54-37-487Z.json`). Every reader was
 snapshotted before and after: all division and real-club lists identical; only No Club's
-own views changed. The columns and the pointer half of every reader are still there until
-REARCH-03 part A step 3 drops them. **Nothing writes them** (the admin forms build from
-allowlists), so they stay NULL. The one route that could, `PATCH /team/:id`, went with the
-rest of the token-guarded machine API in HARD-49.
+own views changed. On 27 Oct 2026 the readers became flag-only (`435020e`, proved identical
+by snapshot) and migration 029 dropped the three columns; `__tests__/db/club.test.js` fails
+if one comes back. The season archives (`club20252026`…) still have them, as snapshots,
+until REARCH-02 replaces the archives. **A player who leaves a club keeps their flags**
+(Neil, 25 Oct 2026); a flagged player at No Club is not an error.
 
 One lesson already encoded there: **a data check must not inner-join to the data it is
 checking.** The `bad-totals` check reported 2 of 8 offending fixtures until it was

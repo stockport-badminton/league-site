@@ -39,8 +39,8 @@ separately, and the copies have already disagreed.
 > was compared unordered; `getClubRegistration`'s `DISTINCT ON` gained an officer-id tie-break
 > because No Team has two flagged captains and the pick had depended on the plan. Tests in
 > `__tests__/db/players-writes.test.js` and `club.test.js` fail against the old readers.
-> **Left: the migration dropping the three columns**, deployed separately so that rolling
-> back one revision never meets a missing column.
+> **The second half, migration 029, drops the three columns**, deployed separately so that
+> rolling back one revision never meets a missing column. With it, part A is complete.
 
 ### Why
 

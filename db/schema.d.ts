@@ -39,14 +39,12 @@ export interface Club {
   clubNight: string | null;
   clubNightCourts: number | null;
   clubNightText: string | null;
-  clubSec: number | null;
   clubWebsite: string | null;
   contactUs: string | null;
   facebook: string | null;
   id: Generated<number>;
   instagram: string | null;
   matchNightText: string | null;
-  matchSec: number | null;
   matchVenue: number | null;
   name: string;
   twitter: string | null;
@@ -502,7 +500,6 @@ export interface SubmissionLog {
 }
 
 export interface Team {
-  captain: number | null;
   club: number;
   courtspace: Generated<number | null>;
   division: number | null;
