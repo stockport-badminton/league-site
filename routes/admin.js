@@ -7,6 +7,7 @@ const venue_controller = require('../controllers/venueController');
 const team_controller = require('../controllers/teamController');
 const player_controller = require('../controllers/playerController');
 const club_controller = require('../controllers/clubController');
+const junior_club_controller = require('../controllers/juniorClubController');
 const fixture_controller = require('../controllers/fixtureController');
 const scorecard_controller = require('../controllers/scorecardController');
 const contact_controller = require('../controllers/contactusController');
@@ -113,6 +114,14 @@ router.get('/admin/clubs/create', access.superadmin, club_controller.admin_club_
 router.post('/admin/clubs', access.superadmin, club_controller.admin_club_create);
 router.get('/admin/clubs/:id', access.superadmin, club_controller.admin_club_editForm);
 router.post('/admin/clubs/:id', access.superadmin, club_controller.admin_club_update);
+
+// Junior clubs, listed on /info/junior-clubs.
+router.get('/admin/junior-clubs', access.superadmin, junior_club_controller.admin_list);
+router.get('/admin/junior-clubs/create', access.superadmin, junior_club_controller.admin_createForm);
+router.post('/admin/junior-clubs', access.superadmin, junior_club_controller.admin_create);
+router.get('/admin/junior-clubs/:id', access.superadmin, junior_club_controller.admin_editForm);
+router.post('/admin/junior-clubs/:id', access.superadmin, junior_club_controller.admin_update);
+router.post('/admin/junior-clubs/:id/delete', access.superadmin, junior_club_controller.admin_delete);
 
 router.get('/admin/teams', access.superadmin, team_controller.admin_team_list);
 router.get('/admin/teams/create', access.superadmin, team_controller.admin_team_createForm);

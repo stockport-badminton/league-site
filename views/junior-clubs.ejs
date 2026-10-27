@@ -1,0 +1,63 @@
+<%# useRosterCss because roster.css is what undoes the global trap this page
+    would otherwise hit: `.starter-template { text-align: center }` from nav.ejs. %>
+<%- include('header.ejs', { useRosterCss: true }) %>
+<%- include('nav.ejs') %>
+
+<%#
+  The junior clubs, from /admin/junior-clubs. Each club chose what to publish and how it
+  wants enquiries (by email, or through its own website), so each card shows only what is set.
+%>
+<div class="roster-page container-fluid text-left">
+  <h1>Junior Badminton Clubs</h1>
+  <p class="lead">Clubs in and around Stockport that run junior sessions. Contact a club directly to ask about joining.</p>
+
+  <% if (!clubs.length) { %>
+    <p>No junior clubs are listed at the moment. <a href="/contact-us">Get in touch</a> if you run one.</p>
+  <% } else { %>
+    <div class="row">
+      <% clubs.forEach(function(c){ %>
+        <div class="col-12 col-md-6 col-lg-4 mb-4" id="junior-club-<%= c.id %>">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h5 card-title"><%= c.name %></h2>
+              <% if (c.notes) { %><p class="text-muted"><%= c.notes %></p><% } %>
+              <dl class="mb-0">
+                <% if (c.venueName || c.venue_note) { %>
+                  <dt>Venue</dt>
+                  <dd>
+                    <% if (c.venueName) { %>
+                      <% if (c.gMapUrl) { %>
+                        <a href="<%= c.gMapUrl %>" target="_blank" rel="noopener"><%= c.venueName %></a>
+                      <% } else { %><%= c.venueName %><% } %>
+                      <% if (c.venueAddress) { %><br /><small><%= c.venueAddress %></small><% } %>
+                    <% } %>
+                    <% if (c.venue_note) { %><% if (c.venueName) { %><br /><% } %><small><%= c.venue_note %></small><% } %>
+                  </dd>
+                <% } %>
+                <% if (c.session_times) { %><dt>Sessions</dt><dd><%= c.session_times %></dd><% } %>
+                <% if (c.fees) { %><dt>Fees</dt><dd><%= c.fees %></dd><% } %>
+                <% if (c.has_email || c.website) { %>
+                  <dt>Enquiries</dt>
+                  <dd>
+                    <%# Through the contact form, which looks the club's address up itself:
+                        the address is never on this page. %>
+                    <% if (c.has_email) { %>
+                      <a href="/contact-us?junior=<%= c.id %>">Send the club a message</a><br />
+                    <% } %>
+                    <% if (c.website) { %>
+                      <a href="<%= c.website %>" target="_blank" rel="noopener">Club website</a>
+                    <% } %>
+                  </dd>
+                <% } %>
+              </dl>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <p>Looking for adult badminton? See the <a href="/info/clubs">league's clubs</a>.</p>
+</div>
+
+<%- include('footer.ejs') %>

@@ -1,0 +1,76 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<%# `data` is what the fields show: the stored row, or what was submitted when a save
+    failed, so nothing typed is lost. Every field but the name is optional and the
+    public page shows only what is filled in. %>
+<% var v = function(k) { return data[k] == null ? '' : data[k]; }; %>
+<div class="col-12 text-left">
+  <h1><%= club ? 'Edit' : 'New' %> Junior Club</h1>
+
+  <% if (errors.length) { %>
+    <div class="alert alert-danger" role="alert">
+      <% errors.forEach(function(e){ %><div><%= e %></div><% }) %>
+    </div>
+  <% } %>
+
+  <form method="post" action="<%= club ? '/admin/junior-clubs/' + club.id : '/admin/junior-clubs' %>">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" class="form-control" id="name" name="name" maxlength="100" value="<%= v('name') %>" required>
+    </div>
+
+    <div class="form-group">
+      <label for="venue">Venue</label>
+      <select class="form-control" id="venue" name="venue">
+        <option value="">— none —</option>
+        <% venues.forEach(function(ven){ %>
+          <option value="<%= ven.id %>" <%= data.venue == ven.id ? 'selected' : '' %>><%= ven.name %> — <%= ven.address %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="venue_note">Venue note</label>
+      <input type="text" class="form-control" id="venue_note" name="venue_note" maxlength="200" value="<%= v('venue_note') %>">
+      <small class="form-text text-muted">Shown under the venue: the name the club uses for it, a room, or a venue that isn't in the list.</small>
+    </div>
+
+    <div class="form-group">
+      <label for="session_times">Sessions</label>
+      <input type="text" class="form-control" id="session_times" name="session_times" maxlength="200" value="<%= v('session_times') %>" placeholder="Fridays 5.30pm – 8.30pm">
+    </div>
+
+    <div class="form-group">
+      <label for="fees">Fees</label>
+      <input type="text" class="form-control" id="fees" name="fees" maxlength="200" value="<%= v('fees') %>" placeholder="£50 per term">
+    </div>
+
+    <div class="form-group">
+      <label for="contact_email">Enquiries email</label>
+      <input type="email" class="form-control" id="contact_email" name="contact_email" maxlength="200" value="<%= v('contact_email') %>">
+      <small class="form-text text-muted">Not shown on the site: the public page offers a contact form that sends here. Leave blank if the club wants enquiries through its website.</small>
+    </div>
+
+    <div class="form-group">
+      <label for="website">Website</label>
+      <input type="text" class="form-control" id="website" name="website" maxlength="300" value="<%= v('website') %>" placeholder="https://…">
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes</label>
+      <textarea class="form-control" id="notes" name="notes" rows="3"><%= v('notes') %></textarea>
+      <small class="form-text text-muted">Anything else, e.g. age range or "beginners welcome". Plain text.</small>
+    </div>
+
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" id="active" name="active" <%= data.active ? 'checked' : '' %>>
+      <label class="form-check-label" for="active">Show on the public page</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/admin/junior-clubs" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>

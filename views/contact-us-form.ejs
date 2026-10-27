@@ -5,10 +5,16 @@
 <form role="form" id="contactUs" action="/contact-us" method="post">
   <div class="form-group">
     <label for="contactType">Are you trying to get in touch with a committee member of a specific club?</label>
+    <%# ?junior=<id>, from the junior clubs page, arrives with Junior Clubs chosen and
+        that club selected. %>
+    <% var juniorChosen = typeof selectedJuniorClub !== 'undefined' && !!selectedJuniorClub; %>
     <select class="form-control" name="contactType" id="contactType">
-      <option disabled selected>Choose..</option>
+      <option disabled <%= juniorChosen ? '' : 'selected' %>>Choose..</option>
       <option value="Clubs">Club Secretaries</option>
       <option value="League">League Representatives</option>
+      <% if (juniorClubs.length) { %>
+        <option value="JuniorClub" <%= juniorChosen ? 'selected' : '' %>>Junior Clubs</option>
+      <% } %>
     </select>
   </div>
   <div class="form-group d-none" id="clubsDropDown">
@@ -19,6 +25,15 @@
       <option disabled <%= typeof selectedClub === 'undefined' || !selectedClub ? 'selected' : '' %>>Choose a Club</option>
       <% clubs.forEach(function(row){ %>
         <option value="<%= row['id'] %>" <%= (typeof selectedClub !== 'undefined' && String(selectedClub) === String(row['id'])) ? 'selected' : '' %>><%= row['name'] %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="form-group <%= juniorChosen ? 'd-block' : 'd-none' %>" id="juniorClubsDropDown">
+    <label for="juniorClubSelect">Which junior club are you contacting?</label>
+    <select class="form-control" id="juniorClubSelect" name="juniorClubSelect">
+      <option disabled <%= juniorChosen ? '' : 'selected' %>>Choose a Junior Club</option>
+      <% juniorClubs.forEach(function(row){ %>
+        <option value="<%= row.id %>" <%= juniorChosen && String(selectedJuniorClub) === String(row.id) ? 'selected' : '' %>><%= row.name %></option>
       <% }) %>
     </select>
   </div>
@@ -67,17 +82,11 @@
  
   $(document).ready(function(){
     $('#contactType').change(function(){
-      switch ($('#contactType').val()) {
-        case 'Clubs':
-          $('#clubsDropDown').attr('class','form-group d-block');
-          $('#leagueDropDown').attr('class','form-group d-none');
-          break;
-        case 'League':
-          $('#leagueDropDown').attr('class','form-group d-block');
-          $('#clubsDropDown').attr('class','form-group d-none');
-          break;
-        default:
-      }
+      var shown = { Clubs: '#clubsDropDown', League: '#leagueDropDown', JuniorClub: '#juniorClubsDropDown' };
+      var chosen = shown[$('#contactType').val()];
+      $.each(shown, function(type, sel) {
+        $(sel).attr('class', 'form-group ' + (sel === chosen ? 'd-block' : 'd-none'));
+      });
     })
     $('.click').click(function(){
       console.log($(this).attr('data-club'))

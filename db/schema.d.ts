@@ -161,6 +161,21 @@ export interface InvoiceRun {
   status: number;
 }
 
+export interface JuniorClub {
+  active: Generated<boolean>;
+  contact_email: string | null;
+  created_at: Generated<Timestamp>;
+  fees: string | null;
+  id: Generated<number>;
+  name: string;
+  notes: string | null;
+  session_times: string | null;
+  updated_at: Generated<Timestamp>;
+  venue: number | null;
+  venue_note: string | null;
+  website: string | null;
+}
+
 export interface League {
   admin: number | null;
   id: Generated<number>;
@@ -542,6 +557,7 @@ export interface DB {
   game: Game;
   homepage_announcement: HomepageAnnouncement;
   invoice_run: InvoiceRun;
+  junior_club: JuniorClub;
   league: League;
   live_scorecard: LiveScorecard;
   messer: Messer;

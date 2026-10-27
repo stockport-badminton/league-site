@@ -7,6 +7,7 @@ const venue_controller = require('../controllers/venueController');
 const team_controller = require('../controllers/teamController');
 const player_controller = require('../controllers/playerController');
 const club_controller = require('../controllers/clubController');
+const junior_club_controller = require('../controllers/juniorClubController');
 const fixture_controller = require('../controllers/fixtureController');
 const league_controller = require('../controllers/leagueController');
 const validateSeason = require('../middleware/validateSeason');
@@ -33,6 +34,7 @@ router.get('/clubs', access.public, club_controller.club_list);
 // still reaches club_list.
 router.get('/clubs/:slug', access.public, club_controller.club_public_page);
 router.get('/info/clubs', access.public, club_controller.club_list_detail);
+router.get('/info/junior-clubs', access.public, junior_club_controller.list);
 
 router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', access.public, fixture_controller.fixture_id);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', access.public, fixture_controller.fixture_event_detail);

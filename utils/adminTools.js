@@ -18,6 +18,7 @@ const GROUPS = [
       { href: '/admin/player-requests', label: 'Registration Requests', blurb: 'Registration emails forwarded to registrations@, waiting to be processed.', count: 'pendingRequests' },
       { href: '/admin/registrations', label: 'Registration Forms', blurb: 'Which clubs have returned this season\'s registration form; chase the rest.', count: 'formsOutstanding' },
       { href: '/admin/clubs', label: 'Club Admin', blurb: 'Add and edit clubs.' },
+      { href: '/admin/junior-clubs', label: 'Junior Clubs', blurb: 'The junior clubs on the public Juniors page — add, edit, hide or remove.' },
       { href: '/admin/teams', label: 'Team Admin', blurb: 'Teams and their divisions — promote, relegate, withdraw, reinstate.' },
     ],
   },

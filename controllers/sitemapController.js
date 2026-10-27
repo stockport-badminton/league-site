@@ -27,6 +27,7 @@ const { absoluteUrl, eventPath, clubPath } = require('../utils/canonical');
 const STATIC_PATHS = [
   '/',
   '/info/clubs',
+  '/info/junior-clubs',
   '/venues',
   '/tables/All',
   '/results/All',

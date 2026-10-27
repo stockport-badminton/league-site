@@ -1,6 +1,7 @@
 var config = require('../config');
 const log = require('../utils/log');
 var Club = require('../models/club.js');
+const JuniorClub = require('../models/juniorClub');
 var seasonModel = require("../models/season");
 var League = require('../models/league.js');
 var Player = require('../models/players.js');
@@ -299,6 +300,46 @@ exports.contactus = async function(req, res, next) {
         canonical: canonicalFor(req)
       });
     }
+    if (req.body.contactType == 'JuniorClub') {
+      // The address comes from the row, never the request, and is never on any page: the
+      // junior clubs page links here instead of publishing it. A hidden club, or one with
+      // no address, goes to the league inbox rather than costing the sender their message,
+      // as for a club with no secretary above.
+      const id = parseInt(req.body.juniorClubSelect, 10);
+      const club = isNaN(id) ? undefined : await JuniorClub.getById(id);
+      const to = club && club.active && club.contact_email ? [club.contact_email] : [];
+      if (!to.length) {
+        log.warn({ juniorClub: req.body.juniorClubSelect },
+          'contact-us: junior club has no enquiries address — sending to the league inbox instead');
+        to.push('stockport.badders.results@gmail.com');
+      }
+
+      await mailer.send({
+        template: 'contact-us',
+        to,
+        bcc: ['stockport.badders.results@gmail.com', 'bigcoops@outlook.com'],
+        replyTo: [mailer.RESULTS_MAILBOX, req.body.contactEmail],
+        subject: 'Somebody is trying to get in touch',
+        whyReceiving: 'Your club asked the Stockport & District Badminton League to send junior enquiries to this address.',
+        text: [
+          req.body.contactQuery,
+          '',
+          'From ' + req.body.contactEmail + '. Replying to this email goes back to them.',
+        ].join('\n'),
+        data: {
+          message: req.body.contactQuery,
+          senderEmail: req.body.contactEmail,
+          aboutClub: club ? club.name : '',
+        },
+      });
+      res.render('contact-us-form-delivered', {
+        static_path: '/static',
+        pageTitle: 'Contact Us - Success',
+        pageDescription: 'Success - we\'ve sent an email to your chosen contact for you',
+        message: 'Success - we\'ve sent your email to your chosen contact',
+        canonical: canonicalFor(req)
+      });
+    }
     if (req.body.contactType == 'League') {
       switch (req.body.leagueSelect) {
         case 'results':
@@ -317,7 +358,10 @@ exports.contactus = async function(req, res, next) {
         case 'messer':
           msg.to = ['sueorwin@btinternet.com']
           break;
+        // The form's option has always been `juniors`; this only matched `junior`, so
+        // every Juniors Secretary enquiry reached the mailer with no recipient and failed.
         case 'junior':
+        case 'juniors':
           msg.to = ['stockport.badders.results+junior@gmail.com']
           break;
         case 'juniortournament':
@@ -966,7 +1010,7 @@ exports.distribution_list = async function(req,res,next) {
 
 exports.contactus_get = async function(req, res, next) {
   try {
-    const rows = await Club.getAll();
+    const [rows, juniorClubs] = await Promise.all([Club.getAll(), JuniorClub.getContactable()]);
     res.render('contact-us-form', {
       static_path: '/static',
       pageTitle: "Contact Us",
@@ -976,6 +1020,9 @@ exports.contactus_get = async function(req, res, next) {
       // The club pages link here as /contact-us?club=<id> so the dropdown arrives
       // already set to the club the visitor came from.
       selectedClub: req.query.club,
+      // The junior clubs page links as /contact-us?junior=<id>, the same way.
+      juniorClubs,
+      selectedJuniorClub: req.query.junior,
       canonical: canonicalFor(req)
     });
   } catch (err) {

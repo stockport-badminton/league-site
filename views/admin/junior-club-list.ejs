@@ -1,0 +1,39 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Junior Clubs</h1>
+  <p><a href="/info/junior-clubs">View the public page</a></p>
+  <a class="btn btn-primary mb-3" href="/admin/junior-clubs/create">+ New Junior Club</a>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Venue</th>
+        <th>Enquiries</th>
+        <th>Shown</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% clubs.forEach(function(c){ %>
+        <tr>
+          <td><%= c.name %></td>
+          <td><%= c.venueName || c.venue_note || '' %></td>
+          <td><%= c.contact_email || c.website || '' %></td>
+          <td><%= c.active ? 'Shown' : 'Hidden' %></td>
+          <td>
+            <a href="/admin/junior-clubs/<%= c.id %>">Edit</a>
+            &nbsp;|&nbsp;
+            <form style="display:inline" method="post" action="/admin/junior-clubs/<%= c.id %>/delete" onsubmit="return confirm('Delete this junior club?');">
+              <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../footer.ejs') %>
