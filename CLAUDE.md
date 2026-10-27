@@ -60,7 +60,8 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 - **team**: `id, name, division (int)` · **division**: `id, name, league (int)`
 - **player**: `id, name, gender ('Male'/'Female'), team (int)`
 - **scorecardstore**: drafts, Game1–Game18 · **messer_scorecard**: Messer drafts, Game1–Game15
-- **`pointsFor` / `pointsAgainst` are GAMES won and lost, not league points.**
+- **The league tables rank on GAMES won and lost** (`gamesWon` / `gamesLost`; they were
+  `pointsFor` / `pointsAgainst` until 27 Oct 2026), not league points.
 
 ### Querying and migrations
 

@@ -6,24 +6,34 @@ const League = require('../../models/league');
 const app = require('../../app');
 
 const mockDivisionRows = [
-  { name: 'Mellor A', played: 10, pointsFor: 80, pointsAgainst: 40 },
-  { name: 'Disley A', played: 10, pointsFor: 60, pointsAgainst: 50 },
+  { name: 'Mellor A', played: 10, gamesWon: 80, gamesLost: 40 },
+  { name: 'Disley A', played: 10, gamesWon: 60, gamesLost: 50 },
 ];
 
 const mockAllTablesRows = [
-  { name: 'Mellor A', division: 'Division 1', played: 10, pointsFor: 80, pointsAgainst: 40 },
-  { name: 'Disley A', division: 'Division 2', played: 10, pointsFor: 60, pointsAgainst: 50 },
+  { name: 'Mellor A', division: 'Division 1', played: 10, gamesWon: 80, gamesLost: 40 },
+  { name: 'Disley A', division: 'Division 2', played: 10, gamesWon: 60, gamesLost: 50 },
 ];
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
+// Assert on the HTML (CLAUDE.md, Testing): a template reading a key the query no longer
+// returns renders an empty cell, not an error, and a status-only test passes against it.
+const cells = html => [...html.matchAll(/<td>\s*([^<]*?)\s*<\/td>/g)].map(m => m[1]);
+
 describe('GET /tables/:division', () => {
   it('returns 200', async () => {
     League.getLeagueTable.mockResolvedValue(mockDivisionRows);
     const res = await request(app).get('/tables/Division-1');
     expect(res.status).toBe(200);
+  });
+
+  it('renders played, games won, games lost and the average for each team', async () => {
+    League.getLeagueTable.mockResolvedValue(mockDivisionRows);
+    const res = await request(app).get('/tables/Division-1');
+    expect(cells(res.text)).toEqual(['Mellor A', '10', '80', '40', '8', 'Disley A', '10', '60', '50', '6']);
   });
 
   it('calls League.getLeagueTable with division and undefined season', async () => {
@@ -50,6 +60,12 @@ describe('GET /tables/All', () => {
     League.getAllLeagueTables.mockResolvedValue(mockAllTablesRows);
     const res = await request(app).get('/tables/All');
     expect(res.status).toBe(200);
+  });
+
+  it('renders played, games won, games lost and the average for each team', async () => {
+    League.getAllLeagueTables.mockResolvedValue(mockAllTablesRows);
+    const res = await request(app).get('/tables/All');
+    expect(cells(res.text)).toEqual(['Mellor A', '10', '80', '40', '8', 'Disley A', '10', '60', '50', '6']);
   });
 
   it('calls League.getAllLeagueTables with undefined season', async () => {

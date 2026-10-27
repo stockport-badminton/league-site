@@ -34,7 +34,7 @@ exports.getLeagueTable = async function(division, season) {
   const withdrawnFilter = WITHDRAWN_FILTER('team', season)
   division = division.replace('-', ' ')
   const [result] = await (await db.otherConnect()).query(
-    `SELECT c.name, c.played, c.pointsfor AS "pointsFor", c.pointsagainst AS "pointsAgainst"
+    `SELECT c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost"
      FROM (
        SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division
        FROM (
@@ -62,7 +62,7 @@ exports.getLeagueTable = async function(division, season) {
      ) AS c
      JOIN division ON c.division = division.id
      WHERE division.name = ? AND division.league = 1
-     ORDER BY "pointsFor" DESC`,
+     ORDER BY "gamesWon" DESC`,
     [resolvedSeason, resolvedSeason, division]
   )
   return result
@@ -129,7 +129,7 @@ exports.getAllLeagueTables = async function(season) {
   const divisionTable = season ? `division${season} AS division` : 'division'
   const withdrawnFilter = WITHDRAWN_FILTER('team', season)
   const [result] = await (await db.otherConnect()).query(
-    `SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "pointsFor", c.pointsagainst AS "pointsAgainst", c."divRank"
+    `SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost", c."divRank"
      FROM (
        SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division, team."divRank"
        FROM (
@@ -159,7 +159,7 @@ exports.getAllLeagueTables = async function(season) {
      ) AS c
      JOIN ${divisionTable} ON c.division = division.id
      WHERE division.league = 1
-     ORDER BY division, "pointsFor" DESC, "divRank"`,
+     ORDER BY division, "gamesWon" DESC, "divRank"`,
     [resolvedSeason, resolvedSeason]
   )
   return result

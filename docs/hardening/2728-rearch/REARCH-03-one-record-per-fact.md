@@ -129,6 +129,15 @@ Off-season only. Captains file every week; Messer runs through the season.
 
 ## Part C — names that say what they hold
 
+> **Done 27 Oct 2026.** `getLeagueTable` and `getAllLeagueTables` return `gamesWon` /
+> `gamesLost`; the two table pages and the table image read them. Proof: every `/tables`
+> page and every `/league-table-image` for all 14 local seasons captured before and after,
+> 123 of 136 byte-identical and the other 13 error pages differing only in their reference
+> code. Pinned by `__tests__/db/league-tables.test.js` (the keys, on real SQL) and the
+> rendered-cell assertions in `__tests__/integration/league-tables.test.js`; each fails
+> with its half of the change reverted. `getAllLeagueTablesWithTopBottomDetails` was left
+> alone: it has no caller and its keys are all lowercase. It is one of REARCH-02's 14.
+
 `pointsFor` / `pointsAgainst` are games won and lost, not league points (CLAUDE.md, *Common
 Table Patterns*). They are computed aliases in `models/league.js`, read in
 `socialController.js`, `views/tables.ejs` and `views/all-tables.ejs`. Rename to

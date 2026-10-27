@@ -578,7 +578,7 @@ exports.fixturesImage = async function (req, res, next) {
 // restates the implementation passes against the bug just as happily.
 //
 // `String(null)` is the four characters "null", and before a team's first result of the
-// season `pointsFor` and `pointsAgainst` come back NULL rather than 0. `avg` was already
+// season `gamesWon` and `gamesLost` come back NULL rather than 0. `avg` was already
 // guarded on `played > 0`; the other three were not, so at the start of every season the
 // picture read "0 null null" down the page.
 //
@@ -588,12 +588,12 @@ exports.fixturesImage = async function (req, res, next) {
 // what exposed it.
 //
 // Note W and L are GAMES won and lost, not league points: this league ranks on games, all
-// 18 of a fixture counting, which is why a team with 6 played shows 60 and 48. The database
-// columns say "points" and mean games.
+// 18 of a fixture counting, which is why a team with 6 played shows 60 and 48. The keys were
+// `pointsFor` and `pointsAgainst` until REARCH-03 part C named them for what they hold.
 function tableRowValues(row) {
   const played = Number(row.played) || 0;
-  const won = Number(row['pointsFor']) || 0;
-  const lost = Number(row['pointsAgainst']) || 0;
+  const won = Number(row['gamesWon']) || 0;
+  const lost = Number(row['gamesLost']) || 0;
   return {
     played: String(played),
     won: String(won),
