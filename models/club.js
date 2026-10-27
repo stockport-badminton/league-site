@@ -110,10 +110,9 @@ exports.clubDetailbyId = async function(clubId) {
 // email, for the missed-three notice. All of them, not one: College Green has two
 // of each and both should hear about it.
 //
-// An officer is the role flag on a player at that club OR the old pointer on the
-// club row — but a pointer only counts while the player it names is still at the
-// club. A pointer left behind when somebody moved on is how a former secretary ends
-// up on another club's mail (see stale-officer-pointers in tools/audit/checks.js).
+// An officer is the role flag on a player at that club. (The club row's old pointers,
+// "clubSec" and "matchSec", were dropped by REARCH-03: one left behind when somebody moved
+// on is how a former secretary ended up on another club's mail.)
 // INNER is right here, and the role literal says so to optional-join-guard: the join
 // defines what each row is, and a club with no officers should return no rows.
 /** @param {Array<number | string> | null | undefined} clubIds */
@@ -122,7 +121,6 @@ exports.getOfficerEmails = async function(clubIds) {
   return kysely.selectFrom('club')
     .innerJoin('player as p', join => join.onRef('p.club', '=', 'club.id').on(eb => eb.or([
       eb('p.clubSecretary', '=', 1), eb('p.matchSecrertary', '=', 1),
-      eb('club.clubSec', '=', eb.ref('p.id')), eb('club.matchSec', '=', eb.ref('p.id')),
     ])))
     .distinct()
     .select(eb => ['club.id as clubId', 'club.name as clubName', 'p.id as playerId',
@@ -158,19 +156,13 @@ exports.getContactDetailsById = async function(/** @type {number} */ clubId) {
       .whereRef('p.club', '=', 'club.id').where('p.matchSecrertary', '=', 1)
       .orderBy('p.id').limit(1).as('matchSec'), join => join.onTrue())
     .leftJoinLateral(eb => eb.selectFrom('player as p').selectAll('p')
-      .where(eb => eb.or([
-        eb.and([eb('p.club', '=', eb.ref('club.id')), eb('p.clubSecretary', '=', 1)]),
-        eb('club.clubSec', '=', eb.ref('p.id')),
-      ]))
+      .whereRef('p.club', '=', 'club.id').where('p.clubSecretary', '=', 1)
       .orderBy('p.id').limit(1).as('clubSec'), join => join.onTrue())
     // Likewise one captain per team, and LEFT so a team without one still lists.
     // This was an inner join, which meant a single team with no captain flagged removed
     // that team from the page entirely — the same trap as gotcha 1c.
     .leftJoinLateral(eb => eb.selectFrom('player as p').selectAll('p')
-      .where(eb => eb.or([
-        eb.and([eb('p.team', '=', eb.ref('team.id')), eb('p.teamCaptain', '=', 1)]),
-        eb('team.captain', '=', eb.ref('p.id')),
-      ]))
+      .whereRef('p.team', '=', 'team.id').where('p.teamCaptain', '=', 1)
       .orderBy('p.id').limit(1).as('teamCaptain'), join => join.onTrue())
     .select(eb => ['club.name as clubname', 'team.name as teamname',
       'venue.id as venueId', 'venue.name as venuename', 'venue.address as address',
@@ -210,14 +202,8 @@ const nameOrNull = (eb, who) => eb.fn('nullif', [eb.fn('trim', [fullName(eb, who
 exports.getClubRegistration = async function(clubName) {
   const core = await kysely.selectFrom('club')
     .leftJoin('venue', 'club.venue', 'venue.id')
-    .leftJoin('player as cs', join => join.on(eb => eb.or([
-      eb.and([eb('club.id', '=', eb.ref('cs.club')), eb('cs.clubSecretary', '=', 1)]),
-      eb('club.clubSec', '=', eb.ref('cs.id')),
-    ])))
-    .leftJoin('player as ms', join => join.on(eb => eb.or([
-      eb.and([eb('club.id', '=', eb.ref('ms.club')), eb('ms.matchSecrertary', '=', 1)]),
-      eb('club.matchSec', '=', eb.ref('ms.id')),
-    ])))
+    .leftJoin('player as cs', join => join.onRef('cs.club', '=', 'club.id').on('cs.clubSecretary', '=', 1))
+    .leftJoin('player as ms', join => join.onRef('ms.club', '=', 'club.id').on('ms.matchSecrertary', '=', 1))
     .distinctOn('club.id')
     .select(eb => ['club.id', 'club.name as clubName',
       'club.clubWebsite', 'club.contactUs as clubEmail',
@@ -230,23 +216,22 @@ exports.getClubRegistration = async function(clubName) {
       decrypt(eb.ref('ms.playerTel')).as('matchSecTel'),
       decrypt(eb.ref('ms.playerEmail')).as('matchSecEmail')])
     .where('club.name', '=', clubName)
-    .orderBy('club.id')
+    // The officer ids break ties, so which of two flagged people is shown does not
+    // depend on the plan Postgres picks.
+    .orderBy('club.id').orderBy('cs.id').orderBy('ms.id')
     .execute()
   if (!core.length) return null
 
   const teams = await kysely.selectFrom('team')
     .innerJoin('club', 'team.club', 'club.id')
-    .leftJoin('player as cap', join => join.on(eb => eb.or([
-      eb.and([eb('team.id', '=', eb.ref('cap.team')), eb('cap.teamCaptain', '=', 1)]),
-      eb('team.captain', '=', eb.ref('cap.id')),
-    ])))
+    .leftJoin('player as cap', join => join.onRef('cap.team', '=', 'team.id').on('cap.teamCaptain', '=', 1))
     .distinctOn('team.id')
     .select(eb => ['team.id', 'team.name as teamName',
       nameOrNull(eb, 'cap').as('captainName'),
       decrypt(eb.ref('cap.playerTel')).as('captainTel'),
       decrypt(eb.ref('cap.playerEmail')).as('captainEmail')])
     .where('club.name', '=', clubName)
-    .orderBy('team.id')
+    .orderBy('team.id').orderBy('cap.id')
     .execute()
   teams.sort((a, b) => a.teamName.localeCompare(b.teamName))
 

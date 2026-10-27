@@ -129,14 +129,17 @@ describe('getEmails — the distribution lists', () => {
     expect(await list({ teamName: 'No Such Team' })).toEqual([]);
   });
 
-  // The old pointer columns still count while they exist (REARCH-03 drops them).
-  it('includes an officer named only by the club pointer, and drops addresses without an @', async () => {
+  // The flag is the one record of an officer (REARCH-03). The old club pointer matched
+  // whoever it named wherever they now played, which kept a player who had left a club on
+  // its division's list until her mailbox bounced (18 Sep 2026). A pointer is no longer
+  // read; REARCH-03's migration then drops the column.
+  it('ignores the old club pointer, and drops addresses without an @', async () => {
     await player(30006);
     await run(`UPDATE player SET "playerEmail" = pgp_sym_encrypt('pointer@example.invalid', ?) WHERE id = 30006`, [KEY()]);
     await run('UPDATE club SET "matchSec" = 30006 WHERE id = ?', [CLUB]);
     await flag(30007, 'clubSecretary', 'not-an-address');
     const emails = await Player.getEmails({ teamName: 'Writable A' });
-    expect(emails).toContain('pointer@example.invalid');
+    expect(emails).not.toContain('pointer@example.invalid');
     expect(emails).not.toContain('not-an-address');
   });
 });

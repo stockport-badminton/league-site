@@ -29,6 +29,18 @@ separately, and the copies have already disagreed.
 > players still carry role flags at No Club / No Team. **Left alone deliberately: Neil's
 > call (25 Oct) is that a player who leaves a club keeps their roles.** They reach no real
 > list. Also found: HARD-49.
+>
+> **Step 3, first half, done 27 Oct 2026:** no reader follows a pointer. `getEmails`,
+> `club.getOfficerEmails`, `getContactDetailsById` and `getClubRegistration` are flag-only,
+> and the `stale-officer-pointers` check is retired (step 4). Proof: with the local pointers
+> nulled to match production, snapshots before and after over 121 `getEmails` argument sets
+> (every role × division, every club, every team) and every club for the other three — the
+> recipient sets identical. `getEmails` returns its DISTINCT rows in no defined order, so it
+> was compared unordered; `getClubRegistration`'s `DISTINCT ON` gained an officer-id tie-break
+> because No Team has two flagged captains and the pick had depended on the plan. Tests in
+> `__tests__/db/players-writes.test.js` and `club.test.js` fail against the old readers.
+> **Left: the migration dropping the three columns**, deployed separately so that rolling
+> back one revision never meets a missing column.
 
 ### Why
 

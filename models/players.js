@@ -983,26 +983,24 @@ exports.getEmails = async function(searchTerms) {
   // below join it to the players who hold that role; a club-level role (match or club
   // secretary) lands on every team of the club.
   //
-  // An officer is the role flag OR the old pointer on the club or team (club."matchSec",
-  // club."clubSec", team.captain). Every pointer is NULL as of 25 Oct 2026, and REARCH-03
-  // drops them; until then they are read here exactly as before.
+  // An officer is the role flag on the player, read against the player's own club or
+  // team. There used to be a second record, a pointer on the club or team
+  // (club."matchSec", club."clubSec", team.captain), which never checked where the player
+  // now was: it kept someone who had left a club on its division's list until her mailbox
+  // bounced (18 Sep 2026). REARCH-03 cleared the pointers (25 Oct 2026) and then dropped them.
   /** @param {string} role */
   const clubTeams = role => kysely.selectFrom('club').innerJoin('team', 'team.club', 'club.id')
     .select(['club.id', 'club.name as clubname', 'team.id as teamid', 'team.name as teamname',
-      'club.matchSec', 'club.clubSec', 'team.captain', 'team.division', sql.lit(role).as('role')])
+      'team.division', sql.lit(role).as('role')])
   /** @param {string} role @param {(eb: any) => any} holds */
   const branch = (role, holds) => kysely.selectFrom(clubTeams(role).as('a'))
     .innerJoin('player', join => join.on(holds))
     .selectAll('a')
     .select(eb => decrypt(eb.ref('player.playerEmail')).as('playerEmail'))
 
-  const everyone = branch('match Sec', eb => eb.or([eb('a.matchSec', '=', eb.ref('player.id')),
-      eb.and([eb('player.matchSecrertary', '=', 1), eb('a.id', '=', eb.ref('player.club'))])]))
-    .unionAll(branch('club Sec', eb => eb.or([eb('a.clubSec', '=', eb.ref('player.id')),
-      eb.and([eb('player.clubSecretary', '=', 1), eb('a.id', '=', eb.ref('player.club'))])])))
-    .unionAll(branch('team Captain', eb => eb.or([
-      eb.and([eb('player.teamCaptain', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))]),
-      eb('a.captain', '=', eb.ref('player.id'))])))
+  const everyone = branch('match Sec', eb => eb.and([eb('player.matchSecrertary', '=', 1), eb('a.id', '=', eb.ref('player.club'))]))
+    .unionAll(branch('club Sec', eb => eb.and([eb('player.clubSecretary', '=', 1), eb('a.id', '=', eb.ref('player.club'))])))
+    .unionAll(branch('team Captain', eb => eb.and([eb('player.teamCaptain', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))])))
     .unionAll(branch('treasurer', eb => eb.and([eb('player.treasurer', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))])))
     .unionAll(branch('otherComms', eb => eb.and([eb('player.otherComms', '=', 1), eb('a.teamid', '=', eb.ref('player.team'))])))
 

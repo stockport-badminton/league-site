@@ -648,9 +648,8 @@ exports.getFixtureId = async function(obj) {
 // secretary and match secretary and the home team's captain, each labelled, so the
 // results secretary can see who is about to be emailed before editing the list.
 //
-// Read from the role FLAGS, not the old pointer columns. Those
-// (club."clubSec" and friends) are being retired and can name someone who has since
-// left the club (CLAUDE.md, "An officer is recorded two ways").
+// Read from the role FLAGS, the one record of an officer since REARCH-03 dropped the old
+// pointer columns (club."clubSec" and friends), which could name someone who had left.
 /** @param {number} fixtureId */
 exports.getReminderContacts = async function(fixtureId) {
   const fixture = await kysely.selectFrom('fixture as f')
