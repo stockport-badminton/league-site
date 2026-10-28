@@ -237,6 +237,15 @@ identical" is not the test. Instead:
 2. **Migration: create the six history tables and the six views.** Additive. Follow the
    RLS convention every table has (`enable-rls-policies.sql`, migrations 023/024), or the
    Supabase advisor starts reporting again.
+   **Written 28 Oct 2026: migration 030.** Each history table holds the union of the
+   archives' columns *and* the live table's, in the live types. Without the live columns,
+   the next rollover would drop `team.withdrawn*` and messer's bracket links. The
+   exceptions are contact and login details, plus `player.role`/`messerAdmin`. The
+   archive-only officer pointers are kept as history. The views take the current season
+   from the live table and ignore history rows for it. That way, a snapshot taken before
+   the next season's `startDate` cannot appear twice.
+   A unique index on `season.name` carries the reference. `__tests__/db/season-history.test.js`
+   fails when a new live column is in neither the history table nor its exclusion list.
 3. **Backfill: a script, not the migration.** `tools/local-db.sh load` applies every
    migration *before* it loads `002_data.sql`, so a backfill written into the migration
    would copy empty archives on every local load. A reviewed script in the shape

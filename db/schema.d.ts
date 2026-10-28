@@ -51,6 +51,25 @@ export interface Club {
   venue: number | null;
 }
 
+export interface ClubAt {
+  clubNight: string | null;
+  clubNightCourts: number | null;
+  clubNightText: string | null;
+  clubSec: number | null;
+  clubWebsite: string | null;
+  contactUs: string | null;
+  facebook: string | null;
+  id: number | null;
+  instagram: string | null;
+  matchNightText: string | null;
+  matchSec: number | null;
+  matchVenue: number | null;
+  name: string | null;
+  season: string | null;
+  twitter: string | null;
+  venue: number | null;
+}
+
 export interface ClubRegistration {
   chase_count: Generated<number>;
   chased_at: Timestamp | null;
@@ -63,11 +82,46 @@ export interface ClubRegistration {
   updated_by: string | null;
 }
 
+export interface ClubSeason {
+  clubNight: string | null;
+  clubNightCourts: number | null;
+  clubNightText: string | null;
+  clubSec: number | null;
+  clubWebsite: string | null;
+  contactUs: string | null;
+  facebook: string | null;
+  id: number;
+  instagram: string | null;
+  matchNightText: string | null;
+  matchSec: number | null;
+  matchVenue: number | null;
+  name: string | null;
+  season: string;
+  twitter: string | null;
+  venue: number | null;
+}
+
 export interface Division {
   id: Generated<number>;
   league: number | null;
   name: string;
   rank: number | null;
+}
+
+export interface DivisionAt {
+  id: number | null;
+  league: number | null;
+  name: string | null;
+  rank: number | null;
+  season: string | null;
+}
+
+export interface DivisionSeason {
+  id: number;
+  league: number | null;
+  name: string | null;
+  rank: number | null;
+  season: string;
 }
 
 export interface EmailEvent {
@@ -217,6 +271,21 @@ export interface Messer {
   winningTeam: number | null;
 }
 
+export interface MesserAt {
+  awayScore: number | null;
+  awayTeam: number | null;
+  drawPos: number | null;
+  homeScore: number | null;
+  homeTeam: number | null;
+  id: number | null;
+  nextDrawPos: number | null;
+  nextSlot: string | null;
+  round: number | null;
+  season: string | null;
+  section: string | null;
+  winningTeam: number | null;
+}
+
 export interface MesserResult {
   approved_at: Timestamp | null;
   awayTeam: number;
@@ -327,6 +396,21 @@ export interface MesserScorecard {
   updated_at: Generated<Timestamp | null>;
 }
 
+export interface MesserSeason {
+  awayScore: number | null;
+  awayTeam: number | null;
+  drawPos: number | null;
+  homeScore: number | null;
+  homeTeam: number | null;
+  id: number;
+  nextDrawPos: number | null;
+  nextSlot: string | null;
+  round: number | null;
+  season: string;
+  section: string | null;
+  winningTeam: number | null;
+}
+
 export interface Player {
   authEmail: Buffer | null;
   club: number;
@@ -348,6 +432,44 @@ export interface Player {
   team: number | null;
   teamCaptain: Generated<number | null>;
   treasurer: Generated<number | null>;
+}
+
+export interface PlayerAt {
+  club: number | null;
+  clubSecretary: number | null;
+  date_of_registration: Timestamp | null;
+  family_name: string | null;
+  first_name: string | null;
+  gender: string | null;
+  id: number | null;
+  junior: number | null;
+  matchSecrertary: number | null;
+  otherComms: number | null;
+  rank: number | null;
+  rating: number | null;
+  season: string | null;
+  team: number | null;
+  teamCaptain: number | null;
+  treasurer: number | null;
+}
+
+export interface PlayerSeason {
+  club: number | null;
+  clubSecretary: number | null;
+  date_of_registration: Timestamp | null;
+  family_name: string | null;
+  first_name: string | null;
+  gender: string | null;
+  id: number;
+  junior: number | null;
+  matchSecrertary: number | null;
+  otherComms: number | null;
+  rank: number | null;
+  rating: number | null;
+  season: string;
+  team: number | null;
+  teamCaptain: number | null;
+  treasurer: number | null;
 }
 
 export interface RegistrationRequest {
@@ -521,6 +643,54 @@ export interface Team {
   withdrawnReason: string | null;
 }
 
+export interface TeamAt {
+  captain: number | null;
+  club: number | null;
+  courtspace: number | null;
+  division: number | null;
+  divRank: number | null;
+  draw: number | null;
+  endtime: string | null;
+  handicap: string | null;
+  id: number | null;
+  matchDay: string | null;
+  name: string | null;
+  penalties: number | null;
+  rank: number | null;
+  season: string | null;
+  section: string | null;
+  starttime: string | null;
+  venue: number | null;
+  withdrawn: Timestamp | null;
+  withdrawnDivision: number | null;
+  withdrawnFixtures: number[] | null;
+  withdrawnReason: string | null;
+}
+
+export interface TeamSeason {
+  captain: number | null;
+  club: number | null;
+  courtspace: number | null;
+  division: number | null;
+  divRank: number | null;
+  draw: number | null;
+  endtime: string | null;
+  handicap: string | null;
+  id: number;
+  matchDay: string | null;
+  name: string | null;
+  penalties: number | null;
+  rank: number | null;
+  season: string;
+  section: string | null;
+  starttime: string | null;
+  venue: number | null;
+  withdrawn: Timestamp | null;
+  withdrawnDivision: number | null;
+  withdrawnFixtures: number[] | null;
+  withdrawnReason: string | null;
+}
+
 export interface ThreadsResultPost {
   attempts: Generated<number>;
   claimed_at: Timestamp | null;
@@ -543,11 +713,37 @@ export interface Venue {
   placeId: string | null;
 }
 
+export interface VenueAt {
+  address: string | null;
+  gMapUrl: string | null;
+  id: number | null;
+  Lat: number | null;
+  Lng: number | null;
+  name: string | null;
+  placeId: string | null;
+  season: string | null;
+}
+
+export interface VenueSeason {
+  address: string | null;
+  gMapUrl: string | null;
+  id: number;
+  Lat: number | null;
+  Lng: number | null;
+  name: string | null;
+  placeId: string | null;
+  season: string;
+}
+
 export interface DB {
   blocked_entry: BlockedEntry;
   club: Club;
+  club_at: ClubAt;
   club_registration: ClubRegistration;
+  club_season: ClubSeason;
   division: Division;
+  division_at: DivisionAt;
+  division_season: DivisionSeason;
   email_event: EmailEvent;
   fines: Fines;
   fixture: Fixture;
@@ -558,9 +754,13 @@ export interface DB {
   league: League;
   live_scorecard: LiveScorecard;
   messer: Messer;
+  messer_at: MesserAt;
   messer_result: MesserResult;
   messer_scorecard: MesserScorecard;
+  messer_season: MesserSeason;
   player: Player;
+  player_at: PlayerAt;
+  player_season: PlayerSeason;
   registration_request: RegistrationRequest;
   schema_migrations: SchemaMigrations;
   scorecardstore: Scorecardstore;
@@ -570,6 +770,10 @@ export interface DB {
   social_token: SocialToken;
   submission_log: SubmissionLog;
   team: Team;
+  team_at: TeamAt;
+  team_season: TeamSeason;
   threads_result_post: ThreadsResultPost;
   venue: Venue;
+  venue_at: VenueAt;
+  venue_season: VenueSeason;
 }
