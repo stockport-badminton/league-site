@@ -195,3 +195,23 @@ describe('Player.getPlayerGameData', () => {
     expect(new Set(teamOn(2026))).toEqual(new Set(['Eastbank B']));
   });
 });
+
+// Step 5: which seasons exist is answered from history, not from which archive tables
+// happen to exist. Both directions are broken on purpose: an archive with no history is not
+// a season, and history with no archive is.
+describe('Season.getAll and loadServable', () => {
+  it('lists the seasons with history, newest first, and not the current one', async () => {
+    expect((await Season.getAll()).map(r => r.name)).toEqual([LAST, PAST]);
+  });
+
+  it('reads team_season, not information_schema', async () => {
+    await run('DELETE FROM team_season WHERE season = ?', [LAST]);
+    await run('DROP TABLE team20242025');   // rolled back with the rest of the test
+
+    expect((await Season.getAll()).map(r => r.name)).toEqual([PAST]);
+    await Season.loadServable();
+    expect(Season.isServable(PAST)).toBe(true);
+    expect(Season.isServable(LAST)).toBe(false);
+    expect(Season.isServable(Season.current())).toBe(true);
+  });
+});

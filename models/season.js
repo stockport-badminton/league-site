@@ -1,5 +1,4 @@
 // @ts-check
-var db = require('../db_connect.js');
 const log = require('../utils/log');
 const { kysely } = require('../db');
 
@@ -44,21 +43,17 @@ exports.init = async function() {
 exports.current = function() { return _current || dateBasedSeason(0); };
 exports.previous = function() { return _previous || dateBasedSeason(1); };
 
-// Seasons that have an archived data snapshot (a team<season> table), newest
-// first — used to build the History nav / archive. Seasons in the season table
-// without a snapshot (e.g. 2020-21 COVID, or the current season) are excluded,
-// since /results and /tables would 500 on a missing table.
+// Seasons that have history (team_season rows), newest first — used to build the
+// History nav / archive. Seasons in the season table without any (e.g. 2020-21 COVID,
+// or the current season, whose rows are still the live tables) are excluded, since
+// /results and /tables for them would be empty. Until REARCH-02 this asked
+// information_schema whether a team<season> table existed.
 exports.getAll = async function() {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT s.name, s.label
-     FROM season s
-     WHERE EXISTS (
-       SELECT 1 FROM information_schema.tables t
-       WHERE t.table_name = 'team' || s.name
-     )
-     ORDER BY s."startDate" DESC`
-  );
-  return rows;
+  return kysely.selectFrom('season as s')
+    .select(['s.name', 's.label'])
+    .where(eb => eb.exists(eb.selectFrom('team_season as ts').select('ts.id').whereRef('ts.season', '=', 's.name')))
+    .orderBy('s.startDate', 'desc')
+    .execute();
 };
 
 // ---------------------------------------------------------------------------
@@ -109,7 +104,7 @@ exports.assertName = function(season) {
 };
 
 // Whether a season can actually be served: correct shape AND either the current
-// season or one with an archived snapshot. Used by the route guard to answer 404
+// season or one with history (getAll). Used by the route guard to answer 404
 // instead of letting a well-formed but non-existent season reach SQL and come back
 // as `relation "team20252027" does not exist` (Sentry NODE-Q).
 //

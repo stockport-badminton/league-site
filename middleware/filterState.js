@@ -59,8 +59,8 @@ exports.init = async function () {
   try {
     const current = seasonModel.current();
     // Only seasons we can actually serve. season.getAll() already restricts to
-    // those with an archived team<season> snapshot - offering a season without
-    // one would 500 the page it links to.
+    // those with history (team_season rows) - offering a season without
+    // any would link to an empty page.
     const rows = await seasonModel.getAll();
     // The current season is the empty-value option in the select rather than an
     // entry here, so picking it produces a clean URL with no season segment.

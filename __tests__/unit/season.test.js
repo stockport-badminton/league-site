@@ -93,17 +93,15 @@ describe('season.isServable', () => {
   });
 
   it('rejects a well-formed season with no data once the allowlist is loaded', async () => {
-    const db = require('../../db_connect');
-    db.otherConnect.mockResolvedValue({
-      query: jest.fn(() => Promise.resolve([[{ name: '20252026', label: '2025 - 2026' }], []])),
-    });
+    // getAll's SQL is tested against Postgres in __tests__/db/season-history-readers.test.js.
+    jest.spyOn(seasonModel, 'getAll').mockResolvedValue([{ name: '20252026', label: '2025 - 2026' }]);
 
     const size = await seasonModel.loadServable();
     expect(size).toBeGreaterThan(0);
 
     expect(seasonModel.isServable('20252026')).toBe(true);
-    // 20252027 is the season from Sentry NODE-Q: correct shape, no team20252027
-    // table, so it used to 500 with `relation "team20252027" does not exist`.
+    // 20252027 is the season from Sentry NODE-Q: correct shape, no history (then: no
+    // team20252027 table), so it used to 500 with `relation "team20252027" does not exist`.
     expect(seasonModel.isServable('20252027')).toBe(false);
   });
 });

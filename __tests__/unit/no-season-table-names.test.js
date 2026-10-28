@@ -7,15 +7,15 @@
 // /tables/All/20252026%20AS%20team%20WHERE%20false%20-- reached the parser. The readers now
 // join the <entity>_at views with the season bound (`t.season = ?`), and this keeps it so.
 //
-// models/ and controllers/ only, for now: tools/season-history-backfill.js reads the
-// archives by name until they are dropped (step 8), and tools/local-db/sync.js creates
-// them until step 5. Both join this list when they stop.
+// Not the rest of tools/ yet: tools/season-history-backfill.js reads the archives by name
+// until they are dropped (step 8), and joins this list then. tools/local-db/sync.js joined
+// at step 5, when it stopped creating them.
 
 const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..', '..');
-const DIRS = ['models', 'controllers'];
+const DIRS = ['models', 'controllers', 'tools/local-db'];
 
 function sources(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -38,7 +38,7 @@ const ENTITY = '(?:team|club|division|player|venue|messer)';
 const BUILT = new RegExp(`\\b${ENTITY}\\$\\{|\\b${ENTITY}['"]\\s*\\+`);
 
 describe('season table names', () => {
-  it('are never built from a season in models/ or controllers/', () => {
+  it('are never built from a season in models/, controllers/ or tools/local-db/', () => {
     const offenders = [];
     for (const dir of DIRS) {
       for (const file of sources(path.join(root, dir))) {

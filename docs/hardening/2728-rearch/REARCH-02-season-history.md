@@ -270,8 +270,8 @@ identical" is not the test. Instead:
    The load also had to learn something new. The seed still `INSERT`s the officer
    pointers migration 029 dropped, so `load` had failed since 27 Oct. It now adds the
    three columns back for the seed and drops them after `seed-repairs.sql`.
-   **Until step 5, a `sync` that creates a new archive leaves its history empty.** Re-run
-   the backfill (`--apply`) after it.
+   ~~Until step 5, a `sync` that creates a new archive leaves its history empty.~~ Since
+   step 5 the sync copies history rows itself.
 4. **Switch the 14 functions one at a time**, each proven identical with the snapshot
    harness (REARCH-08) **for every season that has history**, not a sample — the data is
    the same, so the output must be. Then render `/tables/:division/:season` and
@@ -326,6 +326,18 @@ identical" is not the test. Instead:
 5. **Switch the readers of "which seasons exist":** `season.getAll` and `loadServable` query
    `team_season`; `sync.js` copies history rows instead of creating tables (and stops
    reading DDL from production).
+   **Done 28 Oct 2026.** `getAll` is a Kysely query: seasons with a `team_season` row,
+   newest first. `loadServable` builds on it, and so it follows. `season.js` no longer
+   reads `information_schema` and no longer needs `db_connect`. Production gives the
+   same 13 seasons either way (2020/21 and the current season have neither archive nor
+   history), so the History nav, the season filter, the sitemap and the 404 guard are
+   unchanged. `sync.js` now treats the six history tables like any other table: it upserts
+   every row on `(season, id)` (7,647 in production) and creates no tables. Archives
+   already present locally are left alone, since only the backfill reads them. That ends
+   the step 3 caveat: after a sync, the backfill does not need re-running.
+   `tools/local-db/` joins `no-season-table-names.test.js`. The test in
+   `__tests__/db/season-history-readers.test.js` deletes one season's history and drops
+   another's archive, and it fails against the old `getAll`.
 6. **`tools/season-archive.js` — the rollover, in the repository.** `INSERT INTO
    team_season SELECT '<season>', … FROM team` for all six, in one transaction. Dry by
    default; refuses if that season already has rows; ends by re-reading the counts it
