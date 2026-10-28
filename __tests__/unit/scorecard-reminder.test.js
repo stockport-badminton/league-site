@@ -1,67 +1,61 @@
 const {
-  isReminderDue, isScorecardOverdue, dueByLabel, parseRecipients, scorecardDueAt,
+  isReminderDue, isScorecardOverdue, dueByLabel, parseRecipients,
 } = require('../../utils/scorecardReminder');
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
-// Midnight UK time on Thursday 22 October, as the fixture table stores it.
+// Midnight UK time on Thursday 22 October, as the fixture table stores it. The clocks
+// go back on 25 October, so these also hold the count to calendar days.
 const FIXTURE = '2026-10-21T23:00:00.000Z';
-const at = days => new Date(FIXTURE).getTime() + days * DAY;
+const uk = iso => Date.parse(iso); // instants written in UTC; comments give UK time
 
 function row(overrides) {
   return { status: 'outstanding', date: FIXTURE, homeScore: null, hasDraft: false, ...overrides };
 }
 
 describe('isReminderDue', () => {
-  it('is due seven days after the fixture, as the rules say', () => {
-    expect(scorecardDueAt(FIXTURE).getTime()).toBe(at(7));
+  it('offers nothing until day 3', () => {
+    expect(isReminderDue(row(), uk('2026-10-22T19:00:00Z'))).toBe(false); // match night
+    expect(isReminderDue(row(), uk('2026-10-24T22:59:00Z'))).toBe(false); // 23:59 BST, 24th
   });
 
-  it('offers nothing in the first two days', () => {
-    expect(isReminderDue(row(), at(1))).toBe(false);
-    expect(isReminderDue(row(), at(2))).toBe(false);
+  it('offers the reminder from day 3 to day 13', () => {
+    expect(isReminderDue(row(), uk('2026-10-24T23:01:00Z'))).toBe(true); // 00:01 BST, 25th
+    expect(isReminderDue(row(), uk('2026-10-29T23:30:00Z'))).toBe(true); // 23:30 GMT, 29th
+    expect(isReminderDue(row(), uk('2026-11-04T23:59:00Z'))).toBe(true); // 23:59, 4 Nov
   });
 
-  it('offers the reminder from two days after the fixture, through the deadline and the week after', () => {
-    expect(isReminderDue(row(), at(2) + HOUR)).toBe(true);
-    expect(isReminderDue(row(), at(7))).toBe(true);
-    expect(isReminderDue(row(), at(13))).toBe(true);
-  });
-
-  it('stops at two weeks — older than that is a rearrangement, not a reminder', () => {
-    expect(isReminderDue(row(), at(14))).toBe(false);
-    expect(isReminderDue(row(), at(400))).toBe(false);
+  it('stops on day 14 — older than that is a rearrangement, not a reminder', () => {
+    expect(isReminderDue(row(), uk('2026-11-05T00:01:00Z'))).toBe(false);
+    expect(isReminderDue(row(), uk('2027-10-01T12:00:00Z'))).toBe(false);
   });
 
   it('never offers it when a draft has been filed', () => {
-    expect(isReminderDue(row({ hasDraft: true }), at(5))).toBe(false);
+    expect(isReminderDue(row({ hasDraft: true }), uk('2026-10-27T12:00:00Z'))).toBe(false);
   });
 
   it('never offers it for a result already in, or a fixture that is not outstanding', () => {
-    expect(isReminderDue(row({ homeScore: 10 }), at(5))).toBe(false);
+    const now = uk('2026-10-27T12:00:00Z');
+    expect(isReminderDue(row({ homeScore: 10 }), now)).toBe(false);
     for (const status of ['rearranged', 'rearranging', 'conceded', 'complete', 'void']) {
-      expect(isReminderDue(row({ status }), at(5))).toBe(false);
+      expect(isReminderDue(row({ status }), now)).toBe(false);
     }
   });
 });
 
 describe('isScorecardOverdue', () => {
-  it('is overdue once more than seven days have passed', () => {
-    expect(isScorecardOverdue(FIXTURE, at(6))).toBe(false);
-    expect(isScorecardOverdue(FIXTURE, at(7))).toBe(false);
-    expect(isScorecardOverdue(FIXTURE, at(7) + 1)).toBe(true);
-    expect(isScorecardOverdue(FIXTURE, at(10))).toBe(true);
+  it('is on time until close of play on day 7, overdue from day 8', () => {
+    expect(isScorecardOverdue(FIXTURE, uk('2026-10-29T23:59:00Z'))).toBe(false); // 23:59 GMT, 29th
+    expect(isScorecardOverdue(FIXTURE, uk('2026-10-30T00:01:00Z'))).toBe(true);
   });
 
   it('is not overdue without a usable date', () => {
-    expect(isScorecardOverdue(undefined, at(10))).toBe(false);
-    expect(isScorecardOverdue('not a date', at(10))).toBe(false);
+    expect(isScorecardOverdue(undefined, uk('2026-11-01T12:00:00Z'))).toBe(false);
+    expect(isScorecardOverdue('not a date', uk('2026-11-01T12:00:00Z'))).toBe(false);
   });
 });
 
 describe('dueByLabel', () => {
-  it('names the last day the card is on time, in UK time', () => {
-    expect(dueByLabel(FIXTURE)).toBe('Wednesday 28 October');
+  it('names day 7 — a 22 October match is due by the 29th', () => {
+    expect(dueByLabel(FIXTURE)).toBe('Thursday 29 October');
   });
 
   it('has nothing to say without a date', () => {

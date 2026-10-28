@@ -149,7 +149,7 @@ describe('POST /fixture/reminder', () => {
 
   it('says the card is overdue once seven days have passed', async () => {
     mockCurrentUser = SUPERADMIN;
-    fixtureDaysAgo(9);
+    fixtureDaysAgo(10);
     await request(app).post('/fixture/reminder').send(OK_BODY);
     const { Message } = sentParams();
     expect(Message.Subject.Data).toBe('Reminder: overdue scorecard');
