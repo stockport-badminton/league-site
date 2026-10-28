@@ -167,9 +167,10 @@ the season explicitly from the controller everywhere means a query never asks th
 > function from `player${season}` to `player_at`. That move should now be a pure,
 > snapshot-identical refactor like the rest of step 4. Watch for two archive quirks HARD-48
 > found and coded around: `player20182019` has no `rank` column, and `player20192020`
-> leaves 587 of 876 ranks blank. The backfill must carry over HARD-48's rule (an archive
-> ranking fewer than half its registered players keeps the live rank), or the move will
-> not be identical.
+> leaves 587 of 876 ranks blank. The reader must keep HARD-48's rule (an archive
+> ranking fewer than half its registered players keeps the live rank), computed over
+> `player_season`, or the move will not be identical. The backfill copies ranks as they
+> are (decided 28 Oct 2026; see step 3).
 
 ### What is wrong today — measured 25 Oct 2026, 2024/25 fixtures against `player20242025`
 
@@ -198,9 +199,10 @@ LEFT JOIN player     p ON p.id = f."homeMan1"
 
 - **`LEFT JOIN` with a fall back to live**, because of the 3 players with no history row.
   An inner join here is the gotcha 1c bug again.
-- **Trim names during the backfill.** The live table was cleaned (3 untrimmed names left),
-  but the 2024/25 archive still has **298**. Copying them as they are would bring
-  stray-space names back onto every old page.
+- **Trim names, in this part rather than the backfill.** The live table was cleaned (3
+  untrimmed names left), but the 2024/25 archive still has **298**. Reading them as they
+  are would bring stray-space names back onto every old page. The backfill copies them
+  exactly (step 3), so the trim is one of the differences this part explains.
 - **A page about a person keeps the person's name live, but not the team.**
   `getPlayerGameData` and `getPlayerEloTimeSeries` show one person across every season, so
   their name is what they are called now. **Decided 25 Oct 2026:** a game-history row
@@ -253,6 +255,23 @@ identical" is not the test. Instead:
    by `EXCEPT` both ways per archive** (archive minus history, history minus archive, both
    zero rows, excluding the contact columns), printing counts per table. Run it locally,
    then production. The local load gains the same step after `seed-repairs.sql`.
+   **Written 28 Oct 2026: `tools/season-history-backfill.js`.** It lives in `tools/`, not
+   `scripts/`, because the local load runs it. Production dry run, 28 Oct: all 54
+   archives exact, 7,647 rows.
+   **It is a faithful copy, and that departs from this brief.** Two things the brief
+   asked the backfill to do now belong to the readers:
+   - **HARD-48's rank rule.** Baking the live rank in would record today's rank as
+     2019/20's, and the copy could no longer be proved exact. Step 4's reader applies the
+     rule over `player_season`, which still has the 2018/19 NULLs and the 2019/20 blanks
+     to count.
+   - **Trimming names.** That is a visible change, so it goes in Part 2's commit, with
+     the other differences explained there.
+
+   The load also had to learn something new. The seed still `INSERT`s the officer
+   pointers migration 029 dropped, so `load` had failed since 27 Oct. It now adds the
+   three columns back for the seed and drops them after `seed-repairs.sql`.
+   **Until step 5, a `sync` that creates a new archive leaves its history empty.** Re-run
+   the backfill (`--apply`) after it.
 4. **Switch the 14 functions one at a time**, each proven identical with the snapshot
    harness (REARCH-08) **for every season that has history**, not a sample — the data is
    the same, so the output must be. Then render `/tables/:division/:season` and

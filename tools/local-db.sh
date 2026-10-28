@@ -97,10 +97,25 @@ case "${1:-}" in
       # seed-repairs.sql straight after. The snapshot predates data repairs that
       # production received before the constraints now replayed ahead of it (HARD-38),
       # so it cannot satisfy them until those repairs are replayed too.
+      #
+      # The seed also predates columns since dropped, and names them in its INSERTs: the
+      # officer pointers (migration 029). They come back for the seed and go again after,
+      # as production's went; production had cleared every one first (25 Oct 2026).
+      psql_in -q -c 'ALTER TABLE club ADD COLUMN "matchSec" integer, ADD COLUMN "clubSec" integer;
+                     ALTER TABLE team ADD COLUMN captain integer;'
       { echo 'SET session_replication_role = replica;'; cat migrations/data/002_data.sql; } | psql_in -q -f -
 
       echo "→ production repairs the seed predates, then re-validating every foreign key"
       psql_in -q -f - < tools/local-db/seed-repairs.sql
+      psql_in -q -c 'ALTER TABLE club DROP COLUMN "matchSec", DROP COLUMN "clubSec";
+                     ALTER TABLE team DROP COLUMN captain;'
+
+      # The seed fills the season archives; the history tables (migration 030) are filled
+      # from them, as production's were. Exact or it stops the load (REARCH-02).
+      echo "→ season history from the archives"
+      DATABASE_URL="postgresql://$DB_USER:$DB_USER@127.0.0.1:$PORT/$DB_NAME" \
+        node tools/season-history-backfill.js --apply | tail -1
+      [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "✗ season history backfill failed"; exit 1; }
     else
       echo "→ NO SEED FOUND at migrations/data/002_data.sql — schema only."
       echo "  That directory is gitignored, so a fresh clone has no data. The app will"

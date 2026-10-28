@@ -230,6 +230,11 @@ half-applied load is worse than none and throwing a local database away costs no
   script that production needs before a constraint also belongs in that file**, or the
   next constraint migration breaks the load the same way. The re-validation is what stops
   the file being a way to hide orphans: a violation still stops the load and names the key.
+  **A column dropped since the seed but named in its `INSERT`s** needs to be added back just
+  before the seed and dropped again afterwards, in `local-db.sh`. Migration 029's officer
+  pointers are the first case.
+  Then `tools/season-history-backfill.js --apply` fills the season history tables from the
+  archives (REARCH-02), and the load stops if any copy is not exact.
 - **`tools/local-db/dev-fixtures.sql` supplies what that snapshot cannot**: outstanding
   fixtures in the current season (without them the scorecard form has nothing to match a
   result against), a draft carrying a `confirmToken`, and a messer draft. Six browser
