@@ -146,6 +146,31 @@ describe('Fixture.getMatchPlayerOrderDetails', () => {
     expect((await ben(LAST))[0]).toEqual({ Man2: 'Ben NorthfieldA', Man2Rank: 2, Man2TeamName: 'Northfield A' });
   });
 
+  // Names stay live (Part 2): history's spelling is not used while the live row exists.
+  it("shows the player's name today, not the one history holds", async () => {
+    await run(`UPDATE player_season SET first_name = 'Benn' WHERE season = ? AND id = 12`, [LAST]);
+    expect((await ben(LAST))[0].Man2).toBe('Ben NorthfieldA');
+  });
+
+  // A player deleted or merged since: the fixture used to vanish through an inner join to
+  // the live player (gotcha 1c). Now it shows, under the name history has.
+  it('keeps the fixture when a player has no live row any more, named from history', async () => {
+    const before = (await ben(LAST)).length;
+    await run('SET LOCAL session_replication_role = replica');   // game and fixture point at player 12
+    await run('DELETE FROM player WHERE id = 12');
+    const rows = await ben(LAST);
+    expect(rows).toHaveLength(before);
+    expect(rows[0]).toEqual({ Man2: 'Ben NorthfieldA', Man2Rank: 2, Man2TeamName: 'Northfield B' });
+  });
+
+  it('still leaves off a fixture whose lineup has an empty slot', async () => {
+    const before = (await ben(LAST)).length;
+    await run(`UPDATE fixture SET "homeMan2" = NULL
+      WHERE id = (SELECT min(f.id) FROM fixture f JOIN season s ON s.name = ? AND f.date > s."startDate"
+                  AND f.date < s."endDate" WHERE f."homeMan2" = 12)`, [LAST]);
+    expect(await ben(LAST)).toHaveLength(before - 1);
+  });
+
   // An inner join here dropped 60 fixtures of 2024/25 (gotcha 1c).
   it("keeps the fixture when the player's team that season is not in that season's teams", async () => {
     await run('UPDATE player_season SET team = 999 WHERE season = ? AND id = 12', [LAST]);

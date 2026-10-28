@@ -161,6 +161,25 @@ the season explicitly from the controller everywhere means a query never asks th
 
 ## Part 2 — past-season lineups read the season they were played in
 
+> **Closed 28 Oct 2026. Names stay live (Neil's call).** Team and rank already read
+> history (HARD-48, then step 4 on `player_at`, proved identical). In production no
+> past-season lineup fixture is dropped any more: every season, 2018/19 to 2025/26, has all
+> 12 players and both teams for every lineup. That leaves names, measured on production the
+> same day. Of the lineup slots whose name in history differs from today's, most differ
+> only by spacing or case (777 in 2025/26, 670 in 2024/25). The real changes are 6–20
+> players a season (182 slots at most, in 2018/19), and they are mostly
+> *corrections*: "Wahab Siddiqui" → "Siddiqi", "Aneiron Ankers" → "Aneirin Ankrett",
+> "M. Isaacs" → "Marion Isaacs", "Jason H" → "Jason Hanford". Married names are already in
+> today's record as "Lisa Shaw (nee Hunter)". Reading history would put the typos back on
+> old pages, so the name-trimming below is moot too.
+> One change was made: the lineup query's inner joins to the live `player` became LEFT
+> joins, with history's name used when the live row is gone (deleted or merged). Today
+> that rescues nothing in production. On the local database it brought back 52 fixtures
+> whose players the seed lacks, and lost none; 26 of 31 snapshot cases were identical, and
+> one was tied rows in another order. A fixture with an empty slot still stays off the page.
+> Tests are in `season-history-readers.test.js`. The *Design* and *Proof* below are kept
+> as the record of what was planned.
+
 > **Mostly done early, as [HARD-48](../done/HARD-48-past-season-lineups.md) (25 Oct 2026).**
 > `getMatchPlayerOrderDetails` now reads rank and team from `player${season}`, with a
 > live fallback and LEFT joins. What is left here is **names**, plus moving that
@@ -390,9 +409,9 @@ off-season and not before Sep 2028 by the one-season rule.
 - The rollover is `tools/season-archive.js`, and the `season-history` check fails when it
   has not been run (a test that removes the rows and sees the finding).
 - No contact column in any history table.
-- Part 2: every before/after difference in a past-season lineup is classified by the
+- ~~Part 2: every before/after difference in a past-season lineup is classified by the
   script, with none unclassified, and `/fixture-players/20242025` shows the 60 fixtures it
-  drops today.
+  drops today.~~ Closed with names live; the 60 fixtures show since HARD-48.
 - `clone_season` dropped, or its grants to `PUBLIC`/`anon`/`authenticated` revoked.
 - `--check all` the same before and after.
 - Cost: none. The same rows in fewer tables; views cost nothing.
