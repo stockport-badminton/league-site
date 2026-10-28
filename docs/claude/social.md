@@ -31,9 +31,9 @@ Two things worth keeping from it:
   (whose `data-img-url` the share button hands to the Web Share API). That is the same
   trap `eventPath()` exists to close, so it is one helper now.
 - **`sendResultZap` is mocked in every suite that reaches it**, so what it posts had
-  never been asserted by anything. `__tests__/unit/result-zap-url.test.js` asserts the
-  payload itself. A function that is only ever mocked is untested, however many tests
-  mention it.
+  never been asserted by anything. `__tests__/unit/result-post-direct.test.js` now asserts
+  what it queues and the URL it is posted with (the webhook payload test went with Make).
+  A function that is only ever mocked is untested, however many tests mention it.
 
 ### The weekly social images, and why they are on demand too
 
@@ -173,7 +173,9 @@ wrong for a post announcing what is still to come.
 **Every scenario in the Make account is disabled as of 15 Sep 2026.** Both leagues post to
 Facebook and Instagram from their own codebases, and the scheduled jobs that used to live
 there are Cloud Scheduler jobs hitting our own gated routes. Nothing depends on Make any
-more; the account is kept only so the disabled scenarios remain readable.
+more; the account is kept only so the disabled scenarios remain readable, on the free tier.
+The webhook branch in `sendResultZap` and its `SOCIAL_POST_DIRECT` switch were removed on
+28 Oct 2026, after a month with nothing sent through them.
 
 Three things from that migration are still load-bearing:
 

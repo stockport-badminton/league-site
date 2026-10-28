@@ -25,11 +25,9 @@ const queuedKinds = () => SocialResultPost.enqueue.mock.calls[0][1];
 
 beforeEach(() => {
   jest.clearAllMocks();
-  process.env.SOCIAL_POST_DIRECT = 'true';
   meta.targets.mockReturnValue({ stockportPage: PAGE, instagram: IG, tamesidePage: null });
 });
 afterEach(() => {
-  delete process.env.SOCIAL_POST_DIRECT;
   delete process.env.SOCIAL_POST_STORY;
   delete process.env.SOCIAL_POST_FB_STORY;
 });

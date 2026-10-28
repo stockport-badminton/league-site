@@ -32,8 +32,8 @@ const MODAL = '#signupModal';
 
 // `/email-scorecard` is the captain's route: its form posts to /email-scorecard, which
 // FILES A DRAFT. `/scorecard-beta` renders the same view with formAction='/scorecard-beta'
-// and posts straight to publish — completing the fixture, writing 18 game rows and firing
-// the social webhook. This spec deliberately drives the first: it is the flow captains use
+// and posts straight to publish — completing the fixture, writing 18 game rows and queueing
+// the social posts. This spec deliberately drives the first: it is the flow captains use
 // every week, and its side effect is one row in one table.
 const CAPTAIN_FORM = '/email-scorecard';
 
@@ -54,8 +54,8 @@ async function openWizard(page) {
 // run of this spec adds a row to it **on the local database**. That is noise, not a
 // finding, and `tools/local-db.sh load` clears it in five seconds; production is untouched
 // either way. Publishing instead of filing would silence it and is not worth the price —
-// POST /scorecard-beta completes the fixture, writes 18 game rows and fires the social
-// webhook.
+// POST /scorecard-beta completes the fixture, writes 18 game rows and queues the social
+// posts.
 async function chooseFixture(page, fixture) {
   await page.locator('#division').first().selectOption(fixture.division);
   await expect

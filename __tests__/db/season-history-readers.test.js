@@ -219,6 +219,46 @@ describe('Player.getPlayerGameData', () => {
     expect(new Set(teamOn(2024))).toEqual(new Set(['Eastbank C']));
     expect(new Set(teamOn(2026))).toEqual(new Set(['Eastbank B']));
   });
+
+  // Ben plays for Northfield A (Premier) every season, but in 2025/26 was registered to
+  // Northfield B (Division 1). The "(+N)" bracket compares his own team THAT season, so it
+  // is +1 then and 0 in the seasons he was registered to A — and falls back to today's team
+  // only where the season holds no record of him.
+  const ben = async () => {
+    await run(`UPDATE game SET "homePlayer1End" = 1500, "homePlayer2End" = 1500,
+      "awayPlayer1End" = 1500, "awayPlayer2End" = 1500`);
+    return Player.getPlayerGameData(12);
+  };
+  const adjustmentIn = (rows, season) => new Set(rows
+    .filter(r => r.date > SEASON_DATES[season][0] && r.date < SEASON_DATES[season][1])
+    .map(r => r.teamAdjustment));
+  let SEASON_DATES;
+  beforeEach(async () => {
+    SEASON_DATES = Object.fromEntries((await run('SELECT name, "startDate", "endDate" FROM season'))
+      .map(s => [s.name, [s.startDate, s.endDate]]));
+  });
+
+  it("judges playing up against the player's own team that season", async () => {
+    const rows = await ben();
+    expect(adjustmentIn(rows, LAST)).toEqual(new Set([1]));
+    expect(adjustmentIn(rows, PAST)).toEqual(new Set([0]));
+    expect(adjustmentIn(rows, Season.current())).toEqual(new Set([0]));
+  });
+
+  it("falls back to today's team for a season with no record of the player", async () => {
+    await run('DELETE FROM player_season WHERE season = ? AND id = 12', [LAST]);
+    expect(adjustmentIn(await ben(), LAST)).toEqual(new Set([0]));
+  });
+
+  // The view reverses the rows for the rating chart and keeps each night's last game, so
+  // the order is part of the contract. It once sat inside a CTE, where Postgres may ignore
+  // it, and 595 of 915 histories came back out of date order.
+  it('comes back newest first, and within a night the last game first', async () => {
+    const rows = await ben();
+    expect(rows.length).toBeGreaterThan(6);
+    const sorted = [...rows].sort((a, b) => (b.date - a.date) || (b.id - a.id));
+    expect(rows.map(r => r.id)).toEqual(sorted.map(r => r.id));
+  });
 });
 
 // Step 5: which seasons exist is answered from history, not from which archive tables

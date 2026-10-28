@@ -455,7 +455,7 @@ exports.full_fixture_post = async function(req, res, next) {
       division: FixtureIdResult[0].name
     };
 
-    // With SOCIAL_POST_DIRECT this only queues the post: `sbl-results-meta` publishes it to
+    // This only queues the post: `sbl-results-meta` publishes it to
     // Facebook and Instagram (metaResultsController, HARD-47). Posting here took up to 52 s.
     await afterCommit('result zap', () => Fixture.sendResultZap(zapObject));
 

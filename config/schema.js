@@ -224,7 +224,6 @@ module.exports = /** @type {const} */ ({
   META_THREADS_APP_ID: { kind: 'id', test: 'unset', e2e: 'unset', unset: 'closes the Threads login', doc: 'Threads app id.' },
   META_THREADS_APP_SECRET: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the Threads login', doc: 'Threads app secret.' },
   META_THREADS_USER_ID: { kind: 'id', test: 'unset', e2e: 'unset', unset: 'closes the Threads login', doc: "The league's Threads account; the login callback refuses any other." },
-  SOCIAL_POST_DIRECT: { kind: 'flag', test: 'unset', e2e: 'unset', unset: 'keeps the Make.com webhook path', doc: 'Queue each published result for Meta ourselves instead of handing it to Make.' },
   SOCIAL_POST_STORY: { kind: 'flag', test: 'unset', e2e: 'unset', unset: 'posts no Instagram story', doc: 'Also post the result as an Instagram story.' },
   SOCIAL_POST_FB_STORY: { kind: 'flag', test: 'unset', e2e: 'unset', unset: 'posts no Facebook story', doc: 'Also post every Facebook Page post as a Page story.' },
   SOCIAL_POST_THREADS: { kind: 'flag', test: 'unset', e2e: 'unset', unset: 'queues nothing for Threads', doc: 'Queue each published result for Threads.' },

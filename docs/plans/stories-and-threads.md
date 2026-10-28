@@ -127,7 +127,7 @@ Instagram photos, carousels and reels on the same token through the container fl
 
 | Post | Controller | Scheduler | Takes |
 |---|---|---|---|
-| Result | `Fixture.sendResultZap` (with `SOCIAL_POST_DIRECT`) | none, on publish | ~1s card |
+| Result | `Fixture.sendResultZap` | none, on publish | ~1s card |
 | Weekly tables | `weeklyTablesController` | Sat 13:00 | 39.1s |
 | Weekly fixtures | `weeklyFixturesController` | Sun 18:00 | 38.6s |
 | Weekly video | (video handler) | calls Cloud Run directly | ~91s |

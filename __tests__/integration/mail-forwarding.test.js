@@ -14,6 +14,14 @@
 // alternative read "Email from sengrid parse send to <list>".
 
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
+
+// The drip below fits its chunks to a time budget, 10 s in production. At that budget the
+// three tests that split a list spent 30 s asleep, most of the suite's wall clock. The
+// arithmetic is the same at half a second; the controller reads this when it loads, so it
+// is set before the app is required.
+const LIST_BUDGET_MS = 500;
+process.env.LIST_SEND_BUDGET_MS = String(LIST_BUDGET_MS);
 
 jest.mock('../../models/fixture');
 jest.mock('../../models/division');
@@ -273,13 +281,21 @@ describe('spreading a list send over time', () => {
   // bigger chunks, not a longer wall clock.
   it('stays inside the SNS response budget however long the list is', async () => {
     Player.getEmails = jest.fn().mockResolvedValue(many(400));
+    const logged = captureLog(['info']);
     const started = Date.now();
     await post(listMime(), ['division3@stockport-badminton.co.uk']);
-    expect(Date.now() - started).toBeLessThan(13000);
+    const elapsed = Date.now() - started;
+    const spread = logged.calls().map(args => args[0]).find(f => f && f.gapMs !== undefined);
+    logged.restore();
+
+    // The pauses alone, exactly: never more than the budget, whatever the length.
+    expect(spread.gapMs * (spread.chunks - 1)).toBeLessThanOrEqual(LIST_BUDGET_MS);
+    // And the request as a whole, with the same 3 s of headroom the 10 s budget had.
+    expect(elapsed).toBeLessThan(LIST_BUDGET_MS + 3000);
     const delivered = mockSendMail.mock.calls
       .flatMap(c => c[0].bcc).filter(a => /^member\d+@/.test(a));
     expect(new Set(delivered).size).toBe(400);
-  }, 20000);
+  });
 
   it('does not split a single-recipient send', async () => {
     Player.getEmails = jest.fn().mockResolvedValue([]);

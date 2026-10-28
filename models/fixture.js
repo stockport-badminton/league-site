@@ -6,7 +6,6 @@ const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
 const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
-const axios = require('axios');
 const { NO_TEAM_ID } = require('./roster');
 const SocialResultPost = require('./socialResultPost');
 
@@ -856,6 +855,9 @@ exports.resultPostContent = function(r) {
   }
 }
 
+// The name is from when this posted a Make.com webhook. Make went in October 2026 (every
+// scenario disabled from 15 Sep, the subscription down to the free tier), and with it the
+// `SOCIAL_POST_DIRECT` switch that chose between the two; this now only queues.
 /** @param {any} zapObject */
 exports.sendResultZap = async function(zapObject) {
   if (!db.isObject(zapObject)) throw new Error("you've not supplied an object")
@@ -864,115 +866,35 @@ exports.sendResultZap = async function(zapObject) {
     return 'test env'
   }
 
-  // `imgGen` is the live one: Make.com fetches it just before posting, and the endpoint
-  // renders the card with sharp on demand. Nothing keeps the file, which is why an
-  // on-demand URL is the right shape.
-  // Built through the helper, and percent-encoded, because Make.com posts this straight
-  // to the Facebook Graph API. Interpolated raw, "Tatton A" put a literal space in the
-  // URL and Facebook answered `Missing or invalid image file (324, OAuthException)` —
-  // the endpoint was fine, the URL was not.
-  const imgGen = absoluteUrl(resultImagePath(zapObject))
-
-  const webhookBody = {
-    imgGen: imgGen,
-    message: resultMessage(zapObject),
-    // `imgUrl` used to name the file the canvas block below wrote — spaces to dashes, no
-    // separator, and `http://`. That block went in May and the file has 404'd ever since,
-    // so nothing can be depending on the old value. Pointed at `imgGen` rather than
-    // deleted, because removing a field from a live webhook payload is a change to
-    // somebody else's scenario: this way a step that reads it starts working instead of
-    // failing, and the field can be dropped once the Make.com scenario is known not to
-    // reference it.
-    imgUrl: imgGen
-  }
-
-  // No `mentions` field. Tagging the clubs in the post needs a Facebook app reviewed and
+  // No `mentions`. Tagging the clubs in the post needs a Facebook app reviewed and
   // approved by Meta — paperwork, not development — so the handles we hold cannot
   // actually be turned into mentions on a page post. Fixture.getResultMentions and
   // getClubSocialHandlesByTeamName existed for it and were only ever called from the
   // quick-results-entry flow deleted in 74c52d1, so no post has ever carried one.
 
-  // ── Direct, or through Make.com ────────────────────────────────────────────
-  //
-  // `SOCIAL_POST_DIRECT=true` posts to Meta from here instead of handing the job to a
-  // Make.com scenario. Unset keeps the old path, so a rollback is one environment variable
-  // rather than one deploy — which matters because this runs when a captain publishes a
-  // result and a bad week is a week of missing posts nobody notices.
-  //
-  // **Switching Stockport over needs no change to Make at all**, which is not obvious.
-  // That scenario serves BOTH leagues off one webhook, routed by whether `imgUrl` contains
-  // `stockport-badminton` or `tameside-badminton` — and Tameside posts its own webhook from
-  // its own site. So when we stop sending ours, route 1 simply never fires and Tameside's
-  // route is untouched.
-  //
-  // Historic note, kept because it explains the shape: that scenario's Instagram module
-  // carried no league filter, because the two leagues shared one Instagram account — Meta
-  // had refused a second one for Tameside. Anyone tidying that up would have silently
-  // stopped Tameside appearing on Instagram. Tameside got its own account on 15 Sep 2026
-  // and every Make scenario is now disabled, so neither the sharing nor the fallback is
-  // live; the flag remains as the rollback path it was built to be.
-  //
-  // **Direct means queued** (HARD-47). Posting here, inside the request that publishes the
+  // **Queued, not posted** (HARD-47). Posting here, inside the request that publishes the
   // result, took 26–33 s a publish and 52 s on 24 Oct 2026, against Firebase Hosting's 60 s
   // cut — the four Meta targets one after another were 92–95% of it. So this writes one row
   // per configured target and returns, and `sbl-results-meta` posts them
   // (controllers/metaResultsController.js). Nothing may be posted from here after the
   // response either: Cloud Run throttles the CPU once a response is sent.
-  if (config.SOCIAL_POST_DIRECT) {
-    const configured = resultTargets()
+  const configured = resultTargets()
 
-    // **No targets is a failure, not a quiet success**, and this very nearly shipped as the
-    // latter. `SOCIAL_POST_DIRECT` lives in the Cloud Run service config; the credentials
-    // live in `.env`, which is gitignored and never deployed. Setting the flag without
-    // copying the credentials across left a service that took the direct path, found
-    // nothing to post to, posted nowhere — and reported success, because an empty target
-    // list produces neither a post nor a failure.
-    //
-    // That is the exact shape this codebase keeps getting caught by: a rejection that looks
-    // like an acceptance. A switch whose two halves live in different places must fail
-    // loudly when only one of them is set.
-    if (!configured.length) {
-      throw new Error(
-        'SOCIAL_POST_DIRECT is set but no Meta credentials are configured, so this result ' +
-        'would have been posted nowhere. Set META_PAGE_ID, META_PAGE_TOKEN and ' +
-        'META_IG_USER_ID on the service, or unset SOCIAL_POST_DIRECT to go back through ' +
-        'Make.com.')
-    }
-    if (!zapObject.fixtureId) throw new Error('sendResultZap needs the fixture id to queue the post')
-
-    const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map((/** @type {any} */ t) => t.kind))
-    log.info(`result for fixture ${zapObject.fixtureId} queued for ` + (queued.map((/** @type {any} */ q) => q.target).join(', ') || 'nothing new'))
-    return { queued }
+  // **No targets is a failure, not a quiet success.** The credentials live in the Cloud
+  // Run service config, not in the repo, so a service that lost them would find nothing to
+  // post to, post nowhere — and report success, because an empty target list produces
+  // neither a post nor a failure. That is the shape this codebase keeps getting caught by:
+  // a rejection that looks like an acceptance.
+  if (!configured.length) {
+    throw new Error(
+      'No Meta credentials are configured, so this result would have been posted nowhere. ' +
+      'Set META_PAGE_ID, META_PAGE_TOKEN and META_IG_USER_ID on the service.')
   }
+  if (!zapObject.fixtureId) throw new Error('sendResultZap needs the fixture id to queue the post')
 
-  const response = await axios.post('https://hook.integromat.com/uihmc7g54i8xrvdvpsec2f6ejfqul70g', webhookBody)
-
-  // The canvas image generation that lived here is gone.
-  //
-  // `e25436f` (17 May 2026) replaced canvas with sharp + SVG in controllers/socialController.js
-  // and dropped `canvas` from package.json — but touched only that file, models/league.js and
-  // package.json, and missed this call site. So `require('canvas')` has thrown
-  // `Cannot find module 'canvas'` on EVERY result submitted since, for nearly four months.
-  //
-  // It was invisible for most of that time because it throws AFTER the webhook post above,
-  // which is why Make.com kept working. What it did do was fail the request that submitted
-  // the result — the result itself was already saved — which is precisely the symptom
-  // HARD-01 was written for: a captain seeing an error for a submission that had worked.
-  // HARD-01's `afterCommit` then caught it and sent it to Sentry (NODE-11), which is how it
-  // was finally found; the blame landing on HARD-01 is the reporting, not the cause.
-  //
-  // Not reinstated here: the same picture is generated by
-  // GET /resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division with sharp, on
-  // demand, and that is the copy the site and the results email use.
-  //
-  // NOTE the webhook body above still advertises `imgUrl` under this block's OWN naming
-  // convention (`Mellor-AAerospace-A.jpg`, spaces to dashes, no separator). The sharp
-  // route writes `Mellor+A+Aerospace+A.jpg`. So that URL has 404'd since May and would
-  // still 404 if the name were corrected, because nothing generates the file at submit
-  // time. Fixing it properly means calling the generator here rather than renaming a
-  // string.
-
-  return response.data
+  const queued = await SocialResultPost.enqueue(zapObject.fixtureId, configured.map((/** @type {any} */ t) => t.kind))
+  log.info(`result for fixture ${zapObject.fixtureId} queued for ` + (queued.map((/** @type {any} */ q) => q.target).join(', ') || 'nothing new'))
+  return { queued }
 }
 
 // `conn` is optional and exists so this can join a caller's transaction —

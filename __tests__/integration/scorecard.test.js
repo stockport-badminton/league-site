@@ -1713,7 +1713,6 @@ describe('POST /scorecard-beta when Meta never answers', () => {
 
   beforeEach(() => {
     setupFullFixtureMocks();
-    process.env.SOCIAL_POST_DIRECT = 'true';
     meta.targets.mockReturnValue({
       stockportPage: { id: '101950371354925', token: 'not-real' },
       instagram: { id: '17841409056774880', token: 'not-real' },
@@ -1724,7 +1723,6 @@ describe('POST /scorecard-beta when Meta never answers', () => {
     Fixture.sendResultZap.mockImplementation(jest.requireActual('../../models/fixture').sendResultZap);
   });
   afterEach(() => {
-    delete process.env.SOCIAL_POST_DIRECT;
     Fixture.sendResultZap.mockResolvedValue({});
   });
 

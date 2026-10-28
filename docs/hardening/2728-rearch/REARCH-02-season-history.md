@@ -234,7 +234,7 @@ LEFT JOIN player     p ON p.id = f."homeMan1"
   production 15,152 of 141,212 history rows changed team name and the bracket went from
   40,778 rows to 11,778; nothing was lost and the current season was identical. What is
   left here is replacing those two unions with `team_season` / `player_at`, which should
-  be snapshot-identical. Pinned by `__tests__/unit/player-history-season.test.js`.
+  be snapshot-identical. Pinned against a real Postgres by `__tests__/db/season-history-readers.test.js`.
 - Draft scorecards (`getScorecardDataById`, `getMesserScorecardById`) are viewed within the
   season they are filed in. They are not changed.
 
