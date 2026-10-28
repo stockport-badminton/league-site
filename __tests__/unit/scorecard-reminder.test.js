@@ -1,5 +1,5 @@
 const {
-  isReminderDue, isScorecardOverdue, dueByLabel, parseRecipients,
+  isReminderDue, isScorecardOverdue, dueByLabel, matchLabel, parseRecipients,
 } = require('../../utils/scorecardReminder');
 
 // Midnight UK time on Thursday 22 October, as the fixture table stores it. The clocks
@@ -60,6 +60,17 @@ describe('dueByLabel', () => {
 
   it('has nothing to say without a date', () => {
     expect(dueByLabel(undefined)).toBeNull();
+  });
+});
+
+describe('matchLabel', () => {
+  it('names the teams and the match day, in UK time', () => {
+    expect(matchLabel({ homeTeam: 'Mellor A', awayTeam: 'Shell C', date: FIXTURE }))
+      .toBe('Mellor A v Shell C, Thursday 22 October');
+  });
+
+  it('falls back to the teams alone without a date', () => {
+    expect(matchLabel({ homeTeam: 'Mellor A', awayTeam: 'Shell C' })).toBe('Mellor A v Shell C');
   });
 });
 

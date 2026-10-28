@@ -125,7 +125,21 @@ describe('POST /fixture/reminder', () => {
     await request(app).post('/fixture/reminder')
       .send({ ...OK_BODY, homeTeam: 'Buy cheap pills', awayTeam: 'CLICK HERE', subject: 'CLICK HERE' });
     const subject = sentParams().Message.Subject.Data;
-    expect(subject).toBe('Reminder: outstanding scorecard');
+    // The teams come from the fixture row, never the request.
+    expect(subject).toBe('Reminder: outstanding scorecard — Mellor A v Aerospace A');
+  });
+
+  it('names the match in the subject and the body, from the database', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getReminderContacts.mockResolvedValue({
+      fixture: { id: 7310, date: '2026-10-21T23:00:00.000Z', homeTeam: 'Mellor A', awayTeam: 'Shell C' },
+      contacts: [],
+    });
+    await request(app).post('/fixture/reminder').send({ ...OK_BODY, fixtureId: '7310' });
+    const { Message } = sentParams();
+    expect(Message.Subject.Data).toMatch(/— Mellor A v Shell C$/);
+    expect(Message.Body.Html.Data).toContain('Mellor A v Shell C, Thursday 22 October');
+    expect(Message.Body.Text.Data).toContain('Mellor A v Shell C, Thursday 22 October');
   });
 
   // The fixture's date decides the wording: seven days to get the card in, then overdue.
@@ -141,7 +155,7 @@ describe('POST /fixture/reminder', () => {
     fixtureDaysAgo(6);
     await request(app).post('/fixture/reminder').send(OK_BODY);
     const { Message } = sentParams();
-    expect(Message.Subject.Data).toBe('Reminder: outstanding scorecard');
+    expect(Message.Subject.Data).toBe('Reminder: outstanding scorecard — Mellor A v Aerospace A');
     expect(Message.Body.Html.Data).toMatch(/is due\s+by \w+day \d+ \w+, to avoid a late card mark/);
     expect(Message.Body.Text.Data).toMatch(/is due by \w+day \d+ \w+, to avoid a late card mark/);
     expect(Message.Body.Html.Data).not.toMatch(/overdue/);
@@ -152,7 +166,7 @@ describe('POST /fixture/reminder', () => {
     fixtureDaysAgo(10);
     await request(app).post('/fixture/reminder').send(OK_BODY);
     const { Message } = sentParams();
-    expect(Message.Subject.Data).toBe('Reminder: overdue scorecard');
+    expect(Message.Subject.Data).toBe('Reminder: overdue scorecard — Mellor A v Aerospace A');
     expect(Message.Body.Html.Data).toContain('Your scorecard is overdue');
     expect(Message.Body.Text.Data).toMatch(/was due by \w+day \d+ \w+ and is now overdue/);
     expect(Message.Body.Html.Data).not.toMatch(/late card mark/);

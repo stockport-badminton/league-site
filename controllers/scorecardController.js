@@ -17,7 +17,7 @@ const { body, validationResult } = require("express-validator");
 const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
 const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
-const { parseRecipients, isScorecardOverdue, dueByLabel, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
+const { parseRecipients, isScorecardOverdue, dueByLabel, matchLabel, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const eloChain = require('../utils/eloChain');
 const { isSuperAdmin } = require('../middleware/requireClubAccess');
@@ -1101,16 +1101,21 @@ function renderLinkRefused(req, res, status) {
       const overdue = isScorecardOverdue(found.fixture.date);
       const dueBy = dueByLabel(found.fixture.date);
       const byWhen = dueBy ? ` by ${dueBy}` : '';
+      // Team names from the database row, never the request.
+      const teams = `${found.fixture.homeTeam} v ${found.fixture.awayTeam}`;
+      const matchLine = matchLabel(found.fixture);
 
       await mailer.send({
         template: 'scorecard-reminder',
         to: addresses,
         bcc: [LEAGUE_INBOX, 'bigcoops@outlook.com'],
         replyTo: LEAGUE_INBOX,
-        subject: overdue ? 'Reminder: overdue scorecard' : 'Reminder: outstanding scorecard',
+        subject: `${overdue ? 'Reminder: overdue scorecard' : 'Reminder: outstanding scorecard'} — ${teams}`,
         whyReceiving:
           'You are listed as a captain or secretary for one of the teams in this fixture.',
         text: [
+          matchLine,
+          '',
           overdue
             ? `The scorecard for your recent match was due${byWhen} and is now overdue. Please enter it as soon as you can.`
             : `Just a timely reminder that the scorecard for your recent match is due${byWhen}, to avoid a late card mark.`,
@@ -1121,9 +1126,7 @@ function renderLinkRefused(req, res, status) {
           'Neil',
         ].join('\n'),
         data: {
-          // Still no match line: the template has never carried one, and this change
-          // is about who receives the reminder, not what it says.
-          matchLine: '',
+          matchLine,
           overdue,
           dueBy,
           submitUrl: absoluteUrl('/scorecard-beta'),

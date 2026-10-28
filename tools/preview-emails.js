@@ -77,7 +77,7 @@ const SAMPLES = {
   'scorecard-reminder': {
     logoUrl,
     whyReceiving: 'You are listed as a captain for one of the teams in this fixture.',
-    matchLine: '',
+    matchLine: 'Mellor A v Shell C, Thursday 22 October',
     overdue: false,
     dueBy: 'Thursday 29 October',
     submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',

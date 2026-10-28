@@ -47,13 +47,24 @@ function dayOf(fixtureDate, now) {
   return match == null ? null : Math.round((ukDay(now) - match) / DAY_MS);
 }
 
+function dayLabel(ukMidnight) {
+  return new Date(ukMidnight).toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+  });
+}
+
 // The last day the card is on time, as the email says it: "Thursday 29 October".
 function dueByLabel(fixtureDate) {
   const match = ukDay(fixtureDate);
-  if (match == null) return null;
-  return new Date(match + DUE_DAY * DAY_MS).toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
-  });
+  return match == null ? null : dayLabel(match + DUE_DAY * DAY_MS);
+}
+
+// Which match the reminder is about: "Mellor A v Shell C, Thursday 22 October". The
+// date as well as the teams, because two teams can meet twice in a season.
+function matchLabel(fixture) {
+  const teams = `${fixture.homeTeam} v ${fixture.awayTeam}`;
+  const match = ukDay(fixture.date);
+  return match == null ? teams : `${teams}, ${dayLabel(match)}`;
 }
 
 function isScorecardOverdue(fixtureDate, now = Date.now()) {
@@ -87,6 +98,6 @@ function parseRecipients(input) {
 }
 
 module.exports = {
-  dueByLabel, isScorecardOverdue, isReminderDue, parseRecipients,
+  dueByLabel, matchLabel, isScorecardOverdue, isReminderDue, parseRecipients,
   REMIND_FROM_DAY, DUE_DAY, STOP_FROM_DAY, MAX_RECIPIENTS,
 };
