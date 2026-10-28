@@ -169,39 +169,31 @@ is the exact symptom HARD-01 was written to fix.
 **production** dependency — `dependencies`, not `devDependencies`, because the Dockerfile
 runs `npm ci --omit=dev` and a devDependency required at runtime is exactly as missing.
 
-## `sanitize-html` is pinned to an exact version, and it is the only one
+## `sanitize-html` and the ESM-only parser chain
 
-`package.json` says `"sanitize-html": "2.17.5"` with no caret. Every other dependency
-carries a range; this one does not, and the reason is not style.
-
-**2.17.6 and 2.17.7 break the Jest suite** — 34 of 35 integration suites fail on
-`require('sanitize-html')` with:
-
-```
-sanitize-html/node_modules/htmlparser2/dist/index.js:1
-SyntaxError: Cannot use import statement outside a module
-```
-
-A nested `htmlparser2` ships ESM that Jest will not load. A caret range **allows** those
-versions, so `npm ci` was safe only because the lockfile happened to hold 2.17.5 — and a
-single `npm update` would have taken the whole suite out. The exact pin is what makes the
-constraint deliberate rather than lucky. Verified by installing 2.17.7 and watching it
-happen (Sep 2026).
-
-**This costs us a real advisory, knowingly.** Two sanitize-html XSS advisories are open,
-and 2.17.7 fixes both. What makes the trade acceptable rather than lazy is the reach:
 `sanitize-html` is used in exactly one place, `controllers/homepageContentController.js`,
-so the person supplying the HTML it sanitises is a **superadmin** editing site content.
-There is no member-facing input path into it. Check that is still true before renewing the
-decision — the moment it sanitises anything a captain or the public can submit, the
-calculation changes and the suite is the thing that has to give.
+on save: a **superadmin** editing homepage content. It sanitises once, when the item is
+written; the stored HTML is rendered as-is.
 
-**The way out is Node 24.9+ — HARD-41.** 2.18.0 moves to an ESM-only `htmlparser2 ^12`; Node 22 loads it, Jest 30 on Node 22 does not, and a babel-jest CJS transform was tried (11 Oct 2026) and fails the same way, because Jest's ESM check runs before any transform. Jest loads it natively from Node 24.9.
+From 2.17.6 it depends on an `htmlparser2` (and `domhandler`, `domutils`,
+`domelementtype`, `dom-serializer`, `entities`) that ships as ES modules only. Jest 30 on
+Node 22 refuses those before any transform runs (a babel-jest CJS transform was tried and
+fails identically), so until 28 Oct 2026 the package was pinned at 2.17.5, with four XSS
+advisories open against it on purpose. **HARD-41 moved the runtime to Node 24** and took
+the package to 2.18.1.
 
-Note also that Dependabot names **2.17.6** as the fix. That is wrong for us: the SVG/SMIL
-advisory covers `<= 2.17.6`, so 2.17.6 closes one of the two and leaves the other. If this
-is ever revisited, 2.17.7 is the floor.
+Node 24 alone is not enough, which the HARD-41 brief got wrong. Jest's `require(esm)` path
+is switched on by `typeof vm.SourceTextModule?.prototype.hasAsyncGraph === 'function'`
+(`jest-runtime`), and `vm.SourceTextModule` exists only under `--experimental-vm-modules`.
+The project `.npmrc` sets that flag as `node-options`, so `npm test`, `npm run test:db` and
+`npx jest …` all carry it. Calling `node_modules/.bin/jest` directly, or an editor plugin
+that does, does not. If the suite fails with `Must use import to load ES Module`, check
+`node -v` and `echo $NODE_OPTIONS` under npm before anything else. Production doesn't need
+the flag: Node 24's own `require()` loads ESM unflagged.
 
+Re-sanitising every stored homepage item with 2.17.5 and with 2.18.1 gave identical output
+(6 items, 9 fields, 28 Oct 2026). A future parser major can change what is stripped; do the
+same comparison before taking one.
 
 ## Authentication & Authorization
 

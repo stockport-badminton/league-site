@@ -20,7 +20,7 @@ steps:
   # is a decision (browsers in the build image, minutes per build) recorded in
   # REARCH-08. Until it is taken, the browser suite is a local gate (`npm run test:all`)
   # run by whoever merges.
-  - name: 'node:22'
+  - name: 'node:24'
     id: 'test'
     waitFor: ['-']
     entrypoint: bash
@@ -61,7 +61,7 @@ steps:
   # Model SQL against that database, every test in a rolled-back transaction. After
   # `test` because that step's `npm ci` is what fills node_modules in /workspace; a
   # failure here stops the build before an image is made, like a failure there.
-  - name: 'node:22'
+  - name: 'node:24'
     id: 'db'
     waitFor: ['test', 'pg-ready']
     entrypoint: bash

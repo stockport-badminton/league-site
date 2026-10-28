@@ -9,7 +9,7 @@ are in `docs/claude/`. **Read the matching file before touching its area:**
 |---|---|
 | [docs/claude/database.md](docs/claude/database.md) | Supabase settings, RLS, the `player` email columns, officer flags, `dbq`, the local database and `sync` |
 | [docs/claude/testing.md](docs/claude/testing.md) | `__tests__/setup.js`, the supertest binding, `npm run test:db`, anything under `e2e/` |
-| [docs/claude/patterns.md](docs/claude/patterns.md) | admin tools, `asset()`, `icon()`, scorecard links and the photo endpoint, `afterCommit`, Messer, lazy requires, the `sanitize-html` pin, auth and dev mode, the hardening backlog |
+| [docs/claude/patterns.md](docs/claude/patterns.md) | admin tools, `asset()`, `icon()`, scorecard links and the photo endpoint, `afterCommit`, Messer, lazy requires, `sanitize-html`, auth and dev mode, the hardening backlog |
 | [docs/claude/social.md](docs/claude/social.md) | result cards, weekly tables/fixtures posts, Meta, Threads, anything that was on Make.com |
 | [docs/claude/storage.md](docs/claude/storage.md) | the `badmintontemp` bucket, its lifecycle rules, failed-analysis uploads |
 | [docs/claude/security.md](docs/claude/security.md) | spam controls, rate limits, `/fixture/rearrangement`, helmet and the CSP |
@@ -52,7 +52,8 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 - **Inside `db.withTransaction(async (conn, trx) => …)`, use `trx`**, never the
   module-level `kysely`, which runs outside the transaction.
 - **A migration needs `npm run test:db && npm run db:types`** in the same commit.
-- **Kysely stays on 0.28.x** (0.29 is ESM-only; Jest on Node 22 cannot load it).
+- **Kysely stays on 0.28.x** until a deliberate bump: 0.29 is ESM-only, which Jest on Node 22
+  could not load. Node 24 plus `.npmrc`'s flag (HARD-41) should, but that is untested.
 
 ### Tables
 
@@ -98,7 +99,7 @@ with types in `db/schema.d.ts`. Converted model files move to it one at a time.
 ## Testing
 
 - `npm test` (Jest), `npm run test:db` (model SQL against a real Postgres; needs
-  `tools/local-db.sh up`), `npm run test:e2e` (Playwright). Use Node 22.
+  `tools/local-db.sh up`), `npm run test:e2e` (Playwright). Use Node 24.
 - **`config/schema.js` declares every environment variable**, and the test environment is
   derived from it. Code reads `config.X`, never `process.env` (`__tests__/unit/config.test.js`). A new
   variable is one schema entry, including its `test` treatment. `testEnvGuard` refuses
@@ -159,7 +160,11 @@ yourself), deciding what a failure means, or anything that writes.
   `log.error({ err, fixtureId }, 'msg')`. Never `console.` in app code
   (`no-console.test.js`); tests read logs with `__tests__/helpers/captureLog.js`.
 - **Every runtime `require()` names a production dependency.**
-- **`sanitize-html` stays pinned at exactly 2.17.5** until HARD-41 (Node 24.9+).
+- **Node 24.9+ everywhere** (`Dockerfile`, `cloudbuild.yaml`, `engines`), **and Jest runs
+  with `--experimental-vm-modules`**, which `.npmrc` supplies to `npm run` and `npx`. Both
+  are needed for Jest to load the ESM-only `htmlparser2` under `sanitize-html`; without
+  either, ~70 suites fail on `Must use import to load ES Module`. Run Jest through npm or
+  npx, not `node_modules/.bin/jest`.
 - **Anything that publishes to Meta and can exceed 60s** is called on the Cloud Run URL
   and has no retries (gotcha 1bc).
 - **Never delete a route on log silence alone**; log queries need a `timestamp>=`

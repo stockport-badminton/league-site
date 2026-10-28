@@ -16,7 +16,7 @@ starts with `auth`. What is there, and what was decided on the way:
 - **The decisions below were taken as recommended**: JSDoc checked by `tsc`, Kysely, types
   from a migrations-built database, no column renames.
 - **Kysely is `^0.28.18`, and must stay below 0.29.** 0.29 is ESM-only, and Jest 30 on
-  Node 22 cannot load it — the sanitize-html trap again (HARD-41), confirmed by a probe
+  Node 22 cannot load it — the sanitize-html trap again (HARD-41, which moved us to Node 24 on 28 Oct 2026), confirmed by a probe
   suite that failed on 0.29.7 and passed on 0.28.18. A caret on a `0.x` version does not
   cross a minor, so `npm update` cannot take it there; a deliberate bump can, and needs
   Node 24.9+ first.
