@@ -122,6 +122,15 @@ describe('season guard on /tables', () => {
     expect(League.getAllLeagueTables).not.toHaveBeenCalled();
   });
 
+  // Gotcha 1b: the canonical came from req.get('host'), which is whatever the client sends.
+  it("names the site's own origin as the 404's canonical, whatever the Host header", async () => {
+    const res = await request(app).get('/tables/All/20252027').set('Host', 'evil.example');
+    expect(res.status).toBe(404);
+    expect(res.text).toContain('<link rel="canonical"');
+    expect(res.text).not.toContain('evil.example');
+    expect(res.text).toMatch(/href="https:\/\/stockport-badminton\.co\.uk\/tables\/All\/20252027"/);
+  });
+
   it('404s a malformed season on the division route too', async () => {
     const res = await request(app).get('/tables/Division-1/_nope');
     expect(res.status).toBe(404);
