@@ -64,19 +64,17 @@ exports.getAll = async function() {
 // ---------------------------------------------------------------------------
 // Season name validation
 //
-// A season is not a bind parameter — it is a table-name *suffix*, interpolated
-// straight into SQL as `team${season}` / `club${season}` in eight model functions
-// across four models. A table name cannot be parameterised, so the only defence is
-// validating the value before it gets near a query.
+// A season used to be a table-name *suffix*, interpolated straight into SQL as
+// `team${season}` / `club${season}`, and this was the only defence. Since REARCH-02 a
+// season is bound like any other value (`team_at.season = ?`), so it no longer guards
+// SQL text. It remains input validation: a malformed season is a 404, not an empty page.
 //
 // It arrives from the URL, and not always as a named :season param — /results/*,
 // /player-stats/* and /pair-stats/* have their controllers pick it out of a path
 // splat. So this is enforced at the model boundary, where every path converges.
 //
-// Confirmed reachable before this existed: requesting
-// /tables/All/20252026%20AS%20team%20WHERE%20false%20-- came back
-// `syntax error at or near "WHERE"` — i.e. the URL text was being parsed as SQL.
-// The payload failed on the surrounding query's shape, which is luck, not a defence.
+// Why it existed: requesting /tables/All/20252026%20AS%20team%20WHERE%20false%20-- once
+// came back `syntax error at or near "WHERE"` — the URL text was being parsed as SQL.
 // ---------------------------------------------------------------------------
 
 // Every real season name is 8 digits, `20YY20YY`. Anchored, digits only, so nothing

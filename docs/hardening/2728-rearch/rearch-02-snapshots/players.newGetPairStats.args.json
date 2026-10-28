@@ -1,0 +1,200 @@
+{
+ "20122013": [
+  {
+   "season": "20122013"
+  }
+ ],
+ "20132014": [
+  {
+   "season": "20132014"
+  }
+ ],
+ "20142015": [
+  {
+   "season": "20142015"
+  }
+ ],
+ "20152016": [
+  {
+   "season": "20152016"
+  }
+ ],
+ "20162017": [
+  {
+   "season": "20162017"
+  }
+ ],
+ "20172018": [
+  {
+   "season": "20172018"
+  }
+ ],
+ "20182019": [
+  {
+   "season": "20182019"
+  }
+ ],
+ "20192020": [
+  {
+   "season": "20192020"
+  }
+ ],
+ "20202021": [
+  {
+   "season": "20202021"
+  }
+ ],
+ "20212022": [
+  {
+   "season": "20212022"
+  }
+ ],
+ "20222023": [
+  {
+   "season": "20222023"
+  }
+ ],
+ "20232024": [
+  {
+   "season": "20232024"
+  }
+ ],
+ "20242025": [
+  {
+   "season": "20242025"
+  }
+ ],
+ "20252026": [
+  {
+   "season": "20252026"
+  }
+ ],
+ "20262027": [
+  {
+   "season": "20262027"
+  }
+ ],
+ "20122013-filters": [
+  {
+   "season": "20122013",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20132014-filters": [
+  {
+   "season": "20132014",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20142015-filters": [
+  {
+   "season": "20142015",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20152016-filters": [
+  {
+   "season": "20152016",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20162017-filters": [
+  {
+   "season": "20162017",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20172018-filters": [
+  {
+   "season": "20172018",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20182019-filters": [
+  {
+   "season": "20182019",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20192020-filters": [
+  {
+   "season": "20192020",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20212022-filters": [
+  {
+   "season": "20212022",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20222023-filters": [
+  {
+   "season": "20222023",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20232024-filters": [
+  {
+   "season": "20232024",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20242025-filters": [
+  {
+   "season": "20242025",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20252026-filters": [
+  {
+   "season": "20252026",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20202021-filters": [
+  {
+   "season": "20202021",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "20262027-filters": [
+  {
+   "season": "20262027",
+   "division": 8,
+   "club": "Mellor",
+   "gameType": "Mixed"
+  }
+ ],
+ "current": [
+  {}
+ ]
+}

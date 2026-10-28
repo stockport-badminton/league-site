@@ -1,0 +1,298 @@
+{
+ "20122013": [
+  {
+   "season": "20122013"
+  }
+ ],
+ "20132014": [
+  {
+   "season": "20132014"
+  }
+ ],
+ "20142015": [
+  {
+   "season": "20142015"
+  }
+ ],
+ "20152016": [
+  {
+   "season": "20152016"
+  }
+ ],
+ "20162017": [
+  {
+   "season": "20162017"
+  }
+ ],
+ "20172018": [
+  {
+   "season": "20172018"
+  }
+ ],
+ "20182019": [
+  {
+   "season": "20182019"
+  }
+ ],
+ "20192020": [
+  {
+   "season": "20192020"
+  }
+ ],
+ "20202021": [
+  {
+   "season": "20202021"
+  }
+ ],
+ "20212022": [
+  {
+   "season": "20212022"
+  }
+ ],
+ "20222023": [
+  {
+   "season": "20222023"
+  }
+ ],
+ "20232024": [
+  {
+   "season": "20232024"
+  }
+ ],
+ "20242025": [
+  {
+   "season": "20242025"
+  }
+ ],
+ "20252026": [
+  {
+   "season": "20252026"
+  }
+ ],
+ "20262027": [
+  {
+   "season": "20262027"
+  }
+ ],
+ "20122013-elo": [
+  {
+   "season": "20122013",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20122013-club": [
+  {
+   "season": "20122013",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20132014-elo": [
+  {
+   "season": "20132014",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20132014-club": [
+  {
+   "season": "20132014",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20142015-elo": [
+  {
+   "season": "20142015",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20142015-club": [
+  {
+   "season": "20142015",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20152016-elo": [
+  {
+   "season": "20152016",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20152016-club": [
+  {
+   "season": "20152016",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20162017-elo": [
+  {
+   "season": "20162017",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20162017-club": [
+  {
+   "season": "20162017",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20172018-elo": [
+  {
+   "season": "20172018",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20172018-club": [
+  {
+   "season": "20172018",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20182019-elo": [
+  {
+   "season": "20182019",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20182019-club": [
+  {
+   "season": "20182019",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20192020-elo": [
+  {
+   "season": "20192020",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20192020-club": [
+  {
+   "season": "20192020",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20212022-elo": [
+  {
+   "season": "20212022",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20212022-club": [
+  {
+   "season": "20212022",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20222023-elo": [
+  {
+   "season": "20222023",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20222023-club": [
+  {
+   "season": "20222023",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20232024-elo": [
+  {
+   "season": "20232024",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20232024-club": [
+  {
+   "season": "20232024",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20242025-elo": [
+  {
+   "season": "20242025",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20242025-club": [
+  {
+   "season": "20242025",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20252026-elo": [
+  {
+   "season": "20252026",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20252026-club": [
+  {
+   "season": "20252026",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20202021-elo": [
+  {
+   "season": "20202021",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20202021-club": [
+  {
+   "season": "20202021",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "20262027-elo": [
+  {
+   "season": "20262027",
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ],
+ "20262027-club": [
+  {
+   "season": "20262027",
+   "club": "Tatton",
+   "division": 8
+  }
+ ],
+ "current": [
+  {
+   "status": "complete"
+  }
+ ],
+ "current-elo": [
+  {
+   "status": "complete",
+   "type": "eloSetting"
+  }
+ ]
+}

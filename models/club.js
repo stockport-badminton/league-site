@@ -4,25 +4,24 @@ var seasonModel = require('./season');
 const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
 
-// REARCH-01: on the typed query layer, except existsInSeason, which splices a season into
-// a table name and belongs to REARCH-02.
+// On the typed query layer (REARCH-01, and existsInSeason by REARCH-02).
 //
 // Several keys below are lowercase on purpose (clubvenue, matchsecemail, clubid, …): they
 // are what the string queries returned, because Postgres folded their unquoted aliases,
 // and the views read them that way. Renaming one is a separate change with the views.
 
-// Whether a club of exactly this name existed in a season: the live table for the
-// current season, the club<season> archive otherwise. The stats pages ask this of a
-// `club-` filter, which can legitimately name a club that has since folded or been
-// renamed (Canute in 2024/25, Remnants now) and so must not be checked against the live
-// table alone.
+// Whether a club of exactly this name existed in a season: club_at, which for the current
+// season (or no season) is the live table. The stats pages ask this of a `club-` filter,
+// which can legitimately name a club that has since folded or been renamed (Canute in
+// 2024/25, Remnants now) and so must not be checked against the live table alone.
 /** @param {string} name @param {string} season */
 exports.existsInSeason = async function(name, season) {
-  const suffix = seasonModel.assertName(season)
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT 1 FROM club${suffix} WHERE name = ? LIMIT 1`, [name]
-  )
-  return rows.length > 0
+  const row = await kysely.selectFrom('club_at').select('id')
+    .where('season', '=', seasonModel.assertName(season) || seasonModel.current())
+    .where('name', '=', name)
+    .limit(1)
+    .executeTakeFirst()
+  return row !== undefined
 }
 
 // Constant strings are written with sql.lit, as literals in the statement, the way the

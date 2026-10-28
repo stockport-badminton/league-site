@@ -125,8 +125,6 @@ exports.getDraftSupersession = async function(draftId) {
 exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   const searchTerms = []
   const sqlArray = []
-  let seasonName = ''
-
   if (fixtureObj.club) {
     searchTerms.push('c.name = ?')
     sqlArray.push(fixtureObj.club)
@@ -135,16 +133,11 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
     searchTerms.push('c."teamName" = ?')
     sqlArray.push(fixtureObj.team)
   }
-  if (!fixtureObj.season || fixtureObj.season == seasonModel.current()) {
-    searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
-    sqlArray.push(seasonModel.current())
-  } else {
-    searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
-    sqlArray.push(fixtureObj.season)
-    // Bound above as a parameter, but also interpolated below as team${seasonName}
-    // / club${seasonName}, so validate before it becomes SQL text.
-    seasonName = seasonModel.assertName(fixtureObj.season)
-  }
+  // The season's teams, clubs and players come from team_at / club_at / player_at, which
+  // for the current season are the live tables.
+  const seasonName = fixtureObj.season ? seasonModel.assertName(fixtureObj.season) : seasonModel.current()
+  searchTerms.push('season.name = ? AND c.date > season."startDate" AND c.date < season."endDate"')
+  sqlArray.push(seasonName)
 
   // Each player's rank and team as they were THAT season (HARD-48). The page flags a
   // player turning out for a team other than their own, and it used to compare against
@@ -153,42 +146,29 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   // today's team did not exist that season, the inner join dropped the whole fixture —
   // 60 of them in 2024/25.
   //
-  // Read from the season's player archive, falling back to the live row for a player the
-  // archive does not hold (added or merged later). Seasons before 2018/19 have no player
-  // archive and fall back entirely, which is what they did before. Names stay live — a
-  // corrected spelling or a married name shows everywhere — until REARCH-02 decides.
+  // Read from the season's player history, falling back to the live row for a player it
+  // does not hold (added or merged later). Seasons before 2018/19 have no player history
+  // and fall back entirely, which is what they did before. Names stay live — a corrected
+  // spelling or a married name shows everywhere — until REARCH-02 Part 2 decides.
   //
-  // The archives are copies of whatever columns `player` had that year: player20182019
-  // has no `rank` at all, and player20192020 has one that was mostly not filled in (587
-  // of 876 registered players blank, against 11 of 998 in 2021/22). A blank rank renders
-  // red — "not nominated" — so reading those would paint half of 2019/20 red for a
-  // record nobody kept. A season whose archive ranks fewer than half its registered
-  // players keeps the live rank, as before, and still gets its team. Archives are frozen
-  // once their season ends, so this cannot drift; the current season never comes here.
+  // The history is a copy of whatever columns `player` had that year: 2018/19 has no
+  // rank at all, and 2019/20 has one that was mostly not filled in (587 of 876
+  // registered players blank, against 11 of 998 in 2021/22). A blank rank renders red —
+  // "not nominated" — so reading those would paint half of 2019/20 red for a record
+  // nobody kept. A season whose history ranks fewer than half its registered players
+  // keeps the live rank, as before, and still gets its team. History is frozen once its
+  // season ends, so this cannot drift.
   const conn = await db.otherConnect()
-  let playerTable = 'player'
-  if (seasonName) {
-    const archive = `player${seasonName}`
-    const [cols] = await conn.query(
-      'SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ?',
-      ['public', archive]
-    )
-    const has = new Set(cols.map((/** @type {any} */ c) => c.column_name))
-    if (has.has('team')) {
-      let ranked = false
-      if (has.has('rank')) {
-        const [cover] = await conn.query(
-          `SELECT COUNT(*) FILTER (WHERE team IS NOT NULL) AS registered,
-                  COUNT(*) FILTER (WHERE team IS NOT NULL AND rank IS NOT NULL) AS ranked
-           FROM ${archive}`
-        )
-        ranked = Number(cover[0].ranked) * 2 > Number(cover[0].registered)
-      }
-      playerTable = ranked
-        ? `(SELECT id, team, rank FROM ${archive})`
-        : `(SELECT h.id, h.team, live.rank FROM ${archive} h LEFT JOIN player live ON live.id = h.id)`
-    }
-  }
+  const [cover] = await conn.query(
+    `SELECT COUNT(*) FILTER (WHERE team IS NOT NULL) AS registered,
+            COUNT(*) FILTER (WHERE team IS NOT NULL AND rank IS NOT NULL) AS ranked
+     FROM player_at WHERE season = ?`,
+    [seasonName]
+  )
+  const ranked = Number(cover[0].ranked) * 2 > Number(cover[0].registered)
+  const playerThen = ranked
+    ? 'SELECT id, team, rank FROM player_at WHERE season = ?'
+    : 'SELECT h.id, h.team, live.rank FROM player_at h LEFT JOIN player live ON live.id = h.id WHERE h.season = ?'
 
   const conditions = searchTerms.length > 0
     ? ', season WHERE ' + searchTerms.join(' AND ')
@@ -196,8 +176,11 @@ exports.getMatchPlayerOrderDetails = async function(fixtureObj) {
   const limit = fixtureObj.limit ? ` LIMIT ${fixtureObj.limit}` : ''
 
   const [result] = await conn.query(
-    `SELECT c.* FROM (SELECT fixturePlayers.*, club${seasonName}.name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as "teamName", homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as "oppositionName", playerNames.Man1 AS "Man1", playerNames.Man1Rank AS "Man1Rank", Man1Team.name as "Man1TeamName", playerNames.Man2 AS "Man2", playerNames.Man2Rank AS "Man2Rank", Man2Team.name as "Man2TeamName", playerNames.Man3 AS "Man3", playerNames.Man3Rank AS "Man3Rank", Man3Team.name as "Man3TeamName", playerNames.Lady1 AS "Lady1", playerNames.Lady1Rank AS "Lady1Rank", Lady1Team.name as "Lady1TeamName", playerNames.Lady2 AS "Lady2", playerNames.Lady2Rank AS "Lady2Rank", Lady2Team.name as "Lady2TeamName", playerNames.Lady3 AS "Lady3", playerNames.Lady3Rank AS "Lady3Rank", Lady3Team.name as "Lady3TeamName" FROM (SELECT fixture.id, fixture.date, fixture."homeTeam" AS team, fixture."awayTeam" AS opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS man1, CASE WHEN homeMan1Season.id IS NULL THEN homeMan1.rank ELSE homeMan1Season.rank END AS man1rank, CASE WHEN homeMan1Season.id IS NULL THEN homeMan1.team ELSE homeMan1Season.team END AS man1teamid, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS man2, CASE WHEN homeMan2Season.id IS NULL THEN homeMan2.rank ELSE homeMan2Season.rank END AS man2rank, CASE WHEN homeMan2Season.id IS NULL THEN homeMan2.team ELSE homeMan2Season.team END AS man2teamid, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS man3, CASE WHEN homeMan3Season.id IS NULL THEN homeMan3.rank ELSE homeMan3Season.rank END AS man3rank, CASE WHEN homeMan3Season.id IS NULL THEN homeMan3.team ELSE homeMan3Season.team END AS man3teamid, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS lady1, CASE WHEN homeLady1Season.id IS NULL THEN homeLady1.rank ELSE homeLady1Season.rank END AS lady1rank, CASE WHEN homeLady1Season.id IS NULL THEN homeLady1.team ELSE homeLady1Season.team END AS lady1teamid, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS lady2, CASE WHEN homeLady2Season.id IS NULL THEN homeLady2.rank ELSE homeLady2Season.rank END AS lady2rank, CASE WHEN homeLady2Season.id IS NULL THEN homeLady2.team ELSE homeLady2Season.team END AS lady2teamid, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS lady3, CASE WHEN homeLady3Season.id IS NULL THEN homeLady3.rank ELSE homeLady3Season.rank END AS lady3rank, CASE WHEN homeLady3Season.id IS NULL THEN homeLady3.team ELSE homeLady3Season.team END AS lady3teamid FROM fixture JOIN player homeMan1 ON fixture."homeMan1" = homeMan1.id LEFT JOIN ${playerTable} homeMan1Season ON homeMan1Season.id = homeMan1.id JOIN player homeMan2 ON fixture."homeMan2" = homeMan2.id LEFT JOIN ${playerTable} homeMan2Season ON homeMan2Season.id = homeMan2.id JOIN player homeMan3 ON fixture."homeMan3" = homeMan3.id LEFT JOIN ${playerTable} homeMan3Season ON homeMan3Season.id = homeMan3.id JOIN player homeLady1 ON fixture."homeLady1" = homeLady1.id LEFT JOIN ${playerTable} homeLady1Season ON homeLady1Season.id = homeLady1.id JOIN player homeLady2 ON fixture."homeLady2" = homeLady2.id LEFT JOIN ${playerTable} homeLady2Season ON homeLady2Season.id = homeLady2.id JOIN player homeLady3 ON fixture."homeLady3" = homeLady3.id LEFT JOIN ${playerTable} homeLady3Season ON homeLady3Season.id = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture."awayTeam" AS team, fixture."homeTeam" AS opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS man1, CASE WHEN awayMan1Season.id IS NULL THEN awayMan1.rank ELSE awayMan1Season.rank END AS man1rank, CASE WHEN awayMan1Season.id IS NULL THEN awayMan1.team ELSE awayMan1Season.team END AS man1teamid, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS man2, CASE WHEN awayMan2Season.id IS NULL THEN awayMan2.rank ELSE awayMan2Season.rank END AS man2rank, CASE WHEN awayMan2Season.id IS NULL THEN awayMan2.team ELSE awayMan2Season.team END AS man2teamid, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS man3, CASE WHEN awayMan3Season.id IS NULL THEN awayMan3.rank ELSE awayMan3Season.rank END AS man3rank, CASE WHEN awayMan3Season.id IS NULL THEN awayMan3.team ELSE awayMan3Season.team END AS man3teamid, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS lady1, CASE WHEN awayLady1Season.id IS NULL THEN awayLady1.rank ELSE awayLady1Season.rank END AS lady1rank, CASE WHEN awayLady1Season.id IS NULL THEN awayLady1.team ELSE awayLady1Season.team END AS lady1teamid, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS lady2, CASE WHEN awayLady2Season.id IS NULL THEN awayLady2.rank ELSE awayLady2Season.rank END AS lady2rank, CASE WHEN awayLady2Season.id IS NULL THEN awayLady2.team ELSE awayLady2Season.team END AS lady2teamid, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS lady3, CASE WHEN awayLady3Season.id IS NULL THEN awayLady3.rank ELSE awayLady3Season.rank END AS lady3rank, CASE WHEN awayLady3Season.id IS NULL THEN awayLady3.team ELSE awayLady3Season.team END AS lady3teamid FROM fixture JOIN player awayMan1 ON fixture."awayMan1" = awayMan1.id LEFT JOIN ${playerTable} awayMan1Season ON awayMan1Season.id = awayMan1.id JOIN player awayMan2 ON fixture."awayMan2" = awayMan2.id LEFT JOIN ${playerTable} awayMan2Season ON awayMan2Season.id = awayMan2.id JOIN player awayMan3 ON fixture."awayMan3" = awayMan3.id LEFT JOIN ${playerTable} awayMan3Season ON awayMan3Season.id = awayMan3.id JOIN player awayLady1 ON fixture."awayLady1" = awayLady1.id LEFT JOIN ${playerTable} awayLady1Season ON awayLady1Season.id = awayLady1.id JOIN player awayLady2 ON fixture."awayLady2" = awayLady2.id LEFT JOIN ${playerTable} awayLady2Season ON awayLady2Season.id = awayLady2.id JOIN player awayLady3 ON fixture."awayLady3" = awayLady3.id LEFT JOIN ${playerTable} awayLady3Season ON awayLady3Season.id = awayLady3.id) AS playernames JOIN team${seasonName} homeTeam ON playerNames.Team = homeTeam.id JOIN team${seasonName} awayTeam ON playerNames.Opposition = awayTeam.id LEFT JOIN team${seasonName} Man1Team ON playerNames.Man1TeamID = Man1Team.id LEFT JOIN team${seasonName} Man2Team ON playerNames.Man2TeamID = Man2Team.id LEFT JOIN team${seasonName} Man3Team ON playerNames.Man3TeamID = Man3Team.id LEFT JOIN team${seasonName} Lady1Team ON playerNames.Lady1TeamID = Lady1Team.id LEFT JOIN team${seasonName} Lady2Team ON playerNames.Lady2TeamID = Lady2Team.id LEFT JOIN team${seasonName} Lady3Team ON playerNames.Lady3TeamID = Lady3Team.id) AS fixtureplayers JOIN club${seasonName} ON club${seasonName}.id = clubId) AS c ${conditions} ORDER BY "teamName", date DESC${limit}`,
-    sqlArray
+    `WITH playerThen AS (${playerThen}),
+      teamThen AS (SELECT * FROM team_at WHERE season = ?),
+      clubThen AS (SELECT * FROM club_at WHERE season = ?)
+    SELECT c.* FROM (SELECT fixturePlayers.*, clubThen.name FROM (SELECT playerNames.id, playerNames.date, homeTeam.name as "teamName", homeTeam.id as teamId, homeTeam.club as clubId, awayTeam.name as "oppositionName", playerNames.Man1 AS "Man1", playerNames.Man1Rank AS "Man1Rank", Man1Team.name as "Man1TeamName", playerNames.Man2 AS "Man2", playerNames.Man2Rank AS "Man2Rank", Man2Team.name as "Man2TeamName", playerNames.Man3 AS "Man3", playerNames.Man3Rank AS "Man3Rank", Man3Team.name as "Man3TeamName", playerNames.Lady1 AS "Lady1", playerNames.Lady1Rank AS "Lady1Rank", Lady1Team.name as "Lady1TeamName", playerNames.Lady2 AS "Lady2", playerNames.Lady2Rank AS "Lady2Rank", Lady2Team.name as "Lady2TeamName", playerNames.Lady3 AS "Lady3", playerNames.Lady3Rank AS "Lady3Rank", Lady3Team.name as "Lady3TeamName" FROM (SELECT fixture.id, fixture.date, fixture."homeTeam" AS team, fixture."awayTeam" AS opposition, CONCAT(homeMan1.first_name, ' ', homeMan1.family_name) AS man1, CASE WHEN homeMan1Season.id IS NULL THEN homeMan1.rank ELSE homeMan1Season.rank END AS man1rank, CASE WHEN homeMan1Season.id IS NULL THEN homeMan1.team ELSE homeMan1Season.team END AS man1teamid, CONCAT(homeMan2.first_name, ' ', homeMan2.family_name) AS man2, CASE WHEN homeMan2Season.id IS NULL THEN homeMan2.rank ELSE homeMan2Season.rank END AS man2rank, CASE WHEN homeMan2Season.id IS NULL THEN homeMan2.team ELSE homeMan2Season.team END AS man2teamid, CONCAT(homeMan3.first_name, ' ', homeMan3.family_name) AS man3, CASE WHEN homeMan3Season.id IS NULL THEN homeMan3.rank ELSE homeMan3Season.rank END AS man3rank, CASE WHEN homeMan3Season.id IS NULL THEN homeMan3.team ELSE homeMan3Season.team END AS man3teamid, CONCAT(homeLady1.first_name, ' ', homeLady1.family_name) AS lady1, CASE WHEN homeLady1Season.id IS NULL THEN homeLady1.rank ELSE homeLady1Season.rank END AS lady1rank, CASE WHEN homeLady1Season.id IS NULL THEN homeLady1.team ELSE homeLady1Season.team END AS lady1teamid, CONCAT(homeLady2.first_name, ' ', homeLady2.family_name) AS lady2, CASE WHEN homeLady2Season.id IS NULL THEN homeLady2.rank ELSE homeLady2Season.rank END AS lady2rank, CASE WHEN homeLady2Season.id IS NULL THEN homeLady2.team ELSE homeLady2Season.team END AS lady2teamid, CONCAT(homeLady3.first_name, ' ', homeLady3.family_name) AS lady3, CASE WHEN homeLady3Season.id IS NULL THEN homeLady3.rank ELSE homeLady3Season.rank END AS lady3rank, CASE WHEN homeLady3Season.id IS NULL THEN homeLady3.team ELSE homeLady3Season.team END AS lady3teamid FROM fixture JOIN player homeMan1 ON fixture."homeMan1" = homeMan1.id LEFT JOIN playerThen homeMan1Season ON homeMan1Season.id = homeMan1.id JOIN player homeMan2 ON fixture."homeMan2" = homeMan2.id LEFT JOIN playerThen homeMan2Season ON homeMan2Season.id = homeMan2.id JOIN player homeMan3 ON fixture."homeMan3" = homeMan3.id LEFT JOIN playerThen homeMan3Season ON homeMan3Season.id = homeMan3.id JOIN player homeLady1 ON fixture."homeLady1" = homeLady1.id LEFT JOIN playerThen homeLady1Season ON homeLady1Season.id = homeLady1.id JOIN player homeLady2 ON fixture."homeLady2" = homeLady2.id LEFT JOIN playerThen homeLady2Season ON homeLady2Season.id = homeLady2.id JOIN player homeLady3 ON fixture."homeLady3" = homeLady3.id LEFT JOIN playerThen homeLady3Season ON homeLady3Season.id = homeLady3.id UNION ALL SELECT fixture.id, fixture.date, fixture."awayTeam" AS team, fixture."homeTeam" AS opposition, CONCAT(awayMan1.first_name, ' ', awayMan1.family_name) AS man1, CASE WHEN awayMan1Season.id IS NULL THEN awayMan1.rank ELSE awayMan1Season.rank END AS man1rank, CASE WHEN awayMan1Season.id IS NULL THEN awayMan1.team ELSE awayMan1Season.team END AS man1teamid, CONCAT(awayMan2.first_name, ' ', awayMan2.family_name) AS man2, CASE WHEN awayMan2Season.id IS NULL THEN awayMan2.rank ELSE awayMan2Season.rank END AS man2rank, CASE WHEN awayMan2Season.id IS NULL THEN awayMan2.team ELSE awayMan2Season.team END AS man2teamid, CONCAT(awayMan3.first_name, ' ', awayMan3.family_name) AS man3, CASE WHEN awayMan3Season.id IS NULL THEN awayMan3.rank ELSE awayMan3Season.rank END AS man3rank, CASE WHEN awayMan3Season.id IS NULL THEN awayMan3.team ELSE awayMan3Season.team END AS man3teamid, CONCAT(awayLady1.first_name, ' ', awayLady1.family_name) AS lady1, CASE WHEN awayLady1Season.id IS NULL THEN awayLady1.rank ELSE awayLady1Season.rank END AS lady1rank, CASE WHEN awayLady1Season.id IS NULL THEN awayLady1.team ELSE awayLady1Season.team END AS lady1teamid, CONCAT(awayLady2.first_name, ' ', awayLady2.family_name) AS lady2, CASE WHEN awayLady2Season.id IS NULL THEN awayLady2.rank ELSE awayLady2Season.rank END AS lady2rank, CASE WHEN awayLady2Season.id IS NULL THEN awayLady2.team ELSE awayLady2Season.team END AS lady2teamid, CONCAT(awayLady3.first_name, ' ', awayLady3.family_name) AS lady3, CASE WHEN awayLady3Season.id IS NULL THEN awayLady3.rank ELSE awayLady3Season.rank END AS lady3rank, CASE WHEN awayLady3Season.id IS NULL THEN awayLady3.team ELSE awayLady3Season.team END AS lady3teamid FROM fixture JOIN player awayMan1 ON fixture."awayMan1" = awayMan1.id LEFT JOIN playerThen awayMan1Season ON awayMan1Season.id = awayMan1.id JOIN player awayMan2 ON fixture."awayMan2" = awayMan2.id LEFT JOIN playerThen awayMan2Season ON awayMan2Season.id = awayMan2.id JOIN player awayMan3 ON fixture."awayMan3" = awayMan3.id LEFT JOIN playerThen awayMan3Season ON awayMan3Season.id = awayMan3.id JOIN player awayLady1 ON fixture."awayLady1" = awayLady1.id LEFT JOIN playerThen awayLady1Season ON awayLady1Season.id = awayLady1.id JOIN player awayLady2 ON fixture."awayLady2" = awayLady2.id LEFT JOIN playerThen awayLady2Season ON awayLady2Season.id = awayLady2.id JOIN player awayLady3 ON fixture."awayLady3" = awayLady3.id LEFT JOIN playerThen awayLady3Season ON awayLady3Season.id = awayLady3.id) AS playernames JOIN teamThen homeTeam ON playerNames.Team = homeTeam.id JOIN teamThen awayTeam ON playerNames.Opposition = awayTeam.id LEFT JOIN teamThen Man1Team ON playerNames.Man1TeamID = Man1Team.id LEFT JOIN teamThen Man2Team ON playerNames.Man2TeamID = Man2Team.id LEFT JOIN teamThen Man3Team ON playerNames.Man3TeamID = Man3Team.id LEFT JOIN teamThen Lady1Team ON playerNames.Lady1TeamID = Lady1Team.id LEFT JOIN teamThen Lady2Team ON playerNames.Lady2TeamID = Lady2Team.id LEFT JOIN teamThen Lady3Team ON playerNames.Lady3TeamID = Lady3Team.id) AS fixtureplayers JOIN clubThen ON clubThen.id = clubId) AS c ${conditions} ORDER BY "teamName", date DESC${limit}`,
+    [seasonName, seasonName, seasonName, ...sqlArray]
   )
   return result
 }
@@ -314,49 +297,6 @@ exports.getupComing = async function() {
     .execute()
 }
 
-/** @param {any} fixtureObj */
-exports.getClubFixtureDetails = async function(fixtureObj) {
-  const searchTerms = []
-  const sqlArray = []
-  let teamTable = 'team'
-  let clubTable = 'club'
-  let divisionTable = 'division'
-
-  if (fixtureObj.club) {
-    searchTerms.push('(e.homeClubName = ? OR e.awayClubName = ?)')
-    sqlArray.push(fixtureObj.club, fixtureObj.club)
-  }
-  if (fixtureObj.team) {
-    searchTerms.push('(e."homeTeam" = ? OR e."awayTeam" = ?)')
-    sqlArray.push(fixtureObj.team, fixtureObj.team)
-  }
-  if (fixtureObj.division) {
-    searchTerms.push('division = ?')
-    sqlArray.push(fixtureObj.division)
-  }
-  if (!fixtureObj.season) {
-    searchTerms.push('season.name = ? AND e.date > season."startDate" AND e.date < season."endDate"')
-    sqlArray.push(seasonModel.current())
-  } else {
-    searchTerms.push('season.name = ? AND e.date > season."startDate" AND e.date < season."endDate"')
-    sqlArray.push(fixtureObj.season)
-    // Same as above: bound as a parameter here, but also spliced into the FROM
-    // clause as a table-name suffix, so it has to be validated.
-    const safeSeason = seasonModel.assertName(fixtureObj.season)
-    teamTable = `team${safeSeason} AS team`
-    clubTable = `club${safeSeason} AS club`
-    divisionTable = `division${safeSeason} AS division`
-  }
-
-  const conditions = searchTerms.length > 0 ? ' WHERE ' + searchTerms.join(' AND ') : ''
-
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT e.* FROM ( SELECT d.*, division.name AS "divisionName" FROM ( SELECT c.*, club.name AS awayclubname FROM (SELECT b.*, club.name AS homeclubname FROM (SELECT a.*, team.name AS "awayTeam", team.club AS "awayClub", team.division FROM (SELECT team.name AS "homeTeam", team.id AS "homeTeamId", team.club AS "homeClub", fixture.id AS fixtureid, fixture.date AS date, fixture."awayTeam" AS awayteamid, fixture.status, fixture."homeScore", fixture."awayScore" FROM fixture JOIN ${teamTable} ON team.id = fixture."homeTeam") AS a JOIN ${teamTable} ON team.id = a.awayTeamId) AS b JOIN ${clubTable} ON club.id = b."homeClub") AS c JOIN ${clubTable} ON club.id = c."awayClub") AS d JOIN ${divisionTable} ON division.id = d.division) AS e, season${conditions} ORDER BY e.date`,
-    sqlArray
-  )
-  return result
-}
-
 /** @param {any} searchObj */
 exports.getFixtureDetails = async function(searchObj) {
   const filterArray = ['season', 'division', 'club', 'team', 'status', 'endDate', 'startDate', 'type']
@@ -375,8 +315,8 @@ exports.getFixtureDetails = async function(searchObj) {
   const checkSeason = function(/** @type {any} */ season) {
     // Shape first — the parseInt pair below is not a guard. parseInt stops at the
     // first non-digit, so "20252026 AS t --" yielded 2025/2026 and passed every
-    // check, then went into the query below as ${'team' + season}. That is the
-    // /results and /results-grid path.
+    // check. It used to be spliced into the query as a table name; it is bound now,
+    // but a malformed season still means the current one here, not no rows.
     if (!seasonModel.isValidName(season)) return false
     const firstYear = parseInt(season.slice(0, 4))
     const secondYear = parseInt(season.slice(4))
@@ -405,7 +345,12 @@ exports.getFixtureDetails = async function(searchObj) {
   if (fixtureObj.endDate !== undefined) sqlArray.push(fixtureObj.endDate.replaceAll('|', '-') + ' 00:00:00')
   if (fixtureObj.startDate !== undefined) sqlArray.push(fixtureObj.startDate.replaceAll('|', '-') + ' 00:00:00')
 
-  const sql = `SELECT
+  // The season's teams, clubs and divisions, from the history views (the live tables for
+  // the current season). Venues are read live, as they always have been.
+  const sql = `WITH teamThen AS (SELECT * FROM team_at WHERE season = ?),
+    clubThen AS (SELECT * FROM club_at WHERE season = ?),
+    divisionThen AS (SELECT * FROM division_at WHERE season = ?)
+  SELECT
     fixture.id,
     fixture.date,
     fixture."homeMan1",
@@ -450,16 +395,16 @@ exports.getFixtureDetails = async function(searchObj) {
   FROM
     fixture
     ${fixtureObj.type == 'eloSetting' ? 'JOIN game ON game.fixture = fixture.id' : ''}
-    JOIN ${'team' + season} homeTeam ON fixture."homeTeam" = homeTeam.id
-    JOIN ${'club' + season} homeClub ON homeTeam.club = homeClub.id
+    JOIN teamThen homeTeam ON fixture."homeTeam" = homeTeam.id
+    JOIN clubThen homeClub ON homeTeam.club = homeClub.id
     JOIN venue ON homeTeam.venue = venue.id
-    JOIN ${'team' + season} awayTeam ON fixture."awayTeam" = awayTeam.id
-    JOIN ${'club' + season} awayClub ON awayTeam.club = awayClub.id
-    -- The division table for the season, like the team and club joins above. The live
+    JOIN teamThen awayTeam ON fixture."awayTeam" = awayTeam.id
+    JOIN clubThen awayClub ON awayTeam.club = awayClub.id
+    -- The season's divisions, like the team and club joins above. The live
     -- one has no Division 4 (id 11), so this inner join silently dropped every
     -- Division 4 fixture of 2018/19 and 2019/20 — about 2,500 games the ELO backfill
     -- never rated, and never used as the history of anyone who played in them.
-    JOIN ${'division' + season} division ON homeTeam.division = division.id
+    JOIN divisionThen division ON homeTeam.division = division.id
     JOIN season ON (
       fixture.date > season."startDate"
       AND fixture.date < season."endDate"
@@ -485,7 +430,8 @@ exports.getFixtureDetails = async function(searchObj) {
     -- has to agree with it about which of two fixtures on the same night came first.
     ORDER BY fixture.date ASC, fixture.id ASC`
 
-  let [result] = await (await db.otherConnect()).query(sql, sqlArray)
+  const seasonName = season || seasonModel.current()
+  let [result] = await (await db.otherConnect()).query(sql, [seasonName, seasonName, seasonName, ...sqlArray])
 
   if (fixtureObj.type == undefined || fixtureObj.type != 'eloSetting') {
     result.push({ id: 99999, date: '2027-04-13T23:00:00.000Z', homeTeam: 'Messer A Section Final', homeClub: 'No Club', awayTeam: 'No Team', awayClub: 'No Club', division: 7, venueName: 'Ladybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX', venueLink: 'https://maps.app.goo.gl/svEEaaVQ8SERDrF6A', status: 'completed', homeScore: null, awayScore: null })

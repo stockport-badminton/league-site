@@ -82,10 +82,12 @@ newly blank ranks are players with no rank that season, which is what red is for
 
 ## Tests
 
-- `__tests__/unit/fixture-players-season.test.js` — which source the query is built to
+- __tests__/unit/fixture-players-season.test.js (since deleted) — which source the query is built to
   read for each shape of archive production actually holds: rank recorded, no rank column
   (2018/19), rank mostly blank (2019/20), no archive, current season. LEFT JOIN for each
-  slot. **6 of 6 fail with the fix stashed.**
+  slot. **6 of 6 fail with the fix stashed.** Replaced by
+  `__tests__/db/season-history-readers.test.js` when REARCH-02 step 4 moved the query
+  onto `player_at` (28 Oct 2026): the same cases, run against a real Postgres.
 - `__tests__/integration/fixture-players-no-team.test.js` — real render of
   `/fixture-players/20242025` with a blank team: the row is kept and says `no team`, not
   `null`. **1 of 2 fails with the fix stashed.** The other (naming another team) is

@@ -35,7 +35,6 @@ jest.mock('../../db_connect.js', () => {
 });
 
 const db = require('../../db_connect.js');
-const Fixture = require('../../models/fixture');
 const Player = require('../../models/players');
 const seasonModel = require('../../models/season');
 
@@ -44,58 +43,26 @@ beforeEach(() => {
   db.__state.respond = () => [];
 });
 
-describe('fixture lists for an archived season join that season\'s division table', () => {
-  it('getFixtureDetails reads division20182019, not the live division table', async () => {
-    await Fixture.getFixtureDetails({ status: 'complete', season: '20182019' });
-    const { sql } = db.__state.log[0];
-    expect(sql).toMatch(/JOIN division20182019 division ON homeTeam\.division = division\.id/);
-    expect(sql).not.toMatch(/JOIN division ON/);
-  });
-
-  it('getFixtureDetails for the current season still reads the live tables', async () => {
-    await Fixture.getFixtureDetails({ status: 'complete' });
-    expect(db.__state.log[0].sql).toMatch(/JOIN division division ON homeTeam\.division/);
-  });
-
-  it('getClubFixtureDetails reads the archived division table too', async () => {
-    await Fixture.getClubFixtureDetails({ season: '20182019' });
-    const { sql } = db.__state.log[0];
-    expect(sql).toMatch(/JOIN division20182019 AS division ON division\.id = d\.division/);
-  });
-});
+// Which season's tables the fixture list and the season ranks read is tested against a
+// real Postgres, in __tests__/db/season-history-readers.test.js: both read the season
+// history views since REARCH-02, and getSeasonRanks is on the typed query layer.
 
 describe('Player.getSeasonRanks', () => {
-  it('reads the season archive tables for a past season', async () => {
-    db.__state.respond = sql => {
-      if (sql.startsWith('SELECT to_regclass')) return [{ t: 'player20212022' }];
-      return [{ id: 409, rank: 4 }];
-    };
-    const ranks = await Player.getSeasonRanks('20212022', [409]);
-    expect(ranks).toEqual({ 409: 4 });
-    const q = db.__state.log[1].sql;
-    expect(q).toMatch(/FROM player20212022 p JOIN team20212022 t ON t\.id = p\.team JOIN division20212022 d/);
-  });
-
-  it('returns nothing, rather than throwing, for a season with no player archive', async () => {
-    db.__state.respond = sql => (sql.startsWith('SELECT to_regclass') ? [{ t: null }] : [{ id: 1, rank: 1 }]);
-    expect(await Player.getSeasonRanks('20172018')).toEqual({});
-    expect(db.__state.log).toHaveLength(1);
-  });
-
-  it('refuses a malformed season before it reaches a table name', async () => {
+  it('refuses a malformed season before it reaches the database', async () => {
     await expect(Player.getSeasonRanks('2021 AS x --')).rejects.toThrow(/invalid season/);
     expect(db.__state.log).toHaveLength(0);
   });
 });
 
 describe('Player.getPrevRating', () => {
+  // The season ranks come from getSeasonRanks, tested against a real database; here it
+  // is stubbed, so these tests are about what getPrevRating does with its answer.
   function respondWith({ ratings = [], ranks = [] }) {
-    db.__state.respond = sql => {
-      if (sql.startsWith('SELECT to_regclass')) return [{ t: 'exists' }];
-      if (sql.includes('JOIN division')) return ranks;
-      return ratings;
-    };
+    db.__state.respond = () => ratings;
+    jest.spyOn(Player, 'getSeasonRanks')
+      .mockResolvedValue(Object.fromEntries(ranks.map(r => [r.id, r.rank])));
   }
+  afterEach(() => jest.restoreAllMocks());
 
   it('takes rank from the season being replayed, not the player\'s current team', async () => {
     respondWith({
@@ -104,7 +71,7 @@ describe('Player.getPrevRating', () => {
     });
     const out = await Player.getPrevRating('2022-01-01', { 409: {} }, { season: '20212022', fallbackRank: 2 });
     expect(out[409]).toEqual({ rating: 1200, date: '2021-11-01', rank: 4 });
-    expect(db.__state.log.some(l => l.sql.includes('FROM player20212022 p'))).toBe(true);
+    expect(Player.getSeasonRanks).toHaveBeenCalledWith('20212022', [409]);
     // The rating lookup itself must not depend on the player having a team at all —
     // it used to inner-join player -> team -> division, so a player with no current
     // team lost their whole history and restarted at 1500.

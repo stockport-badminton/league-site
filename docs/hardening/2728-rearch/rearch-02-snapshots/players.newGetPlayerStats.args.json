@@ -1,0 +1,380 @@
+{
+ "20122013": [
+  {
+   "season": "20122013"
+  }
+ ],
+ "20132014": [
+  {
+   "season": "20132014"
+  }
+ ],
+ "20142015": [
+  {
+   "season": "20142015"
+  }
+ ],
+ "20152016": [
+  {
+   "season": "20152016"
+  }
+ ],
+ "20162017": [
+  {
+   "season": "20162017"
+  }
+ ],
+ "20172018": [
+  {
+   "season": "20172018"
+  }
+ ],
+ "20182019": [
+  {
+   "season": "20182019"
+  }
+ ],
+ "20192020": [
+  {
+   "season": "20192020"
+  }
+ ],
+ "20202021": [
+  {
+   "season": "20202021"
+  }
+ ],
+ "20212022": [
+  {
+   "season": "20212022"
+  }
+ ],
+ "20222023": [
+  {
+   "season": "20222023"
+  }
+ ],
+ "20232024": [
+  {
+   "season": "20232024"
+  }
+ ],
+ "20242025": [
+  {
+   "season": "20242025"
+  }
+ ],
+ "20252026": [
+  {
+   "season": "20252026"
+  }
+ ],
+ "20262027": [
+  {
+   "season": "20262027"
+  }
+ ],
+ "20122013-filters": [
+  {
+   "season": "20122013",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20122013-division": [
+  {
+   "season": "20122013",
+   "division": 8
+  }
+ ],
+ "20122013-junior": [
+  {
+   "season": "20122013",
+   "junior": 1
+  }
+ ],
+ "20132014-filters": [
+  {
+   "season": "20132014",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20132014-division": [
+  {
+   "season": "20132014",
+   "division": 8
+  }
+ ],
+ "20132014-junior": [
+  {
+   "season": "20132014",
+   "junior": 1
+  }
+ ],
+ "20142015-filters": [
+  {
+   "season": "20142015",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20142015-division": [
+  {
+   "season": "20142015",
+   "division": 8
+  }
+ ],
+ "20142015-junior": [
+  {
+   "season": "20142015",
+   "junior": 1
+  }
+ ],
+ "20152016-filters": [
+  {
+   "season": "20152016",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20152016-division": [
+  {
+   "season": "20152016",
+   "division": 8
+  }
+ ],
+ "20152016-junior": [
+  {
+   "season": "20152016",
+   "junior": 1
+  }
+ ],
+ "20162017-filters": [
+  {
+   "season": "20162017",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20162017-division": [
+  {
+   "season": "20162017",
+   "division": 8
+  }
+ ],
+ "20162017-junior": [
+  {
+   "season": "20162017",
+   "junior": 1
+  }
+ ],
+ "20172018-filters": [
+  {
+   "season": "20172018",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20172018-division": [
+  {
+   "season": "20172018",
+   "division": 8
+  }
+ ],
+ "20172018-junior": [
+  {
+   "season": "20172018",
+   "junior": 1
+  }
+ ],
+ "20182019-filters": [
+  {
+   "season": "20182019",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20182019-division": [
+  {
+   "season": "20182019",
+   "division": 8
+  }
+ ],
+ "20182019-junior": [
+  {
+   "season": "20182019",
+   "junior": 1
+  }
+ ],
+ "20192020-filters": [
+  {
+   "season": "20192020",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20192020-division": [
+  {
+   "season": "20192020",
+   "division": 8
+  }
+ ],
+ "20192020-junior": [
+  {
+   "season": "20192020",
+   "junior": 1
+  }
+ ],
+ "20212022-filters": [
+  {
+   "season": "20212022",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20212022-division": [
+  {
+   "season": "20212022",
+   "division": 8
+  }
+ ],
+ "20212022-junior": [
+  {
+   "season": "20212022",
+   "junior": 1
+  }
+ ],
+ "20222023-filters": [
+  {
+   "season": "20222023",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20222023-division": [
+  {
+   "season": "20222023",
+   "division": 8
+  }
+ ],
+ "20222023-junior": [
+  {
+   "season": "20222023",
+   "junior": 1
+  }
+ ],
+ "20232024-filters": [
+  {
+   "season": "20232024",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20232024-division": [
+  {
+   "season": "20232024",
+   "division": 8
+  }
+ ],
+ "20232024-junior": [
+  {
+   "season": "20232024",
+   "junior": 1
+  }
+ ],
+ "20242025-filters": [
+  {
+   "season": "20242025",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20242025-division": [
+  {
+   "season": "20242025",
+   "division": 8
+  }
+ ],
+ "20242025-junior": [
+  {
+   "season": "20242025",
+   "junior": 1
+  }
+ ],
+ "20252026-filters": [
+  {
+   "season": "20252026",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20252026-division": [
+  {
+   "season": "20252026",
+   "division": 8
+  }
+ ],
+ "20252026-junior": [
+  {
+   "season": "20252026",
+   "junior": 1
+  }
+ ],
+ "20202021-filters": [
+  {
+   "season": "20202021",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20202021-division": [
+  {
+   "season": "20202021",
+   "division": 8
+  }
+ ],
+ "20202021-junior": [
+  {
+   "season": "20202021",
+   "junior": 1
+  }
+ ],
+ "20262027-filters": [
+  {
+   "season": "20262027",
+   "gender": "Male",
+   "club": "Mellor",
+   "gameType": "Mens"
+  }
+ ],
+ "20262027-division": [
+  {
+   "season": "20262027",
+   "division": 8
+  }
+ ],
+ "20262027-junior": [
+  {
+   "season": "20262027",
+   "junior": 1
+  }
+ ],
+ "current": [
+  {}
+ ]
+}

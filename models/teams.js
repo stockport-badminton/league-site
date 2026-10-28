@@ -3,37 +3,31 @@ var db = require('../db_connect.js');
 var seasonModel = require('./season');
 const { kysely } = require('../db');
 
-// REARCH-01: on the typed query layer, except getMesser, which splices a season into a
-// table name and belongs to REARCH-02. Values are bound as the string queries bound them:
-// several callers pass ids as strings from req.params, which Postgres coerces.
+// On the typed query layer (REARCH-01, and getMesser by REARCH-02). Values are bound as
+// the string queries bound them: several callers pass ids as strings from req.params,
+// which Postgres coerces.
 
 
 exports.getAll = async function() {
   return kysely.selectFrom('team').selectAll().execute()
 }
 
-/** @param {{ season: string, section: string }} searchTerms */
+// A past season's draw is read from messer_at, with the teams as they were that season.
+// An empty season means the current one, which the view reads from the live tables.
+/** @param {{ season?: string, section: string }} searchTerms */
 exports.getMesser = async function(searchTerms) {
-  // Interpolated below as messer${season} / team${season}, so it must be validated
-  // rather than bound — see models/season.js.
-  const season = seasonModel.assertName(searchTerms.season)
-  const [result] = await (await db.otherConnect()).query(`SELECT
-    homeTeam.name AS "homeTeamName",
-    homeTeam.handicap AS "homeTeamHandicap",
-    awayTeam.name AS "awayTeamName",
-    awayTeam.handicap AS "awayTeamHandicap",
-    messer."homeScore",
-    messer."awayScore",
-    messer."drawPos",
-    messer.id,
-    messer."homeTeam",
-    messer."awayTeam"
-FROM
-    messer${season} messer
-    JOIN team${season} homeTeam ON messer."homeTeam" = homeTeam.id
-    JOIN team${season} awayTeam ON messer."awayTeam" = awayTeam.id
-WHERE messer.section LIKE ?`, [searchTerms.section])
-  return result
+  const season = seasonModel.assertName(searchTerms.season) || seasonModel.current()
+  return kysely.selectFrom('messer_at as messer')
+    .innerJoin('team_at as homeTeam', join => join.onRef('messer.homeTeam', '=', 'homeTeam.id').on('homeTeam.season', '=', season))
+    .innerJoin('team_at as awayTeam', join => join.onRef('messer.awayTeam', '=', 'awayTeam.id').on('awayTeam.season', '=', season))
+    .select(['homeTeam.name as homeTeamName', 'homeTeam.handicap as homeTeamHandicap',
+      'awayTeam.name as awayTeamName', 'awayTeam.handicap as awayTeamHandicap',
+      'messer.homeScore', 'messer.awayScore', 'messer.drawPos', 'messer.id', 'messer.homeTeam', 'messer.awayTeam'])
+    .where('messer.season', '=', season)
+    .where('messer.section', 'like', searchTerms.section)
+    // The page keys rows by drawPos; the order is only to make the answer repeatable.
+    .orderBy('messer.id')
+    .execute()
 }
 
 // Filters only on the keys it knows, and only when they are truthy: it is handed req.body,

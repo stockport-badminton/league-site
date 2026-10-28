@@ -8,8 +8,9 @@
 // builder binds every value. That is tested in __tests__/db/kysely.test.js and, per
 // function, in __tests__/db/players-writes.test.js and players-search.test.js.
 //
-// What is left here is newGetPairStats, which is still a string query until REARCH-02
-// rewrites it, and so is still checked by reading the statement it sends.
+// What is left here is newGetPairStats, which is still a string query, and so is still
+// checked by reading the statement it sends. Which season's players, teams and clubs it
+// reads is tested against a real Postgres in __tests__/db/season-history-readers.test.js.
 
 const mockQuery = jest.fn().mockResolvedValue([[]]);
 jest.mock('../../db_connect', () => ({
@@ -57,27 +58,8 @@ describe('newGetPairStats binds its filters', () => {
   it('matches everything when a filter is absent, as before', async () => {
     await Player.newGetPairStats({});
     const { params } = lastCall();
-    // season, then team / club / gameType each defaulting to the LIKE wildcard.
-    expect(params.slice(1)).toEqual(['%', '%', '%']);
-  });
-});
-
-// Its club join ignored the season: player<season>.club ids were matched against the
-// LIVE club table, so an archived season showed today's club names. Club 47 was Canute
-// in 2024/25 and is Remnants now, so that season's pair stats labelled Canute's pairs
-// "Remnants" and /pair-stats/20242025/club-Canute was empty while player stats for the
-// same URL was not. A folded club's pairs would vanish outright. The archives are
-// snapshotted together, so the ids line up.
-describe('newGetPairStats reads clubs from the season it is showing', () => {
-  it('joins the archived club table for an archived season', async () => {
-    await Player.newGetPairStats({ season: '20242025' });
-    const { sql } = lastCall();
-    expect(sql).toMatch(/JOIN club20242025 club ON club\.id = Player1\.club/);
-  });
-
-  it('joins the live club table for the current season', async () => {
-    await Player.newGetPairStats({});
-    const { sql } = lastCall();
-    expect(sql).toMatch(/JOIN club club ON club\.id = Player1\.club/);
+    // The season three times (players, teams and clubs that season), the season again for
+    // its fixtures, then team / club / gameType each defaulting to the LIKE wildcard.
+    expect(params.slice(4)).toEqual(['%', '%', '%']);
   });
 });

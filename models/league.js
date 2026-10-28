@@ -3,9 +3,10 @@ var db = require('../db_connect.js');
 var seasonModel = require('./season');
 const { kysely, decrypt } = require('../db');
 
-// REARCH-01: on the typed query layer except getLeagueTable, getAllLeagueTables and
-// getAllLeagueTablesWithTopBottomDetails, which are season-switched and belong to
-// REARCH-02. getAnnualInvoices waited on season."clubFee" being in a migration (026).
+// REARCH-01: on the typed query layer except getLeagueTable and getAllLeagueTables. Those
+// read a season's teams and divisions from team_at / division_at (REARCH-02), with the
+// season bound like any other value. getAnnualInvoices waited on season."clubFee" being
+// in a migration (026).
 
 /** @typedef {import('kysely').Kysely<import('../db/schema').DB>} Q */
 
@@ -14,24 +15,19 @@ const { kysely, decrypt } = require('../db');
 // stated as well so a division re-entered on the edit form cannot quietly put a
 // withdrawn team back in the standings.
 //
-// It applies to the *live* tables only. The archived `team<season>` snapshots have no
-// `withdrawn` column, and a team that folds in February must still appear in the
-// tables for the seasons it actually played — that is the whole reason the row is
-// kept rather than deleted.
-/** @param {string} alias @param {string} [season] */
+// It applies to the current season only. A team that folds in February must still
+// appear in the tables for the seasons it actually played — that is the whole reason the
+// row is kept rather than deleted — and the older seasons' history has no `withdrawn`.
+/** @param {string} alias @param {string} season */
 function WITHDRAWN_FILTER(alias, season) {
-  return season ? '' : ` AND ${alias}.withdrawn IS NULL`
+  return season === seasonModel.current() ? ` AND ${alias}.withdrawn IS NULL` : ''
 }
 
 /** @param {string} division @param {string} [season] */
 exports.getLeagueTable = async function(division, season) {
-  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
-  // a table-name suffix, which cannot be a bind parameter — see the validation
-  // notes in models/season.js. These /tables routes are public.
-  seasonModel.assertName(season)
-  const resolvedSeason = season || seasonModel.current()
-  const teamTable = season ? `team${season} AS team` : 'team'
-  const withdrawnFilter = WITHDRAWN_FILTER('team', season)
+  // A malformed season is a 404 (models/season.js), not a query for no rows.
+  const resolvedSeason = seasonModel.assertName(season) || seasonModel.current()
+  const withdrawnFilter = WITHDRAWN_FILTER('team', resolvedSeason)
   division = division.replace('-', ' ')
   const [result] = await (await db.otherConnect()).query(
     `SELECT c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost"
@@ -58,12 +54,12 @@ exports.getLeagueTable = async function(division, season) {
          ) AS a
          GROUP BY a.teamid
        ) AS b
-       JOIN ${teamTable} ON team.id = b.teamid${withdrawnFilter}
+       JOIN team_at AS team ON team.id = b.teamid AND team.season = ?${withdrawnFilter}
      ) AS c
      JOIN division ON c.division = division.id
      WHERE division.name = ? AND division.league = 1
      ORDER BY "gamesWon" DESC`,
-    [resolvedSeason, resolvedSeason, division]
+    [resolvedSeason, resolvedSeason, resolvedSeason, division]
   )
   return result
 }
@@ -120,14 +116,8 @@ exports.getAnnualInvoices = async function(clubName) {
 
 /** @param {string} [season] */
 exports.getAllLeagueTables = async function(season) {
-  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
-  // a table-name suffix, which cannot be a bind parameter — see the validation
-  // notes in models/season.js. These /tables routes are public.
-  seasonModel.assertName(season)
-  const resolvedSeason = season || seasonModel.current()
-  const teamTable = season ? `team${season} AS team` : 'team'
-  const divisionTable = season ? `division${season} AS division` : 'division'
-  const withdrawnFilter = WITHDRAWN_FILTER('team', season)
+  const resolvedSeason = seasonModel.assertName(season) || seasonModel.current()
+  const withdrawnFilter = WITHDRAWN_FILTER('team', resolvedSeason)
   const [result] = await (await db.otherConnect()).query(
     `SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost", c."divRank"
      FROM (
@@ -155,135 +145,13 @@ exports.getAllLeagueTables = async function(season) {
          ) AS a
          GROUP BY a.teamid
        ) AS b
-       JOIN ${teamTable} ON team.id = b.teamid${withdrawnFilter}
+       JOIN team_at AS team ON team.id = b.teamid AND team.season = ?${withdrawnFilter}
      ) AS c
-     JOIN ${divisionTable} ON c.division = division.id
+     JOIN division_at AS division ON c.division = division.id AND division.season = ?
      WHERE division.league = 1
      ORDER BY division, "gamesWon" DESC, "divRank"`,
-    [resolvedSeason, resolvedSeason]
+    [resolvedSeason, resolvedSeason, resolvedSeason, resolvedSeason]
   )
-  return result
-}
-
-/** @param {string} [season] */
-exports.getAllLeagueTablesWithTopBottomDetails = async function(season) {
-  // Throws unless the season is 8 digits. It is interpolated into the SQL below as
-  // a table-name suffix, which cannot be a bind parameter — see the validation
-  // notes in models/season.js. These /tables routes are public.
-  seasonModel.assertName(season)
-  const resolvedSeason = season || seasonModel.current()
-  const teamTable = season ? `team${season}` : 'team'
-  const divisionTable = season ? `division${season}` : 'division'
-  const withdrawnFilter = WITHDRAWN_FILTER('t', season)
-  const [result] = await (await db.otherConnect()).query(`WITH standings AS (
-    SELECT
-        d.name AS divisionname,
-        d.id AS division,
-        t.id AS teamid,
-        t.name AS teamname,
-        t."divRank",
-        s.played,
-        s.remaining,
-        (s.pointsFor - t.penalties) AS pointsfor,
-        s.pointsAgainst,
-        (s.pointsFor - t.penalties) + (18 * s.remaining) AS maxscore
-    FROM (
-        SELECT
-            x.teamId,
-            SUM(x.played) AS played,
-            SUM(x.remaining) AS remaining,
-            SUM(x.pointsFor) AS pointsfor,
-            SUM(x.pointsAgainst) AS pointsagainst
-        FROM (
-            SELECT
-                f."homeTeam" AS teamid,
-                CASE WHEN f."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-                CASE WHEN f."homeScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f."homeScore" AS pointsfor,
-                f."awayScore" AS pointsagainst
-            FROM fixture f
-            JOIN season se
-              ON f.date > se."startDate"
-             AND f.date < se."endDate"
-            WHERE se.name = ?
-              AND (
-                    f.status IN ('conceded', 'complete', '', 'outstanding')
-                    OR f.status IS NULL
-                  )
-
-            UNION ALL
-
-            SELECT
-                f."awayTeam" AS teamid,
-                CASE WHEN f."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
-                CASE WHEN f."awayScore" IS NOT NULL THEN 0 ELSE 1 END AS remaining,
-                f."awayScore" AS pointsfor,
-                f."homeScore" AS pointsagainst
-            FROM fixture f
-            JOIN season se
-              ON f.date > se."startDate"
-             AND f.date < se."endDate"
-            WHERE se.name = ?
-              AND (
-                    f.status IN ('conceded', 'complete', '', 'outstanding')
-                    OR f.status IS NULL
-                  )
-        ) x
-        GROUP BY x.teamId
-    ) s
-    JOIN ${teamTable} t
-      ON t.id = s.teamId${withdrawnFilter}
-    JOIN ${divisionTable} d
-      ON d.id = t.division
-    WHERE d.league = 1
-),
-
-division_comparison AS (
-    SELECT
-        s1.division,
-        s1.teamId,
-        MAX(s2.maxScore) AS maxothermaxscore,
-        MIN(s2.pointsFor) AS minothercurrentscore
-    FROM standings s1
-    LEFT JOIN standings s2
-      ON s1.division = s2.division
-     AND s1.teamId <> s2.teamId
-    GROUP BY s1.division, s1.teamId
-)
-SELECT
-    s.divisionName,
-    s.division,
-    s.teamName,
-    s.remaining,
-    s.played,
-    s.pointsFor,
-    s.pointsAgainst,
-    s."divRank",
-    s.maxScore,
-
-    CASE
-        WHEN s.pointsFor > dc.maxOtherMaxScore THEN 1
-        ELSE 0
-    END AS alreadywondivision,
-
-    CASE
-        WHEN s.maxScore < dc.minOtherCurrentScore THEN 1
-        ELSE 0
-    END AS alreadybottom,
-
-    CASE
-        WHEN s.pointsFor > dc.maxOtherMaxScore THEN 0
-        WHEN s.pointsFor + (18 * s.remaining) <= dc.maxOtherMaxScore THEN NULL
-        ELSE FLOOR((dc.maxOtherMaxScore - s.pointsFor) / 18) + 1
-    END AS winsneededtofinishtop
-
-FROM standings s
-JOIN division_comparison dc
-  ON dc.division = s.division
- AND dc.teamId = s.teamId
-ORDER BY s.division, s.pointsFor DESC, s."divRank"
-LIMIT 100
-`, [resolvedSeason, resolvedSeason])
   return result
 }
 

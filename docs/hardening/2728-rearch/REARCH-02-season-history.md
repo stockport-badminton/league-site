@@ -279,6 +279,50 @@ identical" is not the test. Instead:
    **Keep this step and Part 2 in separate commits.** First move each function to history
    with identical output, then change the lineup resolution with explained differences.
    Done in one commit, a regression cannot be told apart from an intended change.
+   **Done 28 Oct 2026.** There were 13 functions, not 14 (the fourteenth was
+   `season.getAll`, which is step 5). Two of them had no caller. `getClubFixtureDetails`
+   was deleted. `getAllLeagueTablesWithTopBottomDetails` had never been called since it
+   arrived in May 2026; at Neil's call it became `League.getRunIn` (current season only)
+   plus `utils/leagueRunIn.js`, behind a new superadmin page, `/admin/league-run-in`. That
+   page marks the top two and bottom two of each division and says which places are already
+   certain.
+   `getMesser`, `existsInSeason` and `getSeasonRanks` are on Kysely now. The rest stay
+   string queries with the season bound, through `WITH teamThen AS (SELECT * FROM team_at
+   WHERE season = ?)`-style CTEs. HARD-48's rank rule is now counted over `player_at`.
+   Every reader uses the views for the current season too, so the current/past branch is
+   gone. The withdrawn filter now keys on "the season is the current one", not on "no
+   season was passed".
+   **Proof.** All eleven survivors were snapshotted on the local database, before and
+   after, against every season with history, plus 20202021, the current season by name and
+   the current season by omission: 438 cases. The argument files are in
+   `rearch-02-snapshots/`. The results (37 MB) are gitignored, and the folder's README
+   says how to retake them. Every case is one of four things:
+   - **Identical.**
+   - **The same rows in another order, where the order was never defined.** Teams tied on
+     games won (`/tables`, in 2015/16, 2017/18, 2018/19 and 2019/20 locally); one team's
+     two fixtures on the same night (`/fixture-players`); tied pair stats; and the messer
+     draw, which had no `ORDER BY` and is now ordered by id (the page keys rows by
+     `drawPos`, and no draw has a duplicate, locally or in production). Neil's call, 28 Oct:
+     ship as is, with no tie-break rules.
+   - **The unread `string_agg` column** of `newGetPlayerStats`, in another order.
+   - **An error that is now a result**, each because history has a row or a column the
+     archive lacked. Messer before 2023/24 is now an empty draw. Player and pair stats
+     before 2018/19 are now empty. 2018/19 now gets a NULL rank in `getNamesClubsTeams`,
+     where the `rank` column was missing. `junior` filters work on old seasons. 2020/21 now
+     gives no rows. The current season requested by name, which said `relation
+     "team20262027" does not exist`, now gives the live rows.
+   Rendered HTML was compared too: a server from HEAD against one from the working tree,
+   245 URLs (`/tables`, `/results`, `/results-grid`, `/fixture-players`, player and pair
+   stats, messer draws, and the table image, for every season). The only status changes
+   were 500 → 200, the ones above. Every body difference was a timestamp, or the same lines
+   in another order. Speed: with JIT off, as in production, past-season pair stats take
+   22 ms both before and after. The local Postgres has JIT on, which adds about 115 ms
+   to the new plan and made it look slower than it is.
+   **Tests.** Behaviour is in `__tests__/db/season-history-readers.test.js` (18 tests;
+   breaking the current-season exclusion fails it). The mocked tests that read table
+   names out of SQL went: `unit/fixture-players-season`, the table half of
+   `unit/league-withdrawal`, and parts of three others. `unit/no-season-table-names.test.js`
+   covers `models/` and `controllers/`. `tools/` joins it at steps 5 and 8.
 5. **Switch the readers of "which seasons exist":** `season.getAll` and `loadServable` query
    `team_season`; `sync.js` copies history rows instead of creating tables (and stops
    reading DDL from production).

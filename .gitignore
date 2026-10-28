@@ -60,3 +60,7 @@ blob-report/
 # settings.local.json is personal and worktrees/ is scratch state.
 .claude/settings.local.json
 .claude/worktrees/
+
+# REARCH-02 step 4 snapshot results: 37 MB, regenerated from the committed *.args.json
+docs/hardening/2728-rearch/rearch-02-snapshots/*.before.json
+docs/hardening/2728-rearch/rearch-02-snapshots/*.after.json

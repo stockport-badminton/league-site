@@ -302,12 +302,13 @@ exports.getNamesClubsTeams = async function(searchTerms) {
   var whereValue = [];
   var nameMatch = ""
 
-  let season = ""
+  let season = seasonModel.current()
   /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
-    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
-    // every check and reached the team${season} interpolation as SQL.
+    // parseInt("2026 AS team WHERE false --") was 2026, so a crafted season passed every
+    // check and reached SQL as a table name. It is bound now, but a season that fails
+    // here still means the current one, not no rows.
     if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
@@ -340,8 +341,8 @@ exports.getNamesClubsTeams = async function(searchTerms) {
   if (whereTerms.length > 0) {
     var conditions = ' WHERE ' + whereTerms.join(' AND ');
     const [result] = await (await db.otherConnect()).query(
-      'SELECT * FROM (SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player' + season + ' player JOIN team' + season + ' team ON team.id = player.team ' + nameMatch + ') AS a JOIN club' + season + ' club ON a."clubId" = club.id) AS b' + conditions + ' ORDER BY "teamName", gender, rank',
-      whereValue
+      'SELECT * FROM (SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player_at player JOIN team_at team ON team.id = player.team AND team.season = player.season ' + nameMatch + ' WHERE player.season = ?) AS a JOIN club_at club ON a."clubId" = club.id AND club.season = ?) AS b' + conditions + ' ORDER BY "teamName", gender, rank',
+      [season, season, ...whereValue]
     )
     return result
   } else {
@@ -349,39 +350,6 @@ exports.getNamesClubsTeams = async function(searchTerms) {
       'SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player JOIN team ON team.id = player.team ' + nameMatch + ') AS a JOIN club ON a."clubId" = club.id ORDER BY "teamName", gender, rank'
     )
     return result
-  }
-}
-
-// The season snapshots this database holds, as two relations keyed by season, for a query
-// that spans every season and so cannot name one archive table. Discovered from the
-// schema rather than listed, so a season archived at the next rollover is read without
-// anyone remembering to add it, and a season never played (2020/21) simply has no rows.
-//
-// The current season is left out even if a snapshot of it exists: until it ends, the
-// live tables are the record of it.
-/** @param {any} conn */
-async function seasonSnapshots(conn) {
-  const [tables] = await conn.query(
-    'SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name ~ ?',
-    ['public', '^(team|player)20[0-9]{6}$']
-  )
-  const current = seasonModel.current()
-  const seasonsOf = (/** @type {any} */ kind) => tables
-    .map((/** @type {any} */ t) => t.table_name)
-    .filter((/** @type {any} */ name) => name.startsWith(kind))
-    .map((/** @type {any} */ name) => seasonModel.assertName(name.slice(kind.length)))
-    .filter((/** @type {any} */ season) => season !== current)
-    .sort()
-  const union = (/** @type {string[]} */ rows, /** @type {string} */ empty) => rows.length ? rows.join(' UNION ALL ') : empty
-  return {
-    teamThen: union(
-      seasonsOf('team').map((/** @type {any} */ s) => `SELECT '${s}'::text AS season, id, name, rank FROM team${s}`),
-      'SELECT NULL::text AS season, NULL::integer AS id, NULL::varchar AS name, NULL::integer AS rank WHERE false'
-    ),
-    playerThen: union(
-      seasonsOf('player').map((/** @type {any} */ s) => `SELECT '${s}'::text AS season, id, team FROM player${s}`),
-      'SELECT NULL::text AS season, NULL::integer AS id, NULL::integer AS team WHERE false'
-    ),
   }
 }
 
@@ -398,20 +366,23 @@ exports.getPlayerGameData = async function(id) {
   // Each game shows its teams AS THEY WERE THAT SEASON (25 Oct 2026). Team ids are reused
   // (HARD-39: 51, 54–57) and teams are renamed, so reading the live `team` showed whichever
   // team holds the id today: 7,704 of 71,748 game sides on production. The season comes
-  // from the fixture's date, the team from that season's snapshot, falling back to the live
+  // from the fixture's date, the team from that season's history, falling back to the live
   // row and then to 'Former team' — the current season, and the 14 fixtures dated outside
   // every season, read live as before.
   //
   // The "(+N)" playing-up bracket compares the player's OWN team that season (the season's
-  // player snapshot, from 2018/19) with the team they played for. Before 2018/19 there is
-  // no player snapshot and their own team falls back to today's, as it always did.
+  // player history, from 2018/19) with the team they played for. Before 2018/19 there is
+  // no player history and their own team falls back to today's, as it always did.
   //
   // A rank stays NULL when its team is missing, so `teamAdjustment` below is NULL and the
   // view's `teamAdjustment > 0` guard simply renders no bracket. Checked.
+  //
+  // The current season is left out of the history even once it has rows there (a
+  // rollover taken before it ends): until it ends, the live tables are the record of it.
   const conn = await db.otherConnect()
-  const { teamThen, playerThen } = await seasonSnapshots(conn)
-  let sql = `WITH teamThen AS (${teamThen}),
-playerThen AS (${playerThen}),
+  const current = seasonModel.current()
+  let sql = `WITH teamThen AS (SELECT season, id, name, rank FROM team_season WHERE season <> ?),
+playerThen AS (SELECT season, id, team FROM player_season WHERE season <> ?),
 playerGames AS (SELECT game.*, fixture.date, fixtureSeason.name AS fixtureseason,
 COALESCE(homeThen.name, homeTeam.name, 'Former team') AS hometeamname,
 CASE WHEN homeThen.id IS NULL THEN homeTeam.rank ELSE homeThen.rank END AS hometeamrank,
@@ -526,22 +497,22 @@ ORDER BY date DESC, allGames.id DESC`
   // night's point is the rating after its last game.
 
   let idArray = Array(45).fill(id * 1)
-  const [result] = await conn.query(sql, idArray)
+  const [result] = await conn.query(sql, [current, current, ...idArray])
   return result
 }
 
 
 /** @param {any} searchObj */
 exports.newGetPlayerStats = async function(searchObj) {
-  let season = ""
   let seasonString = seasonModel.current()
   let whereValue = []
 
   /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
-    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
-    // every check and reached the team${season} interpolation as SQL.
+    // parseInt("2026 AS team WHERE false --") was 2026, so a crafted season passed every
+    // check and reached SQL as a table name. It is bound now, but a season that fails
+    // here still means the current one, not no rows.
     if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
@@ -554,7 +525,6 @@ exports.newGetPlayerStats = async function(searchObj) {
   if (searchObj.season === undefined || !checkSeason(searchObj.season)) {
     seasonVal = seasonString
   } else {
-    season = searchObj.season;
     seasonVal = searchObj.season;
   }
   whereValue.push(seasonVal);
@@ -564,7 +534,12 @@ exports.newGetPlayerStats = async function(searchObj) {
   whereValue.push(searchObj.club || '%');
   whereValue.push(searchObj.gameType || '%');
 
+  // The season's players, teams and clubs, from the history views (the live tables for
+  // the current season).
   var sql = `WITH
+  playerThen AS (SELECT * FROM player_at WHERE season = ?),
+  teamThen AS (SELECT * FROM team_at WHERE season = ?),
+  clubThen AS (SELECT * FROM club_at WHERE season = ?),
   seasonFixture AS (
     SELECT
       fixture.id,
@@ -610,9 +585,9 @@ exports.newGetPlayerStats = async function(searchObj) {
       END AS "gameType"
     FROM
       seasonFixtureGame
-      JOIN player${ season } homePlayer1 ON seasonFixtureGame."homePlayer1" = homePlayer1.id
+      JOIN playerThen homePlayer1 ON seasonFixtureGame."homePlayer1" = homePlayer1.id
       AND seasonFixtureGame."homePlayer1" != 0
-      JOIN player${ season } homePlayer2 ON seasonFixtureGame."homePlayer2" = homePlayer2.id
+      JOIN playerThen homePlayer2 ON seasonFixtureGame."homePlayer2" = homePlayer2.id
       AND seasonFixtureGame."homePlayer2" != 0
   ),
   gameSummary AS (
@@ -712,12 +687,12 @@ SELECT
   ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
 FROM
   gameSummary
-  JOIN player${ season } player ON "playerId" = player.id
+  JOIN playerThen player ON "playerId" = player.id
   AND player.gender LIKE ?
   ${typeof searchObj.junior !== 'undefined' ? 'AND player.junior = 1' : ''}
-  JOIN team${ season } gameTeam ON gameTeam.id = gameSummary.team
+  JOIN teamThen gameTeam ON gameTeam.id = gameSummary.team
   AND gameTeam.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND gameTeam.division = ?' : ''}
-  JOIN club${ season } club ON club.id = player.club
+  JOIN clubThen club ON club.id = player.club
   AND club.name LIKE ?
 WHERE
 "gameType" LIKE ?
@@ -733,14 +708,13 @@ GROUP BY
 ORDER BY
   "Points" DESC;`
 
-  const [result] = await (await db.otherConnect()).query(sql, whereValue)
+  const [result] = await (await db.otherConnect()).query(sql, [seasonVal, seasonVal, seasonVal, ...whereValue])
   return result
 }
 
 
 /** @param {any} searchObj */
 exports.newGetPairStats = async function(searchObj) {
-  let season = ""
   let seasonString = seasonModel.current()
   let divisionSql = ""
   let whereValue = []
@@ -748,8 +722,9 @@ exports.newGetPairStats = async function(searchObj) {
   /** @param {any} season */
   function checkSeason(season) {
     // Shape first. Without this the parseInt pair below waves payloads through:
-    // parseInt("2026 AS team WHERE false --") is 2026, so a crafted season passed
-    // every check and reached the team${season} interpolation as SQL.
+    // parseInt("2026 AS team WHERE false --") was 2026, so a crafted season passed every
+    // check and reached SQL as a table name. It is bound now, but a season that fails
+    // here still means the current one, not no rows.
     if (!seasonModel.isValidName(season)) return false
     let firstYear = parseInt(season.slice(0, 4))
     let secondYear = parseInt(season.slice(4))
@@ -762,7 +737,6 @@ exports.newGetPairStats = async function(searchObj) {
   if (searchObj.season === undefined || !checkSeason(searchObj.season)) {
     seasonVal = seasonString
   } else {
-    season = searchObj.season;
     seasonVal = searchObj.season;
   }
   // In placeholder order. These used to be pasted into the statement from the URL.
@@ -772,7 +746,12 @@ exports.newGetPairStats = async function(searchObj) {
   whereValue.push(searchObj.club || '%')
   whereValue.push(searchObj.gameType || '%')
 
+  // The season's players, teams and clubs, from the history views (the live tables for
+  // the current season).
   var sql = `WITH
+  playerThen AS (SELECT * FROM player_at WHERE season = ?),
+  teamThen AS (SELECT * FROM team_at WHERE season = ?),
+  clubThen AS (SELECT * FROM club_at WHERE season = ?),
   seasonFixture AS (
     SELECT
       fixture.id,
@@ -819,9 +798,9 @@ exports.newGetPairStats = async function(searchObj) {
       homePlayer1.gender AS playergender
     FROM
       seasonFixtureGame
-      JOIN player${ season } homePlayer1 ON seasonFixtureGame."homePlayer1" = homePlayer1.id
+      JOIN playerThen homePlayer1 ON seasonFixtureGame."homePlayer1" = homePlayer1.id
       AND seasonFixtureGame."homePlayer1" != 0
-      JOIN player${ season } homePlayer2 ON seasonFixtureGame."homePlayer2" = homePlayer2.id
+      JOIN playerThen homePlayer2 ON seasonFixtureGame."homePlayer2" = homePlayer2.id
       AND seasonFixtureGame."homePlayer2" != 0
   ),
   PairsgameSummary AS (
@@ -846,7 +825,7 @@ exports.newGetPairStats = async function(searchObj) {
       team.division
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
+      JOIN teamThen team ON "homeTeam" = team.id
     UNION ALL
     SELECT
       gameTypeGender.id,
@@ -869,7 +848,7 @@ exports.newGetPairStats = async function(searchObj) {
       team.division
     FROM
       gameTypeGender
-      JOIN team${ season } team ON "homeTeam" = team.id
+      JOIN teamThen team ON "homeTeam" = team.id
   )
 SELECT
   CONCAT(Player1.first_name,' ',Player1.family_name,' & ',Player2.first_name,' ',Player2.family_name) AS "Pairing",
@@ -887,12 +866,12 @@ SELECT
   "gameType"
 FROM
   (SELECT * FROM PairsgameSummary) AS a
-  JOIN player${ season } Player1 ON Player1.id = a.player1Id
-  JOIN player${ season } Player2 ON Player2.id = a.player2Id
-  JOIN team${ season } team ON team.id = a.team
+  JOIN playerThen Player1 ON Player1.id = a.player1Id
+  JOIN playerThen Player2 ON Player2.id = a.player2Id
+  JOIN teamThen team ON team.id = a.team
   ${ (searchObj.division !== undefined) ? 'AND team.division = ?' : ''}
   AND team.name LIKE ?
-  JOIN club${ season } club ON club.id = Player1.club
+  JOIN clubThen club ON club.id = Player1.club
   AND club.name LIKE ?
   AND "gameType" LIKE ?
 GROUP BY
@@ -906,7 +885,7 @@ ORDER BY
   "winRate" DESC,
   "Points" DESC`
 
-  const [result] = await (await db.otherConnect()).query(sql, whereValue)
+  const [result] = await (await db.otherConnect()).query(sql, [seasonVal, seasonVal, seasonVal, ...whereValue])
   return result
 }
 
@@ -1144,35 +1123,28 @@ const SLOT_END = (/** @type {any} */ pid) => `CASE
 // fixture's division, so it has to be the division the player was registered in THAT
 // season. It used to be read from the live player/team/division tables, which meant a
 // backfill applied today's teams to every season back to 2018 — 268 of the 387 players
-// in 2021/22 are registered in a different division now. The season archives
-// (player20212022 and friends) hold the answer.
+// in 2021/22 are registered in a different division now. The season history
+// (player_at and friends) holds the answer; for the current season it is the live tables.
 //
 // A player with no team that season is simply absent; callers fall back to the
 // fixture's own rank, which makes the adjustment zero rather than inventing one.
-// Seasons before 2018/19 have no player archive (and no game rows), so they return {}.
+// Seasons before 2018/19 have no player history (and no game rows), so they return {}.
 /** @param {any} season @param {any} playerIds */
 exports.getSeasonRanks = async function(season, playerIds) {
-  const current = !season || season === seasonModel.current()
-  const suffix = current ? '' : seasonModel.assertName(season)
-  const conn = await db.otherConnect()
-  if (!current) {
-    const [exists] = await conn.query('SELECT to_regclass(?) AS t', [`player${suffix}`])
-    if (!exists[0].t) return {}
-  }
   let ids = null
   if (playerIds) {
     ids = playerIds.map((/** @type {any} */ n) => parseInt(n, 10)).filter((/** @type {any} */ n) => n > 0)
     if (ids.length === 0) return {}
   }
-  const [rows] = await conn.query(
-    `SELECT p.id, d.rank
-     FROM player${suffix} p
-     JOIN team${suffix} t ON t.id = p.team
-     JOIN division${suffix} d ON d.id = t.division
-     ${ids ? 'WHERE p.id = ANY(?::int[])' : ''}`,
-    ids ? [ids] : []
-  )
-  return Object.fromEntries(rows.map((/** @type {any} */ r) => [r.id, r.rank]))
+  const name = seasonModel.assertName(season) || seasonModel.current()
+  const rows = await kysely.selectFrom('player_at as p')
+    .innerJoin('team_at as t', join => join.onRef('t.id', '=', 'p.team').on('t.season', '=', name))
+    .innerJoin('division_at as d', join => join.onRef('d.id', '=', 't.division').on('d.season', '=', name))
+    .select(['p.id', 'd.rank'])
+    .where('p.season', '=', name)
+    .$if(ids !== null, qb => qb.where('p.id', 'in', /** @type {number[]} */ (ids)))
+    .execute()
+  return Object.fromEntries(rows.map(r => [r.id, r.rank]))
 }
 
 // Each player's rating going into a fixture on `endDate`: their latest rated game

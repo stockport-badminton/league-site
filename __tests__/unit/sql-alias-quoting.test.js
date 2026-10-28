@@ -77,7 +77,9 @@ function offenders() {
 describe('SQL aliases', () => {
   it('is looking at the queries at all', () => {
     const bodies = sources().reduce((n, f) => n + sqlBodies(fs.readFileSync(f, 'utf8')).length, 0);
-    expect(bodies).toBeGreaterThan(40);
+    // It falls as model files move to the typed query layer, where Kysely writes the
+    // aliases: 32 string queries are left after REARCH-02 step 4 (28 Oct 2026).
+    expect(bodies).toBeGreaterThan(25);
   });
 
   it('never aliases with a capital unless the alias is quoted', () => {
