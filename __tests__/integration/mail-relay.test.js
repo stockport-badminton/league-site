@@ -128,33 +128,34 @@ describe('POST /fixture/reminder', () => {
     expect(subject).toBe('Reminder: outstanding scorecard');
   });
 
-  // The fixture's date decides the wording, so a card already past its deadline is not
-  // told it is "due by close of play tomorrow".
-  it('says "due by close of play tomorrow" while the card is not yet due', async () => {
-    mockCurrentUser = SUPERADMIN;
+  // The fixture's date decides the wording: seven days to get the card in, then overdue.
+  function fixtureDaysAgo(days) {
     Fixture.getReminderContacts.mockResolvedValue({
-      fixture: { id: 7200, date: new Date(Date.now() - 4 * 24 * 3600 * 1000), homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      fixture: { id: 7200, date: new Date(Date.now() - days * 24 * 3600 * 1000), homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
       contacts: [],
     });
+  }
+
+  it('gives the date the card is due by while it is not yet overdue', async () => {
+    mockCurrentUser = SUPERADMIN;
+    fixtureDaysAgo(6);
     await request(app).post('/fixture/reminder').send(OK_BODY);
     const { Message } = sentParams();
     expect(Message.Subject.Data).toBe('Reminder: outstanding scorecard');
-    expect(Message.Body.Html.Data).toMatch(/close\s+of play tomorrow/);
+    expect(Message.Body.Html.Data).toMatch(/is due\s+by \w+day \d+ \w+, to avoid a late card mark/);
+    expect(Message.Body.Text.Data).toMatch(/is due by \w+day \d+ \w+, to avoid a late card mark/);
     expect(Message.Body.Html.Data).not.toMatch(/overdue/);
   });
 
-  it('says the card is overdue once the deadline has passed', async () => {
+  it('says the card is overdue once seven days have passed', async () => {
     mockCurrentUser = SUPERADMIN;
-    Fixture.getReminderContacts.mockResolvedValue({
-      fixture: { id: 7200, date: new Date(Date.now() - 6 * 24 * 3600 * 1000), homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
-      contacts: [],
-    });
+    fixtureDaysAgo(9);
     await request(app).post('/fixture/reminder').send(OK_BODY);
     const { Message } = sentParams();
     expect(Message.Subject.Data).toBe('Reminder: overdue scorecard');
     expect(Message.Body.Html.Data).toContain('Your scorecard is overdue');
-    expect(Message.Body.Text.Data).toContain('now overdue');
-    expect(Message.Body.Html.Data).not.toMatch(/of play tomorrow/);
+    expect(Message.Body.Text.Data).toMatch(/was due by \w+day \d+ \w+ and is now overdue/);
+    expect(Message.Body.Html.Data).not.toMatch(/late card mark/);
   });
 
   it('400s without a fixture to identify', async () => {

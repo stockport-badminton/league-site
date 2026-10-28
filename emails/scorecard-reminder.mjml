@@ -22,13 +22,13 @@
       <mj-column>
         <mj-raw><% if (overdue) { %></mj-raw>
         <mj-text>
-          The scorecard for your recent match is now overdue. Please enter it as soon as
-          you can.
+          The scorecard for your recent match was due<% if (dueBy) { %> by <%= dueBy %><% } %>
+          and is now overdue. Please enter it as soon as you can.
         </mj-text>
         <mj-raw><% } else { %></mj-raw>
         <mj-text>
-          Just a timely reminder that the scorecard for your recent match is due by close
-          of play tomorrow, to avoid a late card mark.
+          Just a timely reminder that the scorecard for your recent match is due<% if (dueBy) { %>
+          by <%= dueBy %><% } %>, to avoid a late card mark.
         </mj-text>
         <mj-raw><% } %></mj-raw>
         <mj-button href="<%= submitUrl %>" css-class="cta">Enter the result</mj-button>

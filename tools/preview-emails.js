@@ -79,6 +79,7 @@ const SAMPLES = {
     whyReceiving: 'You are listed as a captain for one of the teams in this fixture.',
     matchLine: '',
     overdue: false,
+    dueBy: 'Wednesday 28 October',
     submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
   },
   'access-approved': {

@@ -349,8 +349,8 @@
                   
       <div
          style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;line-height:24px;text-align:left;color:#1f2430;"
-      >The scorecard for your recent match is now overdue. Please enter it as soon as
-          you can.</div>
+      >The scorecard for your recent match was due<% if (dueBy) { %> by <%= dueBy %><% } %>
+          and is now overdue. Please enter it as soon as you can.</div>
     
                 </td>
               </tr>
@@ -362,8 +362,8 @@
                   
       <div
          style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;line-height:24px;text-align:left;color:#1f2430;"
-      >Just a timely reminder that the scorecard for your recent match is due by close
-          of play tomorrow, to avoid a late card mark.</div>
+      >Just a timely reminder that the scorecard for your recent match is due<% if (dueBy) { %>
+          by <%= dueBy %><% } %>, to avoid a late card mark.</div>
     
                 </td>
               </tr>

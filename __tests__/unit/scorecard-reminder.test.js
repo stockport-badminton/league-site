@@ -1,53 +1,71 @@
-const { isReminderDue, isScorecardOverdue, parseRecipients, scorecardDueAt } = require('../../utils/scorecardReminder');
+const {
+  isReminderDue, isScorecardOverdue, dueByLabel, parseRecipients, scorecardDueAt,
+} = require('../../utils/scorecardReminder');
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const FIXTURE = '2026-10-05T00:00:00.000Z';
-const due = new Date(FIXTURE).getTime() + 5 * DAY;
+// Midnight UK time on Thursday 22 October, as the fixture table stores it.
+const FIXTURE = '2026-10-21T23:00:00.000Z';
+const at = days => new Date(FIXTURE).getTime() + days * DAY;
 
 function row(overrides) {
   return { status: 'outstanding', date: FIXTURE, homeScore: null, hasDraft: false, ...overrides };
 }
 
 describe('isReminderDue', () => {
-  it('is due five days after the fixture', () => {
-    expect(scorecardDueAt(FIXTURE).getTime()).toBe(due);
+  it('is due seven days after the fixture, as the rules say', () => {
+    expect(scorecardDueAt(FIXTURE).getTime()).toBe(at(7));
   });
 
-  it('offers the reminder from 48 hours before the card is due', () => {
-    expect(isReminderDue(row(), due - 49 * HOUR)).toBe(false);
-    expect(isReminderDue(row(), due - 48 * HOUR)).toBe(true);
-    expect(isReminderDue(row(), due - 1 * HOUR)).toBe(true);
+  it('offers nothing in the first two days', () => {
+    expect(isReminderDue(row(), at(1))).toBe(false);
+    expect(isReminderDue(row(), at(2))).toBe(false);
   });
 
-  it('keeps offering it once the card is overdue — when a nudge matters most', () => {
-    expect(isReminderDue(row(), due)).toBe(true);
-    expect(isReminderDue(row(), due + DAY)).toBe(true);
-    expect(isReminderDue(row(), due + 30 * DAY)).toBe(true);
+  it('offers the reminder from two days after the fixture, through the deadline and the week after', () => {
+    expect(isReminderDue(row(), at(2) + HOUR)).toBe(true);
+    expect(isReminderDue(row(), at(7))).toBe(true);
+    expect(isReminderDue(row(), at(13))).toBe(true);
+  });
+
+  it('stops at two weeks — older than that is a rearrangement, not a reminder', () => {
+    expect(isReminderDue(row(), at(14))).toBe(false);
+    expect(isReminderDue(row(), at(400))).toBe(false);
   });
 
   it('never offers it when a draft has been filed', () => {
-    expect(isReminderDue(row({ hasDraft: true }), due - HOUR)).toBe(false);
+    expect(isReminderDue(row({ hasDraft: true }), at(5))).toBe(false);
   });
 
   it('never offers it for a result already in, or a fixture that is not outstanding', () => {
-    expect(isReminderDue(row({ homeScore: 10 }), due - HOUR)).toBe(false);
+    expect(isReminderDue(row({ homeScore: 10 }), at(5))).toBe(false);
     for (const status of ['rearranged', 'rearranging', 'conceded', 'complete', 'void']) {
-      expect(isReminderDue(row({ status }), due - HOUR)).toBe(false);
+      expect(isReminderDue(row({ status }), at(5))).toBe(false);
     }
   });
 });
 
 describe('isScorecardOverdue', () => {
-  it('is overdue from the moment the card is due', () => {
-    expect(isScorecardOverdue(FIXTURE, due - 1)).toBe(false);
-    expect(isScorecardOverdue(FIXTURE, due)).toBe(true);
-    expect(isScorecardOverdue(FIXTURE, due + DAY)).toBe(true);
+  it('is overdue once more than seven days have passed', () => {
+    expect(isScorecardOverdue(FIXTURE, at(6))).toBe(false);
+    expect(isScorecardOverdue(FIXTURE, at(7))).toBe(false);
+    expect(isScorecardOverdue(FIXTURE, at(7) + 1)).toBe(true);
+    expect(isScorecardOverdue(FIXTURE, at(10))).toBe(true);
   });
 
   it('is not overdue without a usable date', () => {
-    expect(isScorecardOverdue(undefined, due)).toBe(false);
-    expect(isScorecardOverdue('not a date', due)).toBe(false);
+    expect(isScorecardOverdue(undefined, at(10))).toBe(false);
+    expect(isScorecardOverdue('not a date', at(10))).toBe(false);
+  });
+});
+
+describe('dueByLabel', () => {
+  it('names the last day the card is on time, in UK time', () => {
+    expect(dueByLabel(FIXTURE)).toBe('Wednesday 28 October');
+  });
+
+  it('has nothing to say without a date', () => {
+    expect(dueByLabel(undefined)).toBeNull();
   });
 });
 
