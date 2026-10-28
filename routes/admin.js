@@ -167,6 +167,10 @@ router.post('/admin/invoices', access.superadmin,
   contact_controller.admin_invoices_run);
 
 router.get('/admin/audit', access.superadmin, audit_controller.audit_preview);
+
+// This season's tables with the top two and bottom two marked (utils/leagueRunIn.js).
+router.get('/admin/league-run-in', access.superadmin,
+  require('../controllers/leagueController').run_in);
 router.post('/admin/audit/run', access.cron(audit_controller.requireAuditCaller), audit_controller.audit_run);
 
 // Every superadmin tool, grouped (utils/adminTools.js) — the Admin dropdown's

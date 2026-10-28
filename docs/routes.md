@@ -223,5 +223,6 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 213 | GET | `/admin/invoices` | superadmin |
 | 214 | POST | `/admin/invoices` | superadmin |
 | 215 | GET | `/admin/audit` | superadmin |
-| 216 | POST | `/admin/audit/run` | cron:AUDIT_CRON_TOKEN |
-| 217 | GET | `/admin` | superadmin |
+| 216 | GET | `/admin/league-run-in` | superadmin |
+| 217 | POST | `/admin/audit/run` | cron:AUDIT_CRON_TOKEN |
+| 218 | GET | `/admin` | superadmin |

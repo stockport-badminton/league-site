@@ -155,6 +155,47 @@ exports.getAllLeagueTables = async function(season) {
   return result
 }
 
+// This season's standings with the fixtures each team has left, for the run-in page
+// (utils/leagueRunIn.js works out who can still go up or down). The current season only:
+// a finished season has nothing left to play. A fixture is still to play while it has no
+// score; void and rearranged ones are left out, as the old run-in query did.
+// Numbers come back as numbers, not the strings Postgres gives a SUM.
+exports.getRunIn = async function() {
+  const [rows] = await (await db.otherConnect()).query(
+    `SELECT division.id AS division, division.name AS "divisionName", division.rank AS "divisionRank",
+            team.id, team.name, team."divRank", s.played, s.remaining,
+            s.won - COALESCE(team.penalties, 0) AS "gamesWon", s.lost AS "gamesLost"
+     FROM (
+       SELECT x.team, SUM(x.played) AS played, SUM(x.remaining) AS remaining,
+              COALESCE(SUM(x.won), 0) AS won, COALESCE(SUM(x.lost), 0) AS lost
+       FROM (
+         SELECT f."homeTeam" AS team, f."homeScore" AS won, f."awayScore" AS lost,
+                CASE WHEN f."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
+                CASE WHEN f."homeScore" IS NULL THEN 1 ELSE 0 END AS remaining
+         FROM fixture f JOIN season ON f.date > season."startDate" AND f.date < season."endDate"
+         WHERE season.name = ? AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
+         UNION ALL
+         SELECT f."awayTeam", f."awayScore", f."homeScore",
+                CASE WHEN f."awayScore" IS NOT NULL THEN 1 ELSE 0 END,
+                CASE WHEN f."awayScore" IS NULL THEN 1 ELSE 0 END
+         FROM fixture f JOIN season ON f.date > season."startDate" AND f.date < season."endDate"
+         WHERE season.name = ? AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
+       ) AS x
+       GROUP BY x.team
+     ) AS s
+     JOIN team ON team.id = s.team AND team.withdrawn IS NULL
+     JOIN division ON division.id = team.division
+     WHERE division.league = 1
+     ORDER BY division.rank, "gamesWon" DESC, team."divRank"`,
+    [seasonModel.current(), seasonModel.current()]
+  )
+  return rows.map((/** @type {any} */ r) => ({
+    ...r,
+    played: Number(r.played), remaining: Number(r.remaining),
+    gamesWon: Number(r.gamesWon), gamesLost: Number(r.gamesLost),
+  }))
+}
+
 // ---------------------------------------------------------------------------
 // Withdrawing a team mid-season (HARD-10)
 //

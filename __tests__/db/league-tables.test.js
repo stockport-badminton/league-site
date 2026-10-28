@@ -53,3 +53,38 @@ describe('getAllLeagueTables', () => {
     expect(rows[0]).not.toHaveProperty('pointsFor');
   });
 });
+
+// The run-in page's standings (utils/leagueRunIn.js does the rest). The seed's 2026/27
+// has one fixture of each pairing played and the return still to come.
+describe('getRunIn', () => {
+  const seeded = async () => (await League.getRunIn()).find(r => r.name === 'Northfield A');
+
+  it("counts each team's fixtures played and left, as numbers", async () => {
+    const [played] = await run(`SELECT "homeScore", "awayScore" FROM fixture WHERE id = 301`);
+    expect(await seeded()).toMatchObject({
+      divisionName: 'Premier', divisionRank: 1, played: 1, remaining: 1,
+      gamesWon: played.homeScore, gamesLost: played.awayScore,
+    });
+  });
+
+  it('takes penalties off games won', async () => {
+    const before = (await seeded()).gamesWon;
+    await run('UPDATE team SET penalties = 3 WHERE id = 1');
+    expect((await seeded()).gamesWon).toBe(before - 3);
+  });
+
+  it('leaves out a withdrawn team', async () => {
+    await run('UPDATE team SET withdrawn = now() WHERE id = 1');
+    expect(await seeded()).toBeUndefined();
+  });
+
+  it('lists divisions in rank order, each best first', async () => {
+    const rows = (await League.getRunIn()).filter(r => r.divisionRank <= 4);
+    const ranks = rows.map(r => r.divisionRank);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    for (const rank of new Set(ranks)) {
+      const won = rows.filter(r => r.divisionRank === rank).map(r => r.gamesWon);
+      expect(won).toEqual([...won].sort((a, b) => b - a));
+    }
+  });
+});

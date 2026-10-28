@@ -1,0 +1,68 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>League Run-in <small class="text-muted"><%= season.slice(0, 4) %>/<%= season.slice(6) %></small></h1>
+  <p>
+    Two up and two down in each division, by where the teams stand now.
+    <span class="badge badge-warning">Winner</span> marks the top team,
+    <span class="badge badge-success">Up</span> the second and
+    <span class="badge badge-danger">Down</span> the bottom two.
+    A row's label says <strong>certain</strong> once no other team can catch it, assuming
+    every remaining fixture is won <%= GAMES_PER_FIXTURE %>–0. The Premier has nobody to
+    promote and the lowest division nobody to relegate. Ties are not resolved.
+  </p>
+</div>
+
+<% if (!divisions.length) { %>
+<div class="col-12"><p>No results recorded this season yet.</p></div>
+<% } %>
+
+<% divisions.forEach(function(d){ %>
+<div class="col-lg-6">
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th><%= d.name %></th>
+          <th title="Played">P</th>
+          <th title="Fixtures left">Left</th>
+          <th title="Games won">W</th>
+          <th title="Games lost">L</th>
+          <th title="The most games won still possible">Max</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% d.teams.forEach(function(t){
+             var rowClass = { winner: 'table-warning', up: 'table-success', down: 'table-danger' }[t.zone] || '';
+             var label = '';
+             if (t.zone === 'winner') label = t.certain.winner ? 'Winner, certain' : (t.certain.up ? 'Up, certain' : 'Winner');
+             else if (t.zone === 'up') label = t.certain.up ? 'Up, certain' : 'Up';
+             else if (t.zone === 'down') label = t.certain.down ? 'Down, certain' : 'Down';
+             var badge = { winner: 'badge-warning', up: 'badge-success', down: 'badge-danger' }[t.zone];
+        %>
+        <tr class="<%= rowClass %>" data-zone="<%= t.zone || '' %>">
+          <td><%= t.position %></td>
+          <td><%= t.name %></td>
+          <td><%= t.played %></td>
+          <td><%= t.remaining %></td>
+          <td><%= t.gamesWon %></td>
+          <td><%= t.gamesLost %></td>
+          <td><%= t.max %></td>
+          <td>
+            <% if (label) { %>
+              <span class="badge <%= badge %><%= /certain/.test(label) ? '' : ' badge-pill' %>"
+                    <% if (/certain/.test(label)) { %>style="font-size: 0.9em"<% } %>><%= label %></span>
+            <% } %>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% }) %>
+
+<%- include('../footer.ejs') %>
