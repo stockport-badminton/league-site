@@ -128,6 +128,35 @@ describe('POST /fixture/reminder', () => {
     expect(subject).toBe('Reminder: outstanding scorecard');
   });
 
+  // The fixture's date decides the wording, so a card already past its deadline is not
+  // told it is "due by close of play tomorrow".
+  it('says "due by close of play tomorrow" while the card is not yet due', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getReminderContacts.mockResolvedValue({
+      fixture: { id: 7200, date: new Date(Date.now() - 4 * 24 * 3600 * 1000), homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      contacts: [],
+    });
+    await request(app).post('/fixture/reminder').send(OK_BODY);
+    const { Message } = sentParams();
+    expect(Message.Subject.Data).toBe('Reminder: outstanding scorecard');
+    expect(Message.Body.Html.Data).toMatch(/close\s+of play tomorrow/);
+    expect(Message.Body.Html.Data).not.toMatch(/overdue/);
+  });
+
+  it('says the card is overdue once the deadline has passed', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getReminderContacts.mockResolvedValue({
+      fixture: { id: 7200, date: new Date(Date.now() - 6 * 24 * 3600 * 1000), homeTeam: 'Mellor A', awayTeam: 'Aerospace A' },
+      contacts: [],
+    });
+    await request(app).post('/fixture/reminder').send(OK_BODY);
+    const { Message } = sentParams();
+    expect(Message.Subject.Data).toBe('Reminder: overdue scorecard');
+    expect(Message.Body.Html.Data).toContain('Your scorecard is overdue');
+    expect(Message.Body.Text.Data).toContain('now overdue');
+    expect(Message.Body.Html.Data).not.toMatch(/of play tomorrow/);
+  });
+
   it('400s without a fixture to identify', async () => {
     mockCurrentUser = SUPERADMIN;
     const res = await request(app).post('/fixture/reminder').send({ recipients: 'a@example.com' });

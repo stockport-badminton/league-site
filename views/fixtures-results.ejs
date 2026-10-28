@@ -145,8 +145,8 @@
 
             <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged' || row['status'] === 'rearranging') { %>
                   <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
-                  <%# Only in the 48 hours before the card is due (fixture + 5 days) and only
-                      while no draft is filed — row.reminderDue, utils/scorecardReminder.js. %>
+                  <%# From 48 hours before the card is due (fixture + 5 days), overdue included,
+                      and only while no draft is filed — row.reminderDue, utils/scorecardReminder.js. %>
                   <% if(row['reminderDue']){ %>
                   <br /><a href="#" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
                 <% } } %>

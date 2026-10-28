@@ -11,7 +11,7 @@
     <mj-section padding="28px 0 0">
       <mj-column>
         <mj-text mj-class="kicker" text-transform="uppercase">Reminder</mj-text>
-        <mj-text mj-class="h1" padding="6px 24px 0">Your scorecard is due</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0"><%= overdue ? 'Your scorecard is overdue' : 'Your scorecard is due' %></mj-text>
         <mj-raw><% if (matchLine) { %></mj-raw>
         <mj-text mj-class="sub" padding="4px 24px 0"><%= matchLine %></mj-text>
         <mj-raw><% } %></mj-raw>
@@ -20,10 +20,17 @@
 
     <mj-section padding="16px 0 0">
       <mj-column>
+        <mj-raw><% if (overdue) { %></mj-raw>
+        <mj-text>
+          The scorecard for your recent match is now overdue. Please enter it as soon as
+          you can.
+        </mj-text>
+        <mj-raw><% } else { %></mj-raw>
         <mj-text>
           Just a timely reminder that the scorecard for your recent match is due by close
           of play tomorrow, to avoid a late card mark.
         </mj-text>
+        <mj-raw><% } %></mj-raw>
         <mj-button href="<%= submitUrl %>" css-class="cta">Enter the result</mj-button>
       </mj-column>
     </mj-section>

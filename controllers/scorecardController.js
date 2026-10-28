@@ -17,7 +17,7 @@ const { body, validationResult } = require("express-validator");
 const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
 const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
-const { parseRecipients, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
+const { parseRecipients, isScorecardOverdue, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
 const { afterCommit: runAfterCommit } = require('../utils/afterCommit');
 const eloChain = require('../utils/eloChain');
 const { isSuperAdmin } = require('../middleware/requireClubAccess');
@@ -1097,17 +1097,24 @@ function renderLinkRefused(req, res, status) {
       const found = await Fixture.getReminderContacts(id);
       if (!found) return res.status(404).json({ error: 'No such fixture' });
 
+      // From the fixture's own date, not the request: past the deadline, "due by close
+      // of play tomorrow" would be untrue (utils/scorecardReminder.js).
+      const overdue = isScorecardOverdue(found.fixture.date);
+
       await mailer.send({
         template: 'scorecard-reminder',
         to: addresses,
         bcc: [LEAGUE_INBOX, 'bigcoops@outlook.com'],
         replyTo: LEAGUE_INBOX,
-        subject: 'Reminder: outstanding scorecard',
+        subject: overdue ? 'Reminder: overdue scorecard' : 'Reminder: outstanding scorecard',
         whyReceiving:
           'You are listed as a captain or secretary for one of the teams in this fixture.',
         text: [
-          'Just a timely reminder that the scorecard for your recent match is due by',
-          'close of play tomorrow, to avoid a late card mark.',
+          ...(overdue
+            ? ['The scorecard for your recent match is now overdue. Please enter it as',
+               'soon as you can.']
+            : ['Just a timely reminder that the scorecard for your recent match is due by',
+               'close of play tomorrow, to avoid a late card mark.']),
           '',
           absoluteUrl('/scorecard-beta'),
           '',
@@ -1118,6 +1125,7 @@ function renderLinkRefused(req, res, status) {
           // Still no match line: the template has never carried one, and this change
           // is about who receives the reminder, not what it says.
           matchLine: '',
+          overdue,
           submitUrl: absoluteUrl('/scorecard-beta'),
         },
       });

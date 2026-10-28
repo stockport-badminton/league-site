@@ -1,4 +1,4 @@
-const { isReminderDue, parseRecipients, scorecardDueAt } = require('../../utils/scorecardReminder');
+const { isReminderDue, isScorecardOverdue, parseRecipients, scorecardDueAt } = require('../../utils/scorecardReminder');
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -14,15 +14,16 @@ describe('isReminderDue', () => {
     expect(scorecardDueAt(FIXTURE).getTime()).toBe(due);
   });
 
-  it('offers the reminder only in the last 48 hours before the card is due', () => {
+  it('offers the reminder from 48 hours before the card is due', () => {
     expect(isReminderDue(row(), due - 49 * HOUR)).toBe(false);
     expect(isReminderDue(row(), due - 48 * HOUR)).toBe(true);
     expect(isReminderDue(row(), due - 1 * HOUR)).toBe(true);
   });
 
-  it('stops once the card is due — the email says "due by close of play tomorrow"', () => {
-    expect(isReminderDue(row(), due)).toBe(false);
-    expect(isReminderDue(row(), due + DAY)).toBe(false);
+  it('keeps offering it once the card is overdue — when a nudge matters most', () => {
+    expect(isReminderDue(row(), due)).toBe(true);
+    expect(isReminderDue(row(), due + DAY)).toBe(true);
+    expect(isReminderDue(row(), due + 30 * DAY)).toBe(true);
   });
 
   it('never offers it when a draft has been filed', () => {
@@ -34,6 +35,19 @@ describe('isReminderDue', () => {
     for (const status of ['rearranged', 'rearranging', 'conceded', 'complete', 'void']) {
       expect(isReminderDue(row({ status }), due - HOUR)).toBe(false);
     }
+  });
+});
+
+describe('isScorecardOverdue', () => {
+  it('is overdue from the moment the card is due', () => {
+    expect(isScorecardOverdue(FIXTURE, due - 1)).toBe(false);
+    expect(isScorecardOverdue(FIXTURE, due)).toBe(true);
+    expect(isScorecardOverdue(FIXTURE, due + DAY)).toBe(true);
+  });
+
+  it('is not overdue without a usable date', () => {
+    expect(isScorecardOverdue(undefined, due)).toBe(false);
+    expect(isScorecardOverdue('not a date', due)).toBe(false);
   });
 });
 

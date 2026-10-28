@@ -1,9 +1,10 @@
 // When the results page offers "Send Reminder" for a fixture, and how a typed list of
 // reminder recipients is read.
 //
-// A scorecard is due five days after the fixture. The reminder is only worth sending
-// in the last 48 hours before that — any earlier and it nags a captain who still has
-// days in hand; any later and the email's "due by close of play tomorrow" is untrue.
+// A scorecard is due five days after the fixture. The reminder is offered from 48 hours
+// before that — any earlier and it nags a captain who still has days in hand — and stays
+// on once the card is overdue, when a nudge matters most. Past the deadline the email
+// says the card is overdue instead of "due by close of play tomorrow" (isScorecardOverdue).
 // A fixture with a draft already filed never qualifies: the card is in, and the
 // reminder would read as "we have lost your scorecard".
 
@@ -21,13 +22,17 @@ function scorecardDueAt(fixtureDate) {
   return Number.isNaN(t) ? null : new Date(t + DUE_AFTER_DAYS * DAY_MS);
 }
 
+function isScorecardOverdue(fixtureDate, now = Date.now()) {
+  const due = scorecardDueAt(fixtureDate);
+  return due != null && now >= due.getTime();
+}
+
 function isReminderDue(row, now = Date.now()) {
   if (!row || row.status !== 'outstanding') return false;
   if (row.homeScore != null || row.hasDraft) return false;
   const due = scorecardDueAt(row.date);
   if (!due) return false;
-  const remaining = due.getTime() - now;
-  return remaining > 0 && remaining <= REMIND_WITHIN_MS;
+  return due.getTime() - now <= REMIND_WITHIN_MS;
 }
 
 // "a@x.com, b@y.com; c@z.com" -> { addresses, invalid }. Duplicates are dropped
@@ -49,6 +54,6 @@ function parseRecipients(input) {
 }
 
 module.exports = {
-  scorecardDueAt, isReminderDue, parseRecipients,
+  scorecardDueAt, isScorecardOverdue, isReminderDue, parseRecipients,
   DUE_AFTER_DAYS, REMIND_WITHIN_MS, MAX_RECIPIENTS,
 };

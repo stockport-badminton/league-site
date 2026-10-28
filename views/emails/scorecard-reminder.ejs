@@ -275,7 +275,7 @@
                   
       <div
          style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:26px;line-height:32px;text-align:left;color:#1f2430;"
-      >Your scorecard is due</div>
+      ><%= overdue ? 'Your scorecard is overdue' : 'Your scorecard is due' %></div>
     
                 </td>
               </tr>
@@ -341,7 +341,20 @@
          border="0" cellpadding="0" cellspacing="0" role="presentation" style="" width="100%"
       >
         <tbody>
-          
+          <% if (overdue) { %>
+              <tr>
+                <td
+                   align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
+                >
+                  
+      <div
+         style="font-family:Calibri, 'Segoe UI', Arial, sans-serif;font-size:16px;line-height:24px;text-align:left;color:#1f2430;"
+      >The scorecard for your recent match is now overdue. Please enter it as soon as
+          you can.</div>
+    
+                </td>
+              </tr>
+            <% } else { %>
               <tr>
                 <td
                    align="left" style="font-size:0px;padding:0 24px;word-break:break-word;"
@@ -354,7 +367,7 @@
     
                 </td>
               </tr>
-            
+            <% } %>
               <tr>
                 <td
                    align="left" class="cta" style="font-size:0px;padding:22px 24px 6px;word-break:break-word;"

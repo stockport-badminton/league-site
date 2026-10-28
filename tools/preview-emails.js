@@ -78,6 +78,7 @@ const SAMPLES = {
     logoUrl,
     whyReceiving: 'You are listed as a captain for one of the teams in this fixture.',
     matchLine: '',
+    overdue: false,
     submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
   },
   'access-approved': {
