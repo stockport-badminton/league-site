@@ -344,6 +344,25 @@ identical" is not the test. Instead:
    wrote (gotcha 2d). Add an audit check, `season-history`: if the previous season has no
    history rows a week after the current season starts, the digest says so — a rollover
    that did not happen raises no error otherwise, the HARD-35 lesson.
+   **Done 28 Oct 2026.** `node tools/season-archive.js <season> [--apply] [--prod]`.
+   The season is named, not worked out. It must be the current season, because only that
+   season's rows are in the live tables. Once the next season has started it refuses
+   unless given `--late`, since by then the live tables may already hold the next
+   season's teams. It refuses if the season already has a run recorded, or any history
+   row (the backfilled seasons). It also refuses if a live column has no place in its
+   history table and is not in the backfill's `NOT_KEPT`. It warns, but does not refuse,
+   when the season still has unplayed fixtures. The column list is the live table's minus
+   `NOT_KEPT`, so there is no hand-kept list. Each table is verified by `EXCEPT` both ways
+   and by count.
+   **The record of a run is a new table, `season_archive_run`** (migration 031:
+   season PK → `season.name`, `ran_at`, `ran_by`, `row_counts` jsonb). It is written in
+   the same transaction, so a second run of a season fails on the key too. Neil asked
+   about `schema_migrations` for this. It isn't used, because that table is keyed by
+   migration filename and hash, its `how` CHECK allows three values, and `--status` would
+   report each rollover as a missing file. The `season-history` check reads history rows,
+   not run rows: the backfilled seasons have history but no run row. It is quiet in
+   production today. Tests: `__tests__/db/season-archive.test.js` (11), with every guard
+   broken in turn to see its test fail.
 7. **The June/July 2027 rollover is done with the script.** For one season, also take the
    old-style archive by hand, so that if anything is wrong there is the familiar copy to
    compare against.

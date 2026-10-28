@@ -575,6 +575,13 @@ export interface Season {
   startDate: Timestamp;
 }
 
+export interface SeasonArchiveRun {
+  ran_at: Generated<Timestamp>;
+  ran_by: Generated<string>;
+  row_counts: Json;
+  season: string;
+}
+
 export interface SiteSetting {
   key: string;
   value: string | null;
@@ -765,6 +772,7 @@ export interface DB {
   schema_migrations: SchemaMigrations;
   scorecardstore: Scorecardstore;
   season: Season;
+  season_archive_run: SeasonArchiveRun;
   site_setting: SiteSetting;
   social_result_post: SocialResultPost;
   social_token: SocialToken;

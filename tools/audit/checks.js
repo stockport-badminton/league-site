@@ -264,6 +264,29 @@ const CHECKS = [
       ORDER BY t.name`
   },
   {
+    // REARCH-02 step 6. A rollover that was never run raises no error anywhere: once the
+    // next season starts, last season's tables and results pages are simply empty, and the
+    // History nav quietly drops it (season.getAll lists only seasons with history). The
+    // HARD-35 lesson: a job that did not happen has to be looked for.
+    //
+    // Reads the history rows rather than season_archive_run: the seasons backfilled from
+    // the old archives have history and no run row. A week's grace, because the rollover
+    // is run by hand around the season's start.
+    name: 'season-history',
+    description: 'Last season has no history rows a week into this one — the rollover (tools/season-archive.js) was not run',
+    severity: 'high',
+    sql: `
+      WITH started AS (
+        SELECT name, "startDate", row_number() OVER (ORDER BY "startDate" DESC) AS n
+          FROM season WHERE "startDate" <= now())
+      SELECT prev.name AS season, cur.name AS "currentSeason",
+             to_char(cur."startDate", 'DD Mon YYYY') AS "currentStarted"
+        FROM started prev JOIN started cur ON cur.n = 1
+       WHERE prev.n = 2
+         AND cur."startDate" < now() - interval '7 days'
+         AND NOT EXISTS (SELECT 1 FROM team_season ts WHERE ts.season = prev.name)`
+  },
+  {
     // The check that exists because of 27 Aug 2026: eleven recipients of a
     // distribution-list mail were rejected by Gmail (rate limited, retried for 840
     // minutes, expired) and nobody knew for eight days. Both places anyone would have
