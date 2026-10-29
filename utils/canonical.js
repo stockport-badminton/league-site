@@ -181,6 +181,23 @@ function clubPath(club) {
   return '/clubs/' + clubSlug(club && club.name);
 }
 
+// A division's results and table pages: /results/Division-2, /tables/Division-2, and
+// /results/Division-2/20242025 for an archived season. The name with its spaces
+// hyphenated, because that is what Division.getIdByURLParam turns back into a name. No
+// name means every division, which is `All` on both routes. Built here so the sitemap,
+// the social captions and the results page's table link cannot disagree.
+function divisionSlug(name) {
+  return encodeURIComponent(String(name || 'All').trim().replace(/ /g, '-'));
+}
+
+function divisionResultsPath(name, season) {
+  return '/results/' + divisionSlug(name) + (season ? '/' + encodeURIComponent(season) : '');
+}
+
+function divisionTablePath(name, season) {
+  return '/tables/' + divisionSlug(name) + (season ? '/' + encodeURIComponent(season) : '');
+}
+
 // The calendar day a fixture falls on, as zero-padded strings, read with local-time
 // getters. Shared so the URL slug, the sitemap's <lastmod> and the JSON-LD
 // startDate all name the same day: fixture.date is stored as local midnight, so
@@ -196,7 +213,8 @@ function localYmd(date) {
 
 module.exports = {
   canonicalFor, absoluteUrl, siteOrigin,
-  eventPath, clubPath, clubSlug, localYmd, resultImagePath, resultStoryImagePath,
+  eventPath, clubPath, clubSlug, divisionResultsPath, divisionTablePath,
+  localYmd, resultImagePath, resultStoryImagePath,
   leagueTableImagePath, tournamentImagePath, fixturesImagePath, socialVideoPath,
   DEFAULT_ORIGIN,
 };

@@ -56,6 +56,7 @@ it('posts the result card with the result as text, and records the post', async 
   expect(payload.imageUrl).toBe(
     'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/10/8/Division%201.jpg');
   expect(payload.text).toContain('Division 1: Tatton A 10-8 Mellor B');
+  expect(payload.text).toContain('https://stockport-badminton.co.uk/results/Division-1\n');
   expect([...payload.text].length).toBeLessThanOrEqual(500);
   expect(payload.text.match(/#\w+/g)).toEqual(['#badminton']);
   expect(Queue.markPosted).toHaveBeenCalledWith(1, 't9');

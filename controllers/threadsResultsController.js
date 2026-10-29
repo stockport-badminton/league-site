@@ -16,9 +16,7 @@ const ThreadsResultPost = require('../models/threadsResultPost');
 const log = require('../utils/log');
 const SocialToken = require('../models/socialToken');
 const threads = require('../utils/threadsPublisher');
-const { absoluteUrl, resultImagePath } = require('../utils/canonical');
-
-const SITE = 'https://stockport-badminton.co.uk';
+const { absoluteUrl, divisionResultsPath, resultImagePath } = require('../utils/canonical');
 
 // A run posts at most this many, so a backlog cannot hold one request for minutes. Each
 // post is a few seconds; the rest wait for the next run.
@@ -29,10 +27,13 @@ const STALE_MS = 48 * 60 * 60 * 1000;
 // Attempts at a post Threads definitely did not publish, before giving up.
 const MAX_ATTEMPTS = 3;
 
-/** The post text: the result, the league, the site, and one tag (Threads takes one topic). */
+/**
+ * The post text: the result, the league, the division's results page, and one tag (Threads
+ * takes one topic).
+ */
 function caption(r) {
   return `Result, ${r.division}: ${r.homeTeam} ${r.homeScore}-${r.awayScore} ${r.awayTeam}\n\n` +
-    `Stockport & District Badminton League. ${SITE}\n\n#badminton`;
+    `Stockport & District Badminton League. ${absoluteUrl(divisionResultsPath(r.division))}\n\n#badminton`;
 }
 
 /**

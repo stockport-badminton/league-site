@@ -9,6 +9,7 @@
   else { %>
 <div class="row col-12">
     <h1><%= division.replace('-',' ') %></h1>
+    <% if (typeof tablePath !== 'undefined') { %><a class="text-secondary" href="<%= tablePath %>" aria-label="League table"><%- icon('ranking-star', { class: 'icon-float' }) %></a><% } %>
     <a class="text-secondary" href="<%= path.replace('\/results-grid\/','\/results\/') %>"><%- icon('bars', { class: 'icon-float' }) %></a>
 </div>
 

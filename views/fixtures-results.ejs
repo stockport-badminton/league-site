@@ -10,6 +10,7 @@
     
     <div class="row col-12">
       <h1><%= division %></h1>
+      <% if (typeof tablePath !== 'undefined') { %><a class="text-secondary other-tooltip" href="<%= tablePath %>" data-text="League table" aria-label="League table"><%- icon('ranking-star', { class: 'icon-float' }) %></a><% } %>
       <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/results-grid\/') %>" data-text="Grid view"><%- icon('table-cells', { class: 'icon-float' }) %></a><br />
       <a class="text-secondary other-tooltip" href="<%= path.replace('\/results\/','\/calendars\/') %>" data-text="download the calendar or copy the link"><%- icon('calendar', { class: 'icon-float' }) %></a>
       <a id="showFilter" class="text-secondary other-tooltip" href="" data-text="show/hide filters"><%- icon('filter', { class: 'icon-float' }) %></a>

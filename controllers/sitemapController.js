@@ -21,7 +21,7 @@ const Division = require('../models/division');
 const Season = require('../models/season');
 const Club = require('../models/club');
 const Roster = require('../models/roster');
-const { absoluteUrl, eventPath, clubPath } = require('../utils/canonical');
+const { absoluteUrl, eventPath, clubPath, divisionResultsPath, divisionTablePath } = require('../utils/canonical');
 
 // Pages that exist regardless of the data.
 const STATIC_PATHS = [
@@ -88,13 +88,10 @@ exports.sitemap = async function(req, res, next) {
       entries.push(urlEntry(clubPath(c)));
     });
 
-    // Current-season tables and results, one per division. `getIdByURLParam`
-    // turns "Division-1" back into "Division 1", so the URL form is the name with
-    // spaces hyphenated.
+    // Current-season tables and results, one per division.
     divisions.forEach(function(d) {
-      const slug = String(d.name).replace(/ /g, '-');
-      entries.push(urlEntry('/tables/' + slug));
-      entries.push(urlEntry('/results/' + slug));
+      entries.push(urlEntry(divisionTablePath(d.name)));
+      entries.push(urlEntry(divisionResultsPath(d.name)));
     });
 
     // Archived seasons: the All view only. Divisions have been renamed and

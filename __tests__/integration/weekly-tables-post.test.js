@@ -88,6 +88,12 @@ describe('what gets posted', () => {
     expect(payload.message).not.toBe(payload.caption);
   });
 
+  it('links to the tables page, not the homepage', async () => {
+    await post();
+    const [, payload] = meta.publishEverywhere.mock.calls[0];
+    expect(payload.message).toContain('https://stockport-badminton.co.uk/tables/All\n');
+  });
+
   it('adds every table as a Facebook story frame when SOCIAL_POST_FB_STORY is set', async () => {
     process.env.SOCIAL_POST_FB_STORY = 'true';
     try {

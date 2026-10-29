@@ -20,7 +20,7 @@
 // because the capability was built and only the trigger had rotted. A date-driven variable
 // nobody remembers to flip is not a feature worth reproducing.
 
-const { canonicalFor, absoluteUrl, leagueTableImagePath, tournamentImagePath } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl, divisionTablePath, leagueTableImagePath, tournamentImagePath } = require('../utils/canonical');
 const log = require('../utils/log');
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
@@ -31,7 +31,8 @@ const threads = require('../utils/threadsPublisher');
 // The order the tables read in the post: top division first.
 const DIVISIONS = ['Premier', 'Division 1', 'Division 2', 'Division 3'];
 
-const SITE = 'https://stockport-badminton.co.uk';
+// All four tables, because the post shows all four.
+const SITE = absoluteUrl(divisionTablePath('All'));
 const HASHTAGS = '#badmintonresults #stockport #badminton #sdbl #bulutangkis';
 
 /**

@@ -21,7 +21,7 @@
 // has four tables because a division always has a table; a division can easily have no
 // fixtures in a given week while the other three do.
 
-const { canonicalFor, absoluteUrl, fixturesImagePath } = require('../utils/canonical');
+const { canonicalFor, absoluteUrl, siteOrigin, fixturesImagePath } = require('../utils/canonical');
 const log = require('../utils/log');
 const meta = require('../utils/metaPublisher');
 const Club = require('../models/club');
@@ -30,7 +30,9 @@ const SocialToken = require('../models/socialToken');
 const threads = require('../utils/threadsPublisher');
 const { DIVISIONS } = require('./weeklyTablesController');
 
-const SITE = 'https://stockport-badminton.co.uk';
+// The homepage, deliberately: its "Upcoming Fixtures" list is the full fixture list the
+// caption promises.
+const SITE = siteOrigin();
 const HASHTAGS = '#badminton #stockport #sdbl #fixtures #bulutangkis';
 
 /**

@@ -1,4 +1,4 @@
-const {canonicalFor, absoluteUrl, eventPath, clubPath, clubSlug, DEFAULT_ORIGIN, resultImagePath } = require('../../utils/canonical');
+const {canonicalFor, absoluteUrl, eventPath, clubPath, clubSlug, DEFAULT_ORIGIN, resultImagePath, divisionResultsPath, divisionTablePath } = require('../../utils/canonical');
 
 // The bug this file exists to prevent: every page on the site declared its
 // canonical URL (and og:url) to be on the Cloud Run hostname, because the URL was
@@ -119,6 +119,23 @@ describe('clubSlug / clubPath', () => {
   it('does not throw on a missing name', () => {
     expect(clubSlug(null)).toBe('');
     expect(clubPath({})).toBe('/clubs/');
+  });
+});
+
+describe('divisionResultsPath / divisionTablePath', () => {
+  it('hyphenates the division name, which is what the routes turn back into a name', () => {
+    expect(divisionResultsPath('Division 2')).toBe('/results/Division-2');
+    expect(divisionTablePath('Premier')).toBe('/tables/Premier');
+  });
+
+  it('adds an archived season', () => {
+    expect(divisionTablePath('Division 3', '20132014')).toBe('/tables/Division-3/20132014');
+  });
+
+  it('means every division when there is no name', () => {
+    // A result row's division comes from a LEFT JOIN, so it can be null.
+    expect(divisionResultsPath(null)).toBe('/results/All');
+    expect(divisionTablePath('All')).toBe('/tables/All');
   });
 });
 

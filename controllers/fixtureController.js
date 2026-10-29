@@ -14,7 +14,7 @@ const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
-const { canonicalFor } = require('../utils/canonical');
+const { canonicalFor, divisionTablePath } = require('../utils/canonical');
 const { isReminderDue } = require('../utils/scorecardReminder');
 
 
@@ -352,13 +352,10 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         .replace('Division 2', 'division-9').replace('Division-2', 'division-9')
         .replace('Division 3', 'division-10').replace('Division-3', 'division-10')
         .replace(/(\/)(20\d\d20\d\d)/g, '$1season-$2')
-      const pattern = /(\bPremier(?!\s|-\d)|Division(?:-|\s))(\d+)/g;
-      const replacedMatches = [];
-      req.params[0].replace(pattern, (match, p1, p2) => {
-        replacedMatches.push(p1 === "Premier" ? p1 : `${p1.replace('-', ' ')}${p2}`);
-        return match;
-      });
-      divisionString = replacedMatches.length > 0 ? replacedMatches[0] : "All"
+      // "Premier" has no number after it. The pattern here used to demand one, so the
+      // Premier page was headed "All" (until Oct 2026).
+      const named = req.params[0].match(/\bPremier\b|\bDivision[-\s]\d+/)
+      divisionString = named ? named[0].replace('-', ' ') : "All"
       var searchArray = convertedParams.split('/')
       searchObj = searchArray.reduce((acc, str) => {
         const [key, value] = str.split("-");
@@ -397,6 +394,8 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         jsonResult: griddedData,
         error: false,
         division: divisionString,
+        // This division's table for the same season. The nav's Tables link is all four.
+        tablePath: divisionTablePath(divisionString, searchObj.season),
         nearestDate: nearestFixture[0].date,
         canonical: canonicalFor(req)
       }

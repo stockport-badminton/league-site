@@ -4,7 +4,7 @@ const log = require('../utils/log');
 var db = require('../db_connect.js');
 const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
-const { absoluteUrl, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
+const { absoluteUrl, divisionResultsPath, resultImagePath, resultStoryImagePath } = require('../utils/canonical');
 var seasonModel = require("./season");
 const { NO_TEAM_ID } = require('./roster');
 const SocialResultPost = require('./socialResultPost');
@@ -836,9 +836,12 @@ function resultTargets() {
 }
 exports.resultTargets = resultTargets
 
+// Links to the division's results page, where the result sits beside the rest of its
+// week. It linked to the homepage until Oct 2026, a page the reader then had to navigate
+// away from to find what they came for.
 /** @param {any} r */
 function resultMessage(r) {
-  return `Result: ${r.homeTeam} vs ${r.awayTeam} : ${r.homeScore}-${r.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub https://stockport-badminton.co.uk`
+  return `Result: ${r.homeTeam} vs ${r.awayTeam} : ${r.homeScore}-${r.awayScore} #stockport #badminton #sdbl #result #bulutangkis #badminton🏸 #badmintonclub ${absoluteUrl(divisionResultsPath(r.division))}`
 }
 
 // What a result post carries, in the shape `metaPublisher.publishEverywhere` takes. Built

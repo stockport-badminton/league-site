@@ -90,6 +90,11 @@ describe('what a queued result is posted as', () => {
       'https://stockport-badminton.co.uk/resultImage/Tatton%20A/Mellor%20B/11/7/Division%203/story.jpg');
     expect(c.message).toMatch(/Result: Tatton A vs Mellor B : 11-7/);
   });
+
+  it("links to the division's results, not the homepage", () => {
+    const c = Fixture.resultPostContent(RESULT);
+    expect(c.message).toMatch(/ https:\/\/stockport-badminton\.co\.uk\/results\/Division-3$/);
+  });
 });
 
 describe('the local-development guard still comes first', () => {
