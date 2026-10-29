@@ -1,4 +1,4 @@
-<%- include('header.ejs') %>
+<%- include('header.ejs', { useMesserDrawCss: true }) %>
 <%- include('nav.ejs') %>
 
 <h1>Messer Trophy <%= section + " section" %></h1>
@@ -23,58 +23,47 @@
   </div>
 <% } %>
 
-<div class="row col-12 bracket-container">
-    <% 
-    let fixCount=0
-    let offset = (section == 'A' ? 0 : 16)
-    for (let i=0; i < 4; i++) { %>
-        <div class="col">      
+<%#
+  The bracket is drawn on a grid of 16 rows (--u tall each, in messer-draw.css). A
+  section's matches have fixed drawPos numbers, so each one has a fixed place: round 2's
+  eight matches take two rows each, round 3's four take four, round 4's two take eight,
+  and each box is centred on its rows. Round 1's two preliminary matches each feed one
+  side of a round 2 match (drawPos 1 the away side of 6, 2 the home side of 7), so each
+  sits level with the line it feeds. Section B numbers from 17.
+%>
 <%
-        for (let j=0; j < 16; j++){ 
-            if (j % Math.pow(2,i) == 0){ 
-                if (i == 0){
-                    if (j == 7){ 
-                        fixCount++
-                        %>
-                        <div class="row align-middle d-flex align-items-center h-6">
-                            <div class="row col-12 g-0 p-0 m-0 d-flex">
-                        <% if (typeof teams[1+offset] !== 'undefined'){ %>
-                        <%= teams[1+offset].homeTeam + " ("+ teams[1+offset].homeHandicap +")" %> <strong><%= teams[1+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[1+offset].awayTeam + " ("+ teams[1+offset].awayHandicap +")" %> <strong><%= teams[1+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[1+offset].homeScore != null) { %><%= teams[1+offset].homeScore + "-"+ teams[1+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[1+offset], section: section }) %></div> <% } %>
-                            <div style="" class="bracket even-fix d-flex flex-fill">&nbsp;</div>
-                        </div>
-                   <% }
-                    else if (j == 8) { 
-                        fixCount++
-                        %>
-                        <div class="row align-middle d-flex align-items-center h-6">
-                            <div style="" class="bracket odd-fix d-flex flex-fill">&nbsp;</div>
-                        <% if (typeof teams[2+offset] !== 'undefined'){ %>
-                            <div class="row col-12 g-0 p-0 m-0 d-flex">
-                        <%= teams[2+offset].homeTeam + " ("+ teams[2+offset].homeHandicap +")" %>  <strong><%= teams[2+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[2+offset].awayTeam + " ("+ teams[2+offset].awayHandicap +")" %>  <strong><%= teams[2+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[2+offset].homeScore != null) { %><%= teams[2+offset].homeScore + "-"+ teams[2+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[2+offset], section: section }) %></div> <% } %>
-                            
-                        </div>
-                    <% }
-                    else { %>
-                        <div class="row align-middle d-flex align-items-center h-6">&nbsp;</div>
-                    <% }
-                }
-                else { 
-                    fixCount++
-                    %>
-                    <div class="row align-middle d-flex align-items-center h-<%= i > 0 ? (i > 1 ? ( i > 2 ? (i > 3 ? 100 : 50) : 25 ) : 13 ) : 6 %>">
-                        <% if (typeof teams[fixCount+offset] !== 'undefined'){ %>
-                            <div class="row col-12 g-0 p-0 m-0 d-flex">
-                        <%= teams[fixCount+offset].homeTeam + " ("+ teams[fixCount+offset].homeHandicap +")" %>  <strong><%= teams[fixCount+offset].homeAdjHandicap %></strong><span class="px-1">vs</span></div><div class="row col-12 g-0 p-0 m-0 d-flex"><%= teams[fixCount+offset].awayTeam + " ("+ teams[fixCount+offset].awayHandicap +")" %>  <strong><%= teams[fixCount+offset].awayAdjHandicap %></strong> <strong class="px-1"><% if (teams[fixCount+offset].homeScore != null) { %><%= teams[fixCount+offset].homeScore + "-"+ teams[fixCount+offset].awayScore %><% } %></strong><%- include('partials/messer-swap', { m: teams[fixCount+offset], section: section }) %></div> <% } %>
-                        <div style="" class="bracket <%= fixCount % 2 == 0 ? 'even' : 'odd' %>-fix d-flex flex-fill">&nbsp;</div>
-                    </div>
-                <% } 
-                
-            } 
-            
-         } %> 
-        </div>
-   <%  } %>
- 
+  var offset = (section == 'A' ? 0 : 16);
+  var named = function (n) { return n && n !== 'No Team'; };
+  // Round 1 is drawn only for a preliminary with a team in it; with none, the column goes.
+  var prelims = [{ pos: 1, cy: 7, feeds: 'away' }, { pos: 2, cy: 9, feeds: 'home' }].filter(function (p) {
+    var m = teams[p.pos + offset];
+    return m && (named(m.homeTeam) || named(m.awayTeam));
+  });
+  var firstRound = prelims.length ? 1 : 2;
+  var place = function (col, cy) { return '--col: ' + (col - (firstRound - 1)) + '; --cy: ' + cy; };
+%>
+<p class="d-md-none w-100 text-muted small">Scroll sideways to see the later rounds.</p>
+<div class="md-scroll">
+  <div class="md-draw" style="--cols: <%= 5 - firstRound %>">
+    <div class="md-rounds">
+      <% for (var r = firstRound; r <= 4; r++) { %><div class="md-round">Round <%= r %></div><% } %>
+    </div>
+    <div class="md-bracket">
+      <% prelims.forEach(function (p) { %>
+        <%- include('partials/messer-draw-match', { m: teams[p.pos + offset], section: section, place: place(0, p.cy), extraClass: 'md-prelim md-feeds-' + p.feeds }) %>
+      <% }) %>
+      <%# Rounds 2-4: each match is `span` rows tall, and each pair is joined to the
+          match it feeds in the next round. %>
+      <% [{ col: 1, first: 3, count: 8 }, { col: 2, first: 11, count: 4 }, { col: 3, first: 15, count: 2 }].forEach(function (c) {
+           var span = 16 / c.count;
+           for (var k = 0; k < c.count; k++) { %>
+        <%- include('partials/messer-draw-match', { m: teams[c.first + k + offset], section: section, place: place(c.col, span * k + span / 2) }) %>
+        <% if (c.col < 3 && k % 2 === 0) { %>
+          <div class="md-join" style="<%= place(c.col, span * k + span / 2) %>; --span: <%= span %>"></div>
+        <% } %>
+      <% } }) %>
+    </div>
+  </div>
 </div>
 
 <%- include('footer.ejs') %>

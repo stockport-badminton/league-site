@@ -275,6 +275,9 @@
     <% if (typeof useLiveScorecardCss !== 'undefined' && useLiveScorecardCss) { %>
       <link rel="stylesheet" type="text/css" href="<%= asset('/static/beta/css/live-scorecard.css') %>"/>
     <% } %>
+    <% if (typeof useMesserDrawCss !== 'undefined' && useMesserDrawCss) { %>
+      <link rel="stylesheet" type="text/css" href="<%= asset('/static/beta/css/messer-draw.css') %>"/>
+    <% } %>
     <%# Pages whose URL carries a secret (the live scorecard's token) must never be indexed. %>
     <% if (typeof noindex !== 'undefined' && noindex) { %>
       <meta name="robots" content="noindex, nofollow">

@@ -5,7 +5,7 @@
 <% if (m && m.swappable) {
      var tbc = function (n) { return (!n || n === 'No Team') ? 'TBC' : String(n).replace(/[\\'"<>&]/g, ''); };
 %>
-<form method="POST" class="d-inline ms-1 messer-swap"
+<form method="POST" class="messer-swap"
       action="/messer-draw/<%= section.toLowerCase() %>-section/swap/<%= m.id %>"
       onsubmit="return confirm('Swap home and away? <%= tbc(m.awayTeam) %> will be at home to <%= tbc(m.homeTeam) %>, and their captain sends in the scorecard.');">
   <button type="submit" class="btn btn-link btn-sm p-0 align-baseline"

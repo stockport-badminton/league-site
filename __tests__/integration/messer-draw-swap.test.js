@@ -147,6 +147,42 @@ describe('GET /messer-draw/:section — the Swap button', () => {
   });
 });
 
+describe('GET /messer-draw/:section — the bracket', () => {
+  const row = (drawPos, home, away, scores = {}) => ({
+    drawPos, id: 500 + drawPos, homeTeam: 1, homeTeamName: home, homeTeamHandicap: '-3',
+    awayTeam: 2, awayTeamName: away, awayTeamHandicap: '-9', homeScore: null, awayScore: null, ...scores,
+  });
+  const sides = text => [...text.matchAll(/<div class="md-side([^"]*)">\s*<span class="md-team[^"]*"[^>]*>([^<(]+)/g)]
+    .map(m => [m[2].trim(), m[1].trim()]);
+
+  it('draws each side of a match on its own line, marking the winner, with TBC for no team yet', async () => {
+    Team.getMesser.mockResolvedValue([
+      row(4, 'Shell A', 'David Lloyd A', { homeScore: 6, awayScore: 9 }),
+      row(11, 'Dome A', 'No Team'),
+    ]);
+    const res = await request(app).get('/messer-draw/a-section');
+    expect(sides(res.text)).toEqual(expect.arrayContaining([
+      ['Shell A', 'is-loser'], ['David Lloyd A', 'is-winner'], ['Dome A', ''], ['TBC', ''],
+    ]));
+  });
+
+  const roundHeadings = text => [...text.matchAll(/<div class="md-round">([^<]+)</g)].map(m => m[1]);
+
+  it('leaves out round 1 when neither preliminary has a team', async () => {
+    Team.getMesser.mockResolvedValue([row(17, 'No Team', 'No Team'), row(18, 'No Team', 'No Team'), row(19, 'Manor A', 'Dome B')]);
+    const res = await request(app).get('/messer-draw/b-section');
+    expect(roundHeadings(res.text)).toEqual(['Round 2', 'Round 3', 'Round 4']);
+    expect(res.text).toContain('Manor A');
+  });
+
+  it('draws round 1 when a preliminary has a team', async () => {
+    Team.getMesser.mockResolvedValue([row(17, 'Tatton A', 'No Team'), row(18, 'No Team', 'No Team')]);
+    const res = await request(app).get('/messer-draw/b-section');
+    expect(roundHeadings(res.text)).toEqual(['Round 1', 'Round 2', 'Round 3', 'Round 4']);
+    expect(res.text.match(/md-prelim/g)).toHaveLength(1);
+  });
+});
+
 describe('POST /admin/messer-bracket/:section — Save wiring', () => {
   // Two rows as the form posts them: parallel arrays, the was* fields as rendered.
   const form = (over = {}) => ({

@@ -1,0 +1,149 @@
+/* The Messer draw (views/messer-draw-a-section.ejs): a column per round, a box per
+   match, and lines joining each pair of matches to the one their winners meet in.
+   Every box is placed absolutely on a 16-row grid from its --col and --cy (the row its
+   centre sits on), which the view sets; the sizes below are the only geometry. */
+.md-draw {
+  --u: 46px;        /* one grid row; round 2's boxes are two rows apart */
+  --box: 54px;      /* a match box: two 26px lines and the border */
+  --w: 256px;       /* column width */
+  --g: 36px;        /* gap between columns, where the joining lines run */
+  --line: #6c757d;
+  width: calc(var(--cols) * var(--w) + (var(--cols) - 1) * var(--g));
+  text-align: left; /* .starter-template centres everything */
+}
+@media (max-width: 575.98px) {
+  .md-draw { --w: 220px; --g: 28px; }
+}
+
+.md-scroll {
+  width: 100%;      /* the page body is a flex .row; without this it sits beside the h1 */
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.md-rounds {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--w));
+  column-gap: var(--g);
+  margin-bottom: .5rem;
+}
+.md-round {
+  background: var(--sdbl-purple);
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  padding: .35rem;
+  border-radius: .25rem;
+}
+
+.md-bracket {
+  position: relative;
+  height: calc(16 * var(--u));
+}
+
+.md-match {
+  position: absolute;
+  box-sizing: border-box;
+  left: calc(var(--col) * (var(--w) + var(--g)));
+  top: calc(var(--cy) * var(--u) - var(--box) / 2);
+  width: var(--w);
+  height: var(--box);
+  display: flex;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+}
+/* A preliminary sits level with the one line of round 2 it feeds, not the box's middle. */
+.md-feeds-away { top: calc(var(--cy) * var(--u) - var(--box) / 4); }
+.md-feeds-home { top: calc(var(--cy) * var(--u) - var(--box) * 3 / 4); }
+.md-prelim::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: var(--g);
+  border-top: 1px solid var(--line);
+}
+
+/* The bracket line from a pair of matches: out of each box, down (or up) to meet, and
+   on into the middle of the next round's box. */
+.md-join {
+  position: absolute;
+  left: calc(var(--col) * (var(--w) + var(--g)) + var(--w));
+  top: calc(var(--cy) * var(--u));
+  height: calc(var(--span) * var(--u));
+  width: calc(var(--g) / 2);
+  border: 1px solid var(--line);
+  border-left: 0;
+}
+.md-join::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: calc(var(--g) / 2);
+  border-top: 1px solid var(--line);
+}
+
+.md-sides {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.md-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding-left: .5rem;
+  font-size: .85rem;
+}
+.md-side + .md-side { border-top: 1px solid #e9ecef; }
+.md-team {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.md-handicap {
+  color: #6c757d;
+  font-size: .8em;
+}
+.md-adj,
+.md-score { font-variant-numeric: tabular-nums; }
+.md-score {
+  align-self: stretch;
+  flex: 0 0 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #e9ecef;
+}
+.md-tbc {
+  color: #adb5bd;
+  font-style: italic;
+}
+
+.md-side.is-winner {
+  background: var(--sdbl-purple-tint);
+  font-weight: 600;
+}
+.md-side.is-winner .md-score {
+  background: var(--sdbl-purple);
+  color: #fff;
+}
+.md-side.is-loser { color: #6c757d; }
+
+/* The messer admin's Swap button (partials/messer-swap.ejs), down the box's right side. */
+.md-match .messer-swap {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 .35rem;
+  border-left: 1px solid #e9ecef;
+}

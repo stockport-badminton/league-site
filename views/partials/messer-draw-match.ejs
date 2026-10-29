@@ -1,0 +1,32 @@
+<%# One match box on the Messer draw: a line per side with the team, its handicap and
+    the adjusted handicap it plays off, and the score once there is one. `m` is the match
+    keyed by drawPos in new_messer_draw (undefined when the slot has no row), `place` its
+    position in the bracket as a style string. A side with no team yet reads TBC. %>
+<%
+  var named = function (n) { return n && n !== 'No Team'; };
+  var played = m && m.homeScore != null && m.awayScore != null;
+  var sides = m ? [
+    { name: m.homeTeam, handicap: m.homeHandicap, adj: m.homeAdjHandicap, score: m.homeScore,
+      won: played && Number(m.homeScore) > Number(m.awayScore) },
+    { name: m.awayTeam, handicap: m.awayHandicap, adj: m.awayAdjHandicap, score: m.awayScore,
+      won: played && Number(m.awayScore) > Number(m.homeScore) }
+  ] : [{}, {}];
+%>
+<div class="md-match <%= locals.extraClass || '' %><%= played ? ' is-played' : '' %>" style="<%= place %>">
+  <div class="md-sides">
+    <% sides.forEach(function (s, i) { %>
+      <div class="md-side<%= s.won ? ' is-winner' : '' %><%= played && !s.won ? ' is-loser' : '' %>">
+        <% if (named(s.name)) { %>
+          <span class="md-team" title="<%= s.name %> (<%= s.handicap %>)"><%= s.name %>
+            <span class="md-handicap">(<%= s.handicap %>)</span></span>
+          <strong class="md-adj" title="Plays off"><%= s.adj %></strong>
+        <% } else { %>
+          <span class="md-team md-tbc">TBC</span>
+        <% } %>
+        <span class="md-score"><%= played ? s.score : '' %></span>
+        <span class="sr-only"><%= i === 0 ? '(home)' : '(away)' %></span>
+      </div>
+    <% }) %>
+  </div>
+  <%- include('messer-swap', { m: m, section: section }) %>
+</div>
