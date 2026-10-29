@@ -83,8 +83,23 @@ function reserveFieldNames(n) {
 
 const ROWS_PER_TABLE = 12;
 
+// The form's font is a standard one, which only encodes WinAnsi, and pdf-lib
+// throws on anything else when it draws the field. Phone numbers pasted from a
+// phone or Outlook carry invisible bidi marks (U+202D/U+202C), which was Sentry
+// NODE-1A. Drop invisible format characters, fold accents the font lacks to
+// their base letter, and drop whatever still won't encode.
+function pdfSafe(form, text) {
+  const supported = new Set(form.getDefaultFont().getCharacterSet());
+  const ok = ch => supported.has(ch.codePointAt(0));
+  return Array.from(text.replace(/\p{Cf}/gu, ''), ch => {
+    if (ok(ch)) return ch;
+    const base = ch.normalize('NFKD').replace(/\p{M}/gu, '');
+    return Array.from(base).every(ok) ? base : '';
+  }).join('');
+}
+
 function setField(form, name, value) {
-  form.getTextField(name).setText(value || '');
+  form.getTextField(name).setText(pdfSafe(form, value || ''));
 }
 
 function fillStaticRows(form, fieldNamesFn, rows, count) {
