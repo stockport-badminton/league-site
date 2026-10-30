@@ -43,6 +43,8 @@ const display = (/** @type {number} */ s) => Math.round(1500 + 1000 * s)
 
 const sig = (/** @type {number} */ x) => 1 / (1 + Math.exp(-x))
 
+const HOME_VAR = 0.1 * 0.1
+
 // P(winning a rally-point game to 21, two clear, capped at 30) from P(winning a rally).
 const gameWin = (() => {
   const N = 2001, table = new Float64Array(N)
@@ -105,9 +107,9 @@ function fit(games, now, genderOf, divisionOf, opts = {}) {
   }
   const t2 = o.tau * o.tau, m2 = o.mixedSd * o.mixedSd
 
-  // Block coordinate ascent: a damped diagonal-Newton step on the strengths, then on the
-  // mixed offsets, each from fresh gradients. One step over both blocks on one gradient
-  // overshoots and diverges.
+  // Block coordinate ascent: a damped diagonal-Newton step on the strengths (and home edge),
+  // then on the mixed offsets, each from fresh gradients. One step over both blocks on one
+  // gradient overshoots and diverges.
   for (let it = 0; it < o.iters; it++) {
     for (const block of ['s', 'm']) {
       /** @type {Map<number, number>} */ const G = new Map()
@@ -124,10 +126,16 @@ function fit(games, now, genderOf, divisionOf, opts = {}) {
         add(g.h1, gr, hv); add(g.h2, gr, hv); add(g.a1, -gr, hv); add(g.a2, -gr, hv)
         gHome += gr; hHome += hv
       }
-      const STEP = 0.5
+      // Each rally's prediction moves five numbers together (four strengths and the home edge),
+      // so a step on the diagonal curvature converges only below 2/5. 0.5 sat on that edge:
+      // fine on a varied season, but four players meeting over and over oscillated and diverged.
+      const STEP = 0.35
       if (block === 's') {
         for (const [p, v] of s) s.set(p, v + STEP * ((G.get(p) || 0) - (v - prior(p)) / t2) / ((H.get(p) || 0) + 1 / t2))
-        home += STEP * gHome / (hHome + 1e-9)
+        // A prior on the home edge too (sd 0.1, four times what the data shows): without one, a
+        // set of games the home side all won pushes it towards infinity and every strength
+        // with it. Real seasons never do that; a test's, or an early season's, can.
+        home += STEP * (gHome - home / HOME_VAR) / (hHome + 1 / HOME_VAR)
       } else {
         for (const [p, gv] of G) { const v = get(m, p); m.set(p, v + STEP * (gv - v / m2) / ((H.get(p) || 0) + 1 / m2)) }
       }

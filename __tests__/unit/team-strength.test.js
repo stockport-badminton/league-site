@@ -63,6 +63,13 @@ describe('fit', () => {
     expect(fit.s.get(1) - fit.s.get(7)).toBeLessThan(0.75);
   });
 
+  it('keeps the home edge and the strengths finite when the home side won every game', () => {
+    const games = Array.from({ length: 40 }, (_, i) => ({ t: NOW - i * DAY, mixed: false, h1: 1, h2: 2, a1: 3, a2: 4, hs: 21, as: 12 }));
+    const fit = M.fit(games, NOW, male, noDivision);
+    expect(Math.abs(fit.home)).toBeLessThan(0.5);
+    expect(fit.s.get(1)).toBeGreaterThan(fit.s.get(3));
+  });
+
   it('is surer of a player with more games', () => {
     const games = league(TRUE, 1500, 7).filter(g => ![g.h1, g.h2, g.a1, g.a2].includes(8) || g.hs % 4 === 0);
     const fit = M.fit(games, NOW, male, noDivision);
