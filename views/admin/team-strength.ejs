@@ -25,7 +25,7 @@
   <p>
     Ratings from <strong><%= run.games.toLocaleString('en-GB') %></strong> games, last worked out <strong><%= when(run.ran_at) %></strong>
     (<%= (run.took_ms / 1000).toFixed(1) %>s, <%= run.caller === 'scheduler' ? 'nightly run' : 'run by hand' %>).
-    Predictions assume each team fields its first three nominated men and ladies.
+    Predictions field each team's usual players: the three men and three ladies who have played most for it this season, then its nominated players.
   </p>
   <% } else { %>
   <p>No run yet. It runs every night; you can run it now.</p>
@@ -79,7 +79,7 @@
 
     <div class="tab-pane fade" id="tables" role="tabpanel">
       <p class="small text-muted">
-        The rest of the season played 5,000 times with each team's nominated players, added to the games already won.
+        The rest of the season played 5,000 times with each team's usual players, added to the games already won.
         Each run draws every player's strength from its uncertainty, gives each fixture its own swing, and gives each team
         a form for the season, so upsets happen at the rate they did in 2024/25 and 2025/26. The shaded cells are how often
         a team finished in each place.

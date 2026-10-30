@@ -223,6 +223,30 @@ function predictFixture(home, away, homeEdge, fixtureSd = SETTINGS.fixtureSd) {
   }
 }
 
+// The three of one gender a team is expected to field: whoever has played most for it this
+// season, then its nominated players in order, then its reserves. Paired strongest first, as
+// teams mostly do. Using the nominated three instead called 64% of 2025/26's results right;
+// the usual three called 70%, and the players who actually turned up 76%.
+/**
+ * @template {Slot} T
+ * @param {T[]} nominated in rank order
+ * @param {T[]} reserves in rank order
+ * @param {{ slot: T, fixtures: number }[]} played this season, for this team
+ * @returns {T[]} at most three
+ */
+function usualThree(nominated, reserves, played) {
+  const regulars = [...played].sort((a, b) => b.fixtures - a.fixtures || b.slot.s - a.slot.s).map(x => x.slot)
+  /** @type {T[]} */ const out = []
+  const seen = new Set()
+  for (const p of [...regulars, ...nominated, ...reserves]) {
+    if (out.length === 3) break
+    if (seen.has(p.id)) continue
+    seen.add(p.id)
+    out.push(p)
+  }
+  return out.sort((a, b) => b.s - a.s)
+}
+
 // ---------------------------------------------------------------------------
 // Season projection
 
@@ -388,5 +412,5 @@ function orderFlags(teams) {
 
 module.exports = {
   SETTINGS, RUBBERS, RESERVE_BASE, MAX_NOMINATED, MIN_RECENT_GAMES, CONFIDENCE,
-  display, sig, gameWin, fit, rubberProbs, scoreDistribution, predictFixture, projectSeason, orderFlags, pStronger,
+  display, sig, gameWin, fit, usualThree, rubberProbs, scoreDistribution, predictFixture, projectSeason, orderFlags, pStronger,
 }

@@ -34,11 +34,14 @@ const squad = team => ['Male', 'Female'].flatMap(g => [1, 2, 3].map(rank => {
   return p;
 }));
 const home = squad(HOME), away = squad(AWAY);
-for (let i = 0; i < 40; i++) {
-  const [h1, h2] = [home[i % 3], home[(i + 1) % 3]], [a1, a2] = [away[i % 3], away[(i + 1) % 3]];
-  games.push({ id: i, gameType: 'FirstMens', homePlayer1: h1.id, homePlayer2: h2.id, awayPlayer1: a1.id, awayPlayer2: a2.id,
-    homeScore: 21, awayScore: 12, date: new Date(Date.now() - (i + 1) * 86400000), season: SEASON });
-}
+// Strong A's reserve, who has turned out more than any nominated man: the predictions field him.
+const regular = { id: ++pid, first_name: 'Regular', family_name: 'Reserve', gender: 'Male', team: HOME, rank: 99 };
+people.push(regular);
+const game = (i, h1, h2, a1, a2) => games.push({ id: i, fixture: i, gameType: 'FirstMens',
+  homePlayer1: h1.id, homePlayer2: h2.id, awayPlayer1: a1.id, awayPlayer2: a2.id, homeTeam: HOME, awayTeam: AWAY,
+  homeScore: 21, awayScore: 12, date: new Date(Date.now() - (i % 100 + 1) * 86400000), season: SEASON });
+for (let i = 0; i < 40; i++) game(i, home[i % 3], home[(i + 1) % 3], away[i % 3], away[(i + 1) % 3]);
+for (let i = 100; i < 160; i++) game(i, home[0], regular, away[0], away[1]);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -98,7 +101,7 @@ it('a superadmin\'s run stores the result and comes back to the page', async () 
   expect(res.status).toBe(303);
   expect(res.headers.location).toBe('/admin/team-strength');
   expect(TeamStrength.save).toHaveBeenCalledTimes(1);
-  expect(TeamStrength.save.mock.calls[0][0]).toMatchObject({ caller: 'superadmin', games: 40, season: SEASON });
+  expect(TeamStrength.save.mock.calls[0][0]).toMatchObject({ caller: 'superadmin', games: 100, season: SEASON });
 });
 
 it('shows this week\'s fixture with the stronger home side favoured', async () => {
@@ -111,6 +114,16 @@ it('shows this week\'s fixture with the stronger home side favoured', async () =
   const [, h, a] = block.match(/<strong class="ts-likely">(\d+)–(\d+)<\/strong>/);
   expect(Number(h)).toBeGreaterThan(Number(a));
   expect(res.text).not.toContain('data-fixture="78"');
+});
+
+it('fields the players who have been turning out, not only the nominated ones', async () => {
+  await runAndStore();
+  const res = await request(app).get('/admin/team-strength');
+  const rubbers = res.text.match(/<div class="collapse" id="rubbers-77">([\s\S]*?)<\/table>/)[1];
+  expect(rubbers).toContain('Regular Reserve');
+  // the nominated man 2 or 3 has made way: only three men are fielded
+  const men = new Set([...rubbers.matchAll(/(StrongM \d|Regular Reserve)/g)].map(m => m[1]));
+  expect(men.size).toBe(3);
 });
 
 it('shows the projected table with each team\'s games won now and at the end', async () => {

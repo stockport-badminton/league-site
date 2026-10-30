@@ -16,15 +16,16 @@ const NOW = /** @type {When} */ (sql`NOW()`)
 const UK_TODAY = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE 'Europe/London')`)
 const UK_WEEK_END = /** @type {When} */ (sql`date_trunc('day', NOW() AT TIME ZONE 'Europe/London') + INTERVAL '7 days'`)
 
-// Every game with a score and four players named, with the season it was played in.
+// Every game with a score and four players named, with its fixture's teams and the season it
+// was played in (the teams say who has been turning out for whom: the predicted lineups).
 // What counts as a real game (four different players, a 21, no 21-0 walkover) is the
 // model's decision, made in utils/teamStrength.js usableGame.
 exports.games = async function() {
   return kysely.selectFrom('game as g')
     .innerJoin('fixture as f', 'f.id', 'g.fixture')
     .innerJoin('season as s', join => join.onRef('f.date', '>', 's.startDate').onRef('f.date', '<', 's.endDate'))
-    .select(['g.id', 'g.gameType', 'g.homePlayer1', 'g.homePlayer2', 'g.awayPlayer1', 'g.awayPlayer2',
-      'g.homeScore', 'g.awayScore', 'f.date', 's.name as season'])
+    .select(['g.id', 'g.fixture', 'g.gameType', 'g.homePlayer1', 'g.homePlayer2', 'g.awayPlayer1', 'g.awayPlayer2',
+      'g.homeScore', 'g.awayScore', 'f.date', 'f.homeTeam', 'f.awayTeam', 's.name as season'])
     .where('g.homeScore', 'is not', null).where('g.awayScore', 'is not', null)
     .where('g.homePlayer1', 'is not', null).where('g.homePlayer2', 'is not', null)
     .where('g.awayPlayer1', 'is not', null).where('g.awayPlayer2', 'is not', null)

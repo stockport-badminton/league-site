@@ -7,9 +7,9 @@
 // here needs to be fresher than a day, and the publish path is already against Firebase's
 // 60 seconds (gotcha 1bc).
 //
-// Predictions assume each team fields its nominated players: the first three men and
-// ladies by rank, topped up from the reserves if fewer are nominated, then by an unnamed
-// player at the division's average.
+// Predictions field each team's usual players: the three men and three ladies who have
+// played most for it this season (utils/teamStrength.js usualThree), then its nominated
+// players by rank, then its reserves, then an unnamed player at the division's average.
 
 const League = require('../models/league')
 const TeamStrength = require('../models/teamStrength')
@@ -57,11 +57,20 @@ async function build(now) {
   // The division a player was registered in when they last played: their starting point.
   /** @type {Map<number, number | null | undefined>} */ const lastDiv = new Map()
   /** @type {Map<number, { games: number, recent: number, last: number }>} */ const seen = new Map()
+  // This season's fixtures each player has played for each team: `${team}:${player}` → fixtures.
+  /** @type {Map<string, Set<number>>} */ const turnedOut = new Map()
+  const season = seasonModel.current()
   const games = []
   for (const g of rows) {
     if (!usableGame(g)) continue
     const t = new Date(g.date).getTime()
     const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2].map(Number)
+    if (g.season === season) ps.forEach((p, i) => {
+      const k = `${i < 2 ? g.homeTeam : g.awayTeam}:${p}`
+      const fixtures = turnedOut.get(k) || new Set()
+      fixtures.add(g.fixture)
+      turnedOut.set(k, fixtures)
+    })
     for (const p of ps) {
       const d = regDiv.get(`${g.season}:${p}`)
       if (d != null) lastDiv.set(p, d)
@@ -87,18 +96,21 @@ async function build(now) {
   }
   const rated = players.map(rate)
 
-  // Each team's nominated three of each gender, as the predictions field them.
+  // Each team's usual three of each gender, as the predictions field them. Only players still
+  // registered at the club count as regulars: one who has left keeps their history, not a place.
   /** @type {Map<number, any>} */ const lineups = new Map()
   for (const t of teams) {
     /** @param {string} g */
     const three = g => {
+      const slot = (/** @type {any} */ p) => ({ id: p.id, name: p.name,
+        s: p.s ?? fit.mean(g, t.divisionRank), se: p.se ?? model.SETTINGS.tau, mx: (fit.mixed.get(p.id) || 0) })
       const squad = rated.filter(p => p.team === t.id && p.gender === g)
       const nominated = squad.filter(p => p.rank != null && p.rank < model.RESERVE_BASE)
       const reserves = squad.filter(p => !(p.rank != null && p.rank < model.RESERVE_BASE))
-      const picked = [...nominated, ...reserves].slice(0, 3).map(p => ({
-        id: p.id, name: p.name,
-        s: p.s ?? fit.mean(g, t.divisionRank), se: p.se ?? model.SETTINGS.tau, mx: (fit.mixed.get(p.id) || 0),
-      }))
+      const played = rated
+        .filter(p => p.gender === g && teamById.get(p.team)?.clubId === t.clubId && turnedOut.has(`${t.id}:${p.id}`))
+        .map(p => ({ slot: slot(p), fixtures: /** @type {Set<number>} */ (turnedOut.get(`${t.id}:${p.id}`)).size }))
+      const picked = model.usualThree(nominated.map(slot), reserves.map(slot), played)
       while (picked.length < 3) picked.push({ id: null, name: `(no ${g === 'Male' ? 'man' : 'lady'} ${picked.length + 1})`, s: fit.mean(g, t.divisionRank), se: model.SETTINGS.tau, mx: 0 })
       return picked
     }

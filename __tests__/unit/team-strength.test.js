@@ -124,6 +124,30 @@ describe('predictFixture', () => {
   });
 });
 
+describe('usualThree', () => {
+  const p = (id, s) => ({ id, name: `P${id}`, s, mx: 0 });
+  const [n1, n2, n3, r1, x] = [p(1, 0.1), p(2, 0.2), p(3, 0.05), p(99, 0.3), p(50, 0.0)];
+
+  it('fields the nominated three, strongest first, before anyone has played', () => {
+    expect(M.usualThree([n1, n2, n3], [r1], []).map(q => q.id)).toEqual([2, 1, 3]);
+  });
+
+  it('fields whoever has played most, then fills from the nominated list in rank order', () => {
+    const played = [{ slot: r1, fixtures: 6 }, { slot: x, fixtures: 4 }, { slot: n1, fixtures: 1 }];
+    expect(M.usualThree([n1, n2, n3], [r1], played).map(q => q.id)).toEqual([99, 1, 50]);
+    expect(M.usualThree([n1, n2, n3], [r1], [{ slot: r1, fixtures: 2 }]).map(q => q.id)).toEqual([99, 2, 1]);
+  });
+
+  it('counts a player once though they are nominated and have played', () => {
+    expect(M.usualThree([n1, n2], [], [{ slot: n1, fixtures: 3 }]).map(q => q.id)).toEqual([2, 1]);
+  });
+
+  it('breaks a tie in fixtures played by strength', () => {
+    const played = [{ slot: n3, fixtures: 2 }, { slot: n1, fixtures: 2 }, { slot: n2, fixtures: 2 }, { slot: r1, fixtures: 2 }];
+    expect(M.usualThree([], [], played).map(q => q.id)).toEqual([99, 2, 1]);
+  });
+});
+
 describe('scoreDistribution', () => {
   it('is a distribution over 0..18 games', () => {
     const d = M.scoreDistribution([0.3, 0.4, 0.5, 0.6, 0.7, 0.5, 0.5, 0.5, 0.9]);

@@ -47,8 +47,8 @@ describe('games', () => {
   it('returns scored games with all four players, with their season', async () => {
     const rows = (await TeamStrength.games()).filter(g => g.homePlayer1 === P.hm1);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ gameType: 'FirstMens', homePlayer2: P.hm2, awayPlayer2: P.am2,
-      homeScore: 21, awayScore: 15, season: Season.current() });
+    expect(rows[0]).toMatchObject({ fixture: 1001, gameType: 'FirstMens', homePlayer2: P.hm2, awayPlayer2: P.am2,
+      homeScore: 21, awayScore: 15, homeTeam: HOME, awayTeam: AWAY, season: Season.current() });
     expect(rows[0].date).toBeInstanceOf(Date);
   });
 });
