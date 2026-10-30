@@ -137,6 +137,26 @@ export interface EmailEvent {
   subject: string | null;
 }
 
+export interface ExternalGame {
+  away_score: number;
+  away1: string;
+  away1_gender: string | null;
+  away2: string;
+  away2_gender: string | null;
+  game_type: string;
+  home_score: number;
+  home1: string;
+  home1_gender: string | null;
+  home2: string;
+  home2_gender: string | null;
+  id: Generated<number>;
+  imported_at: Generated<Timestamp>;
+  league: string;
+  mixed: boolean;
+  played_on: Timestamp;
+  source_key: string;
+}
+
 export interface Fines {
   amount: number | null;
   club: number | null;
@@ -762,6 +782,7 @@ export interface DB {
   division_at: DivisionAt;
   division_season: DivisionSeason;
   email_event: EmailEvent;
+  external_game: ExternalGame;
   fines: Fines;
   fixture: Fixture;
   game: Game;

@@ -94,8 +94,8 @@ module.exports = /** @type {const} */ ({
     doc: 'PostgreSQL connection string (Supabase in production, local Postgres in dev.env).',
   },
   TAMESIDE_DATABASE_URL: {
-    kind: 'url', readBy: 'tools/gap-finder', test: 'fake', testValue: 'postgresql://test:test@127.0.0.1:1/nowhere',
-    doc: "Tameside's database, read only by the cross-league gap-finder.",
+    kind: 'url', test: 'unset', e2e: 'unset', unset: 'the team-strength import skips Tameside',
+    doc: "Tameside's database, read only: the team-strength import (utils/externalLeagues.js) and the gap-finder.",
   },
   DB_PI_KEY: {
     kind: 'secret', required: true, test: 'fake', testValue: 'test-pi-key-not-the-real-one', e2e: 'local',

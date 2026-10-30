@@ -7,12 +7,18 @@
 // here needs to be fresher than a day, and the publish path is already against Firebase's
 // 60 seconds (gotcha 1bc).
 //
+// Games from the Tameside and Manchester leagues (models/externalGame.js) are fitted too,
+// for the players who play there as well: a name counts as one of ours only on a one-to-one
+// exact match (utils/externalLeagues.js linker). Admin only; never published.
+//
 // Predictions field each team's usual players: the three men and three ladies who have
 // played most for it this season (utils/teamStrength.js usualThree), then its nominated
 // players by rank, then its reserves, then an unnamed player at the division's average.
 
 const League = require('../models/league')
 const TeamStrength = require('../models/teamStrength')
+const ExternalGame = require('../models/externalGame')
+const externalLeagues = require('../utils/externalLeagues')
 const seasonModel = require('../models/season')
 const requireCronCaller = require('../middleware/requireCronCaller')
 const model = require('../utils/teamStrength')
@@ -45,9 +51,9 @@ function usableGame(g) {
 
 /** Builds everything the page shows. @param {number} now ms */
 async function build(now) {
-  const [rows, regs, { teams, players }, remaining, standings] = await Promise.all([
+  const [rows, regs, { teams, players }, remaining, standings, external] = await Promise.all([
     TeamStrength.games(), TeamStrength.registrations(), TeamStrength.squads(),
-    TeamStrength.remainingFixtures(), League.getRunIn(),
+    TeamStrength.remainingFixtures(), League.getRunIn(), ExternalGame.all(),
   ])
 
   /** @type {Map<string, number | null>} */ const regDiv = new Map()
@@ -81,7 +87,35 @@ async function build(now) {
     games.push({ t, mixed: /Mixed/.test(g.gameType || ''), h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3],
       hs: Number(g.homeScore), as: Number(g.awayScore) })
   }
-  const fit = model.fit(games, now, p => gender.get(p) || '', p => lastDiv.get(p))
+  const stockportGames = games.length
+
+  // Other leagues' games. Their own players are `${league}:${name}`, with the gender the card
+  // gives; ours keep their Stockport division as the starting point.
+  const link = externalLeagues.linker(regs.map(r => ({ id: r.id, name: fullName(r), gender: r.gender })))
+  /** @type {Map<string, Map<number, number>>} */ const linked = new Map() // league → our id → games
+  /** @type {Map<string, number>} */ const fromLeague = new Map()
+  /** @type {Map<any, string>} */ const extGender = new Map()
+  for (const e of external) {
+    const slots = [[e.home1, e.home1_gender], [e.home2, e.home2_gender], [e.away1, e.away1_gender], [e.away2, e.away2_gender]]
+    const ps = slots.map(([n, g]) => link(e.league, /** @type {string} */ (n), g))
+    if (new Set(ps).size < 4 || Math.max(e.home_score, e.away_score) < 21 || Math.min(e.home_score, e.away_score) === 0) continue
+    const t = Date.parse(`${e.played_on}T19:00:00Z`) // the evening of the match
+    ps.forEach((p, i) => {
+      const g = slots[i][1]
+      if (typeof p === 'string') { if (g) extGender.set(p, g); return }
+      const byLeague = linked.get(e.league) || new Map()
+      byLeague.set(p, (byLeague.get(p) || 0) + 1)
+      linked.set(e.league, byLeague)
+      const st = seen.get(p) || { games: 0, recent: 0, last: 0 }
+      st.games++; if (now - t < 365 * DAY) st.recent++; st.last = Math.max(st.last, t)
+      seen.set(p, st)
+    })
+    fromLeague.set(e.league, (fromLeague.get(e.league) || 0) + 1)
+    games.push({ t, mixed: e.mixed, h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3], hs: e.home_score, as: e.away_score })
+  }
+  games.sort((a, b) => a.t - b.t)
+  const genderOf = (/** @type {any} */ p) => (typeof p === 'number' ? gender.get(p) : extGender.get(p)) || ''
+  const fit = model.fit(/** @type {any} */ (games), now, genderOf, p => (typeof p === 'number' ? lastDiv.get(p) : undefined))
 
   const teamById = new Map(teams.map(t => [t.id, t]))
   const rate = (/** @type {any} */ p) => {
@@ -153,10 +187,20 @@ async function build(now) {
 
   const slim = (/** @type {any} */ p) => ({ name: p.name, rank: p.rank, r: p.r,
     se: p.se == null ? null : Math.round(1000 * p.se), mixed: p.mixed, recent: p.recent })
+  const nameOf = new Map(regs.map(r => [r.id, fullName(r)]))
+  const teamName = (/** @type {number} */ id) => {
+    const p = players.find(x => x.id === id), t = p && teamById.get(p.team)
+    return t ? t.name : null
+  }
   return {
     games: games.length,
     payload: {
       settings: model.SETTINGS, home: fit.home,
+      sources: { stockport: stockportGames, tameside: fromLeague.get('tameside') || 0, mcrbl: fromLeague.get('mcrbl') || 0 },
+      // Who was linked across leagues, most games first, so a wrong match can be spotted.
+      linked: Object.fromEntries([...linked].map(([league, ids]) => [league,
+        [...ids].map(([id, n]) => ({ name: nameOf.get(id) || String(id), team: teamName(id), games: n }))
+          .sort((a, b) => b.games - a.games)])),
       week,
       projection,
       checks: checks.map(c => ({
@@ -168,6 +212,50 @@ async function build(now) {
           ladies: { nominated: t.ladies.nominated.map(slim), reserves: t.ladies.reserves.map(slim), unset: t.ladies.unset } })),
       })),
     },
+  }
+}
+
+// Fetches the other leagues' games and adds any not already held. Each league on its own:
+// one failing (Manchester's page changed, Tameside's database unreachable) still lets the
+// other import, and the nightly run carries on with what it already has.
+// `seasons` are Manchester's ('2026-27'); the default is the current one. `dryRun` fetches
+// and parses but adds nothing, so the history tool can say what it would do.
+/** @param {{ seasons?: string[], dryRun?: boolean }} [opts] */
+async function importExternal({ seasons, dryRun = false } = {}) {
+  const add = (/** @type {any[]} */ rows) => (dryRun ? Promise.resolve(0) : ExternalGame.add(rows))
+  /** @type {{ tameside: any, mcrbl: any[] }} */
+  const out = { tameside: null, mcrbl: [] }
+  try {
+    const rows = await externalLeagues.tamesideGames()
+    out.tameside = rows == null ? { skipped: 'TAMESIDE_DATABASE_URL is not set' } : { games: rows.length, added: await add(rows) }
+  } catch (err) {
+    log.error({ err }, '[team-strength] Tameside import failed')
+    out.tameside = { error: /** @type {Error} */ (err).message }
+  }
+  const list = seasons || [externalLeagues.mcrblSeason()]
+  for (const [i, season] of list.entries()) {
+    if (i) await new Promise(r => setTimeout(r, 3000)) // one request every few seconds, to be polite
+    try {
+      const { rows, cards, dropped } = externalLeagues.parseMcrblSeason(await externalLeagues.fetchMcrblSeason(season))
+      out.mcrbl.push({ season, cards, games: rows.length, dropped, added: await add(rows) })
+    } catch (err) {
+      log.error({ err, season }, '[team-strength] Manchester import failed')
+      out.mcrbl.push({ season, error: /** @type {Error} */ (err).message })
+    }
+  }
+  log.info({ ...out, dryRun }, '[team-strength] other leagues imported')
+  return out
+}
+
+// POST /admin/team-strength/import — Cloud Scheduler weekly: this season's Manchester page
+// and Tameside's games. One page a week is all Manchester's site is asked for.
+exports.importRun = async function(req, res, next) {
+  try {
+    const result = await importExternal()
+    const failed = result.mcrbl.some(m => m.error) || (result.tameside && result.tameside.error)
+    res.status(failed ? 502 : 200).json({ ok: !failed, ...result, held: await ExternalGame.summary() })
+  } catch (err) {
+    next(err)
   }
 }
 
@@ -206,4 +294,5 @@ exports.page = async function(req, res, next) {
 
 exports.requireStrengthCaller = requireStrengthCaller
 exports.build = build
+exports.importExternal = importExternal
 exports.usableGame = usableGame

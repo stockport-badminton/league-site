@@ -23,7 +23,8 @@
   <h1>Team Strength <small class="text-muted"><%= season.slice(0, 4) %>/<%= season.slice(6) %></small></h1>
   <% if (run) { %>
   <p>
-    Ratings from <strong><%= run.games.toLocaleString('en-GB') %></strong> games, last worked out <strong><%= when(run.ran_at) %></strong>
+    Ratings from <strong><%= run.games.toLocaleString('en-GB') %></strong> games<% if (data && data.sources && (data.sources.tameside || data.sources.mcrbl)) { %>
+    (<%= data.sources.stockport.toLocaleString('en-GB') %> ours, <%= data.sources.tameside.toLocaleString('en-GB') %> Tameside, <%= data.sources.mcrbl.toLocaleString('en-GB') %> Manchester)<% } %>, last worked out <strong><%= when(run.ran_at) %></strong>
     (<%= (run.took_ms / 1000).toFixed(1) %>s, <%= run.caller === 'scheduler' ? 'nightly run' : 'run by hand' %>).
     Predictions field each team's usual players: the three men and three ladies who have played most for it this season, then its nominated players.
   </p>
@@ -42,6 +43,7 @@
     <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#week" role="tab">This week (<%= data.week.length %>)</a></li>
     <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tables" role="tab">Projected tables</a></li>
     <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#order" role="tab">Team order (<%= data.checks.reduce((a, c) => a + c.flags.length, 0) %>)</a></li>
+    <% if (data.linked) { %><li class="nav-item"><a class="nav-link" data-toggle="tab" href="#linked" role="tab">Linked players</a></li><% } %>
   </ul>
 
   <div class="tab-content">
@@ -119,7 +121,7 @@
     <div class="tab-pane fade" id="order" role="tabpanel">
       <p class="small text-muted">
         A flag needs an 80% chance the order is wrong, after allowing for how sure we are of each player, and both players
-        to have played at least 6 games in the last year. <strong>Order</strong>: a lower-nominated player rates above a higher
+        to have played at least 6 games in the last year, in any of the three leagues. <strong>Order</strong>: a lower-nominated player rates above a higher
         one. <strong>Lower team stronger</strong>: a lower team's nominated player rates above a higher team's.
         <strong>Reserve too low</strong>: a reserve rates above the third nominated player of the team above.
         <strong>Reserve could go lower</strong>: a reserve rates below the third nominated player of the team below.
@@ -142,7 +144,7 @@
             <div class="col-lg-6">
               <h4 class="h6"><%= t.name %> · <%= g === 'men' ? 'Men' : 'Ladies' %><% if (sq.unset) { %> <span class="badge badge-secondary">nominations not set</span><% } %></h4>
               <table class="table table-sm small">
-                <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num">Games 12m</th></tr></thead>
+                <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num" title="Games in the last 12 months, in any of the three leagues">Games 12m</th></tr></thead>
                 <tbody>
                 <% [['', sq.nominated], ['R', sq.reserves]].forEach(function([mark, list]){ list.forEach(function(p){ %>
                   <tr class="<%= mark ? 'text-muted' : '' %>"><td><%= mark || p.rank %></td><td><%= p.name %></td>
@@ -158,6 +160,32 @@
       </div>
       <% }) %>
     </div>
+    <% if (data.linked) { %>
+    <div class="tab-pane fade" id="linked" role="tabpanel">
+      <p class="small text-muted">
+        Players whose Tameside or Manchester games count towards their rating here. A name is linked only when exactly one
+        of our players has it and the gender agrees; anyone else in those leagues has a rating of their own that is never
+        shown. Check for links that are two different people: a wrong link moves both people's ratings.
+      </p>
+      <div class="row">
+      <% [['tameside', 'Tameside'], ['mcrbl', 'Manchester']].forEach(function([key, label]){ const list = data.linked[key] || []; %>
+        <div class="col-lg-6" data-league="<%= key %>">
+          <h3 class="h5"><%= label %> <small class="text-muted"><%= list.length %> players, <%= (data.sources[key] || 0).toLocaleString('en-GB') %> games</small></h3>
+          <% if (!list.length) { %><p class="small">None yet.</p><% } else { %>
+          <div class="table-responsive" style="max-height: 32rem; overflow-y: auto">
+            <table class="table table-sm small">
+              <thead><tr><th>Player</th><th>Our team</th><th class="ts-num">Games there</th></tr></thead>
+              <tbody>
+              <% list.forEach(function(p){ %><tr><td><%= p.name %></td><td><%= p.team || '' %></td><td class="ts-num"><%= p.games %></td></tr><% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      <% }) %>
+      </div>
+    </div>
+    <% } %>
   </div>
 </div>
 <% } %>

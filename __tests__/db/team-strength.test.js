@@ -54,9 +54,10 @@ describe('games', () => {
 });
 
 describe('registrations', () => {
-  it('gives each player this season the rank of their team\'s division', async () => {
+  it('gives each player this season their name and the rank of their team\'s division', async () => {
     const rows = (await TeamStrength.registrations()).filter(r => r.season === Season.current() && r.id === P.hm1);
-    expect(rows).toEqual([{ season: Season.current(), id: P.hm1, gender: 'Male', divRank: DIVISION.rank }]);
+    expect(rows).toEqual([{ season: Season.current(), id: P.hm1, gender: 'Male', first_name: 'Test',
+      family_name: `Player${P.hm1}`, divRank: DIVISION.rank }]);
   });
 });
 

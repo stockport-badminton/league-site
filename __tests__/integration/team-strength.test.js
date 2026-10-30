@@ -14,9 +14,17 @@ jest.mock('../../models/userInViews', () => () => (req, res, next) => {
 });
 jest.mock('../../models/teamStrength');
 jest.mock('../../models/league');
+jest.mock('../../models/externalGame');
+// The network is never touched: Manchester's page is a fake, Tameside is unconfigured in tests.
+jest.mock('../../utils/externalLeagues', () => ({
+  ...jest.requireActual('../../utils/externalLeagues'),
+  fetchMcrblSeason: jest.fn(),
+}));
 
 const TeamStrength = require('../../models/teamStrength');
 const League = require('../../models/league');
+const ExternalGame = require('../../models/externalGame');
+const externalLeagues = require('../../utils/externalLeagues');
 const app = require('../../app');
 
 const SUPERADMIN = { id: 'a', displayName: 'Results Secretary', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
@@ -64,6 +72,14 @@ beforeEach(() => {
     { division: 8, divisionName: 'Division 1', divisionRank: 2, id: AWAY, name: 'Weak B', divRank: 2, played: 2, remaining: 2, gamesWon: 6, gamesLost: 30 },
   ]);
   TeamStrength.save.mockResolvedValue(1);
+  TeamStrength.registrations.mockResolvedValue(people.map(p => ({ season: SEASON, id: p.id, gender: p.gender,
+    first_name: p.first_name, family_name: p.family_name, divRank: 2 })));
+  // One Tameside game: Strong A's man 1 plays there too, with three Tameside players.
+  ExternalGame.all.mockResolvedValue([{ league: 'tameside', played_on: '2026-09-15', game_type: 'FirstMens', mixed: false,
+    home1: 'StrongM 1', home2: 'Tam One', away1: 'Tam Two', away2: 'Tam Three',
+    home1_gender: 'Male', home2_gender: 'Male', away1_gender: 'Male', away2_gender: 'Male', home_score: 21, away_score: 16 }]);
+  ExternalGame.add.mockImplementation(async rows => rows.length);
+  ExternalGame.summary.mockResolvedValue([{ league: 'mcrbl', games: '2', latest: '2026-10-28' }]);
 });
 
 // Runs the job for real (against the mocked reads) and hands the page what it stored.
@@ -101,7 +117,7 @@ it('a superadmin\'s run stores the result and comes back to the page', async () 
   expect(res.status).toBe(303);
   expect(res.headers.location).toBe('/admin/team-strength');
   expect(TeamStrength.save).toHaveBeenCalledTimes(1);
-  expect(TeamStrength.save.mock.calls[0][0]).toMatchObject({ caller: 'superadmin', games: 100, season: SEASON });
+  expect(TeamStrength.save.mock.calls[0][0]).toMatchObject({ caller: 'superadmin', games: 101, season: SEASON });
 });
 
 it('shows this week\'s fixture with the stronger home side favoured', async () => {
@@ -131,6 +147,41 @@ it('shows the projected table with each team\'s games won now and at the end', a
   const res = await request(app).get('/admin/team-strength');
   const rows = [...res.text.matchAll(/<tr data-team="([^"]+)">\s*<td>[^<]*<\/td>\s*<td class="ts-num">(\d+) /g)].map(m => [m[1], Number(m[2])]);
   expect(rows).toEqual([['Strong A', 30], ['Weak B', 6]]);
+});
+
+it('lists the players linked from another league, and counts its games in', async () => {
+  const saved = await runAndStore();
+  expect(saved.payload.sources).toEqual({ stockport: 100, tameside: 1, mcrbl: 0 });
+  expect(saved.games).toBe(101);
+  const res = await request(app).get('/admin/team-strength');
+  const tameside = res.text.match(/<div class="col-lg-6" data-league="tameside">([\s\S]*?)<\/table>/)[1];
+  expect(tameside).toContain('<td>StrongM 1</td><td>Strong A</td><td class="ts-num">1</td>');
+  expect(tameside).not.toContain('Tam One');
+});
+
+describe('POST /admin/team-strength/import', () => {
+  it('refuses anyone without the token or a superadmin session', async () => {
+    mockCurrentUser = null;
+    expect((await request(app).post('/admin/team-strength/import')).status).toBe(403);
+    expect(ExternalGame.add).not.toHaveBeenCalled();
+  });
+
+  it('imports this season\'s Manchester page, and skips Tameside when it is not configured', async () => {
+    externalLeagues.fetchMcrblSeason.mockResolvedValue('<table></table>');
+    const res = await request(app).post('/admin/team-strength/import');
+    expect(res.status).toBe(200);
+    expect(externalLeagues.fetchMcrblSeason).toHaveBeenCalledTimes(1);
+    expect(externalLeagues.fetchMcrblSeason).toHaveBeenCalledWith(externalLeagues.mcrblSeason());
+    expect(res.body).toMatchObject({ ok: true, tameside: { skipped: 'TAMESIDE_DATABASE_URL is not set' },
+      mcrbl: [{ season: externalLeagues.mcrblSeason(), cards: 0, games: 0, added: 0 }] });
+  });
+
+  it('says so when Manchester\'s page cannot be fetched', async () => {
+    externalLeagues.fetchMcrblSeason.mockRejectedValue(new Error('mcrbl.org.uk answered 503 for 2026-27'));
+    const res = await request(app).post('/admin/team-strength/import');
+    expect(res.status).toBe(502);
+    expect(res.body.mcrbl[0].error).toBe('mcrbl.org.uk answered 503 for 2026-27');
+  });
 });
 
 it('lists each club with its team sheet ratings', async () => {

@@ -30,6 +30,11 @@ holds the one-line meaning, and what follows is why.
 - `CSP_REPORT_URI` — where CSP violations are POSTed. Defaults to `/csp-report`, handled
   in `app.js` and logged to Cloud Logging. Set it to Sentry's security-header endpoint to
   send them there instead; set it to `''` to emit no reporting directives at all.
+- `TAMESIDE_DATABASE_URL` — Tameside's Supabase database, read through a read-only
+  transaction by the weekly team-strength import (`utils/externalLeagues.js`) and the
+  gap-finder tool. **Unset means the import skips Tameside**; Manchester still imports. In
+  Jest it is always unset, and `__tests__/unit/no-dotenv-in-app.test.js` keeps it that way:
+  two controllers once reloaded `.env` into every test that loaded the app.
 - `AUDIT_EMAIL_TO` — comma-separated recipients of the weekly data-integrity digest
   (HARD-07). **Unset means nothing is ever sent**, which is the safe default and is why
   it is unset locally: `dev.env` points at production, so a stray run would otherwise mail
@@ -37,7 +42,8 @@ holds the one-line meaning, and what follows is why.
   was an open relay from our own verified domain for exactly that reason.
 - `AUDIT_EMAIL_FROM` — sender for that digest. Defaults to the results address.
 - `AUDIT_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Audit-Token` to
-  `POST /admin/audit/run`. Compared with `timingSafeEqual` over SHA-256 of both sides;
+  `POST /admin/audit/run`, and to the team-strength jobs (`POST /admin/team-strength/run`
+  nightly, `/admin/team-strength/import` weekly). Compared with `timingSafeEqual` over SHA-256 of both sides;
   **unset closes the token path rather than opening it**. A superadmin session also works.
   `GET /admin/audit` previews the same email (Admin → Data Health).
 - `REGISTRATION_EMAIL_TO` — comma-separated recipients of the **daily** player-registration

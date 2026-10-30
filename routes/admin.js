@@ -178,6 +178,7 @@ router.post('/admin/audit/run', access.cron(audit_controller.requireAuditCaller)
 const team_strength_controller = require('../controllers/teamStrengthController');
 router.get('/admin/team-strength', access.superadmin, team_strength_controller.page);
 router.post('/admin/team-strength/run', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.run);
+router.post('/admin/team-strength/import', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.importRun);
 
 // Every superadmin tool, grouped (utils/adminTools.js) — the Admin dropdown's
 // "All admin tools…".

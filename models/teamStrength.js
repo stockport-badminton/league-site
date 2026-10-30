@@ -35,13 +35,13 @@ exports.games = async function() {
 }
 
 // Which division each player was registered in, season by season: the rank of the
-// division of the team they were on (player_at / team_at / division_at, so the current
+// division of the team they were on, and their name then (for linking other leagues' games) (player_at / team_at / division_at, so the current
 // season comes from the live tables). LEFT JOINs: a player on no team still has a gender.
 exports.registrations = async function() {
   return kysely.selectFrom('player_at as p')
     .leftJoin('team_at as t', join => join.onRef('t.id', '=', 'p.team').onRef('t.season', '=', 'p.season'))
     .leftJoin('division_at as d', join => join.onRef('d.id', '=', 't.division').onRef('d.season', '=', 'p.season'))
-    .select(['p.season', 'p.id', 'p.gender', 'd.rank as divRank'])
+    .select(['p.season', 'p.id', 'p.gender', 'p.first_name', 'p.family_name', 'd.rank as divRank'])
     .execute()
 }
 
