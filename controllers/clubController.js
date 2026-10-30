@@ -5,7 +5,6 @@ var Team = require('../models/teams');
 var Roster = require('../models/roster');
 const { canonicalFor, clubPath, clubSlug } = require('../utils/canonical');
 const SD = require('../utils/structuredData');
-require('dotenv').config()
 
 
 // Display list of all Clubs

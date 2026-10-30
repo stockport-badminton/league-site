@@ -5,7 +5,6 @@ const JuniorClub = require('../models/juniorClub');
 var seasonModel = require("../models/season");
 var League = require('../models/league.js');
 var Player = require('../models/players.js');
-require('dotenv').config()
 const sesUtil = require('../utils/ses');
 const mailer = require('../utils/mailer');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
