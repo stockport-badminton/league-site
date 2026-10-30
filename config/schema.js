@@ -171,7 +171,7 @@ module.exports = /** @type {const} */ ({
   // ── Scheduler secrets ──────────────────────────────────────────────────────
   // Compared by middleware/requireCronCaller.js with timingSafeEqual over SHA-256. A
   // superadmin session also works on every one of these routes.
-  AUDIT_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Audit-Token → POST /admin/audit/run.' },
+  AUDIT_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Audit-Token → POST /admin/audit/run and the nightly POST /admin/team-strength/run.' },
   REGISTRATION_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Registration-Token → POST /admin/registrations/run.' },
   INVOICE_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Invoice-Token → POST /league/sendInvoices.' },
   LATE_SCORECARD_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Late-Scorecard-Token → GET /fixture/outstanding.' },

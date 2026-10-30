@@ -26,6 +26,7 @@ const GROUPS = [
     title: 'Results & stats',
     tools: [
       { href: '/admin/league-run-in', label: 'League Run-in', blurb: 'This season\'s tables with the top two and bottom two marked, and who is already certain to go up or down.' },
+      { href: '/admin/team-strength', label: 'Team Strength', blurb: 'Points-based ratings: this week\'s predictions, projected tables and team order checks. Recalculated nightly.' },
       { href: '/fixture-players', label: 'Fixture Players', blurb: 'Who played in each fixture.' },
       { href: '/missed-three', label: 'Missed Three', blurb: 'Players who have missed three matches.' },
       { href: '/player-stats', label: 'Individual Stats', blurb: 'Per-player results and ratings.' },

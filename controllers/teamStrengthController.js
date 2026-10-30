@@ -1,0 +1,197 @@
+// Team strength (/admin/team-strength): the nightly run and the page that shows it.
+//
+// The run fits utils/teamStrength.js's rating to every game on record, then works out the
+// coming week's fixtures, plays out the rest of the season and checks every club's team
+// order, and stores the lot as one row (models/teamStrength.js). The page only reads the
+// latest row, so it costs nothing to open. Nightly rather than on each publish: nothing
+// here needs to be fresher than a day, and the publish path is already against Firebase's
+// 60 seconds (gotcha 1bc).
+//
+// Predictions assume each team fields its nominated players: the first three men and
+// ladies by rank, topped up from the reserves if fewer are nominated, then by an unnamed
+// player at the division's average.
+
+const League = require('../models/league')
+const TeamStrength = require('../models/teamStrength')
+const seasonModel = require('../models/season')
+const requireCronCaller = require('../middleware/requireCronCaller')
+const model = require('../utils/teamStrength')
+const { MOVING } = require('../utils/leagueRunIn')
+const { canonicalFor } = require('../utils/canonical')
+const log = require('../utils/log')
+
+const DAY = 86400000
+
+// The audit's secret: both are the league office's own overnight data jobs, and a second
+// secret would be a second thing to rotate for no separation anyone needs.
+const requireStrengthCaller = requireCronCaller({
+  envVar: 'AUDIT_CRON_TOKEN',
+  header: 'x-audit-token',
+  describe: 'the team strength run',
+  callerProp: 'strengthCaller',
+})
+
+const fullName = (/** @type {{ first_name: string, family_name: string }} */ p) =>
+  `${(p.first_name || '').trim()} ${(p.family_name || '').trim()}`
+
+// A real game: four different players and a finished score. 21-0 is how a walkover is
+// entered, and says nothing about anyone's play.
+/** @param {any} g */
+function usableGame(g) {
+  const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2]
+  if (ps.some(p => !p) || new Set(ps).size < 4) return false
+  return Math.max(g.homeScore, g.awayScore) >= 21 && Math.min(g.homeScore, g.awayScore) > 0
+}
+
+/** Builds everything the page shows. @param {number} now ms */
+async function build(now) {
+  const [rows, regs, { teams, players }, remaining, standings] = await Promise.all([
+    TeamStrength.games(), TeamStrength.registrations(), TeamStrength.squads(),
+    TeamStrength.remainingFixtures(), League.getRunIn(),
+  ])
+
+  /** @type {Map<string, number | null>} */ const regDiv = new Map()
+  /** @type {Map<number, string>} */ const gender = new Map()
+  for (const r of regs) { regDiv.set(`${r.season}:${r.id}`, r.divRank); if (r.gender) gender.set(r.id, r.gender) }
+
+  // The division a player was registered in when they last played: their starting point.
+  /** @type {Map<number, number | null | undefined>} */ const lastDiv = new Map()
+  /** @type {Map<number, { games: number, recent: number, last: number }>} */ const seen = new Map()
+  const games = []
+  for (const g of rows) {
+    if (!usableGame(g)) continue
+    const t = new Date(g.date).getTime()
+    const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2].map(Number)
+    for (const p of ps) {
+      const d = regDiv.get(`${g.season}:${p}`)
+      if (d != null) lastDiv.set(p, d)
+      const s = seen.get(p) || { games: 0, recent: 0, last: 0 }
+      s.games++; if (now - t < 365 * DAY) s.recent++; s.last = t
+      seen.set(p, s)
+    }
+    games.push({ t, mixed: /Mixed/.test(g.gameType || ''), h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3],
+      hs: Number(g.homeScore), as: Number(g.awayScore) })
+  }
+  const fit = model.fit(games, now, p => gender.get(p) || '', p => lastDiv.get(p))
+
+  const teamById = new Map(teams.map(t => [t.id, t]))
+  const rate = (/** @type {any} */ p) => {
+    const s = fit.s.get(p.id), st = seen.get(p.id)
+    return {
+      id: p.id, name: fullName(p), gender: p.gender, team: p.team, rank: p.rank,
+      s: s ?? null, se: s == null ? null : fit.se.get(p.id) ?? null,
+      r: s == null ? null : model.display(s), mixed: Math.round(1000 * (fit.mixed.get(p.id) || 0)),
+      games: st ? st.games : 0, recent: st ? st.recent : 0,
+      last: st ? new Date(st.last).toISOString().slice(0, 10) : null,
+    }
+  }
+  const rated = players.map(rate)
+
+  // Each team's nominated three of each gender, as the predictions field them.
+  /** @type {Map<number, any>} */ const lineups = new Map()
+  for (const t of teams) {
+    /** @param {string} g */
+    const three = g => {
+      const squad = rated.filter(p => p.team === t.id && p.gender === g)
+      const nominated = squad.filter(p => p.rank != null && p.rank < model.RESERVE_BASE)
+      const reserves = squad.filter(p => !(p.rank != null && p.rank < model.RESERVE_BASE))
+      const picked = [...nominated, ...reserves].slice(0, 3).map(p => ({
+        id: p.id, name: p.name,
+        s: p.s ?? fit.mean(g, t.divisionRank), se: p.se ?? model.SETTINGS.tau, mx: (fit.mixed.get(p.id) || 0),
+      }))
+      while (picked.length < 3) picked.push({ id: null, name: `(no ${g === 'Male' ? 'man' : 'lady'} ${picked.length + 1})`, s: fit.mean(g, t.divisionRank), se: model.SETTINGS.tau, mx: 0 })
+      return picked
+    }
+    lineups.set(t.id, { men: three('Male'), ladies: three('Female') })
+  }
+
+  const week = remaining.filter(f => f.thisWeek && lineups.has(f.homeTeam) && lineups.has(f.awayTeam)).map(f => {
+    const home = /** @type {any} */ (teamById.get(f.homeTeam)), away = /** @type {any} */ (teamById.get(f.awayTeam))
+    const pr = model.predictFixture(lineups.get(f.homeTeam), lineups.get(f.awayTeam), fit.home)
+    return { id: f.id, dayLabel: f.dayLabel, division: home.divisionName, divisionRank: home.divisionRank,
+      home: home.name, away: away.name, ...pr }
+  }).sort((a, b) => a.divisionRank - b.divisionRank)
+
+  // Divisions as League.getRunIn orders them; the top one promotes nobody, the bottom one
+  // relegates nobody, as on the run-in page.
+  /** @type {Map<number, any>} */ const divs = new Map()
+  for (const r of standings) {
+    if (!divs.has(r.division)) divs.set(r.division, { id: r.division, name: r.divisionName, rank: r.divisionRank, teams: [] })
+    divs.get(r.division).teams.push({ id: r.id, name: r.name, divRank: r.divRank, gamesWon: r.gamesWon, played: r.played, remaining: r.remaining })
+  }
+  const divList = [...divs.values()]
+  const ranks = divList.map(d => d.rank)
+  for (const d of divList) { d.promotes = d.rank !== Math.min(...ranks); d.relegates = d.rank !== Math.max(...ranks) }
+  const projection = model.projectSeason(divList,
+    remaining.map(f => ({ home: f.homeTeam, away: f.awayTeam })), lineups, fit.home, { moving: MOVING })
+
+  // Team order, club by club, teams in club order.
+  /** @type {Map<number, any>} */ const clubs = new Map()
+  for (const t of teams) {
+    if (!clubs.has(t.clubId)) clubs.set(t.clubId, { name: t.clubName, teams: [] })
+    /** @param {string} g */
+    const squad = g => {
+      const list = rated.filter(p => p.team === t.id && p.gender === g)
+      const nominated = list.filter(p => p.rank != null && p.rank < model.RESERVE_BASE)
+      return { nominated, reserves: list.filter(p => !nominated.includes(p)), unset: nominated.length > model.MAX_NOMINATED }
+    }
+    clubs.get(t.clubId).teams.push({ id: t.id, name: t.name, division: t.divisionName, men: squad('Male'), ladies: squad('Female') })
+  }
+  const checks = [...clubs.values()].map(c => ({ ...c, flags: model.orderFlags(c.teams) }))
+
+  const slim = (/** @type {any} */ p) => ({ name: p.name, rank: p.rank, r: p.r,
+    se: p.se == null ? null : Math.round(1000 * p.se), mixed: p.mixed, recent: p.recent })
+  return {
+    games: games.length,
+    payload: {
+      settings: model.SETTINGS, home: fit.home,
+      week,
+      projection,
+      checks: checks.map(c => ({
+        name: c.name,
+        flags: c.flags.map(f => ({ kind: f.kind, gender: f.gender, team: f.team, text: f.text, p: f.p,
+          stronger: f.stronger.r, weaker: f.weaker.r })),
+        teams: c.teams.map((/** @type {any} */ t) => ({ name: t.name, division: t.division,
+          men: { nominated: t.men.nominated.map(slim), reserves: t.men.reserves.map(slim), unset: t.men.unset },
+          ladies: { nominated: t.ladies.nominated.map(slim), reserves: t.ladies.reserves.map(slim), unset: t.ladies.unset } })),
+      })),
+    },
+  }
+}
+
+// POST /admin/team-strength/run — Cloud Scheduler nightly, or the page's button.
+exports.run = async function(req, res, next) {
+  const started = Date.now()
+  try {
+    const { games, payload } = await build(started)
+    const tookMs = Date.now() - started
+    const id = await TeamStrength.save({ season: seasonModel.current(), caller: req.strengthCaller || 'unknown', games, tookMs, payload })
+    log.info({ runId: id, games, tookMs, caller: req.strengthCaller }, '[team-strength] run stored')
+    if (req.strengthCaller === 'superadmin') return res.redirect(303, '/admin/team-strength')
+    res.json({ ok: true, runId: id, games, tookMs, week: payload.week.length })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// GET /admin/team-strength — the latest run.
+exports.page = async function(req, res, next) {
+  try {
+    const run = await TeamStrength.latest()
+    res.render('admin/team-strength', {
+      static_path: '/static',
+      pageTitle: 'Team Strength',
+      pageDescription: 'Points-based ratings: this week\'s predictions, the projected tables and team order checks.',
+      run,
+      data: run ? run.payload : null,
+      season: seasonModel.current(),
+      canonical: canonicalFor(req),
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+exports.requireStrengthCaller = requireStrengthCaller
+exports.build = build
+exports.usableGame = usableGame

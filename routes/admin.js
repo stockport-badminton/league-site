@@ -173,6 +173,12 @@ router.get('/admin/league-run-in', access.superadmin,
   require('../controllers/leagueController').run_in);
 router.post('/admin/audit/run', access.cron(audit_controller.requireAuditCaller), audit_controller.audit_run);
 
+// Team strength (utils/teamStrength.js): the page reads the latest nightly run; the run is
+// Cloud Scheduler's (X-Audit-Token) or the page's button.
+const team_strength_controller = require('../controllers/teamStrengthController');
+router.get('/admin/team-strength', access.superadmin, team_strength_controller.page);
+router.post('/admin/team-strength/run', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.run);
+
 // Every superadmin tool, grouped (utils/adminTools.js) — the Admin dropdown's
 // "All admin tools…".
 router.get('/admin', access.superadmin,

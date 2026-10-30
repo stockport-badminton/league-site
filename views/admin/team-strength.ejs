@@ -1,0 +1,165 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+<%
+  const pct = p => Math.round(100 * p) + '%';
+  const when = d => new Date(d).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const KIND = { order: 'Order', lowerStronger: 'Lower team stronger', reserveTooLow: 'Reserve too low', reserveTooHigh: 'Reserve could go lower' };
+  const BADGE = { order: 'warning', lowerStronger: 'danger', reserveTooLow: 'danger', reserveTooHigh: 'secondary' };
+%>
+<style>
+  .ts-bar { display: flex; height: 1.4rem; border-radius: 3px; overflow: hidden; font-size: .75rem; line-height: 1.4rem; color: #fff; }
+  .ts-bar > div { text-align: center; white-space: nowrap; overflow: hidden; }
+  .ts-home { background: #1f6b4a; } .ts-draw { background: #8a948e; } .ts-away { background: #2b5797; }
+  .ts-pos td.ts-cell { width: 1.6rem; padding: 0; text-align: center; font-size: .7rem; border-left: 1px solid #fff; }
+  .ts-num { font-variant-numeric: tabular-nums; text-align: right; }
+  .ts-fixture { border-bottom: 1px solid #dee2e6; padding: .75rem 0; }
+  /* .starter-template centres every page (header.ejs); tables and lists read left. */
+  .ts-page .tab-content, .ts-page .tab-content table th, .ts-page .tab-content table td { text-align: left; }
+  .ts-page .tab-content .ts-num { text-align: right; }
+  .ts-page .tab-content .ts-cell { text-align: center; }
+</style>
+
+<div class="col-12">
+  <h1>Team Strength <small class="text-muted"><%= season.slice(0, 4) %>/<%= season.slice(6) %></small></h1>
+  <% if (run) { %>
+  <p>
+    Ratings from <strong><%= run.games.toLocaleString('en-GB') %></strong> games, last worked out <strong><%= when(run.ran_at) %></strong>
+    (<%= (run.took_ms / 1000).toFixed(1) %>s, <%= run.caller === 'scheduler' ? 'nightly run' : 'run by hand' %>).
+    Predictions assume each team fields its first three nominated men and ladies.
+  </p>
+  <% } else { %>
+  <p>No run yet. It runs every night; you can run it now.</p>
+  <% } %>
+  <form method="post" action="/admin/team-strength/run" class="mb-3">
+    <button type="submit" class="btn btn-outline-primary btn-sm">Recalculate now</button>
+    <small class="text-muted ml-2">Takes a few seconds.</small>
+  </form>
+</div>
+
+<% if (data) { %>
+<div class="col-12 ts-page">
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#week" role="tab">This week (<%= data.week.length %>)</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tables" role="tab">Projected tables</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#order" role="tab">Team order (<%= data.checks.reduce((a, c) => a + c.flags.length, 0) %>)</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="week" role="tabpanel">
+      <% if (!data.week.length) { %><p>No fixtures in the next seven days.</p><% } %>
+      <% data.week.forEach(function(f){ %>
+      <div class="ts-fixture" data-fixture="<%= f.id %>">
+        <div class="d-flex flex-wrap justify-content-between">
+          <div><strong><%= f.home %></strong> v <strong><%= f.away %></strong></div>
+          <div class="text-muted"><%= f.dayLabel %> · <%= f.division %></div>
+        </div>
+        <div class="ts-bar my-1" title="Home win <%= pct(f.pHome) %>, draw <%= pct(f.pDraw) %>, away win <%= pct(f.pAway) %>">
+          <div class="ts-home" style="width: <%= (100 * f.pHome).toFixed(1) %>%"><%= pct(f.pHome) %></div>
+          <div class="ts-draw" style="width: <%= (100 * f.pDraw).toFixed(1) %>%"><%= pct(f.pDraw) %></div>
+          <div class="ts-away" style="width: <%= (100 * f.pAway).toFixed(1) %>%"><%= pct(f.pAway) %></div>
+        </div>
+        <div class="small">
+          Most likely <strong class="ts-likely"><%= f.likely.home %>–<%= f.likely.away %></strong>,
+          expected <%= f.expected.toFixed(1) %>–<%= (18 - f.expected).toFixed(1) %>.
+          <a data-toggle="collapse" href="#rubbers-<%= f.id %>">Game by game</a>
+        </div>
+        <div class="collapse" id="rubbers-<%= f.id %>">
+          <table class="table table-sm small mt-2 mb-0">
+            <thead><tr><th>Game</th><th><%= f.home %></th><th><%= f.away %></th><th class="ts-num">Home wins a game</th></tr></thead>
+            <tbody>
+            <% f.rubbers.forEach(function(r){ %>
+              <tr><td><%= r.type.replace(/([a-z])([A-Z])/, '$1 $2') %></td><td><%= r.home.join(' & ') %></td><td><%= r.away.join(' & ') %></td><td class="ts-num"><%= pct(r.p) %></td></tr>
+            <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <div class="tab-pane fade" id="tables" role="tabpanel">
+      <p class="small text-muted">
+        The rest of the season played 5,000 times with each team's nominated players, added to the games already won.
+        Each run draws every player's strength from its uncertainty, gives each fixture its own swing, and gives each team
+        a form for the season, so upsets happen at the rate they did in 2024/25 and 2025/26. The shaded cells are how often
+        a team finished in each place.
+      </p>
+      <div class="row">
+      <% data.projection.forEach(function(d){ %>
+        <div class="col-xl-6">
+          <h3 class="h5"><%= d.name %></h3>
+          <div class="table-responsive">
+            <table class="table table-sm small ts-pos" data-division="<%= d.name %>">
+              <thead><tr>
+                <th>Team</th><th class="ts-num" title="Games won so far (fixtures played)">Now</th>
+                <th class="ts-num" title="Projected games won at the end of the season">Final</th>
+                <th class="ts-num">Win</th><% if (d.promotes) { %><th class="ts-num">Up</th><% } %><% if (d.relegates) { %><th class="ts-num">Down</th><% } %>
+                <% d.teams.forEach(function(_, i){ %><th class="ts-cell"><%= i + 1 %></th><% }) %>
+              </tr></thead>
+              <tbody>
+              <% d.teams.forEach(function(t){ %>
+                <tr data-team="<%= t.name %>">
+                  <td><%= t.name %></td>
+                  <td class="ts-num"><%= t.gamesWon %> <span class="text-muted">(<%= t.played %>)</span></td>
+                  <td class="ts-num"><%= Math.round(t.expectedWon) %> <span class="text-muted">±<%= Math.round(t.sdWon) %></span></td>
+                  <td class="ts-num"><%= pct(t.pWinner) %></td>
+                  <% if (d.promotes) { %><td class="ts-num"><%= pct(t.pUp) %></td><% } %>
+                  <% if (d.relegates) { %><td class="ts-num"><%= pct(t.pDown) %></td><% } %>
+                  <% t.positions.forEach(function(p){ %><td class="ts-cell" style="background: rgba(31, 107, 74, <%= Math.min(1, p * 1.6).toFixed(2) %>); color: <%= p > 0.35 ? '#fff' : '#333' %>"><%= p >= 0.005 ? Math.round(100 * p) : '' %></td><% }) %>
+                </tr>
+              <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% }) %>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="order" role="tabpanel">
+      <p class="small text-muted">
+        A flag needs an 80% chance the order is wrong, after allowing for how sure we are of each player, and both players
+        to have played at least 6 games in the last year. <strong>Order</strong>: a lower-nominated player rates above a higher
+        one. <strong>Lower team stronger</strong>: a lower team's nominated player rates above a higher team's.
+        <strong>Reserve too low</strong>: a reserve rates above the third nominated player of the team above.
+        <strong>Reserve could go lower</strong>: a reserve rates below the third nominated player of the team below.
+        Ratings are level doubles; "mixed" is how much better or worse the player does in mixed.
+      </p>
+      <% data.checks.forEach(function(c, ci){ %>
+      <div class="card mb-3" data-club="<%= c.name %>">
+        <div class="card-body">
+          <h3 class="h5"><%= c.name %> <small class="text-muted"><%= c.teams.map(t => t.name).join(' · ') %></small></h3>
+          <% if (!c.flags.length) { %><p class="mb-2 text-success">Nothing flagged.</p><% } %>
+          <ul class="list-unstyled mb-2">
+          <% c.flags.forEach(function(f){ %>
+            <li class="mb-1"><span class="badge badge-<%= BADGE[f.kind] %>"><%= KIND[f.kind] %></span> <%= f.text %>
+              <span class="text-muted small">(<%= f.stronger %> v <%= f.weaker %>, <%= pct(f.p) %> sure)</span></li>
+          <% }) %>
+          </ul>
+          <a class="small" data-toggle="collapse" href="#sheets-<%= ci %>">Team sheets with ratings</a>
+          <div class="collapse" id="sheets-<%= ci %>"><div class="row mt-2">
+          <% c.teams.forEach(function(t){ ['men', 'ladies'].forEach(function(g){ const sq = t[g]; if (!sq.nominated.length && !sq.reserves.length) return; %>
+            <div class="col-lg-6">
+              <h4 class="h6"><%= t.name %> · <%= g === 'men' ? 'Men' : 'Ladies' %><% if (sq.unset) { %> <span class="badge badge-secondary">nominations not set</span><% } %></h4>
+              <table class="table table-sm small">
+                <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num">Games 12m</th></tr></thead>
+                <tbody>
+                <% [['', sq.nominated], ['R', sq.reserves]].forEach(function([mark, list]){ list.forEach(function(p){ %>
+                  <tr class="<%= mark ? 'text-muted' : '' %>"><td><%= mark || p.rank %></td><td><%= p.name %></td>
+                    <td class="ts-num"><%= p.r == null ? 'no games' : p.r %><% if (p.se != null) { %> <span class="text-muted">±<%= p.se %></span><% } %></td>
+                    <td class="ts-num"><%= p.r == null ? '' : (p.mixed > 0 ? '+' : '') + p.mixed %></td><td class="ts-num"><%= p.recent %></td></tr>
+                <% }) }) %>
+                </tbody>
+              </table>
+            </div>
+          <% }) }) %>
+          </div></div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<%- include('../footer.ejs') %>

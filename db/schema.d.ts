@@ -615,6 +615,16 @@ export interface SocialToken {
   username: string | null;
 }
 
+export interface StrengthRun {
+  caller: string;
+  games: number;
+  id: Generated<number>;
+  payload: Json;
+  ran_at: Generated<Timestamp>;
+  season: string;
+  took_ms: number;
+}
+
 export interface SubmissionLog {
   created_at: Generated<Timestamp>;
   email: string | null;
@@ -776,6 +786,7 @@ export interface DB {
   site_setting: SiteSetting;
   social_result_post: SocialResultPost;
   social_token: SocialToken;
+  strength_run: StrengthRun;
   submission_log: SubmissionLog;
   team: Team;
   team_at: TeamAt;
