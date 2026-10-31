@@ -48,12 +48,12 @@
 
   <div class="tab-content">
     <div class="tab-pane fade show active" id="week" role="tabpanel">
-      <% if (!data.week.length) { %><p>No fixtures in the next seven days.</p><% } %>
+      <% if (!data.week.length) { %><p>No fixtures in the next seven days, and none awaiting a result.</p><% } %>
       <% data.week.forEach(function(f){ %>
       <div class="ts-fixture" data-fixture="<%= f.id %>">
         <div class="d-flex flex-wrap justify-content-between">
           <div><strong><%= f.home %></strong> v <strong><%= f.away %></strong></div>
-          <div class="text-muted"><%= f.dayLabel %> · <%= f.division %></div>
+          <div class="text-muted"><% if (f.overdue) { %><span class="badge badge-warning ts-overdue">Awaiting result</span> <% } %><%= f.dayLabel %> · <%= f.division %></div>
         </div>
         <div class="ts-bar my-1" title="Home win <%= pct(f.pHome) %>, draw <%= pct(f.pDraw) %>, away win <%= pct(f.pAway) %>">
           <div class="ts-home" style="width: <%= (100 * f.pHome).toFixed(1) %>%"><%= pct(f.pHome) %></div>

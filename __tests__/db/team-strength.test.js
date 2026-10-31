@@ -34,8 +34,9 @@ beforeEach(async () => {
     (1002, ?, ?, date_trunc('day', now()) + interval '2 days', 'outstanding', NULL, NULL),
     (1003, ?, ?, date_trunc('day', now()) + interval '20 days', 'outstanding', NULL, NULL),
     (1004, ?, ?, date_trunc('day', now()) + interval '3 days', 'void', NULL, NULL),
-    (1005, ?, ?, date_trunc('day', now()) + interval '4 days', 'rearranged', NULL, NULL)`,
-  [HOME, AWAY, AWAY, HOME, HOME, AWAY, HOME, AWAY, HOME, AWAY]);
+    (1005, ?, ?, date_trunc('day', now()) + interval '4 days', 'rearranged', NULL, NULL),
+    (1006, ?, ?, date_trunc('day', now()) - interval '3 days', 'outstanding', NULL, NULL)`,
+  [HOME, AWAY, AWAY, HOME, HOME, AWAY, HOME, AWAY, HOME, AWAY, AWAY, HOME]);
   const game = (fixture, h2, score) => run(`INSERT INTO game (fixture, "gameType", "homePlayer1", "homePlayer2", "awayPlayer1", "awayPlayer2",
       "homeScore", "awayScore", "homePlayer1Start", "homePlayer2Start", "awayPlayer1Start", "awayPlayer2Start")
     VALUES (?, 'FirstMens', ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)`, [fixture, P.hm1, h2, P.am1, P.am2, ...score]);
@@ -73,10 +74,11 @@ describe('squads', () => {
 });
 
 describe('remainingFixtures', () => {
-  it('lists unplayed fixtures, marks the coming week, and leaves out void and rearranged ones', async () => {
-    const rows = (await TeamStrength.remainingFixtures()).filter(f => f.id >= 1001 && f.id <= 1005);
-    expect(rows.map(f => [f.id, f.homeTeam, f.awayTeam, f.thisWeek])).toEqual([[1002, AWAY, HOME, true], [1003, HOME, AWAY, false]]);
-    expect(rows[0].dayLabel).toMatch(/^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}$/);
+  it('lists unplayed fixtures, marks the coming week and the overdue, and leaves out void and rearranged ones', async () => {
+    const rows = (await TeamStrength.remainingFixtures()).filter(f => f.id >= 1001 && f.id <= 1006);
+    expect(rows.map(f => [f.id, f.homeTeam, f.awayTeam, f.thisWeek, f.overdue])).toEqual([
+      [1006, AWAY, HOME, true, true], [1002, AWAY, HOME, true, false], [1003, HOME, AWAY, false, false]]);
+    expect(rows[1].dayLabel).toMatch(/^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}$/);
   });
 });
 

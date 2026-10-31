@@ -66,13 +66,16 @@ exports.squads = async function() {
 }
 
 // This season's fixtures still to play, as League.getRunIn counts them (no score; void
-// and rearranged left out), with whether each falls in the coming seven UK days.
+// and rearranged left out). `thisWeek`: due by the end of the coming seven UK days, which
+// takes in one whose date has passed with no result yet (`overdue`) — played and not
+// entered, or not played and not yet rearranged.
 exports.remainingFixtures = async function() {
   return kysely.selectFrom('fixture as f')
     .innerJoin('season as s', join => join.onRef('f.date', '>', 's.startDate').onRef('f.date', '<', 's.endDate'))
     .select(eb => ['f.id', 'f.homeTeam', 'f.awayTeam', 'f.date',
       eb.fn('to_char', ['f.date', sql.lit('Dy FMDD Mon')]).as('dayLabel'),
-      /** @type {import('kysely').RawBuilder<boolean>} */ (sql`(f.date >= ${UK_TODAY} AND f.date < ${UK_WEEK_END})`).as('thisWeek')])
+      /** @type {import('kysely').RawBuilder<boolean>} */ (sql`(f.date < ${UK_WEEK_END})`).as('thisWeek'),
+      /** @type {import('kysely').RawBuilder<boolean>} */ (sql`(f.date < ${UK_TODAY})`).as('overdue')])
     .where('s.name', '=', seasonModel.current())
     .where('f.homeScore', 'is', null)
     .where(eb => eb.or([eb('f.status', 'in', ['conceded', 'complete', '', 'outstanding']), eb('f.status', 'is', null)]))

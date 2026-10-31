@@ -154,9 +154,9 @@ async function build(now) {
   const week = remaining.filter(f => f.thisWeek && lineups.has(f.homeTeam) && lineups.has(f.awayTeam)).map(f => {
     const home = /** @type {any} */ (teamById.get(f.homeTeam)), away = /** @type {any} */ (teamById.get(f.awayTeam))
     const pr = model.predictFixture(lineups.get(f.homeTeam), lineups.get(f.awayTeam), fit.home)
-    return { id: f.id, dayLabel: f.dayLabel, division: home.divisionName, divisionRank: home.divisionRank,
+    return { id: f.id, dayLabel: f.dayLabel, overdue: f.overdue, division: home.divisionName, divisionRank: home.divisionRank,
       home: home.name, away: away.name, ...pr }
-  }).sort((a, b) => a.divisionRank - b.divisionRank)
+  }).sort((a, b) => a.divisionRank - b.divisionRank) // stable: by date within a division, as remainingFixtures orders them
 
   // Divisions as League.getRunIn orders them; the top one promotes nobody, the bottom one
   // relegates nobody, as on the run-in page.

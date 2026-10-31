@@ -64,7 +64,8 @@ beforeEach(() => {
     players: people,
   });
   TeamStrength.remainingFixtures.mockResolvedValue([
-    { id: 77, homeTeam: HOME, awayTeam: AWAY, date: new Date(), dayLabel: 'Tue 3 Nov', thisWeek: true },
+    { id: 76, homeTeam: AWAY, awayTeam: HOME, date: new Date(), dayLabel: 'Thu 29 Oct', thisWeek: true, overdue: true },
+    { id: 77, homeTeam: HOME, awayTeam: AWAY, date: new Date(), dayLabel: 'Tue 3 Nov', thisWeek: true, overdue: false },
     { id: 78, homeTeam: AWAY, awayTeam: HOME, date: new Date(), dayLabel: 'Tue 1 Dec', thisWeek: false },
   ]);
   League.getRunIn.mockResolvedValue([
@@ -129,7 +130,15 @@ it('shows this week\'s fixture with the stronger home side favoured', async () =
   expect(block).toContain('Tue 3 Nov · Division 1');
   const [, h, a] = block.match(/<strong class="ts-likely">(\d+)–(\d+)<\/strong>/);
   expect(Number(h)).toBeGreaterThan(Number(a));
+  expect(block).not.toContain('Awaiting result');
   expect(res.text).not.toContain('data-fixture="78"');
+});
+
+it('keeps a fixture whose date has passed without a result on this week\'s list, marked', async () => {
+  await runAndStore();
+  const res = await request(app).get('/admin/team-strength');
+  const block = res.text.match(/<div class="ts-fixture" data-fixture="76">([\s\S]*?)<div class="collapse"/)[1];
+  expect(block).toContain('<span class="badge badge-warning ts-overdue">Awaiting result</span> Thu 29 Oct');
 });
 
 it('fields the players who have been turning out, not only the nominated ones', async () => {
