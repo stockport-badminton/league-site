@@ -51,6 +51,20 @@ const game = (i, h1, h2, a1, a2) => games.push({ id: i, fixture: i, gameType: 'F
 for (let i = 0; i < 40; i++) game(i, home[i % 3], home[(i + 1) % 3], away[i % 3], away[(i + 1) % 3]);
 for (let i = 100; i < 160; i++) game(i, home[0], regular, away[0], away[1]);
 
+// Four nights on which Strong A's men 1 and 2 both played: man 2 with man 3 wins, man 1 with
+// man 3 loses. The case for man 2 above man 1.
+const [m1, m2, m3] = home;
+const pairRows = [];
+for (let f = 900; f < 904; f++) {
+  const row = (h1, h2, a1, a2, hs, as) => pairRows.push({ id: pairRows.length, fixture: f, gameType: 'FirstMens',
+    homePlayer1: h1.id, homePlayer2: h2.id, awayPlayer1: a1.id, awayPlayer2: a2.id, homeScore: hs, awayScore: as,
+    date: new Date('2026-10-01'), homeTeam: HOME, awayTeam: AWAY, season: SEASON, homeTeamName: 'Strong A', awayTeamName: 'Weak B',
+    homeDivision: 'Division 1', awayDivision: 'Division 1', homeDivRank: 2, awayDivRank: 2 });
+  row(m2, m3, away[0], away[1], 21, 10);
+  row(m1, m3, away[0], away[2], 14, 21);
+  row(m1, m2, away[1], away[2], 21, 19);
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockCurrentUser = SUPERADMIN;
@@ -80,6 +94,7 @@ beforeEach(() => {
     home1: 'StrongM 1', home2: 'Tam One', away1: 'Tam Two', away2: 'Tam Three',
     home1_gender: 'Male', home2_gender: 'Male', away1_gender: 'Male', away2_gender: 'Male', home_score: 21, away_score: 16 }]);
   ExternalGame.add.mockImplementation(async rows => rows.length);
+  TeamStrength.pairGames.mockResolvedValue(pairRows);
   ExternalGame.summary.mockResolvedValue([{ league: 'mcrbl', games: '2', latest: '2026-10-28' }]);
 });
 
@@ -198,4 +213,55 @@ it('lists each club with its team sheet ratings', async () => {
   const res = await request(app).get('/admin/team-strength');
   expect(res.text).toContain('data-club="Strong"');
   expect(res.text).toContain('<td>StrongM 1</td>');
+});
+
+describe('compare', () => {
+  it('is superadmin-only', async () => {
+    mockCurrentUser = CLUB_ADMIN;
+    expect((await request(app).get(`/admin/team-strength/compare?a=${m2.id}&b=${m1.id}`)).status).toBe(403);
+  });
+
+  it('offers a picker of this season\'s players before two are chosen', async () => {
+    const res = await request(app).get('/admin/team-strength/compare');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(`<optgroup label="Strong A">`);
+    expect(res.text).toContain(`<option value="${m2.id}">StrongM 2</option>`);
+    expect(res.text).not.toContain('What the results say');
+    expect(TeamStrength.pairGames).not.toHaveBeenCalled();
+  });
+
+  it('sets out the results for one player above another, with their ratings from the latest run', async () => {
+    await runAndStore();
+    const res = await request(app).get(`/admin/team-strength/compare?a=${m2.id}&b=${m1.id}&seasons=1`);
+    expect(res.status).toBe(200);
+    expect(TeamStrength.pairGames).toHaveBeenCalledWith([m2.id, m1.id], [SEASON]);
+    expect(res.text).toContain('StrongM 2 above StrongM 1');
+    expect(res.text).toMatch(/<p class="mb-0" data-rating>\s*Ratings: <strong>StrongM 2 \d{4}<\/strong>/);
+    expect(res.text).toContain('<li class="mb-2" data-finding="nights" data-favours="a">');
+    expect(res.text).toContain('On the 4 nights both played for Strong A, StrongM 2 won 4 of 4 games (68% of points) and StrongM 1 won 0 of 4 games (40% of points)');
+    expect(res.text).toMatch(/<textarea[^>]*id="case-text"[^>]*>StrongM 2 above StrongM 1: the results \(this season, level doubles\)/);
+    expect(res.text).toContain(`<a href="/scorecard/fixture/903">2026-10-01</a>`);
+  });
+
+  it('refuses a man against a lady', async () => {
+    const res = await request(app).get(`/admin/team-strength/compare?a=${m1.id}&b=${home[3].id}`);
+    expect(res.text).toContain('Pick two men or two ladies');
+    expect(TeamStrength.pairGames).not.toHaveBeenCalled();
+  });
+
+  it('stores player ids in the run, so each order flag links to its case', async () => {
+    const saved = await runAndStore();
+    const strongA = saved.payload.checks.find(c => c.name === 'Strong').teams[0];
+    expect(strongA.men.nominated.map(p => p.id)).toEqual([m1.id, m2.id, m3.id]);
+  });
+
+  it('links an order flag to the case for it', async () => {
+    const saved = await runAndStore();
+    const payload = JSON.parse(JSON.stringify(saved.payload));
+    payload.checks[0].flags.push({ kind: 'order', gender: 'men', team: 'Strong A', text: 'StrongM 2 (man 2) looks stronger than StrongM 1 (man 1)',
+      p: 0.9, stronger: 1600, weaker: 1500, strongerId: m2.id, weakerId: m1.id });
+    TeamStrength.latest.mockResolvedValue({ ...(await TeamStrength.latest()), payload });
+    const res = await request(app).get('/admin/team-strength');
+    expect(res.text).toContain(`<a class="small ts-case" href="/admin/team-strength/compare?a=${m2.id}&amp;b=${m1.id}">The results</a>`);
+  });
 });

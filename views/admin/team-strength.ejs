@@ -126,6 +126,7 @@
         <strong>Reserve too low</strong>: a reserve rates above the third nominated player of the team above.
         <strong>Reserve could go lower</strong>: a reserve rates below the third nominated player of the team below.
         Ratings are level doubles; "mixed" is how much better or worse the player does in mixed.
+        <a href="/admin/team-strength/compare">Compare any two players</a>: the results behind a flag, to make the case to a club.
       </p>
       <% data.checks.forEach(function(c, ci){ %>
       <div class="card mb-3" data-club="<%= c.name %>">
@@ -135,7 +136,8 @@
           <ul class="list-unstyled mb-2">
           <% c.flags.forEach(function(f){ %>
             <li class="mb-1"><span class="badge badge-<%= BADGE[f.kind] %>"><%= KIND[f.kind] %></span> <%= f.text %>
-              <span class="text-muted small">(<%= f.stronger %> v <%= f.weaker %>, <%= pct(f.p) %> sure)</span></li>
+              <span class="text-muted small">(<%= f.stronger %> v <%= f.weaker %>, <%= pct(f.p) %> sure)</span>
+              <% if (f.strongerId && f.weakerId) { %><a class="small ts-case" href="/admin/team-strength/compare?a=<%= f.strongerId %>&amp;b=<%= f.weakerId %>">The results</a><% } %></li>
           <% }) %>
           </ul>
           <a class="small" data-toggle="collapse" href="#sheets-<%= ci %>">Team sheets with ratings</a>

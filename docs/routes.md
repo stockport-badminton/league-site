@@ -226,6 +226,7 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 216 | GET | `/admin/league-run-in` | superadmin |
 | 217 | POST | `/admin/audit/run` | cron:AUDIT_CRON_TOKEN |
 | 218 | GET | `/admin/team-strength` | superadmin |
-| 219 | POST | `/admin/team-strength/run` | cron:AUDIT_CRON_TOKEN |
-| 220 | POST | `/admin/team-strength/import` | cron:AUDIT_CRON_TOKEN |
-| 221 | GET | `/admin` | superadmin |
+| 219 | GET | `/admin/team-strength/compare` | superadmin |
+| 220 | POST | `/admin/team-strength/run` | cron:AUDIT_CRON_TOKEN |
+| 221 | POST | `/admin/team-strength/import` | cron:AUDIT_CRON_TOKEN |
+| 222 | GET | `/admin` | superadmin |

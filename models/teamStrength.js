@@ -34,6 +34,29 @@ exports.games = async function() {
     .execute()
 }
 
+// Every scored game either of `ids` played, in `seasons` (all of them when null), with
+// both teams as they were that season: the evidence for swapping two players
+// (utils/playerCase.js). LEFT JOINs: a team with no row for its season still has its games.
+/** @param {number[]} ids @param {string[] | null} seasons */
+exports.pairGames = async function(ids, seasons) {
+  let q = kysely.selectFrom('game as g')
+    .innerJoin('fixture as f', 'f.id', 'g.fixture')
+    .innerJoin('season as s', join => join.onRef('f.date', '>', 's.startDate').onRef('f.date', '<', 's.endDate'))
+    .leftJoin('team_at as ht', join => join.onRef('ht.id', '=', 'f.homeTeam').onRef('ht.season', '=', 's.name'))
+    .leftJoin('team_at as at', join => join.onRef('at.id', '=', 'f.awayTeam').onRef('at.season', '=', 's.name'))
+    .leftJoin('division_at as hd', join => join.onRef('hd.id', '=', 'ht.division').onRef('hd.season', '=', 's.name'))
+    .leftJoin('division_at as ad', join => join.onRef('ad.id', '=', 'at.division').onRef('ad.season', '=', 's.name'))
+    .select(['g.id', 'g.fixture', 'g.gameType', 'g.homePlayer1', 'g.homePlayer2', 'g.awayPlayer1', 'g.awayPlayer2',
+      'g.homeScore', 'g.awayScore', 'f.date', 'f.homeTeam', 'f.awayTeam', 's.name as season',
+      'ht.name as homeTeamName', 'at.name as awayTeamName', 'hd.name as homeDivision', 'ad.name as awayDivision',
+      'hd.rank as homeDivRank', 'ad.rank as awayDivRank'])
+    .where('g.homeScore', 'is not', null).where('g.awayScore', 'is not', null)
+    .where(eb => eb.or(['g.homePlayer1', 'g.homePlayer2', 'g.awayPlayer1', 'g.awayPlayer2']
+      .map(c => eb(/** @type {'g.homePlayer1'} */ (c), 'in', ids.length ? ids : [-1]))))
+  if (seasons) q = q.where('s.name', 'in', seasons.length ? seasons : [''])
+  return q.orderBy('f.date').orderBy('g.id').execute()
+}
+
 // Which division each player was registered in, season by season: the rank of the
 // division of the team they were on, and their name then (for linking other leagues' games) (player_at / team_at / division_at, so the current
 // season comes from the live tables). LEFT JOINs: a player on no team still has a gender.

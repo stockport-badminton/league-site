@@ -177,6 +177,7 @@ router.post('/admin/audit/run', access.cron(audit_controller.requireAuditCaller)
 // Cloud Scheduler's (X-Audit-Token) or the page's button.
 const team_strength_controller = require('../controllers/teamStrengthController');
 router.get('/admin/team-strength', access.superadmin, team_strength_controller.page);
+router.get('/admin/team-strength/compare', access.superadmin, team_strength_controller.compare);
 router.post('/admin/team-strength/run', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.run);
 router.post('/admin/team-strength/import', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.importRun);
 

@@ -22,6 +22,7 @@ const externalLeagues = require('../utils/externalLeagues')
 const seasonModel = require('../models/season')
 const requireCronCaller = require('../middleware/requireCronCaller')
 const model = require('../utils/teamStrength')
+const playerCase = require('../utils/playerCase')
 const { MOVING } = require('../utils/leagueRunIn')
 const { canonicalFor } = require('../utils/canonical')
 const log = require('../utils/log')
@@ -185,7 +186,7 @@ async function build(now) {
   }
   const checks = [...clubs.values()].map(c => ({ ...c, flags: model.orderFlags(c.teams) }))
 
-  const slim = (/** @type {any} */ p) => ({ name: p.name, rank: p.rank, r: p.r,
+  const slim = (/** @type {any} */ p) => ({ id: p.id, name: p.name, rank: p.rank, r: p.r,
     se: p.se == null ? null : Math.round(1000 * p.se), mixed: p.mixed, recent: p.recent })
   const nameOf = new Map(regs.map(r => [r.id, fullName(r)]))
   const teamName = (/** @type {number} */ id) => {
@@ -206,7 +207,7 @@ async function build(now) {
       checks: checks.map(c => ({
         name: c.name,
         flags: c.flags.map(f => ({ kind: f.kind, gender: f.gender, team: f.team, text: f.text, p: f.p,
-          stronger: f.stronger.r, weaker: f.weaker.r })),
+          stronger: f.stronger.r, weaker: f.weaker.r, strongerId: f.stronger.id, weakerId: f.weaker.id })),
         teams: c.teams.map((/** @type {any} */ t) => ({ name: t.name, division: t.division,
           men: { nominated: t.men.nominated.map(slim), reserves: t.men.reserves.map(slim), unset: t.men.unset },
           ladies: { nominated: t.ladies.nominated.map(slim), reserves: t.ladies.reserves.map(slim), unset: t.ladies.unset } })),
@@ -287,6 +288,88 @@ exports.page = async function(req, res, next) {
       season: seasonModel.current(),
       canonical: canonicalFor(req),
     })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// The evidence windows the compare page offers: this season, this and last, or everything.
+const WINDOWS = { 1: 'this season', 2: 'this season and last', all: 'every season' }
+
+// "tameside:jo bloggs" → "Jo Bloggs (Tameside)": another league's player, as the page names them.
+const otherName = (/** @type {string} */ key) => {
+  const [league, name] = key.split(':')
+  return `${name.replace(/\b\w/g, ch => ch.toUpperCase())} (${league === 'mcrbl' ? 'Manchester' : 'Tameside'})`
+}
+
+// GET /admin/team-strength/compare?a=&b=&seasons= — the case for putting player a above
+// player b (utils/playerCase.js): their ratings from the latest run, then the results.
+exports.compare = async function(req, res, next) {
+  try {
+    const window = Object.hasOwn(WINDOWS, String(req.query.seasons)) ? String(req.query.seasons) : '2'
+    const ids = [req.query.a, req.query.b].map(v => Number.parseInt(String(v), 10))
+    const { teams, players } = await TeamStrength.squads()
+    const teamById = new Map(teams.map(t => [t.id, t]))
+    const picker = teams.map(t => ({ team: t.name, players: players.filter(p => p.team === t.id)
+      .map(p => ({ id: p.id, name: fullName(p), gender: p.gender })) }))
+    const view = { static_path: '/static', pageTitle: 'Make the case', canonical: canonicalFor(req),
+      pageDescription: 'The results behind a team-order flag: the case for swapping two players.',
+      picker, window, windows: WINDOWS, ids, minGames: playerCase.MIN_GAMES, margin: playerCase.MARGIN, error: /** @type {string | null} */ (null), result: /** @type {any} */ (null) }
+
+    const [a, b] = ids.map(id => players.find(p => p.id === id))
+    if (!a || !b || a.id === b.id) {
+      if (req.query.a || req.query.b) view.error = 'Pick two different players registered to a team this season.'
+      return res.render('admin/team-strength-compare', view)
+    }
+    if (a.gender !== b.gender) {
+      view.error = 'Pick two men or two ladies: the order is set for each separately.'
+      return res.render('admin/team-strength-compare', view)
+    }
+
+    const seasons = window === 'all' ? null : [seasonModel.current(), seasonModel.previous()].slice(0, Number(window))
+    // Other leagues' seasons run September to May too: the window opens the July before.
+    const from = seasons ? `${seasons[seasons.length - 1].slice(0, 4)}-07-01` : ''
+    const [rows, regs, external, run] = await Promise.all([
+      TeamStrength.pairGames([a.id, b.id], seasons), TeamStrength.registrations(), ExternalGame.all(), TeamStrength.latest(),
+    ])
+    /** @type {Map<number, string>} */ const nameOf = new Map()
+    for (const r of regs) if (!nameOf.has(r.id) || r.season === seasonModel.current()) nameOf.set(r.id, fullName(r))
+    const link = externalLeagues.linker(regs.map(r => ({ id: r.id, name: fullName(r), gender: r.gender })))
+
+    /** @type {import('../utils/playerCase').CaseGame[]} */
+    const games = rows.map(g => ({ league: 'stockport', fixture: g.fixture, date: new Date(g.date).toISOString().slice(0, 10),
+      season: g.season, mixed: /Mixed/.test(g.gameType || ''), hs: Number(g.homeScore), as: Number(g.awayScore),
+      home: { name: g.homeTeamName, division: g.homeDivision, players: [Number(g.homePlayer1), Number(g.homePlayer2)] },
+      away: { name: g.awayTeamName, division: g.awayDivision, players: [Number(g.awayPlayer1), Number(g.awayPlayer2)] } }))
+    for (const e of external) {
+      if (e.played_on < from) continue
+      const ps = [[e.home1, e.home1_gender], [e.home2, e.home2_gender], [e.away1, e.away1_gender], [e.away2, e.away2_gender]]
+        .map(([n, g]) => link(e.league, /** @type {string} */ (n), g))
+      if (!ps.includes(a.id) && !ps.includes(b.id)) continue
+      games.push({ league: e.league, fixture: null, date: e.played_on, season: null, mixed: e.mixed, hs: e.home_score, as: e.away_score,
+        home: { name: null, division: null, players: ps.slice(0, 2) }, away: { name: null, division: null, players: ps.slice(2) } })
+    }
+
+    const who = (/** @type {any} */ p) => ({ id: p.id, name: fullName(p) })
+    const c = playerCase.build(who(a), who(b), games,
+      id => (typeof id === 'string' ? otherName(id) : nameOf.get(id) || `#${id}`))
+
+    // Their ratings, from the latest run's order checks (a run before ids were stored has none).
+    /** @type {Map<number, any>} */ const rated = new Map()
+    for (const club of run?.payload?.checks || []) for (const t of club.teams) for (const g of ['men', 'ladies']) {
+      for (const p of [...t[g].nominated, ...t[g].reserves]) if (p.id) rated.set(p.id, p)
+    }
+    const ra = rated.get(a.id), rb = rated.get(b.id)
+    const asRated = (/** @type {any} */ p) => ({ s: (p.r - 1500) / 1000, se: p.se / 1000 })
+    const rating = ra && rb && ra.r != null && rb.r != null
+      ? { a: ra.r, b: rb.r, p: model.pStronger(/** @type {any} */ (asRated(ra)), /** @type {any} */ (asRated(rb))), ra, rb }
+      : null
+
+    view.result = { case: c, rating, ranAt: run?.ran_at || null,
+      teams: { a: teamById.get(a.team)?.name, b: teamById.get(b.team)?.name },
+      ranks: { a: a.rank, b: b.rank },
+      text: playerCase.caseText(c, { window: WINDOWS[/** @type {keyof typeof WINDOWS} */ (window)], rating: rating || undefined }) }
+    res.render('admin/team-strength-compare', view)
   } catch (err) {
     next(err)
   }

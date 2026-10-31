@@ -82,6 +82,21 @@ describe('remainingFixtures', () => {
   });
 });
 
+describe('pairGames', () => {
+  it('returns the players\' scored games with both teams and divisions as they were that season', async () => {
+    const rows = await TeamStrength.pairGames([P.hm2, P.am1], [Season.current()]);
+    expect(rows.map(g => [g.fixture, g.homePlayer2, g.homeScore, g.awayScore])).toEqual([[1001, P.hm2, 21, 15], [1001, null, 21, 0]]);
+    expect(rows[0]).toMatchObject({ season: Season.current(), homeTeamName: 'Strength Home A', awayTeamName: 'Strength Home B',
+      homeDivision: 'Strength Division', awayDivision: 'Strength Division', homeDivRank: 7, awayDivRank: 7 });
+  });
+
+  it('keeps to the seasons asked for, and takes every season when given none', async () => {
+    expect(await TeamStrength.pairGames([P.hm2], ['20002001'])).toEqual([]);
+    expect((await TeamStrength.pairGames([P.hm2], null)).map(g => g.fixture)).toEqual([1001]);
+    expect(await TeamStrength.pairGames([90005], null)).toEqual([]);
+  });
+});
+
 describe('save and latest', () => {
   it('returns the newest run with its payload as an object', async () => {
     expect(await TeamStrength.latest()).toBeNull();
