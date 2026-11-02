@@ -142,3 +142,8 @@ property for its retention period.
 PostHog now starts on the `load` event, except on the results-entry pages, where it
 starts at once because the recording exists to show the start of the session. Web vitals
 are read from buffered performance entries, so the late start does not lose them.
+
+**Measured on production 2 Nov** (`fac4037`), cold cache, same method as 17 Oct: `/tables/All`
+385 → **216 KB** at both widths, `/` 427 → 255 KB, `/results/Premier` 447 → 279 KB. All
+acceptance criteria are met. Field vitals for the late PostHog start are worth a look
+alongside the next web-vitals read, but nothing here waits on it.
