@@ -4,6 +4,13 @@
 **Owns:** AWS bucket settings on `badmintontemp`. **No repo code** except one optional tidy.
 **Source:** step 4 of HARD-02b, pulled out once steps 0–3 landed (1 Sep 2026)
 
+## Status — settings applied 2 Nov 2026
+
+Steps 1, 3 and 4 done, step 5 partly: see the README status table. The audit figure in
+step 5 and the acceptance criteria is now **1,503 servable, 0 refused** (this season's
+uploads; the 1,456 below is the 1 Sep count). Outstanding: the inbound-email test and an
+upload on both leagues' sites.
+
 ## Why
 
 HARD-02b step 3 made 1,454 objects private, one ACL at a time. That fixed the objects

@@ -2,6 +2,18 @@
 
 Moved out of `CLAUDE.md`, word for word, so that file holds only the rules most tasks need.
 
+### Access settings (HARD-22, 2 Nov 2026)
+
+**Object ACLs are disabled** (Object Ownership = `BucketOwnerEnforced`) and **all four Block
+Public Access settings are on.** Every object is private and nothing can make one public:
+a `put-object-acl` is refused with `AccessControlListNotSupported`, and **so is any upload
+that carries an ACL** — a writer that adds `ACL: 'public-read'` back (here or in Tameside,
+which shares the bucket) fails outright rather than quietly publishing. Everything that is
+shown in a browser is read with credentials and proxied (`/scorecard-photo/:id`,
+`/static/generated/venues-map.png`, the social video proxy). The bucket policy's one
+statement, `AllowSESReceiptWrite`, is a service principal with a condition, so Block Public
+Access leaves it alone.
+
 ### What the bucket keeps, and for how long
 
 Two lifecycle rules on `badmintontemp`, both expiry-only. Read them back with
