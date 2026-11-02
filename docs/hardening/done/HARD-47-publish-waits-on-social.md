@@ -189,3 +189,25 @@ failed row, the dead run and the 13-hour pending row, and left out a pending row
 **Still to do once deployed:** a week of publishes, then the acceptance criteria: `POST
 /scorecard-beta` p95 under 10 s, and every result in `social_result_post` posted to every
 target.
+
+## Acceptance, measured 2 Nov 2026
+
+A week of publishes after the 24 Oct deploy, read from the request logs and the production
+queue table rather than assumed:
+
+- **`POST /scorecard-beta` p95 under 10 s: met.** Six publishes from 25 to 30 Oct (revisions
+  00354, 00387, 00390), every one a 200, at **1.98, 2.05, 2.35, 2.36, 2.39 and 2.56 s**.
+  The last publish before the deploy (24 Oct 11:25, rev 00345) took 51.98 s. Six requests
+  are too few for a meaningful p95, but the slowest of them is a quarter of the limit.
+- **Meta hanging test: met** when it was built (see *Step 2: built*).
+- **Every result reached every configured target, checked against the queue: met.**
+  `social_result_post` holds 24 rows, the six fixtures (7291, 7310, 7378, 7226, 7200, 7184)
+  × `page`, `page-story`, `instagram`, `instagram-story`. Every row is `posted` on attempt 1,
+  and no row has a `last_error`. The six fixtures match the six publish requests one for
+  one, by timestamp. The average time from queueing to posting was 131 min, with a maximum
+  of 381. That comes from two results published after midnight going out from 07:00, as
+  designed.
+- `sbl-results-meta` ran **579 times** since the deploy, **all 200**. It never returned
+  the 502 it sends when a target fails. Because no Instagram row needed a second attempt,
+  the *media is not ready* refusal (every Meta result failure from 25 Sep to 23 Oct) did not
+  cost a post in this week.
