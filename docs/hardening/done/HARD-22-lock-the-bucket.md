@@ -4,12 +4,12 @@
 **Owns:** AWS bucket settings on `badmintontemp`. **No repo code** except one optional tidy.
 **Source:** step 4 of HARD-02b, pulled out once steps 0–3 landed (1 Sep 2026)
 
-## Status — settings applied 2 Nov 2026
+## Status — done 2 Nov 2026
 
-Steps 1, 3 and 4 done, step 5 partly: see the README status table. The audit figure in
-step 5 and the acceptance criteria is now **1,503 servable, 0 refused** (this season's
-uploads; the 1,456 below is the 1 Sep count). Inbound email verified 2 Nov (object landed
-and the mail arrived). Tameside upload verified 2 Nov. Outstanding: a Stockport upload.
+All five acceptance criteria met; detail in the README status table. The audit figure is
+now **1,503 servable, 0 refused** (this season's uploads; the 1,456 below is the 1 Sep
+count). Tameside's analysis taking its site down was found during the upload check and is
+unrelated to the bucket; it was handed to the Tameside side.
 
 ## Why
 
@@ -31,7 +31,7 @@ keep behaving, forever, with no mechanism to notice if one stops.
 
 ## Ordering
 
-Not a hard block, but do **[HARD-21](done/HARD-21-social-video-read-proxy.md) first.**
+Not a hard block, but do **[HARD-21](HARD-21-social-video-read-proxy.md) first.**
 
 The weekly videos are the one thing in the bucket with no credentialed reader. They are
 *already* private and the Make.com handoff is *already* broken (HARD-21 explains why), so
@@ -69,7 +69,7 @@ verified theirs by checking the presigned URL's `X-Amz-SignedHeaders` is `host` 
 ## The one ask from the Tameside side
 
 **Tell them before switching Object Ownership.** It is their explicit request, recorded in
-[`docs/handover/tameside-s3-bucket-reply.md`](../handover/tameside-s3-bucket-reply.md).
+[`docs/handover/tameside-s3-bucket-reply.md`](../../handover/tameside-s3-bucket-reply.md).
 They are compatible as of their 1 Sep deploy, but if the two changes had gone in the other
 order it would have broken their uploads rather than their displays — and a broken upload
 is far harder to spot from this side than a missing image.

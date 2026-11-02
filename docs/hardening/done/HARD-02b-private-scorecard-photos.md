@@ -5,7 +5,7 @@
 **Source:** the residual left by HARD-02
 **Status: COMPLETE, 1 Sep 2026.** Code landed in `8312d1d` / `2a2589a`; runbook steps 0-3
 ran on 1 Sep and are evidenced below. The optional bucket-wide lockdown that used to be
-step 4 is now [HARD-22](../HARD-22-lock-the-bucket.md); the weekly-video reader found on the
+step 4 is now [HARD-22](HARD-22-lock-the-bucket.md); the weekly-video reader found on the
 way is [HARD-21](HARD-21-social-video-read-proxy.md).
 
 ## Why
@@ -320,7 +320,7 @@ the bucket URL 403s **and** the site still serves it. Both were confirmed before
 
 Block Public Access, and the better version of it (Object Ownership =
 `bucket owner enforced`, which makes ACLs unexpressible rather than merely unused), are
-now **[HARD-22](../HARD-22-lock-the-bucket.md)**.
+now **[HARD-22](HARD-22-lock-the-bucket.md)**.
 
 Split out because this package's job is done — the photos are private and every reader
 works — whereas step 4 is a bucket-wide setting with its own preconditions (every writer
