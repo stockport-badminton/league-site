@@ -2,8 +2,7 @@
 // results-entry pages.
 //
 // It replaced Sentry's replay because the 50-a-month quota ran out within days, mostly on
-// the stats pages, and it is running beside Google Analytics to see whether it can replace
-// that too. What matters is the gate: production, served by us, not a superadmin, nothing
+// the stats pages, and it replaced Google Analytics in Nov 2026 (HARD-44 item 3). What matters is the gate: production, served by us, not a superadmin, nothing
 // stored in the browser, and recording only where captains enter results. As in browser-sentry-origin.test.js, this runs the gate THE
 // TEMPLATE ACTUALLY EMITS against a fake `location`, rather than a copy of it written here.
 
@@ -47,20 +46,29 @@ function renderHeader(env, user) {
 
 // Run the emitted PostHog block against a fake browser. Returns null if it did not load
 // PostHog, otherwise the config it passed to init() and the properties it registered.
-function runPostHog(html, { pathname, servedByUs = true }) {
+// The window's `load` event fires before the result is read, unless `fireLoad` is false;
+// `beforeLoad` reports whether array.js had already been injected by then.
+function runPostHog(html, { pathname, servedByUs = true, fireLoad = true, readyState = 'loading' }) {
   const m = html.match(/\(function \(\) \{\s*var RECORD_PATHS[\s\S]*?\}\)\(\);/);
   if (!m) throw new Error('PostHog block not found in rendered header');
   const injected = [];
+  const onLoad = [];
   const sandbox = {
-    window: { sblServedByUs: servedByUs },
+    window: {
+      sblServedByUs: servedByUs,
+      addEventListener: (type, fn) => { if (type === 'load') onLoad.push(fn); },
+    },
     location: { pathname, hostname: 'www.stockport-badminton.co.uk' },
     document: {
+      readyState,
       createElement: () => ({}),
       head: { appendChild: (el) => injected.push(el) },
     },
   };
   vm.createContext(sandbox);
   vm.runInContext(m[0], sandbox);
+  const beforeLoad = injected.length > 0;
+  if (fireLoad) onLoad.forEach((fn) => fn());
   const script = injected.find((el) => /posthog\.com\/static\/array\.js$/.test(el.src));
   if (!script) return null;
   const seen = {};
@@ -69,6 +77,7 @@ function runPostHog(html, { pathname, servedByUs = true }) {
     register: (props) => { seen.registered = props; },
   };
   script.onload();
+  seen.beforeLoad = beforeLoad;
   return seen;
 }
 
@@ -184,6 +193,39 @@ describe('PostHog', () => {
     vm.createContext(sandbox);
     vm.runInContext(m[0], sandbox);
     expect(() => sandbox.window.sblTrack('x', {})).not.toThrow();
+  });
+
+  // HARD-44: array.js is 104 KB, and on a phone it competed with the stylesheets and the
+  // LCP image. Waiting for `load` still counts the page view.
+  it('waits for the page to load before fetching PostHog', () => {
+    expect(runPostHog(anon, { pathname: '/tables/All', fireLoad: false })).toBeNull();
+    expect(runPostHog(anon, { pathname: '/tables/All' }).beforeLoad).toBe(false);
+    expect(runPostHog(captain, { pathname: '/player-stats' }).beforeLoad).toBe(false);
+  });
+
+  // The header can run after `load` has already fired (a bfcache restore, say), when
+  // waiting for it would mean never loading at all.
+  it('starts at once if the page has already loaded', () => {
+    expect(runPostHog(anon, { pathname: '/', fireLoad: false, readyState: 'complete' })).not.toBeNull();
+  });
+
+  // The recording exists to show the start of the session, so it cannot wait.
+  it('starts a recorded page at once', () => {
+    const seen = runPostHog(captain, { pathname: '/email-scorecard', fireLoad: false });
+    expect(seen).not.toBeNull();
+    expect(seen.beforeLoad).toBe(true);
+  });
+
+  // GA went in Nov 2026 (HARD-44 item 3). A stray gtag() call left behind would throw
+  // a ReferenceError, so the scorecard wizards are checked as well as the header.
+  it('loads no Google Analytics, and nothing calls it', () => {
+    for (const html of [captain, anon]) {
+      expect(html).not.toMatch(/googletagmanager|gtag\(|G-PSC0315491/);
+    }
+    for (const view of ['index-scorecard.ejs', 'messer-scorecard.ejs']) {
+      const src = fs.readFileSync(path.join(__dirname, '..', '..', 'views', view), 'utf8');
+      expect(src).not.toMatch(/gtag\(/);
+    }
   });
 
   it('no longer records with Sentry', () => {

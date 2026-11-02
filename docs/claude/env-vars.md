@@ -200,9 +200,10 @@ holds the one-line meaning, and what follows is why.
     unaffected; Vision on the server uses ADC, not a key.
 - `POSTHOG_KEY` — PostHog project key (`phc_…`, EU cloud). Public, like a DSN: it is
   printed into the page. **Unset loads no PostHog at all.** When set, `header.ejs` loads
-  PostHog on **every page** in production (not for superadmins) as web analytics, running
-  beside Google Analytics from Oct 2026 to see whether it can replace it, and **records
-  sessions only on the results-entry pages** for logged-in users. The scorecard wizard sends
+  PostHog on **every page** in production (not for superadmins) as the site's only web
+  analytics (Google Analytics was removed in Nov 2026, HARD-44 item 3), started after the
+  `load` event, and **records sessions only on the results-entry pages** for logged-in
+  users, where it starts at once. The scorecard wizard sends
   `scorecard_ocr_*` / `scorecard_step` events through `sblTrack`, so a recording can be
   found by what happened in it.
   **`cookieless_mode: 'always'` is what lets it run without a consent bar** — measured in a

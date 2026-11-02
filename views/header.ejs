@@ -1,10 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSC0315491"></script>
-    
+
     <%
     /* Browser Sentry and PostHog run in production only.
      *
@@ -22,9 +19,6 @@
     var monitoringEnabled = config.NODE_ENV === 'production' || !!config.K_SERVICE;
     %>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
       // Named PostHog events (the scorecard wizard's photo auto-fill, for a start), so
       // a recording or a funnel can be found by what happened in it. Always defined,
       // and a no-op wherever PostHog was not loaded — dev, tests, superadmins — so
@@ -69,8 +63,14 @@
 
     <% if (config.POSTHOG_KEY) { %>
     // PostHog: web analytics on every page, and session recordings on the
-    // results-entry pages only. Running alongside Google Analytics from Oct 2026 to
-    // see whether it can replace it.
+    // results-entry pages only. It replaced Google Analytics in Nov 2026 (HARD-44
+    // item 3), after a month running side by side.
+    //
+    // Started after the `load` event, so the 104 KB of array.js does not share a phone's
+    // connection with the stylesheets and the LCP image. The page view is still counted,
+    // and the web vitals are read from buffered performance entries, so nothing is
+    // missed by starting late. A recorded page is the exception: the recording exists to
+    // show the start of the session, so it starts at once.
     //
     // cookieless_mode 'always' stores nothing in the browser — no cookie, no
     // localStorage — so it needs no consent. PostHog counts unique visitors with a
@@ -137,23 +137,17 @@
           messer_admin: <%= phClaims['https://my-app.example.com/messeradmin'] === true ? 'true' : 'false' %>
         });
       };
-      document.head.appendChild(s);
+      function start() { document.head.appendChild(s); }
+      if (record || document.readyState === 'complete') start();
+      else window.addEventListener('load', start);
     })();
     <% } %>
     <% } %>
     </script>
 
 
-      <% if (typeof user !== 'undefined') { %>
-        <script> 
-      gtag('config', 'G-PSC0315491',{'cookie_prefix': 'baddersCookie',
-  'cookie_domain': 'stockport-badminton.co.uk',
-  'cookie_expires': 28 * 24 * 60 * 60 ,  // 28 days, in seconds,
-  'user_id': '<%= user.user_id %>' });
-    gtag('set', 'user_properties', { 
-    'crm_id' : '<%= user.user_id %>' 
-    });
-    <% if (monitoringEnabled) { %>
+      <% if (typeof user !== 'undefined' && monitoringEnabled) { %>
+        <script>
     window.sentryOnLoad = function () {
       // in here, Sentry is ensured to be loaded & fully available
       if (!window.sblServedByUs) return;
@@ -182,25 +176,13 @@
       );
       Sentry.setUser({ id: '<%= user.user_id %>' });
     }
-    <% } %>
       </script>
-      <% if (monitoringEnabled) { %>
       <%# Not just gated at init: outside production the loader is never fetched
           either, so local pages don't pay for the request. %>
       <%# defer, not blocking: a synchronous script here held up rendering of every page a
           logged-in member opened (HARD-44). sentryOnLoad above is defined first either way. %>
       <script defer src="https://js-de.sentry-cdn.com/41a5442332daa78ebc9dba9dfe8da392.min.js" crossorigin="anonymous"></script>
       <% } %>
-      
-    <% } else{ %>
-      <script> 
-        gtag('config', 'G-PSC0315491',{
-  'cookie_prefix': 'baddersCookie',
-  'cookie_domain': 'stockport-badminton.co.uk',
-  'cookie_expires': 28 * 24 * 60 * 60  // 28 days, in seconds
-});
-</script>
-      <% } %> 
 
 <%#
   Structured data (JSON-LD) arrives pre-built as `jsonLd`, an array of serialised

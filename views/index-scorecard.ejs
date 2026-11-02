@@ -1524,11 +1524,6 @@
             });
         })();
 
-        window.onerror = function(message, source, lineno, colno, error) {
-          if (error) message = error.stack;
-          gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
-        }
-
         // Attach a photo to an already-filed draft. Goes through ScorecardUpload, so a
         // scanner PDF is converted server-side and what gets attached is the image.
         async function otherGetSignedRequest(e){

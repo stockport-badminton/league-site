@@ -181,7 +181,6 @@ describe('the report-only Content-Security-Policy', () => {
 
   // Each of these is forced by a named view. Grepped, not assumed.
   it.each([
-    ['https://www.googletagmanager.com', 'views/header.ejs — gtag.js, every page'],
     ['https://js-de.sentry-cdn.com', 'views/header.ejs — the browser Sentry loader'],
     ['https://browser.sentry-cdn.com', 'the bundle + lazyLoadIntegration the loader fetches'],
     ['https://eu-assets.i.posthog.com', 'views/header.ejs — PostHog, scorecard pages'],
@@ -214,20 +213,17 @@ describe('the report-only Content-Security-Policy', () => {
   it('allows the beacons the page sends', () => {
     const connectSrc = policy.split(';').find(d => d.trim().startsWith('connect-src'));
     expect(connectSrc).toContain('sentry.io');
-    expect(connectSrc).toContain('google-analytics.com');
     expect(connectSrc).toContain('https://eu.i.posthog.com');
   });
 
-  // A CSP wildcard matches subdomains and NOT the domain itself, so listing
-  // `*.analytics.google.com` does not permit `analytics.google.com` — and gtag fetches
-  // both. That gap produced every violation the policy got wrong in the report-only
-  // period, and produced no visible symptom, because a blocked analytics beacon costs a
-  // statistic rather than a feature. Assert the bare host explicitly: the wildcard
-  // sitting next to it reads as though it already covers this.
-  it('lists analytics hosts bare as well as wildcarded, since a wildcard excludes the domain itself', () => {
-    const connectSrc = policy.split(';').find(d => d.trim().startsWith('connect-src'));
-    const hosts = connectSrc.trim().split(/\s+/);
-    expect(hosts).toContain('https://analytics.google.com');
+  // Google Analytics was removed in Nov 2026 (HARD-44 item 3); PostHog does its job.
+  // An allowlist entry for a product the site no longer loads is a host trusted for
+  // nothing, so its hosts went too.
+  it('no longer trusts any Google Analytics host', () => {
+    for (const host of ['googletagmanager.com', 'google-analytics.com', 'analytics.google.com',
+      'doubleclick.net', 'www.google.co.uk', 'www.google.ie']) {
+      expect(policy).not.toContain(host);
+    }
   });
 
   // views/homepage.ejs renders announcement images from homepage_content.image_url, an
@@ -278,8 +274,9 @@ describe('every CDN the templates actually reference is in the policy', () => {
     }
   }
 
+  // Five since GA's googletagmanager went (Nov 2026); a broken regex finds none.
   it('found some, or the scan itself is broken', () => {
-    expect(found.size).toBeGreaterThan(5);
+    expect(found.size).toBeGreaterThanOrEqual(5);
   });
 
   it.each([...found].map(([host, file]) => [host, file]))(

@@ -72,8 +72,7 @@ template. Sharing one CommonJS module with the browser needs a bundler.
    are the safety net and must pass unchanged at every step.
 5. The remaining inline `<script>` blocks (22 templates have one; the largest are
    `elo-chart`, `header`, `club-v2`, `filtersJs`) move to files. `header.ejs`'s third-party
-   configuration (gtag, Sentry, PostHog) last, and HARD-44 item 3's analytics decision
-   first, since it may remove one of them.
+   configuration (Sentry, PostHog) last. HARD-44 item 3 removed gtag in Nov 2026.
 6. Drop `'unsafe-inline'` from the **report-only** `script-src`, watch `/csp-report` for a
    week of real traffic, then decide on `CSP_ENFORCE` for the resource policy (HARD-15's
    acceptance criteria, unchanged).

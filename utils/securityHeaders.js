@@ -147,8 +147,7 @@ const OBSERVED = {
     "'self'",
 
     // The honest state of the templates, not a shortcut. views/ has 159 inline
-    // `onclick=` attributes and 17 files with inline <script> blocks — the gtag config,
-    // the Sentry init, the PostHog loader, the scorecard wizard, the roster toasts.
+    // `onclick=` attributes and 17 files with inline <script> blocks — the Sentry init, the PostHog loader, the scorecard wizard, the roster toasts.
     // Removing them is explicitly out of scope for HARD-12 and is a much larger piece
     // of work.
     //
@@ -162,7 +161,6 @@ const OBSERVED = {
     // worth having — a host nobody remembered — would be buried.
     "'unsafe-inline'",
 
-    'https://www.googletagmanager.com',   // header.ejs — gtag.js, every page
     'https://js-de.sentry-cdn.com',       // header.ejs — the browser Sentry loader
     'https://browser.sentry-cdn.com',     // what that loader then fetches, plus every
                                           // Sentry.lazyLoadIntegration call
@@ -230,30 +228,12 @@ const OBSERVED = {
     "'self'",
     'https://*.ingest.de.sentry.io',      // the DSN hardcoded in header.ejs
     'https://browser.sentry-cdn.com',
-    'https://*.google-analytics.com',     // gtag beacons, including region1.*
-    'https://*.analytics.google.com',
-    // The BARE host as well, and it is not redundant: a CSP wildcard matches subdomains
-    // and **not** the domain itself, so `*.analytics.google.com` covers
-    // region1.analytics.google.com and misses analytics.google.com. gtag uses both. This
-    // was the only thing the policy got wrong across the whole report-only period after
-    // 3 Sep — 5 reports, all `/`, all this one host. Analytics only, so nothing broke,
-    // which is exactly why it survived: the report was the only evidence it existed.
-    'https://analytics.google.com',
-    'https://*.googletagmanager.com',
+    // Google Analytics' hosts (*.google-analytics.com, analytics.google.com,
+    // googletagmanager, stats.g.doubleclick.net and the per-country ga-audiences
+    // google.co.uk / google.ie) went with GA itself, Nov 2026 (HARD-44 item 3).
     'https://eu.i.posthog.com',           // PostHog events and session recordings
     'https://eu-assets.i.posthog.com',    // and its remote config
     'https://maps.googleapis.com',
-    // Added 2 Sep 2026 from the report-only data — 88 of the 94 violations in the first
-    // two days were these three, and none is a surprise: all three hosts are already
-    // trusted in script-src, they are just also fetched from.
-    'https://stats.g.doubleclick.net',    // gtag's second beacon, alongside
-                                          // *.google-analytics.com above. 48 reports.
-    // GA's ga-audiences beacon goes to the *viewer's local* Google domain, so this is
-    // .co.uk only because the traffic is. CSP cannot wildcard a TLD, so a visitor from
-    // elsewhere will report google.ie, google.fr and so on. Add them if they show up;
-    // for a Stockport league they are rounding errors, and a blocked analytics beacon
-    // costs a statistic rather than a feature.
-    'https://www.google.co.uk',           // /ads/ga-audiences. 22 reports.
 
     // Added 3 Sep 2026, after someone walked the pages that get no anonymous traffic.
     // These are the ones prerequisite 3 exists to find: two are functional breaks that
@@ -273,11 +253,6 @@ const OBSERVED = {
       ? [`https://${config.S3_BUCKET_NAME}.s3.eu-west-1.amazonaws.com`,
          `https://${config.S3_BUCKET_NAME}.s3-eu-west-1.amazonaws.com`]
       : []),
-    // Analytics only, unlike the three above. GA's ga-audiences beacon goes to the
-    // viewer's local Google domain, so this list grows one TLD at a time as visitors
-    // appear from new countries. Nothing breaks when one is missing — a blocked beacon
-    // costs a statistic — so add them when observed rather than guessing at the set.
-    'https://www.google.ie',              // observed 3 Sep
   ],
 
   'frame-src': [

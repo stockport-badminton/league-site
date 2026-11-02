@@ -129,3 +129,16 @@ went out the same day). **Desktop is no longer slower than mobile** except on `/
 LCP p75 1.14 s → **666 ms**, mobile 686 → 562 ms. With attribution on, the `w_1920`
 background is the LCP element on 11 of the 48 desktop `/` loads; the lead text paragraph
 is the rest. Item 3 (analytics) is still a decision for ~Nov.
+
+## Item 3 (2 Nov 2026)
+
+PostHog stays and Google Analytics goes. gtag.js, its `config` calls and the two scorecard
+`window.onerror` handlers that only forwarded to `gtag('event')` are removed, and so are
+GA's hosts in the CSP. **Search data is not lost**: PostHog's Google Search queries come
+from its own Search Console warehouse source (connected 23 Oct), and the `sc-domain:`
+property is verified by a DNS TXT record, not the GA tag. GA's history stays in the GA
+property for its retention period.
+
+PostHog now starts on the `load` event, except on the results-entry pages, where it
+starts at once because the recording exists to show the start of the session. Web vitals
+are read from buffered performance entries, so the late start does not lose them.

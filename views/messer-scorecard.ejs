@@ -700,11 +700,6 @@
             };
         })();
 
-        window.onerror = function(message, source, lineno, colno, error) {
-          if (error) message = error.stack;
-          gtag('event', message,{'event_category':'JS Error', 'event_label':navigator.userAgent});
-        }
-
         // Same two routes as the league form: a presigned PUT for an image, server-side
         // conversion for a scanner PDF. Shared with index-scorecard.ejs through
         // static/beta/js/scorecard-upload.js so the two cannot drift — they already held

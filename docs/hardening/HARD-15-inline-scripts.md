@@ -48,9 +48,9 @@ order, easiest and most-tested first:
    the roster editor and the filter toolbar (48 specs). Those pages can be refactored with
    a real safety net; the rest cannot, so extend `e2e/` *first* where you intend to touch
    something risky.
-3. **Leave the inline `<script>` blocks that only configure a third party** (gtag, Sentry,
-   Hotjar in `views/header.ejs`) until last, and consider moving them to external files
-   served from `/static` rather than rewriting them.
+3. **Leave the inline `<script>` blocks that only configure a third party** (Sentry and
+   PostHog in `views/header.ejs`; gtag went with HARD-44 item 3) until last, and consider
+   moving them to external files served from `/static` rather than rewriting them.
 4. **Only when `grep -roh "on[a-z]*=" views/ | wc -l` is zero** for the handlers you have
    claimed, drop `'unsafe-inline'` from `OBSERVED['script-src']` in
    `utils/securityHeaders.js` — still report-only — and watch `/csp-report` before
