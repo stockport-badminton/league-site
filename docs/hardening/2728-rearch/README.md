@@ -137,7 +137,7 @@ two packages own the same file, the later one rebases on the earlier.
 | REARCH-04 | `routes/index.js` → `routes/*.js`, `middleware/access.js` (new) | — | Anything that adds a route: do 04's split early so later packages append to small files |
 | REARCH-05 | `utils/afterCommit.js`, `social_result_post` / `threads_result_post`, the drain route, scheduler jobs | HARD-47 measured and stable | REARCH-03 drafts, HARD-47 |
 | REARCH-06 | `config/` (new), `app.js` env reads, `__tests__/setup.js`, `e2e/server-env.js`, `utils/testEnvGuard.js`, `tools/lib/loadEnv.js` | — | Any package adding an env var |
-| REARCH-07 | `views/**/*.ejs` inline handlers, `static/beta/js/`, a build step | REARCH-03 (rules module) for the wizard part | **HARD-15 — absorbed**; HARD-44 item 3 |
+| REARCH-07 | `views/**/*.ejs` inline handlers, `static/beta/js/`, a build step | REARCH-03 (rules module) for the wizard part | **HARD-15 — absorbed**; HARD-44 item 3; [HARD-50](../HARD-50-bootstrap-5.md) (Bootstrap 5) edits the same scorecard templates — 07's wizard step first, then 50's cutover |
 | REARCH-09 | `utils/sessionUser.js`, passport (de)serialise in `app.js`, logging, `utils/scorecardLinks.js` | — | REARCH-06 on `app.js` |
 
 ## Suggested calendar
@@ -146,7 +146,7 @@ two packages own the same file, the later one rebases on the earlier.
 |---|---|
 | Nov 2026 – Feb 2027 (in-season) | REARCH-06, REARCH-08 harness, REARCH-04 steps 1–2, REARCH-01 infrastructure and the first small models |
 | Feb – Apr 2027 (in-season) | REARCH-01 bulk conversion; REARCH-02 additive steps (history tables, backfill, read switch) |
-| May – Aug 2027 (off-season) | REARCH-03 drafts, REARCH-05, REARCH-07 wizard, REARCH-09 session user. **June/July: the rollover, by `tools/season-archive.js`** |
+| May – Aug 2027 (off-season) | REARCH-03 drafts, REARCH-05, REARCH-07 wizard, REARCH-09 session user. Then HARD-50's Bootstrap 5 cutover, after the wizard. **June/July: the rollover, by `tools/season-archive.js`** |
 | Sep 2027 | 2027/28 starts on the new shape. Archive tables dropped after a season of being unread |
 
 ## What was considered and left out
