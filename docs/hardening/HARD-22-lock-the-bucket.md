@@ -9,7 +9,7 @@
 Steps 1, 3 and 4 done, step 5 partly: see the README status table. The audit figure in
 step 5 and the acceptance criteria is now **1,503 servable, 0 refused** (this season's
 uploads; the 1,456 below is the 1 Sep count). Inbound email verified 2 Nov (object landed
-and the mail arrived). Outstanding: an upload on both leagues' sites.
+and the mail arrived). Tameside upload verified 2 Nov. Outstanding: a Stockport upload.
 
 ## Why
 
