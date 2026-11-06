@@ -41,6 +41,49 @@ exports.getUserByAuthId = async function(userId) {
   return response.data[0]
 }
 
+// Every account in the tenant, for the monthly login cull (controllers/authCullController.js).
+// The tenant is SHARED with the Tameside league site, so most of what comes back may be
+// theirs; utils/authCull.js decides which accounts are ours. A page of the Management API is
+// at most 100, and it serves at most 1000 in all, which is ten times what the tenant holds.
+exports.listUsers = async function() {
+  const apiKey = await module.exports.getManagementAPIKey()
+  const out = []
+  for (let page = 0; page < 10; page++) {
+    const response = await axios.get(`https://${config.AUTH0_DOMAIN}/api/v2/users`, {
+      params: { per_page: 100, page, include_fields: true,
+        fields: 'user_id,email,name,app_metadata,last_login,created_at' },
+      headers: { Authorization: 'Bearer ' + apiKey },
+    })
+    const batch = response.data
+    if (!Array.isArray(batch)) throw new Error('Auth0 user list failed: ' + JSON.stringify(batch).slice(0, 300))
+    out.push(...batch)
+    if (batch.length < 100) return out
+  }
+  throw new Error('Auth0 user list has more than 1000 accounts; page it with the search API')
+}
+
+// Delete an account from the SHARED tenant: it is gone from Tameside's site too. Only the
+// login cull calls this. The id goes in the path (DELETE has no query form), so
+// encodeURIComponent covers the `|` in "auth0|...".
+//
+// The Management API rate-limits, so a 429 waits and tries again. 404 means already gone,
+// which is the outcome wanted. Anything else throws.
+exports.deleteUser = async function(userId, { apiKey, sleep = ms => new Promise(r => setTimeout(r, ms)) } = {}) {
+  apiKey = apiKey || await module.exports.getManagementAPIKey()
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const response = await axios.delete(`https://${config.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(userId)}`, {
+      headers: { Authorization: 'Bearer ' + apiKey },
+      validateStatus: () => true,
+    })
+    if (response.status === 204 || response.status === 404) return response.status === 204 ? 'deleted' : 'already gone'
+    if (response.status !== 429) {
+      throw new Error(`Auth0 delete of ${userId} failed: HTTP ${response.status} ${JSON.stringify(response.data).slice(0, 200)}`)
+    }
+    await sleep(1000 * (attempt + 1))
+  }
+  throw new Error(`Auth0 delete of ${userId} still rate-limited after 4 attempts`)
+}
+
 // GET: pure display, no side effects (the old flow PATCHed Auth0 and sent an
 // email on GET, which meant email-client link-prefetching could silently
 // double-fire both). Shows who signed up and lets a superadmin search for the

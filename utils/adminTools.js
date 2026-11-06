@@ -55,6 +55,7 @@ const GROUPS = [
       { href: '/admin/homepage-content', label: 'Homepage Content', blurb: 'News items on the homepage.' },
       { href: '/admin/site-settings', label: 'Site Settings', blurb: 'The Cloudinary tag behind the homepage Messer gallery.' },
       { href: '/admin/spam', label: 'Spam Controls', blurb: 'Block an address, IP or phrase; see what the filters caught.' },
+      { href: '/admin/login-cull', label: 'Login Cull', blurb: 'Logins unused for a year: who was emailed, and who is due for deletion from Auth0.' },
     ],
   },
   {

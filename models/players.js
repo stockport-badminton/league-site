@@ -956,6 +956,45 @@ exports.setAuthRole = async function(playerId, { role, messerAdmin, authEmail })
     .where('id', '=', playerId).execute()
 }
 
+// The monthly login cull (controllers/authCullController.js): every player with an address
+// that a login could be, decrypted and lowercased, keyed the way the login callback matches
+// (getAuthRoleByEmail). authEmail wins over another player's playerEmail. Once a month, so
+// decrypting every address is affordable here as it would not be on every login.
+/** @returns {Promise<Map<string, { id: number, first_name: string, family_name: string, role: string | null, clubName: string | null }>>} */
+exports.getAuthEmailIndex = async function() {
+  const rows = await kysely.selectFrom('player')
+    .leftJoin('club', 'club.id', 'player.club')
+    .select(eb => ['player.id', 'player.first_name', 'player.family_name', 'player.role', 'club.name as clubName',
+      eb.fn('lower', [decrypt(eb.ref('player.authEmail'))]).as('authEmail'),
+      eb.fn('lower', [decrypt(eb.ref('player.playerEmail'))]).as('playerEmail')])
+    .where(eb => eb.or([eb('player.authEmail', 'is not', null), eb('player.playerEmail', 'is not', null)]))
+    .execute()
+  const index = new Map()
+  for (const r of rows) {
+    const p = { id: r.id, first_name: r.first_name, family_name: r.family_name, role: r.role, clubName: r.clubName }
+    const contact = r.playerEmail && String(r.playerEmail).trim()
+    if (contact && !index.has(contact)) index.set(contact, p)
+  }
+  for (const r of rows) {
+    const login = r.authEmail && String(r.authEmail).trim()
+    if (login) index.set(login, { id: r.id, first_name: r.first_name, family_name: r.family_name, role: r.role, clubName: r.clubName })
+  }
+  return index
+}
+
+// A login deleted by the cull: forget it as any player's login identity. The contact
+// address (playerEmail) is the club's record of how to reach them, and stays. Returns the
+// players unlinked.
+/** @param {string} email */
+exports.clearAuthEmail = async function(email) {
+  return kysely.updateTable('player')
+    .set({ authEmail: null })
+    .where('authEmail', 'is not', null)
+    .where(eb => eb(eb.fn('lower', [decrypt(eb.ref('authEmail'))]), '=', String(email).toLowerCase()))
+    .returning('id')
+    .execute()
+}
+
 /** @param {{ role?: string, division?: number | string, club?: number | string, teamName?: string }} searchTerms */
 exports.getEmails = async function(searchTerms) {
   // Every (club, team) pair, tagged with the role a branch collects. The five branches

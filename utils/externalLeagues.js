@@ -204,6 +204,30 @@ async function tamesideGames(since = '2000-01-01') {
   }
 }
 
+/**
+ * The Auth0 accounts Tameside has linked to its players (their player_auth_account), which the
+ * login cull leaves to Tameside's own (utils/authCull.js). Unlike tamesideGames this throws
+ * when TAMESIDE_DATABASE_URL is unset: without the list the cull cannot tell their players
+ * from ours, and it must then warn and delete nothing.
+ * @returns {Promise<Set<string>>}
+ */
+async function tamesideLinkedAccounts() {
+  if (!config.TAMESIDE_DATABASE_URL) throw new Error('TAMESIDE_DATABASE_URL is not set: cannot tell Tameside\'s logins from ours')
+  const { Pool } = require('pg')
+  const pool = new Pool({ connectionString: config.TAMESIDE_DATABASE_URL, max: 1 })
+  pool.on('error', err => log.error({ err }, '[login-cull] Tameside pool error')) // gotcha 2c
+  const c = await pool.connect()
+  try {
+    await c.query('BEGIN TRANSACTION READ ONLY')
+    const { rows } = await c.query('SELECT user_id FROM player_auth_account')
+    await c.query('ROLLBACK')
+    return new Set(rows.map(r => String(r.user_id)))
+  } finally {
+    c.release()
+    await pool.end()
+  }
+}
+
 // How a name is compared: brackets dropped, spaces collapsed, case ignored.
 const normName = (/** @type {string} */ s) => String(s || '').replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
 
@@ -237,4 +261,4 @@ function linker(ours) {
   }
 }
 
-module.exports = { parseMcrblSeason, parseCard, initials, normName, linker, mcrblSeason, fetchMcrblSeason, tamesideGames, MCRBL_URL }
+module.exports = { parseMcrblSeason, parseCard, initials, normName, linker, mcrblSeason, fetchMcrblSeason, tamesideGames, tamesideLinkedAccounts, MCRBL_URL }

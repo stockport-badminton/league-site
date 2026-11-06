@@ -25,6 +25,13 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface AuthAccountNotice {
+  keep_token_hash: Buffer | null;
+  kept_at: Timestamp | null;
+  notified_at: Timestamp | null;
+  user_id: string;
+}
+
 export interface BlockedEntry {
   active: Generated<boolean>;
   created_at: Generated<Timestamp>;
@@ -773,6 +780,7 @@ export interface VenueSeason {
 }
 
 export interface DB {
+  auth_account_notice: AuthAccountNotice;
   blocked_entry: BlockedEntry;
   club: Club;
   club_at: ClubAt;

@@ -15,6 +15,7 @@ are in `docs/claude/`. **Read the matching file before touching its area:**
 | [docs/claude/security.md](docs/claude/security.md) | spam controls, rate limits, `/fixture/rearrangement`, helmet and the CSP |
 | [docs/claude/env-vars.md](docs/claude/env-vars.md) | `config/`, any environment variable, cron token or `META_*` credential |
 | [docs/claude/production-logs.md](docs/claude/production-logs.md) | deciding whether a route is used, before deleting anything |
+| [docs/login-cull.md](docs/login-cull.md) | the monthly login cull, deleting Auth0 accounts, anything that splits the shared tenant with Tameside |
 | [docs/claude/gotchas.md](docs/claude/gotchas.md) | the full story behind each numbered gotcha below |
 
 Skills: load `seo`, `rosters`, `registrations`, `emails` or `hardening` before touching

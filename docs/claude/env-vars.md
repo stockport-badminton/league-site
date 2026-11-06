@@ -32,7 +32,9 @@ holds the one-line meaning, and what follows is why.
   send them there instead; set it to `''` to emit no reporting directives at all.
 - `TAMESIDE_DATABASE_URL` — Tameside's Supabase database, read through a read-only
   transaction by the weekly team-strength import (`utils/externalLeagues.js`) and the
-  gap-finder tool. **Unset means the import skips Tameside**; Manchester still imports. In
+  gap-finder tool. **Unset means the import skips Tameside**; Manchester still imports. The
+  login cull reads Tameside's `player_auth_account` through it too, and **refuses without
+  it**. In
   Jest it is always unset, and `__tests__/unit/no-dotenv-in-app.test.js` keeps it that way:
   two controllers once reloaded `.env` into every test that loaded the app.
 - `AUDIT_EMAIL_TO` — comma-separated recipients of the weekly data-integrity digest
@@ -43,7 +45,8 @@ holds the one-line meaning, and what follows is why.
 - `AUDIT_EMAIL_FROM` — sender for that digest. Defaults to the results address.
 - `AUDIT_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Audit-Token` to
   `POST /admin/audit/run`, and to the team-strength jobs (`POST /admin/team-strength/run`
-  nightly, `/admin/team-strength/import` weekly). Compared with `timingSafeEqual` over SHA-256 of both sides;
+  nightly, `/admin/team-strength/import` weekly). Also the monthly login cull (`POST /admin/login-cull/run`,
+  `docs/login-cull.md`). Compared with `timingSafeEqual` over SHA-256 of both sides;
   **unset closes the token path rather than opening it**. A superadmin session also works.
   `GET /admin/audit` previews the same email (Admin → Data Health).
 - `REGISTRATION_EMAIL_TO` — comma-separated recipients of the **daily** player-registration

@@ -87,6 +87,19 @@ const SAMPLES = {
     whyReceiving: 'You asked for access to enter results for your team.',
     submitUrl: 'https://stockport-badminton.co.uk/scorecard-beta',
   },
+  'login-inactive': {
+    logoUrl,
+    whyReceiving: 'You are receiving this because you have a login to the Stockport & District Badminton League website.',
+    firstName: 'Dave', email: 'dave@example.com', lastActive: '2 Oct 2025', deadline: '5 Dec 2026',
+    keepUrl: 'https://stockport-badminton.co.uk/keep-login/abc',
+  },
+  'login-cull-digest': {
+    logoUrl,
+    whyReceiving: "You are receiving this because you are the league's results secretary and the monthly login cull ran.",
+    warned: [{ name: 'Dave Lee', email: 'dave@example.com' }, { name: '(no player)', email: 'x@example.com' }],
+    failed: 1, deferred: 0, due: 3,
+    reviewUrl: 'https://stockport-badminton.co.uk/admin/login-cull',
+  },
   'access-request': {
     logoUrl,
     whyReceiving: 'You are a league administrator, so you are told when someone asks for results access.',

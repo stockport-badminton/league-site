@@ -1,0 +1,62 @@
+<mjml>
+  <mj-head>
+    <mj-include path="./_theme.mjml" />
+    <mj-title>Login cull</mj-title>
+    <mj-preview><%= warned.length %> warned, <%= due %> due for deletion</mj-preview>
+  </mj-head>
+  <mj-body background-color="#eef0f4" width="600px">
+
+    <mj-include path="./_header.mjml" />
+
+    <mj-section padding="28px 0 0">
+      <mj-column>
+        <mj-text mj-class="kicker" text-transform="uppercase">Monthly login cull</mj-text>
+        <mj-text mj-class="h1" padding="6px 24px 0">
+          <%= warned.length %> warned, <%= due %> due for deletion
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-raw><% if (warned.length) { %></mj-raw>
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-table>
+          <tr style="background:#002060;color:#ffffff;font-weight:bold;text-align:left">
+            <th style="padding:8px 10px">Warned today</th>
+            <th style="padding:8px 10px">Login</th>
+          </tr>
+          <% warned.forEach(function (w, i) { %>
+          <tr style="background:<%= i % 2 ? '#f5f7fa' : '#ffffff' %>">
+            <td style="padding:8px 10px"><%= w.name %></td>
+            <td style="padding:8px 10px"><%= w.email %></td>
+          </tr>
+          <% }); %>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-raw><% if (failed || deferred) { %></mj-raw>
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-text mj-class="callout">
+          <% if (failed) { %><%= failed %> warning(s) could not be sent and will be tried again next month. <% } %>
+          <% if (deferred) { %><%= deferred %> more will be warned next month.<% } %>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw><% } %></mj-raw>
+
+    <mj-section padding="16px 0 0">
+      <mj-column>
+        <mj-button href="<%= reviewUrl %>" css-class="cta">Review the login cull</mj-button>
+        <mj-text mj-class="muted">
+          Nothing is deleted until you press Delete on that page. Deleting removes the login
+          from the Tameside league&rsquo;s site as well.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-include path="./_footer.mjml" />
+  </mj-body>
+</mjml>
