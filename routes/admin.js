@@ -76,6 +76,14 @@ router.get('/fixture/outstanding', access.cron(requireLateScorecardCaller), fixt
 // never had this form.
 router.post('/fixture/rearrangement', access.superadmin, fixture_controller.fixture_rearrange_by_team_name);
 
+// Rearrangement emails forwarded to rearrangements@ (controllers/rearrangementRequestController).
+// All superadmin: the queue holds other people's email, and Apply moves a fixture.
+const rearrangement_request_controller = require('../controllers/rearrangementRequestController');
+router.get('/admin/rearrangements', access.superadmin, rearrangement_request_controller.list_page);
+router.get('/admin/rearrangements/:id', access.superadmin, rearrangement_request_controller.detail_page);
+router.post('/admin/rearrangements/:id/apply', access.superadmin, rearrangement_request_controller.apply);
+router.post('/admin/rearrangements/:id/status', access.superadmin, rearrangement_request_controller.set_status);
+
 // Superadmin-only: an admin tool (it is on the /admin hub), and each row's email
 // button carries the club officers' contact addresses. It was `secured` alone, which
 // only proves someone is logged in.

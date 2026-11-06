@@ -499,6 +499,21 @@ export interface PlayerSeason {
   treasurer: number | null;
 }
 
+export interface RearrangementRequest {
+  body_text: string | null;
+  closed_at: Timestamp | null;
+  closed_by: string | null;
+  forwarded_by: string | null;
+  id: Generated<number>;
+  message_id: string;
+  original_from: string | null;
+  outcome: Json | null;
+  reading: Generated<Json>;
+  received_at: Generated<Timestamp>;
+  status: Generated<string>;
+  subject: string | null;
+}
+
 export interface RegistrationRequest {
   attachments: Generated<Json>;
   body_text: string | null;
@@ -807,6 +822,7 @@ export interface DB {
   player: Player;
   player_at: PlayerAt;
   player_season: PlayerSeason;
+  rearrangement_request: RearrangementRequest;
   registration_request: RegistrationRequest;
   schema_migrations: SchemaMigrations;
   scorecardstore: Scorecardstore;

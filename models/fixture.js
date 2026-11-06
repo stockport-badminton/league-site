@@ -788,30 +788,85 @@ exports.rearrangeByTeamNames = async function(updateObj) {
       throw err
     }
 
-    // No date yet: the captains have agreed to move it but not agreed when. The
-    // fixture stays in place, flagged, and no replacement is created.
-    if (!date) {
-      await trx.updateTable('fixture').set({ status: 'rearranging' }).where('id', '=', fixtureId).execute()
-      return { ok: true, action: 'rearranging', fixtureId, replacementId: null }
-    }
+    return applyRearrangement(trx, { id: fixtureId, homeTeam: /** @type {number} */ (homeTeamId), awayTeam: /** @type {number} */ (awayTeamId) }, date)
+  })
+}
 
-    await trx.updateTable('fixture').set({ status: 'rearranged' }).where('id', '=', fixtureId).execute()
+// The write itself, shared by the two ways of naming the fixture. Inside the caller's
+// transaction, so the archive and the replacement land together or not at all.
+/**
+ * @param {import('kysely').Kysely<import('../db/schema').DB>} trx
+ * @param {{ id: number, homeTeam: number, awayTeam: number }} fixture
+ * @param {string} date YYYY-MM-DD, or '' when no new date is agreed yet
+ */
+async function applyRearrangement(trx, fixture, date) {
+  // No date yet: the captains have agreed to move it but not agreed when. The
+  // fixture stays in place, flagged, and no replacement is created.
+  if (!date) {
+    await trx.updateTable('fixture').set({ status: 'rearranging' }).where('id', '=', fixture.id).execute()
+    return { ok: true, action: 'rearranging', fixtureId: fixture.id, replacementId: null }
+  }
 
-    // Wall-clock string, not a JS Date — a Date is converted through the server's
-    // zone and lands a day early over BST (see admin_fixture_date_update).
-    const inserted = await trx.insertInto('fixture')
-      .values({ homeTeam: /** @type {number} */ (homeTeamId), awayTeam: /** @type {number} */ (awayTeamId),
-        date: date + ' 00:00:00', status: 'outstanding' })
-      .returning('id')
+  await trx.updateTable('fixture').set({ status: 'rearranged' }).where('id', '=', fixture.id).execute()
+
+  // Wall-clock string, not a JS Date — a Date is converted through the server's
+  // zone and lands a day early over BST (see admin_fixture_date_update).
+  const inserted = await trx.insertInto('fixture')
+    .values({ homeTeam: fixture.homeTeam, awayTeam: fixture.awayTeam,
+      date: date + ' 00:00:00', status: 'outstanding' })
+    .returning('id')
+    .executeTakeFirst()
+
+  return {
+    ok: true,
+    action: 'rearranged',
+    fixtureId: fixture.id,
+    replacementId: inserted ? inserted.id : null,
+    date,
+  }
+}
+
+// The same rearrangement for a fixture already identified — /admin/rearrangements, where a
+// person has picked it from the candidates the email pointed at. By id because by name is
+// exactly where an email's "Racketeers B" for Racketeers A would go wrong.
+//
+// Only a fixture still to be played can move: one already played, conceded, void or
+// rearranged is refused with 409, which is also what stops a second press of Apply (or a
+// second tab) archiving the replacement's predecessor twice. `withinTransaction` runs in
+// the same transaction after the write, so the caller's own record of it commits with it.
+/**
+ * @param {number} fixtureId
+ * @param {string | null} date YYYY-MM-DD, or null/'' for "moved, no date yet"
+ * @param {(trx: import('kysely').Kysely<import('../db/schema').DB>, result: any) => Promise<void>} [withinTransaction]
+ */
+exports.rearrangeById = async function(fixtureId, date, withinTransaction) {
+  if (!Number.isInteger(fixtureId) || fixtureId <= 0) throw badRequest('fixture id must be a positive integer')
+  const newDate = date == null ? '' : String(date).trim()
+  if (newDate && !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) throw badRequest('invalid date — expected YYYY-MM-DD')
+
+  return db.withTransaction(async (conn, trx) => {
+    const fixture = await trx.selectFrom('fixture')
+      .select(eb => ['id', 'homeTeam', 'awayTeam', 'status', 'homeScore',
+        eb.fn('to_char', ['date', sql.lit('YYYY-MM-DD')]).as('day')])
+      .where('id', '=', fixtureId)
+      .forUpdate()
       .executeTakeFirst()
-
-    return {
-      ok: true,
-      action: 'rearranged',
-      fixtureId,
-      replacementId: inserted ? inserted.id : null,
-      date,
+    if (!fixture) {
+      const err = /** @type {Error & { status?: number }} */ (new Error(`no fixture ${fixtureId}`))
+      err.status = 404
+      throw err
     }
+    const status = fixture.status || 'outstanding'
+    if (fixture.homeScore != null || !['outstanding', 'rearranging'].includes(status)) {
+      const err = /** @type {Error & { status?: number }} */ (new Error(`fixture ${fixtureId} is already ${fixture.homeScore != null ? 'played' : status}`))
+      err.status = 409
+      throw err
+    }
+    if (newDate && newDate === fixture.day) throw badRequest('the new date is the date it already has')
+
+    const result = await applyRearrangement(trx, { id: fixture.id, homeTeam: fixture.homeTeam, awayTeam: fixture.awayTeam }, newDate)
+    if (withinTransaction) await withinTransaction(trx, result)
+    return result
   })
 }
 

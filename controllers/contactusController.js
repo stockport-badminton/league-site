@@ -17,6 +17,7 @@ const { clientIp, forwardedChain } = require('../utils/clientIp');
 const nodemailer = require('nodemailer');
 const Sentry = require('@sentry/node');
 const PlayerRequests = require('./playerRequestController');
+const RearrangementRequests = require('./rearrangementRequestController');
 const InvoiceRun = require('../models/invoiceRun');
 const { afterCommit } = require('../utils/afterCommit');
 
@@ -701,6 +702,20 @@ exports.distribution_list = async function(req,res,next) {
           outcome = { queued: null, reason: 'queue failed: ' + err.message }
         }
         log.info('registration request: ' + outcome.reason)
+        if (outcome.queued || outcome.duplicate) return res.sendStatus(200)
+      }
+      // rearrangements@ is the same kind of queue, for /admin/rearrangements, with the
+      // same rules: sole league address, and any refusal falls through to the forward.
+      if (stockportrecips.length === 1
+          && stockportrecips[0].toLowerCase() === RearrangementRequests.ADDRESS) {
+        let outcome
+        try {
+          outcome = await RearrangementRequests.queueFromEmail(parsedEmail, notification)
+        } catch (err) {
+          Sentry.captureException(err, { tags: { step: 'rearrangement request queue' } })
+          outcome = { queued: null, reason: 'queue failed: ' + err.message }
+        }
+        log.info('rearrangement request: ' + outcome.reason)
         if (outcome.queued || outcome.duplicate) return res.sendStatus(200)
       }
       log.info({ recipients, leagueRecipients: stockportrecips }, 'mail: recipients')

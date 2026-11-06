@@ -1,6 +1,6 @@
 ---
 name: emails
-description: Everything about outbound and inbound mail — the MJML build pipeline and mailer.send contract, the SES event feed that says whether a message actually arrived, the POST /mail forwarder and its rate budget, and the DMARC reports. Use when touching emails/, views/emails/, utils/mailer.js, utils/ses.js, utils/dmarcReports.js, tools/build-emails.js, tools/dmarc.js, contactusController's distribution_list or its annual club invoice send, views/emails/clubInvoice.ejs, or the /mail and /ses-events routes.
+description: Everything about outbound and inbound mail — the MJML build pipeline and mailer.send contract, the SES event feed that says whether a message actually arrived, the POST /mail forwarder and its rate budget, and the DMARC reports. Use when touching emails/, views/emails/, utils/mailer.js, utils/ses.js, utils/dmarcReports.js, tools/build-emails.js, tools/dmarc.js, contactusController's distribution_list or its annual club invoice send, views/emails/clubInvoice.ejs, the /mail and /ses-events routes, or the rearrangements@ queue (controllers/rearrangementRequestController.js, utils/rearrangementEmail.js, utils/inboxSender.js, /admin/rearrangements).
 ---
 
 # Email
@@ -251,6 +251,32 @@ both of which parse far enough to look fine and then lose the body — **send it
 form-encoded** (form encoding turns the base64's `+` into a space), and **do not
 `.filter(Boolean)` the lines** (the empty strings are the blank lines that terminate a
 header block).
+
+## Queues instead of forwards: registrations@ and rearrangements@
+
+Two addresses are not lists. Mail to them is stored for a superadmin page instead of
+forwarded, when it is the **only** league address on the message (anything also sent to a
+list goes to the list):
+
+| Address | Page | Reader | Allowlist |
+|---|---|---|---|
+| `registrations@` | `/admin/player-requests` | `utils/registrationEmail.js` | `REGISTRATION_INBOX_SENDERS` |
+| `rearrangements@` | `/admin/rearrangements` | `utils/rearrangementEmail.js` | `REARRANGEMENT_INBOX_SENDERS` |
+
+The results secretary forwards to them. `utils/inboxSender.js` holds the shared rule: the
+From must be on the queue's allowlist **and** pass SES's SPF or DKIM verdict, and a DMARC
+FAIL refuses it. **Every refusal, and any error while queueing, falls through to the
+ordinary forward**, so the queues can hold mail but never lose it. An empty allowlist closes
+its queue. Nothing in either queue is applied automatically: each page shows the email
+beside a reading of it, and a person presses the button.
+
+The registrations queue is described in the `registrations` skill. For rearrangements,
+the controller's header comment has the flow. Things learned from the first five real emails
+are in `utils/rearrangementEmail.js`: team letters were wrong, while date plus clubs pointed
+at the right fixture; thread headers are full of dates; the newest reply comes first. Apply
+goes through `Fixture.rearrangeById`, which refuses with 409 anything not outstanding or
+`rearranging`, so a second press can't move a match twice. It records the outcome in the
+same transaction. Confirming to the clubs is still a reply-all by hand (Nov 2026).
 
 ## Rules that stayed in CLAUDE.md, and still apply
 

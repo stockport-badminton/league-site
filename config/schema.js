@@ -165,6 +165,10 @@ module.exports = /** @type {const} */ ({
     kind: 'list', test: 'unset', e2e: 'unset', unset: 'closes the queue; mail is forwarded as before',
     doc: 'Who may put an email in the registrations@ queue.',
   },
+  REARRANGEMENT_INBOX_SENDERS: {
+    kind: 'list', test: 'unset', e2e: 'unset', unset: 'closes the queue; mail is forwarded as before',
+    doc: 'Who may put an email in the rearrangements@ queue.',
+  },
   LIST_SEND_CHUNK: { kind: 'number', default: 6, ...ALWAYS_LOCAL, doc: 'Distribution-list sends per batch.' },
   LIST_SEND_BUDGET_MS: { kind: 'number', default: 10000, ...ALWAYS_LOCAL, doc: 'Time budget for one distribution-list request.' },
 

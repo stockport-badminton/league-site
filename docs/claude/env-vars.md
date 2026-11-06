@@ -63,6 +63,10 @@ holds the one-line meaning, and what follows is why.
   **Unset closes the queue**: mail to `registrations@` is then forwarded to the results
   inbox exactly as before, so nothing is lost either way — a refused message always falls
   through to the ordinary forward. See the `registrations` skill.
+- `REARRANGEMENT_INBOX_SENDERS` — the same for the `rearrangements@` queue
+  (`/admin/rearrangements`, Admin → Rearrangement Requests), with the same SES checks and
+  the same fall-through: unset, mail to `rearrangements@` is forwarded as before. See the
+  `emails` skill.
 - `INVOICE_CRON_TOKEN` — shared secret the scheduled caller presents as `X-Invoice-Token`
   to `POST /league/sendInvoices`, compared with `timingSafeEqual` over SHA-256 of both
   sides. **Unset closes the token path rather than opening it.** A superadmin session also

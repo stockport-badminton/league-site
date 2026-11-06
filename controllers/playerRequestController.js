@@ -27,6 +27,7 @@ const Roster = require('../models/roster')
 const { parseRegistrationEmail } = require('../utils/registrationEmail')
 const { userLabel } = require('../utils/sessionUser')
 const { canonicalFor } = require('../utils/canonical')
+const { senderAccepted, isOpen, messageIdOf } = require('../utils/inboxSender')
 
 const ADDRESS = 'registrations@stockport-badminton.co.uk'
 exports.ADDRESS = ADDRESS
@@ -47,37 +48,18 @@ function parseIndex(value, label) {
 // Inbound
 // ---------------------------------------------------------------------------
 
-// Who may put an email in the queue: comma-separated addresses, compared lower-case.
-// **Unset closes the path**, like every token in this app: mail to the address is then
-// forwarded exactly as it was before this existed, so nothing is lost and nothing is
-// queued. The queue is only ever read by a superadmin and nothing in it is applied
-// automatically, so the risk this guards is noise rather than harm — but an address
-// anyone can fill is an address somebody will.
+// Who may put an email in the queue, and the SES verdicts it must also pass:
+// utils/inboxSender.js, shared with rearrangements@. Unset closes the path.
 function allowedSenders() {
-  return config.REGISTRATION_INBOX_SENDERS.map(s => s.toLowerCase()).filter(s => s.includes('@'))
-}
-
-// The From header proves nothing by itself, so SES's own verdicts must agree that it is
-// genuine. DKIM or SPF passing is what Gmail and Outlook both give a real forward; a
-// DMARC FAIL means the From was forged, whatever else passed.
-function authenticated(receipt) {
-  const v = k => receipt && receipt[k] && receipt[k].status
-  if (v('dmarcVerdict') === 'FAIL') return false
-  return v('dkimVerdict') === 'PASS' || v('spfVerdict') === 'PASS'
+  return config.REGISTRATION_INBOX_SENDERS
 }
 
 // Called by contactusController.distribution_list for mail addressed to ADDRESS.
 // Returns { queued: id|null, reason } and never throws for a refusal: the caller falls
 // back to forwarding, so a message that cannot be queued still reaches a person.
 exports.queueFromEmail = async function(parsedEmail, notification) {
-  const from = (parsedEmail.from && parsedEmail.from.value && parsedEmail.from.value[0]) || {}
-  const address = String(from.address || '').toLowerCase()
-  const allowed = allowedSenders()
-  if (!allowed.length) return { queued: null, reason: 'REGISTRATION_INBOX_SENDERS is unset' }
-  if (!allowed.includes(address)) return { queued: null, reason: 'sender not allowed: ' + address }
-  if (!authenticated(notification && notification.receipt)) {
-    return { queued: null, reason: 'sender not authenticated (SPF/DKIM/DMARC)' }
-  }
+  const accepted = senderAccepted(parsedEmail, notification, allowedSenders(), 'REGISTRATION_INBOX_SENDERS')
+  if (!accepted.ok) return { queued: null, reason: accepted.reason }
 
   const teams = await Requests.registrableTeams(Roster.NO_CLUB_ID)
   const text = parsedEmail.text || ''
@@ -91,8 +73,7 @@ exports.queueFromEmail = async function(parsedEmail, notification) {
     outcome: null, playerId: null
   }))
 
-  // The mail's own Message-ID, falling back to SES's, so a redelivery is recognised.
-  const messageId = parsedEmail.messageId || (notification && notification.mail && notification.mail.messageId)
+  const messageId = messageIdOf(parsedEmail, notification)
   if (!messageId) return { queued: null, reason: 'no message id' }
 
   const id = await Requests.create({
@@ -135,7 +116,7 @@ exports.list_page = async function(req, res, next) {
       status: status,
       requests: rows.map(r => Object.assign({}, r, summarise(r.candidates))),
       address: ADDRESS,
-      configured: allowedSenders().length > 0
+      configured: isOpen(allowedSenders())
     })
   } catch (err) {
     next(err)

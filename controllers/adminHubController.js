@@ -7,6 +7,7 @@
 
 const { GROUPS } = require('../utils/adminTools')
 const Requests = require('../models/registrationRequest')
+const Rearrangements = require('../models/rearrangementRequest')
 const Registration = require('../models/clubRegistration')
 const seasonModel = require('../models/season')
 const { canonicalFor } = require('../utils/canonical')
@@ -23,10 +24,11 @@ async function safely(label, fn) {
 
 exports.hub = async function(req, res, next) {
   try {
-    const [pendingRequests, formsOutstanding] = await Promise.all([
+    const [pendingRequests, formsOutstanding, pendingRearrangements] = await Promise.all([
       safely('pendingRequests', () => Requests.countPending()),
       safely('formsOutstanding', async () =>
         (await Registration.getStatus(seasonModel.current())).filter(c => !c.received).length),
+      safely('pendingRearrangements', () => Rearrangements.countPending()),
     ])
     res.render('admin/hub', {
       static_path: '/static',
@@ -34,7 +36,7 @@ exports.hub = async function(req, res, next) {
       pageDescription: 'Every league admin tool',
       canonical: canonicalFor(req),
       groups: GROUPS,
-      counts: { pendingRequests, formsOutstanding },
+      counts: { pendingRequests, formsOutstanding, pendingRearrangements },
     })
   } catch (err) {
     next(err)
