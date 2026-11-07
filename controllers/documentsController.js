@@ -7,6 +7,7 @@ const Player = require('../models/players');
 const Club = require('../models/club');
 const { assertClubAccess } = require('../middleware/requireClubAccess');
 const teamRegDoc = require('../utils/teamRegistrationDoc');
+const messerScoreSheet = require('../utils/messerScoreSheet');
 
 const TEAM_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Team Registration Form ePDF.pdf');
 const CLUB_REGISTRATION_TEMPLATE = path.join(__dirname, '../static/beta/docs/Club Registration Form ePDF.pdf');
@@ -272,6 +273,20 @@ exports.teamRegistrationFormDocx = async function(req, res, next) {
     const buffer = await teamRegDoc.buildTeamRegistrationDocx({ label: label });
     res.setHeader('Content-Type', DOCX_TYPE);
     res.setHeader('Content-Disposition', `attachment; filename="Team Registration Form ${label}.docx"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Messer Trophy score sheet ---------------------------------------
+
+exports.messerScoreSheet = async function(req, res, next) {
+  try {
+    const season = seasonModel.current();
+    const buffer = await messerScoreSheet.buildMesserScoreSheet(season);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Messer Score Sheet ${seasonLabel(season)}.pdf"`);
     res.send(buffer);
   } catch (err) {
     next(err);

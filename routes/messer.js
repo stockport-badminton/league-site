@@ -6,11 +6,16 @@ const access = require('../middleware/access');
 const team_controller = require('../controllers/teamController');
 const static_controller = require('../controllers/staticPagesController');
 const messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
+const documents_controller = require('../controllers/documentsController');
 const { mediaLimiter } = require('../middleware/rateLimit');
 
 router.get('/messer-rules', access.public, static_controller.messer_rules);
 router.get('/messer-draw/:section', access.public, team_controller.new_messer_draw);
 router.get('/messer-draw/:season/:section', access.public, team_controller.new_messer_draw);
+// The score sheet, a PDF drawn with the current season (utils/messerScoreSheet.js). It
+// replaced a static spreadsheet whose URL redirects here for anyone holding the old link.
+router.get('/forms/messer-score-sheet.pdf', access.public, documents_controller.messerScoreSheet);
+router.get('/static/beta/docs/Messer-Score-Sheet.xlsx', access.public, (req, res) => res.redirect(301, '/forms/messer-score-sheet.pdf'));
 router.post('/messer-draw/:section/swap/:id', access.messerAdmin, messer_scorecard_controller.messer_draw_swap);
 
 // Messer scorecard routes
