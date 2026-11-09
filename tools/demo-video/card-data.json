@@ -1,0 +1,8 @@
+{
+  "dateWritten": "5/11/26", "divisionWritten": "Div 2",
+  "homeName": "Larkhill A", "awayName": "Brookvale A",
+  "home": { "ladies": ["Emma Hartley", "Priya Shah", "Sophie Breen"], "men": ["Tom Ashworth", "Ravi Mistry", "Dan Kowalski"] },
+  "away": { "ladies": ["Hannah Booth", "Grace Ellison", "Amy Nolan"], "men": ["Matt Fielding", "Josh Turner", "Sam Whitlow"] },
+  "games": [[21,15],[21,18],[17,21],[21,16],[21,12],[23,21],[21,19],[19,21],[21,14],[15,21],[21,17],[21,11],[18,21],[21,19],[21,13],[12,21],[21,18],[24,26]],
+  "homeSig": "T Ashworth", "awaySig": "M Fielding"
+}

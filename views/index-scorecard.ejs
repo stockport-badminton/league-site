@@ -97,6 +97,54 @@
         <p>Welcome to results entry. If you have any problems email the results secretary, it's more likely to be something broken than something you did wrong.<br />
         Don't worry - you can't break the website entering results!</p>
         <p><a class="btn btn-lg btn-success"  data-toggle="modal" href="#signupModal">Enter Result</a></p>
+        <p><button type="button" class="btn btn-link p-0" id="howToVideoOpen"><%- icon('circle-play') %> New to this? Watch how it works (under 2 minutes)</button></p>
+        <%# The walkthrough, in a phone (portrait) and a desktop (landscape) cut; the one that
+            fits the screen is chosen when it opens. A native <dialog> rather than a second
+            Bootstrap modal, so it cannot tangle with the multi-step wizard's modal script.
+            The videos are made from the local database with fictional teams; see
+            tools/demo-video/README.md before re-recording them. %>
+        <dialog id="howToVideo" class="p-0 border-0 rounded shadow" aria-label="How to enter a result">
+          <form method="dialog" class="text-right m-0"><button class="btn btn-sm btn-light m-1" aria-label="Close">&times;</button></form>
+          <video id="howToVideoPlayer" controls playsinline preload="none"></video>
+          <p class="small text-center my-2"><a href="#" id="howToVideoSwap"></a></p>
+        </dialog>
+        <style>
+          #howToVideo { max-width: 96vw; max-height: 96vh; background: #111; }
+          #howToVideo::backdrop { background: rgba(0, 0, 0, .7); }
+          #howToVideo video { display: block; max-width: 92vw; max-height: 80vh; }
+          #howToVideo .small a { color: #ddd; }
+        </style>
+        <script>
+          (function () {
+            var cuts = {
+              phone: { src: '<%= asset('/static/beta/video/enter-result-mobile.mp4') %>', poster: '<%= asset('/static/beta/video/enter-result-mobile.jpg') %>', other: 'desktop' },
+              desktop: { src: '<%= asset('/static/beta/video/enter-result-desktop.mp4') %>', poster: '<%= asset('/static/beta/video/enter-result-desktop.jpg') %>', other: 'phone' }
+            };
+            var dialog = document.getElementById('howToVideo');
+            var player = document.getElementById('howToVideoPlayer');
+            var swap = document.getElementById('howToVideoSwap');
+            function load(name) {
+              var cut = cuts[name];
+              player.poster = cut.poster;
+              player.src = cut.src;
+              swap.textContent = 'Watch the ' + cut.other + ' version';
+              swap.dataset.cut = cut.other;
+              dialog.dataset.cut = name;
+            }
+            document.getElementById('howToVideoOpen').addEventListener('click', function () {
+              load(window.matchMedia('(orientation: portrait)').matches ? 'phone' : 'desktop');
+              dialog.showModal();
+              player.play().catch(function () {});
+              if (window.sblTrack) sblTrack('scorecard_howto_video_opened', { cut: dialog.dataset.cut });
+            });
+            swap.addEventListener('click', function (e) {
+              e.preventDefault();
+              load(swap.dataset.cut);
+              player.play().catch(function () {});
+            });
+            dialog.addEventListener('close', function () { player.pause(); });
+          })();
+        </script>
         <% if (locals.fixtures && fixtures.length > 0 ){  %>
           <p>
             Add scorecard photos:

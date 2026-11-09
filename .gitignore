@@ -11,6 +11,7 @@ client_id.json
 # Generated assets (rebuilt at runtime)
 static/beta/images/generated/
 static/beta/videos/generated/
+tools/demo-video/generated/
 static/beta/docs/generated/
 static/generated/
 output/
