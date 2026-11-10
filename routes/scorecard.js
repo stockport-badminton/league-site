@@ -137,6 +137,11 @@ router.get('/scorecard-photo/:id', access.token('draft link'), mediaLimiter, asy
   }
 });
 
+// The results secretary replacing a filed draft's photo — the panel on the confirmation
+// page. Captains attach through POST /add-scorecard-photo/:id, which only fills an empty
+// one. See replace_scorecard_photo.
+router.post('/scorecard-photo/:id/replace', access.superadmin, publicFormLimiter, scorecard_controller.replace_scorecard_photo);
+
 router.post('/api/analyse-scorecard', access.member,
   scorecard_analysis_controller.uploadMiddleware,
   scorecard_analysis_controller.analyse_scorecard);

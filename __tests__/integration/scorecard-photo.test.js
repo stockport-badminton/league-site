@@ -288,7 +288,8 @@ describe('GET /populated-scorecard-beta/:id renders the photo', () => {
     const res = await request(app).get('/populated-scorecard-beta/7');
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('src="/scorecard-photo/7"');
+    // `?v=` is the cache-busting version (it changes when the photo is replaced).
+    expect(res.text).toMatch(/src="\/scorecard-photo\/7\?v=[0-9a-f]{10}"/);
     // The stored bucket URL never reaches the page. (`amazonaws.com` on its own is too
     // broad an assertion — the footer's social icons are hosted on someone else's S3.)
     expect(res.text).not.toContain(PHOTO_URL);

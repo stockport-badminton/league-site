@@ -125,6 +125,26 @@
             </a>
           </p>
         <% } %>
+        <%# The results secretary's "Replace photo" panel (superadmin session only; see
+            replace_scorecard_photo). Choosing a file uploads and previews it; the draft
+            changes only on "Use this file". static/beta/js/scorecard-photo-replace.js %>
+        <% if (locals.canReplacePhoto && locals.draftId) { %>
+          <div id="scorecard-photo-panel" class="card mt-3" data-scorecard-id="<%= draftId %>">
+            <div class="card-body">
+              <h2 class="h6"><%= locals.photoPath ? 'Replace the scorecard photo' : 'Attach a scorecard photo' %></h2>
+              <div class="mb-2">
+                <label for="replace-photo-file" class="sr-only">Scorecard photo</label>
+                <input type="file" id="replace-photo-file" class="form-control-file">
+              </div>
+              <div id="replace-photo-preview" hidden>
+                <p class="mb-1"><small id="replace-photo-name" class="text-muted"></small></p>
+                <img id="replace-photo-img" class="img-fluid mb-2" alt="The photo about to be attached" hidden>
+              </div>
+              <button type="button" id="replace-photo-save" class="btn btn-primary" disabled>Use this file</button>
+              <p id="replace-photo-status" class="mt-2 mb-0" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        <% } %>
       </div>
 
       <!-- Modal -->
@@ -997,6 +1017,10 @@
     <% } %>
     <%- include('footer.ejs') %>
     <script type="text/javascript" src="/static/beta/js/form-options.js"></script>
+    <% if (locals.canReplacePhoto && locals.draftId) { %>
+    <script type="text/javascript" src="<%= asset('/static/beta/js/scorecard-upload.js') %>"></script>
+    <script type="text/javascript" src="<%= asset('/static/beta/js/scorecard-photo-replace.js') %>"></script>
+    <% } %>
 
     <script type="text/javascript">
 

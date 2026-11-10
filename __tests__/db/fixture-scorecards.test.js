@@ -132,6 +132,17 @@ describe('the scorecard photo', () => {
     expect((await Fixture.updateScorecardPhoto(id, 'scorecards/two.jpg')).affectedRows).toBe(0);
     expect((await run('SELECT "scoresheet-url" AS u FROM scorecardstore WHERE id = ?', [id]))[0].u).toBe('scorecards/one.jpg');
   });
+
+  // The results secretary's replace: no emptiness guard, and it says what it replaced so
+  // the old object can be found again.
+  it('replaceScorecardPhoto overwrites a photo and returns the one it replaced', async () => {
+    await fixture(9001, -3);
+    const id = await draft(9001);
+    expect(await Fixture.replaceScorecardPhoto(id, 'scorecards/one.jpg')).toEqual({ affectedRows: 1, replaced: '' });
+    expect(await Fixture.replaceScorecardPhoto(id, 'scorecards/two.jpg')).toEqual({ affectedRows: 1, replaced: 'scorecards/one.jpg' });
+    expect((await run('SELECT "scoresheet-url" AS u FROM scorecardstore WHERE id = ?', [id]))[0].u).toBe('scorecards/two.jpg');
+    expect(await Fixture.replaceScorecardPhoto(987654321, 'scorecards/three.jpg')).toEqual({ affectedRows: 0, replaced: null });
+  });
 });
 
 describe('rearrangeByTeamNames', () => {

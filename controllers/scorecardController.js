@@ -1,5 +1,6 @@
 var config = require('../config');
 const log = require('../utils/log');
+const crypto = require('crypto');
 var Division = require('../models/division');
 var Team = require('../models/teams');
 var Player = require('../models/players');
@@ -29,6 +30,7 @@ const {
   photoPath, photoUrl: photoLinkFor,
   normalisePhotoUrl, isPhotoUrl
 } = require('../utils/scorecardLinks');
+const { photoKeyFromStored, contentTypeFor, downloadTypeFor } = require('../utils/scorecardPhoto');
 
 // A league fixture is 18 games — three pairs each of men's, ladies' and mixed, played
 // twice. Messer is 15 and goes through its own controller.
@@ -952,14 +954,24 @@ exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
       // two `<img src="<%= scorecard['scoresheet-url'] %>">` blocks that used to be the
       // photo surface read the *dropdown* object, which has no such key, so they only
       // ever rendered `src="undefined"`.
+      // Versioned by the stored url, so a replaced photo is not hidden behind the old
+      // one's five-minute private cache.
       photoPath: String(rows[0]['scoresheet-url'] || '').trim()
-        ? photoPath(req.params.id, rows[0].confirmToken)
+        ? photoPath(req.params.id, rows[0].confirmToken, { version: photoVersion(rows[0]['scoresheet-url']) })
         : null,
+      // The "Replace photo" panel. A session, not the token: the token opens this page
+      // for anyone the email reaches, and POST /scorecard-photo/:id/replace is
+      // access.superadmin, so offering the control on a token alone would only fail.
+      canReplacePhoto: isSuperAdmin(req),
       // Deliberately not canonicalFor(req): that keeps the query string, and the query
       // string is now a secret. A canonical tag is copied, shared and crawled.
       canonical: absoluteUrl('/populated-scorecard-beta/' + encodeURIComponent(String(req.params.id)))
     });
   } catch (err) { next(err); }
+}
+
+function photoVersion(storedUrl) {
+  return crypto.createHash('sha256').update(String(storedUrl || '')).digest('hex').slice(0, 10);
 }
 
 // What someone sees when a confirmation link doesn't open a draft: either it names an id
@@ -1214,6 +1226,48 @@ exports.add_scorecard_photo = async function(req, res, next) {
       },
     });
     res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /scorecard-photo/:id/replace — the results secretary attaching or replacing a
+// filed draft's photo, from the panel on the confirmation page. Ported from Tameside
+// (a17cbe2), where it replaced blanking `scoresheet-url` in the database by hand.
+//
+// A separate route rather than a superadmin exception inside add_scorecard_photo: that one
+// is a token route for captains, fill-only, and emails the results secretary. This one is
+// access.superadmin, overwrites, and emails nobody — the person doing it is the person
+// the email would go to. The url must pass the same normalisePhotoUrl test, so nothing is
+// stored that GET /scorecard-photo/:id would refuse. The previous url is logged: its
+// object is still in the bucket (keys are server-generated and unique), so a wrong
+// replacement can be undone by putting that url back.
+exports.replace_scorecard_photo = async function(req, res, next) {
+  try {
+    let photoUrl;
+    try {
+      photoUrl = normalisePhotoUrl(req.body && req.body.imgURL);
+    } catch (err) {
+      if (err.status === 400) return res.status(400).json({ error: err.message });
+      throw err;
+    }
+    // And an object the read path would serve: normalisePhotoUrl accepts any key in the
+    // bucket, including the venues map and the weekly videos.
+    const key = photoKeyFromStored(photoUrl);
+    if (!key || !(contentTypeFor(key) || downloadTypeFor(key))) {
+      return res.status(400).json({ error: 'That is not an uploaded scorecard photo.' });
+    }
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(404).json({ error: 'There is no scorecard with that id.' });
+    }
+
+    const { affectedRows, replaced } = await Fixture.replaceScorecardPhoto(id, photoUrl);
+    if (!affectedRows) {
+      return res.status(404).json({ error: 'There is no scorecard with that id.' });
+    }
+    log.info({ draftId: id, replaced, photoUrl, by: userEmail(req.user) }, 'scorecard photo replaced');
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

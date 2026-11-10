@@ -97,9 +97,17 @@ function confirmationUrl(draftId, token) {
 // confirmation page, which is why the token handling lives here beside
 // `confirmationPath` and not next to the route: there is one definition of "does this
 // draft have a token", grandfather clause included.
-function photoPath(draftId, token) {
+//
+// `version` is for the confirmation page only: the photo is served `private,
+// max-age=300`, so after the results secretary replaces it the same path would show
+// the old one for five minutes. A version derived from the stored url changes when the
+// photo does. Emails omit it.
+function photoPath(draftId, token, { version } = {}) {
+  const params = [];
+  if (draftRequiresToken(token)) params.push('t=' + encodeURIComponent(token));
+  if (version) params.push('v=' + encodeURIComponent(version));
   const base = '/scorecard-photo/' + encodeURIComponent(String(draftId));
-  return draftRequiresToken(token) ? base + '?t=' + encodeURIComponent(token) : base;
+  return params.length ? base + '?' + params.join('&') : base;
 }
 
 // For the two emails to the results secretary. Never req.headers.host — see gotcha 1b.

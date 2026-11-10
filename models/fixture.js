@@ -992,6 +992,23 @@ exports.updateScorecardPhoto = async function(id, imgurl) {
   return { affectedRows: Number(res.numUpdatedRows) }
 }
 
+// The results secretary replacing a draft's photo (POST /scorecard-photo/:id/replace,
+// superadmin only). Deliberately WITHOUT updateScorecardPhoto's emptiness guard: replacing
+// what is there is the point. Returns the url it replaced, so the route can log it — the
+// old object stays in the bucket (every upload key is server-generated and unique), and
+// that log line is how to put it back. `replaced` is null when no draft has the id.
+/** @param {number} id @param {string} imgurl */
+exports.replaceScorecardPhoto = async function(id, imgurl) {
+  return db.withTransaction(async (conn, trx) => {
+    const before = await trx.selectFrom('scorecardstore').select('scoresheet-url')
+      .where('id', '=', id).forUpdate().executeTakeFirst()
+    if (!before) return { affectedRows: 0, replaced: null }
+    const res = await trx.updateTable('scorecardstore').set({ 'scoresheet-url': imgurl })
+      .where('id', '=', id).executeTakeFirst()
+    return { affectedRows: Number(res.numUpdatedRows), replaced: before['scoresheet-url'] || '' }
+  })
+}
+
 // The results secretary sees every draft in the season with no photo; anyone else sees
 // their own, and only those not yet published.
 /** @param {string} email */

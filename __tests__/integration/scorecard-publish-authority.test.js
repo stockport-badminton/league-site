@@ -357,3 +357,120 @@ describe('a TOKENLESS draft opens for a superadmin only (REARCH-09)', () => {
     expect(Fixture.updateScorecardPhoto).not.toHaveBeenCalled();
   });
 });
+
+// The results secretary's "Replace photo" panel on the confirmation page (ported from
+// Tameside a17cbe2). POST /add-scorecard-photo/:id is the captain's fill-only route; this
+// one overwrites, so it is a superadmin session and nothing else — not a draft token,
+// which reaches anyone the confirmation email is forwarded to.
+describe('POST /scorecard-photo/:id/replace — the results secretary replacing a photo', () => {
+  const NEW_URL = 'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/new.jpg';
+  const OLD_URL = 'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/old.jpg';
+  const replace = (id, body) => request(app).post(`/scorecard-photo/${id}/replace`).send(body);
+
+  beforeEach(() => {
+    Fixture.replaceScorecardPhoto.mockResolvedValue({ affectedRows: 1, replaced: OLD_URL });
+  });
+
+  it('refuses an anonymous visitor, even with the draft token, and writes nothing', async () => {
+    const res = await replace(7, { imgURL: NEW_URL, token: GOOD_TOKEN });
+    expect(res.status).not.toBe(200);
+    expect(Fixture.replaceScorecardPhoto).not.toHaveBeenCalled();
+  });
+
+  it('refuses a logged-in captain, and writes nothing', async () => {
+    mockCurrentUser = CAPTAIN;
+    const res = await replace(7, { imgURL: NEW_URL, token: GOOD_TOKEN });
+    expect(res.status).toBe(403);
+    expect(Fixture.replaceScorecardPhoto).not.toHaveBeenCalled();
+  });
+
+  it('lets a superadmin replace the photo, and emails nobody', async () => {
+    const ses = require('../../utils/ses');
+    mockCurrentUser = SUPERADMIN;
+    const res = await replace(7, { imgURL: NEW_URL });
+    expect(res.status).toBe(200);
+    expect(Fixture.replaceScorecardPhoto).toHaveBeenCalledWith(7, NEW_URL);
+    expect(ses.sendEmail).not.toHaveBeenCalled();
+  });
+
+  // Nothing is stored that GET /scorecard-photo/:id would refuse to serve.
+  it('refuses a url that is not a scorecard photo of ours, before writing', async () => {
+    mockCurrentUser = SUPERADMIN;
+    for (const imgURL of [
+      undefined, '', 'https://evil.example.com/x.jpg',
+      'https://badmintontemp.s3.eu-west-1.amazonaws.com/venues-map.png',
+      'https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/x.html',
+    ]) {
+      const res = await replace(7, { imgURL });
+      expect([imgURL, res.status]).toEqual([imgURL, 400]);
+    }
+    expect(Fixture.replaceScorecardPhoto).not.toHaveBeenCalled();
+  });
+
+  it('404s an id with no draft', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.replaceScorecardPhoto.mockResolvedValue({ affectedRows: 0, replaced: null });
+    expect((await replace(9999, { imgURL: NEW_URL })).status).toBe(404);
+    expect((await replace('abc', { imgURL: NEW_URL })).status).toBe(404);
+  });
+});
+
+describe('GET /populated-scorecard-beta/:id — the replace-photo panel', () => {
+  const PHOTO = (name) => `https://badmintontemp.s3.eu-west-1.amazonaws.com/scorecards/20262027/${name}.jpg`;
+  const tokened = (photo) => [{
+    id: 42, division: 1, homeTeam: 10, awayTeam: 20,
+    homeMan1: 1, homeMan2: 2, homeMan3: 3, homeLady1: 4, homeLady2: 5, homeLady3: 6,
+    awayMan1: 7, awayMan2: 8, awayMan3: 9, awayLady1: 10, awayLady2: 11, awayLady3: 12,
+    'scoresheet-url': photo, confirmToken: GOOD_TOKEN,
+  }];
+  const page = () => request(app).get('/populated-scorecard-beta/42?t=' + GOOD_TOKEN);
+
+  beforeEach(() => {
+    Fixture.getScorecardById.mockResolvedValue(tokened(PHOTO('a')));
+    Division.getAllAndSelectedById.mockResolvedValue([{ id: 1, name: 'Division 1', selected: 1 }]);
+    Team.getAllAndSelectedById.mockResolvedValue([{ id: 10, name: 'Mellor A', selected: 1 }]);
+    Player.getEligiblePlayersAndSelectedById.mockResolvedValue([
+      { id: 1, first_name: 'Player', family_name: 'One', first: 1 },
+    ]);
+  });
+
+  it('is offered to a superadmin session', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await page();
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/id="scorecard-photo-panel" class="card mt-3" data-scorecard-id="42"/);
+    expect(res.text).toContain('Replace the scorecard photo');
+    expect(res.text).toMatch(/scorecard-photo-replace\.js/);
+  });
+
+  it('says "attach" when the draft has no photo yet', async () => {
+    mockCurrentUser = SUPERADMIN;
+    Fixture.getScorecardById.mockResolvedValue(tokened(''));
+    const res = await page();
+    expect(res.text).toContain('Attach a scorecard photo');
+  });
+
+  // The token opens the page for whoever holds the email; it is not enough to replace.
+  it('is not offered on the token alone, nor to a captain', async () => {
+    for (const user of [null, CAPTAIN]) {
+      mockCurrentUser = user;
+      const res = await page();
+      expect(res.status).toBe(200);
+      expect(res.text).not.toContain('scorecard-photo-panel');
+      expect(res.text).not.toMatch(/scorecard-photo-replace\.js/);
+    }
+  });
+
+  // The photo is served private, max-age=300: without a version that changes with the
+  // stored url, the replaced photo would still show for five minutes after saving.
+  it('versions the photo by its stored url, after the token', async () => {
+    const versionFor = async (photo) => {
+      Fixture.getScorecardById.mockResolvedValue(tokened(photo));
+      const m = /src="\/scorecard-photo\/42\?t=a{64}&amp;v=([0-9a-f]{10})"/.exec((await page()).text);
+      return m && m[1];
+    };
+    const a = await versionFor(PHOTO('a'));
+    expect(a).toBeTruthy();
+    expect(await versionFor(PHOTO('b'))).not.toBe(a);
+  });
+});
