@@ -208,6 +208,32 @@ describe('POST /admin/team-strength/import', () => {
   });
 });
 
+it('shows where each player has played on the card for their own team, from the level games only', async () => {
+  // Four nights on which Strong A play their men in reverse: man 3 at the top, man 1 at the bottom.
+  const [s1, s2, s3] = home, [w1, w2, w3] = away;
+  const rows = [];
+  const row = (fixture, gameType, h1, h2, a1, a2, homeTeam = HOME) => rows.push({ id: rows.length, fixture, gameType,
+    homePlayer1: h1.id, homePlayer2: h2.id, awayPlayer1: a1.id, awayPlayer2: a2.id, homeTeam, awayTeam: AWAY,
+    homeScore: 21, awayScore: 15, date: new Date(Date.now() - 86400000), season: SEASON });
+  for (let f = 700; f < 704; f++) {
+    row(f, 'FirstMens', s3, s2, w1, w2);
+    row(f, 'SecondMens', s3, s1, w1, w3);
+    row(f, 'ThirdMens', s2, s1, w2, w3);
+    row(f, 'FirstMixed', s1, home[3], w1, away[3]); // the mixed order is the club's own: ignored
+  }
+  // Weak B's man 1 playing up for Strong A, as their man 2: not his own team, so not counted.
+  row(704, 'FirstMens', s3, w1, w2, w3, HOME);
+  TeamStrength.games.mockResolvedValue(rows);
+  await runAndStore();
+  const res = await request(app).get('/admin/team-strength');
+  const playedAt = name => res.text.match(new RegExp(`<td>${name}</td>[\\s\\S]*?<td class="ts-num ts-played-at([^"]*)"[^>]*>([^<]*)`)).slice(1);
+  expect(playedAt('StrongM 1')).toEqual([' text-danger font-weight-bold', '3.0 ']);
+  expect(playedAt('StrongM 2')).toEqual(['', '2.0 ']);
+  expect(playedAt('StrongM 3')).toEqual([' text-danger font-weight-bold', '1.0 ']);
+  expect(playedAt('WeakM 1')).toEqual(['', '1.0 ']);
+  expect(res.text).toMatch(/<td>WeakM 1<\/td>[\s\S]*?ts-played-at[^>]*>1\.0 <span class="text-muted font-weight-normal">\(4\)<\/span>/);
+});
+
 it('lists each club with its team sheet ratings', async () => {
   await runAndStore();
   const res = await request(app).get('/admin/team-strength');

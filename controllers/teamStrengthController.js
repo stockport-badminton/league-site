@@ -67,8 +67,22 @@ async function build(now) {
   // This season's fixtures each player has played for each team: `${team}:${player}` → fixtures.
   /** @type {Map<string, Set<number>>} */ const turnedOut = new Map()
   const season = seasonModel.current()
+  // Where each player has stood on the card this season, fixture by fixture, in the level
+  // games they played for their own team (playing up, or for another club, is left out): the
+  // order their club actually plays them in, to set against the order it nominated.
+  const ownTeam = new Map(players.map(p => [p.id, p.team]))
+  /** @type {Map<number, Map<number, number>>} */ const cardPos = new Map()
   const games = []
   for (const g of rows) {
+    const at = g.season === season ? model.levelPositions(g.gameType) : null
+    if (at) [[g.homePlayer1, g.homeTeam, at[0]], [g.homePlayer2, g.homeTeam, at[1]],
+      [g.awayPlayer1, g.awayTeam, at[0]], [g.awayPlayer2, g.awayTeam, at[1]]].forEach(([p, team, pos]) => {
+      p = Number(p)
+      if (!p || ownTeam.get(p) !== team) return
+      const byFixture = cardPos.get(p) || new Map()
+      byFixture.set(g.fixture, pos)
+      cardPos.set(p, byFixture)
+    })
     if (!usableGame(g)) continue
     const t = new Date(g.date).getTime()
     const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2].map(Number)
@@ -120,8 +134,10 @@ async function build(now) {
 
   const teamById = new Map(teams.map(t => [t.id, t]))
   const rate = (/** @type {any} */ p) => {
-    const s = fit.s.get(p.id), st = seen.get(p.id)
+    const s = fit.s.get(p.id), st = seen.get(p.id), at = [...(cardPos.get(p.id)?.values() || [])]
     return {
+      // Average card position this season for their own team, and over how many fixtures.
+      pos: at.length ? Math.round(10 * at.reduce((a, b) => a + b, 0) / at.length) / 10 : null, posN: at.length,
       id: p.id, name: fullName(p), gender: p.gender, team: p.team, rank: p.rank,
       s: s ?? null, se: s == null ? null : fit.se.get(p.id) ?? null,
       r: s == null ? null : model.display(s), mixed: Math.round(1000 * (fit.mixed.get(p.id) || 0)),
@@ -186,7 +202,7 @@ async function build(now) {
   }
   const checks = [...clubs.values()].map(c => ({ ...c, flags: model.orderFlags(c.teams) }))
 
-  const slim = (/** @type {any} */ p) => ({ id: p.id, name: p.name, rank: p.rank, r: p.r,
+  const slim = (/** @type {any} */ p) => ({ id: p.id, name: p.name, rank: p.rank, r: p.r, pos: p.pos, posN: p.posN,
     se: p.se == null ? null : Math.round(1000 * p.se), mixed: p.mixed, recent: p.recent })
   const nameOf = new Map(regs.map(r => [r.id, fullName(r)]))
   const teamName = (/** @type {number} */ id) => {

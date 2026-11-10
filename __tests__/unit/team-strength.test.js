@@ -248,3 +248,13 @@ describe('usableGame', () => {
     expect(usableGame(g({ homeScore: 15, awayScore: 11 }))).toBe(false);
   });
 });
+
+describe('levelPositions', () => {
+  it('places each pair of a level game on the card, and says nothing for a mixed', () => {
+    expect(M.levelPositions('FirstMens')).toEqual([1, 2]);
+    expect(M.levelPositions('SecondLadies')).toEqual([1, 3]);
+    expect(M.levelPositions('ThirdMens')).toEqual([2, 3]);
+    expect(M.levelPositions('FirstMixed')).toBeNull();
+    expect(M.levelPositions(null)).toBeNull();
+  });
+});

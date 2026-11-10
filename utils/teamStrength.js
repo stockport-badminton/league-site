@@ -418,7 +418,20 @@ function orderFlags(teams) {
   return flags
 }
 
+// Where each pair stands on the card in a level game (scorecardController: FirstMens is man 1
+// and man 2, SecondMens 1 and 3, ThirdMens 2 and 3; ladies the same). Player 1 of the pair
+// is the higher. Mixed games say nothing: clubs often shuffle the mixed order away from the
+// level one, so they would blur the position the nominations are checked against.
+/** @type {Record<string, [number, number]>} */
+const LEVEL_POSITIONS = {
+  FirstMens: [1, 2], SecondMens: [1, 3], ThirdMens: [2, 3],
+  FirstLadies: [1, 2], SecondLadies: [1, 3], ThirdLadies: [2, 3],
+}
+/** The card positions of a game's two pairs' players, or null for a mixed game. @param {string | null} gameType */
+const levelPositions = gameType => (gameType && Object.hasOwn(LEVEL_POSITIONS, gameType) ? LEVEL_POSITIONS[gameType] : null)
+
 module.exports = {
+  levelPositions,
   SETTINGS, RUBBERS, RESERVE_BASE, MAX_NOMINATED, MIN_RECENT_GAMES, CONFIDENCE,
   display, sig, gameWin, fit, usualThree, rubberProbs, scoreDistribution, predictFixture, projectSeason, orderFlags, pStronger,
 }

@@ -126,6 +126,9 @@
         <strong>Reserve too low</strong>: a reserve rates above the third nominated player of the team above.
         <strong>Reserve could go lower</strong>: a reserve rates below the third nominated player of the team below.
         Ratings are level doubles; "mixed" is how much better or worse the player does in mixed.
+        <strong>Played at</strong> is where the player has stood on the card this season in the level doubles for their own team,
+        averaged over the fixtures in brackets (playing up and the mixed left out). It is in red when it is a whole place or more
+        from where they are nominated: the nominations, or the sheets, may be out of date.
         <a href="/admin/team-strength/compare">Compare any two players</a>: the results behind a flag, to make the case to a club.
       </p>
       <% data.checks.forEach(function(c, ci){ %>
@@ -146,12 +149,14 @@
             <div class="col-lg-6">
               <h4 class="h6"><%= t.name %> · <%= g === 'men' ? 'Men' : 'Ladies' %><% if (sq.unset) { %> <span class="badge badge-secondary">nominations not set</span><% } %></h4>
               <table class="table table-sm small">
-                <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num" title="Games in the last 12 months, in any of the three leagues">Games 12m</th></tr></thead>
+                <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num" title="Games in the last 12 months, in any of the three leagues">Games 12m</th><th class="ts-num" title="Average position on the card this season in the level doubles, playing for this team (playing up and the mixed left out), and over how many fixtures">Played at</th></tr></thead>
                 <tbody>
                 <% [['', sq.nominated], ['R', sq.reserves]].forEach(function([mark, list]){ list.forEach(function(p){ %>
                   <tr class="<%= mark ? 'text-muted' : '' %>"><td><%= mark || p.rank %></td><td><%= p.name %></td>
                     <td class="ts-num"><%= p.r == null ? 'no games' : p.r %><% if (p.se != null) { %> <span class="text-muted">±<%= p.se %></span><% } %></td>
-                    <td class="ts-num"><%= p.r == null ? '' : (p.mixed > 0 ? '+' : '') + p.mixed %></td><td class="ts-num"><%= p.recent %></td></tr>
+                    <td class="ts-num"><%= p.r == null ? '' : (p.mixed > 0 ? '+' : '') + p.mixed %></td><td class="ts-num"><%= p.recent %></td>
+                    <% const off = !mark && !sq.unset && p.rank <= 3 && p.pos != null && p.posN >= 2 && Math.abs(p.pos - p.rank) >= 1; %>
+                    <td class="ts-num ts-played-at<%= off ? ' text-danger font-weight-bold' : '' %>"<% if (off) { %> title="Nominated <%= p.rank %>, has played at <%= p.pos.toFixed(1) %>"<% } %>><%= p.pos == null ? '' : p.pos.toFixed(1) %><% if (p.pos != null) { %> <span class="text-muted font-weight-normal">(<%= p.posN %>)</span><% } %></td></tr>
                 <% }) }) %>
                 </tbody>
               </table>
