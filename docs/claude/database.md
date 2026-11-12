@@ -319,6 +319,12 @@ const [results] = await (await db.otherConnect()).query(`
 ### Common Table Patterns
 
 - **fixture**: `id, date, homeTeam (int), awayTeam (int), homeScore, awayScore, status ('complete'/'conceded'/etc)`
+- **A conceded fixture** is status `conceded`, 18-0 to the side that didn't concede, and
+  no game rows; the table reads only the scores. Superadmins set or undo it from the
+  admin results grid (`POST /admin/fixture/:id/concede`, `Fixture.setConceded`, ported
+  from Tameside Nov 2026). Only `outstanding`/`rearranging` with no score and no games
+  qualify, enforced in the UPDATE's WHERE: a **`rearranged` row is the superseded
+  original** of a moved match, so conceding one would count the match twice.
 - **team**: `id, name, division (int)`
 - **`gamesWon` / `gamesLost` are GAMES won and lost, not league points.** The league
   ranks on games, not on a win/draw/loss table — every one of the 18 games in a fixture

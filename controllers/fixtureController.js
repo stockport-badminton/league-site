@@ -508,3 +508,24 @@ exports.admin_fixture_date_update = async function(req, res, next) {
     next(err);
   }
 };
+
+// Mark a fixture conceded (or undo it) from the admin results grid. access.superadmin is
+// the gate; the eligibility rules are enforced by Fixture.setConceded's UPDATE, and this
+// maps its answer to a status. concededBy: 'home' | 'away' | 'none' (undo).
+exports.admin_fixture_concede = async function(req, res, next) {
+  const concededBy = req.body.concededBy;
+  if (!['home', 'away', 'none'].includes(concededBy)) {
+    return res.status(400).json({ error: 'concededBy must be home, away or none' });
+  }
+  try {
+    const result = await Fixture.setConceded(Number(req.params.id), concededBy);
+    if (result.ok) return res.json({ ok: true, fixture: result.fixture });
+    if (result.reason === 'not-found') return res.status(404).json({ error: 'Fixture not found' });
+    const error = concededBy === 'none'
+      ? 'Only a conceded fixture with no games can be un-conceded'
+      : 'A ' + result.status + ' fixture cannot be conceded — only an outstanding or rearranging one with no result';
+    return res.status(409).json({ error });
+  } catch (err) {
+    next(err);
+  }
+};

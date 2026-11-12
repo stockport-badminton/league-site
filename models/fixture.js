@@ -870,6 +870,62 @@ exports.rearrangeById = async function(fixtureId, date, withinTransaction) {
   })
 }
 
+// Conceding a fixture — superadmin, from the admin results page (ported from Tameside).
+//
+// A conceded match is recorded the way the hand-entered ones always were (23 in
+// production, Nov 2026): status 'conceded', 18-0 to the side that did NOT concede, no game
+// rows. The league table reads only the scores, so that is all it takes to count.
+//
+// Only 'outstanding' and 'rearranging' can be conceded. A 'rearranged' row is the
+// SUPERSEDED original — rearranging with a date inserts a fresh 'outstanding' row beside
+// it — so conceding one would put the same match in the table twice. A fixture with a
+// score or game rows has a result already; conceding over it would leave games the score
+// contradicts. Those rules live in the WHERE clause, not just the UI, so a hand-made POST
+// can't get past them. An already-conceded fixture may be re-conceded the other way, to
+// correct a mis-click without an undo in between.
+//
+// concededBy 'none' undoes a concession: back to 'outstanding' with no score.
+// Resolves { ok: true, fixture } or { ok: false, reason: 'not-found' | 'not-concedable', status }.
+const CONCEDABLE = ['outstanding', 'rearranging']
+exports.CONCEDABLE = CONCEDABLE
+
+/** @param {string} concededBy 'home' | 'away' */
+function concedeScores(concededBy) {
+  if (concededBy === 'home') return { homeScore: 0, awayScore: 18 }
+  if (concededBy === 'away') return { homeScore: 18, awayScore: 0 }
+  throw new Error('concededBy must be home or away')
+}
+exports.concedeScores = concedeScores
+
+/**
+ * @param {number} fixtureId
+ * @param {'home' | 'away' | 'none'} concededBy
+ */
+exports.setConceded = async function(fixtureId, concededBy) {
+  /** @param {any} eb */
+  const noGames = eb => eb.not(eb.exists(
+    eb.selectFrom('game').select('game.fixture').whereRef('game.fixture', '=', 'fixture.id')))
+  const update = concededBy === 'none'
+    ? kysely.updateTable('fixture')
+        .set({ status: 'outstanding', homeScore: null, awayScore: null })
+        .where('fixture.id', '=', fixtureId)
+        .where('fixture.status', '=', 'conceded')
+    : kysely.updateTable('fixture')
+        .set({ status: 'conceded', ...concedeScores(concededBy) })
+        .where('fixture.id', '=', fixtureId)
+        .where(eb => eb.or([
+          eb('fixture.status', '=', 'conceded'),
+          eb.and([eb('fixture.status', 'in', CONCEDABLE), eb('fixture.homeScore', 'is', null)]),
+        ]))
+  const row = await update.where(noGames)
+    .returning(['id', 'status', 'homeScore', 'awayScore'])
+    .executeTakeFirst()
+  if (row) return { ok: true, fixture: row }
+  const current = await kysely.selectFrom('fixture').select('status').where('id', '=', fixtureId).executeTakeFirst()
+  if (!current) return { ok: false, reason: 'not-found' }
+  return { ok: false, reason: 'not-concedable', status: current.status }
+}
+
 // Where a published result goes on Meta: the targets configured on this service, in the
 // order they are posted.
 //

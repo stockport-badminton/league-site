@@ -151,6 +151,13 @@
                   <% if(row['reminderDue']){ %>
                   <br /><a href="#" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
                 <% } } %>
+                <%# Mirrors Fixture.CONCEDABLE — and not 'rearranged', which is the superseded
+                    original of a rearranged match. The server enforces it too. %>
+                <% if ((row['status'] === 'outstanding' || row['status'] === 'rearranging') && row['homeScore'] == null) { %>
+                  <br /><a href="#" class="concede-link" data-fixture-id="<%= row['id'] %>" data-home="<%= row['homeTeam'] %>" data-away="<%= row['awayTeam'] %>"><%- icon('flag') %> Concede</a>
+                <% } else if (row['status'] === 'conceded') { %>
+                  <a href="#" class="concede-undo-link" data-fixture-id="<%= row['id'] %>"><%- icon('rotate-left') %> Undo concession</a>
+                <% } %>
             </td>
             
             <%# `row['homeClubName']` is undefined — getFixtureDetails returns `homeClub`,
@@ -212,6 +219,28 @@
           <button type="button" id="fixtureRearange" class="btn btn-primary">Submit</button>
         </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="concedeModal" tabindex="-1" role="dialog" aria-labelledby="concedeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="concedeModalLabel"><%- icon('flag') %> Concede fixture</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Which team conceded? The other team is awarded the match 18-0.</p>
+          <button type="button" class="btn btn-outline-danger btn-block concede-side" data-side="home"></button>
+          <button type="button" class="btn btn-outline-danger btn-block concede-side" data-side="away"></button>
+          <div id="concedeMessage" class="alert alert-danger mt-3 mb-0" role="status" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
       </div>
     </div>
   </div>
@@ -396,6 +425,39 @@
             button.prop('disabled', false);
           });
       })
+
+      // Conceding: POSTs to /admin/fixture/:id/concede and reloads, because the row's
+      // class, result cell and actions all change with the status.
+      function postConcede(id, concededBy) {
+        return $.post('/admin/fixture/' + encodeURIComponent(id) + '/concede', { concededBy: concededBy })
+          .done(function () { location.reload(); });
+      }
+      var concedeFixtureId = null;
+      $('#results-table').on('click', '.concede-link', function (e) {
+        e.preventDefault();
+        concedeFixtureId = $(this).attr('data-fixture-id');
+        // .text(), never .html(): team names go in as text.
+        $('#concedeModal .concede-side[data-side="home"]').text($(this).attr('data-home') + ' conceded').prop('disabled', false);
+        $('#concedeModal .concede-side[data-side="away"]').text($(this).attr('data-away') + ' conceded').prop('disabled', false);
+        $('#concedeMessage').hide().text('');
+        $('#concedeModal').modal('show');
+      });
+      $('#concedeModal .concede-side').on('click', function () {
+        $('#concedeModal .concede-side').prop('disabled', true);
+        postConcede(concedeFixtureId, $(this).attr('data-side'))
+          .fail(function (xhr) {
+            $('#concedeMessage').text((xhr.responseJSON && xhr.responseJSON.error) || 'Something went wrong — the fixture was not changed.').show();
+            $('#concedeModal .concede-side').prop('disabled', false);
+          });
+      });
+      $('#results-table').on('click', '.concede-undo-link', function (e) {
+        e.preventDefault();
+        if (!confirm('Undo this concession? The fixture goes back to outstanding with no score.')) return;
+        postConcede($(this).attr('data-fixture-id'), 'none')
+          .fail(function (xhr) {
+            alert('Could not update the fixture: ' + ((xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText));
+          });
+      });
 
       // Inline fixture date edit (superadmin): edits the existing date in place.
       $('#results-table').on('click', '.fd-edit', function(e){

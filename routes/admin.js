@@ -144,6 +144,8 @@ router.post('/admin/teams/:id/reinstate', access.superadmin, team_controller.adm
 router.get('/admin/teams/:id', access.superadmin, team_controller.admin_team_editForm);
 router.post('/admin/teams/:id', access.superadmin, team_controller.admin_team_update);
 router.post('/admin/fixture/:id/date', access.superadmin, fixture_controller.admin_fixture_date_update);
+// Concede a fixture 18-0, or undo it, from the admin results grid (Fixture.setConceded).
+router.post('/admin/fixture/:id(\\d+)/concede', access.superadmin, fixture_controller.admin_fixture_concede);
 router.get('/players/eloBackfillAdmin', access.superadmin, player_controller.player_elo_backfill_admin);
 
 // Shuttle price comparison (superadmin only — role check in controller)
