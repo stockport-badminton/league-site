@@ -15,7 +15,8 @@
         <strong><%= outcome.date %></strong> (fixture <%= outcome.replacementId %>).
       <% } else { %>
         Done: fixture <%= outcome.fixtureId %> is marked <strong>rearranging</strong>. Forward
-        the email that gives the new date when it comes.
+        the email that gives the new date when it comes, or
+        <a href="/admin/gap-finder?fixture=S-<%= outcome.fixtureId %>" target="_blank" rel="noopener">find free dates</a> to suggest.
       <% } %>
       Reply to the clubs to confirm.
     </div>
@@ -84,6 +85,9 @@
                   <td>
                     <%= status %>
                     <% if (f.id === proposedFixtureId) { %><span class="badge badge-info">best match</span><% } %>
+                    <% if (['outstanding', 'rearranging'].indexOf(status) >= 0) { %>
+                      <a class="small ml-1" href="/admin/gap-finder?fixture=S-<%= f.id %>" target="_blank" rel="noopener">find a date</a>
+                    <% } %>
                   </td>
                 </tr>
               <% }); %>

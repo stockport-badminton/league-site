@@ -1,0 +1,96 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+<style>
+  .gf { --s: #2b5c8a; --s-bg: #e7eef5; --t: #7a4ea8; --t-bg: #efe8f6;
+        --free: #227a4b; --free-bg: #e6f3ec; --warn: #9a6b12; --warn-bg: #faf1d8; --busy: #a5342b; --busy-bg: #f7e3e0;
+        --line: #dee2e6; --soft: #6c757d; }
+  .gf .pill { display: inline-block; font-size: .72rem; padding: 0 .45rem; border-radius: 1rem; white-space: nowrap; margin: 0 .2rem .2rem 0; }
+  .gf .pill.stockport { background: var(--s-bg); color: var(--s); } .gf .pill.tameside { background: var(--t-bg); color: var(--t); }
+  .gf .pill.free { background: var(--free-bg); color: var(--free); } .gf .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .gf .pill.busy { background: var(--busy-bg); color: var(--busy); }
+  .gf .slot { display: grid; grid-template-columns: 8.5rem 6rem 1fr; gap: .6rem; align-items: center; padding: .45rem .7rem;
+              border: 1px solid var(--line); border-radius: .4rem; margin-bottom: .35rem; background: #fff; }
+  .gf .slot.free { border-left: 4px solid var(--free); } .gf .slot.warn { border-left: 4px solid var(--warn); }
+  .gf .slot .d { font-weight: 600; } .gf .slot .d small { display: block; color: var(--soft); font-weight: 400; }
+  @media (max-width: 576px) { .gf .slot { grid-template-columns: 1fr 1fr; } .gf .slot .flags { grid-column: 1 / -1; } }
+  .gf .cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .8rem; }
+  .gf .month { border: 1px solid var(--line); border-radius: .4rem; padding: .5rem .6rem; background: #fff; }
+  .gf .month h3 { font-size: .9rem; margin: 0 0 .4rem; }
+  .gf .mgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .gf .wd { font-size: .6rem; text-align: center; color: var(--soft); }
+  .gf .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: .72rem; border-radius: 3px; color: var(--soft); position: relative; }
+  .gf .day.today { outline: 2px solid #343a40; }
+  .gf .day.stockport { background: var(--s-bg); color: var(--s); font-weight: 600; }
+  .gf .day.tameside { background: var(--t-bg); color: var(--t); font-weight: 600; }
+  .gf .day.both { background: linear-gradient(135deg, var(--s-bg) 50%, var(--t-bg) 50%); color: #212529; font-weight: 600; }
+  .gf .day.multi::after { content: ''; position: absolute; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+  .gf .sw { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block; vertical-align: middle; }
+  .gf .fx { display: flex; gap: .6rem; align-items: center; padding: .25rem 0; border-bottom: 1px solid var(--line); font-size: .85rem; }
+  .gf .fx .fxd { color: var(--soft); min-width: 7rem; }
+  .gf .fx.past { opacity: .55; }
+</style>
+
+<div class="col-12 gf text-left">
+  <h1>Gap finder</h1>
+  <p class="text-muted mb-2">
+    Season <%= data.season.slice(0, 4) + '/' + data.season.slice(6) %>, read live from
+    <% if (data.tamesideStatus === 'ok') { %><strong>both leagues</strong>.<% } else { %><strong>Stockport only</strong>.<% } %>
+    A club's nights are every fixture any of its teams plays, home or away, in either league.
+  </p>
+  <% if (data.tamesideStatus === 'failed') { %>
+    <div class="alert alert-warning">Tameside's database could not be read just now, so Tameside fixtures are missing and
+      clubs that play there will look freer than they are. Reload to try again.</div>
+  <% } else if (data.tamesideStatus === 'unset') { %>
+    <div class="alert alert-warning">TAMESIDE_DATABASE_URL is not set here, so only Stockport fixtures are shown.</div>
+  <% } %>
+
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><a class="nav-link active" id="tab-move" data-toggle="tab" href="#panel-move" role="tab">Move a match</a></li>
+    <li class="nav-item"><a class="nav-link" id="tab-cal" data-toggle="tab" href="#panel-cal" role="tab">Club calendar</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane show active" id="panel-move" role="tabpanel">
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          <label for="mClub" class="small mb-1">Club</label>
+          <select class="form-control form-control-sm" id="mClub"></select>
+        </div>
+        <div class="form-group col-md-8">
+          <label for="mFix" class="small mb-1">Home match to move (still to be played)</label>
+          <select class="form-control form-control-sm" id="mFix"></select>
+        </div>
+      </div>
+      <div id="moveOut"></div>
+    </div>
+
+    <div class="tab-pane" id="panel-cal" role="tabpanel">
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          <label for="cClub" class="small mb-1">Club</label>
+          <select class="form-control form-control-sm" id="cClub"></select>
+        </div>
+      </div>
+      <p class="small text-muted">
+        <span class="sw" style="background:var(--s-bg)"></span> Stockport &nbsp;
+        <span class="sw" style="background:var(--t-bg)"></span> Tameside &nbsp;
+        <span class="sw" style="background:linear-gradient(135deg,var(--s-bg) 50%,var(--t-bg) 50%)"></span> both that night &nbsp;
+        · dot = two or more teams out · blank nights are the gaps
+      </p>
+      <div id="calOut"></div>
+    </div>
+  </div>
+
+  <p class="small text-muted mt-4">
+    A date is ruled out only when one of the two teams already plays that night, in either league.
+    Everything else is a warning: other teams from either club out that night, the home club playing the night
+    before or after, not the home team's usual night, weekends, and the Christmas and Easter breaks (approximate —
+    neither league records its breaks). Postponed matches still waiting for a date, and conceded ones, don't hold a night.
+  </p>
+</div>
+
+<script type="application/json" id="gf-data"><%- dataJson %></script>
+<script type="application/json" id="gf-fixture"><%- JSON.stringify(fixture) %></script>
+<%- include('../footer.ejs') %>
+<script src="<%= asset('/static/beta/js/gap-finder-core.js') %>"></script>
+<script src="<%= asset('/static/beta/js/gap-finder.js') %>"></script>

@@ -1,5 +1,9 @@
 # Calendar gap finder (cross-league)
 
+**Now live in the app at `/admin/gap-finder`** (superadmin), read live from both
+databases, with the rules in `static/beta/js/gap-finder-core.js`. These scripts remain
+for an offline snapshot artifact.
+
 Finds free nights and valid rearrangement dates for a club, combining **both**
 leagues (Stockport + Tameside) into one view. A club's true availability is the
 union of every fixture its teams play — home or away, in either league.

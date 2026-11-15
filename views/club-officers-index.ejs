@@ -1,0 +1,17 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+<div class="col-12 col-lg-8 text-left">
+  <h1>Club officers</h1>
+  <% if (clubs.length) { %>
+    <p><%= superadmin ? 'Choose a club:' : 'You are a secretary at more than one club. Choose one:' %></p>
+    <ul>
+      <% clubs.forEach(function (c) { %><li><a href="/club-officers/<%= c.clubId %>"><%= c.clubName %></a></li><% }) %>
+    </ul>
+  <% } else { %>
+    <p>This page is for club secretaries and match secretaries, to keep their club's officers and contact details
+      up to date.</p>
+    <p>If you are one and are seeing this, the email address you signed in with isn't the one on your player
+      record. <a href="/contact-us">Contact the league</a> and we'll put it right.</p>
+  <% } %>
+</div>
+<%- include('footer.ejs') %>

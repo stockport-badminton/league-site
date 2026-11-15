@@ -1,0 +1,107 @@
+<%- include('header.ejs') %>
+<%- include('nav.ejs') %>
+<%
+  const nameOf = p => p.name || ('Player ' + p.id);
+  // The submitted values when this officer's form failed validation, else what is stored.
+  const val = (p, field) => (data.playerId === p.id && data[field] !== undefined) ? data[field] : (p[field] || '');
+%>
+<div class="col-12 col-lg-10 text-left">
+  <h1><%= club.name %> officers</h1>
+  <p class="text-muted">
+    Who holds each office at <%= club.name %>, and how to reach them. These are the details on the
+    <a href="/club/<%= club.id %>">club contact page</a> and the addresses the league's emails go to.
+    <% if (superadmin) { %><br><strong>You are seeing this as the results secretary.</strong><% } %>
+  </p>
+
+  <% if (saved) { %><div class="alert alert-success" role="status"><%= saved %></div><% } %>
+  <% if (error) { %><div class="alert alert-danger" role="alert"><%= error %></div><% } %>
+
+  <h2 class="h4 mt-4" id="contacts">Contact details</h2>
+  <p class="small text-muted">Leave a box empty to remove that detail.</p>
+  <% if (!officers.length) { %>
+    <p class="text-muted">No officers are recorded yet. Choose them below.</p>
+  <% } %>
+  <% officers.forEach(function (p) { %>
+    <form method="post" action="/club-officers/<%= club.id %>/contact" class="card mb-2" id="officer-<%= p.id %>">
+      <div class="card-body py-2">
+        <div class="mb-1">
+          <strong><%= nameOf(p) %></strong><% if (p.you) { %> <span class="badge badge-primary">you</span><% } %>
+          <% p.offices.forEach(function (o) { %><span class="badge badge-light ml-1"><%= o %></span><% }) %>
+        </div>
+        <input type="hidden" name="playerId" value="<%= p.id %>">
+        <div class="form-row align-items-end">
+          <div class="col-md-5 mb-1">
+            <label class="small mb-0" for="email-<%= p.id %>">Email</label>
+            <input type="email" class="form-control form-control-sm" id="email-<%= p.id %>" name="email" maxlength="254" value="<%= val(p, 'email') %>">
+          </div>
+          <div class="col-md-4 mb-1">
+            <label class="small mb-0" for="tel-<%= p.id %>">Phone</label>
+            <input type="tel" class="form-control form-control-sm" id="tel-<%= p.id %>" name="tel" maxlength="30" value="<%= val(p, 'tel') %>">
+          </div>
+          <div class="col-md-3 mb-1">
+            <button type="submit" class="btn btn-sm btn-primary">Save <%= p.you ? 'my' : '' %> details</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  <% }) %>
+
+  <h2 class="h4 mt-5" id="secretaries">Secretaries</h2>
+  <p class="small text-muted">A club can have more than one of each. Club and match secretaries can manage this page.</p>
+  <div class="row">
+    <% roles.forEach(function (role) { %>
+      <div class="col-md-6 mb-3">
+        <h3 class="h6"><%= role.label %></h3>
+        <ul class="list-unstyled mb-2">
+          <% if (!role.holders.length) { %><li class="text-muted small">None recorded</li><% } %>
+          <% role.holders.forEach(function (p) { var self = p.id === youId; %>
+            <li class="d-flex align-items-center mb-1">
+              <span class="mr-2"><%= nameOf(p) %><% if (self) { %> (you)<% } %></span>
+              <form method="post" action="/club-officers/<%= club.id %>/secretary" class="mb-0"
+                <% if (self) { %>onsubmit="return confirm('Remove yourself as <%= role.label.toLowerCase() %>? If it is your only office here you will lose access to this page.')"<% } %>>
+                <input type="hidden" name="role" value="<%= role.key %>">
+                <input type="hidden" name="playerId" value="<%= p.id %>">
+                <input type="hidden" name="action" value="remove">
+                <button type="submit" class="btn btn-link btn-sm text-danger p-0">remove</button>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+        <% if (role.candidates.length) { %>
+          <form method="post" action="/club-officers/<%= club.id %>/secretary" class="form-inline">
+            <input type="hidden" name="role" value="<%= role.key %>">
+            <input type="hidden" name="action" value="add">
+            <label class="sr-only" for="add-<%= role.key %>">Add a <%= role.label.toLowerCase() %></label>
+            <select class="form-control form-control-sm mr-2 mb-1" id="add-<%= role.key %>" name="playerId" required>
+              <option value="">Add a player…</option>
+              <% role.candidates.forEach(function (p) { %><option value="<%= p.id %>"><%= nameOf(p) %></option><% }) %>
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-primary mb-1">Add</button>
+          </form>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+
+  <h2 class="h4 mt-4" id="captains">Team captains</h2>
+  <p class="small text-muted">One captain per team, chosen from that team's players. Add a player to the team on the
+    <a href="/manage-players/club-<%= encodeURIComponent(club.name) %>">team players</a> page first if they aren't listed.</p>
+  <% if (!teams.length) { %><p class="text-muted">This club has no teams playing.</p><% } %>
+  <% teams.forEach(function (t) { %>
+    <form method="post" action="/club-officers/<%= club.id %>/captain" class="form-row align-items-center mb-2" id="team-<%= t.id %>">
+      <input type="hidden" name="teamId" value="<%= t.id %>">
+      <div class="col-sm-3"><label class="mb-0 font-weight-bold" for="captain-<%= t.id %>"><%= t.name %></label></div>
+      <div class="col-sm-6">
+        <select class="form-control form-control-sm" id="captain-<%= t.id %>" name="playerId">
+          <option value="" <%= t.captain ? '' : 'selected' %>>— no captain —</option>
+          <% t.members.forEach(function (p) { %>
+            <option value="<%= p.id %>" <%= t.captain && t.captain.id === p.id ? 'selected' : '' %>><%= nameOf(p) %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-sm-3"><button type="submit" class="btn btn-sm btn-outline-primary">Set captain</button></div>
+    </form>
+  <% }) %>
+</div>
+
+<%- include('footer.ejs') %>

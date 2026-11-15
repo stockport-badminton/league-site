@@ -183,6 +183,11 @@ router.get('/admin/league-run-in', access.superadmin,
   require('../controllers/leagueController').run_in);
 router.post('/admin/audit/run', access.cron(audit_controller.requireAuditCaller), audit_controller.audit_run);
 
+// Free nights and rearrangement dates across both leagues (utils/gapFinder.js). Read-only;
+// superadmin first, to be opened to club secretaries once proven (Neil, 15 Nov 2026).
+const gap_finder_controller = require('../controllers/gapFinderController');
+router.get('/admin/gap-finder', access.superadmin, gap_finder_controller.page);
+
 // Team strength (utils/teamStrength.js): the page reads the latest nightly run; the run is
 // Cloud Scheduler's (X-Audit-Token) or the page's button.
 const team_strength_controller = require('../controllers/teamStrengthController');

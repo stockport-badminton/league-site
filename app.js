@@ -380,6 +380,7 @@ app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 var Player = require('./models/players');
+var ClubOfficers = require('./models/clubOfficers');
 
 var strategy = new Auth0Strategy(
   {
@@ -396,11 +397,21 @@ var strategy = new Auth0Strategy(
     // call site needs to change. The whole profile is cached in the session
     // for its lifetime, so this is one DB query per login, not per request.
     var email = profile.emails && profile.emails[0] && profile.emails[0].value;
-    Player.getAuthRoleByEmail(email).then(function(authRow) {
+    // Whether they are a club or match secretary only decides whether the nav offers the
+    // Club Officers page; the page itself checks again on every request
+    // (middleware/requireClubSecretary.js). So a failure here costs the link, not the login.
+    var secretaryOf = profile._json.email_verified === false ? Promise.resolve([])
+      : ClubOfficers.secretaryClubs(email).catch(function(err) {
+        log.warn({ err }, 'login: could not check secretary offices');
+        return [];
+      });
+    Promise.all([Player.getAuthRoleByEmail(email), secretaryOf]).then(function(found) {
+      var authRow = found[0];
       var role = authRow && authRow.role;
       profile._json['https://my-app.example.com/role'] = role || undefined;
       profile._json['https://my-app.example.com/club'] = role === 'superadmin' ? 'All' : (role === 'admin' ? authRow.clubName : undefined);
       profile._json['https://my-app.example.com/messeradmin'] = !!(authRow && authRow.messerAdmin);
+      profile._json['https://my-app.example.com/secretary'] = found[1].length > 0;
       done(null, profile);
     }).catch(function(err) { done(err); });
   }

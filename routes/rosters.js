@@ -6,7 +6,16 @@ const access = require('../middleware/access');
 const player_controller = require('../controllers/playerController');
 const roster_controller = require('../controllers/rosterController');
 
-// Player routes
+// Club officers: a club's own club and match secretaries manage who holds each office
+// and the officers' contact details (controllers/clubOfficersController.js). Club admins
+// keep the roster's "Edit details" alongside it.
+const club_officers_controller = require('../controllers/clubOfficersController');
+router.get('/club-officers', access.member, club_officers_controller.index);
+router.get('/club-officers/:clubId(\\d+)', access.clubSecretary, club_officers_controller.page);
+router.post('/club-officers/:clubId(\\d+)/contact', access.clubSecretary, club_officers_controller.contact);
+router.post('/club-officers/:clubId(\\d+)/secretary', access.clubSecretary, club_officers_controller.secretary);
+router.post('/club-officers/:clubId(\\d+)/captain', access.clubSecretary, club_officers_controller.captain);
+
 //
 // `/player/create` and `/manage-players/create` used to sit here with no
 // middleware at all — anyone could create a player into any club, because both

@@ -93,6 +93,9 @@
                   var navClub = locals.user._json['https://my-app.example.com/club'];
                   var hasOwnClub = navClub && navClub !== 'All';
                 %>
+                <% if (locals.user._json['https://my-app.example.com/secretary']) { %>
+                  <a class="dropdown-item" href="/club-officers">Club Officers</a>
+                <% } %>
                 <% if (hasOwnClub) { %>
                   <a class="dropdown-item" href="/manage-players/club-<%= encodeURIComponent(navClub) %>">Team Players</a>
                   <a class="dropdown-item" href="/forms/team-registration/<%= navClub %>/prefilled.docx" target="_blank">Team Registration Form (prefilled)</a>

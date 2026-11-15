@@ -17,6 +17,7 @@ const GROUPS = [
       { href: '/manage-players', label: 'Team Management', blurb: 'Every club\'s squads — reorder, move, add and release players.' },
       { href: '/admin/player-requests', label: 'Registration Requests', blurb: 'Registration emails forwarded to registrations@, waiting to be processed.', count: 'pendingRequests' },
       { href: '/admin/registrations', label: 'Registration Forms', blurb: 'Which clubs have returned this season\'s registration form; chase the rest.', count: 'formsOutstanding' },
+      { href: '/club-officers', label: 'Club Officers', blurb: 'Any club\'s secretaries, captains and their contact details — the page club secretaries use for their own club.' },
       { href: '/admin/clubs', label: 'Club Admin', blurb: 'Add and edit clubs.' },
       { href: '/admin/junior-clubs', label: 'Junior Clubs', blurb: 'The junior clubs on the public Juniors page — add, edit, hide or remove.' },
       { href: '/admin/teams', label: 'Team Admin', blurb: 'Teams and their divisions — promote, relegate, withdraw, reinstate.' },
@@ -26,6 +27,7 @@ const GROUPS = [
     title: 'Results & stats',
     tools: [
       { href: '/admin/rearrangements', label: 'Rearrangement Requests', blurb: 'Rearrangement emails forwarded to rearrangements@ — confirm the fixture and new date, then apply.', count: 'pendingRearrangements' },
+      { href: '/admin/gap-finder', label: 'Gap Finder', blurb: 'Free nights and valid rearrangement dates for a club, across Stockport and Tameside.' },
       { href: '/admin/league-run-in', label: 'League Run-in', blurb: 'This season\'s tables with the top two and bottom two marked, and who is already certain to go up or down.' },
       { href: '/admin/team-strength', label: 'Team Strength', blurb: 'Points-based ratings: this week\'s predictions, projected tables and team order checks. Recalculated nightly.' },
       { href: '/fixture-players', label: 'Fixture Players', blurb: 'Who played in each fixture.' },

@@ -18,6 +18,7 @@
 const secured = require('./secured');
 const devOnly = require('./devOnly');
 const requireClubAccess = require('./requireClubAccess');
+const requireClubSecretary = require('./requireClubSecretary');
 const requirePublishAuthority = require('./requirePublishAuthority');
 const verifySns = require('./verifySns');
 const { webhookLimiter } = require('./rateLimit');
@@ -71,6 +72,10 @@ exports.messerAdmin = declare('messerAdmin', compose([secured, requireMesserAdmi
 
 // Logged in, and the route's :club is the viewer's own club (or they are the superadmin).
 exports.clubScoped = declare('clubScoped', compose([secured, requireClubAccess]));
+
+// Logged in, and a club or match secretary (by the player flag) of the route's :clubId, or
+// the superadmin. The club officers page (controllers/clubOfficersController.js).
+exports.clubSecretary = declare('clubSecretary', compose([secured, requireClubSecretary]));
 
 // A Cloud Scheduler token or a superadmin session. Takes the middleware requireCronCaller
 // built — the tokens are configured where the routes are — and refuses anything else, so
