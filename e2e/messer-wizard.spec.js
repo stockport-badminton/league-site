@@ -217,3 +217,51 @@ test.describe('the messer summary', function () {
       guard.assertNoWrites();
     });
 });
+
+// Sentry JAVASCRIPT-1VN, 17 Nov 2026. Picking a team reloads that side's player lists and
+// then puts back what each list held. A list still on its "Select a player" placeholder
+// holds nothing jQuery will report (the placeholder is disabled, so `.val()` is null), and
+// `.val(null)` on the rebuilt list selects NOTHING at all — not even the first player. Step
+// 4 then reads `selectedOptions[0].value` from every player list and throws, and the
+// wizard is stuck on step 3 with a Continue that does nothing.
+//
+// Reached in production from the confirmation page of a walkover: no players are stored,
+// the teams are, and the page re-picks the teams on load. A captain who presses on past
+// the player steps of a fresh card gets the same.
+test.describe('the messer player lists', function () {
+  test('a captain can walk past the player steps without choosing anyone', async function ({ page, baseURL }) {
+    const errors = [];
+    page.on('pageerror', function (err) { errors.push(err.message); });
+    const guard = await openWizard(page, baseURL);
+
+    const teams = page.waitForResponse(function (res) {
+      return /\/api\/messer-teams-by-section\//.test(res.url()) && res.status() === 200;
+    });
+    await page.locator('#section').first().selectOption({ index: 1 });
+    await teams;
+
+    // Four lists come back per pair of teams; wait for all of them so the restore runs.
+    let players = 0;
+    const allPlayers = new Promise(function (resolve) {
+      page.on('response', function (res) {
+        if (/\/eligiblePlayers\//.test(res.url()) && ++players === 4) resolve();
+      });
+    });
+    await page.locator('#homeTeam').first().selectOption({ index: 1 });
+    await page.locator('#awayTeam').first().selectOption({ index: 2 });
+    await allPlayers;
+
+    // Still asks for a choice — not quietly "No Player", which would file as a walkover.
+    for (const id of ['homeMan1', 'homeLady3', 'awayMan2', 'awayLady1']) {
+      await expect.poll(function () {
+        return page.locator('#' + id).first().evaluate(function (s) {
+          return s.selectedOptions[0] ? s.selectedOptions[0].text : null;
+        });
+      }, { message: id }).toBe('Select a player');
+    }
+
+    await goToFirstScoreStep(page);
+    expect(errors).toEqual([]);
+    guard.assertNoWrites();
+  });
+});

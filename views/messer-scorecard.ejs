@@ -756,6 +756,18 @@
            alert('Error loading teams. Please try again.');
         });
       })
+      // Put a player list back how it was after fillPlayers rebuilt it. A list still on its
+      // disabled "Select a player" placeholder reads as null, and `.val(null)` -- like
+      // `.val(id)` for a player no longer in the list -- leaves NOTHING selected, which
+      // step 4 trips over reading selectedOptions[0] (Sentry JAVASCRIPT-1VN). Neither may
+      // default to the first option either: that is "No Player", and would file a walkover.
+      function restorePlayer($select, value) {
+        if (value != null) $select.val(value);
+        if (value == null || $select[0].selectedIndex === -1) {
+          $select.prepend('<option disabled>Select a player</option>');
+          $select[0].selectedIndex = 0;
+        }
+      }
       $("#homeTeam").change(function(){
         var selectedTeam = this.value;
         // Store current selected values before AJAX calls
@@ -765,16 +777,16 @@
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#homeMan1, #homeMan2, #homeMan3'), data);
-               $('#homeMan1').val(selectedMen.man1);
-               $('#homeMan2').val(selectedMen.man2);
-               $('#homeMan3').val(selectedMen.man3);
+               restorePlayer($('#homeMan1'), selectedMen.man1);
+               restorePlayer($('#homeMan2'), selectedMen.man2);
+               restorePlayer($('#homeMan3'), selectedMen.man3);
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#homeLady1, #homeLady2, #homeLady3'), data);
-               $('#homeLady1').val(selectedLadies.lady1);
-               $('#homeLady2').val(selectedLadies.lady2);
-               $('#homeLady3').val(selectedLadies.lady3);
+               restorePlayer($('#homeLady1'), selectedLadies.lady1);
+               restorePlayer($('#homeLady2'), selectedLadies.lady2);
+               restorePlayer($('#homeLady3'), selectedLadies.lady3);
             });
       })
       $("#awayTeam").change(function(){
@@ -786,16 +798,16 @@
             $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#awayMan1, #awayMan2, #awayMan3'), data);
-               $('#awayMan1').val(selectedMen.man1);
-               $('#awayMan2').val(selectedMen.man2);
-               $('#awayMan3').val(selectedMen.man3);
+               restorePlayer($('#awayMan1'), selectedMen.man1);
+               restorePlayer($('#awayMan2'), selectedMen.man2);
+               restorePlayer($('#awayMan3'), selectedMen.man3);
             });
             $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#awayLady1, #awayLady2, #awayLady3'), data);
-               $('#awayLady1').val(selectedLadies.lady1);
-               $('#awayLady2').val(selectedLadies.lady2);
-               $('#awayLady3').val(selectedLadies.lady3);
+               restorePlayer($('#awayLady1'), selectedLadies.lady1);
+               restorePlayer($('#awayLady2'), selectedLadies.lady2);
+               restorePlayer($('#awayLady3'), selectedLadies.lady3);
             });
       })
       $("#homeMan1, #homeMan2, #homeMan3, #homeLady1, #homeLady2, #homeLady3, #awayMan1, #awayMan2, #awayMan3, #awayLady1, #awayLady2, #awayLady3").change(function(){
