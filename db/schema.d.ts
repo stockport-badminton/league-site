@@ -287,6 +287,7 @@ export interface LiveScorecard {
 export interface Messer {
   awayScore: number | null;
   awayTeam: number;
+  concededBy: string | null;
   drawPos: number | null;
   homeScore: number | null;
   homeTeam: number;
@@ -301,6 +302,7 @@ export interface Messer {
 export interface MesserAt {
   awayScore: number | null;
   awayTeam: number | null;
+  concededBy: string | null;
   drawPos: number | null;
   homeScore: number | null;
   homeTeam: number | null;
@@ -426,6 +428,7 @@ export interface MesserScorecard {
 export interface MesserSeason {
   awayScore: number | null;
   awayTeam: number | null;
+  concededBy: string | null;
   drawPos: number | null;
   homeScore: number | null;
   homeTeam: number | null;

@@ -1,14 +1,15 @@
 <%# One match box on the Messer draw: a line per side with the team, its handicap and
-    the adjusted handicap it plays off, and the score once there is one. `m` is the match
+    the adjusted handicap it plays off, and the score once there is one — a side that
+    conceded reads w/o rather than 0. `m` is the match
     keyed by drawPos in new_messer_draw (undefined when the slot has no row), `place` its
     position in the bracket as a style string. A side with no team yet reads TBC. %>
 <%
   var named = function (n) { return n && n !== 'No Team'; };
   var played = m && m.homeScore != null && m.awayScore != null;
   var sides = m ? [
-    { name: m.homeTeam, handicap: m.homeHandicap, adj: m.homeAdjHandicap, score: m.homeScore,
+    { name: m.homeTeam, handicap: m.homeHandicap, adj: m.homeAdjHandicap, score: m.homeScore, conceded: m.concededBy === 'home',
       won: played && Number(m.homeScore) > Number(m.awayScore) },
-    { name: m.awayTeam, handicap: m.awayHandicap, adj: m.awayAdjHandicap, score: m.awayScore,
+    { name: m.awayTeam, handicap: m.awayHandicap, adj: m.awayAdjHandicap, score: m.awayScore, conceded: m.concededBy === 'away',
       won: played && Number(m.awayScore) > Number(m.homeScore) }
   ] : [{}, {}];
 %>
@@ -23,10 +24,15 @@
         <% } else { %>
           <span class="md-team md-tbc">TBC</span>
         <% } %>
-        <span class="md-score"><%= played ? s.score : '' %></span>
+        <% if (s.conceded) { %>
+          <span class="md-score md-wo" title="Conceded">w/o</span>
+        <% } else { %>
+          <span class="md-score"><%= played ? s.score : '' %></span>
+        <% } %>
         <span class="sr-only"><%= i === 0 ? '(home)' : '(away)' %></span>
       </div>
     <% }) %>
   </div>
   <%- include('messer-swap', { m: m, section: section }) %>
+  <%- include('messer-concede', { m: m }) %>
 </div>

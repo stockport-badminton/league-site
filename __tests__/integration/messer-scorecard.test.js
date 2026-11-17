@@ -592,3 +592,107 @@ describe('Messer Scorecard Routes', () => {
     });
   });
 });
+
+// Conceding from the draw page, the approval guard that goes with it, and 0 scores.
+// The draw rules themselves are Fixture.concedeMesserMatch's, tested in __tests__/db/messer.test.js.
+describe('Messer concessions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupCommonMocks();
+  });
+
+  describe('POST /messer-draw/:section/concede/:id', () => {
+    it('concedes and goes back to the draw saying which match', async () => {
+      Fixture.concedeMesserMatch.mockResolvedValue({ id: 5, drawPos: 5, concededBy: 'away', winningTeam: 1, advanced: true });
+      const res = await request(app).post('/messer-draw/a-section/concede/5').type('form').send({ concededBy: 'away' });
+      expect(Fixture.concedeMesserMatch).toHaveBeenCalledWith('A', 5, 'away');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/messer-draw/a-section?conceded=5');
+    });
+
+    it('says so when the winner could not be sent on', async () => {
+      Fixture.concedeMesserMatch.mockResolvedValue({ id: 33, drawPos: 33, concededBy: 'home', winningTeam: 2, advanced: false });
+      const res = await request(app).post('/messer-draw/b-section/concede/33').type('form').send({ concededBy: 'home' });
+      expect(res.headers.location).toBe('/messer-draw/b-section?conceded=33&notAdvanced=1');
+    });
+
+    it('undoes', async () => {
+      Fixture.concedeMesserMatch.mockResolvedValue({ id: 5, drawPos: 5, concededBy: null, winningTeam: null, advanced: false });
+      const res = await request(app).post('/messer-draw/a-section/concede/5').type('form').send({ concededBy: 'none' });
+      expect(Fixture.concedeMesserMatch).toHaveBeenCalledWith('A', 5, 'none');
+      expect(res.headers.location).toMatch(/^\/messer-draw\/a-section\?undone=5/);
+    });
+
+    it('passes a refusal back as its code', async () => {
+      Fixture.concedeMesserMatch.mockRejectedValue(Object.assign(new Error('x'), { status: 409, code: 'next-played' }));
+      const res = await request(app).post('/messer-draw/a-section/concede/5').type('form').send({ concededBy: 'none' });
+      expect(res.headers.location).toBe('/messer-draw/a-section?concedeError=next-played');
+    });
+
+    it('treats anything else as an error, not a refusal', async () => {
+      Fixture.concedeMesserMatch.mockRejectedValue(new Error('connection reset'));
+      const res = await request(app).post('/messer-draw/a-section/concede/5').type('form').send({ concededBy: 'home' });
+      expect(res.status).toBe(500);
+    });
+
+    it('refuses a side it does not know, before touching the draw', async () => {
+      const res = await request(app).post('/messer-draw/a-section/concede/5').type('form').send({ concededBy: 'both' });
+      expect(res.status).toBe(400);
+      expect(Fixture.concedeMesserMatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('approving a card for a match the draw has already decided', () => {
+    beforeEach(() => {
+      Fixture.getMesserScorecardById.mockResolvedValue([{ id: 20, homeTeam: 19, awayTeam: 4, status: 'submitted',
+        email: 'captain@example.com', Game1homeScore: 21, Game1awayScore: 0 }]);
+    });
+
+    it('is refused, and nothing is written', async () => {
+      Fixture.findMesserMatch.mockResolvedValue({ id: 5, section: 'A', drawPos: 5, homeScore: 15, awayScore: 0, concededBy: null, reversed: false });
+      const res = await request(app).post('/messer-result/20/approve');
+      expect(res.status).toBe(409);
+      expect(res.body.error).toMatch(/already has a result/);
+      for (const write of ['createMesserResult', 'updateMesserTable', 'updateMesserScorecardStatus', 'swapMesserHomeAway', 'advanceMesserWinner']) {
+        expect(Fixture[write]).not.toHaveBeenCalled();
+      }
+    });
+
+    it('names the concession when that is what decided it', async () => {
+      Fixture.findMesserMatch.mockResolvedValue({ id: 5, section: 'A', drawPos: 5, homeScore: 0, awayScore: 15, concededBy: 'home', reversed: false });
+      const res = await request(app).post('/messer-result/20/approve');
+      expect(res.status).toBe(409);
+      expect(res.body.error).toMatch(/conceded/);
+    });
+
+    it('still approves an undecided match', async () => {
+      Fixture.findMesserMatch.mockResolvedValue({ id: 5, section: 'A', drawPos: 5, homeScore: null, awayScore: null, concededBy: null, reversed: false });
+      Fixture.advanceMesserWinner.mockResolvedValue({ advanced: true, slot: 'H' });
+      const res = await request(app).post('/messer-result/20/approve');
+      expect(res.status).toBe(200);
+      expect(Fixture.updateMesserTable).toHaveBeenCalled();
+    });
+  });
+
+  // A walkover card — every player "No Player" (0), 21-0 throughout — is how concessions
+  // were filed before the draw page could record them, and still can be.
+  it('files a score of 0 as 0, not as no score', async () => {
+    const body = { section: 'A', date: '2026-11-17', homeTeam: '1', awayTeam: '2', email: 'captain@example.com' };
+    for (const side of ['home', 'away']) {
+      for (const p of ['Man1', 'Man2', 'Man3', 'Lady1', 'Lady2', 'Lady3']) body[side + p] = '0';
+      for (const [mix, n] of [['First', 1], ['Second', 2], ['Third', 3]]) {
+        body[`${mix}Mixed${side}Man${n}`] = '0';
+        body[`${mix}Mixed${side}Lady${n}`] = '0';
+      }
+    }
+    for (let i = 1; i <= 15; i++) { body[`Game${i}homeScore`] = '21'; body[`Game${i}awayScore`] = '0'; }
+    Fixture.createMesserScorecard.mockResolvedValue([{ id: 123 }]);
+
+    const res = await request(app).post('/messer-scorecard-beta').type('form').send(body);
+    expect(res.status).toBe(302);
+    const filed = Fixture.createMesserScorecard.mock.calls[0][0];
+    expect(filed.Game1awayScore).toBe(0);
+    expect(filed.Game15awayScore).toBe(0);
+    expect(filed.Game15homeScore).toBe(21);
+  });
+});

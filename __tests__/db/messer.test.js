@@ -160,3 +160,89 @@ describe('advanceMesserWinner', () => {
     expect((await draw())[2].homeTeam).toBe(T[0]);
   });
 });
+
+// Conceding from the draw page. Slot 3 starts empty here — the round-2 match the two
+// round-1 winners will meet in — so what a concession puts into it can be seen.
+describe('concedeMesserMatch', () => {
+  beforeEach(async () => {
+    await run(`UPDATE messer SET "homeTeam" = ${NO_TEAM}, "awayTeam" = ${NO_TEAM} WHERE id = 9003`);
+  });
+  const row = async id => ({ ...(await run(`SELECT "homeTeam", "awayTeam", "homeScore", "awayScore", "winningTeam", "concededBy"
+    FROM messer WHERE id = ?`, [id]))[0] });
+  const refused = (p) => p.then(() => { throw new Error('not refused'); }, err => err.code);
+
+  it('scores 15-0 to the other side, marks it, and sends the winner on', async () => {
+    expect(await Fixture.concedeMesserMatch('Z', 9001, 'away'))
+      .toMatchObject({ drawPos: 1, concededBy: 'away', winningTeam: T[0], advanced: true });
+    expect(await row(9001)).toMatchObject({ homeScore: 15, awayScore: 0, winningTeam: T[0], concededBy: 'away' });
+    expect((await row(9003)).homeTeam).toBe(T[0]);   // 1 feeds 3:H
+
+    await Fixture.concedeMesserMatch('Z', 9002, 'home');
+    expect(await row(9002)).toMatchObject({ homeScore: 0, awayScore: 15, winningTeam: T[3] });
+    expect((await row(9003)).awayTeam).toBe(T[3]);   // 2 feeds 3:A
+  });
+
+  it('switches a concession to the other side, winner and all', async () => {
+    await Fixture.concedeMesserMatch('Z', 9001, 'away');
+    await Fixture.concedeMesserMatch('Z', 9001, 'home');
+    expect(await row(9001)).toMatchObject({ homeScore: 0, awayScore: 15, winningTeam: T[1], concededBy: 'home' });
+    expect((await row(9003)).homeTeam).toBe(T[1]);
+  });
+
+  it('undo clears the match and takes the winner back out of the next round', async () => {
+    await Fixture.concedeMesserMatch('Z', 9001, 'away');
+    await Fixture.concedeMesserMatch('Z', 9001, 'none');
+    expect(await row(9001)).toEqual({ homeTeam: T[0], awayTeam: T[1], homeScore: null, awayScore: null,
+      winningTeam: null, concededBy: null });
+    expect((await row(9003)).homeTeam).toBe(NO_TEAM);
+  });
+
+  it('undo leaves a next-round team alone that the concession did not put there', async () => {
+    await Fixture.concedeMesserMatch('Z', 9001, 'away');
+    await run(`UPDATE messer SET "homeTeam" = ${T[2]} WHERE id = 9003`);
+    await Fixture.concedeMesserMatch('Z', 9001, 'none');
+    expect((await row(9003)).homeTeam).toBe(T[2]);
+  });
+
+  it('will not undo or switch once the next round has been played', async () => {
+    await Fixture.concedeMesserMatch('Z', 9001, 'away');
+    await run(`UPDATE messer SET "homeScore" = 9, "awayScore" = 6 WHERE id = 9003`);
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9001, 'none'))).toBe('next-played');
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9001, 'home'))).toBe('next-played');
+    expect(await row(9001)).toMatchObject({ concededBy: 'away', winningTeam: T[0] });
+  });
+
+  it('will not concede over a played result, or undo one', async () => {
+    await run(`UPDATE messer SET "homeScore" = 9, "awayScore" = 6, "winningTeam" = ${T[0]} WHERE id = 9001`);
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9001, 'home'))).toBe('played');
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9001, 'none'))).toBe('not-conceded');
+    expect(await row(9001)).toMatchObject({ homeScore: 9, awayScore: 6, concededBy: null });
+  });
+
+  it('needs a team on both sides', async () => {
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9003, 'home'))).toBe('empty');
+    await run(`UPDATE messer SET "homeTeam" = ${T[0]} WHERE id = 9003`);
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9003, 'away'))).toBe('empty');
+  });
+
+  it('will not concede a match with a card awaiting approval, either way round', async () => {
+    await Fixture.createMesserScorecard(await zeroRow('messer_scorecard', { homeTeam: T[1], awayTeam: T[0], date: '2027-01-20', status: 'submitted' }));
+    expect(await refused(Fixture.concedeMesserMatch('Z', 9001, 'home'))).toBe('pending');
+    expect((await row(9001)).homeScore).toBeNull();
+  });
+
+  it('only finds the match in the section it was asked for', async () => {
+    expect(await refused(Fixture.concedeMesserMatch('A', 9001, 'home'))).toBe('missing');
+  });
+
+  it('leaves a next round alone that has somehow been played already', async () => {
+    await run(`UPDATE messer SET "homeTeam" = ${T[2]}, "homeScore" = 9, "awayScore" = 6 WHERE id = 9003`);
+    expect(await Fixture.concedeMesserMatch('Z', 9001, 'away')).toMatchObject({ winningTeam: T[0], advanced: false });
+    expect((await row(9003)).homeTeam).toBe(T[2]);
+  });
+
+  it('a final has nowhere to send the winner', async () => {
+    await run(`UPDATE messer SET "homeTeam" = ${T[0]}, "awayTeam" = ${T[2]} WHERE id = 9003`);
+    expect(await Fixture.concedeMesserMatch('Z', 9003, 'home')).toMatchObject({ winningTeam: T[2], advanced: false });
+  });
+});

@@ -138,9 +138,12 @@
   color: #fff;
 }
 .md-side.is-loser { color: #6c757d; }
+.md-wo { font-size: .75em; font-style: italic; }
 
-/* The messer admin's Swap button (partials/messer-swap.ejs), down the box's right side. */
-.md-match .messer-swap {
+/* The messer admin's Swap and Concede buttons (partials/messer-swap.ejs,
+   partials/messer-concede.ejs), down the box's right side. */
+.md-match .messer-swap,
+.md-match .messer-concede {
   display: flex;
   align-items: center;
   margin: 0;

@@ -22,7 +22,8 @@ exports.getMesser = async function(searchTerms) {
     .innerJoin('team_at as awayTeam', join => join.onRef('messer.awayTeam', '=', 'awayTeam.id').on('awayTeam.season', '=', season))
     .select(['homeTeam.name as homeTeamName', 'homeTeam.handicap as homeTeamHandicap',
       'awayTeam.name as awayTeamName', 'awayTeam.handicap as awayTeamHandicap',
-      'messer.homeScore', 'messer.awayScore', 'messer.drawPos', 'messer.id', 'messer.homeTeam', 'messer.awayTeam'])
+      'messer.homeScore', 'messer.awayScore', 'messer.drawPos', 'messer.id', 'messer.homeTeam', 'messer.awayTeam',
+      'messer.concededBy'])
     .where('messer.season', '=', season)
     .where('messer.section', 'like', searchTerms.section)
     // The page keys rows by drawPos; the order is only to make the answer repeatable.

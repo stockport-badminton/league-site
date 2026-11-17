@@ -114,7 +114,12 @@ exports.new_messer_draw = async function(req, res, next) {
       obj[row.drawPos] = {"homeTeam":row.homeTeamName,"awayTeam":row.awayTeamName,"homeHandicap":row.homeTeamHandicap,"awayHandicap":row.awayTeamHandicap,"homeAdjHandicap":homeTeamAdjHandicap+homeHand,"awayAdjHandicap":awayTeamAdjHandicap+awayHand,"homeScore":row.homeScore,"awayScore":row.awayScore,"id":row.id,
         // At least one real team (not the 'No Team' placeholder) and no result yet.
         "swappable": mayAdminDraw && row.homeScore == null && row.awayScore == null &&
-          (row.homeTeam !== Roster.NO_TEAM_ID || row.awayTeam !== Roster.NO_TEAM_ID)};
+          (row.homeTeam !== Roster.NO_TEAM_ID || row.awayTeam !== Roster.NO_TEAM_ID),
+        "concededBy": row.concededBy,
+        // Both sides real, and either unplayed or itself a concession (to switch or undo).
+        // Fixture.concedeMesserMatch enforces the rest.
+        "concedable": mayAdminDraw && row.homeTeam !== Roster.NO_TEAM_ID && row.awayTeam !== Roster.NO_TEAM_ID &&
+          (!!row.concededBy || (row.homeScore == null && row.awayScore == null))};
       return obj;
     }, {});
 
@@ -127,6 +132,11 @@ exports.new_messer_draw = async function(req, res, next) {
       section: req.params.section.toUpperCase().at(0),
       swapped: mayAdminDraw && /^\d+$/.test(req.query.swapped || '') ? parseInt(req.query.swapped, 10) : null,
       swapError: mayAdminDraw ? req.query.swapError : null,
+      mayAdminDraw,
+      conceded: mayAdminDraw && /^\d+$/.test(req.query.conceded || '') ? parseInt(req.query.conceded, 10) : null,
+      undone: mayAdminDraw && /^\d+$/.test(req.query.undone || '') ? parseInt(req.query.undone, 10) : null,
+      notAdvanced: mayAdminDraw && req.query.notAdvanced === '1',
+      concedeError: mayAdminDraw ? req.query.concedeError : null,
       pageTitle : "Messer Tropy Draws and results - " + req.params.section.toUpperCase().at(0) + " section",
       pageDescription : "Messer Trophy Draws and results",
       canonical:canonicalFor(req)

@@ -23,6 +23,41 @@
   </div>
 <% } %>
 
+<% if (locals.conceded != null && teams[conceded] && teams[conceded].concededBy) {
+     var cm = teams[conceded];
+     var quitter = cm.concededBy === 'home' ? cm.homeTeam : cm.awayTeam;
+     var through = cm.concededBy === 'home' ? cm.awayTeam : cm.homeTeam; %>
+  <div class="alert alert-success">
+    Conceded: <%= quitter %> concede to <%= through %>, recorded 15-0.
+    <% if (notAdvanced) { %>
+      <%= through %> could not be put into the next round automatically (this is a final, or
+      the next match already has a result), so check the draw.
+    <% } else { %>
+      <%= through %> go through to the next round.
+    <% } %>
+  </div>
+<% } %>
+<% if (locals.undone != null && teams[undone]) { %>
+  <div class="alert alert-success">
+    Concession undone: <%= teams[undone].homeTeam %> v <%= teams[undone].awayTeam %> is unplayed
+    again, and the winner has been taken back out of the next round.
+  </div>
+<% } %>
+<% var concedeMessages = {
+     played: "That match already has a result from a scorecard, so it can't be conceded. Correct it on Messer Results instead.",
+     pending: 'A scorecard for that match is waiting for approval. Approve or reject it on Messer Results first.',
+     empty: 'Both sides need a team before the match can be conceded.',
+     'next-played': 'The next-round match already has a result, so this concession can no longer be changed or undone.',
+     'not-conceded': "That match wasn't conceded, so there is nothing to undo.",
+     missing: "That match wasn't found in this section."
+   };
+   if (locals.concedeError && Object.prototype.hasOwnProperty.call(concedeMessages, concedeError)) { %>
+  <div class="alert alert-danger">
+    <%= concedeMessages[concedeError] %>
+    <% if (concedeError === 'pending' || concedeError === 'played') { %><a href="/messer-results">Messer Results</a><% } %>
+  </div>
+<% } %>
+
 <%#
   The bracket is drawn on a grid of 16 rows (--u tall each, in messer-draw.css). A
   section's matches have fixed drawPos numbers, so each one has a fixed place: round 2's
@@ -66,7 +101,63 @@
   </div>
 </div>
 
+<% if (locals.mayAdminDraw) { %>
+<%# One modal for every match's Concede button; the script below fills it from the button
+    that opened it. Posts to /messer-draw/:section/concede/:id (Fixture.concedeMesserMatch). %>
+<div class="modal fade" id="concedeModal" tabindex="-1" role="dialog" aria-labelledby="concedeModalTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form method="POST" class="modal-content" id="concedeForm" action="">
+      <div class="modal-header">
+        <h5 class="modal-title" id="concedeModalTitle">Record a concession</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body text-left">
+        <p id="concedeMatch" class="font-weight-bold"></p>
+        <p>Which side conceded? The other side wins 15-0 and goes through to the next round.</p>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="concededBy" id="concedeHome" value="home" required>
+          <label class="form-check-label" for="concedeHome"></label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="concededBy" id="concedeAway" value="away">
+          <label class="form-check-label" for="concedeAway"></label>
+        </div>
+        <div class="form-check mt-2" id="concedeUndoRow">
+          <input class="form-check-input" type="radio" name="concededBy" id="concedeNone" value="none">
+          <label class="form-check-label" for="concedeNone">Neither: undo the concession, and take the winner back out of the next round</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+<% } %>
+
 <%- include('footer.ejs') %>
+<% if (locals.mayAdminDraw) { %>
+<script>
+  // Fill the concede modal from the button that opened it. textContent throughout, so a
+  // team name is never parsed as markup.
+  $('#concedeModal').on('show.bs.modal', function (e) {
+    var b = e.relatedTarget.dataset;
+    var conceded = b.conceded;
+    document.getElementById('concedeForm').action =
+      '/messer-draw/<%= section.toLowerCase() %>-section/concede/' + encodeURIComponent(b.match);
+    document.getElementById('concedeModalTitle').textContent = conceded ? 'Change or undo the concession' : 'Record a concession';
+    document.getElementById('concedeMatch').textContent = b.home + ' v ' + b.away;
+    document.querySelector('label[for=concedeHome]').textContent = b.home + ' (home) conceded';
+    document.querySelector('label[for=concedeAway]').textContent = b.away + ' (away) conceded';
+    document.getElementById('concedeHome').checked = conceded === 'home';
+    document.getElementById('concedeAway').checked = conceded === 'away';
+    document.getElementById('concedeNone').checked = false;
+    document.getElementById('concedeUndoRow').hidden = !conceded;
+    document.getElementById('concedeNone').disabled = !conceded;
+  });
+</script>
+<% } %>
 
 
 </body>

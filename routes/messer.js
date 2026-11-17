@@ -17,6 +17,8 @@ router.get('/messer-draw/:season/:section', access.public, team_controller.new_m
 router.get('/forms/messer-score-sheet.pdf', access.public, documents_controller.messerScoreSheet);
 router.get('/static/beta/docs/Messer-Score-Sheet.xlsx', access.public, (req, res) => res.redirect(301, '/forms/messer-score-sheet.pdf'));
 router.post('/messer-draw/:section/swap/:id', access.messerAdmin, messer_scorecard_controller.messer_draw_swap);
+// Concede a draw match 15-0, switch it, or undo it (Fixture.concedeMesserMatch).
+router.post('/messer-draw/:section/concede/:id', access.messerAdmin, messer_scorecard_controller.messer_draw_concede);
 
 // Messer scorecard routes
 router.get('/messer-scorecard-beta', access.member, messer_scorecard_controller.messer_scorecard_beta);

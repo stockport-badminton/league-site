@@ -325,6 +325,13 @@ const [results] = await (await db.otherConnect()).query(`
   from Tameside Nov 2026). Only `outstanding`/`rearranging` with no score and no games
   qualify, enforced in the UPDATE's WHERE: a **`rearranged` row is the superseded
   original** of a moved match, so conceding one would count the match twice.
+- **A conceded Messer match** is the draw row (`messer`) at 15-0 to the side that didn't
+  concede, `winningTeam` set, the winner advanced, and `"concededBy"` = `home`/`away`
+  (migration 036, also on `messer_season`/`messer_at`). The messer admin sets, switches
+  or undoes it from the draw page (`POST /messer-draw/:section/concede/:id`,
+  `Fixture.concedeMesserMatch`); no `messer_result` row, because draw ids restart each
+  season. Undo takes the winner back out of the next round, and is refused once that
+  round is played. Approval refuses a card for a draw match that already has a score.
 - **team**: `id, name, division (int)`
 - **`gamesWon` / `gamesLost` are GAMES won and lost, not league points.** The league
   ranks on games, not on a win/draw/loss table — every one of the 18 games in a fixture

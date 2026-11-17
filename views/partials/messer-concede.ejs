@@ -1,0 +1,14 @@
+<%# The Concede button on one draw match, for a messer admin. `m` is the match; the
+    controller sets m.concedable only for an admin, on the current draw, where both sides
+    have a team and the match is unplayed or was itself conceded. It opens the one
+    #concedeModal on the page, which reads the match from these data attributes. %>
+<% if (m && m.concedable) { %>
+<div class="messer-concede">
+  <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+          data-toggle="modal" data-target="#concedeModal"
+          data-match="<%= m.id %>" data-home="<%= m.homeTeam %>" data-away="<%= m.awayTeam %>"
+          data-conceded="<%= m.concededBy || '' %>"
+          title="<%= m.concededBy ? 'Change or undo the concession' : 'Record a concession' %>"
+          aria-label="<%= m.concededBy ? 'Change or undo the concession' : 'Record a concession' %>"><%- icon('flag') %></button>
+</div>
+<% } %>

@@ -14,6 +14,8 @@ const { sendPhoto } = require('../utils/scorecardPhoto');
 // The refusals Fixture.swapMesserHomeAway names; views/messer-draw-a-section.ejs has a
 // message for each.
 const SWAP_ERRORS = ['missing', 'empty', 'played', 'pending'];
+// The codes Fixture.concedeMesserMatch refuses with; each has a message on the draw page.
+const CONCEDE_ERRORS = ['missing', 'empty', 'played', 'pending', 'next-played', 'not-conceded'];
 
 const { body, validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
@@ -362,7 +364,10 @@ exports.full_messer_fixture_post = async function(req, res, next) {
       ...Object.fromEntries(
         Object.entries(req.body)
           .filter(([k]) => k.startsWith('Game') && (k.includes('homeScore') || k.includes('awayScore')))
-          .map(([k, v]) => [k, parseInt(v) || null])
+          // A 0 is a score — a whitewashed game, or a handicapped side that finished on
+          // nothing — and `parseInt(v) || null` filed it as no score at all. Approval only
+          // counted those games right because `21 > null` happens to be true.
+          .map(([k, v]) => { const n = parseInt(v, 10); return [k, Number.isNaN(n) ? null : n]; })
       ),
       email: userEmail(req.user) || req.body.email,
       'scoresheet-url': photoUrl,
@@ -640,6 +645,16 @@ exports.messer_result_approve = async function(req, res, next) {
     // swapped to agree with it before the result goes in; the swap re-points the feeding
     // matches too.
     let messerMatch = await Fixture.findMesserMatch(data.homeTeam, data.awayTeam);
+    // A draw match decides once. Approving a second card for it wrote a second result row
+    // and re-advanced the winner (Alderley Park B v Racketeers A was approved on 22 Sep and
+    // again on 28 Oct 2026), and after a concession it would overwrite the concession with
+    // whatever the card says. Refused before anything is written; the card stays pending
+    // for the admin to reject, or to approve after undoing the concession.
+    if (messerMatch && (messerMatch.homeScore != null || messerMatch.awayScore != null)) {
+      return res.status(409).json({ error: messerMatch.concededBy
+        ? 'This match was recorded as conceded on the draw. Undo the concession there first, or reject this scorecard.'
+        : 'This match already has a result on the draw. Reject this scorecard if it is a duplicate.' });
+    }
     let drawSwapped = false;
     let drawSwapRefused = null;
     if (messerMatch && messerMatch.reversed) {
@@ -930,6 +945,29 @@ exports.messer_draw_swap = async function(req, res, next) {
   } catch (err) {
     if (SWAP_ERRORS.includes(err.code)) {
       return res.redirect(`${back}?swapError=${err.code}`);
+    }
+    next(err);
+  }
+};
+
+// POST /messer-draw/:section/concede/:id — concede a match (concededBy home|away), switch
+// a concession to the other side, or undo one (none), from the draw page. Rules are
+// Fixture.concedeMesserMatch's; the outcome goes back as codes, as the swap's does.
+exports.messer_draw_concede = async function(req, res, next) {
+  const section = (req.params.section || '').toUpperCase().charAt(0);
+  if (!['A', 'B'].includes(section)) return res.status(400).send('Invalid section');
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).send('Invalid match');
+  const concededBy = req.body && req.body.concededBy;
+  if (!['home', 'away', 'none'].includes(concededBy)) return res.status(400).send('concededBy must be home, away or none');
+  const back = `/messer-draw/${section.toLowerCase()}-section`;
+  try {
+    const out = await Fixture.concedeMesserMatch(section, id, concededBy);
+    const what = concededBy === 'none' ? 'undone' : 'conceded';
+    res.redirect(`${back}?${what}=${out.drawPos}${out.advanced ? '' : '&notAdvanced=1'}`);
+  } catch (err) {
+    if (CONCEDE_ERRORS.includes(err.code)) {
+      return res.redirect(`${back}?concedeError=${err.code}`);
     }
     next(err);
   }

@@ -1223,7 +1223,8 @@ exports.saveMesserBracketLinks = async function(links) {
 /** @param {number} homeTeamId @param {number} awayTeamId */
 exports.findMesserMatch = async function(homeTeamId, awayTeamId) {
   const rows = await kysely.selectFrom('messer')
-    .select(eb => ['id', 'section', 'drawPos', 'nextDrawPos', 'nextSlot', eb('homeTeam', '=', homeTeamId).as('exact')])
+    .select(eb => ['id', 'section', 'drawPos', 'nextDrawPos', 'nextSlot', 'homeScore', 'awayScore', 'concededBy',
+      eb('homeTeam', '=', homeTeamId).as('exact')])
     .where(eb => eb.or([
       eb.and([eb('homeTeam', '=', homeTeamId), eb('awayTeam', '=', awayTeamId)]),
       eb.and([eb('homeTeam', '=', awayTeamId), eb('awayTeam', '=', homeTeamId)]),
@@ -1320,6 +1321,113 @@ exports.advanceMesserWinner = async function(match, winningTeam) {
     .where('id', '=', target.id)
     .execute()
   return { advanced: true, targetId: target.id, slot: match.nextSlot }
+}
+
+// Concede a Messer match, or undo a concession, from the draw page (messer admin).
+//
+// A concession is written the way the walkover cards always ended up once approved (six of
+// them by Nov 2026): 15-0 to the side that did NOT concede, winningTeam set, and the winner
+// put into its next-round slot. `concededBy` marks it, so the page can say so and offer the
+// undo; the draw row is the whole record, and no messer_result row is written — draw ids
+// restart every season, so one would not say which season's match it was, and nothing
+// reads them back.
+//
+// concededBy 'home' | 'away' concedes, or switches an existing concession to the other
+// side (a mis-click, corrected without an undo in between). 'none' undoes one: the score
+// goes, and so does the winner from the next round — but only while the next round is
+// unplayed, because past that the winner has a result of their own to unpick.
+//
+// Refused with err.code (and err.status) — the controller's CONCEDE_ERRORS — when:
+//   missing      no such match in this section (404)
+//   empty        a side has no team yet: nobody to concede to
+//   played       the match has a result that is not a concession — reject or correct
+//                the card instead
+//   pending      a scorecard for it is awaiting approval, either way round; approving it
+//                after a concession would record the match twice
+//   next-played  undoing or switching, and the next-round match already has a result
+//   not-conceded undoing a match that was not conceded
+//
+// Resolves { id, drawPos, concededBy, winningTeam, advanced } — `advanced` is false when
+// there is no next round (a section final) or, for a fresh concession, when the next
+// round has somehow been played already (the same guard approval has).
+const MESSER_CONCEDED_WINS = 15
+
+/** @param {string} section @param {number} id @param {'home' | 'away' | 'none'} concededBy */
+exports.concedeMesserMatch = async function(section, id, concededBy) {
+  if (!['home', 'away', 'none'].includes(concededBy)) throw new Error('concededBy must be home, away or none')
+  const refuse = (/** @type {string} */ code, /** @type {string} */ message, status = 409) =>
+    Object.assign(new Error(message), { status, code })
+
+  return db.withTransaction(async (conn, trx) => {
+    const match = await trx.selectFrom('messer')
+      .select(['id', 'section', 'drawPos', 'homeTeam', 'awayTeam', 'homeScore', 'awayScore',
+        'winningTeam', 'concededBy', 'nextDrawPos', 'nextSlot'])
+      .where('id', '=', id).where('section', '=', section)
+      .forUpdate()
+      .executeTakeFirst()
+    if (!match) throw refuse('missing', 'No such draw slot in this section', 404)
+
+    const decided = match.homeScore != null || match.awayScore != null
+    if (concededBy === 'none') {
+      if (!match.concededBy) throw refuse('not-conceded', 'That match was not conceded')
+    } else {
+      if (match.homeTeam === NO_TEAM_ID || match.awayTeam === NO_TEAM_ID) {
+        throw refuse('empty', 'Both sides need a team before the match can be conceded')
+      }
+      if (decided && !match.concededBy) throw refuse('played', 'That match already has a result')
+      if (match.concededBy === concededBy) {
+        return { id: match.id, drawPos: match.drawPos, concededBy, winningTeam: match.winningTeam, advanced: false, unchanged: true }
+      }
+      const pending = await trx.selectFrom('messer_scorecard').select('id')
+        .where(eb => eb.or([
+          eb.and([eb('homeTeam', '=', match.homeTeam), eb('awayTeam', '=', match.awayTeam)]),
+          eb.and([eb('homeTeam', '=', match.awayTeam), eb('awayTeam', '=', match.homeTeam)]),
+        ]))
+        .where('status', 'in', ['draft', 'submitted'])
+        .execute()
+      if (pending.length) throw refuse('pending', 'A scorecard for that match is awaiting approval')
+    }
+
+    const target = match.nextDrawPos == null || !match.nextSlot ? null
+      : await trx.selectFrom('messer').select(['id', 'homeTeam', 'awayTeam', 'homeScore', 'awayScore'])
+        .where('section', '=', section).where('drawPos', '=', match.nextDrawPos)
+        .forUpdate()
+        .executeTakeFirst()
+    const targetPlayed = !!target && (target.homeScore != null || target.awayScore != null)
+    // Undoing or switching takes back a winner the next round may already have used.
+    if (match.concededBy && targetPlayed) {
+      throw refuse('next-played', 'The next-round match already has a result')
+    }
+    const slot = match.nextSlot === 'H' ? 'homeTeam' : 'awayTeam'
+
+    if (concededBy === 'none') {
+      await trx.updateTable('messer')
+        .set({ homeScore: null, awayScore: null, winningTeam: null, concededBy: null })
+        .where('id', '=', match.id)
+        .execute()
+      // Only if the slot still holds this winner: anything else was put there by hand.
+      if (target && match.winningTeam != null && target[slot] === match.winningTeam) {
+        await trx.updateTable('messer').set({ [slot]: NO_TEAM_ID }).where('id', '=', target.id).execute()
+      }
+      return { id: match.id, drawPos: match.drawPos, concededBy: null, winningTeam: null, advanced: false }
+    }
+
+    const winningTeam = concededBy === 'home' ? match.awayTeam : match.homeTeam
+    await trx.updateTable('messer')
+      .set({
+        homeScore: concededBy === 'home' ? 0 : MESSER_CONCEDED_WINS,
+        awayScore: concededBy === 'home' ? MESSER_CONCEDED_WINS : 0,
+        winningTeam, concededBy,
+      })
+      .where('id', '=', match.id)
+      .execute()
+    let advanced = false
+    if (target && !targetPlayed) {
+      await trx.updateTable('messer').set({ [slot]: winningTeam }).where('id', '=', target.id).execute()
+      advanced = true
+    }
+    return { id: match.id, drawPos: match.drawPos, concededBy, winningTeam, advanced }
+  })
 }
 
 
