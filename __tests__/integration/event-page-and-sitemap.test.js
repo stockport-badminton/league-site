@@ -91,6 +91,18 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     expect(without.text).toContain('Match Secretary: Claire Inglis');
   });
 
+  // The away team is who needs the home venue's entrance and parking notes.
+  it("shows the home venue's Getting there notes, escaped, and nothing when there are none", async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([eventRow({ venueDirections: 'Use the South site entrance & overflow car park.' })]);
+    const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+    expect(res.text).toContain('Getting there: Use the South site entrance &amp; overflow car park.');
+
+    Fixture.getFixtureEventById.mockResolvedValue([eventRow({ venueDirections: null })]);
+    const without = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+    expect(without.status).toBe(200);
+    expect(without.text).not.toContain('Getting there');
+  });
+
   it('404s a fixture id that does not exist', async () => {
     Fixture.getFixtureEventById.mockResolvedValue([]);
     const res = await request(app).get('/event/999999/01012027-A-B');

@@ -43,6 +43,11 @@ one line per club (night, venue, address, website) from `Club.getPublicClubs()`,
 query as the club pages. Same rule as the club pages: no officer names or contacts. The
 match-format sentence is copied from `views/rules.ejs` (PLAY, b); change both together.
 
+**Venue addresses are postal addresses only.** Entrance, parking and sat-nav notes go in
+`venue.directions` (migration 037, edited at `/admin/venues`), shown as "Getting there" on
+event pages, club pages, `/venues`, the clubs map popup and llms.txt. Before it existed they
+were typed into `address`, which fed them to the JSON-LD postal address and map links.
+
 The same rootfiles trap applies to both: never add a `rootfiles/robots.txt` or
 `rootfiles/llms.txt` (a test asserts they don't exist). `og:image` in `header.ejs` is
 absolute (`siteOrigin() + asset(…)`), because link previewers ignore a relative one.

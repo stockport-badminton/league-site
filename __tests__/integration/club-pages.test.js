@@ -28,6 +28,7 @@ const CLUBS = [
     venueName: 'Parrswood Sports Centre',
     venueAddress: 'Parrswood Sports Centre, Parrswood High School, Wilmslow Road, East Didsbury, M20 5PG',
     gMapUrl: 'https://goo.gl/maps/x', Lat: 53.4093, Lng: -2.21972, placeId: 'p',
+    venueDirections: 'Park in the school car park & use the sports centre door.',
   },
   {
     id: 53, name: 'G.H.A.P',
@@ -106,6 +107,14 @@ describe('GET /clubs/:slug', () => {
     const res = await request(app).get('/clubs/parrs-wood');
     expect(res.text).toContain('https://www.parrswoodbadminton.co.uk/');
     expect(res.text).toContain('/contact-us?club=57');
+  });
+
+  it("shows the venue's Getting there notes under the address, and none where there are none", async () => {
+    const res = await request(app).get('/clubs/parrs-wood');
+    expect(res.text).toMatch(/<strong>Getting there:<\/strong> Park in the school car park &amp; use the sports centre door\./);
+    const other = await request(app).get('/clubs/ghap');
+    expect(other.status).toBe(200);
+    expect(other.text).not.toContain('Getting there');
   });
 
   it('publishes no captain or secretary details', async () => {

@@ -33,6 +33,9 @@
       <% if (club.venueAddress) { %>
         <p class="mb-1"><%= club.venueAddress %></p>
       <% } %>
+      <% if (club.venueDirections) { %>
+        <p class="mb-1 venue-directions" style="white-space: pre-line"><strong>Getting there:</strong> <%= club.venueDirections %></p>
+      <% } %>
       <% if (club.gMapUrl) { %>
         <p><a href="<%= club.gMapUrl %>" target="_blank" rel="noopener">View on Google Maps</a></p>
       <% } %>

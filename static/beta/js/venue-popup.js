@@ -133,9 +133,14 @@
     var address = venue.address
       ? '<p class="mb-0 small">' + link(venue.gMapUrl, venue.address) + '</p>'
       : '';
+    // Entrance and parking notes (venue.directions). Escaped, then line breaks kept.
+    var directions = venue.directions
+      ? '<p class="mb-0 mt-1 small"><strong>Getting there:</strong> ' +
+        esc(venue.directions).replace(/\r?\n/g, '<br>') + '</p>'
+      : '';
     return '<div class="map-popup">' +
            '<h2 class="h6 mb-2">' + esc(venue.venueName) + '</h2>' +
-           clubs + address +
+           clubs + address + directions +
            '</div>';
   }
 

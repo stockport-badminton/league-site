@@ -51,7 +51,8 @@ exports.getPublicClubs = async function(excludeClubId) {
     .leftJoin('venue as v', 'cl.venue', 'v.id')
     .select(['cl.id', 'cl.name', 'cl.clubNight', 'cl.clubNightText', 'cl.clubNightCourts',
       'cl.matchNightText', 'cl.clubWebsite', 'cl.facebook', 'cl.instagram', 'cl.twitter',
-      'v.name as venueName', 'v.address as venueAddress', 'v.gMapUrl', 'v.Lat', 'v.Lng', 'v.placeId'])
+      'v.name as venueName', 'v.address as venueAddress', 'v.gMapUrl', 'v.Lat', 'v.Lng', 'v.placeId',
+      'v.directions as venueDirections'])
     .where('cl.id', '<>', excludeClubId)
     .orderBy('cl.name', 'asc')
     .execute()

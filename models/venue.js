@@ -7,6 +7,46 @@ exports.getAll = async function() {
 }
 
 /**
+ * The columns /admin/venues writes. placeId is left alone: nothing in the admin sets it,
+ * and the event page's map falls back to the coordinates without it.
+ * @typedef {{ name: string, address: string, gMapUrl: string, directions: string | null,
+ *   Lat: number | null, Lng: number | null }} VenueData
+ */
+
+// Every venue for /admin/venues, with how many clubs and current teams use it, so the
+// list can say which are in use (there is no delete; see venueController.js).
+exports.getAllWithUse = async function() {
+  return kysely.selectFrom('venue')
+    .selectAll('venue')
+    .select(eb => [
+      eb.selectFrom('club').select(eb.fn.countAll().as('n'))
+        .where(eb => eb.or([eb('club.venue', '=', eb.ref('venue.id')), eb('club.matchVenue', '=', eb.ref('venue.id'))]))
+        .as('clubs'),
+      eb.selectFrom('team').select(eb.fn.countAll().as('n'))
+        .whereRef('team.venue', '=', 'venue.id').where('team.withdrawn', 'is', null)
+        .as('teams'),
+    ])
+    .orderBy('venue.name')
+    .execute()
+}
+
+/** @param {number} id */
+exports.getById = async function(id) {
+  return kysely.selectFrom('venue').selectAll().where('id', '=', id).executeTakeFirst()
+}
+
+/** @param {VenueData} data */
+exports.create = async function(data) {
+  const row = await kysely.insertInto('venue').values(data).returning('id').executeTakeFirstOrThrow()
+  return row.id
+}
+
+/** @param {number} id @param {VenueData} data */
+exports.updateById = async function(id, data) {
+  await kysely.updateTable('venue').set(data).where('id', '=', id).execute()
+}
+
+/**
  * Every venue anything happens at, with what happens there.
  *
  * ── The red herring, which is what made this wrong ───────────────────────────
@@ -54,6 +94,7 @@ exports.getVenueClubs = async function() {
       'venue.Lng',
       'venue.address as address',
       'venue.gMapUrl as gMapUrl',
+      'venue.directions as directions',
       eb.selectFrom('team')
         .innerJoin('club', 'club.id', 'team.club')
         .select(eb => eb.fn.agg('json_agg', [jsonBuildObject({

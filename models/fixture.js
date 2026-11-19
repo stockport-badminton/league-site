@@ -544,7 +544,7 @@ exports.getFixtureEventById = async function(fixtureId) {
       'homeTeam.endtime as endTime', 'homeClub.name as homeClub', 'homeClub.clubWebsite',
       'awayTeam.name as awayTeam', 'awayClub.name as awayClub', 'division.name as divisionName',
       'venue.name as venueName', 'venue.address as venueAddress', 'venue.gMapUrl as venueLink',
-      'venue.Lat', 'venue.Lng', 'venue.placeId', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore',
+      'venue.Lat', 'venue.Lng', 'venue.placeId', 'venue.directions as venueDirections', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore',
       officer(eb, 'team', 'homeTeam.id', 'teamCaptain', 'name').as('teamCaptain'),
       officer(eb, 'team', 'homeTeam.id', 'teamCaptain', 'id').as('teamCaptainId'),
       officer(eb, 'club', 'homeClub.id', 'matchSecrertary', 'name').as('matchSecretary'),

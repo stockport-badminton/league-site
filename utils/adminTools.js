@@ -19,6 +19,7 @@ const GROUPS = [
       { href: '/admin/registrations', label: 'Registration Forms', blurb: 'Which clubs have returned this season\'s registration form; chase the rest.', count: 'formsOutstanding' },
       { href: '/club-officers', label: 'Club Officers', blurb: 'Any club\'s secretaries, captains and their contact details — the page club secretaries use for their own club.' },
       { href: '/admin/clubs', label: 'Club Admin', blurb: 'Add and edit clubs.' },
+      { href: '/admin/venues', label: 'Venues', blurb: 'Venue names, addresses, map links and "Getting there" notes (entrance, parking).' },
       { href: '/admin/junior-clubs', label: 'Junior Clubs', blurb: 'The junior clubs on the public Juniors page — add, edit, hide or remove.' },
       { href: '/admin/teams', label: 'Team Admin', blurb: 'Teams and their divisions — promote, relegate, withdraw, reinstate.' },
     ],

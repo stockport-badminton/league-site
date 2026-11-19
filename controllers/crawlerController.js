@@ -81,6 +81,7 @@ exports.llms = async function(req, res, next) {
         + (clubNightText(c.clubNightText) ? ': club night ' + oneLine(c.clubNightText) : '')
         + (c.venueName ? ' at ' + oneLine(c.venueName) : '')
         + (c.venueAddress ? ' (' + oneLine(c.venueAddress) + ')' : '')
+        + (c.venueDirections ? '. Getting there: ' + oneLine(c.venueDirections).replace(/\.$/, '') : '')
         + (c.clubWebsite ? '. Website: ' + oneLine(c.clubWebsite) : '')),
       '',
       link('Junior clubs', '/info/junior-clubs', 'clubs in and around Stockport that run junior sessions'),

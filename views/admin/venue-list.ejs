@@ -1,0 +1,42 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12 text-left">
+  <h1>Venues</h1>
+  <p>Where clubs hold their club nights and teams play their home matches. The public list is at <a href="/venues">/venues</a>.</p>
+  <a class="btn btn-primary mb-3" href="/admin/venues/create">+ New Venue</a>
+
+  <div class="table-responsive">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Address</th>
+          <th>Getting there</th>
+          <th>Used by</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% venues.forEach(function(v){ %>
+          <% var clubs = Number(v.clubs) || 0, teams = Number(v.teams) || 0; %>
+          <tr>
+            <td><%= v.name %></td>
+            <td><%= v.address %></td>
+            <td><%= v.directions ? 'Yes' : '' %></td>
+            <td>
+              <% if (clubs || teams) { %>
+                <%= clubs %> club<%= clubs === 1 ? '' : 's' %>, <%= teams %> team<%= teams === 1 ? '' : 's' %>
+              <% } else { %>
+                <span class="text-muted">Not in use</span>
+              <% } %>
+            </td>
+            <td><a href="/admin/venues/<%= v.id %>">Edit</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../footer.ejs') %>

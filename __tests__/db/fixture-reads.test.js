@@ -41,4 +41,12 @@ describe('a withdrawn team gets no public event page, and the sitemap agrees', (
     const [row] = await Fixture.getFixtureEventById(f.id);
     expect(row).toMatchObject({ id: f.id, teamCaptain: null, teamCaptainId: null, matchSecretary: null });
   });
+
+  it("carries the home team's venue directions as venueDirections", async () => {
+    const [f] = await run(`SELECT f.id, t.venue FROM fixture f JOIN team t ON t.id = f."homeTeam"
+      WHERE t.venue IS NOT NULL ORDER BY f.id DESC LIMIT 1`);
+    await run('UPDATE venue SET directions = ? WHERE id = ?', ['Use the South site entrance.', f.venue]);
+    const [row] = await Fixture.getFixtureEventById(f.id);
+    expect(row.venueDirections).toBe('Use the South site entrance.');
+  });
 });

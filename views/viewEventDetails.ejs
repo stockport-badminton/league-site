@@ -24,6 +24,13 @@ MyDateString = ('0' + MyDate.getDate()).slice(-2) + '/'
 <div class="row w-100 align-self-start">
     <div class="col text-left">Venue: <%= fixtureDetails.venueName + " @ " + fixtureDetails.venueAddress %></div>
 </div>
+<%# Entrance and parking notes for the home venue (venue.directions, /admin/venues). The
+    people who need them are the away team, arriving for the first time. %>
+<% if (fixtureDetails.venueDirections) { %>
+<div class="row w-100 align-self-start">
+    <div class="col text-left venue-directions" style="white-space: pre-line">Getting there: <%= fixtureDetails.venueDirections %></div>
+</div>
+<% } %>
 <%# Both are optional — six teams have no captain flagged, and the query no longer
     drops the whole fixture over it. Show the label only when there's a name. %>
 <div class="row align-self-start w-100">

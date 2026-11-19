@@ -11,6 +11,7 @@
         <tr>
           <th>Name</th>
           <th>Address</th>
+          <th>Getting there</th>
         </tr>
       </thead>
       <tbody>
@@ -18,6 +19,7 @@
       <tr>
           <td><%= row['name'] %></td>
           <td><a href="<%= row['gMapUrl'] %>"><%= row['address'] %></a></td>
+          <td style="white-space: pre-line"><%= row['directions'] || '' %></td>
       </tr>
     <% }) %>
       </tbody>

@@ -767,6 +767,7 @@ export interface ThreadsResultPost {
 
 export interface Venue {
   address: string;
+  directions: string | null;
   gMapUrl: string;
   id: Generated<number>;
   Lat: number | null;
@@ -777,6 +778,7 @@ export interface Venue {
 
 export interface VenueAt {
   address: string | null;
+  directions: string | null;
   gMapUrl: string | null;
   id: number | null;
   Lat: number | null;
@@ -788,6 +790,7 @@ export interface VenueAt {
 
 export interface VenueSeason {
   address: string | null;
+  directions: string | null;
   gMapUrl: string | null;
   id: number;
   Lat: number | null;

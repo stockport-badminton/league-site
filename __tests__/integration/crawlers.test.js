@@ -132,7 +132,8 @@ describe('llms.txt', () => {
     Division.getAll.mockResolvedValue([{ name: 'Premier' }, { name: 'Division 1' }]);
     Club.getPublicClubs.mockResolvedValue([
       { id: 57, name: 'Parrs Wood', clubNightText: 'Tuesday\n 8pm', venueName: 'Parrs Wood Centre',
-        venueAddress: 'Wilmslow Road, Didsbury M20 5PG', clubWebsite: 'https://example.com/' },
+        venueAddress: 'Wilmslow Road, Didsbury M20 5PG', clubWebsite: 'https://example.com/',
+        venueDirections: 'Use the\n school car park.' },
       { id: 12, name: 'G.H.A.P', clubNightText: null },
       { id: 59, name: 'Racketeer', clubNightText: 'NA', venueName: 'David Lloyd Leisure' },
     ]);
@@ -146,7 +147,8 @@ describe('llms.txt', () => {
     expect(res.text.startsWith('# Stockport & District Badminton League\n')).toBe(true);
     expect(res.text).toContain('The 2026/27 season has 2 divisions (Premier, Division 1) and 3 member clubs.');
     expect(res.text).toContain(`- [Parrs Wood](${SITE}/clubs/parrs-wood): club night Tuesday 8pm at `
-      + 'Parrs Wood Centre (Wilmslow Road, Didsbury M20 5PG). Website: https://example.com/');
+      + 'Parrs Wood Centre (Wilmslow Road, Didsbury M20 5PG). Getting there: Use the school car park. '
+      + 'Website: https://example.com/');
     expect(res.text).toContain(`- [G.H.A.P](${SITE}/clubs/ghap)\n`);
     // A placeholder club night is left out, not printed as "club night NA".
     expect(res.text).toContain(`- [Racketeer](${SITE}/clubs/racketeer) at David Lloyd Leisure\n`);

@@ -156,6 +156,13 @@ router.post('/shuttle-prices/refresh', access.superadmin, shuttle_controller.ref
 // Manual venues-map regeneration (superadmin only — role check in controller)
 router.post('/venues-map/refresh', access.superadmin, venue_controller.venues_map_refresh);
 
+// Venues: list, add, edit. No delete — see controllers/venueController.js.
+router.get('/admin/venues', access.superadmin, venue_controller.admin_list);
+router.get('/admin/venues/create', access.superadmin, venue_controller.admin_createForm);
+router.post('/admin/venues', access.superadmin, venue_controller.admin_create);
+router.get('/admin/venues/:id(\\d+)', access.superadmin, venue_controller.admin_editForm);
+router.post('/admin/venues/:id(\\d+)', access.superadmin, venue_controller.admin_update);
+
 // ---------------------------------------------------------------------------
 // Weekly data-integrity digest (HARD-07)
 // ---------------------------------------------------------------------------

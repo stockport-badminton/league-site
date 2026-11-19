@@ -105,6 +105,23 @@ describe('grouping', () => {
 });
 
 // The SQL version had none of this, and the data already contains the characters.
+describe('getting there (venue.directions)', () => {
+  it('prints the directions after the address, escaped, keeping line breaks', () => {
+    const html = VP.popupHtml({
+      venueName: 'Everybody Sport', address: 'Alderley Park, SK10 4TG', gMapUrl: 'https://maps.example/x',
+      matchTeams: [], clubNights: [],
+      directions: 'Use the South site entrance.\nNOT Mulberry\'s <b>old</b> building',
+    });
+    expect(html).toContain('<strong>Getting there:</strong> Use the South site entrance.<br>NOT Mulberry&#39;s &lt;b&gt;old&lt;/b&gt; building');
+    expect(html.indexOf('Getting there')).toBeGreaterThan(html.indexOf('SK10 4TG'));
+  });
+
+  it('prints nothing for a venue without them', () => {
+    const html = VP.popupHtml({ venueName: 'V', address: 'A', matchTeams: [], clubNights: [], directions: null });
+    expect(html).not.toContain('Getting there');
+  });
+});
+
 describe('escaping', () => {
   it('escapes a club name that would otherwise break the markup', () => {
     const html = VP.popupHtml({ venueName: 'V', matchTeams: [{ club: '<script>x</script>', team: 'T', matchDay: 'Mon' }], clubNights: [] });
