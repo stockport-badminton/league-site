@@ -1,6 +1,6 @@
 ---
 name: seo
-description: How search and crawlability work on this site — the generated sitemap, canonical/event/club URL helpers, the per-club landing pages, and the JSON-LD structured-data rules. Use when touching sitemapController, utils/canonical.js, utils/structuredData.js, utils/socialLinks.js, club pages, or anything about how the site appears in Google.
+description: How search and crawlability work on this site (for search engines and AI assistants) — the generated sitemap, robots.txt and llms.txt, the X-Robots-Tag on gated routes, canonical/event/club URL helpers, the per-club landing pages, and the JSON-LD structured-data rules. Use when touching sitemapController, crawlerController, utils/robots.js, utils/routeTable.js, the access.js declare(), utils/canonical.js, utils/structuredData.js, utils/socialLinks.js, club pages, or anything about how the site appears in Google, ChatGPT, Claude or Perplexity.
 ---
 
 # Search / crawlability
@@ -20,6 +20,32 @@ All views, and the last 18 months of `/event/` pages). It replaced a hand-writte
   (`/player-stats`, `/pair-stats`, `/messer-results`, `/manage-players`,
   `/shuttle-prices`, all of `/admin`) must stay out — a login redirect in a sitemap
   reads as a soft 404. There's a test asserting this.
+
+**`GET /robots.txt` is generated from the route table** (`utils/robots.js`, Nov 2026, the
+same change as Tameside's 78caf40). Every GET route whose `access.*` declaration is not
+`public` is disallowed, each parameter turned into `*` so `/player/*/update` is blocked and
+`/playerStats/:id/:fullName` is not. `EXTRA_DISALLOW` lists the public routes that still
+aren't worth a crawl, each with its reason. A new gated route is covered without touching
+the file; a new public route that shouldn't be crawled goes in `EXTRA_DISALLOW`.
+`__tests__/integration/crawlers.test.js` checks both directions against the real router.
+
+- It replaced a 3,557-line copied per-bot blocklist that **blocked CCBot** (Common Crawl,
+  a main source of AI training data), so the league was opted out of being known to
+  ChatGPT, Claude and the rest. Don't reintroduce a blocklist: the bots worth blocking
+  ignore robots.txt anyway.
+- The AI crawlers are named in a single group with `*` on purpose. They are welcome.
+- Every non-public `access.*` level also sends `X-Robots-Tag: noindex, nofollow`
+  (`declare()` in `middleware/access.js`), including on the 302 to `/login`.
+
+**`GET /llms.txt`** (`controllers/crawlerController.js`) is the llmstxt.org guide to the
+site for a language model: what the league is, links to tables/results/calendar/Messer, and
+one line per club (night, venue, address, website) from `Club.getPublicClubs()`, the same
+query as the club pages. Same rule as the club pages: no officer names or contacts. The
+match-format sentence is copied from `views/rules.ejs` (PLAY, b); change both together.
+
+The same rootfiles trap applies to both: never add a `rootfiles/robots.txt` or
+`rootfiles/llms.txt` (a test asserts they don't exist). `og:image` in `header.ejs` is
+absolute (`siteOrigin() + asset(…)`), because link previewers ignore a relative one.
 
 Event-page URLs come from `eventPath()` in `utils/canonical.js`, exposed to views as
 `app.locals.eventPath`. `homepage.ejs` and the sitemap both call it: only `:id` is

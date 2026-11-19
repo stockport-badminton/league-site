@@ -221,7 +221,8 @@
     <meta name="author" content="">
     <meta property="og:title" content="Stockport &amp; District Badminton League - <%= pageTitle %>">
     <meta property="og:description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
-    <meta property="og:image" content="<%= static_path %>/beta/images/SDBLLogo.png">
+    <%# Absolute: a relative og:image is ignored by most link previews. %>
+    <meta property="og:image" content="<%= siteOrigin() + asset('/static/beta/images/SDBLLogo.png') %>">
     <meta property="og:url" content="<%= canonical %>">
     <meta name="twitter:card" content="summary_large_image">
     <meta property="og:site_name" content="Stockport &amp; District Badminton League">
