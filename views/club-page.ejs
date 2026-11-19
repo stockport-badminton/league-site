@@ -40,9 +40,9 @@
 
     <div class="col-12 col-md-6 mb-4">
       <h2>When they play</h2>
-      <% if (club.clubNightText && !/^(none|na|n\/a)$/i.test(club.clubNightText.trim())) { %>
+      <% if (clubNightText(club.clubNightText)) { %>
         <p class="mb-1">
-          <strong>Club night:</strong> <%= club.clubNightText %>
+          <strong>Club night:</strong> <%= clubNightText(club.clubNightText) %>
           <% if (club.clubNightCourts) { %>
             (<%= club.clubNightCourts %> court<%= club.clubNightCourts === 1 ? '' : 's' %>)
           <% } %>

@@ -95,6 +95,28 @@ describe('GET /info/clubs inline scripts', () => {
     expect(inlineScripts(res.text).join('\n')).toMatch(/function\s+initMap\s*\(/);
   });
 
+  // Racketeer, Remnants and David Lloyd hold "NA": they have no club night of their own.
+  it('blank a placeholder club night in the table and the map data', async () => {
+    Club.clubDetail.mockResolvedValue([{
+      clubId: 59, name: 'Racketeer', teamName: 'Racketeer A', clubvenue: 'David Lloyd Leisure',
+      clubaddress: 'Royal Crescent, Cheadle Hulme, SK8 3FL', teammatchvenue: 'David Lloyd Leisure',
+      matchDay: 'Monday', matchNightText: 'Monday 8pm 2 courts', clubNightText: 'NA',
+    }]);
+    Venue.getVenueClubs.mockResolvedValue([{
+      venueName: 'David Lloyd Leisure', Lat: 53.37, Lng: -2.2, address: 'Royal Crescent',
+      gMapUrl: 'https://maps.example/x', matchTeams: [],
+      clubNights: [{ club: 'Racketeer', website: null, clubNightText: 'NA' }],
+    }]);
+
+    const res = await request(app).get('/info/clubs');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Racketeer');
+    expect(res.text).not.toMatch(/<td>\s*NA\s*<\/td>/);
+    const block = inlineScripts(res.text).find(b => b.includes('var data ='));
+    const data = JSON.parse(block.match(/var data = ([\s\S]*?);\n/)[1]);
+    expect(data[0].clubNights[0].clubNightText).toBeNull();
+  });
+
   it('embed the venue data so it still parses back to what the model returned', async () => {
     const res = await request(app).get('/info/clubs');
     const block = inlineScripts(res.text).find(b => b.includes('var data ='));

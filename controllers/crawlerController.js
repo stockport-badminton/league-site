@@ -9,6 +9,7 @@ const Season = require('../models/season');
 const Club = require('../models/club');
 const Roster = require('../models/roster');
 const robots = require('../utils/robots');
+const { clubNightText } = require('../utils/clubNight');
 const { absoluteUrl, clubPath, divisionResultsPath, divisionTablePath } = require('../utils/canonical');
 
 const HOUR = 'public, max-age=3600';
@@ -77,7 +78,7 @@ exports.llms = async function(req, res, next) {
         + 'All clubs: ' + absoluteUrl('/info/clubs') + '. Venues: ' + absoluteUrl('/venues') + '.',
       '',
       ...clubs.map((c) => '- [' + oneLine(c.name) + '](' + absoluteUrl(clubPath(c)) + ')'
-        + (c.clubNightText ? ': club night ' + oneLine(c.clubNightText) : '')
+        + (clubNightText(c.clubNightText) ? ': club night ' + oneLine(c.clubNightText) : '')
         + (c.venueName ? ' at ' + oneLine(c.venueName) : '')
         + (c.venueAddress ? ' (' + oneLine(c.venueAddress) + ')' : '')
         + (c.clubWebsite ? '. Website: ' + oneLine(c.clubWebsite) : '')),

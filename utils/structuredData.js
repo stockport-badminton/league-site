@@ -19,6 +19,7 @@
 // Everything here returns a plain object; `jsonLd()` serialises it for a <script>.
 const { absoluteUrl, eventPath, clubPath, localYmd } = require('./canonical');
 const { socialLinksFor } = require('./socialLinks');
+const { clubNightText } = require('./clubNight');
 
 const LEAGUE_NAME = 'Stockport & District Badminton League';
 const LOGO = '/static/beta/images/SDBLLogo.png';
@@ -275,8 +276,8 @@ function sportsClub(c) {
   const hours = openingHours(c.clubNight, c.clubNightText);
   if (hours) out.openingHoursSpecification = [hours];
 
-  const nightText = String(c.clubNightText || '').trim();
-  if (nightText && !/^(none|na|n\/a)$/i.test(nightText)) {
+  const nightText = clubNightText(c.clubNightText);
+  if (nightText) {
     out.description = `Club night: ${nightText}.`;
   }
   return out;

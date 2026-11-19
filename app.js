@@ -145,6 +145,8 @@ app.locals.siteOrigin = require('./utils/canonical').siteOrigin;
 // The environment, for views/header.ejs (PostHog key, Sentry environment). See config/schema.js.
 app.locals.config = config;
 app.locals.socialLinksFor = require('./utils/socialLinks').socialLinksFor;
+// Club-night text with placeholders ("NA", "None") as blank: utils/clubNight.js.
+app.locals.clubNightText = require('./utils/clubNight').clubNightText;
 // The superadmin's short Admin dropdown (views/nav.ejs); see utils/adminTools.js.
 app.locals.adminNavShortlist = require('./utils/adminTools').shortlist;
 

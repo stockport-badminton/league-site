@@ -76,7 +76,7 @@
               <%= row.teams[0].matchDay %><br />
             <% } %>
               </td>
-            <td><%= row['clubNightText'] %></td>
+            <td><%= clubNightText(row['clubNightText']) %></td>
             <td><a href="<%= row['gMapUrl'] %>" target="_blank"><%= row['address'] %></a></td>
         </tr>
     <% 
