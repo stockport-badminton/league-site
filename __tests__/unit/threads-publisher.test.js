@@ -7,7 +7,11 @@ const threads = require('../../utils/threadsPublisher');
 const USER = '28753684917596556';
 const TOKEN = 'THAA-not-real';
 const JPEG = n => `https://stockport-badminton.co.uk/league-table-image/Division%20${n}.jpg`;
-const FAST = { pollMs: 1, timeoutMs: 50 };
+// Polls without waiting. The timeout is real time, so it stays long enough for a busy CI
+// worker: 50ms once ran out on three polls when two builds shared a machine (21 Nov 2026).
+// Only the test of running out of time uses a short one.
+const FAST = { pollMs: 1, timeoutMs: 10000 };
+const GIVE_UP_SOON = { pollMs: 1, timeoutMs: 50 };
 
 const bodyOf = call => Object.fromEntries(new URLSearchParams(call[1]));
 const posts = () => axios.post.mock.calls;
@@ -63,7 +67,7 @@ describe('a carousel', () => {
 
   it('publishes nothing when a container never finishes', async () => {
     statuses.c1 = ['IN_PROGRESS'];
-    await expect(threads.publishCarousel(USER, TOKEN, { imageUrls: [JPEG(1), JPEG(2)] }, FAST))
+    await expect(threads.publishCarousel(USER, TOKEN, { imageUrls: [JPEG(1), JPEG(2)] }, GIVE_UP_SOON))
       .rejects.toThrow(/had not finished preparing the post/);
     expect(posts().some(c => /threads_publish$/.test(c[0]))).toBe(false);
   });
