@@ -171,4 +171,19 @@ exports.playerWeeks = async function(ids) {
     .execute()
 }
 
+// Every player's rating in one week: the latest held, or for `season` the last before it
+// ended (what /player-stats shows a superadmin beside the ELO). Empty before any week.
+/** @param {string | null} [season] */
+exports.ratingsAt = async function(season = null) {
+  let week = kysely.selectFrom('strength_week as w').select(eb => eb.fn.max('w.as_of').as('m'))
+  if (season) {
+    week = week.innerJoin('season as s', join => join.onRef('w.as_of', '<', 's.endDate'))
+      .where('s.name', '=', season)
+  }
+  return kysely.selectFrom('strength_week_player')
+    .select(['player', 'rating', 'se', AS_OF.as('asOf')])
+    .where('as_of', '=', week)
+    .execute()
+}
+
 exports.KEEP_RUNS = KEEP_RUNS

@@ -88,3 +88,46 @@ describe('GET /playerStats/:id/:fullName', () => {
     expect(TeamStrength.playerWeeks).not.toHaveBeenCalled();
   });
 });
+
+describe('GET /player-stats', () => {
+  const stats = (playerId, playername, teamName) => ({ playerId, playername, playergender: 'Female', teamName, clubName: 'Manor',
+    forPoints: 100, againstPoints: 80, Points: 3, gamesPlayed: 6, gamesWon: 4, rating: 1522 });
+  // Columns are read back by header: the points rating is the last one when it is there.
+  const lastCells = text => [...text.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map(m => m[1])
+    .filter(r => r.includes('/playerStats/'))
+    .map(r => [...r.matchAll(/<td([^>]*)>([^<]*)<\/td>/g)].pop());
+
+  beforeEach(() => {
+    // Player 409 played for two teams: an "All Teams" row and one per team. Player 410 has no week.
+    Player.newGetPlayerStats.mockResolvedValue([stats(409, 'Claire Inglis', 'Manor A'), stats(409, 'Claire Inglis', 'Manor B'),
+      stats(410, 'Anne Other', 'Manor A')]);
+    TeamStrength.ratingsAt.mockResolvedValue([{ player: 409, rating: 1615, se: 40, asOf: '2026-11-16' }]);
+  });
+
+  it('gives a superadmin a points rating column, with its uncertainty and week on hover', async () => {
+    mockCurrentUser = SUPERADMIN;
+    const res = await request(app).get('/player-stats');
+    expect(res.status).toBe(200);
+    expect(TeamStrength.ratingsAt).toHaveBeenCalledWith(null);
+    expect(res.text).toContain('>Points rating</th>');
+    const cells = lastCells(res.text);
+    expect(cells.map(c => c[2])).toEqual(['1615', '1615', '1615', '']); // All Teams, Manor A, Manor B, Anne
+    expect(cells[0][1]).toContain('title="±40, week of 2026-11-16"');
+    expect(res.headers['cache-control']).toBe('private, no-store');
+  });
+
+  it('shows an earlier season\'s rating as it stood when that season ended', async () => {
+    mockCurrentUser = SUPERADMIN;
+    await request(app).get('/player-stats/season-20242025');
+    expect(TeamStrength.ratingsAt).toHaveBeenCalledWith('20242025');
+  });
+
+  it('shows anyone else the table without it', async () => {
+    mockCurrentUser = MEMBER;
+    const res = await request(app).get('/player-stats');
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('Points rating');
+    expect(lastCells(res.text).map(c => c[2])).toEqual(['1522', '1522', '1522', '1522']); // the ELO column is last
+    expect(TeamStrength.ratingsAt).not.toHaveBeenCalled();
+  });
+});

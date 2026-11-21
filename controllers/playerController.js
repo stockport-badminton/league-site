@@ -362,6 +362,16 @@ exports.all_player_stats = async function(req, res, next) {
       }
     })
 
+    // A superadmin also sees the points rating (/admin/team-strength): the latest week, or
+    // for an earlier season the last week before it ended. Nobody else ever sees it.
+    const showPoints = isSuperAdmin(req)
+    if (showPoints) {
+      res.set('Cache-Control', 'private, no-store')
+      const season = seasonModel.isValidName(searchObj.season) && searchObj.season !== seasonModel.current() ? searchObj.season : null
+      const points = new Map((await TeamStrength.ratingsAt(season)).map(r => [r.player, r]))
+      result.forEach(row => { row.points = points.get(Number(row.playerId)) || null })
+    }
+
     let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index)
     let teams = result
       .map(item => item.teamName)
@@ -372,6 +382,7 @@ exports.all_player_stats = async function(req, res, next) {
       pageTitle: "Player Stats",
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
+      showPoints,
       filter: true,
       hideFilters: [],
       clubs: clubs,

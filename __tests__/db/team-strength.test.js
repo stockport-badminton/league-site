@@ -140,4 +140,16 @@ describe('weekly snapshots', () => {
     await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 1, caller: 'test', rows: many });
     expect((await run("SELECT count(*)::int AS n FROM strength_week_player WHERE as_of = '2026-11-16'"))[0].n).toBe(2500);
   });
+
+  it('gives every player\'s rating in the latest week, or in the last week before a season ended', async () => {
+    expect(await TeamStrength.ratingsAt()).toEqual([]);
+    await run(`INSERT INTO season (id, name, "startDate", "endDate", label) VALUES (1002, '20002001', '2000-06-01', '2001-06-30', 'test')`);
+    await TeamStrength.saveWeek({ asOf: '2001-06-25', games: 10, caller: 'test', rows: rows(1550) });
+    await TeamStrength.saveWeek({ asOf: '2001-07-02', games: 11, caller: 'test', rows: rows(1560) }); // after it ended
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 12, caller: 'test', rows: [{ player: P.hm1, rating: 1610, se: 40 }] });
+    expect(await TeamStrength.ratingsAt()).toEqual([{ player: P.hm1, rating: 1610, se: 40, asOf: '2026-11-16' }]);
+    const then = await TeamStrength.ratingsAt('20002001');
+    expect(then.map(r => [r.player, r.rating, r.asOf]).sort()).toEqual([[P.hm1, 1550, '2001-06-25'], [P.am1, 1400, '2001-06-25']].sort());
+    expect(await TeamStrength.ratingsAt('19801981')).toEqual([]);
+  });
 });

@@ -30,6 +30,7 @@
           <th>Pts For / Game</th>
           <th>Pts Against / Game</th>
           <th>Rating</th>
+          <% if (showPoints) { %><th title="Admin only. The points-based rating (/admin/team-strength); compare men with men and ladies with ladies.">Points rating</th><% } %>
         </tr>
       </thead>
       <tbody>
@@ -93,6 +94,7 @@
           %>
           <td><%= n %></td>
           <td><%= row['rating'] %></td>
+          <% if (showPoints) { %><td<% if (row.points) { %> title="±<%= row.points.se %>, week of <%= row.points.asOf %>"<% } %>><%= row.points ? row.points.rating : '' %></td><% } %>
       </tr>
     <% }) %>
       </tbody>
