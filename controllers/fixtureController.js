@@ -14,7 +14,11 @@ const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
 const ICAL = require('ical.js');
 var contact_controller = require(__dirname + '/contactusController');
-const { canonicalFor, divisionTablePath } = require('../utils/canonical');
+const { canonicalFor, divisionTablePath, divisionResultsPath, clubPath, eventPath, absoluteUrl, resultImagePath } = require('../utils/canonical');
+const TeamStrength = require('../models/teamStrength');
+const League = require('../models/league');
+const { buildPreview } = require('../utils/fixturePreview');
+const { assertClubAccess } = require('../middleware/requireClubAccess');
 const { isReminderDue } = require('../utils/scorecardReminder');
 
 
@@ -107,6 +111,33 @@ exports.fixture_id = async function(req, res, next) {
 // So a fixture this query couldn't assemble was published to crawlers as a valid,
 // empty, two-byte page rather than as absent. See getFixtureEventById for why 48
 // of them were in that state.
+// The extras an event page writes its preview from. Each is optional: the page is the
+// fixture's address, date and venue first, and a failure in any of these is logged and
+// leaves its section out rather than taking the page down.
+async function eventExtras(f) {
+  const settle = async (what, p) => {
+    try { return await p; } catch (err) { log.error({ err, fixtureId: f.id }, `[event] ${what} unavailable`); return null; }
+  };
+  const [context, forecast] = await Promise.all([
+    settle('match context', Fixture.getMatchContext(f)),
+    settle('forecast', TeamStrength.forecastFor(f.id, f.homeTeamId, f.awayTeamId)),
+  ]);
+  // The table as it stands, for a fixture still to play in the current season.
+  let standings = null;
+  if (f.homeScore == null && context && context.season === seasonModel.current()) {
+    const rows = await settle('standings', League.getRunIn());
+    if (rows) standings = rows.filter(r => r.divisionName === f.divisionName);
+  }
+  return { context, forecast, standings };
+}
+
+// Superadmin, or signed in for either club in the fixture (requireClubAccess's rule).
+function mayOpenScorecard(req, f) {
+  return [f.homeClub, f.awayClub].some(club => {
+    try { assertClubAccess(req, club); return true; } catch (err) { return false; }
+  });
+}
+
 exports.fixture_event_detail = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureEventById(req.params.id);
@@ -118,15 +149,52 @@ exports.fixture_event_detail = async function(req, res, next) {
         canonical: canonicalFor(req)
       });
     }
+    const f = row[0];
+    const { context, forecast, standings } = await eventExtras(f);
+    const preview = buildPreview({ fixture: f, forecast, context, standings });
+
+    const season = context && context.season !== seasonModel.current() ? context.season : undefined;
+    const matchup = `${f.homeTeam} vs ${f.awayTeam}`;
+    const when = new Date(f.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const kind = preview.state === 'result' ? `${f.homeScore}–${f.awayScore} result` : preview.state === 'upcoming' ? 'preview & prediction' : 'fixture';
+    // A finished match's social card, which already exists on demand for every result.
+    const ogImage = preview.state === 'result'
+      ? absoluteUrl(resultImagePath({ homeTeam: f.homeTeam, awayTeam: f.awayTeam, homeScore: f.homeScore, awayScore: f.awayScore, division: f.divisionName }))
+      : null;
+    const links = {
+      results: divisionResultsPath(f.divisionName, season),
+      table: divisionTablePath(f.divisionName, season),
+      homeClub: f.homeClub ? clubPath({ name: f.homeClub }) : null,
+      awayClub: f.awayClub ? clubPath({ name: f.awayClub }) : null,
+      // Who played is a club's business: the link shows only to a superadmin, or to someone
+      // signed in for one of the two clubs, as the results page keeps it to admins. The
+      // report above names nobody, so it is the same for everyone.
+      scorecard: preview.state === 'result' && mayOpenScorecard(req, f) ? `/scorecard/fixture/${f.id}` : null,
+    };
+    // A page with the link is that viewer's page: never let a cache hand it to anyone else.
+    if (links.scorecard) res.set('Cache-Control', 'private, no-store');
+
     res.render('viewEventDetails', {
       static_path: '/static',
-      pageTitle: 'Event Details: ' + row[0].homeTeam + " vs " + row[0].awayTeam,
-      pageDescription: "View scorecard for this match",
-      fixtureDetails: row[0],
+      pageTitle: matchup,
+      pageDescription: preview.summary,
+      documentTitle: `${matchup} – ${f.divisionName ? f.divisionName + ' ' : ''}${kind}, ${when} | Stockport & District Badminton League`,
+      metaDescription: preview.summary,
+      ogImage,
+      fixtureDetails: f,
+      preview,
+      links,
       mapsApiKey: config.GMAPSAPIKEY,
       // SportsEvent markup, built in utils/structuredData.js. header.ejs used to
       // assemble this as literal JSON, keyed off `pageTitle.indexOf("Event")`.
-      jsonLd: [SD.jsonLd(SD.sportsEvent(row[0]))],
+      jsonLd: [
+        SD.jsonLd(SD.sportsEvent(f, { description: preview.summary, image: ogImage })),
+        SD.jsonLd(SD.breadcrumbs([
+          { name: 'Home', path: '/' },
+          { name: f.divisionName ? `${f.divisionName} results` : 'Results', path: links.results },
+          { name: matchup, path: eventPath(f) },
+        ])),
+      ],
       canonical: canonicalFor(req)
     });
   } catch (err) {
@@ -145,33 +213,35 @@ exports.fixture_event_detail = async function(req, res, next) {
 //
 // The header is now built separately from the games, so a fixture with no detail
 // still shows what the match was and how it finished.
+//
+// Who played is a club's business, not the public's (Nov 2026): the route needs a
+// sign-in, and this lets in only a superadmin or someone from either club. It was public,
+// and only the links to it were hidden, so any scorecard could be opened by its id. The
+// fixture is read first for that reason: its clubs decide, before any player is read.
 exports.getScorecard = async function(req, res, next) {
   try {
-    const games = await Fixture.getScorecardDataById(req.params.id);
-
-    let summary;
-    if (games.length) {
-      // Every game row repeats the fixture-level columns, so take them from the
-      // first and save a second query on the common path.
-      summary = {
-        date: games[0].date,
-        homeTeam: games[0].homeTeam,
-        awayTeam: games[0].awayTeam,
-        homeScore: games[0].totalHomeScore,
-        awayScore: games[0].totalAwayScore,
-      };
-    } else {
-      const fixture = await Fixture.getFixtureSummaryById(req.params.id);
-      if (!fixture.length) {
-        return res.status(404).render('404-error', {
-          static_path: '/static',
-          pageTitle: "Can't find the page you're looking for",
-          pageDescription: 'HTTP 404 Error',
-          canonical: canonicalFor(req)
-        });
-      }
-      summary = fixture[0];
+    const fixture = await Fixture.getFixtureSummaryById(req.params.id);
+    if (!fixture.length) {
+      return res.status(404).render('404-error', {
+        static_path: '/static',
+        pageTitle: "Can't find the page you're looking for",
+        pageDescription: 'HTTP 404 Error',
+        canonical: canonicalFor(req)
+      });
     }
+    if (!mayOpenScorecard(req, fixture[0])) {
+      const err = new Error('Scorecards are open to the two clubs that played');
+      err.status = 403;
+      return next(err);
+    }
+    res.set('Cache-Control', 'private, no-store');
+
+    const games = await Fixture.getScorecardDataById(req.params.id);
+    // Every game row repeats the fixture-level totals; the fixture row has them otherwise.
+    const summary = games.length
+      ? { date: games[0].date, homeTeam: games[0].homeTeam, awayTeam: games[0].awayTeam,
+          homeScore: games[0].totalHomeScore, awayScore: games[0].totalAwayScore }
+      : fixture[0];
 
     res.render('viewScorecard', {
       static_path: '/static',

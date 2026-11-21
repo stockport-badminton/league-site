@@ -131,6 +131,26 @@ exports.latest = async function() {
   return row || null
 }
 
+// What an event page may show of the latest run: the fixture's forecast and the two teams'
+// profiles from its `public` block (utils/teamStrength.js publicForecast, publicTeams), each
+// null when the run has none, or null altogether before the first run. Only those three
+// pieces leave the database, not the payload around them, which names players.
+/** @param {number} fixtureId @param {number} homeTeam @param {number} awayTeam */
+exports.forecastFor = async function(fixtureId, homeTeam, awayTeam) {
+  /** @param {(string | number)[]} path */
+  const at = path => /** @type {import('kysely').RawBuilder<any>} */ (sql`payload #> ${path.map(String)}::text[]`)
+  const row = await kysely.selectFrom('strength_run')
+    .select([
+      'ran_at',
+      at(['public', 'fixtures', fixtureId]).as('fixture'),
+      at(['public', 'teams', homeTeam]).as('home'),
+      at(['public', 'teams', awayTeam]).as('away'),
+    ])
+    .orderBy('id', 'desc').limit(1)
+    .executeTakeFirst()
+  return row || null
+}
+
 // ---------------------------------------------------------------------------
 // Weekly snapshots of the rating (migration 038), for charting it beside the ELO.
 

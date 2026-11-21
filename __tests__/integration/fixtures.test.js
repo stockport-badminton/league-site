@@ -149,6 +149,7 @@ describe('GET /scorecard/fixture/:id', () => {
   });
 
   it('renders the games and no explanation when detail exists', async () => {
+    Fixture.getFixtureSummaryById.mockResolvedValue([{ id: 6577, homeClub: 'Mellor', awayClub: 'Disley' }]);
     Fixture.getScorecardDataById.mockResolvedValue(GAME_ROWS);
 
     const res = await request(app).get('/scorecard/fixture/6577');
@@ -161,8 +162,6 @@ describe('GET /scorecard/fixture/:id', () => {
     // Points total (21+21 v 15+18) alongside the fixture score.
     expect(res.text).toMatch(/<div class="col-2">42-33<\/div>/);
     expect(res.text).toMatch(/<div class="col-1">7-11<\/div>/);
-    // The summary comes off the first game row, so no second query is needed.
-    expect(Fixture.getFixtureSummaryById).not.toHaveBeenCalled();
   });
 
   it('404s when the fixture does not exist at all', async () => {
@@ -184,6 +183,7 @@ describe('GET /scorecard/fixture/:id', () => {
   it('surfaces a model failure as an error, not a 200', async () => {
     // The handler used to `res.send(err)`, answering 200 with a serialised error —
     // so a real failure looked like a success to the browser and to monitoring.
+    Fixture.getFixtureSummaryById.mockResolvedValue([{ id: 795, homeClub: 'Bramhall', awayClub: 'Canute' }]);
     Fixture.getScorecardDataById.mockRejectedValue(new Error('connection terminated'));
 
     const res = await request(app).get('/scorecard/fixture/795');

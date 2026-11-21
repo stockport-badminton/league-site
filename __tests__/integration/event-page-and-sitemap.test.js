@@ -11,7 +11,14 @@ jest.mock('../../models/homepageContent');
 jest.mock('../../models/siteSettings');
 jest.mock('../../models/club');
 jest.mock('../../models/roster');
+jest.mock('../../models/teamStrength');
+jest.mock('../../models/league');
 jest.mock('axios');
+// Who is signed in, for the scorecard link's visibility. devMode is the app-wide middleware
+// that sets req.user locally; here it sets whoever the test names, or nobody.
+let mockUser = null;
+jest.mock('../../middleware/devMode', () => (req, res, next) => { if (mockUser) req.user = mockUser; next(); });
+const userFor = (role, club) => ({ id: 'auth0|t', _json: { 'https://my-app.example.com/role': role, 'https://my-app.example.com/club': club } });
 
 const Fixture = require('../../models/fixture');
 const Division = require('../../models/division');
@@ -24,6 +31,7 @@ Roster.NO_CLUB_ID = 63;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUser = null;
 });
 
 // A row shaped like getFixtureEventById returns. `teamCaptain` is deliberately
@@ -82,20 +90,20 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     // blank on every event page that did render.
     Fixture.getFixtureEventById.mockResolvedValue([eventRow({ teamCaptain: 'Lesley Beale' })]);
     const withCaptain = await request(app).get('/event/7313/03092026-Mellor%20A-Aerospace%20A');
-    expect(withCaptain.text).toContain('Team Captain: Lesley Beale');
-    expect(withCaptain.text).toContain('Match Secretary: Claire Inglis');
+    expect(withCaptain.text).toContain('<dt>Team Captain</dt><dd>Lesley Beale</dd>');
+    expect(withCaptain.text).toContain('<dt>Match Secretary</dt><dd>Claire Inglis</dd>');
 
     Fixture.getFixtureEventById.mockResolvedValue([eventRow({ teamCaptain: null })]);
     const without = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
-    expect(without.text).not.toContain('Team Captain:');
-    expect(without.text).toContain('Match Secretary: Claire Inglis');
+    expect(without.text).not.toContain('Team Captain');
+    expect(without.text).toContain('<dt>Match Secretary</dt><dd>Claire Inglis</dd>');
   });
 
   // The away team is who needs the home venue's entrance and parking notes.
   it("shows the home venue's Getting there notes, escaped, and nothing when there are none", async () => {
     Fixture.getFixtureEventById.mockResolvedValue([eventRow({ venueDirections: 'Use the South site entrance & overflow car park.' })]);
     const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
-    expect(res.text).toContain('Getting there: Use the South site entrance &amp; overflow car park.');
+    expect(res.text).toMatch(/<dt>Getting there<\/dt><dd[^>]*>Use the South site entrance &amp; overflow car park.<\/dd>/);
 
     Fixture.getFixtureEventById.mockResolvedValue([eventRow({ venueDirections: null })]);
     const without = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
@@ -130,7 +138,7 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
       const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
       const ld = ldFrom(res.text);
 
-      expect(ld).toHaveLength(1);
+      expect(ld.map(b => b['@type'])).toEqual(['SportsEvent', 'BreadcrumbList']);
       const e = ld[0];
       expect(e['@context']).toBe('https://schema.org');
       expect(e['@type']).toBe('SportsEvent');
@@ -162,6 +170,132 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
       expect(e.organizer.name).toContain('&');
       expect(JSON.stringify(e)).not.toContain('&#39;');
     });
+  });
+});
+
+// The preview, the prediction and the match report (utils/fixturePreview.js), from the
+// nightly run's public block (TeamStrength.forecastFor) and the fixtures around this one.
+describe('GET /event/:id — preview, prediction and report', () => {
+  const TeamStrength = require('../../models/teamStrength');
+  const League = require('../../models/league');
+  const { captureLog } = require('../helpers/captureLog');
+  const URL = '/event/7388/01092026-Manor%20B-Parrswood%20C';
+
+  const row = over => eventRow({ homeTeamId: 11, awayTeamId: 22, teamCaptain: 'Lesley Beale', ...over });
+  const forecast = {
+    ran_at: '2026-08-31T02:30:00Z',
+    fixture: { pHome: 0.71, pDraw: 0.08, pAway: 0.21, expected: 10.9, likely: { home: 11, away: 7 },
+      edges: { mens: 4.2, ladies: 2.1, mixed: 3.1 } },
+    home: { teams: 8, men: 1, ladies: 5, overall: 2, fixtures: 4, settled: 0.9, last: 6,
+      projection: { teams: 8, expected: 1.8, pWinner: 0.41, pUp: 0.7, pDown: 0 } },
+    away: { teams: 8, men: 6, ladies: 7, overall: 7, fixtures: 4, settled: 0.5, last: 4,
+      projection: { teams: 8, expected: 6.9, pWinner: 0, pUp: 0, pDown: 0.55 } },
+  };
+  const played = (id, home, away, hs, as, date) => ({ id, date, homeTeam: home, awayTeam: away, homeScore: hs, awayScore: as,
+    homeName: home === 11 ? 'Manor B' : home === 22 ? 'Parrswood C' : 'Other A', awayName: away === 11 ? 'Manor B' : away === 22 ? 'Parrswood C' : 'Other A' });
+  const context = {
+    season: '20262027',
+    form: [played(901, 11, 33, 12, 6, '2026-08-25'), played(902, 33, 22, 10, 8, '2026-08-24'), played(903, 11, 33, 13, 5, '2026-08-18')],
+    meetings: [played(800, 22, 11, 7, 11, '2026-03-02')],
+    games: [],
+  };
+
+  beforeEach(() => {
+    Season.current.mockReturnValue('20262027');
+    Fixture.getMatchContext.mockResolvedValue(context);
+    TeamStrength.forecastFor.mockResolvedValue(forecast);
+    League.getRunIn.mockResolvedValue([
+      { id: 11, divisionName: 'Division 3', gamesWon: 25, gamesLost: 11, played: 2 },
+      { id: 22, divisionName: 'Division 3', gamesWon: 8, gamesLost: 10, played: 1 },
+      { id: 44, divisionName: 'Division 2', gamesWon: 30, gamesLost: 6, played: 2 },
+    ]);
+  });
+
+  it('writes a preview with the forecast, form and table places, and names no player', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([row()]);
+    const res = await request(app).get(URL);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Match preview');
+    expect(res.text).toContain('Manor B host Parrswood C in Division 3');
+    expect(res.text).toContain('Manor B are 1st of 2'); // the table filtered to this division
+    expect(res.text).toMatch(/Manor B are (clear )?favourites/);
+    expect(res.text).toContain('Most likely score: <strong>11–7</strong>');
+    expect(res.text).toContain('should have the edge in the men’s doubles');
+    expect(res.text).toContain('Head to head');
+    expect(res.text).toContain('Manor B won the last meeting 11–7');
+    // Form chips link to those fixtures' own pages, spelt as eventPath spells them.
+    expect(res.text).toContain('href="/event/901/');
+    // The only person named anywhere is the officer the page has always shown.
+    expect(res.text).not.toMatch(/Lesley Beale[^<]*(favourite|form|line-up)/);
+  });
+
+  it('leads the title and description with the matchup, and leaves the logo as the image', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([row()]);
+    const res = await request(app).get(URL);
+    expect(res.text).toMatch(/<title>Manor B vs Parrswood C – Division 3 preview &amp; prediction, 1 Sept? 2026 \| Stockport &amp; District Badminton League<\/title>/);
+    expect(res.text).toMatch(/<meta name="description" content="Manor B vs Parrswood C, Division 3 badminton, Tuesday,? 1 September 2026. Preview and prediction: Manor B 71% favourites.">/);
+    expect(res.text).toContain('SDBLLogo.png');
+  });
+
+  it('reports a result, with the games by type and the result card as the image', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([row({ status: 'complete', homeScore: 13, awayScore: 5 })]);
+    Fixture.getMatchContext.mockResolvedValue({ ...context, games: [
+      ...Array(6).fill({ gameType: 'FirstMens', homeScore: 21, awayScore: 10 }),
+      ...Array(6).fill(null).map((_, i) => ({ gameType: 'FirstLadies', homeScore: i < 2 ? 21 : 15, awayScore: i < 2 ? 18 : 21 })),
+      ...Array(6).fill(null).map((_, i) => ({ gameType: 'SecondMixed', homeScore: i < 5 ? 21 : 19, awayScore: i < 5 ? 17 : 21 })),
+    ] });
+    const res = await request(app).get(URL);
+    expect(res.text).toContain('Match report');
+    // 13–5 is a comfortable win, which has two phrasings; the fixture id picks one.
+    expect(res.text).toMatch(/Manor B beat Parrswood C comfortably in Division 3, winning 13–5|A convincing 13–5 win for Manor B over Parrswood C in Division 3/);
+    expect(res.text).toContain('Manor B took the men’s doubles 6–0, Parrswood C took the ladies’ doubles 4–2 and Manor B took the mixed 5–1.');
+    // Signed out: the report, but no way into the scorecard.
+    expect(res.text).not.toContain('/scorecard/fixture/');
+    expect(res.text).toContain('<meta property="og:image" content="https://stockport-badminton.co.uk/resultImage/Manor%20B/Parrswood%20C/13/5/Division%203.jpg">');
+    // No prediction once the result is in, and no table: it describes the wrong moment.
+    expect(res.text).not.toContain('Most likely score');
+    expect(League.getRunIn).not.toHaveBeenCalled();
+  });
+
+  // Who played is a club's business (the results page shows its Details link to admins only):
+  // a superadmin, or someone signed in for either club, gets the link; nobody else does.
+  it.each([
+    ['a superadmin', userFor('superadmin', 'All'), true],
+    ['the home club', userFor('admin', 'Manor'), true],
+    ['the away club', userFor('admin', 'Parrswood'), true],
+    ['another club', userFor('admin', 'Mellor'), false],
+    ['a signed-in user with no club', userFor(undefined, undefined), false],
+  ])('links the scorecard of a played match for %s: %s', async (who, user, shown) => {
+    mockUser = user;
+    Fixture.getFixtureEventById.mockResolvedValue([row({ status: 'complete', homeScore: 13, awayScore: 5 })]);
+    const res = await request(app).get(URL);
+    expect(res.status).toBe(200);
+    expect(res.text.includes('href="/scorecard/fixture/7388"')).toBe(shown);
+    // A page carrying the link belongs to that viewer alone.
+    if (shown) expect(res.headers['cache-control']).toBe('private, no-store');
+  });
+
+  it('marks a rearranged fixture as postponed in its markup', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([row({ status: 'rearranged' })]);
+    const res = await request(app).get(URL);
+    const ld = [...res.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+    expect(ld[0].eventStatus).toBe('https://schema.org/EventPostponed');
+    expect(res.text).not.toContain('Most likely score');
+  });
+
+  it('still renders the fixture when the forecast and context cannot be read, and says why in the log', async () => {
+    const log = captureLog(['error']);
+    Fixture.getFixtureEventById.mockResolvedValue([row()]);
+    Fixture.getMatchContext.mockRejectedValue(new Error('context down'));
+    TeamStrength.forecastFor.mockRejectedValue(new Error('no strength_run'));
+    const res = await request(app).get(URL);
+    const logged = log.text();
+    log.restore();
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Wilmslow Leisure Centre');
+    expect(res.text).not.toContain('Most likely score');
+    expect(logged).toContain('[event] forecast unavailable');
+    expect(logged).toContain('[event] match context unavailable');
   });
 });
 

@@ -142,7 +142,7 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 132 | GET | `/info/junior-clubs` | public |
 | 133 | GET | `/fixture/homeId-:homeTeam/awayId-:awayTeam` | public |
 | 134 | GET | `/event/:id/:date-:homeTeam-:awayTeam` | public |
-| 135 | GET | `/scorecard/fixture/:id(\d+)` | public |
+| 135 | GET | `/scorecard/fixture/:id(\d+)` | member |
 | 136 | GET | `/fixture-players` | public |
 | 137 | GET | `/fixture-players/team-:team?` | public |
 | 138 | GET | `/fixture-players/club-:club?` | public |

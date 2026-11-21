@@ -58,6 +58,25 @@ read from `/event/:id/:date-:homeTeam-:awayTeam`, so a second spelling of the
 decorative part would be a duplicate URL for a page that self-canonicalises. Club
 pages work the same way through `clubPath()` / `app.locals.clubPath`.
 
+**Event pages carry written copy** (Nov 2026), because two team names and a map were thin
+enough that the sitemap deliberately caps them. `utils/fixturePreview.js` writes a preview
+(table places, form, squad strength, head to head, a prediction) before the match and a
+short report after, from `Fixture.getMatchContext` and the nightly team-strength run's
+`public` block (`TeamStrength.forecastFor`). Rules:
+- **No player is named in the copy, and the `public` block holds no names or player ids**
+  (tests assert both). The rest of that run's payload names players and stays admin-only.
+- Every sentence comes from a number; a section with nothing to go on is omitted.
+- Phrasing is picked by fixture id, so a page is stable and pages differ from each other.
+- The preview's one-line `summary` is the meta description and the JSON-LD description.
+  `documentTitle` / `metaDescription` / `ogImage` are optional `header.ejs` overrides for
+  this; a played fixture's `og:image` is its result card. `eventStatus` follows the
+  fixture's status (void → cancelled, rearranged → postponed). A BreadcrumbList goes with it.
+- A failure reading the context or forecast is logged and leaves its section out; the
+  fixture's date, venue and teams always render.
+- **The scorecard link (who played) shows only to a superadmin or someone signed in for
+  either club** (`assertClubAccess`), and such a response is `Cache-Control: private,
+  no-store`. Rosters are a club's business; don't add a public path into them.
+
 **Club pages** — `/clubs/:slug` (`club_public_page`, view `club-page.ejs`), matched
 by name slug against `Club.getPublicClubs()`, with `clubSlug()` dropping punctuation
 rather than hyphenating it so "G.H.A.P" is `ghap`. They exist because Search Console

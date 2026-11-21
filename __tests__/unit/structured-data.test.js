@@ -175,6 +175,23 @@ describe('sportsEvent', () => {
     endTime: '23:00',
   };
 
+  // It was EventScheduled whatever the fixture's state, so a void match told search it
+  // was still on.
+  it.each([
+    ['outstanding', 'EventScheduled'], ['complete', 'EventScheduled'], [null, 'EventScheduled'],
+    ['void', 'EventCancelled'], ['rearranged', 'EventPostponed'], ['rearranging', 'EventPostponed'],
+  ])('gives a %s fixture eventStatus %s', (status, expected) => {
+    expect(SD.sportsEvent({ ...fixture, status }).eventStatus).toBe(`https://schema.org/${expected}`);
+  });
+
+  it('takes the page\'s own description, and puts its image before the logo', () => {
+    const e = SD.sportsEvent(fixture, { description: 'Mellor A vs Aerospace A preview.', image: 'https://x.test/card.jpg' });
+    expect(e.description).toBe('Mellor A vs Aerospace A preview.');
+    expect(e.image[0]).toBe('https://x.test/card.jpg');
+    expect(e.image).toHaveLength(2);
+    expect(SD.sportsEvent(fixture).description).toBe('Stockport & District Badminton League Division 2 badminton match: Mellor A vs Aerospace A.');
+  });
+
   it('names the teams in properties that exist', () => {
     // Was competitor:[{"@type":"SportsTeam","homeTeam":"Mellor A"}] — SportsTeam has
     // no homeTeam property, so the team names were invisible to consumers.

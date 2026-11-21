@@ -187,7 +187,19 @@ function leagueOrganization() {
 }
 
 // A fixture's /event/ page.
-function sportsEvent(f) {
+// A fixture's status as schema.org eventStatus. A rearranged fixture's row keeps its old
+// date and a new row carries the new one, so the old row is postponed rather than
+// rescheduled (which would need the new date on it).
+function eventStatusOf(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'void') return 'https://schema.org/EventCancelled';
+  if (/^rearrang/.test(s)) return 'https://schema.org/EventPostponed';
+  return 'https://schema.org/EventScheduled';
+}
+
+// `opts.description` replaces the one-line default (the event page passes its preview's
+// summary); `opts.image` (absolute) goes before the logo.
+function sportsEvent(f, opts = {}) {
   const name = `${f.homeTeam} vs ${f.awayTeam}`;
   const teams = [f.homeTeam, f.awayTeam].map(n => ({ '@type': 'SportsTeam', name: n }));
 
@@ -206,13 +218,13 @@ function sportsEvent(f) {
     url: absoluteUrl(eventPath(f)),
     startDate: eventDateTime(f.date, f.startTime),
     sport: 'Badminton',
-    description: f.divisionName
+    description: opts.description || (f.divisionName
       ? `${LEAGUE_NAME} ${f.divisionName} badminton match: ${name}.`
-      : `${LEAGUE_NAME} badminton match: ${name}.`,
+      : `${LEAGUE_NAME} badminton match: ${name}.`),
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: eventStatusOf(f.status),
     isAccessibleForFree: true,
-    image: [absoluteUrl(LOGO)],
+    image: opts.image ? [opts.image, absoluteUrl(LOGO)] : [absoluteUrl(LOGO)],
     // The real properties for this, rather than a `competitor` entry with an
     // invented key. homeTeam/awayTeam are subproperties of competitor, so stating
     // them says everything the old markup meant to say, correctly.

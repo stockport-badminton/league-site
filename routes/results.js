@@ -38,7 +38,8 @@ router.get('/info/junior-clubs', access.public, junior_club_controller.list);
 
 router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', access.public, fixture_controller.fixture_id);
 router.get('/event/:id/:date-:homeTeam-:awayTeam', access.public, fixture_controller.fixture_event_detail);
-router.get('/scorecard/fixture/:id(\\d+)', access.public, fixture_controller.getScorecard);
+// Who played is a club's business: signed in, then a superadmin or either club (the handler).
+router.get('/scorecard/fixture/:id(\\d+)', access.member, fixture_controller.getScorecard);
 router.get('/fixture-players', access.public, fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/team-:team?', access.public, fixture_controller.get_fixture_players_details);
 router.get('/fixture-players/club-:club?', access.public, fixture_controller.get_fixture_players_details);

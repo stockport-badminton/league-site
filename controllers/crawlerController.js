@@ -69,6 +69,10 @@ exports.llms = async function(req, res, next) {
       link('Fixtures and results', divisionResultsPath('All'), 'every match this season, played and to come, with scores'),
       ...divisions.map((d) => link(d.name + ' results', divisionResultsPath(d.name), d.name + ' fixtures and results')),
       link('Fixture calendar', '/calendars/All', 'iCalendar feed of every fixture'),
+      'Every fixture has its own page (all listed in the sitemap): date, venue and directions, '
+        + 'both teams\' recent results and previous meetings. Before the match it carries a preview '
+        + 'with a predicted result, from a rating of every player\'s results that assumes each team '
+        + 'fields its usual line-up; afterwards, a short match report and a link to the scorecard.',
       link('Messer Trophy', '/messer-rules', 'the league\'s handicapped knockout cup, in two sections; draws at '
         + absoluteUrl('/messer-draw/A') + ' and ' + absoluteUrl('/messer-draw/B')),
       '',

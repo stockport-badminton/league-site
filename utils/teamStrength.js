@@ -346,6 +346,78 @@ function projectSeason(divisions, remaining, lineups, homeEdge, opts = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// The public forecast: what the event pages may show
+//
+// Everything above is admin-only because it names players. The event pages want the
+// forecast and a few facts about each team to write a preview from, and nothing more, so
+// these two build a block with no names and no player ids in it at all: what is not stored
+// there cannot leak onto a public page.
+
+const round = (/** @type {number} */ x, /** @type {number} */ dp = 3) => Math.round(x * 10 ** dp) / 10 ** dp
+
+/** @param {string} type a RUBBERS type */
+const categoryOf = type => (/Mens$/.test(type) ? 'mens' : /Ladies$/.test(type) ? 'ladies' : 'mixed')
+
+// One fixture: the result probabilities, the likeliest score, and how many of each six games
+// (men's, ladies', mixed) the home side is expected to win.
+/** @param {ReturnType<typeof predictFixture>} pr */
+function publicForecast(pr) {
+  /** @type {Record<string, number>} */ const edges = { mens: 0, ladies: 0, mixed: 0 }
+  for (const r of pr.rubbers) edges[categoryOf(r.type)] += GAMES_PER_RUBBER * r.p
+  return {
+    pHome: round(pr.pHome), pDraw: round(pr.pDraw), pAway: round(pr.pAway),
+    expected: round(pr.expected, 2), likely: pr.likely,
+    edges: { mens: round(edges.mens, 2), ladies: round(edges.ladies, 2), mixed: round(edges.mixed, 2) },
+  }
+}
+
+/**
+ * Each team as the previews describe it, by team id.
+ * - `men`, `ladies`, `overall`: where its usual three of each rank in its division (1 = strongest).
+ * - `settled`: the share of its usual six who played, averaged over its fixtures this season;
+ *   `last`: how many of them played in its latest fixture. Null before it has played.
+ * - `projection`: its expected finishing place and chances, from projectSeason.
+ * @param {{ id: number, divisionId: number }[]} teams
+ * @param {Map<number, { men: Slot[], ladies: Slot[] }>} lineups
+ * @param {Map<number, Map<number, { t: number, players: Set<number> }>>} played team → fixture → who played
+ * @param {ReturnType<typeof projectSeason>} projection
+ */
+function publicTeams(teams, lineups, played, projection) {
+  /** @type {Map<number, any>} */ const proj = new Map()
+  for (const d of projection) for (const t of d.teams) {
+    proj.set(t.id, { teams: d.teams.length, expected: round(t.expectedPosition, 2),
+      pWinner: round(t.pWinner), pUp: round(t.pUp), pDown: round(t.pDown) })
+  }
+  /** @type {Map<number, number[]>} */ const byDivision = new Map()
+  for (const t of teams) if (lineups.has(t.id)) byDivision.set(t.divisionId, [...(byDivision.get(t.divisionId) || []), t.id])
+
+  const mean = (/** @type {Slot[]} */ ss) => ss.reduce((a, p) => a + p.s, 0) / ss.length
+  /** @param {number[]} ids @param {(id: number) => number} score higher is stronger */
+  const ranks = (ids, score) => new Map([...ids].sort((a, b) => score(b) - score(a)).map((id, i) => [id, i + 1]))
+
+  /** @type {Record<number, any>} */ const out = {}
+  for (const ids of byDivision.values()) {
+    const l = (/** @type {number} */ id) => /** @type {{ men: Slot[], ladies: Slot[] }} */ (lineups.get(id))
+    const men = ranks(ids, id => mean(l(id).men)), ladies = ranks(ids, id => mean(l(id).ladies))
+    const overall = ranks(ids, id => -(/** @type {number} */ (men.get(id)) + /** @type {number} */ (ladies.get(id)))
+      + 1e-6 * (mean(l(id).men) + mean(l(id).ladies)))
+    for (const id of ids) {
+      const usual = new Set([...l(id).men, ...l(id).ladies].map(p => p.id).filter(p => p != null))
+      const fixtures = [...(played.get(id)?.values() || [])].sort((a, b) => a.t - b.t)
+      const share = (/** @type {{ players: Set<number> }} */ f) => [...usual].filter(p => f.players.has(/** @type {number} */ (p))).length
+      out[id] = {
+        teams: ids.length, men: men.get(id), ladies: ladies.get(id), overall: overall.get(id),
+        fixtures: fixtures.length,
+        settled: fixtures.length ? round(fixtures.reduce((a, f) => a + share(f), 0) / (6 * fixtures.length), 2) : null,
+        last: fixtures.length ? share(fixtures[fixtures.length - 1]) : null,
+        projection: proj.get(id) || null,
+      }
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
 // Team order checks
 
 /**
@@ -499,4 +571,5 @@ module.exports = {
   mondayOf, nextMonday, isoDay, dayMs, snapshotMondays, snapshotRows,
   SETTINGS, RUBBERS, RESERVE_BASE, MAX_NOMINATED, MIN_RECENT_GAMES, CONFIDENCE,
   display, sig, gameWin, fit, usualThree, rubberProbs, scoreDistribution, predictFixture, projectSeason, orderFlags, pStronger,
+  publicForecast, publicTeams,
 }

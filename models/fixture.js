@@ -467,12 +467,16 @@ exports.getFixtureDetailsById = async function(fixtureId) {
 // "fixture does not exist" indistinguishable from "captain unset". This one can
 // only return zero rows when the fixture genuinely is not there.
 /** @param {number} fixtureId */
+// The clubs say who may open the scorecard (getScorecard: a superadmin or either club).
 exports.getFixtureSummaryById = async function(fixtureId) {
   return kysely.selectFrom('fixture as f')
     .leftJoin('team as homeTeam', 'f.homeTeam', 'homeTeam.id')
     .leftJoin('team as awayTeam', 'f.awayTeam', 'awayTeam.id')
+    .leftJoin('club as homeClub', 'homeTeam.club', 'homeClub.id')
+    .leftJoin('club as awayClub', 'awayTeam.club', 'awayClub.id')
     .select(['f.id', 'f.date', 'f.status', 'f.homeScore', 'f.awayScore',
-      'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam'])
+      'homeTeam.name as homeTeam', 'awayTeam.name as awayTeam',
+      'homeClub.name as homeClub', 'awayClub.name as awayClub'])
     .where('f.id', '=', fixtureId)
     .execute()
 }
@@ -543,6 +547,7 @@ exports.getFixtureEventById = async function(fixtureId) {
     .select(eb => ['fixture.id', 'fixture.date', 'homeTeam.name as homeTeam', 'homeTeam.starttime as startTime',
       'homeTeam.endtime as endTime', 'homeClub.name as homeClub', 'homeClub.clubWebsite',
       'awayTeam.name as awayTeam', 'awayClub.name as awayClub', 'division.name as divisionName',
+      'homeTeam.id as homeTeamId', 'awayTeam.id as awayTeamId', 'division.rank as divisionRank',
       'venue.name as venueName', 'venue.address as venueAddress', 'venue.gMapUrl as venueLink',
       'venue.Lat', 'venue.Lng', 'venue.placeId', 'venue.directions as venueDirections', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore',
       officer(eb, 'team', 'homeTeam.id', 'teamCaptain', 'name').as('teamCaptain'),
@@ -556,6 +561,53 @@ exports.getFixtureEventById = async function(fixtureId) {
     // the team, and the sitemap would then list ~14 of them. Owner's call, 14 Sep 2026.
     .where('homeTeam.withdrawn', 'is', null).where('awayTeam.withdrawn', 'is', null)
     .execute()
+}
+
+// What an event page says about the two teams going into the match, all from before its
+// date: `season`, the name of the season it falls in (null if none does); `form`, every result either team has had so far in that season, newest first; and
+// `meetings`, the last four times these two played each other (either way round, any
+// season). Results only: a void, rearranged or unscored fixture says nothing about either.
+// Team ids, not names, identify the sides, since a team keeps its id across seasons.
+// `games`: this fixture's own games by type and score, for a match report. No players:
+// the page that reads this is public and names nobody.
+/** @param {{ id: number, date: Date | string, homeTeamId: number, awayTeamId: number }} f */
+exports.getMatchContext = async function(f) {
+  const before = new Date(f.date)
+  const ids = [f.homeTeamId, f.awayTeamId]
+  // The names are for links to those fixtures' own pages, which eventPath spells from them.
+  const scored = kysely.selectFrom('fixture')
+    .innerJoin('team as h', 'h.id', 'fixture.homeTeam').innerJoin('team as a', 'a.id', 'fixture.awayTeam')
+    .select(['fixture.id', 'fixture.date', 'fixture.homeTeam', 'fixture.awayTeam', 'fixture.homeScore', 'fixture.awayScore',
+      'h.name as homeName', 'a.name as awayName'])
+    .where('fixture.homeScore', 'is not', null).where('fixture.awayScore', 'is not', null)
+    .where(eb => eb.or([eb('fixture.status', 'not in', ['void', 'rearranged', 'rearranging']), eb('fixture.status', 'is', null)]))
+    .where('fixture.date', '<', before)
+  const season = await kysely.selectFrom('season').select(['season.name', 'season.startDate'])
+    .where('season.startDate', '<', before).where('season.endDate', '>', before)
+    .orderBy('season.startDate', 'desc').limit(1)
+    .executeTakeFirst()
+  const [form, meetings, games] = await Promise.all([
+    scored
+      .where(eb => eb.or([eb('fixture.homeTeam', 'in', ids), eb('fixture.awayTeam', 'in', ids)]))
+      // No season holds the date: no season's form to speak of.
+      .where('fixture.date', '>', season ? season.startDate : before)
+      .orderBy('fixture.date', 'desc').orderBy('fixture.id', 'desc')
+      .execute(),
+    scored
+      .where(eb => eb.or([
+        eb.and([eb('fixture.homeTeam', '=', f.homeTeamId), eb('fixture.awayTeam', '=', f.awayTeamId)]),
+        eb.and([eb('fixture.homeTeam', '=', f.awayTeamId), eb('fixture.awayTeam', '=', f.homeTeamId)]),
+      ]))
+      .orderBy('fixture.date', 'desc').orderBy('fixture.id', 'desc')
+      .limit(4)
+      .execute(),
+    kysely.selectFrom('game').select(['game.gameType', 'game.homeScore', 'game.awayScore'])
+      .where('game.fixture', '=', f.id)
+      .where('game.homeScore', 'is not', null).where('game.awayScore', 'is not', null)
+      .orderBy('game.id')
+      .execute(),
+  ])
+  return { season: season ? season.name : null, form, meetings, games }
 }
 
 // Fixtures whose /event/ pages belong in the sitemap, newest first.

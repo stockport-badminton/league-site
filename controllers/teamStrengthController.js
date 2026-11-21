@@ -9,7 +9,10 @@
 //
 // Games from the Tameside and Manchester leagues (models/externalGame.js) are fitted too,
 // for the players who play there as well: a name counts as one of ours only on a one-to-one
-// exact match (utils/externalLeagues.js linker). Admin only; never published.
+// exact match (utils/externalLeagues.js linker). The page and everything naming a player
+// are admin only. The one published part is the run's `public` block: a nameless forecast for
+// each remaining fixture and a profile of each team, which the public event pages read
+// (TeamStrength.forecastFor, utils/fixturePreview.js). Nothing with a name goes in it.
 //
 // Predictions field each team's usual players: the three men and three ladies who have
 // played most for it this season (utils/teamStrength.js usualThree), then its nominated
@@ -132,8 +135,18 @@ async function build(now) {
   // order their club actually plays them in, to set against the order it nominated.
   const ownTeam = new Map(players.map(p => [p.id, p.team]))
   /** @type {Map<number, Map<number, number>>} */ const cardPos = new Map()
+  // Who played for each team in each of its fixtures this season, for the previews' "settled
+  // side" (utils/teamStrength.js publicTeams): team → fixture → players.
+  /** @type {Map<number, Map<number, { t: number, players: Set<number> }>>} */ const played = new Map()
   for (const g of rows) {
     if (g.season !== season) continue
+    for (const [team, ps] of [[g.homeTeam, [g.homePlayer1, g.homePlayer2]], [g.awayTeam, [g.awayPlayer1, g.awayPlayer2]]]) {
+      const byFixture = played.get(team) || new Map()
+      const f = byFixture.get(g.fixture) || { t: new Date(g.date).getTime(), players: new Set() }
+      for (const p of ps) if (p) f.players.add(Number(p))
+      byFixture.set(g.fixture, f)
+      played.set(team, byFixture)
+    }
     const at = model.levelPositions(g.gameType)
     if (at) [[g.homePlayer1, g.homeTeam, at[0]], [g.homePlayer2, g.homeTeam, at[1]],
       [g.awayPlayer1, g.awayTeam, at[0]], [g.awayPlayer2, g.awayTeam, at[1]]].forEach(([p, team, pos]) => {
@@ -209,6 +222,15 @@ async function build(now) {
   const projection = model.projectSeason(divList,
     remaining.map(f => ({ home: f.homeTeam, away: f.awayTeam })), lineups, fit.home, { moving: MOVING })
 
+  // The public forecast for the event pages: every fixture still to play, and each team's
+  // profile. No names in it (utils/teamStrength.js publicForecast).
+  /** @type {Record<number, any>} */ const fixtures = {}
+  for (const f of remaining) {
+    if (!lineups.has(f.homeTeam) || !lineups.has(f.awayTeam)) continue
+    fixtures[f.id] = model.publicForecast(model.predictFixture(lineups.get(f.homeTeam), lineups.get(f.awayTeam), fit.home))
+  }
+  const forecast = { fixtures, teams: model.publicTeams(teams, lineups, played, projection) }
+
   // Team order, club by club, teams in club order.
   /** @type {Map<number, any>} */ const clubs = new Map()
   for (const t of teams) {
@@ -242,6 +264,8 @@ async function build(now) {
           .sort((a, b) => b.games - a.games)])),
       week,
       projection,
+      // Read by the public event pages (TeamStrength.forecastFor): nothing in it names anyone.
+      public: forecast,
       checks: checks.map(c => ({
         name: c.name,
         flags: c.flags.map(f => ({ kind: f.kind, gender: f.gender, team: f.team, text: f.text, p: f.p,

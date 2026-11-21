@@ -97,6 +97,23 @@ describe('pairGames', () => {
   });
 });
 
+describe('forecastFor', () => {
+  it('reads one fixture and two teams out of the latest run\'s public block, and nothing else', async () => {
+    expect(await TeamStrength.forecastFor(1002, HOME, AWAY)).toBeNull();
+    const pub = { fixtures: { 1002: { pHome: 0.6 } }, teams: { [HOME]: { overall: 1 }, [AWAY]: { overall: 2 } } };
+    await TeamStrength.save({ season: Season.current(), caller: 'test', games: 1, tookMs: 1, payload: { public: { fixtures: {}, teams: {} } } });
+    await TeamStrength.save({ season: Season.current(), caller: 'test', games: 2, tookMs: 1, payload: { week: [{ home: 'names' }], public: pub } });
+    const got = await TeamStrength.forecastFor(1002, HOME, AWAY);
+    expect(got).toEqual({ ran_at: expect.any(Date), fixture: { pHome: 0.6 }, home: { overall: 1 }, away: { overall: 2 } });
+    expect(await TeamStrength.forecastFor(1003, HOME, 424242)).toMatchObject({ fixture: null, home: { overall: 1 }, away: null });
+  });
+
+  it('is null throughout for a run from before the public block', async () => {
+    await TeamStrength.save({ season: Season.current(), caller: 'test', games: 1, tookMs: 1, payload: { week: [] } });
+    expect(await TeamStrength.forecastFor(1002, HOME, AWAY)).toMatchObject({ fixture: null, home: null, away: null });
+  });
+});
+
 describe('save and latest', () => {
   it('returns the newest run with its payload as an object', async () => {
     expect(await TeamStrength.latest()).toBeNull();

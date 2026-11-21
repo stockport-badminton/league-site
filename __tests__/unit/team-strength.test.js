@@ -296,3 +296,47 @@ describe('weekly snapshots', () => {
     ]);
   });
 });
+
+// The block the public event pages read. What matters most is what is NOT in it.
+describe('the public forecast', () => {
+  const slot = (id, name, s) => ({ id, name, s, se: 0.1, mx: 0 });
+  const lineup = (base, s) => ({
+    men: [slot(base + 1, `Mister ${base + 1}`, s), slot(base + 2, `Mister ${base + 2}`, s - 0.05), slot(base + 3, `Mister ${base + 3}`, s - 0.1)],
+    ladies: [slot(base + 4, `Miss ${base + 4}`, s), slot(base + 5, `Miss ${base + 5}`, s - 0.05), slot(base + 6, `Miss ${base + 6}`, s - 0.1)],
+  });
+  const lineups = new Map([[1, lineup(9100, 0.3)], [2, lineup(9200, -0.2)], [3, lineup(9300, 0)]]);
+
+  it('gives a fixture its chances and likely score, and how many of each six games the home side should win', () => {
+    const fc = M.publicForecast(M.predictFixture(lineups.get(1), lineups.get(2), 0.02));
+    expect(fc.pHome + fc.pDraw + fc.pAway).toBeCloseTo(1, 2);
+    expect(fc.pHome).toBeGreaterThan(fc.pAway);
+    expect(fc.likely.home + fc.likely.away).toBe(18);
+    expect(fc.edges.mens + fc.edges.ladies + fc.edges.mixed).toBeCloseTo(fc.expected, 0);
+    for (const k of ['mens', 'ladies', 'mixed']) expect(fc.edges[k]).toBeGreaterThan(3);
+  });
+
+  it('ranks each team’s squad within its division and says how settled its line-up has been', () => {
+    const teams = [{ id: 1, divisionId: 7 }, { id: 2, divisionId: 7 }, { id: 3, divisionId: 7 }];
+    // Team 1: its usual six every time. Team 2: three of them in one match, all six in the next.
+    const played = new Map([
+      [1, new Map([[50, { t: 1, players: new Set([9101, 9102, 9103, 9104, 9105, 9106]) }]])],
+      [2, new Map([[51, { t: 2, players: new Set([9201, 9202, 9203, 777]) }], [50, { t: 1, players: new Set([9201, 9202, 9203, 9204, 9205, 9206]) }]])],
+    ]);
+    const projection = [{ teams: [{ id: 1, expectedPosition: 1.2, pWinner: 0.8, pUp: 0, pDown: 0 }, { id: 2, expectedPosition: 2.9, pWinner: 0, pUp: 0, pDown: 0.6 }, { id: 3, expectedPosition: 2, pWinner: 0.2, pUp: 0, pDown: 0.4 }] }];
+    const out = M.publicTeams(teams, lineups, played, projection);
+    expect(out[1]).toMatchObject({ teams: 3, men: 1, ladies: 1, overall: 1, fixtures: 1, settled: 1, last: 6, projection: { teams: 3, pWinner: 0.8 } });
+    expect(out[2]).toMatchObject({ overall: 3, fixtures: 2, settled: 0.75, last: 3 });
+    expect(out[3]).toMatchObject({ overall: 2, fixtures: 0, settled: null, last: null });
+  });
+
+  it('carries no player’s name and no player’s id', () => {
+    const teams = [{ id: 1, divisionId: 7 }, { id: 2, divisionId: 7 }];
+    const played = new Map([[1, new Map([[50, { t: 1, players: new Set([9101, 9104]) }]])]]);
+    const block = JSON.stringify({
+      fixture: M.publicForecast(M.predictFixture(lineups.get(1), lineups.get(2), 0)),
+      teams: M.publicTeams(teams, lineups, played, []),
+    });
+    expect(block).not.toMatch(/Mister|Miss/);
+    expect(block).not.toMatch(/9[123]0\d/);
+  });
+});

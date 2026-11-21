@@ -217,18 +217,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <%- include('pwa-head.ejs') %>
-    <meta name="description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
+    <%# Three optional overrides, for a page whose subject should lead its title and snippet
+        rather than the league's name (the event pages): `documentTitle` replaces the whole
+        <title>, `metaDescription` the whole description, and `ogImage` (absolute) the logo. %>
+    <% const _title = (typeof documentTitle !== 'undefined' && documentTitle) ? documentTitle : 'Stockport & District Badminton League - ' + pageTitle;
+       const _description = (typeof metaDescription !== 'undefined' && metaDescription) ? metaDescription : 'Stockport & District Badminton Association. ' + pageDescription; %>
+    <meta name="description" content="<%= _description %>">
     <meta name="author" content="">
-    <meta property="og:title" content="Stockport &amp; District Badminton League - <%= pageTitle %>">
-    <meta property="og:description" content="Stockport &amp; District Badminton Association. <%= pageDescription %>">
+    <meta property="og:title" content="<%= _title %>">
+    <meta property="og:description" content="<%= _description %>">
     <%# Absolute: a relative og:image is ignored by most link previews. %>
-    <meta property="og:image" content="<%= siteOrigin() + asset('/static/beta/images/SDBLLogo.png') %>">
+    <meta property="og:image" content="<%= (typeof ogImage !== 'undefined' && ogImage) ? ogImage : siteOrigin() + asset('/static/beta/images/SDBLLogo.png') %>">
     <meta property="og:url" content="<%= canonical %>">
     <meta name="twitter:card" content="summary_large_image">
     <meta property="og:site_name" content="Stockport &amp; District Badminton League">
     <meta name="twitter:image:alt" content="Stockport &amp; District Badminton League">
 
-    <title>Stockport &amp; District Badminton League - <%= pageTitle %></title>
+    <title><%= _title %></title>
 
     <%- include('touch-icons.ejs') -%>
 
