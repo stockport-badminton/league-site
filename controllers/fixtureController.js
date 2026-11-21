@@ -154,6 +154,15 @@ function mayOpenScorecard(req, f) {
   });
 }
 
+// A fixture row without its line-up: the player ids getFixtureDetails selects for the ELO code.
+const LINEUP = ['homeMan1', 'homeMan2', 'homeMan3', 'homeLady1', 'homeLady2', 'homeLady3',
+  'awayMan1', 'awayMan2', 'awayMan3', 'awayLady1', 'awayLady2', 'awayLady3'];
+function withoutLineup(row) {
+  const out = { ...row };
+  for (const k of LINEUP) delete out[k];
+  return out;
+}
+
 exports.fixture_event_detail = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureEventById(req.params.id);
@@ -487,8 +496,11 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       }
       applyAdminRole(renderObject, req)
       if (req.path.indexOf('fixtures') > -1) {
+        // The JSON goes to anyone (the Remnants calendar feed reads it daily), so it carries
+        // the fixtures and not who played in them: the query's twelve player ids are for the
+        // ELO code, and with them any line-up could be rebuilt by id (Nov 2026 review).
         res.status(200);
-        res.send(result);
+        res.send(result.map(withoutLineup));
       } else {
         res.status(200);
         res.render('fixtures-results' + type, renderObject);

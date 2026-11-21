@@ -13,7 +13,9 @@ const league_controller = require('../controllers/leagueController');
 const validateSeason = require('../middleware/validateSeason');
 
 router.get('/playerStats/:id/:fullName', access.public, player_controller.player_game_data);
-router.get('/eligiblePlayers/:id/:gender', access.public, player_controller.eligible_players_list);
+// A team's players: signed in, or holding a scorecard draft's link (its confirmation page
+// lets the captain change a team). Public until Nov 2026, so any team's players by id.
+router.get('/eligiblePlayers/:id/:gender', access.token('draft link, or a sign-in'), player_controller.eligible_players_list);
 
 // Team routes
 router.get('/teams', access.public, team_controller.team_list);
@@ -60,8 +62,10 @@ router.get('/results-grid/*', access.public, fixture_controller.fixture_detail_b
 
 router.get('/admin/results/*', access.member, fixture_controller.fixture_detail_byDivision);
 
-router.get('/api/player-elo', access.public, player_controller.player_elo_history_api);
-router.get('/api/players/search', access.public, player_controller.player_search_api);
+// Both name players by id or filter; their callers (the ELO chart, signup approval) are
+// signed-in pages. Public until Nov 2026, when with /fixtures' ids they rebuilt line-ups.
+router.get('/api/player-elo', access.member, player_controller.player_elo_history_api);
+router.get('/api/players/search', access.member, player_controller.player_search_api);
 router.get('/api/seasons', access.public, player_controller.get_seasons_api);
 router.get('/elo-chart', access.member, player_controller.player_elo_chart);
 router.get('/player-stats/*', access.member, player_controller.all_player_stats);

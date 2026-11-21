@@ -1046,24 +1046,30 @@
                FormOptions.fillTeams($('#homeTeam, #awayTeam'), data);
             });
       })
+      // /eligiblePlayers needs a sign-in or this draft's link: this page has no sign-in, so it
+      // passes the draft id and token from the form's hidden fields.
+      var draftQuery = (function () {
+        var d = $('input[name=draftId]').val(), t = $('input[name=t]').val();
+        return d ? '?draft=' + encodeURIComponent(d) + '&t=' + encodeURIComponent(t || '') : '';
+      })();
       $("#homeTeam").change(function(){
         var selectedTeam = this.value;
-            $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
+            $.get('/eligiblePlayers/'+selectedTeam+'/Male'+draftQuery, function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#homeMan1, #homeMan2, #homeMan3'), data);
             });
-            $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
+            $.get('/eligiblePlayers/'+selectedTeam+'/Female'+draftQuery, function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#homeLady1, #homeLady2, #homeLady3'), data);
             });
       })
       $("#awayTeam").change(function(){
         var selectedTeam = this.value;
-            $.get('/eligiblePlayers/'+selectedTeam+'/Male', function (data) {
+            $.get('/eligiblePlayers/'+selectedTeam+'/Male'+draftQuery, function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#awayMan1, #awayMan2, #awayMan3'), data);
             });
-            $.get('/eligiblePlayers/'+selectedTeam+'/Female', function (data) {
+            $.get('/eligiblePlayers/'+selectedTeam+'/Female'+draftQuery, function (data) {
                // Generate the html from the given data.
                FormOptions.fillPlayers($('#awayLady1, #awayLady2, #awayLady3'), data);
             });

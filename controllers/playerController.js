@@ -2,6 +2,7 @@ var Club = require('../models/club');
 const log = require('../utils/log');
 var Division = require('../models/division');
 var Fixture = require('../models/fixture');
+const { mayOpenDraft } = require('../utils/scorecardLinks');
 var Game = require('../models/game');
 var Player = require('../models/players');
 var seasonModel = require('../models/season');
@@ -276,8 +277,19 @@ exports.find_closest_matched_player = async function(req, res, next) {
 // club_roster_edit — with the document on its own streaming endpoint.
 
 // Return list of players eligible based on team
+// Signed in, or `?draft=<id>&t=<token>` for a draft the token opens (utils/scorecardLinks.js):
+// the captains' confirmation page has no sign-in, and can change a team.
 exports.eligible_players_list = async function(req, res, next) {
   try {
+    if (!req.user) {
+      const draft = /^\d+$/.test(String(req.query.draft || '')) ? await Fixture.getScorecardById(req.query.draft) : [];
+      if (!draft.length || !mayOpenDraft(draft[0].confirmToken, req.query.t)) {
+        const err = new Error('Sign in, or open your scorecard link, to see a team\'s players');
+        err.status = 403;
+        return next(err);
+      }
+    }
+    res.set('Cache-Control', 'private, no-store');
     const rows = await Player.findElgiblePlayersFromTeamId(req.params.id, req.params.gender);
     res.send(rows);
   } catch (err) {

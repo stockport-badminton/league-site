@@ -846,34 +846,6 @@ async function sendDraftReceivedEmail(opts) {
 }
 exports.sendDraftReceivedEmail = sendDraftReceivedEmail;
 
-exports.fixture_populate_scorecard = async function(data, req, res, next) {
-  try {
-    const [divisionRows, divisionIdRows] = await Promise.all([
-      Division.getAllAndSelectedByName(1, data.division),
-      Division.getByName(data.division)
-    ]);
-    const [homeTeamRows, awayTeamRows] = await Promise.all([
-      Team.getAllAndSelectedByName(data.home_team, divisionIdRows[0].id),
-      Team.getAllAndSelectedByName(data.away_team, divisionIdRows[0].id)
-    ]);
-    const [homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows] = await Promise.all([
-      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.home_team, 'Male', data.home_man_1, data.home_man_2, data.home_man_3),
-      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.home_team, 'Female', data.home_lady_1, data.home_lady_2, data.home_lady_3),
-      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.away_team, 'Male', data.away_man_1, data.away_man_2, data.away_man_3),
-      Player.findElgiblePlayersFromTeamNameAndSelectedSansLevenshtein(data.away_team, 'Female', data.away_lady_1, data.away_lady_2, data.away_lady_3),
-    ]);
-    const renderData = { divisionRows, divisionIdRows, homeTeamRows, awayTeamRows, homeMenRows, homeLadiesRows, awayMenRows, awayLadiesRows };
-    res.render('populated-scorecard', {
-      static_path: '/static',
-      pageTitle: "Spreadsheet Upload Scorecard",
-      pageDescription: "Show result of uploading scorecard",
-      result: renderData,
-      data,
-      canonical: canonicalFor(req)
-    });
-  } catch (err) { next(err); }
-}
-
 exports.fixture_populate_scorecard_fromId = async function(req, res, next) {
   try {
     const rows = await Fixture.getScorecardById(req.params.id);

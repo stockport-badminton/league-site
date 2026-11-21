@@ -87,9 +87,6 @@ router.post('/scorecard-beta', access.publish, publicFormLimiter, scorecard_cont
 // the owner rather than an omission. See the brief.
 router.post('/email-scorecard', access.public, publicFormLimiter, scorecard_controller.validateScorecard, scorecard_controller.fixture_populate_scorecard_errors);
 router.post('/add-scorecard-photo/:id', access.token('draft link'), publicFormLimiter, scorecard_controller.add_scorecard_photo);
-router.post('/submit-form', access.public, publicFormLimiter, (req, res, next) => {
-  scorecard_controller.fixture_populate_scorecard(req.body, req, res, next);
-});
 router.get('/populated-scorecard-beta/:id', access.token('draft link'), (req, res, next) => {
   scorecard_controller.fixture_populate_scorecard_fromId(req, res, next);
 });
