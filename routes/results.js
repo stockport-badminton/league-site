@@ -63,6 +63,9 @@ router.get('/results/*', access.public, fixture_controller.fixture_detail_byDivi
 router.get('/calendars/*', access.public, fixture_controller.fixture_calendars);
 router.get('/results-grid/*', access.public, fixture_controller.fixture_detail_byDivision);
 
+// "Results Detail" in the signed-in Admin menu: "admin" names the menu, not the audience.
+// Any member, on purpose and in daily use (Nov 2026 access review); captains and admins get
+// extra links, a superadmin the reminder flags (applyAdminRole in fixtureController).
 router.get('/admin/results/*', access.member, fixture_controller.fixture_detail_byDivision);
 
 // Both name players by id or filter; their callers (the ELO chart, signup approval) are
@@ -77,6 +80,7 @@ router.get('/pair-stats/*', access.member, player_controller.all_pair_stats);
 router.get('/pair-stats', access.member, player_controller.all_pair_stats);
 
 router.get('/club/:id', access.member, club_controller.club_detail);
-router.get('/admin/info/clubs', access.member, club_controller.club_list_detail);
+// `/admin/info/clubs` was here: the same handler and page as the public /info/clubs, with no
+// link to it and no request in 30 days. Removed Nov 2026.
 
 module.exports = router;
