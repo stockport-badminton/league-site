@@ -127,7 +127,7 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 117 | GET | `/manage-players/club-:club` | member |
 | 118 | GET | `/manage-players` | member |
 | 119 | GET | `/player/create` | superadmin |
-| 120 | GET | `/playerStats/:id/:fullName` | public |
+| 120 | GET | `/playerStats/:id/:fullName` | member |
 | 121 | GET | `/eligiblePlayers/:id/:gender` | token:draft link, or a sign-in |
 | 122 | GET | `/teams` | public |
 | 123 | POST | `/teams` | public |
@@ -135,7 +135,7 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 125 | GET | `/tables/All/:season` | public |
 | 126 | GET | `/tables/:division` | public |
 | 127 | GET | `/tables/:division/:season` | public |
-| 128 | GET | `/clubs` | public |
+| 128 | GET | `/clubs` | superadmin |
 | 129 | GET | `/clubs/:slug` | public |
 | 130 | GET | `/info/clubs` | public |
 | 131 | GET | `/info/junior-clubs` | public |

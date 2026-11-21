@@ -1,6 +1,12 @@
 const request = require('supertest');
 
 jest.mock('../../models/club');
+// GET /clubs is the league office's (superadmin); who else is refused is in
+// player-data-access.test.js.
+jest.mock('../../middleware/secured', () => (req, res, next) => {
+  req.user = { id: 't', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
+  next();
+});
 jest.mock('../../models/venue');
 
 const Club = require('../../models/club');

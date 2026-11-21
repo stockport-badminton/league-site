@@ -17,6 +17,7 @@ jest.mock('../../models/teamStrength');
 jest.mock('../../models/division');
 jest.mock('../../models/club');
 jest.mock('../../models/teams');
+jest.mock('../../models/roster');
 
 const Player = require('../../models/players');
 const TeamStrength = require('../../models/teamStrength');
@@ -77,14 +78,14 @@ describe('GET /playerStats/:id/:fullName', () => {
     expect(res.headers['cache-control']).toBe('private, no-store');
   });
 
-  it('shows a visitor, or a member who is not a superadmin, nothing of it', async () => {
-    for (const user of [null, MEMBER]) {
-      mockCurrentUser = user;
-      const res = await request(app).get('/playerStats/409/Claire%20Inglis');
-      expect(res.status).toBe(200);
-      expect(res.text).not.toContain('id="points-rating"');
-      expect(res.text).toContain('var points = [];');
-    }
+  it('shows a member of the player\'s club who is not a superadmin nothing of it', async () => {
+    // Signed-out visitors no longer reach the page at all (player-data-access.test.js).
+    require('../../models/roster').getPlayerOwner.mockResolvedValue({ id: 409, clubName: 'Dome' });
+    mockCurrentUser = MEMBER;
+    const res = await request(app).get('/playerStats/409/Claire%20Inglis');
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('id="points-rating"');
+    expect(res.text).toContain('var points = [];');
     expect(TeamStrength.playerWeeks).not.toHaveBeenCalled();
   });
 });

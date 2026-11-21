@@ -17,10 +17,15 @@ jest.mock('passport', () => {
 jest.mock('../../models/fixture');
 jest.mock('../../models/players');
 jest.mock('../../models/season');
+jest.mock('../../models/roster');
+jest.mock('../../models/club');
+jest.mock('../../models/teamStrength');
 jest.mock('axios');
 
 const Fixture = require('../../models/fixture');
 const Player = require('../../models/players');
+const Roster = require('../../models/roster');
+const Club = require('../../models/club');
 const app = require('../../app');
 
 const member = { id: 'auth0|t', _json: { 'https://my-app.example.com/role': 'admin', 'https://my-app.example.com/club': 'Tatton' } };
@@ -31,7 +36,13 @@ beforeEach(() => {
   mockUser = null;
   Player.findElgiblePlayersFromTeamId.mockResolvedValue([{ id: 1, first_name: 'Pat', family_name: 'One' }]);
   Player.getPlayerEloTimeSeries.mockResolvedValue([]);
+  Player.searchPlayers.mockResolvedValue([]);
+  // Player 68 is at Tatton, 419 at Mellor.
+  Roster.getPlayerOwner.mockImplementation(async id => ({ 68: { id: 68, clubName: 'Tatton' }, 419: { id: 419, clubName: 'Mellor' } })[id] || null);
 });
+
+const superadmin = { id: 'auth0|s', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
+const noClub = { id: 'auth0|n', _json: {} };
 
 describe('/fixtures/* JSON', () => {
   it('lists the fixtures without who played in them', async () => {
@@ -51,9 +62,25 @@ describe('/api/player-elo and /api/players/search', () => {
     expect(Player.getPlayerEloTimeSeries).not.toHaveBeenCalled();
   });
 
-  it('answers a signed-in user', async () => {
+  it('charts only the viewer\'s own club\'s players; a superadmin any', async () => {
+    mockUser = member; // Tatton
+    expect((await request(app).get('/api/player-elo?players=68,419')).status).toBe(200);
+    expect(Player.getPlayerEloTimeSeries).toHaveBeenLastCalledWith([68]);
+    mockUser = superadmin;
+    await request(app).get('/api/player-elo?players=68,419');
+    expect(Player.getPlayerEloTimeSeries).toHaveBeenLastCalledWith([68, 419]);
+  });
+
+  it('searches the viewer\'s own club only, whatever club is asked for', async () => {
     mockUser = member;
-    expect((await request(app).get('/api/player-elo?players=68')).status).toBe(200);
+    await request(app).get('/api/players/search?club=Mellor&q=sm');
+    expect(Player.searchPlayers).toHaveBeenLastCalledWith('sm', expect.objectContaining({ club: 'Tatton' }));
+  });
+
+  it('refuses a signed-in user with no club', async () => {
+    mockUser = noClub;
+    expect((await request(app).get('/api/players/search?q=sm')).status).toBe(403);
+    expect(Player.searchPlayers).not.toHaveBeenCalled();
   });
 });
 
@@ -87,4 +114,48 @@ describe('/eligiblePlayers/:team/:gender', () => {
 it('no longer has the unused /submit-form, which listed any team\'s players to anyone', async () => {
   const res = await request(app).post('/submit-form').type('form').send({ division: 'Premier', home_team: 'Mellor A' });
   expect(res.status).toBe(404);
+});
+
+// Owner's rule (Nov 2026): a player's own page, and the stats pages, are for their club and
+// the league office. Until then the page was public, and the stats were narrowed only for
+// the role 'admin'.
+describe('/playerStats/:id and the stats pages', () => {
+  beforeEach(() => {
+    Player.getPlayerGameData.mockResolvedValue([]);
+    Player.newGetPlayerStats.mockResolvedValue([]);
+    Player.newGetPairStats.mockResolvedValue([]);
+    require('../../models/teamStrength').playerWeeks.mockResolvedValue([]);
+  });
+
+  it('sends a signed-out visitor to log in', async () => {
+    const res = await request(app).get('/playerStats/68/Some-One');
+    expect(res.status).toBe(302);
+    expect(Player.getPlayerGameData).not.toHaveBeenCalled();
+  });
+
+  it('shows a player\'s page to their own club and the league office, and to nobody else', async () => {
+    mockUser = member;
+    expect((await request(app).get('/playerStats/68/Some-One')).status).toBe(200);
+    expect((await request(app).get('/playerStats/419/Some-One')).status).toBe(403);
+    mockUser = superadmin;
+    expect((await request(app).get('/playerStats/419/Some-One')).status).toBe(200);
+    expect(Player.getPlayerGameData).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['/player-stats', '/pair-stats'])('narrows %s to the viewer\'s club whatever their role', async path => {
+    mockUser = { id: 'auth0|m', _json: { 'https://my-app.example.com/club': 'Tatton' } }; // no role at all
+    expect((await request(app).get(path)).status).toBe(200);
+    const model = path === '/player-stats' ? Player.newGetPlayerStats : Player.newGetPairStats;
+    expect(model).toHaveBeenLastCalledWith(expect.objectContaining({ club: 'Tatton' }));
+    mockUser = noClub;
+    expect((await request(app).get(path)).status).toBe(403);
+  });
+});
+
+it('keeps the raw club table, contact addresses and all, for the league office', async () => {
+  Club.getAll.mockResolvedValue([{ id: 1, name: 'Tatton', contactUs: 'x@example.com' }]);
+  expect((await request(app).get('/clubs')).status).toBe(302);
+  mockUser = member;
+  expect((await request(app).get('/clubs')).status).toBe(403);
+  expect(Club.getAll).not.toHaveBeenCalled();
 });

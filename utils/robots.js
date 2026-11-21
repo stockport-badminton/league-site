@@ -16,9 +16,9 @@
 // `express.static('rootfiles')` is mounted before the router and would shadow this route.
 //
 // Why wildcards, not prefixes. Robots rules are prefix matches, and a route's literal
-// prefix is often shared with a public route: `/player/:id/update` needs a login but
-// `/playerStats/:id/:fullName` is public. Each parameter becomes `*` instead
-// (`/player/*/update`). `*` and `$` are in RFC 9309 and honoured by Google, Bing, OpenAI,
+// prefix is often shared with a public route: `/club/:id` needs a login but every
+// `/clubs/:slug` page is public, and `/club` would block them all. Each parameter becomes
+// `*` instead (`/club/`, `/player/*/update`). `*` and `$` are in RFC 9309 and honoured by Google, Bing, OpenAI,
 // Anthropic and Common Crawl.
 //
 // `X-Robots-Tag: noindex` on the same responses is the other half — see access.js.
@@ -74,10 +74,16 @@ function collapse(rules) {
   return kept.sort();
 }
 
+// A gated literal route that a public route extends is anchored with `$`: `/clubs` (the raw
+// club JSON, superadmin) as a plain rule would be a prefix of every public `/clubs/<name>`
+// page and take them all out of search. Found in Nov 2026, when `/clubs` was first gated.
 function disallowRules(app) {
-  const gated = routeTable(app)
-    .filter((r) => r.method === 'GET' && r.access && r.access !== 'public')
-    .map((r) => ruleFor(r.path));
+  const table = routeTable(app).filter((r) => r.method === 'GET');
+  const publicRules = table.filter((r) => r.access === 'public').map((r) => ruleFor(r.path));
+  const gated = table
+    .filter((r) => r.access && r.access !== 'public')
+    .map((r) => ruleFor(r.path))
+    .map((rule) => (!rule.includes('*') && publicRules.some((p) => p !== rule && p.startsWith(rule)) ? rule + '$' : rule));
   return collapse([...gated, ...EXTRA_DISALLOW.map(([p]) => p)]);
 }
 

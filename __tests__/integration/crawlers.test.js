@@ -69,7 +69,10 @@ describe('robots.txt is derived from the route access declarations', () => {
     expect(robots.isDisallowed(rules, '/player/7/update')).toBe(true);
     expect(robots.isDisallowed(rules, '/club/7')).toBe(true);
     expect(robots.isDisallowed(rules, '/admin/clubs')).toBe(true);
-    expect(robots.isDisallowed(rules, '/playerStats/7/Dave-Lee')).toBe(false);
+    expect(robots.isDisallowed(rules, '/playerStats/7/Dave-Lee')).toBe(true);
+    // /clubs (the raw JSON) is gated and every /clubs/<name> page is public: the rule for
+    // the first must be anchored, or it would take every club page out of search.
+    expect(robots.isDisallowed(rules, '/clubs')).toBe(true);
     expect(robots.isDisallowed(rules, '/clubs/ghap')).toBe(false);
     expect(robots.isDisallowed(rules, '/info/clubs')).toBe(false);
     expect(robots.isDisallowed(rules, '/forms/team-registration')).toBe(false);

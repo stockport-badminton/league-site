@@ -32,20 +32,37 @@ const { isSuperAdmin } = require('../middleware/requireClubAccess');
 const TeamStrength = require('../models/teamStrength');
 const strengthModel = require('../utils/teamStrength');
 
-// Club admins see only their own club's stats; superadmins (club 'All') and
-// users with no role see everything. Mutates searchObj in place. Reads the
-// role/club claims populated at login from the player table (see app.js's
-// Auth0Strategy verify callback). Note: an 'admin' whose club claim didn't
-// resolve at login falls through to seeing all clubs rather than nothing —
-// acceptable here (stats are visible to any logged-in user anyway; the scope
-// is a convenience default, not a hard boundary).
-function scopeToAdminClub(req, searchObj) {
-  const claims = req.user && req.user._json;
-  if (!claims) return;
+// Whose players a viewer may see in the stats pages, the ELO chart and a player's own
+// page: null for a superadmin (club 'All', everyone), otherwise their own club's name.
+// Throws 403 for a signed-in user with no club. Owner's rule, Nov 2026: own club only.
+// Until then only the role 'admin' was narrowed, as "a convenience default, not a hard
+// boundary", and anyone else signed in saw every club's players.
+function ownClubOf(req) {
+  const claims = (req.user && req.user._json) || {};
   const club = claims['https://my-app.example.com/club'];
-  if (claims['https://my-app.example.com/role'] === 'admin' && club && club !== 'All') {
-    searchObj.club = club;
+  if (isSuperAdmin(req) || club === 'All') return null;
+  if (!club) {
+    const err = new Error('Player stats are open to club members once your club is set');
+    err.status = 403;
+    throw err;
   }
+  return club;
+}
+
+// Forces the stats filter to the viewer's own club (a superadmin keeps whatever they asked
+// for). Mutates searchObj; throws as ownClubOf does.
+function scopeToOwnClub(req, searchObj) {
+  const club = ownClubOf(req);
+  if (club) searchObj.club = club;
+}
+
+// The ids among `ids` the viewer may see: all of them for a superadmin, otherwise those of
+// players now registered at the viewer's club.
+async function visiblePlayerIds(req, ids) {
+  const club = ownClubOf(req);
+  if (!club) return ids;
+  const owners = await Promise.all(ids.map(id => Roster.getPlayerOwner(id)));
+  return ids.filter((id, i) => owners[i] && owners[i].clubName === club);
 }
 
 // A `club-` filter naming a club that did not exist in the season being viewed is
@@ -203,8 +220,12 @@ async function pointsRatingFor(req, res, rows) {
 }
 
 // Display list of all Players
+// A player's games, partners and opponents. Signed in, then a superadmin or someone from
+// the player's own club (public until Nov 2026, when walking the ids rebuilt line-ups).
 exports.player_game_data = async function(req, res, next) {
   try {
+    if (ownClubOf(req)) await assertPlayerInViewerClub(req, req.params.id)
+    res.set('Cache-Control', 'private, no-store')
     const rows = await Player.getPlayerGameData(req.params.id);
     const strength = await pointsRatingFor(req, res, rows);
     res.render('player-game-stats', {
@@ -337,7 +358,7 @@ exports.all_player_stats = async function(req, res, next) {
 
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
   if (await redirectUnknownClub(req, res, searchObj)) return
-  scopeToAdminClub(req, searchObj)
+  try { scopeToOwnClub(req, searchObj) } catch (err) { return next(err) }
 
   try {
     const rawResult = await Player.newGetPlayerStats(searchObj);
@@ -447,7 +468,7 @@ exports.all_pair_stats = async function(req, res, next) {
   let divisionString = "All"
   if (replacedMatches.length > 0) divisionString = replacedMatches[0]
   if (await redirectUnknownClub(req, res, searchObj)) return
-  scopeToAdminClub(req, searchObj)
+  try { scopeToOwnClub(req, searchObj) } catch (err) { return next(err) }
 
   try {
     const result = await Player.newGetPairStats(searchObj);
@@ -983,8 +1004,9 @@ const ELO_CHART_MAX_PLAYERS = 20
 exports.player_elo_history_api = async function(req, res, next) {
   try {
     const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, ELO_CHART_MAX_PLAYERS)
-    if (rawIds.length === 0) return res.json([])
-    const data = await Player.getPlayerEloTimeSeries(rawIds)
+    const ids = await visiblePlayerIds(req, rawIds)
+    if (ids.length === 0) return res.json([])
+    const data = await Player.getPlayerEloTimeSeries(ids)
     res.json(data)
   } catch (err) {
     next(err)
@@ -1003,6 +1025,8 @@ exports.player_search_api = async function(req, res, next) {
       team: (req.query.team || '').trim(),
       gender: (req.query.gender || '').trim(),
     }
+    const own = ownClubOf(req)
+    if (own) filters.club = own
     const hasFilter = Object.values(filters).some(v => v.length > 0)
     if (q.length < 2 && !hasFilter) return res.json([])
     const results = await Player.searchPlayers(q, filters)
@@ -1016,13 +1040,19 @@ exports.player_search_api = async function(req, res, next) {
 // Renders the multi-player ELO comparison page.
 exports.player_elo_chart = async function(req, res, next) {
   try {
-    const rawIds = (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, ELO_CHART_MAX_PLAYERS)
-    const [seriesData, divisions, clubs, teams] = await Promise.all([
+    const rawIds = await visiblePlayerIds(req,
+      (req.query.players || '').split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n)).slice(0, ELO_CHART_MAX_PLAYERS))
+    const own = ownClubOf(req)
+    const [seriesData, divisions, allClubs, allTeams] = await Promise.all([
       rawIds.length > 0 ? Player.getPlayerEloTimeSeries(rawIds) : [],
       Division.getAll(),
       Club.getAll(),
       Team.getAll(),
     ])
+    // Someone from a club picks among their own club's players only.
+    const clubs = own ? allClubs.filter(c => c.name === own) : allClubs
+    const clubIds = new Set(clubs.map(c => c.id))
+    const teams = own ? allTeams.filter(t => clubIds.has(t.club)) : allTeams
     // A superadmin can chart the points-based rating too (/admin/team-strength); it is
     // never shown to anyone else, so the page is not to be cached.
     const showStrength = isSuperAdmin(req)

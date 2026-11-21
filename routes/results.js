@@ -12,7 +12,8 @@ const fixture_controller = require('../controllers/fixtureController');
 const league_controller = require('../controllers/leagueController');
 const validateSeason = require('../middleware/validateSeason');
 
-router.get('/playerStats/:id/:fullName', access.public, player_controller.player_game_data);
+// A player's games with partners and opponents: signed in, then superadmin or own club.
+router.get('/playerStats/:id/:fullName', access.member, player_controller.player_game_data);
 // A team's players: signed in, or holding a scorecard draft's link (its confirmation page
 // lets the captain change a team). Public until Nov 2026, so any team's players by id.
 router.get('/eligiblePlayers/:id/:gender', access.token('draft link, or a sign-in'), player_controller.eligible_players_list);
@@ -29,7 +30,9 @@ router.get('/tables/:division', access.public, league_controller.league_table);
 router.get('/tables/:division/:season', access.public, validateSeason, league_controller.league_table);
 
 // Club routes
-router.get('/clubs', access.public, club_controller.club_list);
+// The raw club table as JSON, contact address included. Nothing on the site reads it and
+// in 30 days only crawlers and testing fetched it (Nov 2026), so it is the league office's.
+router.get('/clubs', access.superadmin, club_controller.club_list);
 // A public page per club — the surface for "badminton club near me", which
 // /info/clubs cannot rank for because all 18 clubs share that one URL. Matched by
 // name slug, not id, so the URL reads. Declared after `/clubs` so the exact path

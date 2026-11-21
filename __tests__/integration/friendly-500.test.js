@@ -42,7 +42,12 @@ jest.mock('../../db_connect', () => ({
   isObject: jest.fn(obj => obj === Object(obj)),
 }));
 
-jest.mock('../../middleware/secured', () => (req, res, next) => next());
+// Signed in as the league office: these tests are about the error pages, and the player
+// APIs answer only a signed-in user with a club (or a superadmin).
+jest.mock('../../middleware/secured', () => (req, res, next) => {
+  req.user = req.user || { id: 't', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
+  next();
+});
 
 const Sentry = require('@sentry/node');
 const Fixture = require('../../models/fixture');

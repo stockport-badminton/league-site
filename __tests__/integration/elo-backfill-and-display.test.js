@@ -13,6 +13,16 @@
 const request = require('supertest');
 
 jest.mock('../../models/players');
+jest.mock('../../models/teamStrength');
+// /playerStats needs a sign-in: its tests sign in as the league office, the rest stay out.
+let mockUser = null;
+jest.mock('../../middleware/secured', () => {
+  const actual = jest.requireActual('../../middleware/secured');
+  return (req, res, next) => {
+    if (mockUser) { req.user = mockUser; return next(); }
+    return actual(req, res, next);
+  };
+});
 jest.mock('../../models/fixture');
 jest.mock('../../models/game');
 
@@ -98,6 +108,12 @@ describe('eloBackfillAll re-reads every player\'s division rank each season', ()
 });
 
 describe('GET /playerStats/:id/:fullName', () => {
+  beforeEach(() => {
+    mockUser = { id: 't', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
+    require('../../models/teamStrength').playerWeeks.mockResolvedValue([]);
+  });
+  afterEach(() => { mockUser = null; });
+
   const row = (over) => ({
     id: 1, date: '2022-10-10', teamName: 'Manor B', teamAdjustment: null,
     partnerName: 'A Partner', oppName1: 'Opp One', oppName2: 'Opp Two',
