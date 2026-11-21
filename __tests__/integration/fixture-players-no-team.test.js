@@ -7,6 +7,16 @@ const request = require('supertest');
 // because the bug is in the template's data contract (CLAUDE.md, *Assert on rendered
 // HTML, not the view name*).
 
+// Signed in as a superadmin: who may see the page is fixture-players-access.test.js.
+jest.mock('passport', () => {
+  const actual = jest.requireActual('passport');
+  actual.session = () => (req, res, next) => {
+    req.user = { id: 'auth0|boss', _json: { 'https://my-app.example.com/role': 'superadmin', 'https://my-app.example.com/club': 'All' } };
+    req.isAuthenticated = () => true;
+    next();
+  };
+  return actual;
+});
 jest.mock('../../models/fixture');
 jest.mock('../../models/season');
 jest.mock('../../models/auth.js');

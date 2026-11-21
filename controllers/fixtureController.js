@@ -18,7 +18,7 @@ const { canonicalFor, divisionTablePath, divisionResultsPath, clubPath, eventPat
 const TeamStrength = require('../models/teamStrength');
 const League = require('../models/league');
 const { buildPreview } = require('../utils/fixturePreview');
-const { assertClubAccess } = require('../middleware/requireClubAccess');
+const { assertClubAccess, isSuperAdmin, CLUB_CLAIM } = require('../middleware/requireClubAccess');
 const { isReminderDue } = require('../utils/scorecardReminder');
 
 
@@ -67,13 +67,29 @@ exports.getLateScorecards = async function(req, res, next) {
 };
 
 
-// Display list of all Fixtures
+// Who played for each team in each fixture, and in what order.
+//
+// It was public from 2018 to Nov 2026: its only link was on the admin tools page, which
+// made it look like an admin page, but anyone with the URL could read every club's
+// line-ups. Now the route needs a sign-in, a superadmin sees every club, and anyone else
+// sees their own club only: the club filter is forced to theirs, in the query, so another
+// club's rows are never read. Asking for another club by URL is a 403, not a quiet swap.
 exports.get_fixture_players_details = async function(req, res, next) {
   try {
     var searchObj = {}
     if (req.params.season !== undefined) searchObj.season = req.params.season
     if (req.params.team !== undefined) searchObj.team = req.params.team
     if (req.params.club !== undefined) searchObj.club = req.params.club
+    const ownClub = req.user && req.user._json ? req.user._json[CLUB_CLAIM] : undefined
+    if (!isSuperAdmin(req) && ownClub !== 'All') {
+      if (!ownClub || (searchObj.club !== undefined && searchObj.club !== ownClub)) {
+        const err = new Error(ownClub ? `You can see ${ownClub}'s line-ups only` : 'Line-ups are open to club officers')
+        err.status = 403
+        return next(err)
+      }
+      searchObj.club = ownClub
+    }
+    res.set('Cache-Control', 'private, no-store')
     const row = await Fixture.getMatchPlayerOrderDetails(searchObj);
     let clubs = row.map(item => item.name).filter((value, index, self) => self.indexOf(value) === index)
     let teams = row.map(item => item.teamName).filter((value, index, self) => self.indexOf(value) === index)

@@ -40,12 +40,14 @@ router.get('/fixture/homeId-:homeTeam/awayId-:awayTeam', access.public, fixture_
 router.get('/event/:id/:date-:homeTeam-:awayTeam', access.public, fixture_controller.fixture_event_detail);
 // Who played is a club's business: signed in, then a superadmin or either club (the handler).
 router.get('/scorecard/fixture/:id(\\d+)', access.member, fixture_controller.getScorecard);
-router.get('/fixture-players', access.public, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/team-:team?', access.public, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/club-:club?', access.public, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/:season?', access.public, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/team-:team?/season-:season?', access.public, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/club-:club?/:season?', access.public, fixture_controller.get_fixture_players_details);
+// Who played for whom is a club's business: signed in, then a superadmin sees every club and
+// anyone else only their own (the handler forces the club filter).
+router.get('/fixture-players', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/team-:team?', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/club-:club?', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/:season?', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/team-:team?/season-:season?', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/club-:club?/:season?', access.member, fixture_controller.get_fixture_players_details);
 
 // Venue routes
 router.get('/venues', access.public, venue_controller.venue_list);
