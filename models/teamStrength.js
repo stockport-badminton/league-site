@@ -131,4 +131,44 @@ exports.latest = async function() {
   return row || null
 }
 
+// ---------------------------------------------------------------------------
+// Weekly snapshots of the rating (migration 038), for charting it beside the ELO.
+
+/** @typedef {import('kysely').RawBuilder<string>} Text */
+const AS_OF = /** @type {Text} */ (sql`to_char(as_of, 'YYYY-MM-DD')`)
+
+// Every week held, oldest first, with the number of games its fit saw.
+exports.weeks = async function() {
+  return kysely.selectFrom('strength_week')
+    .select([AS_OF.as('asOf'), 'games'])
+    .orderBy('as_of')
+    .execute()
+}
+
+// Stores one week's snapshot, replacing any already held for that Monday.
+/** @param {{ asOf: string, games: number, caller: string, rows: { player: number, rating: number, se: number }[] }} week */
+exports.saveWeek = async function({ asOf, games, caller, rows }) {
+  await kysely.transaction().execute(async trx => {
+    const day = /** @type {When} */ (sql`${asOf}::date`)
+    await trx.deleteFrom('strength_week').where('as_of', '=', day).execute() // its players go with it
+    await trx.insertInto('strength_week').values({ as_of: asOf, games, caller }).execute()
+    for (let i = 0; i < rows.length; i += 1000) {
+      await trx.insertInto('strength_week_player')
+        .values(rows.slice(i, i + 1000).map(r => ({ as_of: asOf, player: r.player, rating: r.rating, se: r.se })))
+        .execute()
+    }
+  })
+}
+
+// The weekly ratings of `ids`, oldest first.
+/** @param {number[]} ids */
+exports.playerWeeks = async function(ids) {
+  if (!ids.length) return []
+  return kysely.selectFrom('strength_week_player')
+    .select(['player', AS_OF.as('asOf'), 'rating', 'se'])
+    .where('player', 'in', ids)
+    .orderBy('player').orderBy('as_of')
+    .execute()
+}
+
 exports.KEEP_RUNS = KEEP_RUNS

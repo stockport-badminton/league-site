@@ -258,3 +258,41 @@ describe('levelPositions', () => {
     expect(M.levelPositions(null)).toBeNull();
   });
 });
+
+describe('weekly snapshots', () => {
+  const local = (y, m, d, h = 0) => new Date(y, m - 1, d, h).getTime();
+
+  it('finds the Monday on or before a time, and steps a week across a clock change', () => {
+    expect(M.isoDay(M.mondayOf(local(2026, 11, 18, 20)))).toBe('2026-11-16'); // a Wednesday evening
+    expect(M.isoDay(M.mondayOf(local(2026, 11, 16)))).toBe('2026-11-16'); // Monday midnight is its own week
+    expect(M.isoDay(M.mondayOf(local(2026, 11, 22, 23)))).toBe('2026-11-16'); // Sunday night
+    // The clocks went back on 25 Oct 2026: still local midnight a week on.
+    expect(M.nextMonday(local(2026, 10, 19))).toBe(local(2026, 10, 26));
+    expect(M.dayMs('2026-10-26')).toBe(local(2026, 10, 26));
+  });
+
+  it('keeps only the Mondays with a game in the week before, and counts a Monday fixture in the next week', () => {
+    const times = [
+      local(2026, 9, 8), // Tue: week to Mon 14 Sep
+      local(2026, 9, 21), // a Monday fixture, dated midnight: week to Mon 28 Sep
+      local(2026, 10, 1), // Thu: week to Mon 5 Oct
+    ];
+    const mondays = M.snapshotMondays(times, local(2026, 9, 1), local(2026, 10, 20));
+    expect(mondays.map(M.isoDay)).toEqual(['2026-09-14', '2026-09-28', '2026-10-05']);
+  });
+
+  it('snapshots our players with a game in the year before, on the display scale', () => {
+    const at = local(2026, 11, 16);
+    const games = [
+      { t: at - 400 * DAY, mixed: false, h1: 1, h2: 2, a1: 3, a2: 4, hs: 21, as: 10 },
+      { t: at - 10 * DAY, mixed: false, h1: 2, h2: 'mcrbl:Someone', a1: 3, a2: 4, hs: 21, as: 18 },
+    ];
+    const f = { s: new Map([[1, 0.2], [2, 0.1], [3, 0], [4, -0.05], ['mcrbl:Someone', 0]]),
+      se: new Map([[1, 0.05], [2, 0.04], [3, 0.03], [4, 0.0412], ['mcrbl:Someone', 0.1]]) };
+    expect(M.snapshotRows(f, games, at)).toEqual([
+      { player: 2, rating: 1600, se: 40 },
+      { player: 3, rating: 1500, se: 30 },
+      { player: 4, rating: 1450, se: 41 },
+    ]);
+  });
+});

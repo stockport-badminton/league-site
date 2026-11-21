@@ -10,6 +10,10 @@
   <% }
   else { %>
     <h1><%= fullName %></h1>
+    <% if (typeof strength !== 'undefined' && strength && strength.latest) { %>
+    <p class="text-muted small" id="points-rating">Points rating (admin only): <strong><%= strength.latest.rating %></strong>
+      ±<%= strength.latest.se %>, week of <%= strength.latest.asOf %>. Dashed on the chart; compare only within a gender.</p>
+    <% } %>
 
     <% if (result && result.length > 0) { %>
     <div class="card mb-4">
@@ -108,6 +112,8 @@
     allPoints.forEach(function(pt) { byDate[pt.x] = pt; });
     var raw = Object.keys(byDate).sort().map(function(k) { return byDate[k]; });
 
+    var points = <%- JSON.stringify(typeof strength !== 'undefined' && strength ? strength.data : []) %>;
+
     new Chart(document.getElementById('elo-chart'), {
       type: 'line',
       data: {
@@ -120,7 +126,19 @@
           tension: 0,
           pointRadius: 3,
           pointHoverRadius: 6
-        }]
+        }].concat(points.length ? [{
+          label: 'Points rating',
+          data: points,
+          borderColor: '#6c757d',
+          backgroundColor: '#6c757d',
+          borderDash: [6, 4],
+          // No line across a gap longer than a summer (2020/21 had no games).
+          segment: { borderColor: function(ctx) { return ctx.p1.parsed.x - ctx.p0.parsed.x > 200 * 86400000 ? 'transparent' : undefined; } },
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 4
+        }] : [])
       },
       options: {
         responsive: true,
@@ -132,14 +150,15 @@
             title: { display: false }
           },
           y: {
-            title: { display: true, text: 'ELO Rating' }
+            title: { display: true, text: points.length ? 'Rating' : 'ELO Rating' }
           }
         },
         plugins: {
-          legend: { display: false },
+          legend: { display: points.length > 0 },
           tooltip: {
             callbacks: {
               label: function(ctx) {
+                if (ctx.datasetIndex === 1) return 'Points rating: ' + ctx.raw.y + ' (±' + ctx.raw.se + ')';
                 return 'Rating: ' + ctx.raw.y + '  |  ' + ctx.raw.tip;
               }
             }

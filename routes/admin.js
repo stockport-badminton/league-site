@@ -202,6 +202,8 @@ router.get('/admin/team-strength', access.superadmin, team_strength_controller.p
 router.get('/admin/team-strength/compare', access.superadmin, team_strength_controller.compare);
 router.post('/admin/team-strength/run', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.run);
 router.post('/admin/team-strength/import', access.cron(team_strength_controller.requireStrengthCaller), team_strength_controller.importRun);
+// Its weekly snapshots (migration 038), charted beside the ELO on /elo-chart for a superadmin.
+router.get('/api/player-strength', access.superadmin, team_strength_controller.playerWeeksApi);
 
 // Every superadmin tool, grouped (utils/adminTools.js) — the Admin dropdown's
 // "All admin tools…".

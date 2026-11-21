@@ -1,5 +1,6 @@
 // /admin/team-strength: the page shows the latest nightly run; POST …/run makes one.
 const request = require('supertest');
+const { captureLog } = require('../helpers/captureLog');
 
 let mockCurrentUser = null;
 jest.mock('../../middleware/secured', () => (req, res, next) => {
@@ -96,6 +97,9 @@ beforeEach(() => {
   ExternalGame.add.mockImplementation(async rows => rows.length);
   TeamStrength.pairGames.mockResolvedValue(pairRows);
   ExternalGame.summary.mockResolvedValue([{ league: 'mcrbl', games: '2', latest: '2026-10-28' }]);
+  TeamStrength.weeks.mockResolvedValue([]);
+  TeamStrength.saveWeek.mockResolvedValue();
+  TeamStrength.playerWeeks.mockResolvedValue([]);
 });
 
 // Runs the job for real (against the mocked reads) and hands the page what it stored.
@@ -289,5 +293,76 @@ describe('compare', () => {
     TeamStrength.latest.mockResolvedValue({ ...(await TeamStrength.latest()), payload });
     const res = await request(app).get('/admin/team-strength');
     expect(res.text).toContain(`<a class="small ts-case" href="/admin/team-strength/compare?a=${m2.id}&amp;b=${m1.id}">The results</a>`);
+  });
+});
+
+describe('weekly snapshots of the rating', () => {
+  const model = require('../../utils/teamStrength');
+  const TOKEN = 'strength-test-token';
+  const CRON = { 'x-audit-token': TOKEN };
+  let savedToken;
+  beforeEach(() => { savedToken = process.env.AUDIT_CRON_TOKEN; process.env.AUDIT_CRON_TOKEN = TOKEN; mockCurrentUser = null; });
+  afterEach(() => { if (savedToken === undefined) delete process.env.AUDIT_CRON_TOKEN; else process.env.AUDIT_CRON_TOKEN = savedToken; });
+  // The last four Mondays, newest last: the test games fall on every one of the last 100 days.
+  const lastFour = () => {
+    const out = [model.mondayOf(Date.now())];
+    while (out.length < 4) out.unshift(new Date(out[0]).setDate(new Date(out[0]).getDate() - 7));
+    return out.map(model.isoDay);
+  };
+
+  it('stores each of the last four weeks, with our players only, after the run', async () => {
+    const res = await request(app).post('/admin/team-strength/run').set(CRON);
+    expect(res.status).toBe(200);
+    expect(res.body.weeks).toEqual(lastFour());
+    expect(TeamStrength.saveWeek.mock.calls.map(c => c[0].asOf)).toEqual(lastFour());
+    const week = TeamStrength.saveWeek.mock.calls[3][0];
+    expect(week.caller).toBe('scheduler');
+    expect(week.rows.length).toBeGreaterThan(0);
+    expect(week.rows.every(r => typeof r.player === 'number' && people.some(p => p.id === r.player))).toBe(true);
+    // Strong A's men beat Weak B's: on the display scale, around 1500.
+    const rating = id => week.rows.find(r => r.player === id).rating;
+    expect(rating(home[0].id)).toBeGreaterThan(rating(away[0].id));
+  });
+
+  it('leaves a week alone when its fit would see the games it saw, and refits one that has changed', async () => {
+    await request(app).post('/admin/team-strength/run').set(CRON);
+    const held = TeamStrength.saveWeek.mock.calls.map(c => ({ asOf: c[0].asOf, games: c[0].games }));
+    TeamStrength.saveWeek.mockClear();
+    held[1] = { ...held[1], games: held[1].games - 1 }; // a late result since
+    TeamStrength.weeks.mockResolvedValue(held);
+    const res = await request(app).post('/admin/team-strength/run').set(CRON);
+    expect(res.body.weeks).toEqual([held[1].asOf]);
+    expect(TeamStrength.saveWeek).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the run when the snapshot fails, and says so', async () => {
+    const spy = captureLog(['error']);
+    TeamStrength.saveWeek.mockRejectedValue(new Error('disk full'));
+    const res = await request(app).post('/admin/team-strength/run').set(CRON);
+    expect(res.status).toBe(200);
+    expect(TeamStrength.save).toHaveBeenCalledTimes(1);
+    expect(res.body.weeks).toEqual({ error: 'disk full' });
+    expect(spy.text()).toContain('weekly snapshot failed');
+    spy.restore();
+  });
+});
+
+describe('GET /api/player-strength', () => {
+  it('is superadmin-only', async () => {
+    mockCurrentUser = CLUB_ADMIN;
+    expect((await request(app).get('/api/player-strength?players=1')).status).toBe(403);
+    expect(TeamStrength.playerWeeks).not.toHaveBeenCalled();
+  });
+
+  it('gives each player\'s weekly ratings as a chart series, uncached', async () => {
+    TeamStrength.playerWeeks.mockResolvedValue([
+      { player: 7, asOf: '2026-11-09', rating: 1590, se: 40 }, { player: 7, asOf: '2026-11-16', rating: 1610, se: 39 },
+      { player: 9, asOf: '2026-11-16', rating: 1400, se: 60 }]);
+    const res = await request(app).get('/api/player-strength?players=7,9,x');
+    expect(TeamStrength.playerWeeks).toHaveBeenCalledWith([7, 9]);
+    expect(res.headers['cache-control']).toBe('private, no-store');
+    expect(res.body).toEqual([
+      { id: 7, data: [{ x: '2026-11-09', y: 1590, se: 40 }, { x: '2026-11-16', y: 1610, se: 39 }] },
+      { id: 9, data: [{ x: '2026-11-16', y: 1400, se: 60 }] }]);
   });
 });

@@ -113,3 +113,31 @@ describe('save and latest', () => {
     expect(rows.map(r => r.games)).toEqual(Array.from({ length: TeamStrength.KEEP_RUNS }, (_, i) => i + 3));
   });
 });
+
+describe('weekly snapshots', () => {
+  const rows = (rating) => [{ player: P.hm1, rating, se: 40 }, { player: P.am1, rating: 1400, se: 55 }];
+
+  it('stores a week, lists the weeks held, and gives each player\'s weeks oldest first', async () => {
+    expect(await TeamStrength.weeks()).toEqual([]);
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 120, caller: 'test', rows: rows(1610) });
+    await TeamStrength.saveWeek({ asOf: '2026-11-09', games: 100, caller: 'test', rows: rows(1590) });
+    expect(await TeamStrength.weeks()).toEqual([{ asOf: '2026-11-09', games: 100 }, { asOf: '2026-11-16', games: 120 }]);
+    expect(await TeamStrength.playerWeeks([P.hm1])).toEqual([
+      { player: P.hm1, asOf: '2026-11-09', rating: 1590, se: 40 },
+      { player: P.hm1, asOf: '2026-11-16', rating: 1610, se: 40 }]);
+    expect(await TeamStrength.playerWeeks([])).toEqual([]);
+  });
+
+  it('replaces a week already held, players and all', async () => {
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 120, caller: 'test', rows: rows(1610) });
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 121, caller: 'test', rows: [{ player: P.hm1, rating: 1620, se: 39 }] });
+    expect(await TeamStrength.weeks()).toEqual([{ asOf: '2026-11-16', games: 121 }]);
+    expect(await TeamStrength.playerWeeks([P.hm1, P.am1])).toEqual([{ player: P.hm1, asOf: '2026-11-16', rating: 1620, se: 39 }]);
+  });
+
+  it('stores a week of more players than one insert takes', async () => {
+    const many = Array.from({ length: 2500 }, (_, i) => ({ player: 500000 + i, rating: 1500, se: 50 }));
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 1, caller: 'test', rows: many });
+    expect((await run("SELECT count(*)::int AS n FROM strength_week_player WHERE as_of = '2026-11-16'"))[0].n).toBe(2500);
+  });
+});

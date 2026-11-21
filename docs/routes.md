@@ -257,4 +257,5 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 247 | GET | `/admin/team-strength/compare` | superadmin |
 | 248 | POST | `/admin/team-strength/run` | cron:AUDIT_CRON_TOKEN |
 | 249 | POST | `/admin/team-strength/import` | cron:AUDIT_CRON_TOKEN |
-| 250 | GET | `/admin` | superadmin |
+| 250 | GET | `/api/player-strength` | superadmin |
+| 251 | GET | `/admin` | superadmin |

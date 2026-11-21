@@ -44,6 +44,15 @@
           <div id="search-results" class="list-group mt-1" style="position:absolute;z-index:1000;width:100%;display:none;"></div>
         </div>
         <div id="selected-players" class="mt-2"></div>
+        <% if (showStrength) { %>
+        <label for="rating-mode" class="small font-weight-bold mt-2 mb-1">Rating</label>
+        <select class="form-control form-control-sm" id="rating-mode">
+          <option value="elo">ELO</option>
+          <option value="points">Points rating</option>
+          <option value="both">Both</option>
+        </select>
+        <p class="small text-muted mt-1 mb-0">Points rating: admin only, weekly, dashed. Compare men with men and ladies with ladies.</p>
+        <% } %>
         <button id="clear-btn" class="btn btn-sm btn-outline-secondary mt-2 w-100">Clear all</button>
       </div>
     </div>
@@ -70,8 +79,12 @@
 <script>
 (function() {
   var MAX_PLAYERS = <%= maxPlayers %>;
+  var SHOW_STRENGTH = <%= showStrength ? 'true' : 'false' %>;
   var selectedPlayers = [];  // [{id, name}]
   var chart = null;
+  var lastElo = [], lastPoints = [];
+  var modeSelect = document.getElementById('rating-mode');
+  function mode() { return modeSelect ? modeSelect.value : 'elo'; }
 
   // Evenly spaced, distinct hues — works for any count up to MAX_PLAYERS
   // without needing a hand-picked color list.
@@ -100,7 +113,13 @@
         legend: { display: true },
         tooltip: {
           mode: 'nearest',
-          intersect: false
+          intersect: false,
+          callbacks: {
+            label: function(ctx) {
+              var se = ctx.raw && ctx.raw.se;
+              return ctx.dataset.label + ': ' + ctx.raw.y + (se ? ' (±' + se + ')' : '');
+            }
+          }
         }
       }
     }
@@ -113,15 +132,22 @@
   }
 
   function fetchAndRender(ids) {
-    fetch('/api/player-elo?players=' + ids.join(','))
-      .then(function(r){ return r.json() })
-      .then(function(series) {
+    var points = SHOW_STRENGTH && ids.length
+      ? fetch('/api/player-strength?players=' + ids.join(',')).then(function(r){ return r.ok ? r.json() : [] })
+      : Promise.resolve([]);
+    Promise.all([fetch('/api/player-elo?players=' + ids.join(',')).then(function(r){ return r.json() }), points])
+      .then(function(both) {
+        var series = both[0];
         selectedPlayers = series.map(function(s){ return { id: s.id, name: s.name } });
+        lastElo = series;
+        lastPoints = both[1];
         rebuildBadges();
-        rebuildChart(series);
+        rebuildChart();
         updateUrl();
       });
   }
+
+  if (modeSelect) modeSelect.addEventListener('change', function() { rebuildChart(); });
 
   function addPlayer(id, name) {
     if (selectedPlayers.length >= MAX_PLAYERS) return alert('Maximum ' + MAX_PLAYERS + ' players');
@@ -154,11 +180,19 @@
     });
   }
 
-  function rebuildChart(series) {
-    chart.data.datasets = series.map(function(s, i) {
+  // No line across a gap longer than a summer (2020/21 had no games): a straight line there
+  // reads as a slow change that never happened.
+  function hideLongGap(ctx) {
+    return ctx.p1.parsed.x - ctx.p0.parsed.x > 200 * 86400000 ? 'transparent' : undefined;
+  }
+
+  // Each player keeps one colour: the ELO solid, the points rating dashed.
+  function rebuildChart() {
+    var m = mode(), sets = [];
+    lastElo.forEach(function(s, i) {
       var color = colorFor(i);
-      return {
-        label: s.name,
+      if (m !== 'points') sets.push({
+        label: s.name + (m === 'both' ? ' (ELO)' : ''),
         data: s.data,
         borderColor: color,
         backgroundColor: color,
@@ -166,8 +200,23 @@
         tension: 0,
         pointRadius: 2,
         pointHoverRadius: 5
-      };
+      });
+      var pts = lastPoints.find(function(p){ return p.id === s.id });
+      if (m !== 'elo' && pts) sets.push({
+        label: s.name + ' (points)',
+        data: pts.data,
+        borderColor: color,
+        backgroundColor: color,
+        borderDash: [6, 4],
+        segment: { borderColor: hideLongGap },
+        fill: false,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4
+      });
     });
+    chart.data.datasets = sets;
+    chart.options.scales.y.title.text = m === 'elo' ? 'ELO Rating' : m === 'points' ? 'Points rating' : 'Rating';
     chart.update();
   }
 
@@ -246,8 +295,9 @@
 
   document.getElementById('clear-btn').addEventListener('click', function() {
     selectedPlayers = [];
+    lastElo = []; lastPoints = [];
     rebuildBadges();
-    rebuildChart([]);
+    rebuildChart();
     updateUrl();
   });
 })();

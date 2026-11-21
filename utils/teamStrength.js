@@ -430,8 +430,73 @@ const LEVEL_POSITIONS = {
 /** The card positions of a game's two pairs' players, or null for a mixed game. @param {string | null} gameType */
 const levelPositions = gameType => (gameType && Object.hasOwn(LEVEL_POSITIONS, gameType) ? LEVEL_POSITIONS[gameType] : null)
 
+// ---------------------------------------------------------------------------
+// Weekly snapshots (migration 038): the rating as it stood each Monday, for charting.
+//
+// Times here are in the process's local frame, the one pg reads fixture.date into
+// (timestamp without time zone, holding UK midnight): a Monday is local midnight, and a
+// fixture on that Monday is dated exactly then, so `t < monday` leaves it for next week.
+
+/** Local midnight on the Monday on or before `ms`. @param {number} ms */
+function mondayOf(ms) {
+  const d = new Date(ms)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d.getTime()
+}
+
+/** The Monday after `monday` (setDate, not + 7 days: a clock change makes one week 167 hours). @param {number} monday */
+function nextMonday(monday) {
+  const d = new Date(monday)
+  d.setDate(d.getDate() + 7)
+  return d.getTime()
+}
+
+/** 'YYYY-MM-DD' of a local midnight. @param {number} ms */
+function isoDay(ms) {
+  const d = new Date(ms), pad = (/** @type {number} */ n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** A 'YYYY-MM-DD' as local midnight. @param {string} day */
+function dayMs(day) {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d).getTime()
+}
+
+// The Mondays from `from` to `to` (inclusive) worth a snapshot: those with a Stockport game
+// in the week before. `times` are those games' times, sorted.
+/** @param {number[]} times @param {number} from @param {number} to @returns {number[]} */
+function snapshotMondays(times, from, to) {
+  const out = []
+  let i = 0
+  for (let m = mondayOf(from); m <= to; m = nextMonday(m)) {
+    const weekStart = new Date(m).setDate(new Date(m).getDate() - 7)
+    while (i < times.length && times[i] < weekStart) i++
+    if (i < times.length && times[i] < m) out.push(m)
+  }
+  return out
+}
+
+// One snapshot's rows: every one of our players (numeric ids; another league's players are
+// strings) with a game in the year before `at`.
+/** @param {Fit} f @param {Game[]} games the games the fit saw @param {number} at */
+function snapshotRows(f, games, at) {
+  /** @type {Set<number>} */ const active = new Set()
+  for (const g of games) {
+    if (at - g.t > 365 * DAY) continue
+    for (const p of [g.h1, g.h2, g.a1, g.a2]) if (typeof p === 'number') active.add(p)
+  }
+  return [...active].sort((a, b) => a - b).map(p => ({
+    player: p,
+    rating: display(/** @type {number} */ (f.s.get(p))),
+    se: Math.round(1000 * /** @type {number} */ (f.se.get(p))),
+  }))
+}
+
 module.exports = {
   levelPositions,
+  mondayOf, nextMonday, isoDay, dayMs, snapshotMondays, snapshotRows,
   SETTINGS, RUBBERS, RESERVE_BASE, MAX_NOMINATED, MIN_RECENT_GAMES, CONFIDENCE,
   display, sig, gameWin, fit, usualThree, rubberProbs, scoreDistribution, predictFixture, projectSeason, orderFlags, pStronger,
 }

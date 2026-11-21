@@ -670,6 +670,20 @@ export interface StrengthRun {
   took_ms: number;
 }
 
+export interface StrengthWeek {
+  as_of: Timestamp;
+  caller: string;
+  computed_at: Generated<Timestamp>;
+  games: number;
+}
+
+export interface StrengthWeekPlayer {
+  as_of: Timestamp;
+  player: number;
+  rating: number;
+  se: number;
+}
+
 export interface SubmissionLog {
   created_at: Generated<Timestamp>;
   email: string | null;
@@ -838,6 +852,8 @@ export interface DB {
   social_result_post: SocialResultPost;
   social_token: SocialToken;
   strength_run: StrengthRun;
+  strength_week: StrengthWeek;
+  strength_week_player: StrengthWeekPlayer;
   submission_log: SubmissionLog;
   team: Team;
   team_at: TeamAt;

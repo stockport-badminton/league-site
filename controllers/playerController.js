@@ -28,6 +28,8 @@ const mailer = require('../utils/mailer');
 const { rateFixtureGames } = require('../utils/eloChain');
 
 const { isSuperAdmin } = require('../middleware/requireClubAccess');
+const TeamStrength = require('../models/teamStrength');
+const strengthModel = require('../utils/teamStrength');
 
 // Club admins see only their own club's stats; superadmins (club 'All') and
 // users with no role see everything. Mutates searchObj in place. Reads the
@@ -181,11 +183,31 @@ exports.missed_three_notice_send = async function(req, res, next) {
 };
 
 
+// For a superadmin, the player's weekly points rating (/admin/team-strength, migration 038)
+// over this season's chart, and the latest week's; null for anyone else, who
+// never sees it, so the page is not cached when it is there.
+async function pointsRatingFor(req, res, rows) {
+  const id = Number(req.params.id);
+  if (!isSuperAdmin(req) || !Number.isInteger(id)) return null;
+  res.set('Cache-Control', 'private, no-store');
+  const weeks = await TeamStrength.playerWeeks([id]);
+  // From the last week on or before their first game: the rating they came into it with.
+  const times = rows.map(r => new Date(r.date).getTime()).filter(t => !isNaN(t));
+  const first = times.length ? Math.min(...times) : -Infinity;
+  const start = Math.max(0, weeks.filter(w => strengthModel.dayMs(w.asOf) <= first).length - 1);
+  return {
+    latest: weeks.length ? weeks[weeks.length - 1] : null,
+    data: weeks.slice(start).map(w => ({ x: w.asOf, y: w.rating, se: w.se })),
+  };
+}
+
 // Display list of all Players
 exports.player_game_data = async function(req, res, next) {
   try {
     const rows = await Player.getPlayerGameData(req.params.id);
+    const strength = await pointsRatingFor(req, res, rows);
     res.render('player-game-stats', {
+      strength,
       static_path: '/static',
       pageTitle: "Player Game Data:" + req.params.fullName,
       pageDescription: "Information about games that " + req.params.fullName + "played in this season",
@@ -976,10 +998,15 @@ exports.player_elo_chart = async function(req, res, next) {
       Club.getAll(),
       Team.getAll(),
     ])
+    // A superadmin can chart the points-based rating too (/admin/team-strength); it is
+    // never shown to anyone else, so the page is not to be cached.
+    const showStrength = isSuperAdmin(req)
+    if (showStrength) res.set('Cache-Control', 'private, no-store')
     res.render('elo-chart', {
       static_path: '/static',
       pageTitle: 'ELO Chart',
       pageDescription: 'Compare player ELO ratings over time',
+      showStrength,
       seriesData: JSON.stringify(seriesData),
       selectedIds: rawIds.join(','),
       maxPlayers: ELO_CHART_MAX_PLAYERS,

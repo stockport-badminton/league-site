@@ -50,57 +50,21 @@ function usableGame(g) {
   return Math.max(g.homeScore, g.awayScore) >= 21 && Math.min(g.homeScore, g.awayScore) > 0
 }
 
-/** Builds everything the page shows. @param {number} now ms */
-async function build(now) {
-  const [rows, regs, { teams, players }, remaining, standings, external] = await Promise.all([
-    TeamStrength.games(), TeamStrength.registrations(), TeamStrength.squads(),
-    TeamStrength.remainingFixtures(), League.getRunIn(), ExternalGame.all(),
-  ])
-
+// Every usable game the rating is fitted to, ours and the other leagues', oldest first.
+// Each of ours carries the division rank each player was registered in that season (`divs`),
+// so a fit at any date can give a player their starting point as it was then.
+/** @param {any[]} rows TeamStrength.games() @param {any[]} regs TeamStrength.registrations() @param {any[]} external ExternalGame.all() */
+function collectGames(rows, regs, external) {
   /** @type {Map<string, number | null>} */ const regDiv = new Map()
   /** @type {Map<number, string>} */ const gender = new Map()
   for (const r of regs) { regDiv.set(`${r.season}:${r.id}`, r.divRank); if (r.gender) gender.set(r.id, r.gender) }
 
-  // The division a player was registered in when they last played: their starting point.
-  /** @type {Map<number, number | null | undefined>} */ const lastDiv = new Map()
-  /** @type {Map<number, { games: number, recent: number, last: number }>} */ const seen = new Map()
-  // This season's fixtures each player has played for each team: `${team}:${player}` → fixtures.
-  /** @type {Map<string, Set<number>>} */ const turnedOut = new Map()
-  const season = seasonModel.current()
-  // Where each player has stood on the card this season, fixture by fixture, in the level
-  // games they played for their own team (playing up, or for another club, is left out): the
-  // order their club actually plays them in, to set against the order it nominated.
-  const ownTeam = new Map(players.map(p => [p.id, p.team]))
-  /** @type {Map<number, Map<number, number>>} */ const cardPos = new Map()
-  const games = []
+  /** @type {any[]} */ const games = []
   for (const g of rows) {
-    const at = g.season === season ? model.levelPositions(g.gameType) : null
-    if (at) [[g.homePlayer1, g.homeTeam, at[0]], [g.homePlayer2, g.homeTeam, at[1]],
-      [g.awayPlayer1, g.awayTeam, at[0]], [g.awayPlayer2, g.awayTeam, at[1]]].forEach(([p, team, pos]) => {
-      p = Number(p)
-      if (!p || ownTeam.get(p) !== team) return
-      const byFixture = cardPos.get(p) || new Map()
-      byFixture.set(g.fixture, pos)
-      cardPos.set(p, byFixture)
-    })
     if (!usableGame(g)) continue
-    const t = new Date(g.date).getTime()
     const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2].map(Number)
-    if (g.season === season) ps.forEach((p, i) => {
-      const k = `${i < 2 ? g.homeTeam : g.awayTeam}:${p}`
-      const fixtures = turnedOut.get(k) || new Set()
-      fixtures.add(g.fixture)
-      turnedOut.set(k, fixtures)
-    })
-    for (const p of ps) {
-      const d = regDiv.get(`${g.season}:${p}`)
-      if (d != null) lastDiv.set(p, d)
-      const s = seen.get(p) || { games: 0, recent: 0, last: 0 }
-      s.games++; if (now - t < 365 * DAY) s.recent++; s.last = t
-      seen.set(p, s)
-    }
-    games.push({ t, mixed: /Mixed/.test(g.gameType || ''), h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3],
-      hs: Number(g.homeScore), as: Number(g.awayScore) })
+    games.push({ t: new Date(g.date).getTime(), mixed: /Mixed/.test(g.gameType || ''), h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3],
+      hs: Number(g.homeScore), as: Number(g.awayScore), divs: ps.map(p => regDiv.get(`${g.season}:${p}`)) })
   }
   const stockportGames = games.length
 
@@ -114,23 +78,80 @@ async function build(now) {
     const slots = [[e.home1, e.home1_gender], [e.home2, e.home2_gender], [e.away1, e.away1_gender], [e.away2, e.away2_gender]]
     const ps = slots.map(([n, g]) => link(e.league, /** @type {string} */ (n), g))
     if (new Set(ps).size < 4 || Math.max(e.home_score, e.away_score) < 21 || Math.min(e.home_score, e.away_score) === 0) continue
-    const t = Date.parse(`${e.played_on}T19:00:00Z`) // the evening of the match
     ps.forEach((p, i) => {
       const g = slots[i][1]
       if (typeof p === 'string') { if (g) extGender.set(p, g); return }
       const byLeague = linked.get(e.league) || new Map()
       byLeague.set(p, (byLeague.get(p) || 0) + 1)
       linked.set(e.league, byLeague)
-      const st = seen.get(p) || { games: 0, recent: 0, last: 0 }
-      st.games++; if (now - t < 365 * DAY) st.recent++; st.last = Math.max(st.last, t)
-      seen.set(p, st)
     })
     fromLeague.set(e.league, (fromLeague.get(e.league) || 0) + 1)
-    games.push({ t, mixed: e.mixed, h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3], hs: e.home_score, as: e.away_score })
+    games.push({ t: Date.parse(`${e.played_on}T19:00:00Z`), // the evening of the match
+      mixed: e.mixed, h1: ps[0], h2: ps[1], a1: ps[2], a2: ps[3], hs: e.home_score, as: e.away_score })
   }
   games.sort((a, b) => a.t - b.t)
   const genderOf = (/** @type {any} */ p) => (typeof p === 'number' ? gender.get(p) : extGender.get(p)) || ''
-  const fit = model.fit(/** @type {any} */ (games), now, genderOf, p => (typeof p === 'number' ? lastDiv.get(p) : undefined))
+  return { games, genderOf, stockportGames, linked, fromLeague }
+}
+
+// The rating as it stood at `at`: fitted to the games before it, each player starting from
+// the division they were registered in when they last played for us before it.
+/** @param {ReturnType<typeof collectGames>} input @param {number} at ms */
+function fitAt(input, at) {
+  const games = input.games.filter(g => g.t < at)
+  /** @type {Map<number, number | null | undefined>} */ const lastDiv = new Map()
+  for (const g of games) if (g.divs) [g.h1, g.h2, g.a1, g.a2].forEach((p, i) => { if (g.divs[i] != null) lastDiv.set(p, g.divs[i]) })
+  const fit = model.fit(games, at, input.genderOf, p => (typeof p === 'number' ? lastDiv.get(p) : undefined))
+  return { fit, games }
+}
+
+/** Builds everything the page shows. @param {number} now ms */
+async function build(now) {
+  const [rows, regs, { teams, players }, remaining, standings, external] = await Promise.all([
+    TeamStrength.games(), TeamStrength.registrations(), TeamStrength.squads(),
+    TeamStrength.remainingFixtures(), League.getRunIn(), ExternalGame.all(),
+  ])
+  const input = collectGames(rows, regs, external)
+  const { stockportGames, linked, fromLeague } = input
+  const { fit, games } = fitAt(input, now)
+
+  // How many games each player has (all leagues), how many in the last year, and the last.
+  /** @type {Map<number, { games: number, recent: number, last: number }>} */ const seen = new Map()
+  for (const g of games) for (const p of [g.h1, g.h2, g.a1, g.a2]) {
+    if (typeof p !== 'number') continue
+    const st = seen.get(p) || { games: 0, recent: 0, last: 0 }
+    st.games++; if (now - g.t < 365 * DAY) st.recent++; st.last = Math.max(st.last, g.t)
+    seen.set(p, st)
+  }
+
+  // This season's fixtures each player has played for each team: `${team}:${player}` → fixtures.
+  /** @type {Map<string, Set<number>>} */ const turnedOut = new Map()
+  const season = seasonModel.current()
+  // Where each player has stood on the card this season, fixture by fixture, in the level
+  // games they played for their own team (playing up, or for another club, is left out): the
+  // order their club actually plays them in, to set against the order it nominated.
+  const ownTeam = new Map(players.map(p => [p.id, p.team]))
+  /** @type {Map<number, Map<number, number>>} */ const cardPos = new Map()
+  for (const g of rows) {
+    if (g.season !== season) continue
+    const at = model.levelPositions(g.gameType)
+    if (at) [[g.homePlayer1, g.homeTeam, at[0]], [g.homePlayer2, g.homeTeam, at[1]],
+      [g.awayPlayer1, g.awayTeam, at[0]], [g.awayPlayer2, g.awayTeam, at[1]]].forEach(([p, team, pos]) => {
+      p = Number(p)
+      if (!p || ownTeam.get(p) !== team) return
+      const byFixture = cardPos.get(p) || new Map()
+      byFixture.set(g.fixture, pos)
+      cardPos.set(p, byFixture)
+    })
+    if (!usableGame(g)) continue
+    const ps = [g.homePlayer1, g.homePlayer2, g.awayPlayer1, g.awayPlayer2].map(Number)
+    ps.forEach((p, i) => {
+      const k = `${i < 2 ? g.homeTeam : g.awayTeam}:${p}`
+      const fixtures = turnedOut.get(k) || new Set()
+      fixtures.add(g.fixture)
+      turnedOut.set(k, fixtures)
+    })
+  }
 
   const teamById = new Map(teams.map(t => [t.id, t]))
   const rate = (/** @type {any} */ p) => {
@@ -211,6 +232,7 @@ async function build(now) {
   }
   return {
     games: games.length,
+    input,
     payload: {
       settings: model.SETTINGS, home: fit.home,
       sources: { stockport: stockportGames, tameside: fromLeague.get('tameside') || 0, mcrbl: fromLeague.get('mcrbl') || 0 },
@@ -230,6 +252,64 @@ async function build(now) {
       })),
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// Weekly snapshots (migration 038): the rating each Monday, for charting beside the ELO.
+
+// The nightly run looks this many Mondays back: the newest week, plus late results and
+// Manchester's weekly import landing in the weeks before it.
+const LOOKBACK_WEEKS = 4
+
+// Everything a fit needs, read fresh.
+async function loadInput() {
+  const [rows, regs, external] = await Promise.all([TeamStrength.games(), TeamStrength.registrations(), ExternalGame.all()])
+  return collectGames(rows, regs, external)
+}
+
+// Snapshots each of `mondays` (local midnights) that is missing, or whose fit would now see a
+// different number of games from the one held (`force`: every one). `dryRun` fits nothing.
+/**
+ * @param {ReturnType<typeof collectGames>} input
+ * @param {number[]} mondays
+ * @param {{ caller: string, force?: boolean, dryRun?: boolean, onWeek?: (w: any) => void }} opts
+ */
+async function snapshotWeeks(input, mondays, { caller, force = false, dryRun = false, onWeek = () => {} }) {
+  const held = new Map((await TeamStrength.weeks()).map(w => [w.asOf, w.games]))
+  const done = []
+  for (const m of mondays) {
+    const asOf = model.isoDay(m)
+    let games = 0
+    while (games < input.games.length && input.games[games].t < m) games++ // sorted by time
+    const was = held.get(asOf)
+    if (!force && was === games) continue
+    const week = { asOf, games, was: was ?? null, players: /** @type {number | null} */ (null), ms: 0 }
+    if (!dryRun) {
+      const started = Date.now()
+      const { fit, games: seen } = fitAt(input, m)
+      const rows = model.snapshotRows(fit, seen, m)
+      await TeamStrength.saveWeek({ asOf, games, caller, rows })
+      week.players = rows.length
+      week.ms = Date.now() - started
+    }
+    done.push(week)
+    onWeek(week)
+  }
+  return done
+}
+
+// The Mondays with Stockport games in the week before, from `from` to `to`.
+/** @param {ReturnType<typeof collectGames>} input @param {number} from @param {number} to */
+function weeksBetween(input, from, to) {
+  return model.snapshotMondays(input.games.filter(g => g.divs).map(g => g.t), from, to)
+}
+
+// The nightly part: the last LOOKBACK_WEEKS Mondays up to `now`.
+/** @param {ReturnType<typeof collectGames>} input @param {number} now @param {string} caller */
+async function refreshWeeks(input, now, caller) {
+  let from = model.mondayOf(now)
+  for (let i = 1; i < LOOKBACK_WEEKS; i++) from = new Date(from).setDate(new Date(from).getDate() - 7)
+  return snapshotWeeks(input, weeksBetween(input, from, now), { caller })
 }
 
 // Fetches the other leagues' games and adds any not already held. Each league on its own:
@@ -280,12 +360,22 @@ exports.importRun = async function(req, res, next) {
 exports.run = async function(req, res, next) {
   const started = Date.now()
   try {
-    const { games, payload } = await build(started)
+    const caller = req.strengthCaller || 'unknown'
+    const { games, input, payload } = await build(started)
     const tookMs = Date.now() - started
-    const id = await TeamStrength.save({ season: seasonModel.current(), caller: req.strengthCaller || 'unknown', games, tookMs, payload })
-    log.info({ runId: id, games, tookMs, caller: req.strengthCaller }, '[team-strength] run stored')
-    if (req.strengthCaller === 'superadmin') return res.redirect(303, '/admin/team-strength')
-    res.json({ ok: true, runId: id, games, tookMs, week: payload.week.length })
+    const id = await TeamStrength.save({ season: seasonModel.current(), caller, games, tookMs, payload })
+    log.info({ runId: id, games, tookMs, caller }, '[team-strength] run stored')
+    // The weekly snapshots after the run is safe: a failure here is logged, not the run's.
+    /** @type {any} */ let weeks
+    try {
+      weeks = (await refreshWeeks(input, started, caller)).map(w => w.asOf)
+      if (weeks.length) log.info({ weeks }, '[team-strength] weekly snapshots stored')
+    } catch (err) {
+      log.error({ err }, '[team-strength] weekly snapshot failed')
+      weeks = { error: /** @type {Error} */ (err).message }
+    }
+    if (caller === 'superadmin') return res.redirect(303, '/admin/team-strength')
+    res.json({ ok: true, runId: id, games, tookMs, week: payload.week.length, weeks })
   } catch (err) {
     next(err)
   }
@@ -391,7 +481,37 @@ exports.compare = async function(req, res, next) {
   }
 }
 
+// The weekly ratings as chart series, one per player: { id, data: [{ x: day, y, se }] }.
+/** @param {{ player: number, asOf: string, rating: number, se: number }[]} rows */
+function weeklySeries(rows) {
+  /** @type {Map<number, { id: number, data: { x: string, y: number, se: number }[] }>} */ const by = new Map()
+  for (const r of rows) {
+    const series = by.get(r.player) || { id: r.player, data: [] }
+    series.data.push({ x: r.asOf, y: r.rating, se: r.se })
+    by.set(r.player, series)
+  }
+  return [...by.values()]
+}
+
+// GET /api/player-strength?players=1,2,3 — the weekly points ratings for /elo-chart, beside
+// the ELO series /api/player-elo gives. Superadmin only, as the rating is.
+const CHART_MAX_PLAYERS = 20
+exports.playerWeeksApi = async function(req, res, next) {
+  try {
+    const ids = String(req.query.players || '').split(',').map(x => parseInt(x, 10)).filter(n => !isNaN(n)).slice(0, CHART_MAX_PLAYERS)
+    res.set('Cache-Control', 'private, no-store')
+    res.json(weeklySeries(await TeamStrength.playerWeeks(ids)))
+  } catch (err) {
+    next(err)
+  }
+}
+
 exports.requireStrengthCaller = requireStrengthCaller
 exports.build = build
+exports.loadInput = loadInput
+exports.snapshotWeeks = snapshotWeeks
+exports.weeksBetween = weeksBetween
+exports.refreshWeeks = refreshWeeks
+exports.weeklySeries = weeklySeries
 exports.importExternal = importExternal
 exports.usableGame = usableGame
