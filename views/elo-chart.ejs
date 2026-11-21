@@ -51,7 +51,7 @@
           <option value="points">Points rating</option>
           <option value="both">Both</option>
         </select>
-        <p class="small text-muted mt-1 mb-0">Points rating: admin only, weekly, dashed. Compare men with men and ladies with ladies.</p>
+        <p class="small text-muted mt-1 mb-0">Points rating: admin only, weekly, dashed; the shading is ± its uncertainty. Compare men with men and ladies with ladies.</p>
         <% } %>
         <button id="clear-btn" class="btn btn-sm btn-outline-secondary mt-2 w-100">Clear all</button>
       </div>
@@ -88,9 +88,9 @@
 
   // Evenly spaced, distinct hues — works for any count up to MAX_PLAYERS
   // without needing a hand-picked color list.
-  function colorFor(index) {
+  function colorFor(index, alpha) {
     var hue = Math.round((index * 360) / MAX_PLAYERS);
-    return 'hsl(' + hue + ', 65%, 45%)';
+    return 'hsla(' + hue + ', 65%, 45%, ' + (alpha == null ? 1 : alpha) + ')';
   }
 
   // ---- chart init ----
@@ -110,10 +110,12 @@
         y: { title: { display: true, text: 'ELO Rating' } }
       },
       plugins: {
-        legend: { display: true },
+        // The uncertainty bands are datasets too, but nothing to name or hover.
+        legend: { display: true, labels: { filter: function(item, data) { return !data.datasets[item.datasetIndex].band; } } },
         tooltip: {
           mode: 'nearest',
           intersect: false,
+          filter: function(item) { return !item.dataset.band; },
           callbacks: {
             label: function(ctx) {
               var se = ctx.raw && ctx.raw.se;
@@ -202,6 +204,21 @@
         pointHoverRadius: 5
       });
       var pts = lastPoints.find(function(p){ return p.id === s.id });
+      // The band: the rating ± its standard error, shaded between two invisible lines. Wide
+      // where the rating knows little (a player with few recent games), narrow where it knows a lot.
+      if (m !== 'elo' && pts) sets.push({
+        band: true,
+        data: pts.data.map(function(d){ return { x: d.x, y: d.y + d.se } }),
+        borderWidth: 0, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0,
+        segment: { backgroundColor: hideLongGap }
+      }, {
+        band: true,
+        data: pts.data.map(function(d){ return { x: d.x, y: d.y - d.se } }),
+        borderWidth: 0, pointRadius: 0, pointHoverRadius: 0, tension: 0,
+        fill: '-1',
+        backgroundColor: colorFor(i, 0.12),
+        segment: { backgroundColor: function(ctx) { return hideLongGap(ctx) || colorFor(i, 0.12); } }
+      });
       if (m !== 'elo' && pts) sets.push({
         label: s.name + ' (points)',
         data: pts.data,

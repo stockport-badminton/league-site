@@ -12,7 +12,7 @@
     <h1><%= fullName %></h1>
     <% if (typeof strength !== 'undefined' && strength && strength.latest) { %>
     <p class="text-muted small" id="points-rating">Points rating (admin only): <strong><%= strength.latest.rating %></strong>
-      ±<%= strength.latest.se %>, week of <%= strength.latest.asOf %>. Dashed on the chart; compare only within a gender.</p>
+      ±<%= strength.latest.se %>, week of <%= strength.latest.asOf %>. Dashed on the chart, shaded ± its uncertainty; compare only within a gender.</p>
     <% } %>
 
     <% if (result && result.length > 0) { %>
@@ -113,6 +113,10 @@
     var raw = Object.keys(byDate).sort().map(function(k) { return byDate[k]; });
 
     var points = <%- JSON.stringify(typeof strength !== 'undefined' && strength ? strength.data : []) %>;
+    // No line or shading across a gap longer than a summer (2020/21 had no games).
+    function hideLongGap(ctx) {
+      return ctx.p1.parsed.x - ctx.p0.parsed.x > 200 * 86400000 ? 'transparent' : undefined;
+    }
 
     new Chart(document.getElementById('elo-chart'), {
       type: 'line',
@@ -127,13 +131,26 @@
           pointRadius: 3,
           pointHoverRadius: 6
         }].concat(points.length ? [{
+          // The band: the rating ± its standard error, shaded between two invisible lines.
+          band: true,
+          data: points.map(function(d){ return { x: d.x, y: d.y + d.se } }),
+          borderWidth: 0, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0,
+          segment: { backgroundColor: hideLongGap }
+        }, {
+          band: true,
+          data: points.map(function(d){ return { x: d.x, y: d.y - d.se } }),
+          borderWidth: 0, pointRadius: 0, pointHoverRadius: 0, tension: 0,
+          fill: '-1',
+          backgroundColor: 'rgba(108,117,125,0.15)',
+          segment: { backgroundColor: function(ctx) { return hideLongGap(ctx) || 'rgba(108,117,125,0.15)'; } }
+        }, {
           label: 'Points rating',
           data: points,
           borderColor: '#6c757d',
           backgroundColor: '#6c757d',
           borderDash: [6, 4],
           // No line across a gap longer than a summer (2020/21 had no games).
-          segment: { borderColor: function(ctx) { return ctx.p1.parsed.x - ctx.p0.parsed.x > 200 * 86400000 ? 'transparent' : undefined; } },
+          segment: { borderColor: hideLongGap },
           fill: false,
           tension: 0,
           pointRadius: 0,
@@ -154,11 +171,12 @@
           }
         },
         plugins: {
-          legend: { display: points.length > 0 },
+          legend: { display: points.length > 0, labels: { filter: function(item, data) { return !data.datasets[item.datasetIndex].band; } } },
           tooltip: {
+            filter: function(item) { return !item.dataset.band; },
             callbacks: {
               label: function(ctx) {
-                if (ctx.datasetIndex === 1) return 'Points rating: ' + ctx.raw.y + ' (±' + ctx.raw.se + ')';
+                if (ctx.dataset.label === 'Points rating') return 'Points rating: ' + ctx.raw.y + ' (±' + ctx.raw.se + ')';
                 return 'Rating: ' + ctx.raw.y + '  |  ' + ctx.raw.tip;
               }
             }
