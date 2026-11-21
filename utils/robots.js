@@ -37,9 +37,6 @@ const EXTRA_DISALLOW = [
   ['/health', 'the uptime check (and /healthz)'],
   ['/offline-home', 'the PWA\'s cached homepage, a duplicate of /'],
   ['/eligiblePlayers/', 'JSON for the scorecard form'],
-  ['/tables-social', 'a page rendered only to be screenshotted for Facebook'],
-  ['/tournament-social', 'a page rendered only to be screenshotted for Facebook'],
-  ['/handicap-tournament-social', 'a page rendered only to be screenshotted for Facebook'],
 ];
 
 // Named on purpose, so it is obvious from the file that they are welcome. They share the

@@ -1,10 +1,8 @@
 const sharp = require('sharp');
-const fs = require('fs').promises;
 const path = require('path');
 const { getAllLeagueTables } = require('../models/league');
 const Fixture = require('../models/fixture');
 const seasonModel = require('../models/season');
-const { canonicalFor } = require('../utils/canonical');
 // The shared card chrome — background lookup, dark panel, division letter, and the
 // league's name and host. See utils/socialCard.js for why the letter and the panel are
 // drawn rather than baked into the artwork (HARD-37).
@@ -177,7 +175,7 @@ exports.STORY_SAFE = STORY_SAFE;
 // The weekly social images, served on demand
 // ---------------------------------------------------------------------------
 //
-// The originals are written to `static/beta/images/generated/` and fetched back by URL.
+// The originals were written to `static/beta/images/generated/` and fetched back by URL.
 // That is a Cloud Run container's own disk: it belongs to one instance, does not outlive
 // it, and is invisible to every other instance. Measured 15 Sep 2026 — every one of those
 // URLs answered 404, which means the weekly Instagram carousel has been posting nothing.
@@ -188,9 +186,9 @@ exports.STORY_SAFE = STORY_SAFE;
 // fetches `image_url` itself, server-side, minutes after the container that could have
 // served a temp file has gone.
 //
-// The file-writing routes are deliberately left alone. The live Make.com scenario still
-// calls them, and removing them before it is repointed would break the weekly post on the
-// Facebook side, which does currently work.
+// The file-writing routes (/tables-social, /tournament-social, /handicap-tournament-social)
+// were kept for the Make.com scenario until it was switched off (15 Sep 2026), and removed
+// on 21 Nov 2026 after 30 days of logs showed no request to any of them.
 
 // The division ids the weekly post covers, in the order they should read.
 const SOCIAL_DIVISION_IDS = [7, 8, 9, 10];
@@ -198,7 +196,7 @@ const SOCIAL_DIVISION_IDS = [7, 8, 9, 10];
 // The tournament posters, lifted out of the two handlers that had them inline so a route
 // can render any one by name. Content unchanged.
 const TOURNAMENT_POSTERS = {
-  open: { file: 'open-tournament-social.png', title: 'Open Tournament', lines: [
+  open: { title: 'Open Tournament', lines: [
     { text: '11th November', bold: true },
     { text: 'Mens & Womens Doubles', bold: false },
     { text: '18th November', bold: true },
@@ -207,7 +205,7 @@ const TOURNAMENT_POSTERS = {
     { text: 'Entry form and details on the website', bold: false },
     { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
   ] },
-  b: { file: 'B-tournament-social.png', title: '`B` Tournament', lines: [
+  b: { title: '`B` Tournament', lines: [
     { text: '11th November', bold: true },
     { text: 'Mens & Womens Doubles', bold: false },
     { text: '18th November', bold: true },
@@ -216,7 +214,7 @@ const TOURNAMENT_POSTERS = {
     { text: 'Entry form and details on the website', bold: false },
     { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
   ] },
-  c: { file: 'c-tournament-social.png', title: '`C` Tournament', lines: [
+  c: { title: '`C` Tournament', lines: [
     { text: '11th November', bold: true },
     { text: 'Mens & Womens Doubles', bold: false },
     { text: '18th November', bold: true },
@@ -224,7 +222,7 @@ const TOURNAMENT_POSTERS = {
     { text: 'Entry form and details on the website', bold: false },
     { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
   ] },
-  supervet: { file: 'supervet-tournament-social.png', title: 'Supervet Tournament', lines: [
+  supervet: { title: 'Supervet Tournament', lines: [
     { text: '11th November', bold: true },
     { text: 'Mixed Doubles', bold: false },
     { text: '18th November', bold: true },
@@ -233,7 +231,7 @@ const TOURNAMENT_POSTERS = {
     { text: 'Entry form and details on the website', bold: false },
     { text: 'https://stockport-badminton.co.uk', bold: false, gap: 50 },
   ] },
-  handicap: { file: 'handicap-tournament-social.png', title: 'Handicap Tournaments', lines: [
+  handicap: { title: 'Handicap Tournaments', lines: [
     { text: 'Didsbury High School', bold: false },
     { text: '4 The Avenue, Didsbury, M20 2ET', bold: false, gap: 50 },
     { text: '2nd March', bold: true },
@@ -639,48 +637,7 @@ async function createDivisionTableImage(bgPath, divisionName, rows, format = 'pn
   return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
 }
 
-exports.tablesSocial = async function(req, res, next) {
-  try {
-    const generatedDir = 'static/beta/images/generated';
-    await fs.mkdir(generatedDir, { recursive: true });
-
-    const result = await getAllLeagueTables(req.params.season);
-    const divIds = [7, 8, 9, 10];
-    const bgPath = 'static/beta/images/bg/social.png';
-
-    const divisionImages = (await Promise.all(
-      divIds.map(async (divId) => {
-        const rows = result.filter(row => row.division == divId);
-        if (!rows.length) return null;
-        const buf = await createDivisionTableImage(bgPath, rows[0]['divisionName'], rows);
-        await sharp(buf).toFile(`static/beta/images/generated/league-table-${rows[0]['divisionName']}.png`);
-        return buf;
-      })
-    )).filter(Boolean);
-
-    if (divisionImages.length) {
-      await sharp({
-        create: { width: 1080, height: 1080 * divisionImages.length, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
-      })
-        .composite(divisionImages.map((buf, i) => ({ input: buf, top: 1080 * i, left: 0 })))
-        .png()
-        .toFile('static/beta/images/generated/league-table-merged.png');
-    }
-
-    res.render('league-table-social', {
-      static_path: '/static',
-      pageTitle: 'Table Social Images',
-      pageDescription: 'Table Social Images',
-      query: req.query,
-      canonical: canonicalFor(req)
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// The drawing, with no opinion about where it goes. Split out so the on-demand route and
-// the file-writing route cannot drift into producing two different posters.
+// The drawing, with no opinion about where it goes.
 async function drawTournamentBuffer(title, lines, format = 'png') {
   const W = 1080, H = 1080;
   const elements = [{ text: title, x: 540, y: 120, size: 65, weight: 'bold' }];
@@ -696,39 +653,3 @@ async function drawTournamentBuffer(title, lines, format = 'png') {
 
   return (format === 'jpeg' ? pipeline.jpeg({ quality: 90 }) : pipeline.png()).toBuffer();
 }
-
-async function drawTournamentImage(title, lines, filename) {
-  const generatedDir = 'static/beta/images/generated';
-  await fs.mkdir(generatedDir, { recursive: true });
-  const buf = await drawTournamentBuffer(title, lines, 'png');
-  await fs.writeFile(`static/beta/images/generated/${filename}`, buf);
-}
-
-exports.tournamentSocial = async function(req, res, next) {
-  try {
-    // Content comes from TOURNAMENT_POSTERS, the same object GET /tournament-image reads,
-    // so the file on disk and the image served on demand cannot say different things.
-    await Promise.all(
-      ['open', 'b', 'c', 'supervet'].map(key => {
-        const p = TOURNAMENT_POSTERS[key];
-        return drawTournamentImage(p.title, p.lines, p.file);
-      })
-    );
-    res.sendStatus(200);
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.handicapTournamentSocial = async function(req, res, next) {
-  try {
-    const p = TOURNAMENT_POSTERS.handicap;
-    await drawTournamentImage(p.title, p.lines, p.file);
-    res.sendStatus(200);
-  } catch (err) {
-    next(err);
-  }
-};
-
-
-

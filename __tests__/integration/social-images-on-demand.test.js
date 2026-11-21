@@ -195,10 +195,9 @@ describe('GET /tournament-image/:poster', () => {
   });
 
   it('is case-insensitive about the poster name', async () => {
-    // The `b` poster is written to disk as `B-tournament-social.png` with a capital B,
-    // while the Make scenario fetches `b-tournament-social.png`. Linux filesystems are
-    // case-sensitive, so that was a 404 of its own hiding inside a directory that 404s
-    // anyway. The route will not reproduce it.
+    // The `b` poster used to be written to disk as `B-tournament-social.png` with a
+    // capital B while the Make scenario fetched `b-tournament-social.png`: a 404 of its own
+    // on a case-sensitive filesystem. The route will not reproduce it.
     const res = await request(app).get('/tournament-image/B');
     expect(res.status).toBe(200);
     expect(isJpeg(res.body)).toBe(true);
@@ -208,17 +207,5 @@ describe('GET /tournament-image/:poster', () => {
     const res = await request(app).get('/tournament-image/nonesuch');
     expect(res.status).toBe(404);
     expect(res.text).toMatch(/handicap/);
-  });
-});
-
-describe('the preview page links through the helpers', () => {
-  it('has no link into the generated directory', async () => {
-    const res = await request(app).get('/tables-social');
-
-    expect(res.status).toBe(200);
-    // The whole defect in one assertion: a link at a file on the container's disk.
-    expect(res.text).not.toMatch(/images\/generated\//);
-    expect(res.text).toContain('/league-table-image/Division%201.jpg');
-    expect(res.text).toContain('/tournament-image/handicap.jpg');
   });
 });

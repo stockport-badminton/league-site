@@ -62,10 +62,10 @@ Meta, not from a logged-in browser. Both routes are, and both are pure functions
 already public on the league tables page.
 
 The file-writing routes (`/tables-social`, `/tournament-social`,
-`/handicap-tournament-social`) are still there and still writing, deliberately: the live
-Make scenario calls them and its Facebook half works. They now take their content from
-`TOURNAMENT_POSTERS` in `socialController`, the same object the on-demand route reads, so
-the two cannot drift. Remove them once the scenario is repointed.
+`/handicap-tournament-social`) were kept for the Make scenario until it was switched off
+(15 Sep 2026), and removed on 21 Nov 2026: 30 days of logs showed no request to any of
+them or to the files they wrote. The posters live on in `TOURNAMENT_POSTERS`, which
+`/tournament-image/:poster` reads.
 
 **A broken link was hiding a broken picture.** The images had been unreachable for so long
 that nobody had seen what they said — and what they said was `0 null null` for every team,

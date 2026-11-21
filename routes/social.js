@@ -19,9 +19,6 @@ const requireSocialCaller = requireCronCaller({
 // Social image generation
 router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division/story.jpg', access.public, social_controller.resultStoryImage);
 router.get('/resultImage/:homeTeam/:awayTeam/:homeScore/:awayScore/:division', access.public, social_controller.resultImage);
-router.get('/tables-social', access.public, social_controller.tablesSocial);
-router.get('/tournament-social', access.public, social_controller.tournamentSocial);
-router.get('/handicap-tournament-social', access.public, social_controller.handicapTournamentSocial);
 
 // The same pictures, generated per request and returned as JPEG, rather than written to a
 // container's disk and fetched back by URL. See the header block in socialController.
