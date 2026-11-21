@@ -10,6 +10,7 @@
       <span aria-hidden="true">&times;</span>
     </button>
   </div>
+    <%- include('ratings-explainer.ejs', { showPoints: showPoints, bands: ratingBands }) %>
     <% if (typeof filter !== 'undefined' && filter == true){ %>
       <%- include('filters.ejs') %>
     <% } %>

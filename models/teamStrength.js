@@ -186,4 +186,24 @@ exports.ratingsAt = async function(season = null) {
     .execute()
 }
 
+// How the latest week's ratings fall by division, for each gender: the players on this
+// season's teams in each division of this league, with the 10th, 50th and 90th percentiles.
+// What the explainer on /elo-chart and /player-stats shows a superadmin.
+exports.divisionBands = async function() {
+  /** @param {number} q */
+  const pct = q => /** @type {import('kysely').RawBuilder<number>} */ (sql`percentile_cont(${sql.lit(q)}) WITHIN GROUP (ORDER BY w.rating)::int`)
+  return kysely.selectFrom('strength_week_player as w')
+    .innerJoin('player as p', 'p.id', 'w.player')
+    .innerJoin('team as t', 't.id', 'p.team')
+    .innerJoin('division as d', 'd.id', 't.division')
+    .select(['d.rank', 'd.name as division', 'p.gender',
+      /** @type {import('kysely').RawBuilder<number>} */ (sql`count(*)::int`).as('players'),
+      pct(0.1).as('p10'), pct(0.5).as('median'), pct(0.9).as('p90')])
+    .where('w.as_of', '=', kysely.selectFrom('strength_week').select(eb => eb.fn.max('as_of').as('m')))
+    .where('d.league', '=', 1)
+    .groupBy(['d.rank', 'd.name', 'p.gender'])
+    .orderBy('p.gender').orderBy('d.rank')
+    .execute()
+}
+
 exports.KEEP_RUNS = KEEP_RUNS

@@ -131,3 +131,27 @@ describe('GET /player-stats', () => {
     expect(TeamStrength.ratingsAt).not.toHaveBeenCalled();
   });
 });
+
+describe('the ratings explainer', () => {
+  const bands = [{ rank: 1, division: 'Premier', gender: 'Female', players: 55, p10: 1391, median: 1721, p90: 1867 }];
+  beforeEach(() => {
+    TeamStrength.divisionBands.mockResolvedValue(bands);
+    Player.newGetPlayerStats.mockResolvedValue([]);
+    TeamStrength.ratingsAt.mockResolvedValue([]);
+  });
+
+  it.each(['/elo-chart', '/player-stats'])('on %s, explains the ELO to anyone and keeps the points rating to a superadmin', async page => {
+    mockCurrentUser = MEMBER;
+    let res = await request(app).get(page);
+    expect(res.text).toContain('About these ratings');
+    expect(res.text).toContain('Everyone starts at 1500');
+    expect(res.text).not.toContain('Compare men with men, and ladies with ladies.');
+    expect(res.text).not.toContain('1721');
+    expect(TeamStrength.divisionBands).not.toHaveBeenCalled();
+
+    mockCurrentUser = SUPERADMIN;
+    res = await request(app).get(page);
+    expect(res.text).toContain('Compare men with men, and ladies with ladies.');
+    expect(res.text).toMatch(/<td>Premier<\/td><td>Ladies<\/td><td class="text-right">55<\/td>\s*<td class="text-right">1391<\/td><td class="text-right"><strong>1721<\/strong><\/td><td class="text-right">1867<\/td>/);
+  });
+});

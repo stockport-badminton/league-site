@@ -1,0 +1,57 @@
+<%#
+  "About these ratings", on /elo-chart and /player-stats. The ELO part is for everyone; the
+  points rating and its division bands are a superadmin's only (/admin/team-strength).
+    include('ratings-explainer.ejs', { showPoints, bands })   bands: TeamStrength.divisionBands()
+%>
+<details class="card mb-3 ratings-explainer">
+  <summary class="card-header" style="cursor:pointer;">About these ratings</summary>
+  <div class="card-body small text-left">
+    <h2 class="h6">ELO rating</h2>
+    <p>Everyone starts at 1500. After every game the winning pair gains points and the losing pair
+      loses the same number: more for beating a stronger pair, fewer for beating a weaker one. A new
+      player's rating moves faster for their first 15 games, a wide winning margin counts a little more
+      than a narrow one, and partners of different ratings share the change according to the gap.
+      Playing a team from a higher division counts as being the underdog. Ratings carry on from one
+      season to the next.</p>
+    <p>Each game only moves points between the four players in it, and most games are played within a
+      division, so each division's ratings mostly stay in their own pool. A strong Division 3 player can
+      out-rate a Premier one: the ELO says how someone is doing against the players they meet, not where
+      they would stand across the whole league.</p>
+    <% if (showPoints) { %>
+    <h2 class="h6 mt-3">Points rating <span class="badge badge-secondary">admin only</span></h2>
+    <p>Worked out every night from every game since 2018, plus the Tameside and Manchester league games of
+      players who also play there (matched by name). It works rally by rally, so a 21–15 win is 36 rallies,
+      not just one result. It finds the set of strengths that best explains every score at once, rather than
+      adding and subtracting game by game. A recent game counts more than an old one: a game a year old
+      counts half. A player with only a few games starts from the average of their division.</p>
+    <p>Because reserves playing up, promoted teams and players changing club all link one division to
+      another, it compares players across divisions directly, and the ratings fall into bands by division
+      (below). A pair 100 points stronger than their opponents wins about 52.5% of rallies, which is about
+      63% of games. Tested on the last two seasons, it picked the winner of 75% of games against the ELO's 71%.</p>
+    <ul>
+      <li><strong>Compare men with men, and ladies with ladies.</strong> Mixed games compare a man only with
+        other men and a lady only with other ladies, so the two scales are separate. A man and a lady on the
+        same number are not equal.</li>
+      <li><strong>± is how sure it is.</strong> The shading on the charts. It is wide for a player with few
+        recent games, and one good or bad night can move them a long way.</li>
+      <li><strong>On the charts it is weekly.</strong> Each Monday's point is worked out from the games
+        before that Monday only, so a past week never changes with hindsight.</li>
+    </ul>
+    <% if (bands && bands.length) { %>
+    <p class="mb-1">Where this season's registered players stand now. The middle 80% of each division lies
+      between the low and high figures; the bands overlap, but not by much.</p>
+    <div class="table-responsive">
+    <table class="table table-sm table-bordered mb-0" style="max-width:40rem;">
+      <thead><tr><th>Division</th><th>Gender</th><th class="text-right">Players</th><th class="text-right">Low (10%)</th><th class="text-right">Middle</th><th class="text-right">High (90%)</th></tr></thead>
+      <tbody>
+      <% bands.forEach(function(b) { %>
+        <tr><td><%= b.division %></td><td><%= b.gender === 'Female' ? 'Ladies' : 'Men' %></td><td class="text-right"><%= b.players %></td>
+          <td class="text-right"><%= b.p10 %></td><td class="text-right"><strong><%= b.median %></strong></td><td class="text-right"><%= b.p90 %></td></tr>
+      <% }) %>
+      </tbody>
+    </table>
+    </div>
+    <% } %>
+    <% } %>
+  </div>
+</details>

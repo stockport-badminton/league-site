@@ -5,6 +5,7 @@
 
 <h1>ELO Rating Chart</h1>
 <p class="text-muted">Compare up to <%= maxPlayers %> players' ELO ratings over time.</p>
+<%- include('ratings-explainer.ejs', { showPoints: showStrength, bands: ratingBands }) %>
 
 <div class="row no-gutters" style="min-height:calc(100vh - 200px);">
 

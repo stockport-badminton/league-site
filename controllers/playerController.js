@@ -371,6 +371,7 @@ exports.all_player_stats = async function(req, res, next) {
       const points = new Map((await TeamStrength.ratingsAt(season)).map(r => [r.player, r]))
       result.forEach(row => { row.points = points.get(Number(row.playerId)) || null })
     }
+    const ratingBands = showPoints ? await TeamStrength.divisionBands() : []
 
     let clubs = result.map(item => item.clubName).filter((value, index, self) => self.indexOf(value) === index)
     let teams = result
@@ -383,6 +384,7 @@ exports.all_player_stats = async function(req, res, next) {
       pageDescription: "Geek out on Stockport League Player stats!",
       result: result,
       showPoints,
+      ratingBands,
       filter: true,
       hideFilters: [],
       clubs: clubs,
@@ -1013,7 +1015,9 @@ exports.player_elo_chart = async function(req, res, next) {
     // never shown to anyone else, so the page is not to be cached.
     const showStrength = isSuperAdmin(req)
     if (showStrength) res.set('Cache-Control', 'private, no-store')
+    const ratingBands = showStrength ? await TeamStrength.divisionBands() : []
     res.render('elo-chart', {
+      ratingBands,
       static_path: '/static',
       pageTitle: 'ELO Chart',
       pageDescription: 'Compare player ELO ratings over time',

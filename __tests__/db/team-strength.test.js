@@ -152,4 +152,13 @@ describe('weekly snapshots', () => {
     expect(then.map(r => [r.player, r.rating, r.asOf]).sort()).toEqual([[P.hm1, 1550, '2001-06-25'], [P.am1, 1400, '2001-06-25']].sort());
     expect(await TeamStrength.ratingsAt('19801981')).toEqual([]);
   });
+
+  it('bands the latest week by division and gender, for this league\'s teams', async () => {
+    expect(await TeamStrength.divisionBands()).toEqual([]);
+    await TeamStrength.saveWeek({ asOf: '2026-11-09', games: 1, caller: 'test', rows: [{ player: P.hm1, rating: 1000, se: 40 }] });
+    await TeamStrength.saveWeek({ asOf: '2026-11-16', games: 2, caller: 'test',
+      rows: [{ player: P.hm1, rating: 1600, se: 40 }, { player: P.hm2, rating: 1700, se: 40 }, { player: P.am1, rating: 1800, se: 40 }] });
+    const bands = (await TeamStrength.divisionBands()).filter(b => b.division === 'Strength Division');
+    expect(bands).toEqual([{ rank: DIVISION.rank, division: 'Strength Division', gender: 'Male', players: 3, p10: 1620, median: 1700, p90: 1780 }]);
+  });
 });
