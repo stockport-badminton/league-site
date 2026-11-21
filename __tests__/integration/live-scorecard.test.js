@@ -100,8 +100,11 @@ const scorecardController = require('../../controllers/scorecardController');
 const live = require('../../utils/liveScorecard');
 const app = require('../../app');
 
-const CREATOR = { id: 'auth0|creator', emails: [{ value: 'captain@example.com' }], displayName: 'Cap', _json: {} };
-const STRANGER = { id: 'auth0|someone-else', emails: [{ value: 'x@example.com' }], _json: {} };
+const CLUB = 'https://my-app.example.com/club';
+const CREATOR = { id: 'auth0|creator', emails: [{ value: 'captain@example.com' }], displayName: 'Cap', _json: { [CLUB]: 'Tatton' } };
+// The other club in the match: may start a card, but did not start this one.
+const STRANGER = { id: 'auth0|someone-else', emails: [{ value: 'x@example.com' }], _json: { [CLUB]: 'Mellor' } };
+const OUTSIDER = { id: 'auth0|outsider', emails: [{ value: 'o@example.com' }], _json: { [CLUB]: 'Aerospace' } };
 
 const MEN = [1, 2, 3, 4].map(i => ({ id: i, first_name: 'Man', family_name: String(i) }));
 const LADIES = [11, 12, 13, 14].map(i => ({ id: i, first_name: 'Lady', family_name: String(i) }));
@@ -110,9 +113,11 @@ let notify;
 
 beforeEach(() => {
   LiveScorecard.__reset();
+  LiveScorecard.create.mockClear();
   mockUser = CREATOR;
   Fixture.getScorecardCandidates.mockResolvedValue([
-    { id: 500, date: new Date(), homeId: 10, homeName: 'Tatton A', awayId: 11, awayName: 'Mellor B', divisionId: 7 },
+    { id: 500, date: new Date(), homeId: 10, homeName: 'Tatton A', awayId: 11, awayName: 'Mellor B', divisionId: 7,
+      homeClub: 'Tatton', awayClub: 'Mellor' },
   ]);
   Fixture.createScorecard.mockResolvedValue([{ id: 9001 }]);
   Fixture.supersedeEarlierDrafts.mockResolvedValue(0);
@@ -121,6 +126,26 @@ beforeEach(() => {
 });
 
 afterEach(() => notify.mockRestore());
+
+describe('who may start a card (Nov 2026: own club\'s fixtures only)', () => {
+  it('offers another club\'s fixture to nobody but the two clubs and a superadmin', async () => {
+    mockUser = OUTSIDER;
+    const page = await request(app).get('/live-scorecard');
+    expect(page.status).toBe(200);
+    expect(page.text).not.toContain('Tatton A');
+    mockUser = STRANGER;
+    expect((await request(app).get('/live-scorecard')).text).toContain('Tatton A');
+    mockUser = { id: 'auth0|s', _json: { 'https://my-app.example.com/role': 'superadmin', [CLUB]: 'All' } };
+    expect((await request(app).get('/live-scorecard')).text).toContain('Tatton A');
+  });
+
+  it('refuses to start one for a fixture outside the viewer\'s club', async () => {
+    mockUser = OUTSIDER;
+    const res = await request(app).post('/live-scorecard').type('form').send({ fixtureId: '500' });
+    expect(res.status).toBe(404);
+    expect(LiveScorecard.create).not.toHaveBeenCalled();
+  });
+});
 
 async function startCard() {
   const res = await request(app).post('/live-scorecard').type('form').send({ fixtureId: '500' });

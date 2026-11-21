@@ -31,7 +31,7 @@ router.get('/player/:id/update', access.member, player_controller.player_update_
 // Registered Players page never rendered for that URL shape and anyone could read
 // the data. Nothing in the app called the JSON version, so it is gone rather than
 // merely secured, which un-shadows the real page.
-router.get('/players/matching/:name/:gender', access.member, player_controller.find_closest_matched_player);
+router.get('/players/matching/:name/:gender', access.superadmin, player_controller.find_closest_matched_player);
 
 // Secured routes
 //

@@ -187,6 +187,17 @@ describe('Player.getNamesClubsTeams', () => {
     expect(await team(LAST)).toBe('Northfield B');
     expect(await team(undefined)).toBe('Northfield A');
   });
+
+  // The initial used to be spliced into the SQL inside quotes, so a name starting with a
+  // quote was a syntax error (Nov 2026); it is bound now, in both of the query's shapes.
+  it('filters on the initial of a name, bound rather than spliced in', async () => {
+    const ids = async terms => (await Player.getNamesClubsTeams(terms)).map(r => r.playerID);
+    expect(await ids({ name: 'Ben', club: 'Northfield' })).toContain(12);
+    expect(await ids({ name: 'Zed', club: 'Northfield' })).not.toContain(12);
+    expect(await ids({ name: "'; SELECT 1 --", club: 'Northfield' })).toEqual([]);
+    expect(await ids({ name: "'" })).toEqual([]);
+    expect(await ids({ name: 'B' })).toContain(12);
+  });
 });
 
 describe('player and pair stats', () => {

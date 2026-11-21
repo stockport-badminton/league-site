@@ -239,8 +239,11 @@ exports.getScorecardCandidates = async function() {
     .innerJoin('season', join => join.onRef('fixture.date', '>', 'season.startDate').onRef('fixture.date', '<', 'season.endDate'))
     .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
     .innerJoin('team as awayTeam', 'fixture.awayTeam', 'awayTeam.id')
+    .leftJoin('club as homeClub', 'homeClub.id', 'homeTeam.club')
+    .leftJoin('club as awayClub', 'awayClub.id', 'awayTeam.club')
     .select(['fixture.id', 'fixture.date', 'fixture.homeTeam as homeId', 'homeTeam.name as homeName',
-      'fixture.awayTeam as awayId', 'awayTeam.name as awayName', 'homeTeam.division as divisionId'])
+      'fixture.awayTeam as awayId', 'awayTeam.name as awayName', 'homeTeam.division as divisionId',
+      'homeClub.name as homeClub', 'awayClub.name as awayClub'])
     .where('season.name', '=', seasonModel.current())
     .where('fixture.status', '=', 'outstanding')
     .where('fixture.date', '<', WEEK_AHEAD)

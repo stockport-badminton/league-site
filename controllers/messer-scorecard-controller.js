@@ -7,7 +7,9 @@ const Fixture = require('../models/fixture');
 const axios = require('axios');
 const ses = require('../utils/ses');
 const mailer = require('../utils/mailer');
-const { userEmail } = require('../utils/sessionUser');
+const { userEmail, isMesserAdmin } = require('../utils/sessionUser');
+const { mayActForEither } = require('../middleware/requireClubAccess');
+const Roster = require('../models/roster');
 const { normalisePhotoUrl, isPhotoUrl } = require('../utils/scorecardLinks');
 const { sendPhoto } = require('../utils/scorecardPhoto');
 
@@ -432,6 +434,22 @@ exports.messer_fixture_populate_scorecard_fromId = async function(req, res, next
     }
 
     const row = rows[0];
+
+    // The two clubs in the tie, a Messer admin or a superadmin (Nov 2026). Before, any
+    // sign-in read any draft, line-ups included, by counting up the id. Another club gets
+    // the same 404 as a missing draft, so the id says nothing.
+    if (!isMesserAdmin(req.user)) {
+      const [home, away] = await Promise.all([Roster.getTeamOwner(row.homeTeam), Roster.getTeamOwner(row.awayTeam)]);
+      if (!mayActForEither(req, [home && home.clubName, away && away.clubName])) {
+        return res.status(404).render('404-error', {
+          static_path: '/static',
+          pageTitle: "Can't find the page you're looking for",
+          pageDescription: 'HTTP 404 Error',
+          canonical: canonicalFor(req),
+        });
+      }
+    }
+    res.set('Cache-Control', 'private, no-store');
 
     // messer_scorecard has no section column, so it comes from the home team —
     // section is a property of the team, and both sides of a messer tie are in the

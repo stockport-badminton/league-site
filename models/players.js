@@ -321,9 +321,15 @@ exports.getNamesClubsTeams = async function(searchTerms) {
     season = searchTerms.season;
   }
 
+  // The initial is bound, not spliced in: it was one character of the URL inside quotes,
+  // so `'` broke the query (Nov 2026). It goes first in the parameters because it sits in
+  // the JOIN, before the season placeholders.
+  /** @type {string[]} */
+  const nameValue = []
   if (searchTerms.name) {
-    var letter = searchTerms.name.substr(0, 1);
-    nameMatch = "AND (player.first_name LIKE '" + letter + "%' OR player.family_name LIKE '" + letter + "%')"
+    nameMatch = "AND (player.first_name LIKE ? OR player.family_name LIKE ?)"
+    const initial = String(searchTerms.name).slice(0, 1).replace(/[\\%_]/g, '\\$&') + '%'
+    nameValue.push(initial, initial)
   }
   if (searchTerms.club) {
     whereTerms.push('"clubName" = ?');
@@ -342,12 +348,13 @@ exports.getNamesClubsTeams = async function(searchTerms) {
     var conditions = ' WHERE ' + whereTerms.join(' AND ');
     const [result] = await (await db.otherConnect()).query(
       'SELECT * FROM (SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player_at player JOIN team_at team ON team.id = player.team AND team.season = player.season ' + nameMatch + ' WHERE player.season = ?) AS a JOIN club_at club ON a."clubId" = club.id AND club.season = ?) AS b' + conditions + ' ORDER BY "teamName", gender, rank',
-      [season, season, ...whereValue]
+      [...nameValue, season, season, ...whereValue]
     )
     return result
   } else {
     const [result] = await (await db.otherConnect()).query(
-      'SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player JOIN team ON team.id = player.team ' + nameMatch + ') AS a JOIN club ON a."clubId" = club.id ORDER BY "teamName", gender, rank'
+      'SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player JOIN team ON team.id = player.team ' + nameMatch + ') AS a JOIN club ON a."clubId" = club.id ORDER BY "teamName", gender, rank',
+      nameValue
     )
     return result
   }

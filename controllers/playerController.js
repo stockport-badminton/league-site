@@ -42,7 +42,7 @@ function ownClubOf(req) {
   const club = claims['https://my-app.example.com/club'];
   if (isSuperAdmin(req) || club === 'All') return null;
   if (!club) {
-    const err = new Error('Player stats are open to club members once your club is set');
+    const err = new Error('Player pages are open to club members once your club is set');
     err.status = 403;
     throw err;
   }
@@ -244,9 +244,19 @@ exports.player_game_data = async function(req, res, next) {
 
 
 // Display list of all Players
+// Own club only (Nov 2026): a superadmin or the 'All' club sees every club, anyone else
+// their own, and asking for another club by name is a 403 rather than a quietly different
+// list. Until then any sign-in listed every registered player in the league.
 exports.player_list_clubs_teams = async function(req, res, next) {
   try {
-    const rows = await Player.getNamesClubsTeams(req.params);
+    const own = ownClubOf(req);
+    const terms = { ...req.params };
+    if (own) {
+      if (terms.club && terms.club !== own) assertClubAccess(req, terms.club);
+      terms.club = own;
+    }
+    res.set('Cache-Control', 'private, no-store');
+    const rows = await Player.getNamesClubsTeams(terms);
     res.render('player-list', {
       static_path: '/static',
       pageTitle: "Player Registrations",
@@ -259,6 +269,8 @@ exports.player_list_clubs_teams = async function(req, res, next) {
   }
 };
 
+// Superadmin only (Nov 2026). Nothing in the app calls it; it matched a name against every
+// registered player in the league, with their club.
 exports.find_closest_matched_player = async function(req, res, next) {
   try {
     var searchTerms = {

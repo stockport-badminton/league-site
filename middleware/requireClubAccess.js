@@ -42,6 +42,15 @@ function assertClubAccess(req, club) {
   if (!userClub || !club || userClub !== club) throw forbidden(club);
 }
 
+// True when the viewer may act for either club: a superadmin, or a member of one of them.
+// For things that belong to a match rather than one club — a fixture's scorecard, a Messer
+// draft, a live scorecard — where both sides have a claim.
+function mayActForEither(req, clubs) {
+  return clubs.some((club) => {
+    try { assertClubAccess(req, club); return true; } catch (err) { return false; }
+  });
+}
+
 // Route middleware for paths carrying a :club name parameter.
 function requireClubAccess(req, res, next) {
   try {
@@ -66,5 +75,6 @@ module.exports.requireClubAccess = requireClubAccess;
 module.exports.requireSuperAdmin = requireSuperAdmin;
 module.exports.assertClubAccess = assertClubAccess;
 module.exports.isSuperAdmin = isSuperAdmin;
+module.exports.mayActForEither = mayActForEither;
 module.exports.CLUB_CLAIM = CLUB_CLAIM;
 module.exports.ROLE_CLAIM = ROLE_CLAIM;

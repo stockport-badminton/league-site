@@ -18,7 +18,7 @@ const { canonicalFor, divisionTablePath, divisionResultsPath, clubPath, eventPat
 const TeamStrength = require('../models/teamStrength');
 const League = require('../models/league');
 const { buildPreview } = require('../utils/fixturePreview');
-const { assertClubAccess, isSuperAdmin, CLUB_CLAIM } = require('../middleware/requireClubAccess');
+const { isSuperAdmin, mayActForEither, CLUB_CLAIM } = require('../middleware/requireClubAccess');
 const { isReminderDue } = require('../utils/scorecardReminder');
 
 
@@ -149,9 +149,7 @@ async function eventExtras(f) {
 
 // Superadmin, or signed in for either club in the fixture (requireClubAccess's rule).
 function mayOpenScorecard(req, f) {
-  return [f.homeClub, f.awayClub].some(club => {
-    try { assertClubAccess(req, club); return true; } catch (err) { return false; }
-  });
+  return mayActForEither(req, [f.homeClub, f.awayClub]);
 }
 
 // A fixture row without its line-up: the player ids getFixtureDetails selects for the ELO code.

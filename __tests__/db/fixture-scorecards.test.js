@@ -14,15 +14,16 @@ const KEY = () => process.env.DB_PI_KEY;
 const run = (text, params) => db.otherConnect().then(c => c.query(text, params)).then(([r]) => [...r]);
 
 const H = 1001, A = 1002;
-let CLUB;
+let CLUB, CLUB_NAME;
 const RESULTS = 'stockport.badders.results@gmail.com';
 
 beforeEach(async () => {
   await run(`INSERT INTO season (id, name, "startDate", "endDate", label)
     SELECT 1001, ?, now() - interval '120 days', now() + interval '300 days', 'test'
     WHERE NOT EXISTS (SELECT 1 FROM season WHERE name = ?)`, [Season.current(), Season.current()]);
-  const [club] = await run('SELECT id, venue FROM club WHERE venue IS NOT NULL AND id <> 63 ORDER BY id LIMIT 1');
+  const [club] = await run('SELECT id, name, venue FROM club WHERE venue IS NOT NULL AND id <> 63 ORDER BY id LIMIT 1');
   CLUB = club.id;
+  CLUB_NAME = club.name;
   await run(`INSERT INTO team (id, name, club, venue, rank, division) VALUES
     (${H}, 'Cardhome A', ${CLUB}, ${club.venue}, 1, NULL), (${A}, 'Cardaway A', ${CLUB}, ${club.venue}, 2, NULL)`);
 });
@@ -69,6 +70,8 @@ describe('getScorecardCandidates', () => {
     const mine = (await Fixture.getScorecardCandidates()).filter(r => r.homeId === H);
     expect(ids(mine)).toEqual([9001, 9002]);
     expect(mine[0]).toMatchObject({ homeName: 'Cardhome A', awayName: 'Cardaway A', awayId: A });
+    // The clubs decide who may start a live scorecard for it.
+    expect(mine[0]).toMatchObject({ homeClub: CLUB_NAME, awayClub: CLUB_NAME });
   });
 });
 

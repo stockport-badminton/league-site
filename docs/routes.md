@@ -108,7 +108,7 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 98 | POST | `/club-officers/:clubId(\d+)/captain` | clubSecretary |
 | 99 | POST | `/player/create` | superadmin |
 | 100 | GET | `/player/:id/update` | member |
-| 101 | GET | `/players/matching/:name/:gender` | member |
+| 101 | GET | `/players/matching/:name/:gender` | superadmin |
 | 102 | POST | `/api/teams/:id/order` | member |
 | 103 | POST | `/api/players/:id/move` | member |
 | 104 | POST | `/api/players/:id/release` | member |

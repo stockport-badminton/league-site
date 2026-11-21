@@ -3,8 +3,8 @@
 //
 // Shape and reasons: migrations/022_live_scorecard.sql. Rules: utils/liveScorecard.js.
 //
-//   GET  /live-scorecard                 secured   pick tonight's fixture
-//   POST /live-scorecard                 secured   start a card for it
+//   GET  /live-scorecard                 secured   pick tonight's fixture (own club's)
+//   POST /live-scorecard                 secured   start a card for it (own club's)
 //   GET  /live-scorecard/:id/share       secured   QR code + links (creator or superadmin)
 //   GET  /live-scorecard/:id?t=[&c=]     token     the card; `c` is a captain's token
 //   GET  /api/live-scorecard/:id/state   token     polled; mounted in app.js above globalLimiter
@@ -28,7 +28,7 @@ const live = require('../utils/liveScorecard');
 const { newDraftToken, tokenMatches } = require('../utils/scorecardLinks');
 const { absoluteUrl } = require('../utils/canonical');
 const { userEmail } = require('../utils/sessionUser');
-const { isSuperAdmin } = require('../middleware/requireClubAccess');
+const { isSuperAdmin, mayActForEither } = require('../middleware/requireClubAccess');
 const { afterCommit } = require('../utils/afterCommit');
 const scorecardController = require('./scorecardController');
 
@@ -95,11 +95,18 @@ function shortDate(d) {
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// The fixtures a viewer may start a card for: their own club's, or any for a superadmin
+// (Nov 2026). Before, any sign-in could start one for any match and hold its captains'
+// signing links.
+async function startableFixtures(req) {
+  return (await Fixture.getScorecardCandidates()).filter(f => mayActForEither(req, [f.homeClub, f.awayClub]));
+}
+
 exports.start = async function(req, res, next) {
   try {
     const now = Date.now();
     const earliest = now - START_WINDOW_DAYS_BACK * 86400000;
-    const fixtures = (await Fixture.getScorecardCandidates())
+    const fixtures = (await startableFixtures(req))
       .filter(f => new Date(f.date).getTime() >= earliest)
       .sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now));
     const cards = await LiveScorecard.getForFixtures(fixtures.map(f => f.id));
@@ -131,8 +138,9 @@ exports.start = async function(req, res, next) {
 exports.create = async function(req, res, next) {
   try {
     const fixtureId = Number(req.body.fixtureId);
-    // Only a fixture the start page would have offered: outstanding, this season, due.
-    const candidates = await Fixture.getScorecardCandidates();
+    // Only a fixture the start page would have offered: outstanding, this season, due, and
+    // the viewer's own club's.
+    const candidates = await startableFixtures(req);
     if (!candidates.some(f => f.id === fixtureId)) {
       throw httpError(404, 'That fixture is not open for a scorecard');
     }
