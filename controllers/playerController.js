@@ -23,7 +23,7 @@ function unknownClub(club) {
 }
 const { validationResult } = require('express-validator');
 const { canonicalFor, absoluteUrl } = require('../utils/canonical');
-const { userDisplayName } = require('../utils/sessionUser');
+const { userDisplayName, isMesserAdmin } = require('../utils/sessionUser');
 const { buildMissedThreeNotice } = require('../utils/missedThreeEmail');
 const mailer = require('../utils/mailer');
 const { rateFixtureGames } = require('../utils/eloChain');
@@ -244,12 +244,15 @@ exports.player_game_data = async function(req, res, next) {
 
 
 // Display list of all Players
-// Own club only (Nov 2026): a superadmin or the 'All' club sees every club, anyone else
+// Own club only (Nov 2026): a superadmin, the Messer admin or the 'All' club sees every club, anyone else
 // their own, and asking for another club by name is a 403 rather than a quietly different
 // list. Until then any sign-in listed every registered player in the league.
 exports.player_list_clubs_teams = async function(req, res, next) {
   try {
-    const own = ownClubOf(req);
+    // The Messer admin sees every club's registrations, as the superadmin does: Messer
+    // eligibility depends on who is registered where (Nov 2026). Only this list and
+    // /fixture-players; player stats stay own club for them.
+    const own = isMesserAdmin(req.user) ? null : ownClubOf(req);
     const terms = { ...req.params };
     if (own) {
       if (terms.club && terms.club !== own) assertClubAccess(req, terms.club);

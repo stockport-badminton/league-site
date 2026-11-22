@@ -47,6 +47,19 @@ it('shows a superadmin every club, or the one asked for', async () => {
   expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith({ club: 'Shell' });
 });
 
+// The Messer admin checks who has played for which team, for Messer eligibility, across
+// the league (Nov 2026); their account's own club is just where they play.
+it('shows the Messer admin every club, or the one asked for', async () => {
+  mockUser = { id: 'auth0|m', _json: { 'https://my-app.example.com/role': 'admin',
+    'https://my-app.example.com/club': 'Macclesfield', 'https://my-app.example.com/messeradmin': true } };
+  expect((await request(app).get('/fixture-players')).status).toBe(200);
+  expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith({});
+  expect((await request(app).get('/fixture-players/club-Featherforce')).status).toBe(200);
+  expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith({ club: 'Featherforce' });
+  expect((await request(app).get('/fixture-players/team-Featherforce%20A')).status).toBe(200);
+  expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith({ team: 'Featherforce A' });
+});
+
 it('shows a club officer their own club only, whatever else the URL asks for', async () => {
   mockUser = userFor('admin', 'Tatton');
   const res = await request(app).get('/fixture-players/20252026');

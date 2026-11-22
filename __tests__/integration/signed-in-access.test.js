@@ -40,6 +40,7 @@ const noClub = { id: 'auth0|n', _json: {} };
 beforeEach(() => {
   jest.clearAllMocks();
   mockUser = null;
+  Player.searchPlayers.mockResolvedValue([]);
 });
 
 describe('/players (the registration list)', () => {
@@ -67,6 +68,16 @@ describe('/players (the registration list)', () => {
     mockUser = noClub;
     expect((await request(app).get('/players')).status).toBe(403);
     expect(Player.getNamesClubsTeams).not.toHaveBeenCalled();
+  });
+
+  it('lists every club for the Messer admin; player stats stay own club', async () => {
+    mockUser = { id: 'auth0|m', _json: { [ROLE]: 'admin', [CLUB]: 'Macclesfield', 'https://my-app.example.com/messeradmin': true } };
+    expect((await request(app).get('/players')).status).toBe(200);
+    expect(Player.getNamesClubsTeams.mock.calls[0][0].club).toBeUndefined();
+    expect((await request(app).get('/players/club-Mellor')).status).toBe(200);
+    expect(Player.getNamesClubsTeams).toHaveBeenLastCalledWith(expect.objectContaining({ club: 'Mellor' }));
+    expect((await request(app).get('/api/players/search?club=Mellor&q=sm')).status).toBe(200);
+    expect(Player.searchPlayers).toHaveBeenLastCalledWith('sm', expect.objectContaining({ club: 'Macclesfield' }));
   });
 
   it('lists every club for a superadmin', async () => {

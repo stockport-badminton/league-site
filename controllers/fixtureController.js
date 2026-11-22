@@ -19,6 +19,7 @@ const TeamStrength = require('../models/teamStrength');
 const League = require('../models/league');
 const { buildPreview } = require('../utils/fixturePreview');
 const { isSuperAdmin, mayActForEither, CLUB_CLAIM } = require('../middleware/requireClubAccess');
+const { isMesserAdmin } = require('../utils/sessionUser');
 const { isReminderDue } = require('../utils/scorecardReminder');
 
 
@@ -81,7 +82,9 @@ exports.get_fixture_players_details = async function(req, res, next) {
     if (req.params.team !== undefined) searchObj.team = req.params.team
     if (req.params.club !== undefined) searchObj.club = req.params.club
     const ownClub = req.user && req.user._json ? req.user._json[CLUB_CLAIM] : undefined
-    if (!isSuperAdmin(req) && ownClub !== 'All') {
+    // The Messer admin reads every club's line-ups, as the superadmin does: checking who
+    // has played for which team is how Messer eligibility is decided (Nov 2026).
+    if (!isSuperAdmin(req) && ownClub !== 'All' && !isMesserAdmin(req.user)) {
       if (!ownClub || (searchObj.club !== undefined && searchObj.club !== ownClub)) {
         const err = new Error(ownClub ? `You can see ${ownClub}'s line-ups only` : 'Line-ups are open to club officers')
         err.status = 403
