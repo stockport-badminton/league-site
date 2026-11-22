@@ -77,3 +77,36 @@ it('refuses another club by URL, and a signed-in user with no club, without read
   expect((await request(app).get('/fixture-players')).status).toBe(403);
   expect(Fixture.getMatchPlayerOrderDetails).not.toHaveBeenCalled();
 });
+
+// The filter bar writes `/<season>/club-…/team-…`, in any combination. The page used to
+// accept six fixed shapes, so club + team and season + club were 404s: 6 in production
+// in the 30 days to 22 Nov 2026.
+describe('filter combinations', () => {
+  beforeEach(() => { mockUser = userFor('superadmin', 'All'); });
+
+  it.each([
+    ['/fixture-players/club-Alderley%20Park/team-Alderley%20Park%20C', { club: 'Alderley Park', team: 'Alderley Park C' }],
+    ['/fixture-players/20252026/club-College%20Green', { season: '20252026', club: 'College Green' }],
+    ['/fixture-players/20242025/club-Shell/team-Shell%20A', { season: '20242025', club: 'Shell', team: 'Shell A' }],
+    // the old fixed shapes, so bookmarks still work
+    ['/fixture-players/team-Tatton%20A/season-20242025', { team: 'Tatton A', season: '20242025' }],
+    ['/fixture-players/club-Tatton/20242025', { club: 'Tatton', season: '20242025' }],
+  ])('%s', async (path, expected) => {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(200);
+    expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith(expected);
+  });
+
+  it('keeps a club officer to their own club in any combination', async () => {
+    mockUser = userFor('admin', 'Tatton');
+    expect((await request(app).get('/fixture-players/20252026/team-Tatton%20A')).status).toBe(200);
+    expect(Fixture.getMatchPlayerOrderDetails).toHaveBeenLastCalledWith({ season: '20252026', team: 'Tatton A', club: 'Tatton' });
+    expect((await request(app).get('/fixture-players/20252026/club-Shell/team-Shell%20A')).status).toBe(403);
+  });
+
+  it('offers no status filter, which the line-ups cannot apply', async () => {
+    const res = await request(app).get('/fixture-players');
+    expect(res.text).toContain('id="seasonSelect"');
+    expect(res.text).not.toContain('id="statusSelect"');
+  });
+});

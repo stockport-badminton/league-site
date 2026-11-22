@@ -47,12 +47,11 @@ router.get('/event/:id/:date-:homeTeam-:awayTeam', access.public, fixture_contro
 router.get('/scorecard/fixture/:id(\\d+)', access.member, fixture_controller.getScorecard);
 // Who played for whom is a club's business: signed in, then a superadmin sees every club and
 // anyone else only their own (the handler forces the club filter).
+// Any combination of season, club and team, in any order, read by the filter bar's own
+// parser (middleware/filterState.js). Until Nov 2026 these were six fixed shapes, and the
+// filter bar builds others: club + team and season + club were 404s.
 router.get('/fixture-players', access.member, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/team-:team?', access.member, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/club-:club?', access.member, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/:season?', access.member, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/team-:team?/season-:season?', access.member, fixture_controller.get_fixture_players_details);
-router.get('/fixture-players/club-:club?/:season?', access.member, fixture_controller.get_fixture_players_details);
+router.get('/fixture-players/*', access.member, fixture_controller.get_fixture_players_details);
 
 // Venue routes
 router.get('/venues', access.public, venue_controller.venue_list);

@@ -77,10 +77,11 @@ exports.getLateScorecards = async function(req, res, next) {
 // club's rows are never read. Asking for another club by URL is a 403, not a quiet swap.
 exports.get_fixture_players_details = async function(req, res, next) {
   try {
+    // The filters come from the path, parsed once for the whole site by filterState (the
+    // same grammar the filter bar writes). Only these three reach the query.
+    const active = (res.locals.filterBar && res.locals.filterBar.active) || {}
     var searchObj = {}
-    if (req.params.season !== undefined) searchObj.season = req.params.season
-    if (req.params.team !== undefined) searchObj.team = req.params.team
-    if (req.params.club !== undefined) searchObj.club = req.params.club
+    for (const key of ['season', 'club', 'team']) if (active[key]) searchObj[key] = active[key]
     const ownClub = req.user && req.user._json ? req.user._json[CLUB_CLAIM] : undefined
     // The Messer admin reads every club's line-ups, as the superadmin does: checking who
     // has played for which team is how Messer eligibility is decided (Nov 2026).
@@ -101,7 +102,7 @@ exports.get_fixture_players_details = async function(req, res, next) {
       pageTitle: "Fixture Player Details",
       pageDescription: "Find out who played which matches and in what order",
       filter: true,
-      hideFilters: ["division", "gender", "gametype"],
+      hideFilters: ["division", "status", "gender", "gametype"],
       teams: teams,
       clubs: clubs,
       result: row,
