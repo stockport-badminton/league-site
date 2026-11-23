@@ -1,5 +1,10 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#673ab6">
+<%# A page can opt out with `serviceWorker: false`; the 404 page does. A headless crawler opens
+    every page in a fresh browser, so each dead link it followed installed the worker and
+    precached the pages below again: ~7,000 of the 16,700 requests in the Nov 2026 crawl.
+    Nobody needs the site offline from a 404; the next real page registers it. %>
+<% if (locals.serviceWorker !== false) { %>
 <script>
   // After load, not during it: on first install the worker precaches seven pages and the
   // shell assets, and doing that while the first page is still loading competes with it
@@ -11,6 +16,7 @@
     });
   }
 </script>
+<% } %>
 <script>
   (function() {
     var banner;

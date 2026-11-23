@@ -117,6 +117,22 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     expect(res.status).toBe(404);
   });
 
+  // A headless crawler opens every page in a fresh browser, so a 404 that registered the
+  // service worker precached ~11 pages per dead link it followed: ~7,000 of the 16,700
+  // requests in the Nov 2026 crawl.
+  it('does not register the service worker from a 404, and still does from a page', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([]);
+    const missing = await request(app).get('/event/999999/01012027-A-B');
+    expect(missing.status).toBe(404);
+    expect(missing.text).toContain('<link rel="manifest" href="/manifest.json">'); // the same head
+    expect(missing.text).not.toContain('serviceWorker.register');
+
+    Fixture.getFixtureEventById.mockResolvedValue([eventRow()]);
+    const found = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+    expect(found.status).toBe(200);
+    expect(found.text).toContain("navigator.serviceWorker.register('/sw.js'");
+  });
+
   it('never answers 200 with an empty body', async () => {
     Fixture.getFixtureEventById.mockResolvedValue([]);
     const res = await request(app).get('/event/999999/01012027-A-B');
@@ -227,6 +243,24 @@ describe('GET /event/:id — preview, prediction and report', () => {
     expect(res.text).toContain('href="/event/901/');
     // The only person named anywhere is the officer the page has always shown.
     expect(res.text).not.toMatch(/Lesley Beale[^<]*(favourite|form|line-up)/);
+  });
+
+  // A fixture against a withdrawn team has no page of its own (HARD-11), so neither its form
+  // chip nor a previous meeting may link to it. They did: a scraper followed over a thousand
+  // such links to 404s in Nov 2026.
+  it('shows a result that has no page of its own, but does not link to it', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([row()]);
+    Fixture.getMatchContext.mockResolvedValue({ ...context,
+      form: [{ ...played(901, 11, 33, 12, 6, '2026-08-25'), hasPage: false }, ...context.form.slice(1)],
+      meetings: [{ ...played(800, 22, 11, 7, 11, '2026-03-02'), hasPage: false }],
+    });
+    const res = await request(app).get(URL);
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('href="/event/901/');
+    expect(res.text).not.toContain('href="/event/800/');
+    expect(res.text).toMatch(/<span class="ev-chip ev-W" title="Won 12–6 v Other A, [^"]+">W<small>12–6<\/small><\/span>/);
+    expect(res.text).toContain('<time datetime="2026-03-02">'); // the meeting is still listed
+    expect(res.text).toContain('href="/event/903/'); // a result that has a page still links
   });
 
   it('leads the title and description with the matchup, and leaves the logo as the image', async () => {

@@ -17,7 +17,8 @@
 
 /**
  * @typedef {{ id: number, date: Date | string, homeTeam: number, awayTeam: number,
- *   homeScore: number, awayScore: number, homeName?: string, awayName?: string }} Played
+ *   homeScore: number, awayScore: number, homeName?: string, awayName?: string,
+ *   hasPage?: boolean }} Played
  * @typedef {{ gameType: string | null, homeScore: number, awayScore: number }} Game
  * @typedef {{ pHome: number, pDraw: number, pAway: number, expected: number,
  *   likely: { home: number, away: number }, edges: { mens: number, ladies: number, mixed: number } }} Forecast
@@ -77,6 +78,8 @@ function teamForm(teamId, form) {
     return {
       id: f.id, date: f.date, home, won, lost,
       opponent: (home ? f.awayName : f.homeName) || null,
+      // False for a fixture against a withdrawn team, which has no page to link to.
+      hasPage: f.hasPage !== false,
       result: /** @type {'W' | 'D' | 'L'} */ (won > lost ? 'W' : won < lost ? 'L' : 'D'),
     }
   })
@@ -355,6 +358,7 @@ function buildPreview({ fixture: f, forecast = null, context = null, standings =
     forecastAt: fc && forecast?.ran_at ? forecast.ran_at : null,
     meetings: meetings.map(m => ({
       id: m.id, date: m.date, homeName: m.homeName, awayName: m.awayName,
+      hasPage: m.hasPage !== false,
       // From this fixture's home side's point of view, whichever way round it was played.
       home: m.homeTeam === f.homeTeamId ? m.homeScore : m.awayScore,
       away: m.homeTeam === f.homeTeamId ? m.awayScore : m.homeScore,

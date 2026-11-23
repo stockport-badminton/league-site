@@ -182,6 +182,13 @@ withdrawn teams, and **they have to agree**: a sitemap entry whose page does not
 soft 404. Verified after the write — `/event/` returns 0 rows for such a fixture, sitemap
 holds 611 of 625.
 
+**A third place had to agree, and didn't until 23 Nov 2026:** the event page's own form chips
+and previous-meetings links (`getMatchContext`) still linked every result against a withdrawn
+team, so live pages pointed crawlers at ~2,100 deliberate 404s. A scraper followed over a
+thousand of them on 22 Nov. `getMatchContext` now returns `hasPage` by the same rule and
+the page shows those results unlinked; `__tests__/db/fixture-reads.test.js` pins the rule
+against `getFixtureEventById`.
+
 ## Step 4: the foreign keys
 
 `migrations/017`, applied 14 Sep 2026. `fixture_home_team_fkey` and

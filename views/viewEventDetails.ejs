@@ -193,9 +193,15 @@
           <div class="ev-form-name"><%= t.name %></div>
           <% if (t.form.length) { %>
           <div class="ev-form">
-            <% t.form.slice(0, 6).reverse().forEach(function(r) { %>
+            <% t.form.slice(0, 6).reverse().forEach(function(r) {
+                 const chipTitle = (r.result === 'W' ? 'Won' : r.result === 'L' ? 'Lost' : 'Drew') + ' ' + r.won + '–' + r.lost + ' ' + (r.home ? 'v' : 'at') + ' ' + (r.opponent || '') + ', ' + shortDay(r.date); %>
+              <%# A match against a withdrawn team has no page (HARD-11): show it, but link nowhere. %>
+              <% if (r.hasPage) { %>
               <a class="ev-chip ev-<%= r.result %>" href="<%= eventPath({ id: r.id, date: r.date, homeTeam: r.home ? t.name : r.opponent, awayTeam: r.home ? r.opponent : t.name }) %>"
-                 title="<%= r.result === 'W' ? 'Won' : r.result === 'L' ? 'Lost' : 'Drew' %> <%= r.won %>–<%= r.lost %> <%= r.home ? 'v' : 'at' %> <%= r.opponent %>, <%= shortDay(r.date) %>"><%= r.result %><small><%= r.won %>–<%= r.lost %></small></a>
+                 title="<%= chipTitle %>"><%= r.result %><small><%= r.won %>–<%= r.lost %></small></a>
+              <% } else { %>
+              <span class="ev-chip ev-<%= r.result %>" title="<%= chipTitle %>"><%= r.result %><small><%= r.won %>–<%= r.lost %></small></span>
+              <% } %>
             <% }) %>
           </div>
           <% } else { %><div class="text-muted small">No results yet this season.</div><% } %>
@@ -211,7 +217,7 @@
         <ul class="ev-h2h">
           <% p.meetings.forEach(function(m) { %>
           <li>
-            <a href="<%= eventPath({ id: m.id, date: m.date, homeTeam: m.homeName, awayTeam: m.awayName }) %>"><time datetime="<%= new Date(m.date).toISOString().slice(0, 10) %>"><%= shortDay(m.date) %></time></a>
+            <% if (m.hasPage) { %><a href="<%= eventPath({ id: m.id, date: m.date, homeTeam: m.homeName, awayTeam: m.awayName }) %>"><% } %><time datetime="<%= new Date(m.date).toISOString().slice(0, 10) %>"><%= shortDay(m.date) %></time><% if (m.hasPage) { %></a><% } %>
             <span><%= m.homeName %> <strong><%= m.venue === 'home' ? m.home : m.away %>–<%= m.venue === 'home' ? m.away : m.home %></strong> <%= m.awayName %></span>
           </li>
           <% }) %>

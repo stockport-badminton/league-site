@@ -578,10 +578,15 @@ exports.getMatchContext = async function(f) {
   const before = new Date(f.date)
   const ids = [f.homeTeamId, f.awayTeamId]
   // The names are for links to those fixtures' own pages, which eventPath spells from them.
+  // `hasPage` says whether there is a page to link to. A fixture against a withdrawn team
+  // (HARD-11's reinstated rows) has none — getFixtureEventById and getForSitemap both
+  // exclude it — and this has to agree with them, or the event page links to a 404. It did
+  // until Nov 2026, when a scraper followed over a thousand such links from form chips.
   const scored = kysely.selectFrom('fixture')
     .innerJoin('team as h', 'h.id', 'fixture.homeTeam').innerJoin('team as a', 'a.id', 'fixture.awayTeam')
-    .select(['fixture.id', 'fixture.date', 'fixture.homeTeam', 'fixture.awayTeam', 'fixture.homeScore', 'fixture.awayScore',
-      'h.name as homeName', 'a.name as awayName'])
+    .select(eb => ['fixture.id', 'fixture.date', 'fixture.homeTeam', 'fixture.awayTeam', 'fixture.homeScore', 'fixture.awayScore',
+      'h.name as homeName', 'a.name as awayName',
+      eb.and([eb('h.withdrawn', 'is', null), eb('a.withdrawn', 'is', null)]).as('hasPage')])
     .where('fixture.homeScore', 'is not', null).where('fixture.awayScore', 'is not', null)
     .where(eb => eb.or([eb('fixture.status', 'not in', ['void', 'rearranged', 'rearranging']), eb('fixture.status', 'is', null)]))
     .where('fixture.date', '<', before)

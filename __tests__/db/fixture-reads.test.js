@@ -91,6 +91,22 @@ describe('getMatchContext', () => {
     ]);
   });
 
+  // The event page links each of these results to its own page, so it has to know which have
+  // one. None does while either side is withdrawn (getFixtureEventById's rule, HARD-11), and a
+  // link to it is a link to a 404: a scraper followed over a thousand of them in Nov 2026.
+  it('says which of them have a page of their own, by the same rule as the page itself', async () => {
+    const at = { id: 950006, date: new Date(2031, 9, 1), homeTeamId: A, awayTeamId: B };
+    let ctx = await Fixture.getMatchContext(at);
+    expect(ctx.form.map(r => r.hasPage)).toEqual([true, true]);
+    expect(await Fixture.getFixtureEventById(950002)).toHaveLength(1);
+
+    await run('UPDATE team SET withdrawn = now() WHERE id = ?', [C]);
+    ctx = await Fixture.getMatchContext(at);
+    expect(ctx.form.map(r => [r.id, r.hasPage])).toEqual([[950003, false], [950002, false]]);
+    expect(ctx.meetings.map(r => [r.id, r.hasPage])).toEqual([[950001, true]]);
+    expect(await Fixture.getFixtureEventById(950002)).toHaveLength(0);
+  });
+
   it('has no season and no form for a date no season holds, and still finds the meetings', async () => {
     const ctx = await Fixture.getMatchContext({ id: 950006, date: new Date(2031, 6, 15), homeTeamId: A, awayTeamId: B });
     expect(ctx.season).toBeNull();
