@@ -63,6 +63,32 @@ async function ensureLoaded() {
 
 exports.refresh = load;
 
+// The request path's refresh: start a reload when the cache is stale, without awaiting it.
+//
+// This used to be a 60 s setInterval, and from 25 Oct 2026 it failed a few times a day
+// with "Connection terminated due to connection timeout" — every one of ~160 on an
+// instance 30 s or more after its last request. Cloud Run allocates CPU only while a
+// request is in flight, so the timer mostly fired on a throttled instance. The pool had
+// already closed its idle connections (idleTimeoutMillis), so each refresh opened a new
+// one, and when CPU came back Node ran the overdue 10 s connection timer before the I/O
+// that would have completed the handshake. Started from inside a request, the reload runs
+// while the instance has CPU.
+//
+// One reload at a time: concurrent requests on a stale cache share it. A failure keeps the
+// lists as they were and waits a full TTL before trying again, as ensureLoaded does.
+/** @type {Promise<unknown> | null} */
+let inFlight = null;
+exports.refreshIfStale = function() {
+  if (inFlight || Date.now() - cache.loadedAt < CACHE_TTL_MS) return inFlight;
+  inFlight = load()
+    .catch(function(err) {
+      cache.loadedAt = Date.now();
+      log.error({ err }, 'blocklist refresh failed');
+    })
+    .finally(function() { inFlight = null; });
+  return inFlight;
+};
+
 /** @param {string | null | undefined} ip */
 exports.isBlockedIp = async function(ip) {
   if (!ip) return false;

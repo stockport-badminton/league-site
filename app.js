@@ -167,7 +167,9 @@ app.use(function(req, res, next) {
 //
 // Read from the in-memory cache synchronously: this runs on every request, and awaiting a
 // query here would put a DB round trip in front of every page. The cache is warmed at
-// startup and refreshed on a timer below.
+// startup and refreshed from here, at most once a minute and without waiting for it —
+// not on a timer, which on Cloud Run fires while the instance has no CPU
+// (spamControls.refreshIfStale says why).
 //
 // Answers 403 now. It used to `res.send(...)` a message about a "whiteList" with a 200
 // status, which tells a crawler the page exists and a spammer exactly what happened.
@@ -175,6 +177,7 @@ const spamControls = require('./models/spamControls');
 
 app.use(function(req, res, next) {
   var ipAddress = getClientIp(req);
+  spamControls.refreshIfStale();
   if (!spamControls.isBlockedIpSync(ipAddress)) {
     return next();
   }
@@ -575,21 +578,14 @@ if (require.main === module) {
       // Warm the blocklist cache before serving, because the IP check on every request
       // reads it synchronously. A failure here leaves the lists empty rather than
       // failing closed — the rate limits, captcha and honeypot all still apply — and the
-      // timer below picks it up on the next tick.
+      // first request picks it up (the IP middleware above refreshes a stale cache, which
+      // is how an admin change lands within a minute on every instance).
       try {
         await spamControls.refresh();
         log.info('Blocklists loaded');
       } catch (err) {
         log.error({ err }, 'blocklist load failed');
       }
-      // Keep the cache fresh so an admin change lands within a minute on every instance
-      // without needing a restart or cross-instance invalidation. unref() so this timer
-      // never holds the process open.
-      setInterval(function() {
-        spamControls.refresh().catch(function(err) {
-          log.error({ err }, 'blocklist refresh failed');
-        });
-      }, 60 * 1000).unref();
     }).finally(function() {
       const server = app.listen(port, function() {
         log.info('Server running at http://127.0.0.1:' + port + '/');

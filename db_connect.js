@@ -60,6 +60,23 @@ exports.connect = function() {
     log.error({ err }, 'pg pool: idle client error (connection discarded)');
     Sentry.captureException(err, { tags: { source: 'pg-pool-idle-client' } });
   });
+
+  // The other half of gotcha 2c: a CHECKED-OUT client with no query in flight. pg-pool
+  // removes its idle listener on checkout and puts it back on release, and only
+  // pool.query() adds a handler of its own in between. pool.connect() does not, and both
+  // Kysely's driver and withTransaction (which holds a client between statements) use it.
+  // A socket reset in that window was an uncaught exception: the 5 Nov 2026 23:27 crash,
+  // `uncaughtException (exiting) read ECONNRESET`, which took an instance down.
+  //
+  // Logging is all this needs to do. pg marks the client unqueryable, so the next query
+  // on it rejects through its caller, and pg-pool drops a client that is not queryable
+  // when it is released rather than returning it to the pool. An idle client's error
+  // reaches this listener as well as the pool's; the duplicate warn is harmless.
+  state.pool.on('connect', function(client) {
+    client.on('error', function(err) {
+      log.warn({ err }, 'pg client error (connection will be discarded)');
+    });
+  });
 };
 
 // The pool for connect-pg-simple, so sessions share the app's capped pool instead of

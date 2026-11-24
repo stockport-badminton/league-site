@@ -62,6 +62,32 @@ describe('spamControls', () => {
       'spamControls: could not log submission');
     errors.mockRestore();
   });
+
+  // The blocklist is refreshed by the request path, not a timer (a timer fires on a
+  // CPU-throttled Cloud Run instance; see refreshIfStale). So a new entry must reach the
+  // synchronous IP check through refreshIfStale alone, once the cache has gone stale.
+  it('refreshIfStale reloads a stale cache once, however many requests ask', async () => {
+    const ip = '203.0.113.77';
+    await Spam.refresh();
+    // Straight into the table: Spam.add reloads the cache itself, which is not the path under test.
+    await run('INSERT INTO blocked_entry (kind, value) VALUES (?, ?)', ['ip', ip]);
+
+    expect(Spam.refreshIfStale()).toBeNull();                 // fresh: nothing to do
+    expect(Spam.isBlockedIpSync(ip)).toBe(false);
+
+    const now = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now + 61 * 1000);
+    try {
+      const first = Spam.refreshIfStale();
+      expect(first).toBeInstanceOf(Promise);
+      expect(Spam.refreshIfStale()).toBe(first);              // concurrent requests share it
+      await first;
+      expect(Spam.isBlockedIpSync(ip)).toBe(true);
+      expect(Spam.refreshIfStale()).toBeNull();               // and it is fresh again
+    } finally {
+      clock.mockRestore();
+    }
+  });
 });
 
 describe('homepageContent', () => {
