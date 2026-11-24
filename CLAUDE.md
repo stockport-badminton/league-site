@@ -11,6 +11,7 @@ are in `docs/claude/`. **Read the matching file before touching its area:**
 | [docs/claude/testing.md](docs/claude/testing.md) | `__tests__/setup.js`, the supertest binding, `npm run test:db`, anything under `e2e/` |
 | [docs/claude/patterns.md](docs/claude/patterns.md) | admin tools, `asset()`, `icon()`, scorecard links and the photo endpoint, `afterCommit`, Messer, lazy requires, `sanitize-html`, auth and dev mode, the hardening backlog |
 | [docs/claude/social.md](docs/claude/social.md) | result cards, weekly tables/fixtures posts, Meta, Threads, anything that was on Make.com |
+| [docs/claude/push.md](docs/claude/push.md) | push notifications: `utils/push/`, `/notifications`, the `push_send` ledger, VAPID keys, the reminder jobs |
 | [docs/claude/storage.md](docs/claude/storage.md) | the `badmintontemp` bucket, its lifecycle rules, failed-analysis uploads |
 | [docs/claude/security.md](docs/claude/security.md) | spam controls, rate limits, `/fixture/rearrangement`, helmet and the CSP |
 | [docs/claude/env-vars.md](docs/claude/env-vars.md) | `config/`, any environment variable, cron token or `META_*` credential |

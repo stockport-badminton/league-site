@@ -45,6 +45,7 @@ jest.mock('../../utils/metaPublisher', () => ({
 }));
 // Opens its own transaction; utils/eloChain has its own tests.
 jest.mock('../../utils/eloChain');
+jest.mock('../../utils/push', () => ({ notifyResult: jest.fn().mockResolvedValue({ skipped: 'no VAPID key' }) }));
 jest.mock('../../models/auth.js');
 jest.mock('axios');
 
@@ -777,6 +778,34 @@ describe('POST /scorecard-beta', () => {
         const res = await request(app).post('/scorecard-beta').send(validScorecard());
         expect(res.status).toBe(200);
         expect(Game.createBatch).toHaveBeenCalled();
+      });
+    });
+
+    // Push notifications go from the publish request itself (utils/push/), and the page says
+    // what happened, because nothing else would tell the person publishing.
+    describe('push notifications', () => {
+      const push = require('../../utils/push');
+      const note = res => (/data-role="push-note">([^<]*)</.exec(res.text) || [])[1];
+
+      it('announces the published fixture and says how many devices it reached', async () => {
+        push.notifyResult.mockResolvedValueOnce({ notifications: 1, subscribers: 4, sent: 3, failed: 1, removed: 0 });
+        const res = await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(push.notifyResult).toHaveBeenCalledWith(99);
+        expect(note(res)).toBe('Push notification sent to 3 of 4 devices (1 failed).');
+      });
+
+      it('says when a republished result was already announced', async () => {
+        push.notifyResult.mockResolvedValueOnce({ skipped: 'already sent' });
+        const res = await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(note(res)).toBe('Push notifications for this result were already sent.');
+      });
+
+      it('still publishes, and says so, when the push step fails', async () => {
+        push.notifyResult.mockRejectedValueOnce(new Error('push service down'));
+        const res = await request(app).post('/scorecard-beta').send(validScorecard());
+        expect(res.status).toBe(200);
+        expect(Game.createBatch).toHaveBeenCalled();
+        expect(note(res)).toBe('Push notifications could not be sent (the error is logged).');
       });
     });
   });

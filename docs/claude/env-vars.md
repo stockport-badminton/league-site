@@ -129,6 +129,16 @@ holds the one-line meaning, and what follows is why.
   own scheduler job because Threads containers are waited on); the audit digest's
   `social-token-expiry` check says when either has stopped working. Threads tokens start
   `THAA`, not `EAA`, and `testEnvGuard` matches both.
+- `PUSH_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Push-Token` to
+  `POST /admin/push/reminders`, on `sbl-push-tonight` (17:00) and `sbl-push-tomorrow` (18:00),
+  calling Cloud Run directly with no retries. Same gate; **unset closes the token path**. A
+  superadmin session may add `date=` and `dry=1`; the token may not. See
+  [push.md](push.md).
+- `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` — the web push key pair (`npx web-push
+  generate-vapid-keys`). The public half is printed into `/notifications` for the browser to
+  subscribe with; the private half signs every send. **Unset private key = nothing is sent**,
+  which is the kill switch. **Replacing the pair orphans every subscription**: each browser
+  subscribed under the old public key. See [push.md](push.md).
 - `SOCIAL_CRON_TOKEN` — shared secret Cloud Scheduler presents as `X-Social-Token` to the
   two weekly social posts: `POST /admin/social/weekly-tables` (Saturday 13:00) and
   `POST /admin/social/weekly-fixtures` (Sunday 18:00). Also the three Threads routes, each on

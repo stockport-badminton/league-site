@@ -75,6 +75,14 @@ const publicFormLimiter = makeLimiter({
   limit: 10,
 });
 
+// The push subscription API (/api/push/*). Not publicFormLimiter: /notifications looks up the
+// browser's subscription on every visit, and a club's members turning notifications on
+// together in a sports hall share one address. Each call writes or reads one small row.
+const pushLimiter = makeLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+});
+
 // The contact form specifically — the one with a human writing prose, and the one that
 // has been attracting spam.
 const contactLimiter = makeLimiter({
@@ -154,6 +162,7 @@ const globalLimiter = makeLimiter({
 
 module.exports = {
   publicFormLimiter,
+  pushLimiter,
   contactLimiter,
   webhookLimiter,
   mediaLimiter,

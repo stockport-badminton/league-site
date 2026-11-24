@@ -20,6 +20,7 @@ router.use(require('./rosters'));
 router.use(require('./results'));
 router.use(require('./registrations'));
 router.use(require('./admin'));
+router.use(require('./push'));
 
 // ---------------------------------------------------------------------------
 // Error handlers

@@ -74,7 +74,12 @@
         <tbody>
           <% teams.forEach(function(t){ %>
             <tr>
-              <td><%= t.name %></td>
+              <td>
+                <%= t.name %>
+                <% if (t.divisionName) { %>
+                  <a href="/notifications?team=<%= t.id %>" class="text-muted ml-1"><%- icon('bell', { label: 'Notifications for ' + t.name }) %></a>
+                <% } %>
+              </td>
               <td>
                 <%# Division names hyphenate into their URL form — see Division.getIdByURLParam. %>
                 <% if (t.divisionName) { %>

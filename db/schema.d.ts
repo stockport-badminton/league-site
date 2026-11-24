@@ -502,6 +502,24 @@ export interface PlayerSeason {
   treasurer: number | null;
 }
 
+export interface PushSend {
+  key: string;
+  sent_at: Generated<Timestamp>;
+  summary: Json | null;
+}
+
+export interface PushSubscription {
+  auth: string;
+  created_at: Generated<Timestamp>;
+  endpoint: string;
+  id: string;
+  last_sent_at: Timestamp | null;
+  p256dh: string;
+  teams: number[];
+  types: Generated<string[]>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface RearrangementRequest {
   body_text: string | null;
   closed_at: Timestamp | null;
@@ -842,6 +860,8 @@ export interface DB {
   player: Player;
   player_at: PlayerAt;
   player_season: PlayerSeason;
+  push_send: PushSend;
+  push_subscription: PushSubscription;
   rearrangement_request: RearrangementRequest;
   registration_request: RegistrationRequest;
   schema_migrations: SchemaMigrations;

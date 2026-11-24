@@ -16,5 +16,5 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["db/**/*", "models/**/*", "types/**/*"]
+  "include": ["db/**/*", "models/**/*", "utils/push/**/*", "types/**/*"]
 }

@@ -183,6 +183,7 @@ module.exports = /** @type {const} */ ({
     kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path',
     doc: 'Scheduler → the weekly posts and the result drains. One secret for all, on purpose.',
   },
+  PUSH_CRON_TOKEN: { kind: 'secret', test: 'unset', e2e: 'unset', unset: 'closes the token path', doc: 'X-Push-Token → POST /admin/push/reminders, the 17:00 and 18:00 match reminders.' },
 
   // ── Site ───────────────────────────────────────────────────────────────────
   SITE_ORIGIN: {
@@ -213,6 +214,17 @@ module.exports = /** @type {const} */ ({
   CLOUDINARY_KEY: { kind: 'secret', test: 'fake', testValue: 'test-cloudinary-key', doc: 'Cloudinary API key: the Messer gallery.' },
   CLOUDINARY_SECRET: { kind: 'secret', test: 'fake', testValue: 'test-cloudinary-secret', doc: 'Cloudinary API secret.' },
   POSTHOG_KEY: { kind: 'public', test: 'unset', e2e: 'unset', unset: 'loads no PostHog at all', doc: 'PostHog project key (phc_…), printed into pages.' },
+  // Web push (utils/push/). The pair is generated once (`npx web-push generate-vapid-keys`);
+  // replacing it orphans every subscription, since each browser subscribed under the old one.
+  VAPID_PUBLIC_KEY: {
+    kind: 'public', test: 'fake', testValue: 'BTestVapidPublicKey_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW', e2e: 'local',
+    unset: 'the notifications page says notifications are unavailable',
+    doc: 'VAPID application server key, printed into /notifications for the browser to subscribe with.',
+  },
+  VAPID_PRIVATE_KEY: {
+    kind: 'secret', test: 'unset', e2e: 'unset', unset: 'no push is sent (the kill switch)',
+    doc: 'Signs every push send (web-push). Pairs with VAPID_PUBLIC_KEY.',
+  },
   SENTRY_DSN: { kind: 'public', test: 'unset', e2e: 'unset', unset: 'Sentry is a no-op', doc: 'Server-side Sentry DSN (the node project).' },
 
   // ── Meta ───────────────────────────────────────────────────────────────────

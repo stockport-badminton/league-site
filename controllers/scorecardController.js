@@ -7,6 +7,7 @@ var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
 var ThreadsResultPost = require('../models/threadsResultPost');
+const push = require('../utils/push');
 var db = require('../db_connect.js');
 const axios = require('axios');
 const Sentry = require('@sentry/node');
@@ -468,6 +469,12 @@ exports.full_fixture_post = async function(req, res, next) {
       await afterCommit('threads result queue', () => ThreadsResultPost.enqueue(FixtureIdResult[0].id));
     }
 
+    // Push notifications to the followers of both teams (utils/push/). Sent here rather than
+    // queued: there is no wait to make, a fan-out is about a second, and on Cloud Run work
+    // after the response is CPU-throttled. Claimed per fixture first, so republishing a
+    // corrected result notifies nobody a second time.
+    const pushed = await afterCommit('push result', () => push.notifyResult(FixtureIdResult[0].id));
+
     const [homeTeamNomPlayers, awayTeamNomPlayers, homeTeamFixturePlayers, awayTeamFixturePlayers, matchStats] =
       await afterCommit('confirmation page data', () => Promise.all([
         Player.getNominatedPlayers(getFixtureDetailsResult[0].homeTeam),
@@ -560,11 +567,24 @@ exports.full_fixture_post = async function(req, res, next) {
       // The captain needs to know the difference between "we have your result" and
       // "we have your result and told the results secretary".
       notificationFailed: !notified,
+      pushNote: pushNote(pushed),
       canonical: canonicalFor(req)
     });
   } catch (err) {
     next(err);
   }
+}
+
+// One line on the confirmation page saying what the push step did (CLAUDE.md: the page says
+// whether the notification happened). `pushed` is null when the step threw.
+function pushNote(pushed) {
+  if (!pushed) return 'Push notifications could not be sent (the error is logged).';
+  if (pushed.skipped === 'no VAPID key') return 'Push notifications are not configured on this server.';
+  if (pushed.skipped === 'already sent') return 'Push notifications for this result were already sent.';
+  if (pushed.skipped) return 'No push notifications sent: ' + pushed.skipped + '.';
+  if (!pushed.subscribers) return 'Nobody follows these teams for push notifications yet.';
+  return 'Push notification sent to ' + pushed.sent + ' of ' + pushed.subscribers + ' device' +
+    (pushed.subscribers === 1 ? '' : 's') + (pushed.failed ? ' (' + pushed.failed + ' failed)' : '') + '.';
 }
 
 // Runs a post-commit step that must not be able to undo a saved result — see

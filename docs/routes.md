@@ -250,3 +250,10 @@ that is its first middleware. See `middleware/access.js` for what each level mea
 | 240 | POST | `/admin/team-strength/import` | cron:AUDIT_CRON_TOKEN |
 | 241 | GET | `/api/player-strength` | superadmin |
 | 242 | GET | `/admin` | superadmin |
+| 243 | GET | `/notifications` | public |
+| 244 | POST | `/api/push/subscribe` | public |
+| 245 | DELETE | `/api/push/subscribe` | public |
+| 246 | POST | `/api/push/subscription` | public |
+| 247 | POST | `/admin/push/reminders` | cron:PUSH_CRON_TOKEN |
+| 248 | GET | `/admin/push` | superadmin |
+| 249 | POST | `/admin/push/test` | superadmin |

@@ -76,6 +76,9 @@
               <a href="mailto:stockport.badders.results@gmail.com">stockport.badders.results@gmail.com</a>.
             </p>
           <% } %>
+          <% if (locals.pushNote) { %>
+            <p class="text-muted small" data-role="push-note"><%= pushNote %></p>
+          <% } %>
           <%- include('recentPlayerHistory.ejs') %>
         <% } %>
         <% if (hasScorecard && !hasErrors) { %>
