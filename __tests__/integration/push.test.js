@@ -50,6 +50,8 @@ describe('GET /notifications', () => {
     expect(res.text).toMatch(/<summary>Northfield[\s\S]*Northfield A[\s\S]*Northfield B[\s\S]*<summary>Southgate/);
     expect(res.text).toMatch(/name="push-team" id="team-4"\s+value="4">/);
     expect(res.text).toContain('push-panel.js');
+    expect(res.text).toMatch(/<a href="#" data-notifications-video>[\s\S]*?Watch how it works/);
+    expect(res.text).toContain('id="notificationsVideoPlayer"');
   });
 
   it('?team= ticks that team and opens its club', async () => {

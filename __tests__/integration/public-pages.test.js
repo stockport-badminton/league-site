@@ -40,6 +40,14 @@ describe('GET /', () => {
     expect(res.status).toBe(200);
   });
 
+  // The notifications offer moved to the fixtures & results pages (fixtures.test.js).
+  it('does not carry the notifications offer', async () => {
+    setupHomepageMocks();
+    const res = await request(app).get('/');
+    expect(res.text).not.toContain('notificationsBanner');
+    expect(res.text).not.toContain('notificationsVideoPlayer');
+  });
+
   it('calls all three Fixture model methods once each', async () => {
     setupHomepageMocks();
     await request(app).get('/');

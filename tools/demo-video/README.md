@@ -1,4 +1,10 @@
-# The "how to enter a result" videos
+# The walkthrough videos
+
+Two recorders share `overlay.js` (captions, pointer, spotlight, title cards) and the seed:
+"how to enter a result" (`record.js`, below) and "how to turn on notifications"
+(`record-notifications.js`, at the end).
+
+## How to enter a result
 
 `static/beta/video/enter-result-{desktop,mobile}.{mp4,jpg}`, linked from `/email-scorecard`
 ("New to this? Watch how it works"). Desktop is 1920×1080; mobile is 1080×1920, for a phone held
@@ -51,3 +57,31 @@ result before committing it.
   still exist when the view changes.
 - `make-card.js` uses macOS's Bradley Hand font, and the paper noise is random, so the card is
   never byte-identical between runs.
+
+## How to turn on notifications
+
+`static/beta/video/notifications-mobile.{mp4,jpg}`, phone cut only (1080×1920), opened by any
+`[data-notifications-video]` link through `views/notifications-video.ejs`: the banner at the
+top of the fixtures & results pages (`views/notifications-banner.ejs`) and `/notifications`. Same server and seed as above, then:
+
+```sh
+node tools/demo-video/record-notifications.js      # DEMO_BASE=http://127.0.0.1:3123 for another port
+```
+
+- **Real:** the homepage, the menu, `/notifications` with the fictional Larkhill club, and
+  the page's own states ("Notifications are on", Save settings / Turn off).
+- **Stubbed:** headless Chromium has no push service, so `PushManager.subscribe` returns a
+  fake subscription and `/api/push/*` is answered in the browser (nothing is written). The
+  "Allow notifications?" prompt and the arriving notifications are drawn by `overlay.js`
+  (`prompt`, `notify`), since a headless browser draws no browser or phone UI. iPhone's
+  "Add to Home Screen" step is a title card for the same reason.
+- **The worker must install**, or the page shows "doesn't support notifications". It
+  precaches `/static/generated/venues-map.png`, which the local server 404s (it is read
+  from S3), and one failed precache aborts the install. The recorder serves a stand-in
+  for it through a context route, which also catches the worker's requests.
+- The PushManager stub is its own init script, first: sharing one with the styling lines
+  once left the real `subscribe` in place, which fails with "permission denied".
+- No rate limit to worry about: nothing is POSTed to the server.
+
+Re-record when `/notifications` changes enough that the video lies, or when the reminder
+times change (they are in a caption and in the example notifications).

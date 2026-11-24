@@ -38,6 +38,23 @@ window.__demo = (() => {
   #dm-card .k{font-size:var(--card-k,18px);letter-spacing:.14em;text-transform:uppercase;opacity:.75}
   #dm-card h1{font-size:var(--card-h,56px);font-weight:700;margin:0;line-height:1.1}
   #dm-card p{font-size:var(--card-p,24px);margin:.3em 0 0;opacity:.9;max-width:900px;line-height:1.4}
+  #dm-prompt{position:fixed;left:0;right:0;bottom:0;z-index:100001;background:#fff;border-radius:16px 16px 0 0;padding:20px 20px 16px;
+    box-shadow:0 -8px 30px rgba(0,0,0,.35);font-family:Roboto,-apple-system,"Segoe UI",sans-serif;color:#1f1f1f;
+    transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+  #dm-prompt.on{transform:translateY(0)}
+  #dm-prompt .site{font-size:13px;color:#5f6368;margin-bottom:6px}
+  #dm-prompt .q{font-size:17px;font-weight:500;margin-bottom:18px}
+  #dm-prompt .btns{display:flex;justify-content:flex-end;gap:10px}
+  #dm-prompt .btns span{padding:9px 18px;border-radius:20px;font-weight:500;font-size:15px;color:#1a73e8}
+  #dm-prompt .btns .allow{background:#1a73e8;color:#fff}
+  #dm-note{position:fixed;left:3%;right:3%;top:2%;z-index:100001;background:rgba(255,255,255,.97);border-radius:18px;padding:12px 14px;
+    box-shadow:0 8px 28px rgba(0,0,0,.3);font-family:Roboto,-apple-system,"Segoe UI",sans-serif;color:#1f1f1f;
+    transform:translateY(-130%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  #dm-note.on{transform:translateY(0)}
+  #dm-note .app{display:flex;align-items:center;gap:7px;font-size:12px;color:#5f6368;margin-bottom:5px}
+  #dm-note .app img{width:18px;height:18px;border-radius:4px}
+  #dm-note .t{font-size:15px;font-weight:600;line-height:1.25}
+  #dm-note .b{font-size:14px;color:#3c4043;margin-top:2px;line-height:1.3}
   #dm-photo{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:#111;opacity:0;transition:opacity .5s;pointer-events:none}
   #dm-photo.on{opacity:1}
   #dm-photo img{max-height:92%;max-width:92%;border-radius:6px;transform:scale(1);transition:transform 4s ease-out}
@@ -104,6 +121,25 @@ window.__demo = (() => {
       if (title == null) { c.classList.remove('on'); return; }
       c.innerHTML = `<div class="k">${kicker}</div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}`;
       requestAnimationFrame(() => c.classList.add('on'));
+    },
+    // A stand-in for the browser's own permission prompt, which a headless recording cannot show.
+    prompt(site) {
+      ready(); const p = el('dm-prompt');
+      if (!site) { p.classList.remove('on'); return; }
+      p.innerHTML = `<div class="site">${site}</div><div class="q">Allow ${site} to send notifications?</div>` +
+        '<div class="btns"><span class="block">Block</span><span class="allow">Allow</span></div>';
+      requestAnimationFrame(() => p.classList.add('on'));
+    },
+    // A stand-in for a delivered notification, as it drops in at the top of a phone screen.
+    notify(title, body, icon) {
+      ready(); const n = el('dm-note');
+      if (!title) { n.classList.remove('on'); return; }
+      const fill = () => {
+        n.innerHTML = `<div class="app"><img src="${icon || '/touch-icon-192x192.png'}">Stockport Badminton League · now</div>` +
+          `<div class="t">${title}</div><div class="b">${body || ''}</div>`;
+        requestAnimationFrame(() => n.classList.add('on'));
+      };
+      if (n.classList.contains('on')) { n.classList.remove('on'); setTimeout(fill, 550); } else fill();
     },
     photo(src, on) {
       ready(); const p = el('dm-photo', `<img src="${src}">`);

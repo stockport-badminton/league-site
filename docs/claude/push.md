@@ -32,6 +32,11 @@ division, leaving out whatever is null. The tap opens the event page (`eventPath
   `/admin/push/reminders` (cron), `/admin/push` + `/admin/push/test` (superadmin).
 - `views/notifications.ejs` + `static/beta/js/push-panel.js`: the opt-in page. The page
   reads what this browser is subscribed to from the server, not from localStorage.
+- `views/notifications-banner.ejs`: the offer at the top of the fixtures & results pages
+  (`/results/…`). Hidden on a device already subscribed, and once dismissed (localStorage).
+- `views/notifications-video.ejs` + `static/beta/video/notifications-mobile.mp4`: the
+  one-minute walkthrough, opened by any `[data-notifications-video]` link. Re-record with
+  `tools/demo-video/record-notifications.js` (see its README).
 - `views/sw.ejs`: the `push` and `notificationclick` handlers. `rootfiles/badge-96.png` is
   the monochrome status-bar badge.
 
