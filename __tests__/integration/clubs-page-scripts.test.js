@@ -1,11 +1,11 @@
-// The venue map's inline scripts on /info/clubs, and what a free-text address can do to
-// them.
+// The venue map's scripts on /info/clubs, and what a free-text address can do to them.
 //
-// The venue rows are embedded in an inline `<script>` block, and **the browser finds the
-// end of a script element before any JavaScript is parsed**. So an address containing a
-// closing script tag ends the block early: everything after it becomes page content, the
-// rest of the JS renders as markup, and `initMap` is never defined — the Maps callback
-// then reports `initMap is not a function` and the map is simply blank.
+// The venue rows are embedded in the page, and **the browser finds the end of a script
+// element before anything inside it is parsed**. So an address containing a closing script
+// tag ends the element early: the rest renders as markup, and the map has no data. Since
+// REARCH-07 step 5 the rows are a JSON data block (#venue-data) and the code is
+// static/beta/js/venue-map.js; the block can still be ended early, which is why
+// jsonForScript escapes it.
 //
 // That is not hypothetical for these fields. This database already holds
 // `Mulberry's Sports Complex` in a venue address and two `&`s in match-night text, all of
@@ -31,15 +31,25 @@ const Venue = require('../../models/venue');
 const Roster = require('../../models/roster');
 const app = require('../../app');
 
-const CLOSER = '</' + 'script>';
+const fs = require('fs');
+const path = require('path');
 
-// Every inline block on the page, in order.
+const CLOSER = '</' + 'script>';
+const JS = name => fs.readFileSync(path.join(__dirname, '../../static/beta/js', name), 'utf8');
+
+// Every inline block on the page that is script rather than data, in order.
 function inlineScripts(html) {
   const out = [];
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+  const re = /<script(?![^>]*\bsrc=)(?![^>]*application\/(?:ld\+)?json)[^>]*>([\s\S]*?)<\/script>/g;
   let m;
   while ((m = re.exec(html)) !== null) out.push(m[1]);
   return out;
+}
+
+// The page's venue rows, as the browser will read them.
+function venueData(html) {
+  const m = html.match(/<script type="application\/json" id="venue-data">([\s\S]*?)<\/script>/);
+  return m && JSON.parse(m[1]);
 }
 
 beforeEach(() => {
@@ -59,27 +69,25 @@ beforeEach(() => {
   }]);
 });
 
-describe('GET /info/clubs inline scripts', () => {
-  it('all parse as JavaScript', async () => {
+describe('GET /info/clubs venue map scripts', () => {
+  it('has no inline script left, and the files it loads all parse', async () => {
     const res = await request(app).get('/info/clubs');
     expect(res.status).toBe(200);
-
-    const blocks = inlineScripts(res.text);
-    expect(blocks.length).toBeGreaterThan(0);
-    for (const src of blocks) {
-      // `new vm.Script` parses without running, which is what is being asserted — the
-      // page's JS never executes here and does not need Maps.
-      expect(() => new vm.Script(src)).not.toThrow();
+    // header.ejs's analytics set-up is on every page until slice C moves it.
+    expect(inlineScripts(res.text).filter(b => !/sblTrack|posthog/i.test(b))).toEqual([]);
+    for (const name of ['venue-popup.js', 'venue-map.js', 'club-contact.js']) {
+      expect(res.text).toContain(`/static/beta/js/${name}?v=`);
+      // `new vm.Script` parses without running; the page's JS needs Maps to run.
+      expect(() => new vm.Script(JS(name))).not.toThrow();
     }
   });
 
-  it('still define initMap, which the Maps callback names', async () => {
-    const res = await request(app).get('/info/clubs');
-    expect(inlineScripts(res.text).join('\n')).toMatch(/function\s+initMap\s*\(/);
+  it('defines initMap at the top level, where the Maps callback finds it by name', () => {
+    expect(JS('venue-map.js')).toMatch(/^function\s+initMap\s*\(/m);
   });
 
   // The reason jsonForScript exists.
-  it('survive a venue address that contains a closing script tag', async () => {
+  it('survives a venue address that contains a closing script tag', async () => {
     Venue.getVenueClubs.mockResolvedValue([{
       venueName: 'Nasty', Lat: 53.4, Lng: -2.2,
       address: 'Somewhere' + CLOSER + '<b>pwned</b>',
@@ -87,16 +95,13 @@ describe('GET /info/clubs inline scripts', () => {
     }]);
 
     const res = await request(app).get('/info/clubs');
-    const blocks = inlineScripts(res.text);
-
-    for (const src of blocks) expect(() => new vm.Script(src)).not.toThrow();
-    // The literal tag must not reach the page, or the block ends there.
+    // The literal tag must not reach the page, or the data block ends there.
     expect(res.text).not.toContain('Somewhere' + CLOSER);
-    expect(inlineScripts(res.text).join('\n')).toMatch(/function\s+initMap\s*\(/);
+    expect(venueData(res.text)[0].address).toBe('Somewhere' + CLOSER + '<b>pwned</b>');
   });
 
   // Racketeer, Remnants and David Lloyd hold "NA": they have no club night of their own.
-  it('blank a placeholder club night in the table and the map data', async () => {
+  it('blanks a placeholder club night in the table and the map data', async () => {
     Club.clubDetail.mockResolvedValue([{
       clubId: 59, name: 'Racketeer', teamName: 'Racketeer A', clubvenue: 'David Lloyd Leisure',
       clubaddress: 'Royal Crescent, Cheadle Hulme, SK8 3FL', teammatchvenue: 'David Lloyd Leisure',
@@ -112,18 +117,12 @@ describe('GET /info/clubs inline scripts', () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('Racketeer');
     expect(res.text).not.toMatch(/<td>\s*NA\s*<\/td>/);
-    const block = inlineScripts(res.text).find(b => b.includes('var data ='));
-    const data = JSON.parse(block.match(/var data = ([\s\S]*?);\n/)[1]);
-    expect(data[0].clubNights[0].clubNightText).toBeNull();
+    expect(venueData(res.text)[0].clubNights[0].clubNightText).toBeNull();
   });
 
-  it('embed the venue data so it still parses back to what the model returned', async () => {
+  it('embeds the venue data so it parses back to what the model returned', async () => {
     const res = await request(app).get('/info/clubs');
-    const block = inlineScripts(res.text).find(b => b.includes('var data ='));
-    expect(block).toBeDefined();
-
-    const json = block.match(/var data = ([\s\S]*?);\n/)[1];
-    const data = JSON.parse(json);
+    const data = venueData(res.text);
     expect(data).toHaveLength(1);
     expect(data[0].address).toBe("Mulberry's Sports Complex, Cheadle");
     // Per-team, not the club's combined summary — the bug this whole change is about.
@@ -132,14 +131,14 @@ describe('GET /info/clubs inline scripts', () => {
   });
 
   // The popup builder has to be on the page before the Maps callback runs, or
-  // `VenuePopup` is undefined inside initMap.
-  it('load the popup builder as a blocking script before the Maps API', async () => {
+  // `VenuePopup` is undefined inside initMap. venue-map.js is what loads Maps.
+  it('loads the popup builder as a blocking script before the one that loads Maps', async () => {
     const res = await request(app).get('/info/clubs');
     const popupAt = res.text.indexOf('venue-popup.js');
-    const mapsAt = res.text.indexOf('maps.googleapis.com/maps/api/js');
-
+    const mapAt = res.text.indexOf('venue-map.js');
     expect(popupAt).toBeGreaterThan(-1);
-    expect(mapsAt).toBeGreaterThan(-1);
-    expect(popupAt).toBeLessThan(mapsAt);
+    expect(popupAt).toBeLessThan(mapAt);
+    expect(JS('venue-map.js')).toContain('maps.googleapis.com/maps/api/js');
+    expect(res.text).toMatch(/<div id="map" data-maps-key="[^"]*"><\/div>/);
   });
 });

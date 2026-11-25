@@ -198,3 +198,59 @@ test("a player's page draws the rating chart from its data block", async ({ page
   })).toBe('Local Player ELO');
   expect(problems).toEqual([]);
 });
+
+test('the ELO comparison charts the players named in the URL', async ({ page }) => {
+  const problems = watch(page);
+  // Players 1 and 13 have rated games in the local database (rearch-01 snapshot args).
+  await page.goto('/elo-chart?players=1,13');
+  const config = JSON.parse(await page.locator('#elo-chart-config').textContent());
+  expect(config.selectedIds).toEqual([1, 13]);
+  await expect.poll(() => page.evaluate(() => {
+    const chart = window.Chart && Chart.getChart('elo-chart');
+    return chart ? chart.data.datasets.length : 0;
+  })).toBeGreaterThan(0);
+  expect(problems).toEqual([]);
+});
+
+test("a superadmin's fixture date edit saves, and puts the pencil back", async ({ page }) => {
+  const problems = watch(page);
+  const saved = [];
+  // Answered here, as the server would, so nothing is written.
+  await page.route('**/fixture/*/date', route => {
+    saved.push(new URLSearchParams(route.request().postData()).get('date'));
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ displayDate: 'Tue 3 Mar 2026' }) });
+  });
+  // The admin path is the one that renders a superadmin's edit links.
+  await page.goto('/admin/results/All');
+  // The icon floats (icon-float), so its <a> has no box of its own and never counts as
+  // visible; the click goes on the icon and bubbles to the link.
+  const edit = page.locator('#results-table .fd-edit svg:visible').first();
+  await edit.waitFor({ timeout: 5000 }).catch(() => {});
+  if (!(await edit.count())) test.skip(true, 'no editable fixture date on the page');
+  // By fixture id: the edit replaces the cell's contents, link included.
+  const id = await edit.locator('xpath=ancestor::td[1]').getAttribute('data-fixture-id');
+  const cell = page.locator(`#results-table td.fixture-date[data-fixture-id="${id}"]`);
+  await edit.click();
+  await cell.locator('input.fd-input').fill('2026-03-03');
+  await cell.locator('.fd-save').click();
+  await expect(cell).toContainText('03/03/2026');
+  await expect(cell.locator('.fd-edit svg')).toHaveCount(1);
+  expect(saved).toEqual(['2026-03-03']);
+  expect(problems).toEqual([]);
+});
+
+test('sharing a result without the Web Share API opens its image', async ({ page }) => {
+  const problems = watch(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    window.__opened = [];
+    window.open = url => { window.__opened.push(url); return null; };
+  });
+  await page.goto('/admin/results/All');
+  const share = page.locator('.share-result-btn').first();
+  if (!(await share.count())) test.skip(true, 'no shareable result on the page');
+  const url = await share.getAttribute('data-img-url');
+  await share.click();
+  expect(await page.evaluate(() => window.__opened)).toEqual([url]);
+  expect(problems).toEqual([]);
+});

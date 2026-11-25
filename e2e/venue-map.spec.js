@@ -46,14 +46,10 @@ test.describe('the venue map', function () {
   test('builds a pin from the real data, per team rather than per club', async function ({ page }) {
     await page.goto('/info/clubs');
 
-    // `data` is function-scoped inside the page's own script block and cannot be read from
-    // outside it, so fetch the same page again and render every venue through the same
-    // function the page uses. That keeps the rows the server's, not the test's.
-    const html = await page.evaluate(async () => {
-      const res = await fetch('/info/clubs');
-      const text = await res.text();
-      const m = text.match(/var data = ([\s\S]*?);\n/);
-      const rows = JSON.parse(m[1]);
+    // The rows are the page's #venue-data block (REARCH-07 step 5), rendered here through
+    // the same function the page uses. That keeps the rows the server's, not the test's.
+    const html = await page.evaluate(() => {
+      const rows = JSON.parse(document.getElementById('venue-data').textContent);
       return rows.map(v => window.VenuePopup.popupHtml(v));
     });
 
@@ -73,10 +69,8 @@ test.describe('the venue map', function () {
   test('names each team and its own night where they differ', async function ({ page }) {
     await page.goto('/info/clubs');
 
-    const found = await page.evaluate(async () => {
-      const res = await fetch('/info/clubs');
-      const m = (await res.text()).match(/var data = ([\s\S]*?);\n/);
-      const rows = JSON.parse(m[1]);
+    const found = await page.evaluate(() => {
+      const rows = JSON.parse(document.getElementById('venue-data').textContent);
       for (const v of rows) {
         const days = new Set((v.matchTeams || []).map(t => t.matchDay));
         if (days.size > 1) {

@@ -281,6 +281,19 @@ describe('every CDN the templates actually reference is in the policy', () => {
     }
   }
 
+  // Our own scripts build some tags in code: venue-map.js loads Maps with
+  // `maps.src = '//maps.googleapis.com/…' + key` since REARCH-07 step 5 moved it there.
+  const jsDir = path.join(__dirname, '../../static/beta/js');
+  for (const name of fs.readdirSync(jsDir).filter(f => f.endsWith('.js'))) {
+    const src = fs.readFileSync(path.join(jsDir, name), 'utf8');
+    const re = /\.src\s*=\s*['"]((?:https?:)?\/\/[^'"]+)['"]/g;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      const host = m[1].replace(/^https?:/, '').split('/')[2];
+      if (host && !found.has(host)) found.set(host, '../static/beta/js/' + name);
+    }
+  }
+
   // Five since GA's googletagmanager went (Nov 2026); a broken regex finds none.
   it('found some, or the scan itself is broken', () => {
     expect(found.size).toBeGreaterThanOrEqual(5);

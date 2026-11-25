@@ -47,13 +47,16 @@ beforeEach(() => {
   ]);
 });
 
+// The page's settings are the #elo-chart-config JSON block since REARCH-07 step 5.
+const eloChartConfig = html => JSON.parse(html.match(/<script type="application\/json" id="elo-chart-config">([\s\S]*?)<\/script>/)[1]);
+
 describe('GET /elo-chart', () => {
   it('offers a superadmin the points rating beside the ELO, and keeps the page out of caches', async () => {
     mockCurrentUser = SUPERADMIN;
     const res = await request(app).get('/elo-chart');
     expect(res.status).toBe(200);
     expect(res.text).toContain('id="rating-mode"');
-    expect(res.text).toContain('var SHOW_STRENGTH = true;');
+    expect(eloChartConfig(res.text).showStrength).toBe(true);
     expect(res.headers['cache-control']).toBe('private, no-store');
   });
 
@@ -62,7 +65,7 @@ describe('GET /elo-chart', () => {
     const res = await request(app).get('/elo-chart');
     expect(res.status).toBe(200);
     expect(res.text).not.toContain('id="rating-mode"');
-    expect(res.text).toContain('var SHOW_STRENGTH = false;');
+    expect(eloChartConfig(res.text).showStrength).toBe(false);
   });
 });
 

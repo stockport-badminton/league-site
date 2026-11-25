@@ -69,9 +69,6 @@ describe('inline event handlers in views/', () => {
 // moved block gets server data without EJS inside the code. What is left, per template,
 // is capped here: lower a number when a block goes, and delete the line at zero.
 const BLOCK_CEILING = {
-  'club-v2.ejs': 4,
-  'elo-chart.ejs': 1,
-  'fixtures-results.ejs': 2,
   'header.ejs': 2,
   'index-scorecard.ejs': 2,
   'messer-scorecard.ejs': 1,

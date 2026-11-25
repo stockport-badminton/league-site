@@ -105,6 +105,28 @@ templates are slice B (`club-v2` 4, `fixtures-results` 2, `datatables`,
 (2) and `elo-chart` (1). `header.ejs` (2) is slice C, and the scorecard templates (4) wait
 for step 4.
 
+**Slice B finished, 25 Nov 2026.**
+- **`elo-compare.js`** (`/elo-chart`) reads `#elo-chart-config`.
+- **`fixtures-results`:** `result-share.js` moved as is. A superadmin's
+  `fixture-date-edit.js` takes its pencil icon from a `#fdPencil` `<template>`.
+- **`club-v2`'s four blocks:** the fallback, `initMap` and the Maps loader are one
+  `venue-map.js`, loaded after `venue-popup.js`. The venues are a `#venue-data` block
+  (still through `jsonForScript`, which stops an address containing `</script>` ending
+  it) and the key is `#map[data-maps-key]`. `initMap` stays a top-level function for
+  Maps' `callback=initMap`. The contact buttons are `club-contact.js`. `venue-popup.js`
+  now goes through `asset()`; it was the one script here on an unversioned URL.
+- **Tests:**
+  - `clubs-page-scripts.test.js` checks the JSON block and the files instead of inline
+    blocks.
+  - `venue-map.spec.js` reads `#venue-data` from the page instead of re-fetching it and
+    parsing the source.
+  - The CSP host scan in `security-headers.test.js` also reads `x.src = '//host…'` in
+    `static/beta/js/`. Without that it would have stopped checking `maps.googleapis.com`
+    without saying so.
+
+**Step 5 now: no inline `<script>` outside `header.ejs` (2, slice C) and the three
+scorecard templates (4, step 4).**
+
 **A production bug found on the way, fixed.** `clubController` had `for (row of result)`
 with no declaration, which assigned a global `row`. EJS resolves names a template is not
 given against the globals, so after anyone loaded `/info/clubs`, every render of
