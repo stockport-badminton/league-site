@@ -78,6 +78,17 @@ has more than 13.
 Two Bootstrap 5 names are already in the markup and inert under 4 — `ms-`/`me-` (2) and
 `form-select` (4 in one file). They start applying at the cutover; look at those pages.
 
+**Re-measured 25 Nov 2026** (`__tests__/unit/bootstrap5-names.test.js` now keeps the count):
+it had grown by about a third, all from pages added since — `data-toggle` 28, `data-dismiss`
+23, `text-left`/`text-right` 66, `ml-`/`mr-`/`pl-`/`pr-` 42, `badge-<colour>` 32, `sr-only` 12,
+`close` 17, `<select class="form-control">` 248. Missed by the table above: `custom-control`
+(3), `input-group-append` (1), `border-left/right` (4), and two jQuery selectors on
+`a[data-target="#…"]` in `static/beta/js/fixture-date-edit.js`, which would have stopped
+matching at the cutover with nothing in the console (now `.js-rearrange-link` /
+`.js-reminder-link`). `fixture-date-edit.js` also calls `.modal('show')`, not only
+`roster-edit.js`. The scorecard templates are down to 7, 5 and 4 unpaired names once
+`form-group` and `form-control` are set aside.
+
 ## What to do
 
 1. **Pick the version** — the newest 5.3.x at the time — and load
@@ -94,8 +105,11 @@ Two Bootstrap 5 names are already in the markup and inert under 4 — `ms-`/`me-
    `form-select` on a select (under 5 the two fight), and leave the scorecard templates to
    step 5.
 
-3. **Keep `form-group` and `form-row` with two rules in `custom.css`** rather than editing
-   600 uses:
+3. **Done 25 Nov 2026.** **Keep `form-group`, `form-row` and `form-inline` with rules in
+   `custom.css`** rather than editing 600 uses. `form-inline` was going to become
+   `d-flex flex-wrap align-items-center` with `w-auto` on the fields; a phone screenshot showed
+   that loses its below-576px behaviour (fields full width, stacked), which no utility in
+   either version gives, so the name stays with its own rule. The first three:
    ```css
    /* Bootstrap 4 names, kept after the move to 5 (HARD-50): spacing only. */
    .form-group { margin-bottom: 1rem; }
@@ -124,17 +138,22 @@ Two Bootstrap 5 names are already in the markup and inert under 4 — `ms-`/`me-
    why the files are copies and how they were made). That probably means DataTables 1.13 or
    2.x, which is its own small upgrade.
 
-7. **A guard test** in `__tests__/unit/`, like HARD-44's `fa-` guard: fails on any of
-   `data-toggle=`, `data-dismiss=`, `data-target=`, `sr-only`, `badge-<colour>`,
-   `font-weight-`, `no-gutters`, `btn-block`, `ml-`/`mr-` as classes, or a `<select>` with
-   `form-control`, in `views/` or `static/beta/js/`. It goes in at step 5; before that, the
-   doubled-up names would trip it.
+7. **A guard test.** Its in-season half landed 25 Nov 2026:
+   `__tests__/unit/bootstrap5-names.test.js` fails on a Bootstrap 4 name **without** its
+   Bootstrap 5 partner on the same element (or a name with no partner — `btn-block`,
+   `jumbotron` — or a selector on `[data-toggle|target|dismiss`), in `views/` or
+   `static/beta/js/`. Each file still to convert has a ceiling; it is the to-do list for
+   step 2, and stops new pages adding to it. At step 5 it becomes strict: fail on the
+   Bootstrap 4 name whether or not its partner is there, and add a `<select>` with
+   `form-control` and `class="close"`, which cannot be doubled up and so are not checked
+   in-season.
 
 ## Acceptance criteria
 
 - `package.json` has Bootstrap 5.3.x and no popper.js; `npm install` and the build log
   carry no Bootstrap or Popper deprecation warning.
-- The guard test passes, and fails when a `data-toggle=` is put back.
+- The guard test, in its strict step-5 form, passes, and fails when a `data-toggle=` is put
+  back.
 - **Every e2e spec passes.** `e2e/scorecard.spec.js`'s first test ("opens the scorecard
   modal") is the canary — its comment already says it is the assertion most exposed to this
   upgrade. The roster specs cover the modals in `roster-edit.js`.

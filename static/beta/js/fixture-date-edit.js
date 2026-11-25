@@ -4,7 +4,7 @@
 var PENCIL = document.getElementById('fdPencil').innerHTML;
 
 
- $('a[data-target="#exampleModal"]').click(function(){
+ $('a.js-rearrange-link').click(function(){
    $('#rearrangementModal > .formMessage').hide();
    $('#rearrangementForm > #date').show()
    $('#rearrangementForm > label').show()
@@ -20,7 +20,7 @@ var PENCIL = document.getElementById('fdPencil').innerHTML;
  // enabled — and ignores a contacts answer that arrives after a different fixture
  // has been opened.
  var reminderRequest = 0;
- $('a[data-target="#reminderModal"]').click(function(e){
+ $('a.js-reminder-link').click(function(e){
    e.preventDefault();
    var link = $(this);
    var requestId = ++reminderRequest;

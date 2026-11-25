@@ -619,3 +619,16 @@ table.colsearch-on .dt-colsearch-row {
     max-height: none;
   }
 }
+
+/* Bootstrap 4 names, kept after the move to 5 (HARD-50). Bootstrap 5 dropped all three,
+   and ~450 uses in views/ rely on them. Until the cutover these repeat Bootstrap 4's own
+   values, so nothing changes; afterwards they are the only rules. `form-inline` keeps its
+   phone behaviour — fields full width below 576px, side by side above — which no utility
+   class in either version gives (`w-auto` has no breakpoint form). */
+.form-group { margin-bottom: 1rem; }
+.form-row { display: flex; flex-wrap: wrap; margin-right: -5px; margin-left: -5px; }
+.form-row > .col, .form-row > [class*="col-"] { padding-right: 5px; padding-left: 5px; }
+.form-inline { display: flex; flex-flow: row wrap; align-items: center; }
+@media (min-width: 576px) {
+  .form-inline .form-control, .form-inline .form-select { display: inline-block; width: auto; vertical-align: middle; }
+}

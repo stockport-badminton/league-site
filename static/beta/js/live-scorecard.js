@@ -350,7 +350,7 @@
     var name = el('input', { type: 'text', className: 'form-control', maxlength: '80',
       placeholder: 'Your full name', autocomplete: 'name', 'aria-label': 'Your name' });
     name.value = whoAmI();
-    var btn = el('button', { type: 'button', className: 'btn btn-success btn-block',
+    var btn = el('button', { type: 'button', className: 'btn btn-success d-block w-100',
       text: 'Sign as ' + boot.side + ' captain: ' + state.tally.home + '–' + state.tally.away });
     btn.disabled = state.problems.length > 0;
     btn.addEventListener('click', function () {

@@ -146,11 +146,11 @@
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
             <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged' || row['status'] === 'rearranging') { %>
-                  <a data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
+                  <a class="js-rearrange-link" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
                   <%# From 48 hours before the card is due (fixture + 5 days), overdue included,
                       and only while no draft is filed — row.reminderDue, utils/scorecardReminder.js. %>
                   <% if(row['reminderDue']){ %>
-                  <br /><a href="#" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
+                  <br /><a href="#" class="js-reminder-link" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
                 <% } } %>
                 <%# Mirrors Fixture.CONCEDABLE — and not 'rearranged', which is the superseded
                     original of a rearranged match. The server enforces it too. %>
@@ -235,8 +235,8 @@
         </div>
         <div class="modal-body">
           <p>Which team conceded? The other team is awarded the match 18-0.</p>
-          <button type="button" class="btn btn-outline-danger btn-block concede-side" data-side="home"></button>
-          <button type="button" class="btn btn-outline-danger btn-block concede-side" data-side="away"></button>
+          <button type="button" class="btn btn-outline-danger d-block w-100 concede-side" data-side="home"></button>
+          <button type="button" class="btn btn-outline-danger d-block w-100 mt-2 concede-side" data-side="away"></button>
           <div id="concedeMessage" class="alert alert-danger mt-3 mb-0" role="status" style="display:none"></div>
         </div>
         <div class="modal-footer">
