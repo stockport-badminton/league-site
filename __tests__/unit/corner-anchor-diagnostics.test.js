@@ -171,3 +171,25 @@ describe('recognising a card the reader cannot do', () => {
     expect(recogniseCard(goodCard())).toBeNull();
   });
 });
+
+// 25 Nov 2026: the table border runs through "(Rule 18)" on some prints, and Vision read a
+// clean, straight photo of Shell A v Racketeers B as "Rufe 18". The card was refused.
+describe('Rule 18 when the border runs through it', () => {
+  const withRule = (...words) => goodCard().filter(w => !['Rule', '18'].includes(w.text)).concat(words);
+
+  it.each(['Rufe', 'Ru1e', 'RuIe', 'Rule', 'rule'])('finds "%s 18"', text => {
+    const { found } = findAnchors(withRule(word(text, 0.70, 0.92), word('18', 0.75, 0.92)), IMG_W, IMG_H);
+    expect(found.RULE18).toBeDefined();
+  });
+
+  it('still needs the 18 after it', () => {
+    const { found, diagnostics } = findAnchors(withRule(word('Rufe', 0.70, 0.92), word('(', 0.75, 0.92)), IMG_W, IMG_H);
+    expect(found.RULE18).toBeUndefined();
+    expect(diagnostics.RULE18.reason).toBe('no-text-matched');
+  });
+
+  it('does not take another word for Rule', () => {
+    const { found } = findAnchors(withRule(word('Rate', 0.70, 0.92), word('18', 0.75, 0.92)), IMG_W, IMG_H);
+    expect(found.RULE18).toBeUndefined();
+  });
+});

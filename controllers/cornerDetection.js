@@ -29,8 +29,14 @@ const CORNER_ANCHORS = {
   SIGNATURE: { pattern: /^Signature$/i,   searchArea: { yMin: 0.6, yMax: 1 } },
   STOCKPORT: { pattern: /^Stockport$/i,   searchArea: { yMin: 0, yMax: 0.3 } },
   LEAGUE:    { pattern: /^League$/i,      searchArea: { yMin: 0, yMax: 0.3, xMin: 0.5, xMax: 1 } },
-  WON_BY:    { pattern: /WON\s+BY/i,     searchArea: { yMin: 0.1, yMax: 0.5, xMin: 0.6, xMax: 1 }, multiWord: true },
-  RULE18:    { pattern: /Rule\s+18/i,     searchArea: { yMin: 0, yMax: 1 }, multiWord: true },
+  WON_BY:    { pattern: /WON\s+BY/i,     searchArea: { yMin: 0.1, yMax: 0.5, xMin: 0.6, xMax: 1 }, multiWord: true,
+               words: /^(WON|BY)$/ },
+  // The table's right-hand border runs through "(Rule 18)" on some prints, and the stroke
+  // can turn the l into another letter: 25 Nov 2026 a clean, straight photo of Shell A v
+  // Racketeers B was refused because Vision read "Rufe 18". Only that one letter is
+  // allowed to vary, and "18" must follow on the same line, so nothing else matches.
+  RULE18:    { pattern: /R[uv][lf1iI|t]e\s+18/i, searchArea: { yMin: 0, yMax: 1 }, multiWord: true,
+               words: /^(R[uv][lf1iI|t]e|18)$/i },
   PLEASE:    { pattern: /Please/i,        searchArea: { yMin: 0, yMax: 1 } },
 };
 
@@ -51,7 +57,7 @@ function inSearchArea(block, area, imgW, imgH) {
 function findMultiWordAnchor(blocks, anchor) {
   const WORD_SPACING = 150;
   const Y_TOL = 50;
-  const candidates = blocks.filter(b => ['WON','BY','Rule','18'].includes(b.text));
+  const candidates = blocks.filter(b => anchor.words.test(b.text));
   const sorted = [...candidates].sort((a, b) =>
     Math.abs(a.centerY - b.centerY) < Y_TOL ? a.centerX - b.centerX : a.centerY - b.centerY
   );
