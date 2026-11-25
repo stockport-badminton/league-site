@@ -100,9 +100,11 @@ is deliberately left NULL rather than coalesced: it feeds
 NULL renders no bracket. A substituted number would invent an adjustment that never
 happened.
 
-Guarded by `__tests__/unit/player-history-join.test.js` — a source check, because Jest has
-no database here; the behavioural proof is the 256 → 716 above. Three of its four
-assertions fail without the change.
+Guarded at first by `__tests__/unit/player-history-join.test.js`, a source check, because
+Jest had no database then; the behavioural proof is the 256 → 716 above. Since 25 Nov
+2026 (REARCH-01) it is a behaviour test instead, in
+`__tests__/db/season-history-readers.test.js`: a game against a deleted team is kept, as
+"Former team" with no bracket, and the test fails if the join goes back to INNER.
 
 **Half the deleted teams' names are still recoverable** from the season archives — 9 of the
 19 orphaned team ids are in `team20212022`…`team20252026` (15 = Disley A, 21 = Bramhall
