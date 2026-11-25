@@ -106,7 +106,7 @@
     that opened it. Posts to /messer-draw/:section/concede/:id (Fixture.concedeMesserMatch). %>
 <div class="modal fade" id="concedeModal" tabindex="-1" role="dialog" aria-labelledby="concedeModalTitle" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <form method="POST" class="modal-content" id="concedeForm" action="">
+    <form method="POST" class="modal-content" id="concedeForm" action="" data-section="<%= section.toLowerCase() %>">
       <div class="modal-header">
         <h5 class="modal-title" id="concedeModalTitle">Record a concession</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -138,25 +138,7 @@
 
 <%- include('footer.ejs') %>
 <% if (locals.mayAdminDraw) { %>
-<script>
-  // Fill the concede modal from the button that opened it. textContent throughout, so a
-  // team name is never parsed as markup.
-  $('#concedeModal').on('show.bs.modal', function (e) {
-    var b = e.relatedTarget.dataset;
-    var conceded = b.conceded;
-    document.getElementById('concedeForm').action =
-      '/messer-draw/<%= section.toLowerCase() %>-section/concede/' + encodeURIComponent(b.match);
-    document.getElementById('concedeModalTitle').textContent = conceded ? 'Change or undo the concession' : 'Record a concession';
-    document.getElementById('concedeMatch').textContent = b.home + ' v ' + b.away;
-    document.querySelector('label[for=concedeHome]').textContent = b.home + ' (home) conceded';
-    document.querySelector('label[for=concedeAway]').textContent = b.away + ' (away) conceded';
-    document.getElementById('concedeHome').checked = conceded === 'home';
-    document.getElementById('concedeAway').checked = conceded === 'away';
-    document.getElementById('concedeNone').checked = false;
-    document.getElementById('concedeUndoRow').hidden = !conceded;
-    document.getElementById('concedeNone').disabled = !conceded;
-  });
-</script>
+<script src="<%= asset('/static/beta/js/messer-concede.js') %>"></script>
 <% } %>
 
 

@@ -67,6 +67,32 @@ real file, so a mistyped path fails in Jest rather than as a 404 in the browser.
 works: SW registration, the offline banner, the contact form's dropdown and global
 `onSubmit`, the video dialog, banner dismissal, and the Quill editors.
 
+**Step 5, slice B begun, 25 Nov 2026.** `filtersJs.ejs` had no EJS in it and was pasted
+into three pages' inline blocks; it is `static/beta/js/filters.js` now, loaded under the
+same `filter` condition. `player_form` moved as is (its conditional closed inside the
+`<script>`, so a page without `club_list` rendered a stray `</script>`). Two blocks whose
+data went to data attributes: `messer-concede.js` reads the section from
+`#concedeForm[data-section]`, and `event-map.js` (Google's loader plus "Show map") reads
+the key, coordinates and venue name from `#eventMap`. The ceilings in
+`no-inline-handlers.test.js` were recounted with the guard's own pattern. The first list
+came from a shell count that still counted `gap-finder`, `player-request` and
+`live-scorecard`, which already use JSON data blocks, and `filtersJs`, which only matched
+because of a comment. **Left: 18 blocks in 12 templates.** Of those, 12 blocks in 8
+templates are slice B (`club-v2` 4, `fixtures-results` 2, `datatables`,
+`datatables-stats`, `elo-chart`, `messer-result-detail`, `player-game-stats`,
+`shuttle-prices`), 2 are `header.ejs` (slice C), and 4 are in the scorecard templates
+(step 4, off-season).
+
+**A production bug found on the way, fixed.** `clubController` had `for (row of result)`
+with no declaration, which assigned a global `row`. EJS resolves names a template is not
+given against the globals, so after anyone loaded `/info/clubs`, every render of
+`player_form` on that instance took the "Player Created!" branch and threw: `/player/create`
+answered 500 until the instance recycled. `fixtureController` leaked `filter` and `division`
+the same way, and `contactusController` leaked `row`. `filter` is the name the
+filter-toolbar templates test. All four are declared now. `no-implicit-globals.test.js`
+fails on an undeclared `for (x of/in …)` anywhere in server code. It was found because
+`moved-scripts.spec.js` loads `/info/clubs` and `/player/create` on one server in parallel.
+
 **Decided 25 Nov 2026 (Neil): `dist/` is built in the Docker image, not committed.** The
 image installs with `npm ci --omit=dev`, so it needs a multi-stage Dockerfile: a build
 stage with every dependency runs the bundle, and the runtime stage copies in only

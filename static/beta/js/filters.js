@@ -1,0 +1,86 @@
+// Turns the filter toolbar's selects into a path and navigates to it, e.g.
+//   /player-stats/Division-1/20242025/status-complete/gender-Male
+// Loaded by the pages with a filter toolbar (was views/filtersJs.ejs, pasted into an
+// inline block; REARCH-07 step 5).
+//
+// This reads every select on each Apply, and the selects are now rendered
+// pre-set to the filters in the current URL (see middleware/filterState.js), so
+// filters combine: applying a gender on top of a division keeps the division.
+// It used to read document.forms[0] - the first form on the page, whatever that
+// happened to be - against selects that always rendered at their defaults, so
+// the second filter you applied silently dropped the first.
+//
+// The grammar here must stay in step with pathFor() in middleware/filterState.js;
+// that builds the same paths server-side for the chip and Clear all links.
+document.addEventListener('DOMContentLoaded', function () {
+
+  var form = document.querySelector('#statsFilter');
+  var applyButton = document.querySelector('#statsUpdate');
+
+  // Division and season sit in the path unlabelled; everything else is `key-value`.
+  var POSITIONAL = { divisionSelect: 'division', seasonSelect: 'season' };
+  var PREFIXED = {
+    statusSelect: 'status', gender: 'gender', gameType: 'gameType',
+    club: 'club', team: 'team'
+  };
+  // Field order, unchanged from the original builder, so the URLs this produces
+  // match existing links and bookmarks.
+  var ORDER = ['divisionSelect', 'seasonSelect', 'statusSelect', 'gender', 'gameType', 'club', 'team'];
+
+  // '/player-stats/Division-1/...' -> '/player-stats'; admin pages keep two segments.
+  function basePath() {
+    var parts = window.location.pathname.split('/').filter(function (p) { return p; });
+    var pageIdx = parts[0] === 'admin' ? 1 : 0;
+    return '/' + parts.slice(0, pageIdx + 1).join('/');
+  }
+
+  function applyFilters(e) {
+    e.preventDefault();
+
+    var base = basePath();
+    var path = base;
+    var hasDivision = false;
+    // One flat property per filter, so PostHog can break down by any of them. The URL
+    // already records what was filtered; this records that someone chose to.
+    var tracked = { page: base };
+
+    ORDER.forEach(function (name) {
+      var field = form.elements[name];
+      if (!field || !field.value || field.value === '0') { return; }
+      tracked['filter_' + (POSITIONAL[name] || PREFIXED[name])] = field.value;
+      var value = encodeURIComponent(field.value);
+
+      if (POSITIONAL[name]) {
+        path += '/' + value;
+        if (name === 'divisionSelect') { hasDivision = true; }
+      } else {
+        path += '/' + PREFIXED[name] + '-' + value;
+      }
+    });
+
+    // /results and /results-grid want an explicit 'All' where a division would sit.
+    if (!hasDivision && base.indexOf('/results') > -1) {
+      path = base + '/All' + path.slice(base.length);
+    }
+
+    if (window.sblTrack) { window.sblTrack('filter_applied', tracked, { leaving: true }); }
+    window.location.assign(window.location.origin + path);
+  }
+
+  // The filter form isn't rendered on every page that includes this script
+  // (e.g. non-superadmins on the team-admin page), so guard the wiring.
+  if (form && applyButton) {
+    applyButton.addEventListener('click', applyFilters);
+  }
+
+  // fixtures-results has a filter icon that collapses the toolbar. Only the form
+  // is hidden, not the whole .filter-toolbar - the applied-filter chips are the
+  // only way back out of a zero-result page, so they stay visible.
+  var showFilterBtn = document.querySelector('#showFilter');
+  if (showFilterBtn && form) {
+    showFilterBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      form.style.display = form.style.display === 'none' ? '' : 'none';
+    });
+  }
+})

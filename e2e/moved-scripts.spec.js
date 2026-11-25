@@ -87,3 +87,31 @@ test('the push admin page and the homepage load their scripts cleanly', async ({
   // The tournament gallery binds on DOMContentLoaded; its modal trigger must exist.
   expect(problems).toEqual([]);
 });
+
+test('the Messer concede modal posts to the match it was opened from', async ({ page }) => {
+  const problems = watch(page);
+  await page.goto('/messer-draw/a-section');
+  const opener = page.locator('[data-target="#concedeModal"]').first();
+  if (!(await opener.count())) test.skip(true, 'no match to concede in the local A section');
+  const match = await opener.getAttribute('data-match');
+  await opener.click();
+  await expect(page.locator('#concedeModal')).toBeVisible();
+  expect(await page.locator('#concedeForm').getAttribute('action'))
+    .toBe('/messer-draw/a-section/concede/' + encodeURIComponent(match));
+  expect(problems).toEqual([]);
+});
+
+test('the player form fills the team list from the club chosen', async ({ page }) => {
+  const problems = watch(page);
+  await page.goto('/player/create');
+  const club = await page.locator('#club option').nth(1).getAttribute('value');
+  // Bound in jQuery's ready handler; under a loaded parallel run, choosing before it is
+  // bound would change nothing.
+  await page.waitForFunction(() => {
+    const events = window.jQuery && jQuery._data(document.getElementById('club'), 'events');
+    return !!(events && events.change);
+  });
+  await page.selectOption('#club', club);
+  await expect.poll(() => page.locator('#team option').count(), { timeout: 15000 }).toBeGreaterThan(1);
+  expect(problems).toEqual([]);
+});

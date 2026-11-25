@@ -151,11 +151,9 @@
 
 <%- include('footer.ejs') %>
 <%- include('datatables.ejs') %>
-<script>
-  <% if (typeof filter !== 'undefined' && filter == true){ %>
-      <%- include('filtersJs.ejs') %>
-    <% } %>
-</script>
+<% if (typeof filter !== 'undefined' && filter == true){ %>
+<script src="<%= asset('/static/beta/js/filters.js') %>"></script>
+<% } %>
 
 </body>
 </html>

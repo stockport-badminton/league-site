@@ -69,18 +69,5 @@
 <%- include('footer.ejs') %>
 <% if (typeof club_list !== 'undefined'){ %>
 <script type="text/javascript" src="/static/beta/js/form-options.js"></script>
-<script type="text/javascript">
-
-$(document).ready(function(){
-  $("#club").change(function(){
-    var selectedClub = this.value;
-        $.post('/teams', {'clubid':selectedClub}, function (data) {
-           // Generate the html from the given data.
-           FormOptions.fillTeams($('#team'), data);
-        });
-  })
-
-})
+<script src="<%= asset('/static/beta/js/player-form.js') %>"></script>
 <% } %>
-
-</script>

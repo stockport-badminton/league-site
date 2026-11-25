@@ -117,14 +117,20 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     Fixture.getFixtureEventById.mockResolvedValue([eventRow()]);
     const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
     expect(res.text).toContain('id="eventMapShow"');
-    expect(res.text).toContain('{ lat: 53.3261, lng: -2.22766 }');
-    expect(res.text).not.toContain('fetchFields');
-    expect(res.text).not.toContain('importLibrary("places")');
+    // The coordinates are data attributes and the code is static/beta/js/event-map.js
+    // since REARCH-07 step 5, so the "no Places lookup" checks read the file.
+    expect(res.text).toContain('data-lat="53.3261" data-lng="-2.22766"');
+    expect(res.text).toMatch(/<script src="\/static\/beta\/js\/event-map\.js\?v=[0-9a-f]+"><\/script>/);
+    const script = require('fs').readFileSync(require('path').join(__dirname, '../../static/beta/js/event-map.js'), 'utf8');
+    expect(script).toContain('importLibrary("maps")');
+    expect(script).not.toContain('fetchFields');
+    expect(script).not.toContain('importLibrary("places")');
 
     Fixture.getFixtureEventById.mockResolvedValue([eventRow({ Lat: null, Lng: null })]);
     const without = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
     expect(without.status).toBe(200);
     expect(without.text).not.toContain('id="eventMap"');
+    expect(without.text).not.toContain('event-map.js');
     expect(without.text).not.toContain('importLibrary');
   });
 

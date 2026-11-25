@@ -314,9 +314,7 @@
   });
 </script>
 <% if (typeof filter !== 'undefined' && filter == true){ %>
-<script type="text/javascript">
-      <%- include('filtersJs.ejs') %>
-</script>
+<script src="<%= asset('/static/beta/js/filters.js') %>"></script>
 <% } %>
 
 <% if (typeof superadmin !== 'undefined' && superadmin) { %>
