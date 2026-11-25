@@ -1,5 +1,5 @@
 // The filter toolbar and DataTables control band on the stats/results pages
-// (views/filters.ejs, views/datatables-controls.ejs, middleware/filterState.js).
+// (views/filters.ejs, static/beta/js/datatables-setup.js, middleware/filterState.js).
 //
 // These are the checks that were run by hand when the toolbar was built, kept so
 // they run every time. They cover the three faults it was written to fix - filters

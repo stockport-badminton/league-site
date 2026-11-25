@@ -54,8 +54,12 @@ describe.each(PARTIALS)('%s', (file, data) => {
     expect(found.length).toBeGreaterThan(0);
   });
 
+  // Our own set-up script (REARCH-07 step 5) sits beside the library files; every
+  // other file here is the library's.
+  const SETUP = /^\/static\/beta\/js\/datatables-setup\.js\?v=[0-9a-f]{12}$/;
   test('every DataTables file is same-origin and versioned', () => {
     for (const { url } of found) {
+      if (SETUP.test(url)) continue;
       expect(url).toMatch(/^\/static\/vendor\/datatables\/[^?]+\?v=[0-9a-f]{12}$/);
     }
   });
@@ -75,15 +79,19 @@ describe.each(PARTIALS)('%s', (file, data) => {
   });
 });
 
-test('the plug-ins come after the bundle they register on', async () => {
+test('the plug-ins come after the bundle they register on, and the set-up after both', async () => {
   // `defer` runs scripts in document order. date-euro and page.jumpToData() call
-  // jQuery.fn.dataTable at the top level, so before the bundle they throw.
+  // jQuery.fn.dataTable at the top level, so before the bundle they throw; the set-up
+  // script builds the tables with all three.
   const urls = tags(await render('datatables.ejs')).map(t => t.url.split('?')[0]);
   expect(urls).toEqual([
     '/static/vendor/datatables/datatables.min.js',
     '/static/vendor/datatables/date-euro.js',
     '/static/vendor/datatables/page.jumpToData.js',
+    '/static/beta/js/datatables-setup.js',
   ]);
+  const stats = tags(await render('datatables-stats.ejs')).map(t => t.url.split('?')[0]);
+  expect(stats[stats.length - 1]).toBe('/static/beta/js/datatables-setup.js');
 });
 
 test('no template references cdn.datatables.net', () => {

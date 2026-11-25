@@ -83,6 +83,28 @@ templates are slice B (`club-v2` 4, `fixtures-results` 2, `datatables`,
 `shuttle-prices`), 2 are `header.ejs` (slice C), and 4 are in the scorecard templates
 (step 4, off-season).
 
+**Slice B, second batch, 25 Nov 2026.**
+- **DataTables:** `datatables.ejs` and `datatables-stats.ejs` emit a `#dt-config` JSON
+  block (the kind of table, the CSV and column-search flags, the results table's date and
+  the `icon()` markup for the buttons). `static/beta/js/datatables-setup.js` builds both
+  kinds of table from it, `defer`red after the library files it uses.
+  `datatables-controls.ejs` is gone and its config is in the file. That template had
+  `<% nearestDate = new Date() %>`, a second leaked global of the same kind: a page with
+  no date jumped to the day the instance first rendered one. It is read, not assigned,
+  now.
+- **`messer-result-review.js`** reads the scorecard id from the Actions card's
+  `data-scorecard-id`.
+- **`shuttle-prices.js`:** the button's busy label is a `<template>` holding the
+  spinner `icon()`.
+- **`player-elo-chart.js`** draws from an `#elo-data` JSON block. The player's name used
+  to be pasted unescaped into a JS string (`'<%- fullName %> ELO'`), so an apostrophe
+  stopped the chart, and a `</script>` in a name would have ended the block. The data
+  block escapes `<`.
+
+**Left: 13 blocks in 7 templates.** Slice B is down to `club-v2` (4), `fixtures-results`
+(2) and `elo-chart` (1). `header.ejs` (2) is slice C, and the scorecard templates (4) wait
+for step 4.
+
 **A production bug found on the way, fixed.** `clubController` had `for (row of result)`
 with no declaration, which assigned a global `row`. EJS resolves names a template is not
 given against the globals, so after anyone loaded `/info/clubs`, every render of

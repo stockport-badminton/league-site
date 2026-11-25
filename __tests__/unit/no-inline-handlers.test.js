@@ -70,17 +70,12 @@ describe('inline event handlers in views/', () => {
 // is capped here: lower a number when a block goes, and delete the line at zero.
 const BLOCK_CEILING = {
   'club-v2.ejs': 4,
-  'datatables-stats.ejs': 1,
-  'datatables.ejs': 1,
   'elo-chart.ejs': 1,
   'fixtures-results.ejs': 2,
   'header.ejs': 2,
   'index-scorecard.ejs': 2,
-  'messer-result-detail.ejs': 1,
   'messer-scorecard.ejs': 1,
-  'player-game-stats.ejs': 1,
   'populated-scorecard.ejs': 1,
-  'shuttle-prices.ejs': 1,
 };
 
 const BLOCK = /<script\b(?![^>]*\bsrc\s*=)(?![^>]*application\/(?:ld\+)?json)[^>]*>/gi;

@@ -4,32 +4,12 @@
        include('datatables.ejs', { dtCsv: true })   Download CSV button -->
 <%- include('datatables-scripts.ejs') %>
 
-<script type="text/javascript">
-  $(document).ready( function () {
-      var table = $('#results-table').DataTable( {
-        "columnDefs": [
-          { "type": "date-euro", "targets": 0 }
-        ],
-        pageLength:20,
-        <%- include('datatables-controls.ejs') %>
-        buttons: [
-          { extend: 'colvis', className: 'dt-btn' }
-          <% if (typeof dtCsv !== 'undefined' && dtCsv) { %>
-          ,
-          { extend: 'csv', text: '<%- icon('download') %> CSV', className: 'dt-btn' }
-          <% } %>
-        ]
-      });
-      <%
-      if (typeof nearestDate === 'undefined'){
-        nearestDate = new Date()
-      }
-      %>
-      var today = new Date("<%= nearestDate %>")
-      currentDateString = ('0' + today.getDate()).slice(-2) + '/'
-             + ('0' + (today.getMonth()+1)).slice(-2) + '/'
-             + today.getFullYear();
-      table.page.jumpToData(currentDateString, 0 );
-
-  } );
-</script>
+<script type="application/json" id="dt-config"><%- JSON.stringify({
+  kind: 'results',
+  csv: typeof dtCsv !== 'undefined' && !!dtCsv,
+  // Read, never assigned: `nearestDate = new Date()` here used to create a global, so
+  // every later page without one jumped to the day this instance first rendered it.
+  nearestDate: String(typeof nearestDate !== 'undefined' ? nearestDate : new Date()),
+  icons: { eye: icon('eye'), download: icon('download') }
+}).replace(/</g, '\\u003c') %></script>
+<script defer src="<%= asset('/static/beta/js/datatables-setup.js') %>"></script>

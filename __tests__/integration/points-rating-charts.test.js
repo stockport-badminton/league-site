@@ -66,6 +66,8 @@ describe('GET /elo-chart', () => {
   });
 });
 
+const eloData = html => JSON.parse(html.match(/<script type="application\/json" id="elo-data">([\s\S]*?)<\/script>/)[1]);
+
 describe('GET /playerStats/:id/:fullName', () => {
   it('gives a superadmin the latest week, and charts from the week they came into this season\'s first game with', async () => {
     mockCurrentUser = SUPERADMIN;
@@ -73,7 +75,8 @@ describe('GET /playerStats/:id/:fullName', () => {
     expect(res.status).toBe(200);
     expect(TeamStrength.playerWeeks).toHaveBeenCalledWith([409]);
     expect(res.text).toMatch(/Points rating \(admin only\): <strong>1615<\/strong>\s*±40, week of 2026-11-16/);
-    const points = JSON.parse(res.text.match(/var points = (\[.*?\]);/)[1]);
+    // The chart's data is the #elo-data JSON block since REARCH-07 step 5.
+    const points = eloData(res.text).strength;
     expect(points).toEqual([{ x: '2026-09-28', y: 1600, se: 42 }, { x: '2026-11-16', y: 1615, se: 40 }]);
     expect(res.headers['cache-control']).toBe('private, no-store');
   });
@@ -85,7 +88,7 @@ describe('GET /playerStats/:id/:fullName', () => {
     const res = await request(app).get('/playerStats/409/Claire%20Inglis');
     expect(res.status).toBe(200);
     expect(res.text).not.toContain('id="points-rating"');
-    expect(res.text).toContain('var points = [];');
+    expect(eloData(res.text).strength).toEqual([]);
     expect(TeamStrength.playerWeeks).not.toHaveBeenCalled();
   });
 });

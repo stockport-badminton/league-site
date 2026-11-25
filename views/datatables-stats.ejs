@@ -11,77 +11,17 @@
      height and reading like a data row.
 
      Results/fixture tables use datatables.ejs instead. Both share
-     datatables-scripts.ejs for the library tags and datatables-controls.ejs for
-     the control band. -->
+     datatables-scripts.ejs for the library tags and static/beta/js/datatables-setup.js
+     for the table itself, configured by the JSON block below. -->
 <%- include('datatables-scripts.ejs') %>
 
-<script type="text/javascript">
-  $(document).ready( function () {
-    <% if (typeof dtColumnSearch !== 'undefined' && dtColumnSearch) { %>
-    // Second header row of search boxes, one per column. Hidden by default; the
-    // "Search columns" button below reveals it.
-    $('#results-table thead tr').clone(true).appendTo( '#results-table thead' );
-    $('#results-table thead tr:eq(1)').addClass('dt-colsearch-row');
-    $('#results-table thead tr:eq(1) th').each( function () {
-        var title = $(this).text();
-        $(this).html( '<input type="text" placeholder="Search '+title+'" />' );
-    } );
-
-    // Redrawing makes FixedHeader re-clone the header, which discards whatever
-    // has been typed into these boxes since its last clone - searching on every
-    // keystroke dropped roughly every other character. Debouncing means one
-    // redraw once typing stops, and the handler is delegated so it survives the
-    // header being replaced.
-    var searchTimers = {};
-    $('#results-table thead').on( 'keyup change', '.dt-colsearch-row input', function () {
-        var input = this;
-        var i = $(input).closest('th').index();
-
-        clearTimeout( searchTimers[i] );
-        searchTimers[i] = setTimeout( function () {
-            if ( table.column(i).search() !== input.value ) {
-                table
-                    .column(i)
-                    .search( input.value )
-                    .draw();
-            }
-        }, 300 );
-    } );
-    <% } %>
-
-    var table = $('#results-table').DataTable( {
-        orderCellsTop: true,
-        fixedHeader: true,
-        <%- include('datatables-controls.ejs') %>
-        buttons: [
-          { extend: 'colvis', className: 'dt-btn' }
-          <% if (typeof dtCsv !== 'undefined' && dtCsv) { %>
-          ,
-          { extend: 'csv', text: '<%- icon('download') %> CSV', className: 'dt-btn' }
-          <% } %>
-          <% if (typeof dtColumnSearch !== 'undefined' && dtColumnSearch) { %>
-          ,
-          {
-            text: '<%- icon('magnifying-glass') %> Search columns',
-            className: 'dt-btn dt-btn-colsearch',
-            action: function (e, dt, node) {
-              var on = $('#results-table').toggleClass('colsearch-on').hasClass('colsearch-on');
-              $(node).toggleClass('active', on);
-              // Never leave a per-column search applied while its box is hidden -
-              // the table would look filtered for no visible reason.
-              if (!on) {
-                $('#results-table thead tr:eq(1) input').val('');
-                dt.columns().search('').draw();
-              }
-              dt.columns.adjust();
-              if (dt.fixedHeader) { dt.fixedHeader.adjust(); }
-            }
-          }
-          <% } %>
-        ]
-    } );
-  } );
-</script>
+<script type="application/json" id="dt-config"><%- JSON.stringify({
+  kind: 'stats',
+  csv: typeof dtCsv !== 'undefined' && !!dtCsv,
+  columnSearch: typeof dtColumnSearch !== 'undefined' && !!dtColumnSearch,
+  icons: { eye: icon('eye'), download: icon('download'), search: icon('magnifying-glass') }
+}).replace(/</g, '\\u003c') %></script>
+<script defer src="<%= asset('/static/beta/js/datatables-setup.js') %>"></script>
 <% if (typeof filter !== 'undefined' && filter == true){ %>
 <script src="<%= asset('/static/beta/js/filters.js') %>"></script>
 <% } %>

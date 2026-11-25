@@ -132,6 +132,17 @@ describe('GET /playerStats/:id/:fullName', () => {
     expect(cells.filter(c => c === '–')).toHaveLength(3);
     expect(cells).not.toContain('0');
   });
+
+  // The name was pasted into a JS string ('<%- fullName %> ELO'), so an apostrophe ended
+  // the string and the chart never drew; it is JSON data now (REARCH-07 step 5).
+  it("carries a name with an apostrophe to the chart as data, not as code", async () => {
+    Player.getPlayerGameData.mockResolvedValue([row({ id: 2, beforeVal: 1014, after: 1022, adjustment: 8 })]);
+    const res = await request(app).get("/playerStats/409/Siobhan%20O'Brien");
+    expect(res.status).toBe(200);
+    const block = res.text.match(/<script type="application\/json" id="elo-data">([\s\S]*?)<\/script>/)[1];
+    expect(JSON.parse(block)).toMatchObject({ label: "Siobhan O'Brien ELO", points: [{ x: '2022-10-10', y: 1022 }] });
+    expect(res.text).toMatch(/<script src="\/static\/beta\/js\/player-elo-chart\.js\?v=[0-9a-f]+"><\/script>/);
+  });
 });
 
 // /players/eloPop rewrites ELO values and had no gate at all: no `secured` on the route
