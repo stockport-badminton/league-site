@@ -13,64 +13,52 @@
 // `ReferenceError: $ is not defined`, because jQuery cannot load over `file://`. Nothing
 // was wrong with the site. The "user" was a file path.
 //
-// This test evaluates the predicate THE TEMPLATE ACTUALLY EMITS rather than a copy of it
-// written here, for the reason CLAUDE.md gives about asserting on rendered output: a test
-// that restates the logic can only ever agree with itself.
+// This test runs the guard WE SHIP (static/beta/js/monitoring.js, with the config the
+// header renders) rather than a copy of it written here, for the reason CLAUDE.md gives
+// about asserting on rendered output: a test that restates the logic can only ever agree
+// with itself.
 
-const ejs = require('ejs');
-const path = require('path');
-const vm = require('vm');
+const { renderHeader, configBlock, runMonitoring, MONITORING } = require('../helpers/monitoring');
 
-const HEADER = path.join(__dirname, '..', '..', 'views', 'header.ejs');
-const { siteOrigin } = require('../../utils/canonical');
+const USER = { user_id: 'auth0|test' };
 
-function renderHeader(env) {
-  const before = { NODE_ENV: process.env.NODE_ENV, K_SERVICE: process.env.K_SERVICE };
-  Object.assign(process.env, env);
-  if (env.K_SERVICE === undefined) delete process.env.K_SERVICE;
-  try {
-    return ejs.render(require('fs').readFileSync(HEADER, 'utf8'), {
-      static_path: '/static',
-      pageTitle: 't',
-      pageDescription: 'd',
-      theme: 'flatly',
-      siteOrigin,
-      config: require('../../config'),
-      asset: require('../../utils/assets').asset,
-      backgroundPreloads: require('../../utils/backgroundPreload').backgroundPreloads,
-      user: { user_id: 'auth0|test' },
-      canonical: 'https://stockport-badminton.co.uk/',
-    }, { filename: HEADER });
-  } finally {
-    process.env.NODE_ENV = before.NODE_ENV;
-    if (before.K_SERVICE === undefined) delete process.env.K_SERVICE;
-    else process.env.K_SERVICE = before.K_SERVICE;
-  }
+function servedByUs(html, location) {
+  return runMonitoring(html, location).window.sblServedByUs;
 }
 
-// Pull the emitted guard out of the rendered page and run it against a fake `location`,
-// so what is under test is the shipped code.
-function servedByUs(html, location) {
-  const m = html.match(/var expectedHost =[\s\S]*?test\(h\)\);/);
-  if (!m) throw new Error('origin guard not found in rendered header');
-  const sandbox = { location, result: null };
-  vm.createContext(sandbox);
-  vm.runInContext(m[0] + '\nresult = servedByUs;', sandbox);
-  return sandbox.result;
+// Run sentryOnLoad as Sentry's loader would, and report what it did.
+function runSentry(html, location) {
+  const { window, sandbox } = runMonitoring(html, location);
+  const seen = { init: null, user: null };
+  sandbox.Sentry = {
+    init: (o) => { seen.init = o; },
+    lazyLoadIntegration: () => ({ then: () => {} }),
+    addIntegration: () => {},
+    setUser: (u) => { seen.user = u; },
+  };
+  if (window.sentryOnLoad) window.sentryOnLoad();
+  return seen;
 }
 
 describe('the browser Sentry only reports from pages we serve', () => {
-  const html = renderHeader({ NODE_ENV: 'production' });
+  const html = renderHeader({ NODE_ENV: 'production' }, USER);
 
-  it('emits the guard, and it runs before Sentry.init', () => {
-    expect(html).toMatch(/var servedByUs/);
-    expect(html).toMatch(/if \(!window\.sblServedByUs\) return;/);
-    expect(html.indexOf('window.sblServedByUs = ')).toBeLessThan(html.indexOf('window.sentryOnLoad'));
-    expect(html.indexOf('if (!window.sblServedByUs) return;')).toBeLessThan(html.indexOf('Sentry.init('));
+  it('checks the origin before Sentry.init', () => {
+    expect(runSentry(html, { protocol: 'https:', hostname: 'stockport-badminton.co.uk' }).init).not.toBeNull();
+    expect(runSentry(html, { protocol: 'file:', hostname: 'server' }).init).toBeNull();
+  });
+
+  it('labels the environment and the user, and loads the SDK after defining sentryOnLoad', () => {
+    const seen = runSentry(html, { protocol: 'https:', hostname: 'stockport-badminton.co.uk' });
+    expect(seen.init).toMatchObject({ environment: 'production', tracesSampleRate: 0 });
+    expect(seen.user).toEqual({ id: 'auth0|test' });
+    expect(html.indexOf('monitoring.js')).toBeLessThan(html.indexOf('sentry-cdn.com'));
+    expect(html).toMatch(/<script defer src="https:\/\/js-de\.sentry-cdn\.com\//);
   });
 
   it('takes the expected host from siteOrigin, not a hardcoded string', () => {
-    expect(html).toContain("var expectedHost = 'stockport-badminton.co.uk';");
+    expect(JSON.parse(configBlock(html)).expectedHost).toBe('stockport-badminton.co.uk');
+    expect(MONITORING).not.toMatch(/['"](www\.)?stockport-badminton\.co\.uk['"]/);
   });
 
   // The case that actually happened.
@@ -94,11 +82,24 @@ describe('the browser Sentry only reports from pages we serve', () => {
     expect(servedByUs(html, { protocol: 'https:', hostname: 'league-site-akvq7tsxuq-nw.a.run.app' })).toBe(true);
   });
 
+  it('reports nothing for an anonymous visitor', () => {
+    const anon = renderHeader({ NODE_ENV: 'production' });
+    expect(anon).not.toMatch(/sentry-cdn\.com/);
+    expect(runSentry(anon, { protocol: 'https:', hostname: 'stockport-badminton.co.uk' }).init).toBeNull();
+  });
+
   // The render-time gate is the other half and must keep working: without it, localhost
   // and the browser suite report into production, which is what the July 2026 triage found.
   it('emits no Sentry at all outside production', () => {
-    const dev = renderHeader({ NODE_ENV: 'development', K_SERVICE: undefined });
-    expect(dev).not.toMatch(/Sentry\.init\(/);
+    const dev = renderHeader({ NODE_ENV: 'development' }, USER);
     expect(dev).not.toMatch(/sentry-cdn\.com/);
+    expect(dev).not.toMatch(/sbl-monitoring/);
+    expect(runSentry(dev, { protocol: 'https:', hostname: 'stockport-badminton.co.uk' }).init).toBeNull();
+  });
+
+  // K_SERVICE alone (Cloud Run) counts as production, as it does for instrument.js.
+  it('reports from Cloud Run whatever NODE_ENV says', () => {
+    const run = renderHeader({ NODE_ENV: 'development', K_SERVICE: 'league-site' }, USER);
+    expect(run).toMatch(/sentry-cdn\.com/);
   });
 });

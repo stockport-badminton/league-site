@@ -148,7 +148,10 @@ test.describe('DataTables control band', function () {
 
     const visibleHeaders = () => page.locator('#results-table thead tr:first-child th:visible').count();
     const before = await visibleHeaders();
-    expect(before, 'player-stats has 13 columns').toBe(13);
+    // 13, plus the superadmin-only "Points rating" (f9e1ac0), which DEV_MODE's mock
+    // superadmin sees. Named, so a column that goes missing still fails here.
+    const pointsColumn = await page.locator('#results-table thead th', { hasText: 'Points rating' }).count();
+    expect(before, 'player-stats has 13 columns, and a superadmin the points rating too').toBe(13 + pointsColumn);
 
     await page.locator('.dt-controls .buttons-colvis').click();
     const menu = page.locator('.dt-button-collection .dropdown-menu');

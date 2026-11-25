@@ -4,75 +4,28 @@
 // It replaced Sentry's replay because the 50-a-month quota ran out within days, mostly on
 // the stats pages, and it replaced Google Analytics in Nov 2026 (HARD-44 item 3). What matters is the gate: production, served by us, not a superadmin, nothing
 // stored in the browser, and recording only where captains enter results. As in browser-sentry-origin.test.js, this runs the gate THE
-// TEMPLATE ACTUALLY EMITS against a fake `location`, rather than a copy of it written here.
+// CODE WE SHIP (static/beta/js/monitoring.js, with the config the header renders) against
+// a fake `location`, rather than a copy of it written here.
 
-const ejs = require('ejs');
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
-
-const HEADER = path.join(__dirname, '..', '..', 'views', 'header.ejs');
-const { siteOrigin } = require('../../utils/canonical');
+const { renderHeader, runMonitoring, MONITORING } = require('../helpers/monitoring');
 
 const KEY = 'phc_test_not_a_real_project';
 
-function renderHeader(env, user) {
-  const keys = ['NODE_ENV', 'K_SERVICE', 'POSTHOG_KEY'];
-  const before = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
-  for (const k of keys) {
-    if (env[k] === undefined) delete process.env[k];
-    else process.env[k] = env[k];
-  }
-  try {
-    return ejs.render(fs.readFileSync(HEADER, 'utf8'), {
-      static_path: '/static',
-      pageTitle: 't',
-      pageDescription: 'd',
-      theme: 'flatly',
-      siteOrigin,
-      config: require('../../config'),
-      asset: require('../../utils/assets').asset,
-      backgroundPreloads: require('../../utils/backgroundPreload').backgroundPreloads,
-      ...(user ? { user } : {}),
-      canonical: 'https://stockport-badminton.co.uk/',
-    }, { filename: HEADER });
-  } finally {
-    for (const k of keys) {
-      if (before[k] === undefined) delete process.env[k];
-      else process.env[k] = before[k];
-    }
-  }
-}
-
-// Run the emitted PostHog block against a fake browser. Returns null if it did not load
+// Run monitoring.js against the rendered header. Returns null if it did not load
 // PostHog, otherwise the config it passed to init() and the properties it registered.
 // The window's `load` event fires before the result is read, unless `fireLoad` is false;
 // `beforeLoad` reports whether array.js had already been injected by then.
 function runPostHog(html, { pathname, servedByUs = true, fireLoad = true, readyState = 'loading' }) {
-  const m = html.match(/\(function \(\) \{\s*var RECORD_PATHS[\s\S]*?\}\)\(\);/);
-  if (!m) throw new Error('PostHog block not found in rendered header');
-  const injected = [];
-  const onLoad = [];
-  const sandbox = {
-    window: {
-      sblServedByUs: servedByUs,
-      addEventListener: (type, fn) => { if (type === 'load') onLoad.push(fn); },
-    },
-    location: { pathname, hostname: 'www.stockport-badminton.co.uk' },
-    document: {
-      readyState,
-      createElement: () => ({}),
-      head: { appendChild: (el) => injected.push(el) },
-    },
-  };
-  vm.createContext(sandbox);
-  vm.runInContext(m[0], sandbox);
+  const hostname = servedByUs ? 'www.stockport-badminton.co.uk' : 'example.com';
+  const { window, injected, load } = runMonitoring(html, { pathname, hostname, readyState });
   const beforeLoad = injected.length > 0;
-  if (fireLoad) onLoad.forEach((fn) => fn());
+  if (fireLoad) load();
   const script = injected.find((el) => /posthog\.com\/static\/array\.js$/.test(el.src));
   if (!script) return null;
   const seen = {};
-  sandbox.window.posthog = {
+  window.posthog = {
     init: (key, config) => { seen.key = key; seen.config = config; },
     register: (props) => { seen.registered = props; },
   };
@@ -97,7 +50,8 @@ describe('PostHog', () => {
 
   // The whole reason it can replace GA without a consent bar.
   it('stores nothing in the browser, and builds no person profiles', () => {
-    const { config } = runPostHog(anon, { pathname: '/' });
+    const { key, config } = runPostHog(anon, { pathname: '/' });
+    expect(key).toBe(KEY);
     expect(config.cookieless_mode).toBe('always');
     expect(config.person_profiles).toBe('never');
     expect(config.api_host).toBe('https://eu.i.posthog.com');
@@ -138,7 +92,7 @@ describe('PostHog', () => {
       league: 'stockport-badminton.co.uk', logged_in: false, account_id: null,
       role: null, club: null, messer_admin: false,
     });
-    expect(captain).not.toMatch(/posthog\.identify/);
+    expect(MONITORING).not.toMatch(/posthog\.identify/);
   });
 
   // So "how many club admins used X" is one query. The club comes from the admin claim,
@@ -161,14 +115,11 @@ describe('PostHog', () => {
   });
 
   it('sends an event immediately when the caller is about to navigate away', () => {
-    const dev = renderHeader({ NODE_ENV: 'development' }, CAPTAIN);
-    const m = dev.match(/window\.sblTrack = function[\s\S]*?\n\s*\};/);
+    const { window } = runMonitoring(renderHeader({ NODE_ENV: 'development' }, CAPTAIN));
     const calls = [];
-    const sandbox = { window: { posthog: { __loaded: true, capture: (...a) => calls.push(a) } } };
-    vm.createContext(sandbox);
-    vm.runInContext(m[0], sandbox);
-    sandbox.window.sblTrack('filter_applied', { page: '/results' }, { leaving: true });
-    sandbox.window.sblTrack('scorecard_step', { step: 2 });
+    window.posthog = { __loaded: true, capture: (...a) => calls.push(a) };
+    window.sblTrack('filter_applied', { page: '/results' }, { leaving: true });
+    window.sblTrack('scorecard_step', { step: 2 });
     expect(calls[0]).toEqual(['filter_applied', { page: '/results' }, { send_instantly: true }]);
     expect(calls[1]).toEqual(['scorecard_step', { step: 2 }]);
   });
@@ -179,20 +130,21 @@ describe('PostHog', () => {
   });
 
   it('emits no PostHog without a key, or outside production', () => {
-    expect(renderHeader({ NODE_ENV: 'production' }, CAPTAIN)).not.toMatch(/RECORD_PATHS/);
-    expect(renderHeader({ NODE_ENV: 'development', POSTHOG_KEY: KEY }, CAPTAIN)).not.toMatch(/RECORD_PATHS/);
+    expect(runPostHog(renderHeader({ NODE_ENV: 'production' }, CAPTAIN), { pathname: '/' })).toBeNull();
+    const dev = renderHeader({ NODE_ENV: 'development', POSTHOG_KEY: KEY }, CAPTAIN);
+    expect(dev).not.toMatch(/sbl-monitoring|phc_/);
+    expect(runPostHog(dev, { pathname: '/' })).toBeNull();
   });
 
   // sblTrack is called unconditionally by the scorecard wizard, so it must exist on every
   // render — dev included — or the wizard throws a ReferenceError where PostHog is absent.
   it('always defines sblTrack, as a no-op where PostHog is not loaded', () => {
     const dev = renderHeader({ NODE_ENV: 'development' }, CAPTAIN);
-    const m = dev.match(/window\.sblTrack = function[\s\S]*?\n\s*\};/);
-    expect(m).not.toBeNull();
-    const sandbox = { window: {} };
-    vm.createContext(sandbox);
-    vm.runInContext(m[0], sandbox);
-    expect(() => sandbox.window.sblTrack('x', {})).not.toThrow();
+    expect(dev).toMatch(/<script src="\/static\/beta\/js\/monitoring\.js\?v=[^"]+"><\/script>/);
+    const { window } = runMonitoring(dev);
+    expect(typeof window.sblTrack).toBe('function');
+    expect(() => window.sblTrack('x', {})).not.toThrow();
+    expect(window.sblServedByUs).toBeUndefined();
   });
 
   // HARD-44: array.js is 104 KB, and on a phone it competed with the stylesheets and the
@@ -229,7 +181,6 @@ describe('PostHog', () => {
   });
 
   it('no longer records with Sentry', () => {
-    expect(captain).not.toMatch(/replayIntegration/);
-    expect(captain).not.toMatch(/replaysSessionSampleRate/);
+    expect(MONITORING).not.toMatch(/replayIntegration|replaysSessionSampleRate/);
   });
 });

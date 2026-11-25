@@ -40,6 +40,25 @@ test('every page: the service worker registers, and the offline banner appears o
   expect(problems).toEqual([]);
 });
 
+// Slice C: header.ejs's monitoring set-up is monitoring.js, in <head> before any page
+// script. sblTrack must exist before the scorecard wizard's buttons can be pressed, and
+// outside production it is a no-op with no PostHog, no Sentry and no config block.
+test('every page: sblTrack is defined in <head>, and nothing reports outside production', async ({ page }) => {
+  const problems = watch(page);
+  await page.addInitScript(() => {
+    document.addEventListener('readystatechange', () => {
+      if (document.readyState === 'interactive') window.__sblTrackAtInteractive = typeof window.sblTrack;
+    });
+  });
+  await page.goto('/');
+  expect(await page.evaluate(() => window.__sblTrackAtInteractive)).toBe('function');
+  expect(await page.evaluate(() => { window.sblTrack('x', {}, { leaving: true }); return true; })).toBe(true);
+  expect(await page.locator('#sbl-monitoring').count()).toBe(0);
+  expect(await page.evaluate(() => typeof window.sentryOnLoad)).toBe('undefined');
+  expect(await page.evaluate(() => !!window.posthog)).toBe(false);
+  expect(problems).toEqual([]);
+});
+
 test('/contact-us shows the dropdown for the kind of contact chosen', async ({ page }) => {
   const problems = watch(page);
   await page.goto('/contact-us');

@@ -73,8 +73,7 @@ describe('GET /info/clubs venue map scripts', () => {
   it('has no inline script left, and the files it loads all parse', async () => {
     const res = await request(app).get('/info/clubs');
     expect(res.status).toBe(200);
-    // header.ejs's analytics set-up is on every page until slice C moves it.
-    expect(inlineScripts(res.text).filter(b => !/sblTrack|posthog/i.test(b))).toEqual([]);
+    expect(inlineScripts(res.text)).toEqual([]);
     for (const name of ['venue-popup.js', 'venue-map.js', 'club-contact.js']) {
       expect(res.text).toContain(`/static/beta/js/${name}?v=`);
       // `new vm.Script` parses without running; the page's JS needs Maps to run.

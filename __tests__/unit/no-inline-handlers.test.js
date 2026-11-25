@@ -69,7 +69,6 @@ describe('inline event handlers in views/', () => {
 // moved block gets server data without EJS inside the code. What is left, per template,
 // is capped here: lower a number when a block goes, and delete the line at zero.
 const BLOCK_CEILING = {
-  'header.ejs': 2,
   'index-scorecard.ejs': 2,
   'messer-scorecard.ejs': 1,
   'populated-scorecard.ejs': 1,
@@ -99,6 +98,6 @@ describe('inline <script> blocks in views/', () => {
     expect(blocks('<script defer src="/a.js"></script>')).toBe(0);
     expect(blocks('<script type="application/json" id="d">{}</script>')).toBe(0);
     expect(blocks('<script type="application/ld+json">{}</script>')).toBe(0);
-    expect(counts['header.ejs']).toBeGreaterThan(0);
+    expect(counts['index-scorecard.ejs']).toBeGreaterThan(0);
   });
 });

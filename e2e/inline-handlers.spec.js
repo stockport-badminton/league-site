@@ -73,14 +73,36 @@ test('the ELO backfill button runs the season it names', async ({ page, baseURL 
     asked.push(new URL(route.request().url()).searchParams.get('season'));
     return route.fulfill({ status: 200, contentType: 'text/plain', body: 'recalculated' });
   });
-  // Tall enough that the fixed footer is not over the button, which it is at 720px.
-  await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto('/players/eloBackfillAdmin');
   const season = await page.locator('#season-select').inputValue();
   await page.getByRole('button', { name: 'Recalculate Season' }).click();
   await expect(page.locator('#result-output')).toContainText('recalculated');
   expect(asked).toEqual([season]);
   guard.assertNoWrites();
+});
+
+// A global `.alert { height: 100% }` (2022, for a view since deleted) made an alert as
+// tall as its flex column, so what followed spilled past <main>: on this page, at 720px,
+// the button stayed under the fixed footer however far you scrolled. Every alert it
+// touched was 3-10 times its content height, /messer-results' included.
+test('the last button on the backfill page scrolls clear of the footer', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/players/eloBackfillAdmin');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const onTop = await page.getByRole('button', { name: 'Recalculate Season' }).evaluate(b => {
+    const r = b.getBoundingClientRect();
+    return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === b;
+  });
+  expect(onTop, 'the footer covers the button').toBe(true);
+  const alert = page.locator('.alert-warning').first();
+  const { height, content } = await alert.evaluate(a => ({
+    height: a.getBoundingClientRect().height,
+    content: [...a.childNodes].reduce((sum, n) => {
+      const range = document.createRange(); range.selectNodeContents(n);
+      return Math.max(sum, range.getBoundingClientRect().bottom);
+    }, 0) - a.getBoundingClientRect().top,
+  }));
+  expect(height, 'the alert is no taller than its text and padding').toBeLessThan(content + 40);
 });
 
 // The 4-second timer would show the fallback eventually; well inside that means the

@@ -40,10 +40,9 @@ a declined confirm sends nothing and an accepted one posts; the dropdown navigat
 backfill button asks for the selected season; the venue map shows its fallback within 2 s
 (not the 4 s timer) when Maps is blocked.
 
-Found on the way, not fixed here: the fixed footer covers the backfill page's
-"Recalculate Season" button in a 720 px-tall window. The pre-existing failure in
-`filter-toolbar.spec.js` ("the Columns dropdown hides a column and is not clipped") is
-unrelated; it fails with these changes stashed.
+Found on the way, fixed with slice C: the fixed footer covering the backfill page's
+"Recalculate Season" button, and the `filter-toolbar.spec.js` Columns-dropdown failure (see
+below).
 
 **Step 5, first slice, 25 Nov 2026: the blocks with no EJS in them.** Twelve blocks in
 eleven templates moved to `static/beta/js/` unchanged, loaded from where each block was,
@@ -136,6 +135,38 @@ the same way, and `contactusController` leaked `row`. `filter` is the name the
 filter-toolbar templates test. All four are declared now. `no-implicit-globals.test.js`
 fails on an undeclared `for (x of/in …)` anywhere in server code. It was found because
 `moved-scripts.spec.js` loads `/info/clubs` and `/player/create` on one server in parallel.
+
+**Slice C, 25 Nov 2026: `header.ejs`'s monitoring set-up.** The two blocks (`sblTrack`,
+the served-by-us check, PostHog, and `sentryOnLoad`) are `static/beta/js/monitoring.js`.
+What the server knows (the site's host, the PostHog key, the role/club/account claims, the
+Sentry environment and user id) is a `#sbl-monitoring` JSON block through `jsonForScript`,
+emitted only in production. Without it the file defines `sblTrack` as a no-op and stops,
+as before. The Sentry DSN is a constant in the file. **The file is in `<head>` and not
+`defer`:** the scorecard wizard calls `sblTrack` unconditionally from Continue buttons
+that exist before a deferred script runs, and a recorded page starts PostHog at once. It
+is small, served `immutable`, and precached by the service worker, which the offline
+snapshot pages need. `browser-posthog.test.js` and `browser-sentry-origin.test.js` now run
+the shipped file against the config the header renders (`__tests__/helpers/monitoring.js`)
+instead of regex-extracting snippets of inline code. `moved-scripts.spec.js` checks that
+`sblTrack` exists by `readyState === 'interactive'` (it fails with `defer`) and that
+nothing reports outside production.
+
+**Step 5 is done: no inline `<script>` outside the three scorecard templates** (4 blocks,
+step 4).
+
+Two bugs fixed alongside:
+- **A global `.alert { height: 100% }`** (2022, for a GDPR notice in a view since deleted)
+  made an alert as tall as its flex column, and the content after it spilled past
+  `<main>`, so `body`'s 70 px footer margin did not apply. On the backfill page at 720 px
+  the last button stayed under the fixed footer however far you scrolled. A sweep of every
+  parameterless GET page at 1280 and 390 px found six pages where the rule changed an
+  alert: each was inflated to 3 to 10 times its content height, including the public
+  `/messer-results` when nothing is pending. None was helped. The rule is gone;
+  `inline-handlers.spec.js` checks the button scrolls clear and the alert fits its text,
+  and the backfill case no longer needs a 1400 px window.
+- **`filter-toolbar.spec.js`'s Columns test** expected 13 columns. f9e1ac0 (21 Nov) added
+  the superadmin-only "Points rating" column, which DEV_MODE's mock superadmin sees. The
+  test now expects 13 plus that column when it is present.
 
 **Decided 25 Nov 2026 (Neil): `dist/` is built in the Docker image, not committed.** The
 image installs with `npm ci --omit=dev`, so it needs a multi-stage Dockerfile: a build
