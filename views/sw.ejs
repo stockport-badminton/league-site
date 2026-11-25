@@ -13,7 +13,10 @@ var PRECACHE_URLS = [
   '<%= asset('/scripts/bootstrap/dist/css/bootstrap.min.css') %>',
   '<%= asset('/scripts/jquery/dist/jquery.min.js') %>',
   '<%= asset('/scripts/popper.js/dist/umd/popper.min.js') %>',
-  '<%= asset('/scripts/bootstrap/dist/js/bootstrap.min.js') %>'
+  '<%= asset('/scripts/bootstrap/dist/js/bootstrap.min.js') %>',
+  // On every page since REARCH-07 moved them out of inline blocks (header and footer).
+  '<%= asset('/static/beta/js/actions.js') %>',
+  '<%= asset('/static/beta/js/offline-banner.js') %>'
 ];
 
 // Static-content pages precached as an anonymous (logged-out) snapshot, so a

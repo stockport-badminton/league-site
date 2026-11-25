@@ -147,3 +147,24 @@ describe('asset() follows the file\'s contents', () => {
     expect(assets.asset('/static/../package.json')).toBe('/static/../package.json');
   });
 });
+
+// A page that names a file that is not there renders fine and 404s in the browser, where
+// Jest cannot see it; asset() just drops the version. REARCH-07 moves scripts out of the
+// templates into files, so a typo in one of those paths is the likeliest way to break a
+// page without a test noticing. Every literal asset('…') in views/ must be a real file.
+describe('every asset a template names exists', () => {
+  const viewsDir = path.join(ROOT, 'views');
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith('.ejs') ? [path.join(dir, e.name)] : []);
+  const named = walk(viewsDir).flatMap(file => [...fs.readFileSync(file, 'utf8')
+    .matchAll(/asset\(\s*['"]([^'"]+)['"]\s*\)/g)].map(m => [m[1], path.relative(viewsDir, file)]));
+
+  test('finds them, or the scan is broken', () => {
+    expect(named.length).toBeGreaterThan(20);
+  });
+
+  test.each(named)('%s (views/%s)', (urlPath) => {
+    const file = assets.resolve(urlPath);
+    expect(file && fs.existsSync(file) && fs.statSync(file).isFile()).toBe(true);
+  });
+});

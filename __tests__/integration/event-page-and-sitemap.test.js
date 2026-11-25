@@ -142,12 +142,16 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     const missing = await request(app).get('/event/999999/01012027-A-B');
     expect(missing.status).toBe(404);
     expect(missing.text).toContain('<link rel="manifest" href="/manifest.json">'); // the same head
+    // The registration is a file since REARCH-07 step 5 (static/beta/js/sw-register.js).
+    expect(missing.text).not.toContain('sw-register.js');
     expect(missing.text).not.toContain('serviceWorker.register');
 
     Fixture.getFixtureEventById.mockResolvedValue([eventRow()]);
     const found = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
     expect(found.status).toBe(200);
-    expect(found.text).toContain("navigator.serviceWorker.register('/sw.js'");
+    expect(found.text).toMatch(/<script defer src="\/static\/beta\/js\/sw-register\.js\?v=[0-9a-f]+"><\/script>/);
+    expect(require('fs').readFileSync(require('path').join(__dirname, '../../static/beta/js/sw-register.js'), 'utf8'))
+      .toContain("navigator.serviceWorker.register('/sw.js'");
   });
 
   it('never answers 200 with an empty body', async () => {

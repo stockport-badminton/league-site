@@ -65,9 +65,9 @@ router.get('/sign-s3', access.public, publicFormLimiter, async (req, res, next) 
     // objectUrl, not a literal: `storeImage` hands the same shape to the OCR uploader
     // and normalisePhotoUrl has to accept both, so there is one definition of it.
     const url = objectUrl(key);
-    // `signedUrl` for the two scorecard views, `signedRequest`/`url` for
-    // views/scorecard-upload.ejs, which has always read those names and so has never
-    // worked against this endpoint. Same values, three keys, no caller left broken.
+    // `signedUrl` for the scorecard views, `url` for static/beta/js/scorecard-upload.js.
+    // `signedRequest` was for views/scorecard-upload.ejs, which had no route and was
+    // deleted in Nov 2026 (REARCH-07); nothing reads it now, and it can go.
     res.json({ signedUrl, signedRequest: signedUrl, url, key });
   } catch (err) {
     if (err.status === 400) return res.status(400).json({ error: err.message });

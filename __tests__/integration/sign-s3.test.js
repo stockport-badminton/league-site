@@ -73,9 +73,8 @@ describe('GET /sign-s3', () => {
 
   it('returns the public URL as well as the signed one', async () => {
     const res = await sign('card.jpg', 'image/jpeg');
-    // Three keys because the callers disagree: the two scorecard views read
-    // `signedUrl`, and views/scorecard-upload.ejs has always read `signedRequest` and
-    // `url` — which is why it never worked against this endpoint.
+    // The scorecard views read `signedUrl` and scorecard-upload.js reads `url`.
+    // `signedRequest` was for a page that had no route and is deleted; it can go.
     expect(res.body.url).toMatch(/^https:\/\/bucket\.s3\.eu-west-1\.amazonaws\.com\/scorecards\//);
     expect(res.body.url).not.toContain('X-Amz');
     expect(res.body.signedRequest).toBe(res.body.signedUrl);

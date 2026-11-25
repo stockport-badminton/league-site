@@ -29,17 +29,7 @@
     <button type="submit" name="to" value="everyone" class="btn btn-outline-danger mb-2"
             data-confirm="Send a test notification to every subscriber?">To everyone (<%= counts.subscriptions %>)</button>
   </form>
-  <script>
-    // "To this browser" needs this browser's subscription endpoint, which only the page knows.
-    (function () {
-      var field = document.querySelector('#push-test-form input[name="endpoint"]');
-      if (!('serviceWorker' in navigator)) return;
-      navigator.serviceWorker.ready
-        .then(function (reg) { return reg.pushManager.getSubscription(); })
-        .then(function (sub) { if (sub) field.value = sub.endpoint; })
-        .catch(function () {});
-    })();
-  </script>
+  <script src="<%= asset('/static/beta/js/push-test-form.js') %>"></script>
 
   <h2 class="h4 mt-4">Followers</h2>
   <p><%= counts.subscriptions %> device<%= counts.subscriptions === 1 ? '' : 's' %> subscribed.</p>

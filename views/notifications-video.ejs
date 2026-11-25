@@ -17,18 +17,4 @@
   #notificationsVideo video { display: block; max-width: 92vw; max-height: 80vh; }
   #notificationsVideo .small a { color: #ddd; }
 </style>
-<script>
-  (function () {
-    var dialog = document.getElementById('notificationsVideo');
-    var player = document.getElementById('notificationsVideoPlayer');
-    document.querySelectorAll('[data-notifications-video]').forEach(function (el) {
-      el.addEventListener('click', function (e) {
-        e.preventDefault();
-        dialog.showModal();
-        player.play().catch(function () {});
-        if (window.sblTrack) sblTrack('notifications_video_opened', { from: location.pathname });
-      });
-    });
-    dialog.addEventListener('close', function () { player.pause(); });
-  })();
-</script>
+<script src="<%= asset('/static/beta/js/notifications-video.js') %>"></script>

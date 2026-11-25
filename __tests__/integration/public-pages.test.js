@@ -67,7 +67,10 @@ describe('GET /', () => {
     expect(axios.get).not.toHaveBeenCalled();
     expect(res.text).not.toMatch(/class="carousel-item/);
     expect(res.text).toContain('id="generatedTournamentGalleryModal"');
-    expect(res.text).toMatch(/fetch\('\/homepage-gallery'\)/);
+    // The fetch is in static/beta/js/tournament-gallery.js since REARCH-07 step 5.
+    expect(res.text).toMatch(/<script src="\/static\/beta\/js\/tournament-gallery\.js\?v=[0-9a-f]+"><\/script>/);
+    expect(require('fs').readFileSync(require('path').join(__dirname, '../../static/beta/js/tournament-gallery.js'), 'utf8'))
+      .toMatch(/fetch\('\/homepage-gallery'\)/);
   });
 
   it('returns 500 when a Fixture call rejects', async () => {

@@ -1064,15 +1064,6 @@ function renderLinkRefused(req, res, status) {
     } catch (err) { next(err); }
   }
 
-  exports.scorecard_upload = function(req, res) {
-    res.render('scorecard-upload', {
-        static_path: '/static',
-        pageTitle : "Stockport & District Badminton League Scorecard Upload",
-        pageDescription : "Upload your scorecard and send to the website",
-        canonical:canonicalFor(req)
-    });
-  };
-
   // POST /fixture/reminder — nudge the home club about a missing scorecard.
   //
   // Superadmin only (Oct 2026). Until then it was reachable from the public /results

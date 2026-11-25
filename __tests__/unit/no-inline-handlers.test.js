@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Inline event handlers in views/ only ever go down (REARCH-07, absorbing HARD-15).
+// Inline event handlers and inline <script> blocks in views/ only ever go down (REARCH-07,
+// absorbing HARD-15).
 //
 // An `onclick="…"` attribute is inline script, and while one is left `'unsafe-inline'` has
 // to stay in script-src, which leaves the CSP constraining where scripts load from but not
@@ -60,5 +61,60 @@ describe('inline event handlers in views/', () => {
     expect(count('<button data-confirm="Sure?">')).toBe(0);
     expect(count('<select data-navigate="/x?y=">')).toBe(0);
     expect(counts['index-scorecard.ejs']).toBeGreaterThan(0);
+  });
+});
+
+// Step 5: inline <script> blocks move to files under static/beta/js/. A data block
+// (`type="application/json"` or JSON-LD) is not script and is not counted; it is how a
+// moved block gets server data without EJS inside the code. What is left, per template,
+// is capped here: lower a number when a block goes, and delete the line at zero.
+const BLOCK_CEILING = {
+  'admin/gap-finder.ejs': 2,
+  'admin/player-request.ejs': 1,
+  'club-v2.ejs': 4,
+  'datatables-stats.ejs': 1,
+  'datatables.ejs': 1,
+  'elo-chart.ejs': 1,
+  'filtersJs.ejs': 1,
+  'fixture-players.ejs': 1,
+  'fixtures-results.ejs': 3,
+  'header.ejs': 2,
+  'index-scorecard.ejs': 2,
+  'live-scorecard.ejs': 1,
+  'messer-draw-a-section.ejs': 1,
+  'messer-result-detail.ejs': 1,
+  'messer-scorecard.ejs': 1,
+  'player-game-stats.ejs': 1,
+  'player_form.ejs': 1,
+  'populated-scorecard.ejs': 1,
+  'shuttle-prices.ejs': 1,
+  'viewEventDetails.ejs': 2,
+};
+
+const BLOCK = /<script\b(?![^>]*\bsrc\s*=)(?![^>]*application\/(?:ld\+)?json)[^>]*>/gi;
+const blocks = src => (src.match(BLOCK) || []).length;
+
+describe('inline <script> blocks in views/', () => {
+  const counts = Object.fromEntries(templates(VIEWS)
+    .map(f => [path.relative(VIEWS, f).split(path.sep).join('/'), f])
+    // Emails are mailed HTML: no CSP of ours applies, and they carry no script.
+    .filter(([rel]) => !rel.startsWith('emails/'))
+    .map(([rel, f]) => [rel, blocks(fs.readFileSync(f, 'utf8'))])
+    .filter(([, n]) => n > 0));
+
+  it('are only in the templates that still have some, and no more of them', () => {
+    const over = Object.entries(counts)
+      .filter(([f, n]) => n > (BLOCK_CEILING[f] || 0))
+      .map(([f, n]) => `${f}: ${n} (ceiling ${BLOCK_CEILING[f] || 0})`);
+    expect(over).toEqual([]);
+  });
+
+  it('recognises a block, and not a script file or a data block', () => {
+    expect(blocks('<script>x()</script>')).toBe(1);
+    expect(blocks('<script type="text/javascript">x()</script>')).toBe(1);
+    expect(blocks('<script defer src="/a.js"></script>')).toBe(0);
+    expect(blocks('<script type="application/json" id="d">{}</script>')).toBe(0);
+    expect(blocks('<script type="application/ld+json">{}</script>')).toBe(0);
+    expect(counts['header.ejs']).toBeGreaterThan(0);
   });
 });

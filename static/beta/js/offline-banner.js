@@ -1,0 +1,24 @@
+// Moved out of views/pwa-head.ejs (REARCH-07 step 5), unchanged.
+(function() {
+  var banner;
+  function ensureBanner() {
+    if (banner) { return banner; }
+    banner = document.createElement('div');
+    banner.textContent = "You're offline — showing a saved copy, some content may be out of date";
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;' +
+      'background:#673ab6;color:#fff;text-align:center;padding:6px 12px;' +
+      'font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:none;';
+    document.body.appendChild(banner);
+    return banner;
+  }
+  function updateBanner() {
+    ensureBanner().style.display = navigator.onLine ? 'none' : 'block';
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateBanner);
+  } else {
+    updateBanner();
+  }
+  window.addEventListener('online', updateBanner);
+  window.addEventListener('offline', updateBanner);
+})();

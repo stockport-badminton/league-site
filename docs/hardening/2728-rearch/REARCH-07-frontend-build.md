@@ -45,8 +45,39 @@ Found on the way, not fixed here: the fixed footer covers the backfill page's
 `filter-toolbar.spec.js` ("the Columns dropdown hides a column and is not clipped") is
 unrelated; it fails with these changes stashed.
 
-Next: step 3 (esbuild) waits on the open decision about committing `dist/`. Step 5 (the
-non-scorecard `<script>` blocks) can go ahead without it.
+**Step 5, first slice, 25 Nov 2026: the blocks with no EJS in them.** Twelve blocks in
+eleven templates moved to `static/beta/js/` unchanged, loaded from where each block was,
+so they run at the same moment with the same globals: `approve-signup`, `debug-panel`,
+`elo-backfill`, `notifications-banner`, `notifications-video`, `tournament-gallery`,
+`contact-us-form`, `push-test-form`, `team-strength-compare`, `homepage-content-form`, and
+from `pwa-head` `sw-register` and `offline-banner`. The last two are `defer`, because
+`pwa-head` is in every page's `<head>` and neither does anything before the page loads.
+`offline-banner` and `actions.js` are now in the service worker's precache, because the
+offline snapshot pages load them. The footer's login-link block went into `actions.js`.
+`views/scorecard-upload.ejs` is deleted, along with `scorecardController.scorecard_upload`:
+no route rendered it. `/sign-s3`'s `signedRequest` key was only for that page and can go.
+
+**What is left: 29 blocks in 20 templates**, capped per template in
+`no-inline-handlers.test.js`. They all interpolate server data. Slice B moves that data to
+data attributes or a `<script type="application/json">` block, which the guard does not
+count, and then moves the code. Slice C is `header.ejs`'s Sentry and PostHog setup, last.
+`static-asset-caching.test.js` now checks that every literal `asset('…')` in `views/` is a
+real file, so a mistyped path fails in Jest rather than as a 404 in the browser.
+`e2e/moved-scripts.spec.js` checks each moved script loads, raises no error and still
+works: SW registration, the offline banner, the contact form's dropdown and global
+`onSubmit`, the video dialog, banner dismissal, and the Quill editors.
+
+**Decided 25 Nov 2026 (Neil): `dist/` is built in the Docker image, not committed.** The
+image installs with `npm ci --omit=dev`, so it needs a multi-stage Dockerfile: a build
+stage with every dependency runs the bundle, and the runtime stage copies in only
+`static/beta/js/dist/`. `dist/` goes in `.gitignore`. `npm run dev` and `npm run test:e2e`
+get `pre` hooks that build it. Jest does not need it, because `asset()` renders a missing
+file without a hash rather than throwing. A unit test should check that every `dist/` file
+a view names has a `src/` entry, because Jest cannot see a 404 that only appears in a
+browser. **Step 3 waits for the off-season, just before step 4**, so the bundler arrives
+with its first consumer (the wizard importing `scorecard/rules.js`), not as an image
+change with nothing using it. Step 5 does not need it: the moved blocks become plain
+files under `static/beta/js/`.
 
 ## Why
 
@@ -83,11 +114,8 @@ template. Sharing one CommonJS module with the browser needs a bundler.
 - **esbuild**, one dev dependency, building `static/beta/js/src/*.js` →
   `static/beta/js/dist/*.js`. Entry points: `scorecard-wizard`, `messer-wizard`,
   `populated-scorecard`, and anything else that wants to import shared code.
-- **Where it builds — a decision.** Either commit `dist/` (the Dockerfile and deploy do not
-  change at all; a test fails if `dist/` is stale against `src/`), or build in the Docker
-  image (one `RUN` line, no committed output). **Recommended: commit `dist/`** — it keeps
-  hosting and the build pipeline literally unchanged, which is one of the three
-  constraints, and the staleness test is cheap. Revisit if the bundles get large.
+- **Where it builds: in the Docker image** (decided 25 Nov 2026; see Progress). The brief
+  had recommended committing `dist/` with a staleness test.
 - **`asset()` already does the cache-busting** (HARD-42: content hash in `?v=`, a year's
   `immutable`). Bundles go through it like any other file. No hashed filenames, no
   manifest.

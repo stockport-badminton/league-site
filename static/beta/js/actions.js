@@ -1,6 +1,7 @@
 /* Behaviour that used to be inline handlers, declared with data attributes instead.
  *
- * Loaded on every page by views/footer.ejs. An inline `onclick="…"` is why
+ * Loaded on every page by views/footer.ejs, which is also why the login link's return
+ * address is set here. An inline `onclick="…"` is why
  * `'unsafe-inline'` still has to be in script-src (REARCH-07, absorbing HARD-15); these
  * two patterns covered most of the ones outside the scorecard templates.
  *
@@ -31,6 +32,15 @@
       event.stopImmediatePropagation();
     }
   }, true);
+
+  // The nav's login link comes back to this page afterwards. Was an inline jQuery block in
+  // footer.ejs; same value, set once the document is parsed.
+  function returnHere() {
+    var login = document.getElementById('loginLink');
+    if (login) login.setAttribute('href', '/login?returnTo=' + window.location);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', returnHere);
+  else returnHere();
 
   document.addEventListener('change', function (event) {
     var el = event.target;

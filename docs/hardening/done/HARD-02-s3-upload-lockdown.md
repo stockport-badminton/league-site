@@ -17,7 +17,8 @@ attacker-chosen, so the bucket can be made to serve HTML or an executable. And i
 unmetered write channel into storage you pay for.
 
 Callers today: `views/index-scorecard.ejs` (×2), `views/messer-scorecard.ejs`,
-`views/scorecard-upload.ejs`. All four upload a scorecard photo for a fixture.
+and views/scorecard-upload.ejs (no route; deleted Nov 2026). All four upload a scorecard
+photo for a fixture.
 
 ## What to do
 
