@@ -24,6 +24,22 @@ describe('season.init reads the season table', () => {
     expect(await Season.init()).toEqual({ current: '20982099', previous: latest.name });
     expect(errors).not.toHaveBeenCalled();
   });
+
+  // The scorecard form's date check (24 Nov 2026: cards filed as 2016).
+  it('records the dates a match may be played on: from last season\'s start while it is still open', async () => {
+    const [[latest]] = await run(
+      `SELECT to_char("startDate", 'YYYY-MM-DD') AS start FROM season WHERE "startDate" <= now() ORDER BY "startDate" DESC LIMIT 1`);
+    await run(`INSERT INTO season (id, name, "startDate", "endDate", label) VALUES
+      (1003, '20972098', date_trunc('day', now()) - interval '10 days', '2099-07-31', 'started')`);
+    await run(`UPDATE season SET "endDate" = now() + interval '5 days' WHERE to_char("startDate", 'YYYY-MM-DD') = ?`, [latest.start]);
+    await Season.init();
+    expect(Season.matchDateWindow()).toEqual({ from: latest.start, to: '2099-07-31' });
+
+    await run(`UPDATE season SET "endDate" = now() - interval '1 day' WHERE to_char("startDate", 'YYYY-MM-DD') = ?`, [latest.start]);
+    await Season.init();
+    const [[mine]] = await run(`SELECT to_char("startDate", 'YYYY-MM-DD') AS start FROM season WHERE id = 1003`);
+    expect(Season.matchDateWindow()).toEqual({ from: mine.start, to: '2099-07-31' });
+  });
 });
 
 describe('siteSettings', () => {

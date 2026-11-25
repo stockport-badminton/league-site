@@ -6,6 +6,7 @@ var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
 var Game = require('../models/game');
+const seasonModel = require('../models/season');
 var ThreadsResultPost = require('../models/threadsResultPost');
 const push = require('../utils/push');
 var db = require('../db_connect.js');
@@ -16,7 +17,7 @@ const mailer = require('../utils/mailer');
 var Auth = require('../models/auth.js');
 var contact_controller = require(__dirname + '/contactusController');
 const { body, validationResult } = require("express-validator");
-const {canonicalFor, absoluteUrl, resultImagePath } = require('../utils/canonical');
+const {canonicalFor, absoluteUrl, resultImagePath, localYmd } = require('../utils/canonical');
 const { userEmail, userDisplayName } = require('../utils/sessionUser');
 const { escapeHtml } = require('../utils/html');
 const { parseRecipients, isScorecardOverdue, dueByLabel, matchLabel, MAX_RECIPIENTS: MAX_REMINDER_RECIPIENTS } = require('../utils/scorecardReminder');
@@ -73,10 +74,28 @@ const GAMES_PER_FIXTURE = 18;
 // which is falsy, so express-validator would have rejected it with "can't use the same
 // player more than once" — the message that made this workflow impossible on the Tameside
 // site, and the first link in a three-bug chain that trapped a captain in a 500 loop.
+// A date can be a valid date and still be wrong: 24 Nov 2026 two cards were filed as
+// 2016, read off the photo and not noticed (drafts 2502/2503). So the date must be in the
+// season (Season.matchDateWindow) and not after tomorrow — a day's grace for a card
+// filed just after midnight on a machine whose clock says otherwise.
+function matchDateIsPlausible(value) {
+  const date = String(value).slice(0, 10);
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const { y, m, d } = localYmd(tomorrow);
+  if (date > `${y}-${m}-${d}`) throw new Error("The match date can't be in the future.");
+  const season = seasonModel.matchDateWindow();
+  if (season && (date < season.from || date > season.to)) {
+    throw new Error(`The match date must be in this season (${ukDate(season.from)} to ${ukDate(season.to)}). Please check the year.`);
+  }
+  return true;
+}
+const ukDate = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
 exports.validateScorecard = [
       // Nothing checked the date, so a blank one reached the INSERT and Postgres refused
       // `""` as a timestamp — a 500, and the captain's whole card lost (14 Oct, [85FE5E]).
-      body('date').isISO8601({ strict: true }).withMessage("Please enter the date the match was played."),
+      body('date').isISO8601({ strict: true }).withMessage("Please enter the date the match was played.")
+        .bail().custom(matchDateIsPlausible),
       body('Game1homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),
       body('Game1awayScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30").custom(differenceOfTwo).withMessage("First Mens 1:winning score isn't 2 greater than losing score").custom(greaterThan21).withMessage("First Mens 1:one of the teams needs to score at least 21"),
       body('Game2homeScore').isInt({min:0, max:30}).withMessage("must be between 0 and 30"),

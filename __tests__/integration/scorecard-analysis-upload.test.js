@@ -664,6 +664,14 @@ describe('POST /api/analyse-scorecard — the date', () => {
     expect(res.body.date).toBe('2026-10-14');
   });
 
+  // 24 Nov 2026: 24/11/2026 read as 24/11/2016 was filed as written (draft 2502).
+  it('overrules a misread year with the matched fixture\'s date', async () => {
+    extractScorecardData.mockResolvedValue(cardWithDate('13/10/2016'));
+    const res = await analyse();
+    expect(res.body._meta.fixtureId).toBe(7298);
+    expect(res.body.date).toBe('2026-10-13');
+  });
+
   it('still answers null when there is neither', async () => {
     extractScorecardData.mockResolvedValue(cardWithDate(''));
     Fixture.getScorecardCandidates.mockResolvedValue([]);

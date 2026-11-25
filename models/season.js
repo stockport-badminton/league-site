@@ -1,6 +1,7 @@
 // @ts-check
 const log = require('../utils/log');
 const { kysely } = require('../db');
+const { localYmd } = require('../utils/canonical');
 
 // Fallback season derivation, used only until init() runs or if the DB lookup
 // fails. Matches the historical rule (rolls over on 1 August). offset 0 =
@@ -16,6 +17,15 @@ function dateBasedSeason(offset) {
 var _current = null;
 /** @type {string | null} */
 var _previous = null;
+/** @type {{ from: string, to: string } | null} */
+var _matchDates = null;
+
+// YYYY-MM-DD of a season boundary, read with local getters like every fixture date.
+/** @param {Date} d */
+function ymd(d) {
+  const { y, m, d: day } = localYmd(d);
+  return `${y}-${m}-${day}`;
+}
 
 // Determine the current/previous season from the season table, picking the
 // season whose startDate has most recently passed. This is robust to
@@ -27,12 +37,18 @@ var _previous = null;
 // on deploy/scaling. Call once at startup after db.connect().
 exports.init = async function() {
   try {
-    const rows = await kysely.selectFrom('season').select('name')
+    const rows = await kysely.selectFrom('season').select(['name', 'startDate', 'endDate'])
       .where(eb => eb('startDate', '<=', eb.fn('now'))).orderBy('startDate', 'desc').limit(2)
       .execute();
     if (rows.length) {
       _current = rows[0].name;
       _previous = rows[1] ? rows[1].name : dateBasedSeason(1);
+      // The dates a match may be played on: this season's, and last season's too while
+      // its window is still open (the June/July overlap).
+      const [cur, prev] = rows;
+      const prevOpen = prev && prev.endDate && new Date(prev.endDate) >= new Date();
+      const from = prevOpen ? prev.startDate : cur.startDate;
+      _matchDates = (from && cur.endDate) ? { from: ymd(from), to: ymd(cur.endDate) } : null;
     }
   } catch (err) {
     log.error({ err }, 'season.init failed; using date-based fallback');
@@ -41,6 +57,10 @@ exports.init = async function() {
 };
 
 exports.current = function() { return _current || dateBasedSeason(0); };
+// { from, to } as YYYY-MM-DD, or null until init() has read the season table (and in
+// tests, which never call it): the scorecard form then checks only that a date is not in
+// the future.
+exports.matchDateWindow = function() { return _matchDates; };
 exports.previous = function() { return _previous || dateBasedSeason(1); };
 
 // Seasons that have history (team_season rows), newest first — used to build the

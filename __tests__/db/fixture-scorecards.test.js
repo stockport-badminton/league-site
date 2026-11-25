@@ -55,6 +55,9 @@ describe('getOutstandingScorecards', () => {
     await fixture(9003, -5, 'rearranged');
     await fixture(9004, -6, 'void');
     await fixture(9005, 4);
+    // Published, with its draft filed under a misread date (24 Nov 2026: drafts 2502/2503
+    // were dated 2016), so the draft join finds nothing. A result is never outstanding.
+    await fixture(9006, -2, 'complete', 10); await draft(9006, { date: '2016-11-24' });
     const mine = (await Fixture.getOutstandingScorecards()).filter(r => r.homeId === H);
     expect(mine.map(r => r.homeTeam)).toEqual(['Cardhome A']);
     expect(mine[0]).toMatchObject({ awayTeam: 'Cardaway A', awayId: A, status: 'outstanding', scoreCardId: null });

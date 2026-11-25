@@ -353,6 +353,44 @@ describe('POST /email-scorecard', () => {
     });
   });
 
+  // 24 Nov 2026: two cards were filed as 2016 (drafts 2502/2503), a date the form took
+  // because it was a date. It must be in the season, and not in the future.
+  describe('with a date outside the season', () => {
+    const Season = require('../../models/season');
+    const DAY = 24 * 60 * 60 * 1000;
+    const iso = ms => { const d = new Date(ms); return `${d.getFullYear()}-${('0' + (d.getMonth() + 1)).slice(-2)}-${('0' + d.getDate()).slice(-2)}`; };
+
+    beforeEach(() => {
+      Division.getAllAndSelectedById.mockResolvedValue([{ id: 1, name: 'Division 1', selected: 1 }]);
+      Team.getAllAndSelectedById.mockResolvedValue([{ id: 10, name: 'Mellor A', selected: 1 }]);
+      Player.getEligiblePlayersAndSelectedById.mockResolvedValue([[{ id: 1, name: 'P1', selected: 1 }]]);
+      Fixture.createScorecard.mockResolvedValue([{ id: 42 }]);
+      window = jest.spyOn(Season, 'matchDateWindow').mockReturnValue({ from: iso(Date.now() - 100 * DAY), to: iso(Date.now() + 200 * DAY) });
+    });
+    let window;
+    afterEach(() => window.mockRestore());
+
+    it('refuses a misread year, saying which season, and writes nothing', async () => {
+      const res = await request(app).post('/email-scorecard').send(validScorecard({ date: '2016-11-24' }));
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('The match date must be in this season (');
+      expect(res.text).toContain('Please check the year.');
+      expect(Fixture.createScorecard).not.toHaveBeenCalled();
+    });
+
+    it('refuses a date in the future', async () => {
+      const res = await request(app).post('/email-scorecard').send(validScorecard({ date: iso(Date.now() + 3 * DAY) }));
+      expect(res.text).toContain("The match date can&#39;t be in the future.");
+      expect(Fixture.createScorecard).not.toHaveBeenCalled();
+    });
+
+    it('takes a date in the season', async () => {
+      const res = await request(app).post('/email-scorecard').send(validScorecard({ date: iso(Date.now() - 2 * DAY) }));
+      expect(res.status).toBe(302);
+      expect(Fixture.createScorecard).toHaveBeenCalled();
+    });
+  });
+
   describe('with valid data', () => {
     beforeEach(() => {
       // The shape Fixture.createScorecard really resolves to: the db wrapper returns

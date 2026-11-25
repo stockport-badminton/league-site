@@ -161,6 +161,29 @@ function ymd(date) {
   return `${y}-${m}-${d}`;
 }
 
+// The date for the form: what was written on the card if it is plausible, else the
+// matched fixture's. OCR misreads the date box — 24 Nov 2026 filed two cards as
+// 24/11/2016 and 14/11/2016 (drafts 2502/2503) — and the captain did not notice, so a
+// written date has to earn its place. With a fixture, it may be up to EARLY_DAYS before
+// the listed date (played early) or any day after it up to today (rearranged, not yet
+// entered); never in the future. Without one, only the last RECENT_DAYS count; beyond
+// that the field is left for the captain, and the form checks it against the season.
+const EARLY_DAYS = 14;
+const RECENT_DAYS = 120;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayNumber = iso => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / DAY_MS;
+
+function chooseDate(written, fixtureDate, today) {
+  const t = dayNumber(today);
+  if (fixtureDate) {
+    const f = dayNumber(fixtureDate);
+    if (written && dayNumber(written) >= f - EARLY_DAYS && dayNumber(written) <= t) return written;
+    return fixtureDate;
+  }
+  if (written && dayNumber(written) >= t - RECENT_DAYS && dayNumber(written) <= t) return written;
+  return null;
+}
+
 // ── Fuzzy matching ────────────────────────────────────────────────────────────
 
 function similarity(a, b) {
@@ -668,6 +691,9 @@ exports.analyse_scorecard = async function(req, res) {
     log.info({
       analysis: {
         home: metadata.homeTeam, away: metadata.awayTeam, division: metadata.division,
+        // The date box as read: a misread one is now overruled by the fixture's date,
+        // and this is the only record of what the reader saw.
+        dateRaw: metadata.date || null,
         fixtureId: fixture ? fixture.id : null, candidates: candidates.length,
         homeTeamId, awayTeamId, divisionId,
         players: Object.keys(playerFields).length,
@@ -698,11 +724,11 @@ exports.analyse_scorecard = async function(req, res) {
 
     // Step 5: build response in form-field format
     res.json({
-      // What was written on the card, else the date of the fixture it was matched to.
-      // OCR often reads nothing in the date box, and a matched fixture has a date we
-      // already hold — the page used to leave the field blank, and the captain submitted
-      // with no date at all (14 Oct, 500 [85FE5E]).
-      date:     normaliseDate(metadata.date) || (fixture && fixture.date ? ymd(fixture.date) : null),
+      // What was written on the card when it is plausible, else the date of the fixture
+      // it was matched to (chooseDate). OCR often reads nothing in the date box, and a
+      // matched fixture has a date we already hold — the page used to leave the field
+      // blank, and the captain submitted with no date at all (14 Oct, 500 [85FE5E]).
+      date:     chooseDate(normaliseDate(metadata.date), fixture && fixture.date ? ymd(fixture.date) : null, ymd(new Date())),
       division: divisionId,
       homeTeam: homeTeamId,
       awayTeam: awayTeamId,
@@ -782,4 +808,4 @@ exports.analyse_scorecard = async function(req, res) {
 
 // Exported for the tests: the matching rules are worth testing without a Vision call, a
 // photograph or a database.
-exports._matching = { cleanTeamText, divisionFromText, matchFixture, matchPlayers, playerScore, teamSimilarity };
+exports._matching = { chooseDate, cleanTeamText, divisionFromText, matchFixture, matchPlayers, playerScore, teamSimilarity };

@@ -242,3 +242,25 @@ describe('teams and the fixture', () => {
     expect(M.matchFixture('SYDALL', 'SHELL B', [fx(1, 80, 30)], TEAMS)).toBeNull();
   });
 });
+
+// 24 Nov 2026: two cards read as 24/11/2016 and 14/11/2016 were filed under those dates
+// (drafts 2502/2503), and the homepage listed both fixtures as outstanding.
+describe('the date for the form', () => {
+  const TODAY = '2026-11-25';
+  it.each([
+    ['misread year, fixture matched', '2016-11-24', '2026-11-24', '2026-11-24'],
+    ['misread day and year', '2016-11-14', '2026-11-24', '2026-11-24'],
+    ['as written, same day', '2026-11-24', '2026-11-24', '2026-11-24'],
+    ['played early, inside two weeks', '2026-11-12', '2026-11-24', '2026-11-12'],
+    ['too early to be this fixture', '2026-11-09', '2026-11-24', '2026-11-24'],
+    ['rearranged later, not yet entered', '2026-11-20', '2026-10-06', '2026-11-20'],
+    ['in the future', '2026-12-24', '2026-11-24', '2026-11-24'],
+    ['nothing written', null, '2026-11-24', '2026-11-24'],
+    ['no fixture, recent', '2026-11-18', null, '2026-11-18'],
+    ['no fixture, misread year', '2016-11-18', null, null],
+    ['no fixture, future', '2027-01-18', null, null],
+    ['no fixture, nothing written', null, null, null],
+  ])('%s', (_, written, fixtureDate, expected) => {
+    expect(M.chooseDate(written, fixtureDate, TODAY)).toBe(expected);
+  });
+});

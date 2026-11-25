@@ -221,6 +221,10 @@ exports.getOutstandingScorecards = async function() {
       'fixture.date', 'fixture.status', 'scorecardstore.id as scoreCardId'])
     .where('season.name', '=', seasonModel.current())
     .where('fixture.status', 'not in', ['rearranged', 'rearranging', 'conceded', 'void'])
+    // A fixture with a result is never outstanding, whatever the draft join finds: a
+    // draft filed under a misread date (2502/2503, dated 2016, 24 Nov 2026) matched
+    // nothing, and two published results sat in the homepage's outstanding list.
+    .where('fixture.homeScore', 'is', null)
     .orderBy('fixture.date')
   return kysely.selectFrom(inSeason.as('a')).selectAll()
     .where('a.date', '<', NOW).where('a.scoreCardId', 'is', null)
