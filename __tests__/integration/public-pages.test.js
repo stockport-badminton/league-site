@@ -56,39 +56,18 @@ describe('GET /', () => {
     expect(Fixture.getupComing).toHaveBeenCalledTimes(1);
   });
 
-  // HARD-43: the gallery listing came from Cloudinary's Admin API on every request,
-  // uncached and with no timeout, so a slow Cloudinary was a slow homepage.
-  it('makes at most one Cloudinary call for two homepage requests in a row', async () => {
-    setupHomepageMocks();
-    await request(app).get('/');
-    await request(app).get('/');
-    expect(axios.get).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders without the gallery, in under 2 s, when Cloudinary never answers', async () => {
+  // The gallery listing comes from Cloudinary. It used to be fetched for the homepage
+  // itself, and each instance's first homepage request in 10 minutes waited ~450 ms for
+  // it (Nov 2026 logs). Now the modal fetches it from /homepage-gallery when it opens.
+  it('makes no Cloudinary call and carries no gallery images', async () => {
     setupHomepageMocks();
     axios.get.mockImplementation(() => new Promise(() => {}));
-    const started = Date.now();
     const res = await request(app).get('/');
     expect(res.status).toBe(200);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(axios.get).not.toHaveBeenCalled();
     expect(res.text).not.toMatch(/class="carousel-item/);
-  });
-
-  it('does not fetch gallery images with the page, only when the modal opens', async () => {
-    setupHomepageMocks();
-    axios.get.mockResolvedValue({ data: { resources: [
-      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/a.jpg' },
-      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/b.jpg' },
-    ] } });
-    const res = await request(app).get('/');
-    const imgs = res.text.match(/<img[^>]*res\.cloudinary\.com\/hvunsveuh[^>]*>/g) || [];
-    expect(imgs).toHaveLength(2);
-    for (const img of imgs) {
-      expect(img).toMatch(/\sdata-src="/);
-      expect(img).not.toMatch(/\ssrc="/);
-    }
-    expect(res.text).toMatch(/'show\.bs\.modal'/);
+    expect(res.text).toContain('id="generatedTournamentGalleryModal"');
+    expect(res.text).toMatch(/fetch\('\/homepage-gallery'\)/);
   });
 
   it('returns 500 when a Fixture call rejects', async () => {
@@ -100,6 +79,44 @@ describe('GET /', () => {
     axios.get.mockResolvedValue({ data: { resources: [] } });
     const res = await request(app).get('/');
     expect(res.status).toBe(500);
+  });
+});
+
+// GET /homepage-gallery — the homepage gallery modal's carousel items
+describe('GET /homepage-gallery', () => {
+  beforeEach(() => SiteSettings.get.mockResolvedValue('messer2026'));
+
+  it('renders one carousel item per image, the first active, src set', async () => {
+    axios.get.mockResolvedValue({ data: { resources: [
+      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/a.jpg', context: { custom: { caption: 'Final <b>' } } },
+      { url: 'https://res.cloudinary.com/hvunsveuh/image/upload/v1/b.jpg' },
+    ] } });
+    const res = await request(app).get('/homepage-gallery');
+    expect(res.status).toBe(200);
+    expect(res.headers['x-robots-tag']).toBe('noindex');
+    const items = res.text.match(/<div class="carousel-item[^"]*">/g) || [];
+    expect(items).toEqual(['<div class="carousel-item active">', '<div class="carousel-item">']);
+    expect(res.text).toContain('src="https://res.cloudinary.com/hvunsveuh/image/upload/f_auto,c_fill/w_auto:breakpoints_200_1920_30_10:300/v1/a.jpg"');
+    expect(res.text).toContain('<h5>Final &lt;b&gt;</h5>');
+    expect(res.text).not.toContain('<html');
+  });
+
+  it('uses the tag set in /admin, and asks Cloudinary once for two requests', async () => {
+    SiteSettings.get.mockResolvedValue('presentations2026');
+    axios.get.mockResolvedValue({ data: { resources: [] } });
+    await request(app).get('/homepage-gallery');
+    await request(app).get('/homepage-gallery');
+    expect(axios.get).toHaveBeenCalledTimes(1);
+    expect(axios.get.mock.calls[0][0]).toMatch(/\/tags\/presentations2026$/);
+  });
+
+  it('answers empty, in under 2 s, when Cloudinary never answers', async () => {
+    axios.get.mockImplementation(() => new Promise(() => {}));
+    const started = Date.now();
+    const res = await request(app).get('/homepage-gallery');
+    expect(res.status).toBe(200);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(res.text).not.toMatch(/carousel-item/);
   });
 });
 

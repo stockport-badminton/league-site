@@ -1,0 +1,16 @@
+<%# The homepage gallery modal's carousel items, served by GET /homepage-gallery and
+    inserted by generatedTournamentGallery.ejs when the modal first opens. The images
+    take their src directly: this fragment is only ever fetched by opening the modal. %>
+<% assets.forEach(function(image, i){
+     var imageref = image.url.replace("/upload","/upload/f_auto,c_fill/w_auto:breakpoints_200_1920_30_10:300");
+     var caption = (image.context && image.context.custom && image.context.custom.caption) || "";
+%>
+<div class="carousel-item<%= i === 0 ? ' active' : '' %>">
+  <img class="d-block img-fluid" src="<%= imageref %>" sizes="100vw" width="100%" alt="<%= caption %>"/>
+  <% if (caption) { %>
+  <div class="carousel-caption d-none d-md-block">
+    <h5><%= caption %></h5>
+  </div>
+  <% } %>
+</div>
+<% }) %>

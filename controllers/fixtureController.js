@@ -517,15 +517,16 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
 // Handle getting results from previous 7 days
 exports.fixture_get_summary = async function(req, res, next) {
   try {
-    const [scorecards, recentResults, upcomingFixtures, announcements, galleryTag] = await Promise.all([
+    // No gallery here: it is fetched from /homepage-gallery when its modal opens. Each
+    // instance's first homepage request in 10 minutes used to wait for the Cloudinary
+    // listing — ~450 ms on about 1 in 16 homepage views (Nov 2026 logs) for a modal most
+    // visitors never open.
+    const [scorecards, recentResults, upcomingFixtures, announcements] = await Promise.all([
       Fixture.getOutstandingScorecards(),
       Fixture.getRecent(),
       Fixture.getupComing(),
-      HomepageContent.getActive(),
-      SiteSettings.get('homepage_gallery_tag')
+      HomepageContent.getActive()
     ]);
-    // Cached, time-bounded and never rejects: see utils/cloudinaryGallery.js (HARD-43).
-    const assets = await cloudinaryGallery.getGallery(galleryTag || 'messer2026');
     res.render('homepage', {
       static_path: '/static',
       pageTitle: "Homepage",
@@ -533,7 +534,6 @@ exports.fixture_get_summary = async function(req, res, next) {
       result: recentResults,
       row: upcomingFixtures,
       scorecards,
-      assets,
       announcements,
       // Sitewide identity (SportsOrganization + WebSite) once, then a SportsEvent
       // per upcoming fixture. Out of season `upcomingFixtures` is empty and only the
@@ -543,6 +543,20 @@ exports.fixture_get_summary = async function(req, res, next) {
       ),
       canonical: canonicalFor(req)
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// The homepage gallery modal's carousel items, fetched by the page when the modal first
+// opens. Cached, time-bounded and never rejects: see utils/cloudinaryGallery.js (HARD-43).
+exports.fixture_get_homepage_gallery = async function(req, res, next) {
+  try {
+    const galleryTag = await SiteSettings.get('homepage_gallery_tag');
+    const assets = await cloudinaryGallery.getGallery(galleryTag || 'messer2026');
+    // A fragment, not a page: nothing for a search engine to index.
+    res.set('X-Robots-Tag', 'noindex');
+    res.render('homepage-gallery-items', { assets });
   } catch (err) {
     next(err);
   }
@@ -563,7 +577,6 @@ exports.fixture_get_offline_home = async function(req, res, next) {
       result: [],
       row: [],
       scorecards: [],
-      assets: [],
       announcements,
       canonical: canonicalFor(req)
     });

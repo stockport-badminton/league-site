@@ -28,6 +28,7 @@ router.get('/llms.txt', access.public, crawler_controller.llms);
 
 // Homepage and gallery
 router.get('/', access.public, fixture_controller.fixture_get_summary);
+router.get('/homepage-gallery', access.public, fixture_controller.fixture_get_homepage_gallery);
 router.get('/offline-home', access.public, fixture_controller.fixture_get_offline_home);
 router.get('/gallery', access.public, static_controller.get_gallery);
 
