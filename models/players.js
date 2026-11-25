@@ -3,14 +3,17 @@ var db = require('../db_connect.js');
 var seasonModel = require("./season");
 const { sql } = require('kysely');
 const { kysely, encrypt, decrypt } = require('../db');
+/** @typedef {import('kysely').RawBuilder<unknown>} Fragment */
 const levenshtein = require('js-levenshtein');
 const { rankByName } = require('../utils/nameMatch');
 
 
-// REARCH-01 is converting this file in batches. On the typed query layer so far: the
-// searches and lookups (getClubRoster, search, the eligibility lookups, count, getById,
-// getPlayerClubandTeamById, searchPlayers), and the writes and the role and email reads
-// (create, updateBulk, getAuthRoleByEmail, setAuthRole, getEmails, setRatings).
+// REARCH-01: on the typed query layer, except five the publish request calls, which wait
+// for the off-season (getNominatedPlayers, getMatchStats, getPrevRating,
+// getRatingStateBefore, refreshRatings; the brief lists them). The long analytic queries
+// (getMissedThreePlayers, getPlayerGameData, the player and pair stats,
+// getNamesClubsTeams) are typed `sql` templates with their SQL kept as it was; the stats'
+// optional clauses are `sql` fragments, each value bound where it is written.
 //
 // `first_name family_name`, as CONCAT gives it.
 /** @param {import('kysely').ExpressionBuilder<any, any>} eb */
@@ -296,11 +299,14 @@ exports.getMatchStats = async function(fixtureId) {
 }
 
 
+/** @typedef {{ playerID: number, name: string, gender: string | null, date_of_registration: Date | null,
+ *   rank: number | null, clubId: number, clubName: string, teamName: string, teamId: number }} NamesClubsTeamsRow */
 /** @param {any} searchTerms */
 exports.getNamesClubsTeams = async function(searchTerms) {
-  var whereTerms = [];
-  var whereValue = [];
-  var nameMatch = ""
+  /** @type {Fragment[]} */
+  const whereTerms = [];
+  /** @type {Fragment} */
+  let nameMatch = /** @type {Fragment} */ (sql``)
 
   let season = seasonModel.current()
   /** @param {any} season */
@@ -322,44 +328,30 @@ exports.getNamesClubsTeams = async function(searchTerms) {
   }
 
   // The initial is bound, not spliced in: it was one character of the URL inside quotes,
-  // so `'` broke the query (Nov 2026). It goes first in the parameters because it sits in
-  // the JOIN, before the season placeholders.
-  /** @type {string[]} */
-  const nameValue = []
+  // so `'` broke the query (Nov 2026).
   if (searchTerms.name) {
-    nameMatch = "AND (player.first_name LIKE ? OR player.family_name LIKE ?)"
     const initial = String(searchTerms.name).slice(0, 1).replace(/[\\%_]/g, '\\$&') + '%'
-    nameValue.push(initial, initial)
+    nameMatch = /** @type {Fragment} */ (sql`AND (player.first_name LIKE ${initial} OR player.family_name LIKE ${initial})`)
   }
-  if (searchTerms.club) {
-    whereTerms.push('"clubName" = ?');
-    whereValue.push(searchTerms.club)
-  }
-  if (searchTerms.team) {
-    whereTerms.push('"teamName" = ?');
-    whereValue.push(searchTerms.team)
-  }
-  if (searchTerms.gender) {
-    whereTerms.push('gender = ?');
-    whereValue.push(searchTerms.gender)
-  }
+  if (searchTerms.club) whereTerms.push(/** @type {Fragment} */ (sql`"clubName" = ${searchTerms.club}`))
+  if (searchTerms.team) whereTerms.push(/** @type {Fragment} */ (sql`"teamName" = ${searchTerms.team}`))
+  if (searchTerms.gender) whereTerms.push(/** @type {Fragment} */ (sql`gender = ${searchTerms.gender}`))
 
   if (whereTerms.length > 0) {
-    var conditions = ' WHERE ' + whereTerms.join(' AND ');
-    const [result] = await (await db.otherConnect()).query(
-      'SELECT * FROM (SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player_at player JOIN team_at team ON team.id = player.team AND team.season = player.season ' + nameMatch + ' WHERE player.season = ?) AS a JOIN club_at club ON a."clubId" = club.id AND club.season = ?) AS b' + conditions + ' ORDER BY "teamName", gender, rank',
-      [...nameValue, season, season, ...whereValue]
-    )
-    return result
+    const conditions = sql.join(whereTerms, /** @type {Fragment} */ (sql` AND `))
+    const { rows } = await /** @type {import('kysely').RawBuilder<NamesClubsTeamsRow>} */ (sql`SELECT * FROM (SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,' ',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player_at player JOIN team_at team ON team.id = player.team AND team.season = player.season ${nameMatch} WHERE player.season = ${season}) AS a JOIN club_at club ON a."clubId" = club.id AND club.season = ${season}) AS b WHERE ${conditions} ORDER BY "teamName", gender, rank`).execute(kysely)
+    return rows
   } else {
-    const [result] = await (await db.otherConnect()).query(
-      'SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,\' \',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player JOIN team ON team.id = player.team ' + nameMatch + ') AS a JOIN club ON a."clubId" = club.id ORDER BY "teamName", gender, rank',
-      nameValue
-    )
-    return result
+    const { rows } = await /** @type {import('kysely').RawBuilder<NamesClubsTeamsRow>} */ (sql`SELECT a."playerID", a.name, gender, date_of_registration, a.rank, club.id AS "clubId", club.name AS "clubName", a."teamName", a."teamId" FROM (SELECT player.id AS "playerID", CONCAT(first_name,' ',family_name) AS name, gender, date_of_registration, player.rank, team.id AS "teamId", team.name AS "teamName", player.club AS "clubId" FROM player JOIN team ON team.id = player.team ${nameMatch}) AS a JOIN club ON a."clubId" = club.id ORDER BY "teamName", gender, rank`).execute(kysely)
+    return rows
   }
 }
 
+/**
+ * @typedef {{ id: number, date: Date, teamName: string, teamAdjustment: number | null, playerName: string,
+ *   partnerName: string, oppName1: string, oppName2: string, score: number | null, vsScore: number | null,
+ *   gameType: string | null, beforeVal: number | null, after: number | null, adjustment: number | null }} PlayerGameRow
+ */
 /** @param {any} id */
 exports.getPlayerGameData = async function(id) {
   // LEFT JOIN, not INNER, and this is not a style preference (HARD-11).
@@ -386,10 +378,10 @@ exports.getPlayerGameData = async function(id) {
   //
   // The current season is left out of the history even once it has rows there (a
   // rollover taken before it ends): until it ends, the live tables are the record of it.
-  const conn = await db.otherConnect()
   const current = seasonModel.current()
-  let sql = `WITH teamThen AS (SELECT season, id, name, rank FROM team_season WHERE season <> ?),
-playerThen AS (SELECT season, id, team FROM player_season WHERE season <> ?),
+  const pid = id * 1
+  const query = /** @type {import('kysely').RawBuilder<PlayerGameRow>} */ (sql`WITH teamThen AS (SELECT season, id, name, rank FROM team_season WHERE season <> ${current}),
+playerThen AS (SELECT season, id, team FROM player_season WHERE season <> ${current}),
 playerGames AS (SELECT game.*, fixture.date, fixtureSeason.name AS fixtureseason,
 COALESCE(homeThen.name, homeTeam.name, 'Former team') AS hometeamname,
 CASE WHEN homeThen.id IS NULL THEN homeTeam.rank ELSE homeThen.rank END AS hometeamrank,
@@ -402,7 +394,7 @@ LEFT JOIN teamThen awayThen ON awayThen.season = fixtureSeason.name AND awayThen
 LEFT JOIN team homeTeam ON fixture."homeTeam" = homeTeam.id
 LEFT JOIN team awayTeam ON fixture."awayTeam" = awayTeam.id
 WHERE
-(? IN("homePlayer1","homePlayer2","awayPlayer1","awayPlayer2") AND (
+(${pid} IN("homePlayer1","homePlayer2","awayPlayer1","awayPlayer2") AND (
   "homePlayer1End" IS NOT NULL AND
   "homePlayer2End" IS NOT NULL AND
   "awayPlayer1End" IS NOT NULL AND
@@ -414,61 +406,61 @@ allGames AS (
   id,
   date,
   fixtureseason,
-  CASE WHEN "homePlayer1" = ? THEN homeTeamName
-  WHEN "homePlayer2" = ? THEN homeTeamName
-  WHEN "awayPlayer1" = ? THEN awayTeamName
-  WHEN "awayPlayer2" = ? THEN awayTeamName
+  CASE WHEN "homePlayer1" = ${pid} THEN homeTeamName
+  WHEN "homePlayer2" = ${pid} THEN homeTeamName
+  WHEN "awayPlayer1" = ${pid} THEN awayTeamName
+  WHEN "awayPlayer2" = ${pid} THEN awayTeamName
   END AS teamname,
-  CASE WHEN "homePlayer1" = ? THEN homeTeamRank
-  WHEN "homePlayer2" = ? THEN homeTeamRank
-  WHEN "awayPlayer1" = ? THEN awayTeamRank
-  WHEN "awayPlayer2" = ? THEN awayTeamRank
+  CASE WHEN "homePlayer1" = ${pid} THEN homeTeamRank
+  WHEN "homePlayer2" = ${pid} THEN homeTeamRank
+  WHEN "awayPlayer1" = ${pid} THEN awayTeamRank
+  WHEN "awayPlayer2" = ${pid} THEN awayTeamRank
   END AS teamrank,
-  CASE WHEN "homePlayer1" = ? THEN "homePlayer1"
-  WHEN "homePlayer2" = ? THEN "homePlayer2"
-  WHEN "awayPlayer1" = ? THEN "awayPlayer1"
-  WHEN "awayPlayer2" = ? THEN "awayPlayer2"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homePlayer1"
+  WHEN "homePlayer2" = ${pid} THEN "homePlayer2"
+  WHEN "awayPlayer1" = ${pid} THEN "awayPlayer1"
+  WHEN "awayPlayer2" = ${pid} THEN "awayPlayer2"
   END AS playername,
-  CASE WHEN "homePlayer1" = ? THEN "homePlayer2"
-  WHEN "homePlayer2" = ? THEN "homePlayer1"
-  WHEN "awayPlayer1" = ? THEN "awayPlayer2"
-  WHEN "awayPlayer2" = ? THEN "awayPlayer1"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homePlayer2"
+  WHEN "homePlayer2" = ${pid} THEN "homePlayer1"
+  WHEN "awayPlayer1" = ${pid} THEN "awayPlayer2"
+  WHEN "awayPlayer2" = ${pid} THEN "awayPlayer1"
   END AS partner,
-  CASE WHEN "homePlayer1" = ? THEN "awayPlayer1"
-  WHEN "homePlayer2" = ? THEN "awayPlayer1"
-  WHEN "awayPlayer1" = ? THEN "homePlayer1"
-  WHEN "awayPlayer2" = ? THEN "homePlayer1"
+  CASE WHEN "homePlayer1" = ${pid} THEN "awayPlayer1"
+  WHEN "homePlayer2" = ${pid} THEN "awayPlayer1"
+  WHEN "awayPlayer1" = ${pid} THEN "homePlayer1"
+  WHEN "awayPlayer2" = ${pid} THEN "homePlayer1"
   END AS oppo1,
-  CASE WHEN "homePlayer1" = ? THEN "awayPlayer2"
-  WHEN "homePlayer2" = ? THEN "awayPlayer2"
-  WHEN "awayPlayer1" = ? THEN "homePlayer2"
-  WHEN "awayPlayer2" = ? THEN "homePlayer2"
+  CASE WHEN "homePlayer1" = ${pid} THEN "awayPlayer2"
+  WHEN "homePlayer2" = ${pid} THEN "awayPlayer2"
+  WHEN "awayPlayer1" = ${pid} THEN "homePlayer2"
+  WHEN "awayPlayer2" = ${pid} THEN "homePlayer2"
   END AS oppo2,
-  CASE WHEN "homePlayer1" = ? THEN "homeScore"
-  WHEN "homePlayer2" = ? THEN "homeScore"
-  WHEN "awayPlayer1" = ? THEN "awayScore"
-  WHEN "awayPlayer2" = ? THEN "awayScore"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homeScore"
+  WHEN "homePlayer2" = ${pid} THEN "homeScore"
+  WHEN "awayPlayer1" = ${pid} THEN "awayScore"
+  WHEN "awayPlayer2" = ${pid} THEN "awayScore"
   END AS score,
-  CASE WHEN "homePlayer1" = ? THEN "awayScore"
-  WHEN "homePlayer2" = ? THEN "awayScore"
-  WHEN "awayPlayer1" = ? THEN "homeScore"
-  WHEN "awayPlayer2" = ? THEN "homeScore"
+  CASE WHEN "homePlayer1" = ${pid} THEN "awayScore"
+  WHEN "homePlayer2" = ${pid} THEN "awayScore"
+  WHEN "awayPlayer1" = ${pid} THEN "homeScore"
+  WHEN "awayPlayer2" = ${pid} THEN "homeScore"
   END AS vsscore,
   "gameType",
-  CASE WHEN "homePlayer1" = ? THEN "homePlayer1Start"
-  WHEN "homePlayer2" = ? THEN "homePlayer2Start"
-  WHEN "awayPlayer1" = ? THEN "awayPlayer1Start"
-  WHEN "awayPlayer2" = ? THEN "awayPlayer2Start"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homePlayer1Start"
+  WHEN "homePlayer2" = ${pid} THEN "homePlayer2Start"
+  WHEN "awayPlayer1" = ${pid} THEN "awayPlayer1Start"
+  WHEN "awayPlayer2" = ${pid} THEN "awayPlayer2Start"
   END AS beforeval,
-  CASE WHEN "homePlayer1" = ? THEN "homePlayer1End"
-  WHEN "homePlayer2" = ? THEN "homePlayer2End"
-  WHEN "awayPlayer1" = ? THEN "awayPlayer1End"
-  WHEN "awayPlayer2" = ? THEN "awayPlayer2End"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homePlayer1End"
+  WHEN "homePlayer2" = ${pid} THEN "homePlayer2End"
+  WHEN "awayPlayer1" = ${pid} THEN "awayPlayer1End"
+  WHEN "awayPlayer2" = ${pid} THEN "awayPlayer2End"
   END AS after,
-  CASE WHEN "homePlayer1" = ? THEN "homePlayer1End" - "homePlayer1Start"
-  WHEN "homePlayer2" = ? THEN "homePlayer2End" - "homePlayer2Start"
-  WHEN "awayPlayer1" = ? THEN "awayPlayer1End" - "awayPlayer1Start"
-  WHEN "awayPlayer2" = ? THEN "awayPlayer2End" - "awayPlayer2Start"
+  CASE WHEN "homePlayer1" = ${pid} THEN "homePlayer1End" - "homePlayer1Start"
+  WHEN "homePlayer2" = ${pid} THEN "homePlayer2End" - "homePlayer2Start"
+  WHEN "awayPlayer1" = ${pid} THEN "awayPlayer1End" - "awayPlayer1Start"
+  WHEN "awayPlayer2" = ${pid} THEN "awayPlayer2End" - "awayPlayer2Start"
   END AS adjustment
   FROM playerGames
 )
@@ -495,7 +487,7 @@ player oppo2 ON oppo2.id = allGames.oppo2
 LEFT JOIN playerThen ownThen ON ownThen.season = allGames.fixtureseason AND ownThen.id = player.id
 LEFT JOIN teamThen ownTeamThen ON ownTeamThen.season = allGames.fixtureseason AND ownTeamThen.id = ownThen.team
 LEFT JOIN team ON player.team = team.id
-ORDER BY date DESC, allGames.id DESC`
+ORDER BY date DESC, allGames.id DESC`)
   // The order is the page's contract, so it is on the outer query. It used to sit inside
   // the first CTE, where Postgres is free to ignore it, and on 25 Oct 2026 only 320 of 915
   // players' histories came back in date order at all. The chart reverses these rows and
@@ -503,16 +495,20 @@ ORDER BY date DESC, allGames.id DESC`
   // highest game id first — eloChain rates a fixture's games in id order, so reversed, the
   // night's point is the rating after its last game.
 
-  let idArray = Array(45).fill(id * 1)
-  const [result] = await conn.query(sql, [current, current, ...idArray])
-  return result
+  const { rows } = await query.execute(kysely)
+  return rows
 }
 
 
+// SUMs are bigints, which pg hands back as strings. `rating` only for the current season.
+/**
+ * @typedef {{ playername: string, playerId: number, playergender: string | null, string_agg: string,
+ *   teamId: number, forPoints: string, againstPoints: string, gamesWon: string, gamesPlayed: string,
+ *   Points: string, clubName: string, teamName: string, rating?: number | null }} PlayerStatsRow
+ */
 /** @param {any} searchObj */
 exports.newGetPlayerStats = async function(searchObj) {
   let seasonString = seasonModel.current()
-  let whereValue = []
 
   /** @param {any} season */
   function checkSeason(season) {
@@ -534,19 +530,15 @@ exports.newGetPlayerStats = async function(searchObj) {
   } else {
     seasonVal = searchObj.season;
   }
-  whereValue.push(seasonVal);
-  whereValue.push(searchObj.gender || '%');
-  whereValue.push(searchObj.team || '%');
-  if (searchObj.division) whereValue.push(searchObj.division)
-  whereValue.push(searchObj.club || '%');
-  whereValue.push(searchObj.gameType || '%');
+  const live = searchObj.season === undefined || !checkSeason(searchObj.season)
+  const rating = live ? /** @type {Fragment} */ (sql`,player.rating`) : /** @type {Fragment} */ (sql``)
 
   // The season's players, teams and clubs, from the history views (the live tables for
   // the current season).
-  var sql = `WITH
-  playerThen AS (SELECT * FROM player_at WHERE season = ?),
-  teamThen AS (SELECT * FROM team_at WHERE season = ?),
-  clubThen AS (SELECT * FROM club_at WHERE season = ?),
+  const query = /** @type {import('kysely').RawBuilder<PlayerStatsRow>} */ (sql`WITH
+  playerThen AS (SELECT * FROM player_at WHERE season = ${seasonVal}),
+  teamThen AS (SELECT * FROM team_at WHERE season = ${seasonVal}),
+  clubThen AS (SELECT * FROM club_at WHERE season = ${seasonVal}),
   seasonFixture AS (
     SELECT
       fixture.id,
@@ -554,7 +546,7 @@ exports.newGetPlayerStats = async function(searchObj) {
       fixture."awayTeam"
     FROM
       fixture
-      JOIN season ON season.name LIKE ?
+      JOIN season ON season.name LIKE ${seasonVal}
       AND fixture.date > season."startDate"
       AND fixture.date < season."endDate"
   ),
@@ -691,18 +683,18 @@ SELECT
   (SUM(gamesPlayed) + SUM(gamesWon)) - (SUM(gamesPlayed) - SUM(gamesWon)) AS "Points",
   club.name AS "clubName",
   gameTeam.name AS "teamName"
-  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
+  ${rating}
 FROM
   gameSummary
   JOIN playerThen player ON "playerId" = player.id
-  AND player.gender LIKE ?
-  ${typeof searchObj.junior !== 'undefined' ? 'AND player.junior = 1' : ''}
+  AND player.gender LIKE ${searchObj.gender || '%'}
+  ${typeof searchObj.junior !== 'undefined' ? /** @type {Fragment} */ (sql`AND player.junior = 1`) : /** @type {Fragment} */ (sql``)}
   JOIN teamThen gameTeam ON gameTeam.id = gameSummary.team
-  AND gameTeam.name LIKE ? ${typeof searchObj.division !== 'undefined' ? 'AND gameTeam.division = ?' : ''}
+  AND gameTeam.name LIKE ${searchObj.team || '%'} ${typeof searchObj.division !== 'undefined' ? /** @type {Fragment} */ (sql`AND gameTeam.division = ${searchObj.division}`) : /** @type {Fragment} */ (sql``)}
   JOIN clubThen club ON club.id = player.club
-  AND club.name LIKE ?
+  AND club.name LIKE ${searchObj.club || '%'}
 WHERE
-"gameType" LIKE ?
+"gameType" LIKE ${searchObj.gameType || '%'}
 
 GROUP BY
   "playerId",
@@ -711,20 +703,23 @@ GROUP BY
   gameSummary.team,
   "clubName",
   "teamName"
-  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? ',player.rating' : ''}
+  ${rating}
 ORDER BY
-  "Points" DESC;`
+  "Points" DESC;`)
 
-  const [result] = await (await db.otherConnect()).query(sql, [seasonVal, seasonVal, seasonVal, ...whereValue])
-  return result
+  const { rows } = await query.execute(kysely)
+  return rows
 }
 
 
+/**
+ * @typedef {{ Pairing: string, player1id: number, player2id: number, pairRating?: number | null,
+ *   forPoints: string, againstPoints: string, gamesWon: string, gamesPlayed: string, winRate: string,
+ *   Points: string, clubName: string, teamName: string, gameType: string }} PairStatsRow
+ */
 /** @param {any} searchObj */
 exports.newGetPairStats = async function(searchObj) {
   let seasonString = seasonModel.current()
-  let divisionSql = ""
-  let whereValue = []
 
   /** @param {any} season */
   function checkSeason(season) {
@@ -746,19 +741,15 @@ exports.newGetPairStats = async function(searchObj) {
   } else {
     seasonVal = searchObj.season;
   }
-  // In placeholder order. These used to be pasted into the statement from the URL.
-  whereValue = [seasonVal]
-  if (searchObj.division !== undefined) whereValue.push(searchObj.division)
-  whereValue.push(searchObj.team || '%')
-  whereValue.push(searchObj.club || '%')
-  whereValue.push(searchObj.gameType || '%')
+  // Every value is bound. These used to be pasted into the statement from the URL.
+  const live = searchObj.season === undefined || !checkSeason(searchObj.season)
 
   // The season's players, teams and clubs, from the history views (the live tables for
   // the current season).
-  var sql = `WITH
-  playerThen AS (SELECT * FROM player_at WHERE season = ?),
-  teamThen AS (SELECT * FROM team_at WHERE season = ?),
-  clubThen AS (SELECT * FROM club_at WHERE season = ?),
+  const query = /** @type {import('kysely').RawBuilder<PairStatsRow>} */ (sql`WITH
+  playerThen AS (SELECT * FROM player_at WHERE season = ${seasonVal}),
+  teamThen AS (SELECT * FROM team_at WHERE season = ${seasonVal}),
+  clubThen AS (SELECT * FROM club_at WHERE season = ${seasonVal}),
   seasonFixture AS (
     SELECT
       fixture.id,
@@ -766,7 +757,7 @@ exports.newGetPairStats = async function(searchObj) {
       fixture."awayTeam"
     FROM
       fixture
-      JOIN season ON season.name LIKE ?
+      JOIN season ON season.name LIKE ${seasonVal}
       AND fixture.date > season."startDate"
       AND fixture.date < season."endDate"
   ),
@@ -861,7 +852,7 @@ SELECT
   CONCAT(Player1.first_name,' ',Player1.family_name,' & ',Player2.first_name,' ',Player2.family_name) AS "Pairing",
   player1Id,
   player2Id,
-  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? '(Player1.rating + Player2.rating) / 2 AS "pairRating",' : ''}
+  ${live ? /** @type {Fragment} */ (sql`(Player1.rating + Player2.rating) / 2 AS "pairRating",`) : /** @type {Fragment} */ (sql``)}
   SUM(forPoints) AS "forPoints",
   SUM(againstPoints) AS "againstPoints",
   SUM(gamesWon) AS "gamesWon",
@@ -876,24 +867,24 @@ FROM
   JOIN playerThen Player1 ON Player1.id = a.player1Id
   JOIN playerThen Player2 ON Player2.id = a.player2Id
   JOIN teamThen team ON team.id = a.team
-  ${ (searchObj.division !== undefined) ? 'AND team.division = ?' : ''}
-  AND team.name LIKE ?
+  ${searchObj.division !== undefined ? /** @type {Fragment} */ (sql`AND team.division = ${searchObj.division}`) : /** @type {Fragment} */ (sql``)}
+  AND team.name LIKE ${searchObj.team || '%'}
   JOIN clubThen club ON club.id = Player1.club
-  AND club.name LIKE ?
-  AND "gameType" LIKE ?
+  AND club.name LIKE ${searchObj.club || '%'}
+  AND "gameType" LIKE ${searchObj.gameType || '%'}
 GROUP BY
   "Pairing",
   player1Id,
   player2Id,
   "clubName",
-  ${ (searchObj.season === undefined || !checkSeason(searchObj.season)) ? '"pairRating",' : ''}
+  ${live ? /** @type {Fragment} */ (sql`"pairRating",`) : /** @type {Fragment} */ (sql``)}
   "gameType"
 ORDER BY
   "winRate" DESC,
-  "Points" DESC`
+  "Points" DESC`)
 
-  const [result] = await (await db.otherConnect()).query(sql, [seasonVal, seasonVal, seasonVal, ...whereValue])
-  return result
+  const { rows } = await query.execute(kysely)
+  return rows
 }
 
 // Site-wide role/messerAdmin lookup by login email, for the Auth0Strategy

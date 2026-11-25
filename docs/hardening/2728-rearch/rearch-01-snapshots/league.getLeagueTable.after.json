@@ -1,72 +1,3208 @@
 {
   "function": "league.getLeagueTable",
   "database": "sdbl",
-  "taken": "2026-10-25T22:14:01.502Z",
+  "taken": "2026-11-25T14:51:18.257Z",
   "cases": [
     {
-      "label": "premierLive",
+      "label": "20122013-Premier",
       "args": [
-        "Premier"
+        "Premier",
+        "20122013"
       ],
       "result": [
         {
-          "name": "GHAP A",
-          "played": "4",
-          "pointsFor": "44",
-          "pointsAgainst": "28"
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "283",
+          "gamesLost": "41"
         },
         {
           "name": "Racketeers B",
-          "played": "4",
-          "pointsFor": "41",
-          "pointsAgainst": "31"
-        },
-        {
-          "name": "Featherforce A",
-          "played": "2",
-          "pointsFor": "19",
-          "pointsAgainst": "17"
-        },
-        {
-          "name": "Alderley Park A",
-          "played": "2",
-          "pointsFor": "17",
-          "pointsAgainst": "19"
-        },
-        {
-          "name": "Racketeers A",
-          "played": "1",
-          "pointsFor": "16",
-          "pointsAgainst": "2"
+          "played": "18",
+          "gamesWon": "191",
+          "gamesLost": "133"
         },
         {
           "name": "Shell A",
-          "played": "1",
-          "pointsFor": "10",
-          "pointsAgainst": "8"
+          "played": "18",
+          "gamesWon": "189",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Alexandra",
+          "played": "18",
+          "gamesWon": "182",
+          "gamesLost": "142"
         },
         {
           "name": "Syddal Park A",
-          "played": "1",
-          "pointsFor": "8",
-          "pointsAgainst": "10"
+          "played": "18",
+          "gamesWon": "166",
+          "gamesLost": "158"
         },
         {
-          "name": "David Lloyd A",
-          "played": "2",
-          "pointsFor": "4",
-          "pointsAgainst": "32"
+          "name": "Astrazeneca A",
+          "played": "18",
+          "gamesWon": "157",
+          "gamesLost": "167"
         },
         {
-          "name": "College Green A",
-          "played": "1",
-          "pointsFor": "3",
-          "pointsAgainst": "15"
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "146",
+          "gamesLost": "178"
+        },
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "138",
+          "gamesLost": "186"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "18",
+          "gamesWon": "117",
+          "gamesLost": "207"
+        },
+        {
+          "name": "Mellor A",
+          "played": "18",
+          "gamesWon": "51",
+          "gamesLost": "273"
         }
       ]
     },
     {
-      "label": "premierLast",
+      "label": "20122013-Division-1",
+      "args": [
+        "Division-1",
+        "20122013"
+      ],
+      "result": [
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "269",
+          "gamesLost": "55"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "18",
+          "gamesWon": "218",
+          "gamesLost": "106"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "169",
+          "gamesLost": "155"
+        },
+        {
+          "name": "Canute A",
+          "played": "18",
+          "gamesWon": "161",
+          "gamesLost": "163"
+        },
+        {
+          "name": "Poynton A",
+          "played": "18",
+          "gamesWon": "160",
+          "gamesLost": "164"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "18",
+          "gamesWon": "147",
+          "gamesLost": "177"
+        },
+        {
+          "name": "CAP A",
+          "played": "18",
+          "gamesWon": "145",
+          "gamesLost": "179"
+        },
+        {
+          "name": "Carrington B",
+          "played": "18",
+          "gamesWon": "139",
+          "gamesLost": "185"
+        },
+        {
+          "name": "Dome A",
+          "played": "18",
+          "gamesWon": "120",
+          "gamesLost": "204"
+        },
+        {
+          "name": "Manor A",
+          "played": "18",
+          "gamesWon": "92",
+          "gamesLost": "232"
+        }
+      ]
+    },
+    {
+      "label": "20122013-Division-2",
+      "args": [
+        "Division-2",
+        "20122013"
+      ],
+      "result": [
+        {
+          "name": "Blue Triangle",
+          "played": "18",
+          "gamesWon": "214",
+          "gamesLost": "110"
+        },
+        {
+          "name": "College Green B",
+          "played": "18",
+          "gamesWon": "193",
+          "gamesLost": "131"
+        },
+        {
+          "name": "Astrazeneca C",
+          "played": "18",
+          "gamesWon": "188",
+          "gamesLost": "136"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "18",
+          "gamesWon": "179",
+          "gamesLost": "145"
+        },
+        {
+          "name": "Shell C",
+          "played": "18",
+          "gamesWon": "169",
+          "gamesLost": "155"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "18",
+          "gamesWon": "155",
+          "gamesLost": "169"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "18",
+          "gamesWon": "149",
+          "gamesLost": "175"
+        },
+        {
+          "name": "Disley A",
+          "played": "18",
+          "gamesWon": "148",
+          "gamesLost": "174"
+        },
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "18",
+          "gamesWon": "113",
+          "gamesLost": "211"
+        },
+        {
+          "name": "CAP B",
+          "played": "18",
+          "gamesWon": "110",
+          "gamesLost": "212"
+        }
+      ]
+    },
+    {
+      "label": "20122013-Division-3",
+      "args": [
+        "Division-3",
+        "20122013"
+      ],
+      "result": [
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "222",
+          "gamesLost": "66"
+        },
+        {
+          "name": "Astrazeneca D",
+          "played": "16",
+          "gamesWon": "189",
+          "gamesLost": "99"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "161",
+          "gamesLost": "127"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "157",
+          "gamesLost": "131"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "146",
+          "gamesLost": "142"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "144",
+          "gamesLost": "144"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "118",
+          "gamesLost": "170"
+        },
+        {
+          "name": "Poynton B",
+          "played": "16",
+          "gamesWon": "87",
+          "gamesLost": "201"
+        },
+        {
+          "name": "Manor B",
+          "played": "16",
+          "gamesWon": "72",
+          "gamesLost": "216"
+        }
+      ]
+    },
+    {
+      "label": "20122013-Division-4",
+      "args": [
+        "Division-4",
+        "20122013"
+      ],
+      "result": []
+    },
+    {
+      "label": "20132014-Premier",
+      "args": [
+        "Premier",
+        "20132014"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "260",
+          "gamesLost": "64"
+        },
+        {
+          "name": "Alexandra",
+          "played": "18",
+          "gamesWon": "234",
+          "gamesLost": "90"
+        },
+        {
+          "name": "Shell A",
+          "played": "18",
+          "gamesWon": "206",
+          "gamesLost": "118"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "18",
+          "gamesWon": "192",
+          "gamesLost": "132"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "18",
+          "gamesWon": "170",
+          "gamesLost": "154"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "152",
+          "gamesLost": "172"
+        },
+        {
+          "name": "Astrazeneca A",
+          "played": "18",
+          "gamesWon": "136",
+          "gamesLost": "188"
+        },
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "125",
+          "gamesLost": "199"
+        },
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "108",
+          "gamesLost": "216"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "18",
+          "gamesWon": "37",
+          "gamesLost": "287"
+        }
+      ]
+    },
+    {
+      "label": "20132014-Division-1",
+      "args": [
+        "Division-1",
+        "20132014"
+      ],
+      "result": [
+        {
+          "name": "Canute A",
+          "played": "18",
+          "gamesWon": "259",
+          "gamesLost": "64"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "223",
+          "gamesLost": "101"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "18",
+          "gamesWon": "221",
+          "gamesLost": "103"
+        },
+        {
+          "name": "Mellor A",
+          "played": "18",
+          "gamesWon": "191",
+          "gamesLost": "133"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "18",
+          "gamesWon": "174",
+          "gamesLost": "150"
+        },
+        {
+          "name": "Poynton A",
+          "played": "18",
+          "gamesWon": "147",
+          "gamesLost": "177"
+        },
+        {
+          "name": "CAP A",
+          "played": "18",
+          "gamesWon": "126",
+          "gamesLost": "197"
+        },
+        {
+          "name": "Blue Triangle",
+          "played": "18",
+          "gamesWon": "121",
+          "gamesLost": "203"
+        },
+        {
+          "name": "Carrington B",
+          "played": "18",
+          "gamesWon": "82",
+          "gamesLost": "242"
+        },
+        {
+          "name": "College Green B",
+          "played": "18",
+          "gamesWon": "75",
+          "gamesLost": "249"
+        }
+      ]
+    },
+    {
+      "label": "20132014-Division-2",
+      "args": [
+        "Division-2",
+        "20132014"
+      ],
+      "result": [
+        {
+          "name": "Astrazeneca C",
+          "played": "18",
+          "gamesWon": "213",
+          "gamesLost": "111"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "18",
+          "gamesWon": "208",
+          "gamesLost": "116"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "18",
+          "gamesWon": "206",
+          "gamesLost": "118"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "18",
+          "gamesWon": "173",
+          "gamesLost": "151"
+        },
+        {
+          "name": "Shell C",
+          "played": "18",
+          "gamesWon": "158",
+          "gamesLost": "166"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "18",
+          "gamesWon": "156",
+          "gamesLost": "168"
+        },
+        {
+          "name": "Disley A",
+          "played": "18",
+          "gamesWon": "152",
+          "gamesLost": "172"
+        },
+        {
+          "name": "Manor A",
+          "played": "18",
+          "gamesWon": "134",
+          "gamesLost": "190"
+        },
+        {
+          "name": "Dome A",
+          "played": "18",
+          "gamesWon": "127",
+          "gamesLost": "197"
+        },
+        {
+          "name": "Astrazeneca D",
+          "played": "18",
+          "gamesWon": "93",
+          "gamesLost": "231"
+        }
+      ]
+    },
+    {
+      "label": "20132014-Division-3",
+      "args": [
+        "Division-3",
+        "20132014"
+      ],
+      "result": [
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "16",
+          "gamesWon": "230",
+          "gamesLost": "58"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "227",
+          "gamesLost": "61"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "158",
+          "gamesLost": "130"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "144",
+          "gamesLost": "144"
+        },
+        {
+          "name": "CAP B",
+          "played": "16",
+          "gamesWon": "140",
+          "gamesLost": "148"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "134",
+          "gamesLost": "154"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "127",
+          "gamesLost": "161"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "72",
+          "gamesLost": "216"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "16",
+          "gamesWon": "64",
+          "gamesLost": "224"
+        }
+      ]
+    },
+    {
+      "label": "20132014-Division-4",
+      "args": [
+        "Division-4",
+        "20132014"
+      ],
+      "result": []
+    },
+    {
+      "label": "20142015-Premier",
+      "args": [
+        "Premier",
+        "20142015"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "265",
+          "gamesLost": "59"
+        },
+        {
+          "name": "Shell A",
+          "played": "18",
+          "gamesWon": "232",
+          "gamesLost": "92"
+        },
+        {
+          "name": "Canute A",
+          "played": "18",
+          "gamesWon": "196",
+          "gamesLost": "128"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "174",
+          "gamesLost": "150"
+        },
+        {
+          "name": "Alexandra",
+          "played": "18",
+          "gamesWon": "171",
+          "gamesLost": "153"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "18",
+          "gamesWon": "160",
+          "gamesLost": "164"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "18",
+          "gamesWon": "156",
+          "gamesLost": "168"
+        },
+        {
+          "name": "Astrazeneca A",
+          "played": "18",
+          "gamesWon": "116",
+          "gamesLost": "208"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "76",
+          "gamesLost": "248"
+        },
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "74",
+          "gamesLost": "250"
+        }
+      ]
+    },
+    {
+      "label": "20142015-Division-1",
+      "args": [
+        "Division-1",
+        "20142015"
+      ],
+      "result": [
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "227",
+          "gamesLost": "61"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "16",
+          "gamesWon": "221",
+          "gamesLost": "67"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "198",
+          "gamesLost": "90"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "16",
+          "gamesWon": "147",
+          "gamesLost": "141"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "16",
+          "gamesWon": "114",
+          "gamesLost": "174"
+        },
+        {
+          "name": "Poynton A",
+          "played": "16",
+          "gamesWon": "107",
+          "gamesLost": "181"
+        },
+        {
+          "name": "Blue Triangle",
+          "played": "16",
+          "gamesWon": "102",
+          "gamesLost": "186"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "94",
+          "gamesLost": "194"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "86",
+          "gamesLost": "202"
+        }
+      ]
+    },
+    {
+      "label": "20142015-Division-2",
+      "args": [
+        "Division-2",
+        "20142015"
+      ],
+      "result": [
+        {
+          "name": "Disley A",
+          "played": "18",
+          "gamesWon": "237",
+          "gamesLost": "87"
+        },
+        {
+          "name": "Carrington B",
+          "played": "18",
+          "gamesWon": "192",
+          "gamesLost": "132"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "18",
+          "gamesWon": "182",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Manor A",
+          "played": "18",
+          "gamesWon": "171",
+          "gamesLost": "153"
+        },
+        {
+          "name": "College Green B",
+          "played": "18",
+          "gamesWon": "169",
+          "gamesLost": "155"
+        },
+        {
+          "name": "Shell C",
+          "played": "18",
+          "gamesWon": "167",
+          "gamesLost": "157"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "18",
+          "gamesWon": "147",
+          "gamesLost": "177"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "18",
+          "gamesWon": "140",
+          "gamesLost": "184"
+        },
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "18",
+          "gamesWon": "119",
+          "gamesLost": "205"
+        },
+        {
+          "name": "Dome A",
+          "played": "18",
+          "gamesWon": "96",
+          "gamesLost": "228"
+        }
+      ]
+    },
+    {
+      "label": "20142015-Division-3",
+      "args": [
+        "Division-3",
+        "20142015"
+      ],
+      "result": [
+        {
+          "name": "CAP A",
+          "played": "16",
+          "gamesWon": "223",
+          "gamesLost": "65"
+        },
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "gamesWon": "210",
+          "gamesLost": "78"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "155",
+          "gamesLost": "133"
+        },
+        {
+          "name": "Astrazeneca C",
+          "played": "16",
+          "gamesWon": "154",
+          "gamesLost": "134"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "119",
+          "gamesLost": "169"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "117",
+          "gamesLost": "171"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "116",
+          "gamesLost": "172"
+        },
+        {
+          "name": "Manor B",
+          "played": "16",
+          "gamesWon": "108",
+          "gamesLost": "180"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "16",
+          "gamesWon": "94",
+          "gamesLost": "194"
+        }
+      ]
+    },
+    {
+      "label": "20142015-Division-4",
+      "args": [
+        "Division-4",
+        "20142015"
+      ],
+      "result": []
+    },
+    {
+      "label": "20152016-Premier",
+      "args": [
+        "Premier",
+        "20152016"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "244",
+          "gamesLost": "80"
+        },
+        {
+          "name": "Shell A",
+          "played": "18",
+          "gamesWon": "231",
+          "gamesLost": "93"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "195",
+          "gamesLost": "129"
+        },
+        {
+          "name": "Canute A",
+          "played": "18",
+          "gamesWon": "183",
+          "gamesLost": "141"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "18",
+          "gamesWon": "175",
+          "gamesLost": "149"
+        },
+        {
+          "name": "Alexandra",
+          "played": "18",
+          "gamesWon": "142",
+          "gamesLost": "182"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "18",
+          "gamesWon": "142",
+          "gamesLost": "182"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "18",
+          "gamesWon": "111",
+          "gamesLost": "213"
+        },
+        {
+          "name": "Astrazeneca A",
+          "played": "18",
+          "gamesWon": "107",
+          "gamesLost": "217"
+        },
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "90",
+          "gamesLost": "234"
+        }
+      ]
+    },
+    {
+      "label": "20152016-Division-1",
+      "args": [
+        "Division-1",
+        "20152016"
+      ],
+      "result": [
+        {
+          "name": "Carrington A",
+          "played": "16",
+          "gamesWon": "210",
+          "gamesLost": "78"
+        },
+        {
+          "name": "College Green A",
+          "played": "16",
+          "gamesWon": "170",
+          "gamesLost": "118"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "164",
+          "gamesLost": "124"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "16",
+          "gamesWon": "146",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Disley A",
+          "played": "16",
+          "gamesWon": "136",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Blue Triangle",
+          "played": "16",
+          "gamesWon": "136",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Carrington B",
+          "played": "16",
+          "gamesWon": "128",
+          "gamesLost": "147"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "112",
+          "gamesLost": "176"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "16",
+          "gamesWon": "81",
+          "gamesLost": "194"
+        }
+      ]
+    },
+    {
+      "label": "20152016-Division-2",
+      "args": [
+        "Division-2",
+        "20152016"
+      ],
+      "result": [
+        {
+          "name": "Shell C",
+          "played": "16",
+          "gamesWon": "185",
+          "gamesLost": "103"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "172",
+          "gamesLost": "116"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "16",
+          "gamesWon": "156",
+          "gamesLost": "132"
+        },
+        {
+          "name": "CAP A",
+          "played": "16",
+          "gamesWon": "145",
+          "gamesLost": "143"
+        },
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "gamesWon": "142",
+          "gamesLost": "146"
+        },
+        {
+          "name": "Manor A",
+          "played": "16",
+          "gamesWon": "134",
+          "gamesLost": "154"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "132",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "132",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "98",
+          "gamesLost": "190"
+        }
+      ]
+    },
+    {
+      "label": "20152016-Division-3",
+      "args": [
+        "Division-3",
+        "20152016"
+      ],
+      "result": [
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "16",
+          "gamesWon": "235",
+          "gamesLost": "53"
+        },
+        {
+          "name": "Dome A",
+          "played": "16",
+          "gamesWon": "182",
+          "gamesLost": "106"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "164",
+          "gamesLost": "124"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "153",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "153",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "147",
+          "gamesLost": "141"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "111",
+          "gamesLost": "177"
+        },
+        {
+          "name": "Astrazeneca C",
+          "played": "16",
+          "gamesWon": "77",
+          "gamesLost": "211"
+        },
+        {
+          "name": "Bramhall Queensgate B",
+          "played": "16",
+          "gamesWon": "74",
+          "gamesLost": "214"
+        }
+      ]
+    },
+    {
+      "label": "20152016-Division-4",
+      "args": [
+        "Division-4",
+        "20152016"
+      ],
+      "result": []
+    },
+    {
+      "label": "20162017-Premier",
+      "args": [
+        "Premier",
+        "20162017"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "265",
+          "gamesLost": "59"
+        },
+        {
+          "name": "Shell A",
+          "played": "18",
+          "gamesWon": "235",
+          "gamesLost": "89"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "223",
+          "gamesLost": "101"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "18",
+          "gamesWon": "215",
+          "gamesLost": "109"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "18",
+          "gamesWon": "154",
+          "gamesLost": "170"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "18",
+          "gamesWon": "141",
+          "gamesLost": "183"
+        },
+        {
+          "name": "Canute A",
+          "played": "18",
+          "gamesWon": "120",
+          "gamesLost": "204"
+        },
+        {
+          "name": "Alexandra",
+          "played": "18",
+          "gamesWon": "120",
+          "gamesLost": "204"
+        },
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "80",
+          "gamesLost": "244"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "67",
+          "gamesLost": "257"
+        }
+      ]
+    },
+    {
+      "label": "20162017-Division-1",
+      "args": [
+        "Division-1",
+        "20162017"
+      ],
+      "result": [
+        {
+          "name": "Astrazeneca A",
+          "played": "16",
+          "gamesWon": "260",
+          "gamesLost": "28"
+        },
+        {
+          "name": "Disley A",
+          "played": "16",
+          "gamesWon": "179",
+          "gamesLost": "109"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "153",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Blue Triangle",
+          "played": "16",
+          "gamesWon": "146",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "139",
+          "gamesLost": "149"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "16",
+          "gamesWon": "129",
+          "gamesLost": "159"
+        },
+        {
+          "name": "Carrington B",
+          "played": "16",
+          "gamesWon": "123",
+          "gamesLost": "165"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "100",
+          "gamesLost": "188"
+        },
+        {
+          "name": "Shell C",
+          "played": "16",
+          "gamesWon": "67",
+          "gamesLost": "221"
+        }
+      ]
+    },
+    {
+      "label": "20162017-Division-2",
+      "args": [
+        "Division-2",
+        "20162017"
+      ],
+      "result": [
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "gamesWon": "195",
+          "gamesLost": "93"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "172",
+          "gamesLost": "116"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "164",
+          "gamesLost": "124"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "157",
+          "gamesLost": "131"
+        },
+        {
+          "name": "Manor A",
+          "played": "16",
+          "gamesWon": "136",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "16",
+          "gamesWon": "129",
+          "gamesLost": "159"
+        },
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "16",
+          "gamesWon": "126",
+          "gamesLost": "162"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "16",
+          "gamesWon": "115",
+          "gamesLost": "173"
+        },
+        {
+          "name": "CAP A",
+          "played": "16",
+          "gamesWon": "102",
+          "gamesLost": "186"
+        }
+      ]
+    },
+    {
+      "label": "20162017-Division-3",
+      "args": [
+        "Division-3",
+        "20162017"
+      ],
+      "result": [
+        {
+          "name": "College Green C",
+          "played": "18",
+          "gamesWon": "234",
+          "gamesLost": "90"
+        },
+        {
+          "name": "Dome A",
+          "played": "18",
+          "gamesWon": "214",
+          "gamesLost": "111"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "18",
+          "gamesWon": "193",
+          "gamesLost": "131"
+        },
+        {
+          "name": "Disley B",
+          "played": "18",
+          "gamesWon": "184",
+          "gamesLost": "140"
+        },
+        {
+          "name": "New Mills A",
+          "played": "18",
+          "gamesWon": "182",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Blue Triangle B",
+          "played": "18",
+          "gamesWon": "175",
+          "gamesLost": "149"
+        },
+        {
+          "name": "Mellor B",
+          "played": "18",
+          "gamesWon": "131",
+          "gamesLost": "193"
+        },
+        {
+          "name": "Dome B",
+          "played": "18",
+          "gamesWon": "121",
+          "gamesLost": "204"
+        },
+        {
+          "name": "Manor B",
+          "played": "18",
+          "gamesWon": "115",
+          "gamesLost": "209"
+        },
+        {
+          "name": "Tatton A",
+          "played": "18",
+          "gamesWon": "72",
+          "gamesLost": "252"
+        }
+      ]
+    },
+    {
+      "label": "20162017-Division-4",
+      "args": [
+        "Division-4",
+        "20162017"
+      ],
+      "result": []
+    },
+    {
+      "label": "20172018-Premier",
+      "args": [
+        "Premier",
+        "20172018"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "16",
+          "gamesWon": "241",
+          "gamesLost": "47"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "16",
+          "gamesWon": "203",
+          "gamesLost": "85"
+        },
+        {
+          "name": "Shell A",
+          "played": "16",
+          "gamesWon": "172",
+          "gamesLost": "116"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "16",
+          "gamesWon": "151",
+          "gamesLost": "137"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "16",
+          "gamesWon": "121",
+          "gamesLost": "167"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "16",
+          "gamesWon": "117",
+          "gamesLost": "171"
+        },
+        {
+          "name": "Astrazeneca A",
+          "played": "16",
+          "gamesWon": "102",
+          "gamesLost": "186"
+        },
+        {
+          "name": "Canute A",
+          "played": "16",
+          "gamesWon": "98",
+          "gamesLost": "190"
+        },
+        {
+          "name": "Disley A",
+          "played": "16",
+          "gamesWon": "91",
+          "gamesLost": "197"
+        }
+      ]
+    },
+    {
+      "label": "20172018-Division-1",
+      "args": [
+        "Division-1",
+        "20172018"
+      ],
+      "result": [
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "222",
+          "gamesLost": "102"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "208",
+          "gamesLost": "116"
+        },
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "208",
+          "gamesLost": "116"
+        },
+        {
+          "name": "GHAP A",
+          "played": "18",
+          "gamesWon": "197",
+          "gamesLost": "127"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "18",
+          "gamesWon": "168",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Blue Triangle",
+          "played": "18",
+          "gamesWon": "157",
+          "gamesLost": "167"
+        },
+        {
+          "name": "Carrington B",
+          "played": "18",
+          "gamesWon": "154",
+          "gamesLost": "170"
+        },
+        {
+          "name": "Astrazeneca B",
+          "played": "18",
+          "gamesWon": "134",
+          "gamesLost": "190"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "18",
+          "gamesWon": "87",
+          "gamesLost": "237"
+        },
+        {
+          "name": "College Green B",
+          "played": "18",
+          "gamesWon": "85",
+          "gamesLost": "239"
+        }
+      ]
+    },
+    {
+      "label": "20172018-Division-2",
+      "args": [
+        "Division-2",
+        "20172018"
+      ],
+      "result": [
+        {
+          "name": "Syddal Park C",
+          "played": "18",
+          "gamesWon": "209",
+          "gamesLost": "115"
+        },
+        {
+          "name": "Bramhall Queensgate A",
+          "played": "18",
+          "gamesWon": "191",
+          "gamesLost": "133"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "18",
+          "gamesWon": "186",
+          "gamesLost": "138"
+        },
+        {
+          "name": "Manor A",
+          "played": "18",
+          "gamesWon": "171",
+          "gamesLost": "153"
+        },
+        {
+          "name": "Shell C",
+          "played": "18",
+          "gamesWon": "168",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Dome A",
+          "played": "18",
+          "gamesWon": "167",
+          "gamesLost": "157"
+        },
+        {
+          "name": "Mellor A",
+          "played": "18",
+          "gamesWon": "154",
+          "gamesLost": "170"
+        },
+        {
+          "name": "CAP A",
+          "played": "18",
+          "gamesWon": "153",
+          "gamesLost": "171"
+        },
+        {
+          "name": "College Green C",
+          "played": "18",
+          "gamesWon": "123",
+          "gamesLost": "200"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "18",
+          "gamesWon": "97",
+          "gamesLost": "226"
+        }
+      ]
+    },
+    {
+      "label": "20172018-Division-3",
+      "args": [
+        "Division-3",
+        "20172018"
+      ],
+      "result": [
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "223",
+          "gamesLost": "65"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "206",
+          "gamesLost": "82"
+        },
+        {
+          "name": "GHAP B",
+          "played": "16",
+          "gamesWon": "175",
+          "gamesLost": "113"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "153",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Astrazeneca C",
+          "played": "16",
+          "gamesWon": "136",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Manor B",
+          "played": "16",
+          "gamesWon": "117",
+          "gamesLost": "171"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "105",
+          "gamesLost": "183"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "93",
+          "gamesLost": "195"
+        },
+        {
+          "name": "Disley C",
+          "played": "16",
+          "gamesWon": "88",
+          "gamesLost": "200"
+        }
+      ]
+    },
+    {
+      "label": "20172018-Division-4",
+      "args": [
+        "Division-4",
+        "20172018"
+      ],
+      "result": []
+    },
+    {
+      "label": "20182019-Premier",
+      "args": [
+        "Premier",
+        "20182019"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "18",
+          "gamesWon": "286",
+          "gamesLost": "38"
+        },
+        {
+          "name": "Shell A",
+          "played": "18",
+          "gamesWon": "238",
+          "gamesLost": "86"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "224",
+          "gamesLost": "100"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "18",
+          "gamesWon": "212",
+          "gamesLost": "112"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "18",
+          "gamesWon": "200",
+          "gamesLost": "124"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "18",
+          "gamesWon": "108",
+          "gamesLost": "216"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "18",
+          "gamesWon": "102",
+          "gamesLost": "222"
+        },
+        {
+          "name": "Carrington A",
+          "played": "18",
+          "gamesWon": "102",
+          "gamesLost": "222"
+        },
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "77",
+          "gamesLost": "247"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "71",
+          "gamesLost": "253"
+        }
+      ]
+    },
+    {
+      "label": "20182019-Division-1",
+      "args": [
+        "Division-1",
+        "20182019"
+      ],
+      "result": [
+        {
+          "name": "Disley A",
+          "played": "16",
+          "gamesWon": "218",
+          "gamesLost": "70"
+        },
+        {
+          "name": "Canute A",
+          "played": "16",
+          "gamesWon": "216",
+          "gamesLost": "72"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "191",
+          "gamesLost": "97"
+        },
+        {
+          "name": "Altrincham Central",
+          "played": "16",
+          "gamesWon": "161",
+          "gamesLost": "127"
+        },
+        {
+          "name": "Carrington B",
+          "played": "16",
+          "gamesWon": "130",
+          "gamesLost": "158"
+        },
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "gamesWon": "130",
+          "gamesLost": "158"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "16",
+          "gamesWon": "109",
+          "gamesLost": "179"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "16",
+          "gamesWon": "99",
+          "gamesLost": "189"
+        },
+        {
+          "name": "Bramhall Village A",
+          "played": "16",
+          "gamesWon": "42",
+          "gamesLost": "246"
+        }
+      ]
+    },
+    {
+      "label": "20182019-Division-2",
+      "args": [
+        "Division-2",
+        "20182019"
+      ],
+      "result": [
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "193",
+          "gamesLost": "95"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "181",
+          "gamesLost": "107"
+        },
+        {
+          "name": "Manor A",
+          "played": "16",
+          "gamesWon": "174",
+          "gamesLost": "114"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "152",
+          "gamesLost": "136"
+        },
+        {
+          "name": "Shell C",
+          "played": "16",
+          "gamesWon": "146",
+          "gamesLost": "142"
+        },
+        {
+          "name": "CAP A",
+          "played": "16",
+          "gamesWon": "143",
+          "gamesLost": "145"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "130",
+          "gamesLost": "158"
+        },
+        {
+          "name": "Dome A",
+          "played": "16",
+          "gamesWon": "115",
+          "gamesLost": "173"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "62",
+          "gamesLost": "226"
+        }
+      ]
+    },
+    {
+      "label": "20182019-Division-3",
+      "args": [
+        "Division-3",
+        "20182019"
+      ],
+      "result": [
+        {
+          "name": "GHAP B",
+          "played": "16",
+          "gamesWon": "217",
+          "gamesLost": "71"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "181",
+          "gamesLost": "107"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "168",
+          "gamesLost": "120"
+        },
+        {
+          "name": "New Mills A",
+          "played": "16",
+          "gamesWon": "164",
+          "gamesLost": "124"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "16",
+          "gamesWon": "160",
+          "gamesLost": "128"
+        },
+        {
+          "name": "Manor B",
+          "played": "16",
+          "gamesWon": "136",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "16",
+          "gamesWon": "111",
+          "gamesLost": "177"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "82",
+          "gamesLost": "206"
+        },
+        {
+          "name": "Tatton A",
+          "played": "16",
+          "gamesWon": "77",
+          "gamesLost": "211"
+        }
+      ]
+    },
+    {
+      "label": "20182019-Division-4",
+      "args": [
+        "Division-4",
+        "20182019"
+      ],
+      "result": []
+    },
+    {
+      "label": "20192020-Premier",
+      "args": [
+        "Premier",
+        "20192020"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "13",
+          "gamesWon": "203",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "14",
+          "gamesWon": "151",
+          "gamesLost": "101"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "13",
+          "gamesWon": "132",
+          "gamesLost": "102"
+        },
+        {
+          "name": "Shell A",
+          "played": "12",
+          "gamesWon": "127",
+          "gamesLost": "89"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "13",
+          "gamesWon": "122",
+          "gamesLost": "112"
+        },
+        {
+          "name": "Disley A",
+          "played": "10",
+          "gamesWon": "92",
+          "gamesLost": "88"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "13",
+          "gamesWon": "92",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "14",
+          "gamesWon": "88",
+          "gamesLost": "164"
+        },
+        {
+          "name": "Canute A",
+          "played": "9",
+          "gamesWon": "64",
+          "gamesLost": "98"
+        },
+        {
+          "name": "Carrington A",
+          "played": "13",
+          "gamesWon": "45",
+          "gamesLost": "189"
+        }
+      ]
+    },
+    {
+      "label": "20192020-Division-1",
+      "args": [
+        "Division-1",
+        "20192020"
+      ],
+      "result": [
+        {
+          "name": "Parrswood A",
+          "played": "12",
+          "gamesWon": "166",
+          "gamesLost": "50"
+        },
+        {
+          "name": "College Green A",
+          "played": "14",
+          "gamesWon": "139",
+          "gamesLost": "113"
+        },
+        {
+          "name": "Carrington B",
+          "played": "15",
+          "gamesWon": "136",
+          "gamesLost": "134"
+        },
+        {
+          "name": "Altrincham Central",
+          "played": "13",
+          "gamesWon": "131",
+          "gamesLost": "103"
+        },
+        {
+          "name": "Shell B",
+          "played": "12",
+          "gamesWon": "116",
+          "gamesLost": "100"
+        },
+        {
+          "name": "GHAP A",
+          "played": "12",
+          "gamesWon": "115",
+          "gamesLost": "101"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "15",
+          "gamesWon": "115",
+          "gamesLost": "155"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "13",
+          "gamesWon": "92",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "12",
+          "gamesWon": "52",
+          "gamesLost": "164"
+        }
+      ]
+    },
+    {
+      "label": "20192020-Division-2",
+      "args": [
+        "Division-2",
+        "20192020"
+      ],
+      "result": [
+        {
+          "name": "Syddal Park C",
+          "played": "13",
+          "gamesWon": "161",
+          "gamesLost": "73"
+        },
+        {
+          "name": "College Green B",
+          "played": "12",
+          "gamesWon": "141",
+          "gamesLost": "75"
+        },
+        {
+          "name": "Shell C",
+          "played": "11",
+          "gamesWon": "108",
+          "gamesLost": "90"
+        },
+        {
+          "name": "Mellor A",
+          "played": "10",
+          "gamesWon": "105",
+          "gamesLost": "75"
+        },
+        {
+          "name": "Manor A",
+          "played": "11",
+          "gamesWon": "90",
+          "gamesLost": "108"
+        },
+        {
+          "name": "College Green C",
+          "played": "13",
+          "gamesWon": "82",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Bramhall Village A",
+          "played": "12",
+          "gamesWon": "78",
+          "gamesLost": "138"
+        },
+        {
+          "name": "GHAP B",
+          "played": "10",
+          "gamesWon": "63",
+          "gamesLost": "117"
+        }
+      ]
+    },
+    {
+      "label": "20192020-Division-3",
+      "args": [
+        "Division-3",
+        "20192020"
+      ],
+      "result": [
+        {
+          "name": "Disley B",
+          "played": "13",
+          "gamesWon": "172",
+          "gamesLost": "26"
+        },
+        {
+          "name": "Dome A",
+          "played": "11",
+          "gamesWon": "154",
+          "gamesLost": "44"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "15",
+          "gamesWon": "145",
+          "gamesLost": "125"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "11",
+          "gamesWon": "140",
+          "gamesLost": "58"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "13",
+          "gamesWon": "95",
+          "gamesLost": "139"
+        },
+        {
+          "name": "Manor B",
+          "played": "14",
+          "gamesWon": "90",
+          "gamesLost": "162"
+        },
+        {
+          "name": "Disley C",
+          "played": "13",
+          "gamesWon": "77",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Mellor B",
+          "played": "12",
+          "gamesWon": "64",
+          "gamesLost": "152"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "12",
+          "gamesWon": "52",
+          "gamesLost": "164"
+        }
+      ]
+    },
+    {
+      "label": "20192020-Division-4",
+      "args": [
+        "Division-4",
+        "20192020"
+      ],
+      "result": []
+    },
+    {
+      "label": "20212022-Premier",
+      "args": [
+        "Premier",
+        "20212022"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "17",
+          "gamesWon": "276",
+          "gamesLost": "30"
+        },
+        {
+          "name": "Shell A",
+          "played": "17",
+          "gamesWon": "231",
+          "gamesLost": "75"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "17",
+          "gamesWon": "179",
+          "gamesLost": "127"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "17",
+          "gamesWon": "177",
+          "gamesLost": "129"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "18",
+          "gamesWon": "143",
+          "gamesLost": "181"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "17",
+          "gamesWon": "122",
+          "gamesLost": "184"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "16",
+          "gamesWon": "99",
+          "gamesLost": "189"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "17",
+          "gamesWon": "96",
+          "gamesLost": "210"
+        },
+        {
+          "name": "Canute A",
+          "played": "16",
+          "gamesWon": "86",
+          "gamesLost": "202"
+        },
+        {
+          "name": "Disley A",
+          "played": "8",
+          "gamesWon": "31",
+          "gamesLost": "113"
+        }
+      ]
+    },
+    {
+      "label": "20212022-Division-1",
+      "args": [
+        "Division-1",
+        "20212022"
+      ],
+      "result": [
+        {
+          "name": "Shell B",
+          "played": "18",
+          "gamesWon": "211",
+          "gamesLost": "113"
+        },
+        {
+          "name": "GHAP A",
+          "played": "18",
+          "gamesWon": "190",
+          "gamesLost": "134"
+        },
+        {
+          "name": "Altrincham Central",
+          "played": "18",
+          "gamesWon": "187",
+          "gamesLost": "137"
+        },
+        {
+          "name": "College Green B",
+          "played": "18",
+          "gamesWon": "183",
+          "gamesLost": "141"
+        },
+        {
+          "name": "College Green A",
+          "played": "18",
+          "gamesWon": "181",
+          "gamesLost": "143"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "18",
+          "gamesWon": "159",
+          "gamesLost": "165"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "18",
+          "gamesWon": "151",
+          "gamesLost": "173"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "18",
+          "gamesWon": "147",
+          "gamesLost": "177"
+        },
+        {
+          "name": "Shell C",
+          "played": "18",
+          "gamesWon": "89",
+          "gamesLost": "192"
+        },
+        {
+          "name": "Mellor A",
+          "played": "18",
+          "gamesWon": "79",
+          "gamesLost": "245"
+        }
+      ]
+    },
+    {
+      "label": "20212022-Division-2",
+      "args": [
+        "Division-2",
+        "20212022"
+      ],
+      "result": [
+        {
+          "name": "Dome A",
+          "played": "14",
+          "gamesWon": "206",
+          "gamesLost": "46"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "14",
+          "gamesWon": "175",
+          "gamesLost": "77"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "14",
+          "gamesWon": "165",
+          "gamesLost": "87"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "14",
+          "gamesWon": "111",
+          "gamesLost": "141"
+        },
+        {
+          "name": "Disley B",
+          "played": "14",
+          "gamesWon": "106",
+          "gamesLost": "146"
+        },
+        {
+          "name": "Manor A",
+          "played": "14",
+          "gamesWon": "103",
+          "gamesLost": "149"
+        },
+        {
+          "name": "College Green C",
+          "played": "14",
+          "gamesWon": "75",
+          "gamesLost": "177"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "14",
+          "gamesWon": "67",
+          "gamesLost": "185"
+        }
+      ]
+    },
+    {
+      "label": "20212022-Division-3",
+      "args": [
+        "Division-3",
+        "20212022"
+      ],
+      "result": [
+        {
+          "name": "Dome B",
+          "played": "18",
+          "gamesWon": "250",
+          "gamesLost": "74"
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "18",
+          "gamesWon": "218",
+          "gamesLost": "106"
+        },
+        {
+          "name": "Mellor B",
+          "played": "18",
+          "gamesWon": "216",
+          "gamesLost": "108"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "18",
+          "gamesWon": "212",
+          "gamesLost": "112"
+        },
+        {
+          "name": "Tatton A",
+          "played": "17",
+          "gamesWon": "166",
+          "gamesLost": "140"
+        },
+        {
+          "name": "Disley C",
+          "played": "18",
+          "gamesWon": "161",
+          "gamesLost": "163"
+        },
+        {
+          "name": "College Green D",
+          "played": "18",
+          "gamesWon": "126",
+          "gamesLost": "198"
+        },
+        {
+          "name": "Cheadle Hulme B",
+          "played": "18",
+          "gamesWon": "104",
+          "gamesLost": "220"
+        },
+        {
+          "name": "Mellor C",
+          "played": "17",
+          "gamesWon": "86",
+          "gamesLost": "220"
+        },
+        {
+          "name": "Manor B",
+          "played": "18",
+          "gamesWon": "63",
+          "gamesLost": "261"
+        }
+      ]
+    },
+    {
+      "label": "20212022-Division-4",
+      "args": [
+        "Division-4",
+        "20212022"
+      ],
+      "result": []
+    },
+    {
+      "label": "20222023-Premier",
+      "args": [
+        "Premier",
+        "20222023"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "16",
+          "gamesWon": "255",
+          "gamesLost": "33"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "16",
+          "gamesWon": "180",
+          "gamesLost": "108"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "16",
+          "gamesWon": "154",
+          "gamesLost": "134"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "148",
+          "gamesLost": "140"
+        },
+        {
+          "name": "Shell A",
+          "played": "16",
+          "gamesWon": "143",
+          "gamesLost": "145"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "16",
+          "gamesWon": "131",
+          "gamesLost": "157"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "16",
+          "gamesWon": "126",
+          "gamesLost": "162"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "16",
+          "gamesWon": "96",
+          "gamesLost": "192"
+        },
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "63",
+          "gamesLost": "225"
+        }
+      ]
+    },
+    {
+      "label": "20222023-Division-1",
+      "args": [
+        "Division-1",
+        "20222023"
+      ],
+      "result": [
+        {
+          "name": "Disley A",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Canute A",
+          "played": "14",
+          "gamesWon": "186",
+          "gamesLost": "66"
+        },
+        {
+          "name": "College Green A",
+          "played": "14",
+          "gamesWon": "174",
+          "gamesLost": "78"
+        },
+        {
+          "name": "GHAP A",
+          "played": "14",
+          "gamesWon": "166",
+          "gamesLost": "86"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "14",
+          "gamesWon": "120",
+          "gamesLost": "132"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "14",
+          "gamesWon": "106",
+          "gamesLost": "146"
+        },
+        {
+          "name": "Dome A",
+          "played": "14",
+          "gamesWon": "101",
+          "gamesLost": "151"
+        },
+        {
+          "name": "College Green B",
+          "played": "14",
+          "gamesWon": "90",
+          "gamesLost": "162"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "14",
+          "gamesWon": "65",
+          "gamesLost": "187"
+        }
+      ]
+    },
+    {
+      "label": "20222023-Division-2",
+      "args": [
+        "Division-2",
+        "20222023"
+      ],
+      "result": [
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "226",
+          "gamesLost": "50"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "16",
+          "gamesWon": "201",
+          "gamesLost": "75"
+        },
+        {
+          "name": "Shell C",
+          "played": "16",
+          "gamesWon": "163",
+          "gamesLost": "125"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "162",
+          "gamesLost": "126"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "16",
+          "gamesWon": "132",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Manor A",
+          "played": "16",
+          "gamesWon": "116",
+          "gamesLost": "172"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "100",
+          "gamesLost": "188"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "99",
+          "gamesLost": "189"
+        },
+        {
+          "name": "Disley B",
+          "played": "16",
+          "gamesWon": "85",
+          "gamesLost": "203"
+        }
+      ]
+    },
+    {
+      "label": "20222023-Division-3",
+      "args": [
+        "Division-3",
+        "20222023"
+      ],
+      "result": [
+        {
+          "name": "Manor B",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Cheadle Hulme B",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Parrswood C",
+          "played": "12",
+          "gamesWon": "156",
+          "gamesLost": "60"
+        },
+        {
+          "name": "Macclesfield B",
+          "played": "12",
+          "gamesWon": "134",
+          "gamesLost": "82"
+        },
+        {
+          "name": "Mellor B",
+          "played": "12",
+          "gamesWon": "127",
+          "gamesLost": "89"
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "12",
+          "gamesWon": "104",
+          "gamesLost": "112"
+        },
+        {
+          "name": "Tatton A",
+          "played": "12",
+          "gamesWon": "87",
+          "gamesLost": "129"
+        },
+        {
+          "name": "College Green D",
+          "played": "12",
+          "gamesWon": "80",
+          "gamesLost": "136"
+        },
+        {
+          "name": "Mellor C",
+          "played": "12",
+          "gamesWon": "68",
+          "gamesLost": "148"
+        }
+      ]
+    },
+    {
+      "label": "20222023-Division-4",
+      "args": [
+        "Division-4",
+        "20222023"
+      ],
+      "result": []
+    },
+    {
+      "label": "20232024-Premier",
+      "args": [
+        "Premier",
+        "20232024"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "16",
+          "gamesWon": "249",
+          "gamesLost": "39"
+        },
+        {
+          "name": "Shell A",
+          "played": "16",
+          "gamesWon": "174",
+          "gamesLost": "114"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "16",
+          "gamesWon": "159",
+          "gamesLost": "129"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "16",
+          "gamesWon": "157",
+          "gamesLost": "131"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "128",
+          "gamesLost": "160"
+        },
+        {
+          "name": "College Green A",
+          "played": "16",
+          "gamesWon": "122",
+          "gamesLost": "166"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "16",
+          "gamesWon": "114",
+          "gamesLost": "174"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "16",
+          "gamesWon": "108",
+          "gamesLost": "180"
+        },
+        {
+          "name": "Canute A",
+          "played": "16",
+          "gamesWon": "85",
+          "gamesLost": "203"
+        }
+      ]
+    },
+    {
+      "label": "20232024-Division-1",
+      "args": [
+        "Division-1",
+        "20232024"
+      ],
+      "result": [
+        {
+          "name": "GHAP A",
+          "played": "16",
+          "gamesWon": "212",
+          "gamesLost": "76"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "16",
+          "gamesWon": "188",
+          "gamesLost": "100"
+        },
+        {
+          "name": "Dome A",
+          "played": "16",
+          "gamesWon": "159",
+          "gamesLost": "129"
+        },
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "148",
+          "gamesLost": "140"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "16",
+          "gamesWon": "143",
+          "gamesLost": "145"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "131",
+          "gamesLost": "157"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "128",
+          "gamesLost": "160"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "120",
+          "gamesLost": "168"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "67",
+          "gamesLost": "221"
+        }
+      ]
+    },
+    {
+      "label": "20232024-Division-2",
+      "args": [
+        "Division-2",
+        "20232024"
+      ],
+      "result": [
+        {
+          "name": "Shell C",
+          "played": "14",
+          "gamesWon": "155",
+          "gamesLost": "97"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "14",
+          "gamesWon": "153",
+          "gamesLost": "98"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "14",
+          "gamesWon": "135",
+          "gamesLost": "117"
+        },
+        {
+          "name": "Manor A",
+          "played": "14",
+          "gamesWon": "131",
+          "gamesLost": "121"
+        },
+        {
+          "name": "College Green C",
+          "played": "14",
+          "gamesWon": "127",
+          "gamesLost": "125"
+        },
+        {
+          "name": "Mellor A",
+          "played": "14",
+          "gamesWon": "120",
+          "gamesLost": "132"
+        },
+        {
+          "name": "Dome B",
+          "played": "14",
+          "gamesWon": "108",
+          "gamesLost": "144"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "14",
+          "gamesWon": "78",
+          "gamesLost": "174"
+        }
+      ]
+    },
+    {
+      "label": "20232024-Division-3",
+      "args": [
+        "Division-3",
+        "20232024"
+      ],
+      "result": [
+        {
+          "name": "Macclesfield B",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "12",
+          "gamesWon": "156",
+          "gamesLost": "60"
+        },
+        {
+          "name": "Mellor B",
+          "played": "12",
+          "gamesWon": "147",
+          "gamesLost": "69"
+        },
+        {
+          "name": "Disley A",
+          "played": "12",
+          "gamesWon": "107",
+          "gamesLost": "109"
+        },
+        {
+          "name": "Tatton A",
+          "played": "12",
+          "gamesWon": "101",
+          "gamesLost": "115"
+        },
+        {
+          "name": "Cheadle Hulme B",
+          "played": "12",
+          "gamesWon": "92",
+          "gamesLost": "124"
+        },
+        {
+          "name": "College Green D",
+          "played": "12",
+          "gamesWon": "77",
+          "gamesLost": "139"
+        },
+        {
+          "name": "Mellor C",
+          "played": "12",
+          "gamesWon": "76",
+          "gamesLost": "140"
+        }
+      ]
+    },
+    {
+      "label": "20232024-Division-4",
+      "args": [
+        "Division-4",
+        "20232024"
+      ],
+      "result": []
+    },
+    {
+      "label": "20242025-Premier",
+      "args": [
+        "Premier",
+        "20242025"
+      ],
+      "result": [
+        {
+          "name": "Racketeers A",
+          "played": "14",
+          "gamesWon": "222",
+          "gamesLost": "30"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "14",
+          "gamesWon": "142",
+          "gamesLost": "110"
+        },
+        {
+          "name": "Shell A",
+          "played": "14",
+          "gamesWon": "139",
+          "gamesLost": "113"
+        },
+        {
+          "name": "GHAP A",
+          "played": "14",
+          "gamesWon": "122",
+          "gamesLost": "130"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "14",
+          "gamesWon": "119",
+          "gamesLost": "133"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "14",
+          "gamesWon": "107",
+          "gamesLost": "145"
+        },
+        {
+          "name": "College Green A",
+          "played": "14",
+          "gamesWon": "96",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "14",
+          "gamesWon": "61",
+          "gamesLost": "191"
+        }
+      ]
+    },
+    {
+      "label": "20242025-Division-1",
+      "args": [
+        "Division-1",
+        "20242025"
+      ],
+      "result": [
+        {
+          "name": "Alderley Park A",
+          "played": "16",
+          "gamesWon": "255",
+          "gamesLost": "33"
+        },
+        {
+          "name": "Canute A",
+          "played": "16",
+          "gamesWon": "192",
+          "gamesLost": "96"
+        },
+        {
+          "name": "Dome A",
+          "played": "16",
+          "gamesWon": "148",
+          "gamesLost": "140"
+        },
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "146",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Syddal Park C",
+          "played": "16",
+          "gamesWon": "138",
+          "gamesLost": "150"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "132",
+          "gamesLost": "156"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "124",
+          "gamesLost": "164"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "16",
+          "gamesWon": "109",
+          "gamesLost": "179"
+        },
+        {
+          "name": "Shell C",
+          "played": "16",
+          "gamesWon": "52",
+          "gamesLost": "236"
+        }
+      ]
+    },
+    {
+      "label": "20242025-Division-2",
+      "args": [
+        "Division-2",
+        "20242025"
+      ],
+      "result": [
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "206",
+          "gamesLost": "82"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "169",
+          "gamesLost": "119"
+        },
+        {
+          "name": "Manor A",
+          "played": "16",
+          "gamesWon": "160",
+          "gamesLost": "128"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "16",
+          "gamesWon": "158",
+          "gamesLost": "130"
+        },
+        {
+          "name": "College Green C",
+          "played": "16",
+          "gamesWon": "156",
+          "gamesLost": "132"
+        },
+        {
+          "name": "Dome B",
+          "played": "16",
+          "gamesWon": "154",
+          "gamesLost": "134"
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "16",
+          "gamesWon": "139",
+          "gamesLost": "149"
+        },
+        {
+          "name": "Mellor A",
+          "played": "16",
+          "gamesWon": "101",
+          "gamesLost": "187"
+        },
+        {
+          "name": "Mellor B",
+          "played": "16",
+          "gamesWon": "53",
+          "gamesLost": "235"
+        }
+      ]
+    },
+    {
+      "label": "20242025-Division-3",
+      "args": [
+        "Division-3",
+        "20242025"
+      ],
+      "result": [
+        {
+          "name": "Macclesfield B",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Disley A",
+          "played": "14",
+          "gamesWon": "184",
+          "gamesLost": "68"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "14",
+          "gamesWon": "170",
+          "gamesLost": "82"
+        },
+        {
+          "name": "Cheadle Hulme B",
+          "played": "14",
+          "gamesWon": "140",
+          "gamesLost": "112"
+        },
+        {
+          "name": "College Green D",
+          "played": "14",
+          "gamesWon": "129",
+          "gamesLost": "123"
+        },
+        {
+          "name": "Alderley Park D",
+          "played": "14",
+          "gamesWon": "126",
+          "gamesLost": "126"
+        },
+        {
+          "name": "Tatton A",
+          "played": "14",
+          "gamesWon": "95",
+          "gamesLost": "157"
+        },
+        {
+          "name": "College Green E",
+          "played": "14",
+          "gamesWon": "94",
+          "gamesLost": "158"
+        },
+        {
+          "name": "Mellor C",
+          "played": "14",
+          "gamesWon": "70",
+          "gamesLost": "182"
+        }
+      ]
+    },
+    {
+      "label": "20242025-Division-4",
+      "args": [
+        "Division-4",
+        "20242025"
+      ],
+      "result": []
+    },
+    {
+      "label": "20252026-Premier",
       "args": [
         "Premier",
         "20252026"
@@ -75,56 +3211,591 @@
         {
           "name": "Racketeers A",
           "played": "16",
-          "pointsFor": "237",
-          "pointsAgainst": "51"
+          "gamesWon": "237",
+          "gamesLost": "51"
         },
         {
           "name": "Racketeers B",
           "played": "16",
-          "pointsFor": "173",
-          "pointsAgainst": "115"
+          "gamesWon": "173",
+          "gamesLost": "115"
         },
         {
           "name": "Shell A",
           "played": "16",
-          "pointsFor": "162",
-          "pointsAgainst": "126"
+          "gamesWon": "162",
+          "gamesLost": "126"
         },
         {
           "name": "GHAP A",
           "played": "16",
-          "pointsFor": "158",
-          "pointsAgainst": "130"
+          "gamesWon": "158",
+          "gamesLost": "130"
         },
         {
           "name": "Alderley Park A",
           "played": "16",
-          "pointsFor": "147",
-          "pointsAgainst": "141"
+          "gamesWon": "147",
+          "gamesLost": "141"
         },
         {
           "name": "Syddal Park A",
           "played": "16",
-          "pointsFor": "123",
-          "pointsAgainst": "165"
+          "gamesWon": "123",
+          "gamesLost": "165"
         },
         {
           "name": "College Green A",
           "played": "16",
-          "pointsFor": "122",
-          "pointsAgainst": "166"
+          "gamesWon": "122",
+          "gamesLost": "166"
         },
         {
           "name": "Macclesfield A",
           "played": "16",
-          "pointsFor": "111",
-          "pointsAgainst": "177"
+          "gamesWon": "111",
+          "gamesLost": "177"
         },
         {
           "name": "Remnants A",
           "played": "16",
-          "pointsFor": "63",
-          "pointsAgainst": "225"
+          "gamesWon": "63",
+          "gamesLost": "225"
+        }
+      ]
+    },
+    {
+      "label": "20252026-Division-1",
+      "args": [
+        "Division-1",
+        "20252026"
+      ],
+      "result": [
+        {
+          "name": "Featherforce A",
+          "played": "16",
+          "gamesWon": "238",
+          "gamesLost": "50"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "16",
+          "gamesWon": "180",
+          "gamesLost": "108"
+        },
+        {
+          "name": "Parrswood A",
+          "played": "16",
+          "gamesWon": "171",
+          "gamesLost": "117"
+        },
+        {
+          "name": "College Green B",
+          "played": "16",
+          "gamesWon": "163",
+          "gamesLost": "125"
+        },
+        {
+          "name": "Shell B",
+          "played": "16",
+          "gamesWon": "153",
+          "gamesLost": "135"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "16",
+          "gamesWon": "141",
+          "gamesLost": "147"
+        },
+        {
+          "name": "Dome A",
+          "played": "16",
+          "gamesWon": "132",
+          "gamesLost": "156"
+        },
+        {
+          "name": "Aerospace A",
+          "played": "16",
+          "gamesWon": "87",
+          "gamesLost": "201"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "16",
+          "gamesWon": "31",
+          "gamesLost": "257"
+        }
+      ]
+    },
+    {
+      "label": "20252026-Division-2",
+      "args": [
+        "Division-2",
+        "20252026"
+      ],
+      "result": [
+        {
+          "name": "Alderley Park B",
+          "played": "14",
+          "gamesWon": "180",
+          "gamesLost": "72"
+        },
+        {
+          "name": "College Green C",
+          "played": "14",
+          "gamesWon": "153",
+          "gamesLost": "99"
+        },
+        {
+          "name": "Shell C",
+          "played": "14",
+          "gamesWon": "152",
+          "gamesLost": "100"
+        },
+        {
+          "name": "Dome B",
+          "played": "14",
+          "gamesWon": "131",
+          "gamesLost": "121"
+        },
+        {
+          "name": "Manor A",
+          "played": "14",
+          "gamesWon": "110",
+          "gamesLost": "142"
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "14",
+          "gamesWon": "101",
+          "gamesLost": "151"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "14",
+          "gamesWon": "95",
+          "gamesLost": "157"
+        },
+        {
+          "name": "Disley A",
+          "played": "14",
+          "gamesWon": "86",
+          "gamesLost": "166"
+        }
+      ]
+    },
+    {
+      "label": "20252026-Division-3",
+      "args": [
+        "Division-3",
+        "20252026"
+      ],
+      "result": [
+        {
+          "name": "Mellor A",
+          "played": "12",
+          "gamesWon": "172",
+          "gamesLost": "44"
+        },
+        {
+          "name": "College Green D",
+          "played": "12",
+          "gamesWon": "138",
+          "gamesLost": "78"
+        },
+        {
+          "name": "Cheadle Hulme B",
+          "played": "12",
+          "gamesWon": "109",
+          "gamesLost": "107"
+        },
+        {
+          "name": "College Green E",
+          "played": "12",
+          "gamesWon": "108",
+          "gamesLost": "108"
+        },
+        {
+          "name": "Tatton A",
+          "played": "12",
+          "gamesWon": "96",
+          "gamesLost": "120"
+        },
+        {
+          "name": "Mellor C",
+          "played": "12",
+          "gamesWon": "76",
+          "gamesLost": "140"
+        },
+        {
+          "name": "Parrswood C",
+          "played": "12",
+          "gamesWon": "57",
+          "gamesLost": "159"
+        }
+      ]
+    },
+    {
+      "label": "20252026-Division-4",
+      "args": [
+        "Division-4",
+        "20252026"
+      ],
+      "result": []
+    },
+    {
+      "label": "20202021-Premier",
+      "args": [
+        "Premier",
+        "20202021"
+      ],
+      "result": []
+    },
+    {
+      "label": "20202021-Division-1",
+      "args": [
+        "Division-1",
+        "20202021"
+      ],
+      "result": []
+    },
+    {
+      "label": "20202021-Division-2",
+      "args": [
+        "Division-2",
+        "20202021"
+      ],
+      "result": []
+    },
+    {
+      "label": "20202021-Division-3",
+      "args": [
+        "Division-3",
+        "20202021"
+      ],
+      "result": []
+    },
+    {
+      "label": "20202021-Division-4",
+      "args": [
+        "Division-4",
+        "20202021"
+      ],
+      "result": []
+    },
+    {
+      "label": "20262027-Premier",
+      "args": [
+        "Premier",
+        "20262027"
+      ],
+      "result": [
+        {
+          "name": "GHAP A",
+          "played": "4",
+          "gamesWon": "44",
+          "gamesLost": "28"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "4",
+          "gamesWon": "41",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Featherforce A",
+          "played": "4",
+          "gamesWon": "39",
+          "gamesLost": "33"
+        },
+        {
+          "name": "Racketeers A",
+          "played": "2",
+          "gamesWon": "26",
+          "gamesLost": "10"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "3",
+          "gamesWon": "23",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Shell A",
+          "played": "1",
+          "gamesWon": "10",
+          "gamesLost": "8"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "1",
+          "gamesWon": "8",
+          "gamesLost": "10"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "2",
+          "gamesWon": "4",
+          "gamesLost": "32"
+        },
+        {
+          "name": "College Green A",
+          "played": "1",
+          "gamesWon": "3",
+          "gamesLost": "15"
+        }
+      ]
+    },
+    {
+      "label": "20262027-Division-1",
+      "args": [
+        "Division-1",
+        "20262027"
+      ],
+      "result": [
+        {
+          "name": "Parrswood A",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Featherforce B",
+          "played": "4",
+          "gamesWon": "50",
+          "gamesLost": "22"
+        },
+        {
+          "name": "Shell B",
+          "played": "4",
+          "gamesWon": "41",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Macclesfield A",
+          "played": "3",
+          "gamesWon": "36",
+          "gamesLost": "18"
+        },
+        {
+          "name": "Remnants A",
+          "played": "3",
+          "gamesWon": "23",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Alderley Park B",
+          "played": "4",
+          "gamesWon": "19",
+          "gamesLost": "53"
+        },
+        {
+          "name": "College Green B",
+          "played": "1",
+          "gamesWon": "15",
+          "gamesLost": "3"
+        },
+        {
+          "name": "Syddal Park B",
+          "played": "3",
+          "gamesWon": "14",
+          "gamesLost": "40"
+        }
+      ]
+    },
+    {
+      "label": "20262027-Division-2",
+      "args": [
+        "Division-2",
+        "20262027"
+      ],
+      "result": [
+        {
+          "name": "Larkhill A",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Brookvale A",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Manor A",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Aerospace A",
+          "played": "5",
+          "gamesWon": "59",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Mellor A",
+          "played": "3",
+          "gamesWon": "30",
+          "gamesLost": "24"
+        },
+        {
+          "name": "Shell C",
+          "played": "3",
+          "gamesWon": "27",
+          "gamesLost": "27"
+        },
+        {
+          "name": "Dome B",
+          "played": "3",
+          "gamesWon": "22",
+          "gamesLost": "32"
+        },
+        {
+          "name": "College Green C",
+          "played": "2",
+          "gamesWon": "15",
+          "gamesLost": "21"
+        },
+        {
+          "name": "Alderley Park C",
+          "played": "1",
+          "gamesWon": "7",
+          "gamesLost": "11"
+        },
+        {
+          "name": "Parrswood B",
+          "played": "1",
+          "gamesWon": "2",
+          "gamesLost": "16"
+        }
+      ]
+    },
+    {
+      "label": "20262027-Division-3",
+      "args": [
+        "Division-3",
+        "20262027"
+      ],
+      "result": [
+        {
+          "name": "Cheadle Hulme B",
+          "played": "0",
+          "gamesWon": null,
+          "gamesLost": null
+        },
+        {
+          "name": "Tatton A",
+          "played": "4",
+          "gamesWon": "39",
+          "gamesLost": "33"
+        },
+        {
+          "name": "College Green D",
+          "played": "2",
+          "gamesWon": "32",
+          "gamesLost": "4"
+        },
+        {
+          "name": "Cheadle Hulme A",
+          "played": "2",
+          "gamesWon": "29",
+          "gamesLost": "7"
+        },
+        {
+          "name": "College Green E",
+          "played": "4",
+          "gamesWon": "23",
+          "gamesLost": "49"
+        },
+        {
+          "name": "Mellor B",
+          "played": "3",
+          "gamesWon": "20",
+          "gamesLost": "34"
+        },
+        {
+          "name": "Disley A",
+          "played": "2",
+          "gamesWon": "19",
+          "gamesLost": "17"
+        },
+        {
+          "name": "Manor B",
+          "played": "3",
+          "gamesWon": "18",
+          "gamesLost": "36"
+        }
+      ]
+    },
+    {
+      "label": "20262027-Division-4",
+      "args": [
+        "Division-4",
+        "20262027"
+      ],
+      "result": []
+    },
+    {
+      "label": "current-Premier",
+      "args": [
+        "Premier"
+      ],
+      "result": [
+        {
+          "name": "GHAP A",
+          "played": "4",
+          "gamesWon": "44",
+          "gamesLost": "28"
+        },
+        {
+          "name": "Racketeers B",
+          "played": "4",
+          "gamesWon": "41",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Featherforce A",
+          "played": "4",
+          "gamesWon": "39",
+          "gamesLost": "33"
+        },
+        {
+          "name": "Racketeers A",
+          "played": "2",
+          "gamesWon": "26",
+          "gamesLost": "10"
+        },
+        {
+          "name": "Alderley Park A",
+          "played": "3",
+          "gamesWon": "23",
+          "gamesLost": "31"
+        },
+        {
+          "name": "Shell A",
+          "played": "1",
+          "gamesWon": "10",
+          "gamesLost": "8"
+        },
+        {
+          "name": "Syddal Park A",
+          "played": "1",
+          "gamesWon": "8",
+          "gamesLost": "10"
+        },
+        {
+          "name": "David Lloyd A",
+          "played": "2",
+          "gamesWon": "4",
+          "gamesLost": "32"
+        },
+        {
+          "name": "College Green A",
+          "played": "1",
+          "gamesWon": "3",
+          "gamesLost": "15"
         }
       ]
     }

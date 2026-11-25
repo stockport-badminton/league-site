@@ -5,13 +5,12 @@
 // "nothing received, nothing chased", which is what makes the season rollover free —
 // see migrations/013_club_registration.sql.
 
-const config = require('../config');
-const db = require('../db_connect.js');
+const { sql } = require('kysely');
 const seasonModel = require('./season');
-const { kysely } = require('../db');
+const { kysely, decrypt } = require('../db');
 
-// REARCH-01: the three writes are on the typed query layer. getStatus and getDigest belong
-// to REARCH-02 and are left as they are.
+// REARCH-01: on the typed query layer. getStatus's CTE is a typed `sql` template with its
+// SQL (and its comments) kept as they were (Nov 2026); the officers query is the builder.
 
 // A club with no fixtures at all this season cannot have a deadline, and `No Club` (63)
 // is the sentinel a released player parks on — never a real club to chase.
@@ -22,21 +21,26 @@ const NO_CLUB_ID = 63;
 //
 // `matchSecrertary` is spelt that way in the schema. It is not a typo here.
 //
-// The email is `pgp_sym_encrypt`'d, so the key is BOUND AS A PARAMETER and never
-// interpolated — one query in this codebase had it as a string literal until Aug 2026.
-// A blank is sometimes NULL and sometimes an encrypted empty string, so the emptiness
-// test has to decrypt rather than check IS NOT NULL.
-const OFFICER_SQL = `
-  SELECT t.club AS "clubId",
-         trim(p.first_name || ' ' || p.family_name) AS name,
-         NULLIF(TRIM(pgp_sym_decrypt(p."playerEmail", ?)::text), '') AS email,
-         CASE WHEN p."clubSecretary" = 1 THEN 'club secretary'
-              ELSE 'match secretary' END AS role
-  FROM player p
-  JOIN team t ON p.team = t.id
-  WHERE (p."clubSecretary" = 1 OR p."matchSecrertary" = 1)
-    AND t.club <> ?
-  ORDER BY t.club, CASE WHEN p."clubSecretary" = 1 THEN 0 ELSE 1 END, p.id`;
+// The email is `pgp_sym_encrypt`'d, and decrypt() binds the key as a parameter — one
+// query in this codebase had it as a string literal until Aug 2026. A blank is sometimes
+// NULL and sometimes an encrypted empty string, so the emptiness test has to decrypt
+// rather than check IS NOT NULL.
+function officers() {
+  return kysely.selectFrom('player as p')
+    .innerJoin('team as t', 'p.team', 't.id')
+    .select(eb => [
+      't.club as clubId',
+      eb.fn('trim', [eb(eb(eb.ref('p.first_name'), '||', sql.lit(' ')), '||', eb.ref('p.family_name'))]).as('name'),
+      eb.fn('nullif', [eb.fn('trim', [decrypt(eb.ref('p.playerEmail'))]), sql.lit('')]).as('email'),
+      eb.case().when('p.clubSecretary', '=', 1).then(sql.lit('club secretary')).else(sql.lit('match secretary')).end().as('role'),
+    ])
+    .where(eb => eb.or([eb('p.clubSecretary', '=', 1), eb('p.matchSecrertary', '=', 1)]))
+    .where('t.club', '<>', NO_CLUB_ID)
+    .orderBy('t.club')
+    .orderBy(eb => eb.case().when('p.clubSecretary', '=', 1).then(0).else(1).end())
+    .orderBy('p.id')
+    .execute();
+}
 
 // Each club's first fixture of the season, with whatever registration status it has.
 //
@@ -50,9 +54,15 @@ const OFFICER_SQL = `
 // AT TIME ZONE 'Europe/London' — that shifts every match a day earlier and puts league
 // nights on a Sunday. (Note `tools/dbq.js` PRINTS these an hour early, because it renders
 // through a JS Date; ask SQL for `to_char(...)` if you need to be sure what is stored.)
-const STATUS_SQL = `
+/**
+ * @typedef {{ id: number, name: string, firstFixture: Date, teams: string, daysAway: number,
+ *   receivedAt: Date | null, chasedAt: Date | null, chaseCount: number, note: string | null,
+ *   updatedBy: string | null }} StatusRow
+ */
+/** @param {string} name */
+const statusRows = name => /** @type {import('kysely').RawBuilder<StatusRow>} */ (sql`
   WITH season_window AS (   -- not plain "window": reserved, for the WINDOW clause
-    SELECT "startDate", "endDate" FROM season WHERE name = ?
+    SELECT "startDate", "endDate" FROM season WHERE name = ${name}
   ),
   first_fixture AS (
     SELECT t.club AS club, MIN(f.date)::date AS first_date, COUNT(DISTINCT t.id) AS teams
@@ -83,28 +93,26 @@ const STATUS_SQL = `
          r.updated_by  AS "updatedBy"
   FROM club c
   JOIN first_fixture ff ON ff.club = c.id
-  LEFT JOIN club_registration r ON r.club = c.id AND r.season = ?
-  WHERE c.id <> ?
-  ORDER BY ff.first_date, c.name`;
-
-async function conn() { return db.otherConnect(); }
+  LEFT JOIN club_registration r ON r.club = c.id AND r.season = ${name}
+  WHERE c.id <> ${NO_CLUB_ID}
+  ORDER BY ff.first_date, c.name`).execute(kysely);
 
 // Every club with a fixture this season, each with its deadline and status.
 /** @param {string} [season] @returns {Promise<any[]>} */
 exports.getStatus = async function(season) {
   const name = seasonModel.assertName(season || seasonModel.current());
-  const c = await conn();
+  const { rows: clubs } = await statusRows(name);
 
-  const [clubs] = await c.query(STATUS_SQL, [name, name, NO_CLUB_ID]);
-  const [officers] = await c.query(OFFICER_SQL, [config.DB_PI_KEY, NO_CLUB_ID]);
-
+  /** @type {Map<number | null, { name: string, email: string | null, role: string }[]>} */
   const byClub = new Map();
-  officers.forEach((/** @type {any} */ o) => {
-    if (!byClub.has(o.clubId)) byClub.set(o.clubId, []);
-    byClub.get(o.clubId).push({ name: o.name, email: o.email, role: o.role });
+  (await officers()).forEach(o => {
+    const list = byClub.get(o.clubId) || [];
+    byClub.set(o.clubId, list);
+    // trim() and nullif() come back untyped from the builder; the SQL says what they are.
+    list.push({ name: /** @type {string} */ (o.name), email: /** @type {string | null} */ (o.email), role: o.role });
   });
 
-  return clubs.map((/** @type {any} */ row) => ({
+  return clubs.map(row => ({
     ...row,
     season: name,
     received: !!row.receivedAt,

@@ -218,6 +218,35 @@ describe('player and pair stats', () => {
   });
 });
 
+// Every filter in a /pair-stats URL reaches Postgres as a parameter (HARD-27). This was a
+// mocked unit test that counted placeholders against parameters; on the typed layer each
+// value is bound where it is written, so what is left to show is the behaviour.
+describe('newGetPairStats binds its filters', () => {
+  it('cannot have its statement altered by any filter in the URL', async () => {
+    const hostile = "x' UNION SELECT sess::text FROM session /*";
+    expect(await Player.newGetPairStats({ team: hostile, club: hostile, gameType: hostile })).toHaveLength(0);
+    // A division is compared with an integer column, so text that is not one is refused
+    // by Postgres rather than read as SQL.
+    await expect(Player.newGetPairStats({ division: '7 OR 1=1' })).rejects.toThrow(/integer/);
+  });
+
+  it('runs every combination of filters, and matches everything when none is given', async () => {
+    const all = await Player.newGetPairStats({});
+    expect(new Set(all.map(r => r.clubName)).size).toBeGreaterThan(1);
+    const filters = [
+      { division: '1' }, { team: 'Northfield A' }, { club: 'Northfield' }, { gameType: 'Mixed' },
+      { division: '1', team: 'Northfield A', club: 'Northfield', gameType: 'Mens' },
+      { season: PAST, club: 'Northfield' },
+    ];
+    for (const f of filters) {
+      const rows = await Player.newGetPairStats(f);
+      expect(rows.length).toBeLessThanOrEqual(f.season ? Infinity : all.length);
+      if (f.club) expect(rows.every(r => r.clubName === f.club)).toBe(true);
+    }
+    expect((await Player.newGetPairStats({ club: 'Northfield' })).length).toBeGreaterThan(0);
+  });
+});
+
 describe('Player.getPlayerGameData', () => {
   it("labels each game with the teams of the season it was played in", async () => {
     await run(`UPDATE game SET "homePlayer1End" = 1500, "homePlayer2End" = 1500,
@@ -229,6 +258,26 @@ describe('Player.getPlayerGameData', () => {
     const teamOn = date => rows.filter(r => new Date(r.date).getFullYear() === date).map(r => r.teamName);
     expect(new Set(teamOn(2024))).toEqual(new Set(['Eastbank C']));
     expect(new Set(teamOn(2026))).toEqual(new Set(['Eastbank B']));
+  });
+
+  // Thousands of fixtures pointed at deleted teams, and an inner join dropped 30% of every
+  // history (HARD-11, Sep 2026). This replaces a unit test that read the query's source
+  // for its LEFT JOINs.
+  it('keeps a game whose teams have since been deleted, as "Former team" with no bracket', async () => {
+    await run(`UPDATE game SET "homePlayer1End" = 1500, "homePlayer2End" = 1500,
+      "awayPlayer1End" = 1500, "awayPlayer2End" = 1500 WHERE fixture = 307`);
+    const before = (await Player.getPlayerGameData(81)).filter(r => r.date >= new Date('2026-08-01'));
+    expect(before.length).toBeGreaterThan(0);
+
+    // Migration 017 put foreign keys on fixture's teams, so a deletion is refused today; the
+    // LEFT JOINs are for the orphans from before it and whatever drops the keys. Dropped
+    // here inside the test's rolled-back transaction.
+    await run('ALTER TABLE fixture DROP CONSTRAINT fixture_home_team_fkey, DROP CONSTRAINT fixture_away_team_fkey');
+    await run('DELETE FROM team WHERE id IN (7, 8)');
+    const after = (await Player.getPlayerGameData(81)).filter(r => r.date >= new Date('2026-08-01'));
+    expect(after.map(r => r.id)).toEqual(before.map(r => r.id));
+    expect(new Set(after.map(r => r.teamName))).toEqual(new Set(['Former team']));
+    expect(new Set(after.map(r => r.teamAdjustment))).toEqual(new Set([null]));
   });
 
   // Ben plays for Northfield A (Premier) every season, but in 2025/26 was registered to

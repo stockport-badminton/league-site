@@ -56,6 +56,28 @@ two (two dead functions deleted first). `auth` has no SQL. **Step 2 is complete 
 everything outside the off-season list and REARCH-02** — so nothing of REARCH-01 is left
 in-season; step 3 below waits for May 2027.
 
+**REARCH-02's functions, converted 25 Nov 2026.** Once REARCH-02 step 4 had moved them
+onto the `<entity>_at` views with the season bound, nothing about them was untypeable, so
+REARCH-01 took them back: `league.getLeagueTable`, `getAllLeagueTables` and `getRunIn`
+(new since, written on the wrapper), `clubRegistration.getStatus` (and so `getDigest`),
+and `players.getNamesClubsTeams`, `getPlayerGameData`, `newGetPlayerStats` and
+`newGetPairStats`. Each is a typed `sql` template with its SQL as it was. Optional clauses
+are `sql` fragments cast to `RawBuilder<unknown>`, each value bound where it is written,
+which retires the placeholder-and-array bookkeeping the stats functions had. The officers
+query is the builder, through `decrypt()`. Evidence: 8 snapshot pairs, 240 cases, all
+identical. Two of them were also broken on purpose (the junior and division fragments)
+to show the comparison catches it. Three unit tests that went through a `db_connect` mock
+or read source text were ported to `__tests__/db/`. Each was passed against the string
+queries first, and checked to fail with the behaviour removed:
+`club-registration.test.js` covers officers, season and deadline, and
+`season-history-readers.test.js` covers pair-stats binding and a deleted team as "Former
+team". `getDigest`'s grouping stays a unit test, over a stubbed `getStatus`.
+
+What is left on the wrapper is the off-season list below, and nothing else in `models/`
+but `gapFinder.tameside`, which runs on Tameside's own pool and is not this wrapper.
+`fixture.getMatchPlayerOrderDetails` joins the list: `full_fixture_post` calls it for the
+confirmation page, inside `afterCommit`.
+
 **Left on the wrapper for the off-season, because the publish request calls them** — the
 list step 3 must clear before `pgQuery` can go:
 
@@ -70,6 +92,7 @@ list step 3 must clear before `pgQuery` can go:
 | `fixture.getScorecardById`, `createScorecard`, `supersedeEarlierDrafts` | `POST /email-scorecard` (filing) and `full_fixture_post` |
 | `fixture.getDraftSupersession`, `getFixtureDetailsById`, `getFixturesForTeams`, `resolveFixtureForResult`, `sendResultZap`, `updateById` | `full_fixture_post` |
 | `fixture.getFixtureDetails` | `utils/eloChain.rerateFrom`, after `full_fixture_post` commits |
+| `fixture.getMatchPlayerOrderDetails` | `full_fixture_post`'s confirmation page, after commit (REARCH-02's rewrite, Oct 2026) |
 
 **`messer_scorecard."scoresheet-url"` needed one too (027).** It was in migration 003, but
 003's first statement now hits "already exists" and the replay rule ends the file, so a

@@ -16,9 +16,10 @@
 // says why checkJs is off), so a converted model that forgets the line is unchecked
 // while looking converted. Every file that uses the layer must carry it.
 //
-// The 14 season-switched functions REARCH-02 owns are what an untyped template is for —
-// a table name built from a season cannot be typed. They will be the allowlist's entries
-// if they are ever written against this layer before REARCH-02 replaces the archives.
+// The 14 season-switched functions REARCH-02 owned were expected to be this allowlist's
+// entries, since a table name built from a season cannot be typed. They never were:
+// REARCH-02 moved them onto the <entity>_at views, with the season bound, and REARCH-01
+// then converted them as typed templates (Nov 2026).
 
 const fs = require('fs');
 const path = require('path');

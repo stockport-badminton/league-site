@@ -1,39 +1,92 @@
 {
   "function": "clubRegistration.getStatus",
   "database": "sdbl",
-  "taken": "2026-10-25T22:10:10.969Z",
+  "taken": "2026-11-25T14:51:17.946Z",
   "cases": [
     {
-      "label": "current",
+      "label": "20242025",
       "args": [
-        "20262027"
+        "20242025"
       ],
       "result": [
         {
-          "id": 42,
-          "name": "Aerospace",
+          "id": 59,
+          "name": "Racketeer",
           "firstFixture": {
-            "$date": "2026-09-02T23:00:00.000Z"
+            "$date": "2024-08-17T23:00:00.000Z"
           },
-          "teams": "1",
-          "daysAway": -52,
+          "teams": "2",
+          "daysAway": -829,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
             {
-              "name": "Rob Wakefield",
-              "email": "bigcoops+robwakefield@gmail.com",
+              "name": "Emily Stapley",
+              "email": "bigcoops+emilystapley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "name": "Cheadle Hulme",
+          "firstFixture": {
+            "$date": "2024-09-03T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -812,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Claire Norbury",
+              "email": "bigcoops+clairenorbury@gmail.com",
               "role": "club secretary"
             },
             {
-              "name": "Phil Santana-Reedy",
-              "email": "bigcoops+philsantanareedy@gmail.com",
+              "name": "Della Brown",
+              "email": "bigcoops+dellabrown@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "College Green",
+          "firstFixture": {
+            "$date": "2024-09-03T23:00:00.000Z"
+          },
+          "teams": "5",
+          "daysAway": -812,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Miriam Turner",
+              "email": "bigcoops+miriamturner@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Simon Owen",
+              "email": "bigcoops+simonowen@gmail.com",
               "role": "match secretary"
             }
           ]
@@ -42,16 +95,16 @@
           "id": 39,
           "name": "Mellor",
           "firstFixture": {
-            "$date": "2026-09-02T23:00:00.000Z"
+            "$date": "2024-09-03T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -52,
+          "daysAway": -812,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
@@ -71,16 +124,16 @@
           "id": 60,
           "name": "Tatton",
           "firstFixture": {
-            "$date": "2026-09-07T23:00:00.000Z"
+            "$date": "2024-09-08T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -47,
+          "daysAway": -807,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
@@ -92,79 +145,31 @@
           ]
         },
         {
-          "id": 64,
-          "name": "Featherforce",
+          "id": 43,
+          "name": "Alderley Park",
           "firstFixture": {
-            "$date": "2026-09-08T23:00:00.000Z"
+            "$date": "2024-09-09T23:00:00.000Z"
           },
-          "teams": "2",
-          "daysAway": -46,
+          "teams": "3",
+          "daysAway": -806,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
             {
-              "name": "Tina Zheng",
-              "email": "bigcoops+tinazheng@gmail.com",
-              "role": "club secretary"
-            }
-          ]
-        },
-        {
-          "id": 53,
-          "name": "G.H.A.P",
-          "firstFixture": {
-            "$date": "2026-09-08T23:00:00.000Z"
-          },
-          "teams": "1",
-          "daysAway": -46,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Ross Owen",
-              "email": "bigcoops+rossowen@gmail.com",
-              "role": "club secretary"
-            }
-          ]
-        },
-        {
-          "id": 54,
-          "name": "Macclesfield",
-          "firstFixture": {
-            "$date": "2026-09-08T23:00:00.000Z"
-          },
-          "teams": "1",
-          "daysAway": -46,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Sue  Orwin",
-              "email": "bigcoops+sueorwin@gmail.com",
+              "name": "Jennifer Szczepaniak Sloane",
+              "email": "bigcoops+jenniferszczepaniaksloane@gmail.com",
               "role": "club secretary"
             },
             {
-              "name": "Sue  Orwin",
-              "email": "bigcoops+sueorwin@gmail.com",
-              "role": "club secretary"
+              "name": "James Heppell",
+              "email": "bigcoops+jamesheppell@gmail.com",
+              "role": "match secretary"
             }
           ]
         },
@@ -172,16 +177,16 @@
           "id": 40,
           "name": "Shell",
           "firstFixture": {
-            "$date": "2026-09-08T23:00:00.000Z"
+            "$date": "2024-09-09T23:00:00.000Z"
           },
           "teams": "3",
-          "daysAway": -46,
+          "daysAway": -806,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
@@ -193,60 +198,200 @@
           ]
         },
         {
-          "id": 61,
-          "name": "College Green",
+          "id": 41,
+          "name": "Syddal Park",
           "firstFixture": {
-            "$date": "2026-09-09T23:00:00.000Z"
+            "$date": "2024-09-09T23:00:00.000Z"
           },
-          "teams": "5",
-          "daysAway": -45,
+          "teams": "2",
+          "daysAway": -806,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
             {
-              "name": "Miriam Turner",
-              "email": "bigcoops+miriamturner@gmail.com",
+              "name": "Ruth Haydon",
+              "email": "bigcoops+ruthhaydon@gmail.com",
               "role": "club secretary"
             },
             {
-              "name": "Simon Owen",
-              "email": "bigcoops+simonowen@gmail.com",
+              "name": "Rob Wilson",
+              "email": "bigcoops+robwilson@gmail.com",
               "role": "match secretary"
             }
           ]
         },
         {
-          "id": 55,
-          "name": "Manor",
+          "id": 53,
+          "name": "G.H.A.P",
           "firstFixture": {
-            "$date": "2026-09-14T23:00:00.000Z"
+            "$date": "2024-09-14T23:00:00.000Z"
           },
-          "teams": "2",
-          "daysAway": -40,
+          "teams": "1",
+          "daysAway": -801,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
             {
-              "name": "Gareth Moorhouse",
-              "email": "bigcoops+garethmoorhouse@gmail.com",
+              "name": "Ross Owen",
+              "email": "bigcoops+rossowen@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "name": "Aerospace",
+          "firstFixture": {
+            "$date": "2024-09-17T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -798,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Rob Wakefield",
+              "email": "bigcoops+robwakefield@gmail.com",
               "role": "club secretary"
             },
             {
-              "name": "Jo Woolley",
-              "email": "bigcoops+jowoolley@gmail.com",
+              "name": "Phil Santana-Reedy",
+              "email": "bigcoops+philsantanareedy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "Dome",
+          "firstFixture": {
+            "$date": "2024-09-23T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -792,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Steve Chu",
+              "email": "bigcoops+stevechu@gmail.com",
               "role": "club secretary"
+            },
+            {
+              "name": "Pauline Dunphy",
+              "email": "bigcoops+paulinedunphy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "Macclesfield",
+          "firstFixture": {
+            "$date": "2024-09-27T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -788,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "Disley",
+          "firstFixture": {
+            "$date": "2024-09-29T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -786,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Julian Cherryman",
+              "email": "bigcoops+juliancherryman@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Nathan Marshall",
+              "email": "bigcoops+nathanmarshall@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "Parrs Wood",
+          "firstFixture": {
+            "$date": "2024-09-29T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -786,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Mike Greatorex",
+              "email": "bigcoops+mikegreatorex@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "David Greatorex",
+              "email": "bigcoops+davidgreatorex@gmail.com",
+              "role": "match secretary"
             }
           ]
         },
@@ -254,16 +399,16 @@
           "id": 47,
           "name": "Remnants",
           "firstFixture": {
-            "$date": "2026-09-14T23:00:00.000Z"
+            "$date": "2024-10-01T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -40,
+          "daysAway": -784,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
@@ -285,217 +430,19 @@
           ]
         },
         {
-          "id": 43,
-          "name": "Alderley Park",
-          "firstFixture": {
-            "$date": "2026-09-15T23:00:00.000Z"
-          },
-          "teams": "3",
-          "daysAway": -39,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Jennifer Szczepaniak Sloane",
-              "email": "bigcoops+jenniferszczepaniaksloane@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "James Heppell",
-              "email": "bigcoops+jamesheppell@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
-          "id": 52,
-          "name": "Dome",
-          "firstFixture": {
-            "$date": "2026-09-15T23:00:00.000Z"
-          },
-          "teams": "2",
-          "daysAway": -39,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Steve Chu",
-              "email": "bigcoops+stevechu@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "Pauline Dunphy",
-              "email": "bigcoops+paulinedunphy@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
-          "id": 59,
-          "name": "Racketeer",
-          "firstFixture": {
-            "$date": "2026-09-15T23:00:00.000Z"
-          },
-          "teams": "2",
-          "daysAway": -39,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Emily Stapley",
-              "email": "bigcoops+emilystapley@gmail.com",
-              "role": "club secretary"
-            }
-          ]
-        },
-        {
-          "id": 51,
-          "name": "Disley",
-          "firstFixture": {
-            "$date": "2026-09-21T23:00:00.000Z"
-          },
-          "teams": "1",
-          "daysAway": -33,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Julian Cherryman",
-              "email": "bigcoops+juliancherryman@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "Nathan Marshall",
-              "email": "bigcoops+nathanmarshall@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
-          "id": 41,
-          "name": "Syddal Park",
-          "firstFixture": {
-            "$date": "2026-09-27T23:00:00.000Z"
-          },
-          "teams": "2",
-          "daysAway": -27,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Ruth Haydon",
-              "email": "bigcoops+ruthhaydon@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "Rob Wilson",
-              "email": "bigcoops+robwilson@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
-          "id": 49,
-          "name": "Cheadle Hulme",
-          "firstFixture": {
-            "$date": "2026-09-28T23:00:00.000Z"
-          },
-          "teams": "2",
-          "daysAway": -26,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Claire Norbury",
-              "email": "bigcoops+clairenorbury@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "Della Brown",
-              "email": "bigcoops+dellabrown@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
-          "id": 57,
-          "name": "Parrs Wood",
-          "firstFixture": {
-            "$date": "2026-09-28T23:00:00.000Z"
-          },
-          "teams": "2",
-          "daysAway": -26,
-          "receivedAt": null,
-          "chasedAt": null,
-          "chaseCount": 0,
-          "note": null,
-          "updatedBy": null,
-          "season": "20262027",
-          "received": false,
-          "chased": false,
-          "officers": [
-            {
-              "name": "Mike Greatorex",
-              "email": "bigcoops+mikegreatorex@gmail.com",
-              "role": "club secretary"
-            },
-            {
-              "name": "David Greatorex",
-              "email": "bigcoops+davidgreatorex@gmail.com",
-              "role": "match secretary"
-            }
-          ]
-        },
-        {
           "id": 50,
           "name": "David Lloyd",
           "firstFixture": {
-            "$date": "2026-10-01T23:00:00.000Z"
+            "$date": "2024-10-02T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -23,
+          "daysAway": -783,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
           "note": null,
           "updatedBy": null,
-          "season": "20262027",
+          "season": "20242025",
           "received": false,
           "chased": false,
           "officers": [
@@ -505,11 +452,40 @@
               "role": "club secretary"
             }
           ]
+        },
+        {
+          "id": 55,
+          "name": "Manor",
+          "firstFixture": {
+            "$date": "2024-10-06T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -779,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20242025",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Gareth Moorhouse",
+              "email": "bigcoops+garethmoorhouse@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Jo Woolley",
+              "email": "bigcoops+jowoolley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
         }
       ]
     },
     {
-      "label": "last",
+      "label": "20252026",
       "args": [
         "20252026"
       ],
@@ -521,7 +497,7 @@
             "$date": "2025-09-01T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -418,
+          "daysAway": -449,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -545,7 +521,7 @@
             "$date": "2025-09-01T23:00:00.000Z"
           },
           "teams": "3",
-          "daysAway": -418,
+          "daysAway": -449,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -569,7 +545,7 @@
             "$date": "2025-09-08T23:00:00.000Z"
           },
           "teams": "3",
-          "daysAway": -411,
+          "daysAway": -442,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -598,7 +574,7 @@
             "$date": "2025-09-08T23:00:00.000Z"
           },
           "teams": "5",
-          "daysAway": -411,
+          "daysAway": -442,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -627,7 +603,7 @@
             "$date": "2025-09-09T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -410,
+          "daysAway": -441,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -656,7 +632,7 @@
             "$date": "2025-09-12T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -407,
+          "daysAway": -438,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -690,7 +666,7 @@
             "$date": "2025-09-12T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -407,
+          "daysAway": -438,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -719,7 +695,7 @@
             "$date": "2025-09-13T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -406,
+          "daysAway": -437,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -748,7 +724,7 @@
             "$date": "2025-09-13T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -406,
+          "daysAway": -437,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -772,7 +748,7 @@
             "$date": "2025-09-16T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -403,
+          "daysAway": -434,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -801,7 +777,7 @@
             "$date": "2025-09-21T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -398,
+          "daysAway": -429,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -830,7 +806,7 @@
             "$date": "2025-09-21T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -398,
+          "daysAway": -429,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -854,7 +830,7 @@
             "$date": "2025-09-21T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -398,
+          "daysAway": -429,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -883,7 +859,7 @@
             "$date": "2025-09-22T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -397,
+          "daysAway": -428,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -912,7 +888,7 @@
             "$date": "2025-09-28T23:00:00.000Z"
           },
           "teams": "2",
-          "daysAway": -391,
+          "daysAway": -422,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -941,7 +917,7 @@
             "$date": "2025-10-12T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -377,
+          "daysAway": -408,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -965,7 +941,7 @@
             "$date": "2025-10-19T23:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -370,
+          "daysAway": -401,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -994,7 +970,7 @@
             "$date": "2025-11-18T00:00:00.000Z"
           },
           "teams": "1",
-          "daysAway": -341,
+          "daysAway": -372,
           "receivedAt": null,
           "chasedAt": null,
           "chaseCount": 0,
@@ -1010,6 +986,1086 @@
               "role": "club secretary"
             }
           ]
+        }
+      ]
+    },
+    {
+      "label": "20262027",
+      "args": [
+        "20262027"
+      ],
+      "result": [
+        {
+          "id": 42,
+          "name": "Aerospace",
+          "firstFixture": {
+            "$date": "2026-09-02T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -83,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Rob Wakefield",
+              "email": "bigcoops+robwakefield@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Phil Santana-Reedy",
+              "email": "bigcoops+philsantanareedy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "name": "Mellor",
+          "firstFixture": {
+            "$date": "2026-09-02T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -83,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "John Pawsey",
+              "email": "bigcoops+johnpawsey@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Roger Holmes",
+              "email": "bigcoops+rogerholmes@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "name": "Tatton",
+          "firstFixture": {
+            "$date": "2026-09-07T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -78,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Lorna Beacock",
+              "email": "bigcoops+lornabeacock@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "name": "Featherforce",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Tina Zheng",
+              "email": "bigcoops+tinazheng@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "name": "G.H.A.P",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Ross Owen",
+              "email": "bigcoops+rossowen@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "Macclesfield",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "name": "Shell",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "3",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Anna Wiza",
+              "email": "bigcoops+annawiza@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "College Green",
+          "firstFixture": {
+            "$date": "2026-09-09T23:00:00.000Z"
+          },
+          "teams": "5",
+          "daysAway": -76,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Miriam Turner",
+              "email": "bigcoops+miriamturner@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Simon Owen",
+              "email": "bigcoops+simonowen@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "name": "Manor",
+          "firstFixture": {
+            "$date": "2026-09-14T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -71,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Gareth Moorhouse",
+              "email": "bigcoops+garethmoorhouse@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Jo Woolley",
+              "email": "bigcoops+jowoolley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "name": "Remnants",
+          "firstFixture": {
+            "$date": "2026-09-14T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -71,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Kara Robinson",
+              "email": "bigcoops+kararobinson@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Dave Lee",
+              "email": "bigcoops+davelee@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Richard Jakeman",
+              "email": "bigcoops+richardjakeman@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "name": "Alderley Park",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "3",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Jennifer Szczepaniak Sloane",
+              "email": "bigcoops+jenniferszczepaniaksloane@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "James Heppell",
+              "email": "bigcoops+jamesheppell@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "Dome",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Steve Chu",
+              "email": "bigcoops+stevechu@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Pauline Dunphy",
+              "email": "bigcoops+paulinedunphy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "name": "Racketeer",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Emily Stapley",
+              "email": "bigcoops+emilystapley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "Disley",
+          "firstFixture": {
+            "$date": "2026-09-21T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -64,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Julian Cherryman",
+              "email": "bigcoops+juliancherryman@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Nathan Marshall",
+              "email": "bigcoops+nathanmarshall@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "name": "Syddal Park",
+          "firstFixture": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -58,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Ruth Haydon",
+              "email": "bigcoops+ruthhaydon@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Rob Wilson",
+              "email": "bigcoops+robwilson@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "name": "Cheadle Hulme",
+          "firstFixture": {
+            "$date": "2026-09-28T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -57,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Claire Norbury",
+              "email": "bigcoops+clairenorbury@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Della Brown",
+              "email": "bigcoops+dellabrown@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "Parrs Wood",
+          "firstFixture": {
+            "$date": "2026-09-28T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -57,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Mike Greatorex",
+              "email": "bigcoops+mikegreatorex@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "David Greatorex",
+              "email": "bigcoops+davidgreatorex@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "name": "David Lloyd",
+          "firstFixture": {
+            "$date": "2026-10-01T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -54,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Diane Reid",
+              "email": "bigcoops+dianereid@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "name": "Brookvale",
+          "firstFixture": {
+            "$date": "2026-11-05T00:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -20,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": []
+        },
+        {
+          "id": 65,
+          "name": "Larkhill",
+          "firstFixture": {
+            "$date": "2026-11-05T00:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -20,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": []
+        }
+      ]
+    },
+    {
+      "label": "current",
+      "args": [],
+      "result": [
+        {
+          "id": 42,
+          "name": "Aerospace",
+          "firstFixture": {
+            "$date": "2026-09-02T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -83,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Rob Wakefield",
+              "email": "bigcoops+robwakefield@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Phil Santana-Reedy",
+              "email": "bigcoops+philsantanareedy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "name": "Mellor",
+          "firstFixture": {
+            "$date": "2026-09-02T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -83,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "John Pawsey",
+              "email": "bigcoops+johnpawsey@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Roger Holmes",
+              "email": "bigcoops+rogerholmes@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "name": "Tatton",
+          "firstFixture": {
+            "$date": "2026-09-07T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -78,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Lorna Beacock",
+              "email": "bigcoops+lornabeacock@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "name": "Featherforce",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Tina Zheng",
+              "email": "bigcoops+tinazheng@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "name": "G.H.A.P",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Ross Owen",
+              "email": "bigcoops+rossowen@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "Macclesfield",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Sue  Orwin",
+              "email": "bigcoops+sueorwin@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "name": "Shell",
+          "firstFixture": {
+            "$date": "2026-09-08T23:00:00.000Z"
+          },
+          "teams": "3",
+          "daysAway": -77,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Anna Wiza",
+              "email": "bigcoops+annawiza@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "College Green",
+          "firstFixture": {
+            "$date": "2026-09-09T23:00:00.000Z"
+          },
+          "teams": "5",
+          "daysAway": -76,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Miriam Turner",
+              "email": "bigcoops+miriamturner@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Simon Owen",
+              "email": "bigcoops+simonowen@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "name": "Manor",
+          "firstFixture": {
+            "$date": "2026-09-14T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -71,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Gareth Moorhouse",
+              "email": "bigcoops+garethmoorhouse@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Jo Woolley",
+              "email": "bigcoops+jowoolley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "name": "Remnants",
+          "firstFixture": {
+            "$date": "2026-09-14T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -71,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Kara Robinson",
+              "email": "bigcoops+kararobinson@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Dave Lee",
+              "email": "bigcoops+davelee@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Richard Jakeman",
+              "email": "bigcoops+richardjakeman@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "name": "Alderley Park",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "3",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Jennifer Szczepaniak Sloane",
+              "email": "bigcoops+jenniferszczepaniaksloane@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "James Heppell",
+              "email": "bigcoops+jamesheppell@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "Dome",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Steve Chu",
+              "email": "bigcoops+stevechu@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Pauline Dunphy",
+              "email": "bigcoops+paulinedunphy@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "name": "Racketeer",
+          "firstFixture": {
+            "$date": "2026-09-15T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -70,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Emily Stapley",
+              "email": "bigcoops+emilystapley@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "Disley",
+          "firstFixture": {
+            "$date": "2026-09-21T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -64,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Julian Cherryman",
+              "email": "bigcoops+juliancherryman@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Nathan Marshall",
+              "email": "bigcoops+nathanmarshall@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "name": "Syddal Park",
+          "firstFixture": {
+            "$date": "2026-09-27T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -58,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Ruth Haydon",
+              "email": "bigcoops+ruthhaydon@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Rob Wilson",
+              "email": "bigcoops+robwilson@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "name": "Cheadle Hulme",
+          "firstFixture": {
+            "$date": "2026-09-28T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -57,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Claire Norbury",
+              "email": "bigcoops+clairenorbury@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "Della Brown",
+              "email": "bigcoops+dellabrown@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "Parrs Wood",
+          "firstFixture": {
+            "$date": "2026-09-28T23:00:00.000Z"
+          },
+          "teams": "2",
+          "daysAway": -57,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Mike Greatorex",
+              "email": "bigcoops+mikegreatorex@gmail.com",
+              "role": "club secretary"
+            },
+            {
+              "name": "David Greatorex",
+              "email": "bigcoops+davidgreatorex@gmail.com",
+              "role": "match secretary"
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "name": "David Lloyd",
+          "firstFixture": {
+            "$date": "2026-10-01T23:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -54,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": [
+            {
+              "name": "Diane Reid",
+              "email": "bigcoops+dianereid@gmail.com",
+              "role": "club secretary"
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "name": "Brookvale",
+          "firstFixture": {
+            "$date": "2026-11-05T00:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -20,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": []
+        },
+        {
+          "id": 65,
+          "name": "Larkhill",
+          "firstFixture": {
+            "$date": "2026-11-05T00:00:00.000Z"
+          },
+          "teams": "1",
+          "daysAway": -20,
+          "receivedAt": null,
+          "chasedAt": null,
+          "chaseCount": 0,
+          "note": null,
+          "updatedBy": null,
+          "season": "20262027",
+          "received": false,
+          "chased": false,
+          "officers": []
         }
       ]
     }

@@ -1,12 +1,15 @@
 // @ts-check
 var db = require('../db_connect.js');
 var seasonModel = require('./season');
+const { sql } = require('kysely');
 const { kysely, decrypt } = require('../db');
 
-// REARCH-01: on the typed query layer except getLeagueTable and getAllLeagueTables. Those
-// read a season's teams and divisions from team_at / division_at (REARCH-02), with the
-// season bound like any other value. getAnnualInvoices waited on season."clubFee" being
-// in a migration (026).
+// REARCH-01: on the typed query layer. The three standings queries are typed `sql`
+// templates — their SQL kept as it was (Nov 2026), since a nested UNION ALL rebuilt as
+// builder calls would be harder to read and easier to get wrong. getLeagueTable and
+// getAllLeagueTables read a season's teams and divisions from team_at / division_at
+// (REARCH-02), with the season bound like any other value. getAnnualInvoices waited on
+// season."clubFee" being in a migration (026).
 
 /** @typedef {import('kysely').Kysely<import('../db/schema').DB>} Q */
 
@@ -18,19 +21,25 @@ const { kysely, decrypt } = require('../db');
 // It applies to the current season only. A team that folds in February must still
 // appear in the tables for the seasons it actually played — that is the whole reason the
 // row is kept rather than deleted — and the older seasons' history has no `withdrawn`.
-/** @param {string} alias @param {string} season */
-function WITHDRAWN_FILTER(alias, season) {
-  return season === seasonModel.current() ? ` AND ${alias}.withdrawn IS NULL` : ''
+/** @typedef {import('kysely').RawBuilder<unknown>} Fragment */
+/** @param {string} season @returns {Fragment} */
+function WITHDRAWN_FILTER(season) {
+  return season === seasonModel.current()
+    ? /** @type {Fragment} */ (sql` AND team.withdrawn IS NULL`)
+    : /** @type {Fragment} */ (sql``)
 }
+
+// SUM over integers is a bigint, which pg hands back as a string; the pages print it.
+/** @typedef {{ name: string, played: string, gamesWon: string, gamesLost: string }} TableRow */
+/** @typedef {TableRow & { divisionName: string, division: number, divRank: number | null }} AllTablesRow */
 
 /** @param {string} division @param {string} [season] */
 exports.getLeagueTable = async function(division, season) {
   // A malformed season is a 404 (models/season.js), not a query for no rows.
   const resolvedSeason = seasonModel.assertName(season) || seasonModel.current()
-  const withdrawnFilter = WITHDRAWN_FILTER('team', resolvedSeason)
+  const withdrawnFilter = WITHDRAWN_FILTER(resolvedSeason)
   division = division.replace('-', ' ')
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost"
+  const { rows } = await /** @type {import('kysely').RawBuilder<TableRow>} */ (sql`SELECT c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost"
      FROM (
        SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division
        FROM (
@@ -42,7 +51,7 @@ exports.getLeagueTable = async function(division, season) {
              CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
              "homeScore" AS pointsfor, "awayScore" AS pointsagainst, fixture."homeTeam" AS teamid
            FROM fixture, season
-           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+           WHERE season.name = ${resolvedSeason} AND fixture.date > season."startDate" AND fixture.date < season."endDate"
            UNION ALL
            SELECT fixture.date,
              CASE WHEN fixture."awayScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
@@ -50,18 +59,16 @@ exports.getLeagueTable = async function(division, season) {
              CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
              "awayScore" AS pointsfor, "homeScore" AS pointsagainst, fixture."awayTeam" AS teamid
            FROM fixture, season
-           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+           WHERE season.name = ${resolvedSeason} AND fixture.date > season."startDate" AND fixture.date < season."endDate"
          ) AS a
          GROUP BY a.teamid
        ) AS b
-       JOIN team_at AS team ON team.id = b.teamid AND team.season = ?${withdrawnFilter}
+       JOIN team_at AS team ON team.id = b.teamid AND team.season = ${resolvedSeason}${withdrawnFilter}
      ) AS c
      JOIN division ON c.division = division.id
-     WHERE division.name = ? AND division.league = 1
-     ORDER BY "gamesWon" DESC`,
-    [resolvedSeason, resolvedSeason, resolvedSeason, division]
-  )
-  return result
+     WHERE division.name = ${division} AND division.league = 1
+     ORDER BY "gamesWon" DESC`).execute(kysely)
+  return rows
 }
 
 // A withdrawn team is no longer entered in the league, so it is not billable — see
@@ -117,9 +124,8 @@ exports.getAnnualInvoices = async function(clubName) {
 /** @param {string} [season] */
 exports.getAllLeagueTables = async function(season) {
   const resolvedSeason = seasonModel.assertName(season) || seasonModel.current()
-  const withdrawnFilter = WITHDRAWN_FILTER('team', resolvedSeason)
-  const [result] = await (await db.otherConnect()).query(
-    `SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost", c."divRank"
+  const withdrawnFilter = WITHDRAWN_FILTER(resolvedSeason)
+  const { rows } = await /** @type {import('kysely').RawBuilder<AllTablesRow>} */ (sql`SELECT division.name AS "divisionName", division.id AS division, c.name, c.played, c.pointsfor AS "gamesWon", c.pointsagainst AS "gamesLost", c."divRank"
      FROM (
        SELECT team.name, b.played, b.pointsfor - team.penalties AS pointsfor, b.pointsagainst, team.division, team."divRank"
        FROM (
@@ -131,7 +137,7 @@ exports.getAllLeagueTables = async function(season) {
              CASE WHEN fixture."homeScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
              "homeScore" AS pointsfor, "awayScore" AS pointsagainst, fixture."homeTeam" AS teamid
            FROM fixture, season
-           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+           WHERE season.name = ${resolvedSeason} AND fixture.date > season."startDate" AND fixture.date < season."endDate"
              AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
            UNION ALL
            SELECT fixture.date,
@@ -140,19 +146,17 @@ exports.getAllLeagueTables = async function(season) {
              CASE WHEN fixture."awayScore" = 9 THEN 1 ELSE 0 END AS gamesdrawn,
              "awayScore" AS pointsfor, "homeScore" AS pointsagainst, fixture."awayTeam" AS teamid
            FROM fixture, season
-           WHERE season.name = ? AND fixture.date > season."startDate" AND fixture.date < season."endDate"
+           WHERE season.name = ${resolvedSeason} AND fixture.date > season."startDate" AND fixture.date < season."endDate"
              AND fixture.status IN ('conceded','complete',NULL,'','outstanding')
          ) AS a
          GROUP BY a.teamid
        ) AS b
-       JOIN team_at AS team ON team.id = b.teamid AND team.season = ?${withdrawnFilter}
+       JOIN team_at AS team ON team.id = b.teamid AND team.season = ${resolvedSeason}${withdrawnFilter}
      ) AS c
-     JOIN division_at AS division ON c.division = division.id AND division.season = ?
+     JOIN division_at AS division ON c.division = division.id AND division.season = ${resolvedSeason}
      WHERE division.league = 1
-     ORDER BY division, "gamesWon" DESC, "divRank"`,
-    [resolvedSeason, resolvedSeason, resolvedSeason, resolvedSeason]
-  )
-  return result
+     ORDER BY division, "gamesWon" DESC, "divRank"`).execute(kysely)
+  return rows
 }
 
 // This season's standings with the fixtures each team has left, for the run-in page
@@ -160,9 +164,11 @@ exports.getAllLeagueTables = async function(season) {
 // a finished season has nothing left to play. A fixture is still to play while it has no
 // score; void and rearranged ones are left out, as the old run-in query did.
 // Numbers come back as numbers, not the strings Postgres gives a SUM.
+/** @typedef {{ division: number, divisionName: string, divisionRank: number | null, id: number, name: string,
+ *   divRank: number | null, played: string, remaining: string, gamesWon: string, gamesLost: string }} RunInRow */
 exports.getRunIn = async function() {
-  const [rows] = await (await db.otherConnect()).query(
-    `SELECT division.id AS division, division.name AS "divisionName", division.rank AS "divisionRank",
+  const season = seasonModel.current()
+  const { rows } = await /** @type {import('kysely').RawBuilder<RunInRow>} */ (sql`SELECT division.id AS division, division.name AS "divisionName", division.rank AS "divisionRank",
             team.id, team.name, team."divRank", s.played, s.remaining,
             s.won - COALESCE(team.penalties, 0) AS "gamesWon", s.lost AS "gamesLost"
      FROM (
@@ -173,23 +179,21 @@ exports.getRunIn = async function() {
                 CASE WHEN f."homeScore" IS NOT NULL THEN 1 ELSE 0 END AS played,
                 CASE WHEN f."homeScore" IS NULL THEN 1 ELSE 0 END AS remaining
          FROM fixture f JOIN season ON f.date > season."startDate" AND f.date < season."endDate"
-         WHERE season.name = ? AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
+         WHERE season.name = ${season} AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
          UNION ALL
          SELECT f."awayTeam", f."awayScore", f."homeScore",
                 CASE WHEN f."awayScore" IS NOT NULL THEN 1 ELSE 0 END,
                 CASE WHEN f."awayScore" IS NULL THEN 1 ELSE 0 END
          FROM fixture f JOIN season ON f.date > season."startDate" AND f.date < season."endDate"
-         WHERE season.name = ? AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
+         WHERE season.name = ${season} AND (f.status IN ('conceded', 'complete', '', 'outstanding') OR f.status IS NULL)
        ) AS x
        GROUP BY x.team
      ) AS s
      JOIN team ON team.id = s.team AND team.withdrawn IS NULL
      JOIN division ON division.id = team.division
      WHERE division.league = 1
-     ORDER BY division.rank, "gamesWon" DESC, team."divRank"`,
-    [seasonModel.current(), seasonModel.current()]
-  )
-  return rows.map((/** @type {any} */ r) => ({
+     ORDER BY division.rank, "gamesWon" DESC, team."divRank"`).execute(kysely)
+  return rows.map(r => ({
     ...r,
     played: Number(r.played), remaining: Number(r.remaining),
     gamesWon: Number(r.gamesWon), gamesLost: Number(r.gamesLost),
