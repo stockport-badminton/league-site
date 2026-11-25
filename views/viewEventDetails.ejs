@@ -81,7 +81,9 @@
 
   .ev-venue dt { font-weight: 600; margin-top: .5rem; }
   .ev-venue dd { margin-bottom: 0; }
-  #eventMap { height: 260px; border-radius: .35rem; margin-top: .75rem; background: #eef0f2; }
+  <%# HARD-46: the box has its final size before the map exists, so loading it moves nothing. %>
+  #eventMap { aspect-ratio: 16 / 9; max-height: 320px; width: 100%; border-radius: .35rem; margin-top: .75rem;
+              background: #eef0f2; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .ev-links { list-style: none; padding: 0; margin: 0; }
   .ev-links li { padding: .25rem 0; }
 
@@ -242,7 +244,13 @@
           <% if (f.matchSecretary) { %><dt>Match Secretary</dt><dd><%= f.matchSecretary %></dd><% } %>
         </dl>
         <% if (f.venueLink) { %><p class="mt-2 mb-0"><a href="<%= f.venueLink %>" target="_blank" rel="noopener">Open in Google Maps</a></p><% } %>
-        <% if (f.placeId) { %><div id="eventMap" aria-label="Map of <%= f.venueName %>"></div><% } %>
+        <%# HARD-46: Google Maps (30 requests, ~800 KB) loads only when asked for. The link above
+            is what most people want; the button is for the rest. %>
+        <% if (f.Lat != null && f.Lng != null) { %>
+        <div id="eventMap" aria-label="Map of <%= f.venueName %>">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="eventMapShow"><%- icon('map-location-dot') %> Show map</button>
+        </div>
+        <% } %>
       </section>
 
       <section class="ev-card" aria-labelledby="ev-more">
@@ -260,24 +268,33 @@
 </article>
 
 <%- include('footer.ejs') %>
-<% if (f.placeId) { %>
+<% if (f.Lat != null && f.Lng != null) { %>
 <script>
+    <%# Google's bootstrap loader. It fetches nothing until importLibrary is first called. %>
     (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
       key: "<%= mapsApiKey %>",
       v: "weekly",
     });
 </script>
 <script>
-async function initMap() {
-  const { Map } = await google.maps.importLibrary("maps");
-  const { Place } = await google.maps.importLibrary("places");
-  await google.maps.importLibrary("marker");
-  const place = new Place({ id: <%- JSON.stringify(String(f.placeId)).replace(/</g, '\\u003c') %>, requestedLanguage: "en" });
-  await place.fetchFields({ fields: ["displayName", "formattedAddress", "location"] });
-  const map = new Map(document.getElementById("eventMap"), { center: place.location, zoom: 15, mapId: "DEMO_MAP_ID" });
-  new google.maps.marker.AdvancedMarkerElement({ position: place.location, map: map });
-}
-initMap();
+// Centred on the venue's stored coordinates, so no Places library or Place lookup.
+(function () {
+  var box = document.getElementById("eventMap");
+  var button = document.getElementById("eventMapShow");
+  var venue = { lat: <%- Number(f.Lat) %>, lng: <%- Number(f.Lng) %> };
+  button.addEventListener("click", async function () {
+    button.disabled = true;
+    try {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+      box.textContent = "";
+      const map = new Map(box, { center: venue, zoom: 15, mapId: "DEMO_MAP_ID" });
+      new AdvancedMarkerElement({ position: venue, map: map, title: <%- JSON.stringify(String(f.venueName || '')).replace(/</g, '\\u003c') %> });
+    } catch (err) {
+      box.textContent = "The map could not be loaded. Use the Google Maps link above.";
+    }
+  });
+})();
 </script>
 <% } %>
 

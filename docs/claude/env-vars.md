@@ -200,7 +200,9 @@ holds the one-line meaning, and what follows is why.
   sites** (Tameside renders the same key). It is restricted in GCP, not here, so grepping
   will not find the rule (1 Oct 2026):
   - **API targets**: Maps JavaScript API (`maps-backend.googleapis.com`) and Places API
-    (New) (`places.googleapis.com`, which `Place.fetchFields` on the event pages needs).
+    (New) (`places.googleapis.com`, which `Place.fetchFields` on the event pages needed;
+    since HARD-46 this site's event map centres on `venue.Lat`/`Lng` and makes no Places
+    call. Check Tameside, which shares the key, before dropping Places from it).
     Until then it was unrestricted, so anyone viewing source could call Vision or anything
     else enabled on `stockport-badminton-map`, billed to us.
   - **Referrers**: `https://` + `stockport-badminton.co.uk`, `tameside-badminton.co.uk`,

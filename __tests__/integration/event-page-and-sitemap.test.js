@@ -111,6 +111,23 @@ describe('GET /event/:id/:date-:homeTeam-:awayTeam', () => {
     expect(without.text).not.toContain('Getting there');
   });
 
+  // HARD-46. That Maps is not REQUESTED before the press is proved in the browser
+  // (e2e/event-map.spec.js); this pins the markup the button and script hang off.
+  it('offers the map behind a button, centred on the venue coordinates, with no Places lookup', async () => {
+    Fixture.getFixtureEventById.mockResolvedValue([eventRow()]);
+    const res = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+    expect(res.text).toContain('id="eventMapShow"');
+    expect(res.text).toContain('{ lat: 53.3261, lng: -2.22766 }');
+    expect(res.text).not.toContain('fetchFields');
+    expect(res.text).not.toContain('importLibrary("places")');
+
+    Fixture.getFixtureEventById.mockResolvedValue([eventRow({ Lat: null, Lng: null })]);
+    const without = await request(app).get('/event/7388/01092026-Manor%20B-Parrswood%20C');
+    expect(without.status).toBe(200);
+    expect(without.text).not.toContain('id="eventMap"');
+    expect(without.text).not.toContain('importLibrary');
+  });
+
   it('404s a fixture id that does not exist', async () => {
     Fixture.getFixtureEventById.mockResolvedValue([]);
     const res = await request(app).get('/event/999999/01012027-A-B');
