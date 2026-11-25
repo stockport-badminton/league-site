@@ -181,13 +181,15 @@
                   &middot; <span style="color:#14532d;"><strong>nothing found any more.</strong>
                   Delete the <code><%= section.name %></code> entry from
                   <code>utils/auditDigest.js</code>, so the next occurrence is reported in
-                  full rather than quietly counted against a baseline nobody needs.</span>
+                  full rather than quietly counted against a baseline nobody needs.
+                  <em>That is a code change, not a data one &mdash; nothing on the site
+                  needs fixing.</em></span>
                 <% } else { %>
                   &middot; <%= section.total %> row<%= section.total === 1 ? '' : 's' %>
                   <% if (section.status === 'shrunk') { %>
                     <span style="color:#14532d;">(<%= -section.delta %> fewer than tracked &mdash; worth
                     lowering the baseline in <code>utils/auditDigest.js</code> so the next
-                    regression still shows)</span>
+                    regression still shows &mdash; a code change, nothing on the site needs fixing)</span>
                   <% } %>
                 <% } %>
               </div>

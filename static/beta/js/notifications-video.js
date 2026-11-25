@@ -10,5 +10,6 @@
       if (window.sblTrack) sblTrack('notifications_video_opened', { from: location.pathname });
     });
   });
+  if (window.sblWatchVideo) sblWatchVideo(player, 'notifications_video', function () { return { from: location.pathname }; });
   dialog.addEventListener('close', function () { player.pause(); });
 })();

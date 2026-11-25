@@ -8,7 +8,14 @@
 // classification is what these tests pin down.
 
 const digest = require('../../utils/auditDigest');
-const { buildDigest, TRACKED } = digest;
+const { TRACKED, RETIRED_EXAMPLES } = digest;
+
+// The live baseline list is empty whenever nothing is owned elsewhere, so classification
+// is tested against the retired entries: one count-based, two predicate-based.
+const BASE = RETIRED_EXAMPLES;
+function buildDigest(results, opts = {}) {
+  return digest.buildDigest(results, { tracked: BASE, ...opts });
+}
 
 function check(name, rows, extra = {}) {
   return {
@@ -40,7 +47,7 @@ describe('buildDigest — classification', () => {
   });
 
   it('collapses a tracked check at its baseline count to a single noted line', () => {
-    const rows = Array.from({ length: TRACKED['orphan-team-refs'].count }, (_, i) => ({ id: i }));
+    const rows = Array.from({ length: BASE['orphan-team-refs'].count }, (_, i) => ({ id: i }));
     const d = buildDigest([check('orphan-team-refs', rows)]);
 
     expect(d.attention).toHaveLength(0);
@@ -53,7 +60,7 @@ describe('buildDigest — classification', () => {
   });
 
   it('escalates a tracked check that has grown, and says by how much', () => {
-    const n = TRACKED['orphan-team-refs'].count;
+    const n = BASE['orphan-team-refs'].count;
     const rows = Array.from({ length: n + 2 }, (_, i) => ({ id: i }));
     const d = buildDigest([check('orphan-team-refs', rows)]);
 
@@ -73,7 +80,7 @@ describe('buildDigest — classification', () => {
   });
 
   it('notes a tracked check that has shrunk, without calling it a finding', () => {
-    const n = TRACKED['orphan-team-refs'].count;
+    const n = BASE['orphan-team-refs'].count;
     const rows = Array.from({ length: n - 5 }, (_, i) => ({ id: i }));
     const d = buildDigest([check('orphan-team-refs', rows)]);
 
@@ -151,7 +158,7 @@ describe('buildDigest — subject line', () => {
     expect(d.subject).toBe('[SBL audit] all clear');
     // Every baselined check finding nothing is 'resolved' rather than 'clean' — the
     // baseline still exists and is now asking to go.
-    const nTracked = Object.keys(TRACKED).length;
+    const nTracked = Object.keys(BASE).length;
     expect(d.resolved).toHaveLength(nTracked);
     expect(d.clean).toHaveLength(allClean().length - nTracked);
   });
@@ -215,7 +222,7 @@ describe('linkFor', () => {
 describe('TRACKED baselines', () => {
   // A baseline is a decision to stop looking at something, so it has to be reviewable.
   it('names an owning package and a reason for every entry', () => {
-    for (const [name, t] of Object.entries(TRACKED)) {
+    for (const [name, t] of Object.entries({ ...TRACKED, ...RETIRED_EXAMPLES })) {
       expect(typeof t.owner).toBe('string');
       expect(t.owner.length).toBeGreaterThan(0);
       expect(typeof t.note).toBe('string');
@@ -228,6 +235,13 @@ describe('TRACKED baselines', () => {
 
   it('only tracks checks that actually exist', () => {
     const names = require('../../tools/audit/checks').all().map(c => c.name);
-    for (const name of Object.keys(TRACKED)) expect(names).toContain(name);
+    for (const name of Object.keys({ ...TRACKED, ...RETIRED_EXAMPLES })) expect(names).toContain(name);
+  });
+
+  // With no baselines, a clean week is just clean: nothing left asking to be deleted.
+  it('the live list produces no "resolved" lines in a clean week', () => {
+    const d = digest.buildDigest(allClean());
+    expect(d.resolved).toHaveLength(Object.keys(TRACKED).length);
+    expect(d.noted).toHaveLength(Object.keys(TRACKED).length);
   });
 });

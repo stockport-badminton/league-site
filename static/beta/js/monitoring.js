@@ -22,6 +22,27 @@
     else window.posthog.capture(name, props || {});
   };
 
+  // How far a viewer got with one of the walkthrough videos. "Opened" (sent by the
+  // caller) says somebody clicked; these say whether they watched: `<prefix>_watched`
+  // with `progress` 0 (started playing), 50, or 100 (reached the end). Each milestone
+  // is sent once per loaded source, so scrubbing back and forth does not inflate it,
+  // and swapping to the other cut counts as a fresh viewing. `props()` is read at send
+  // time, so it can report which cut is loaded.
+  window.sblWatchVideo = function (player, prefix, props) {
+    var sent = {};
+    function send(progress) {
+      if (sent[progress]) return;
+      sent[progress] = true;
+      window.sblTrack(prefix + '_watched', Object.assign({ progress: progress }, props ? props() : {}));
+    }
+    player.addEventListener('loadstart', function () { sent = {}; });
+    player.addEventListener('playing', function () { send(0); });
+    player.addEventListener('timeupdate', function () {
+      if (player.duration && player.currentTime / player.duration >= 0.5) send(50);
+    });
+    player.addEventListener('ended', function () { send(100); });
+  };
+
   var el = document.getElementById('sbl-monitoring');
   if (!el) return;
   var cfg;

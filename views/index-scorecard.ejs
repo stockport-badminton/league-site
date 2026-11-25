@@ -145,6 +145,7 @@
               load(swap.dataset.cut);
               player.play().catch(function () {});
             });
+            if (window.sblWatchVideo) sblWatchVideo(player, 'scorecard_howto_video', function () { return { cut: dialog.dataset.cut }; });
             dialog.addEventListener('close', function () { player.pause(); });
           })();
         </script>

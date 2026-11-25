@@ -63,7 +63,13 @@ const MAX_ROWS = 20;
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
-const TRACKED = {
+// Empty since 25 Nov 2026: HARD-10 and HARD-11 landed and all three entries below read
+// "nothing found any more" in production. They are kept as a comment because they are the
+// worked examples of each matching strategy — copy one when a new owned problem appears.
+// The tests build their own baselines through buildDigest's `tracked` option.
+const TRACKED = {};
+
+const RETIRED_EXAMPLES = {
   'orphan-team-refs': {
     owner: 'HARD-11',
     count: 2132,
@@ -136,9 +142,9 @@ function linkFor(name, row) {
 // Classification
 // ---------------------------------------------------------------------------
 
-function classify(result) {
+function classify(result, baselines = TRACKED) {
   const rows = Array.isArray(result.rows) ? result.rows : [];
-  const tracked = TRACKED[result.name];
+  const tracked = baselines[result.name];
 
   const section = {
     name: result.name,
@@ -214,7 +220,10 @@ const ATTENTION = new Set(['new', 'grown', 'error']);
 const NOTED = new Set(['tracked', 'shrunk', 'resolved']);
 
 function buildDigest(results, opts = {}) {
-  const sections = (results || []).map(classify);
+  // `opts.tracked` replaces the baselines; the tests use it, because the real list is
+  // empty whenever nothing is owned elsewhere.
+  const baselines = opts.tracked || TRACKED;
+  const sections = (results || []).map(r => classify(r, baselines));
   const bySeverity = (a, b) =>
     (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9) ||
     a.name.localeCompare(b.name);
@@ -258,5 +267,5 @@ function plural(n, one, many) {
 
 module.exports = {
   buildDigest, linkFor, classify,
-  TRACKED, MAX_ROWS, SEVERITY_ORDER,
+  TRACKED, RETIRED_EXAMPLES, MAX_ROWS, SEVERITY_ORDER,
 };
