@@ -1,6 +1,6 @@
 <% if (typeof devMode !== 'undefined' && devMode) { %>
 <div id="devDebugPanel" style="position: fixed; bottom: 10px; right: 10px; z-index: 10000; width: 400px; max-height: 600px; background: #1e1e1e; color: #d4d4d4; border: 2px solid #0e639c; border-radius: 4px; font-family: monospace; font-size: 11px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
-  <div style="padding: 8px; background: #0e639c; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;" onclick="document.getElementById('devDebugContent').style.display = document.getElementById('devDebugContent').style.display === 'none' ? 'block' : 'none'">
+  <div style="padding: 8px; background: #0e639c; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;" data-debug="toggle">
     <strong>🔧 Dev Debug Panel</strong>
     <span style="font-size: 12px;">▼</span>
   </div>
@@ -14,8 +14,8 @@
       <div id="logsList" style="background: #252526; padding: 8px; margin: 5px 0; border-radius: 2px; max-height: 300px; overflow-y: auto;">
         <div style="color: #858585;">Waiting for logs...</div>
       </div>
-      <button onclick="clearDevLogs()" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px;">Clear Logs</button>
-      <button onclick="exportDevLogs()" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px; margin-left: 5px;">Export</button>
+      <button data-debug="clear" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px;">Clear Logs</button>
+      <button data-debug="export" style="padding: 4px 8px; background: #0e639c; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px; margin-top: 5px; margin-left: 5px;">Export</button>
     </div>
   </div>
 </div>
@@ -23,6 +23,20 @@
 <script>
 // Dev debug utilities
 window.devLogs = [];
+
+document.getElementById('devDebugPanel').addEventListener('click', function (event) {
+  var el = event.target instanceof Element ? event.target.closest('[data-debug]') : null;
+  if (!el) return;
+  var action = el.getAttribute('data-debug');
+  if (action === 'toggle') {
+    var content = document.getElementById('devDebugContent');
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+  } else if (action === 'clear') {
+    clearDevLogs();
+  } else if (action === 'export') {
+    exportDevLogs();
+  }
+});
 
 function logToPanel(category, message, data) {
   window.devLogs.push({ timestamp: new Date().toLocaleTimeString(), category, message, data });

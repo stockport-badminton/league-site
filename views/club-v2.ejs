@@ -251,7 +251,17 @@ function initMap() {
 <!-- The popup builder is a file, not an inline block, so it can be unit-tested.
      See static/beta/js/venue-popup.js and __tests__/unit/venue-popup.test.js. -->
 <script src="<%= static_path %>/beta/js/venue-popup.js"></script>
-<script src="//maps.googleapis.com/maps/api/js?key=<%= mapsApiKey %>&libraries=marker&callback=initMap&loading=async" async defer onerror="showMapFallback()"></script>
+<script>
+  // Added from script rather than as a tag, so a failed load can show the fallback without
+  // an inline onerror attribute (REARCH-07).
+  (function () {
+    var maps = document.createElement('script');
+    maps.src = '//maps.googleapis.com/maps/api/js?key=<%= encodeURIComponent(mapsApiKey) %>&libraries=marker&callback=initMap&loading=async';
+    maps.async = true;
+    maps.onerror = showMapFallback;
+    document.head.appendChild(maps);
+  })();
+</script>
 
 <script src="//www.google.com/recaptcha/api.js" async defer></script>
 

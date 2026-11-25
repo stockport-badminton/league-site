@@ -14,7 +14,7 @@
   <div class="card-header"><strong>Backfill All Seasons</strong></div>
   <div class="card-body">
     <p>Reprocesses every season from oldest to newest in one go. Player ratings carry over across season boundaries automatically.</p>
-    <button class="btn btn-danger" id="backfill-all-btn" onclick="runBackfill('all')">Backfill All Seasons</button>
+    <button class="btn btn-danger" id="backfill-all-btn" data-backfill="all">Backfill All Seasons</button>
   </div>
 </div>
 
@@ -31,7 +31,7 @@
         </select>
       </div>
       <div class="col-auto">
-        <button class="btn btn-warning" onclick="runBackfill('single')">Recalculate Season</button>
+        <button class="btn btn-warning" data-backfill="single">Recalculate Season</button>
       </div>
     </div>
   </div>
@@ -45,6 +45,11 @@
 </div>
 
 <script>
+document.addEventListener('click', function (event) {
+  var button = event.target instanceof Element ? event.target.closest('[data-backfill]') : null;
+  if (button) runBackfill(button.getAttribute('data-backfill'));
+});
+
 function runBackfill(type) {
   var url = type === 'all'
     ? '/players/eloBackfillAll'

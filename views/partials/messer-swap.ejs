@@ -7,7 +7,7 @@
 %>
 <form method="POST" class="messer-swap"
       action="/messer-draw/<%= section.toLowerCase() %>-section/swap/<%= m.id %>"
-      onsubmit="return confirm('Swap home and away? <%= tbc(m.awayTeam) %> will be at home to <%= tbc(m.homeTeam) %>, and their captain sends in the scorecard.');">
+      data-confirm="Swap home and away? <%= tbc(m.awayTeam) %> will be at home to <%= tbc(m.homeTeam) %>, and their captain sends in the scorecard.">
   <button type="submit" class="btn btn-link btn-sm p-0 align-baseline"
           title="Swap home and away" aria-label="Swap home and away"><%- icon('arrows-up-down') %></button>
 </form>

@@ -265,12 +265,19 @@ describe('every CDN the templates actually reference is in the policy', () => {
   const found = new Map();
   for (const file of ejsFiles(viewsDir)) {
     const src = fs.readFileSync(file, 'utf8');
-    const re = /<(script|link)\b[^>]*?(?:src|href)\s*=\s*"((?:https?:)?\/\/[^"]+)"/gi;
-    let m;
-    while ((m = re.exec(src)) !== null) {
-      const host = m[2].replace(/^https?:/, '').split('/')[2];
-      if (!host || host.includes('<%')) continue;
-      if (!found.has(host)) found.set(host, path.relative(viewsDir, file));
+    // A tag, or a script element built in script (`maps.src = '//…'`, how club-v2 loads
+    // Maps since REARCH-07 took its inline onerror away).
+    const patterns = [
+      /<(?:script|link)\b[^>]*?(?:src|href)\s*=\s*"((?:https?:)?\/\/[^"]+)"/gi,
+      /\.src\s*=\s*['"]((?:https?:)?\/\/[^'"]+)['"]/g,
+    ];
+    for (const re of patterns) {
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        const host = m[1].replace(/^https?:/, '').split('/')[2];
+        if (!host || host.includes('<%')) continue;
+        if (!found.has(host)) found.set(host, path.relative(viewsDir, file));
+      }
     }
   }
 

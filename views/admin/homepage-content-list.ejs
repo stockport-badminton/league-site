@@ -28,7 +28,7 @@
           <td>
             <a href="/admin/homepage-content/<%= a.id %>">Edit</a>
             &nbsp;|&nbsp;
-            <form style="display:inline" method="post" action="/admin/homepage-content/<%= a.id %>/delete" onsubmit="return confirm('Delete this announcement?');">
+            <form style="display:inline" method="post" action="/admin/homepage-content/<%= a.id %>/delete" data-confirm="Delete this announcement?">
               <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
             </form>
           </td>

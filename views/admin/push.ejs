@@ -27,7 +27,7 @@
     <input type="hidden" name="endpoint" value="">
     <button type="submit" name="to" value="me" class="btn btn-primary mr-2 mb-2">To this browser</button>
     <button type="submit" name="to" value="everyone" class="btn btn-outline-danger mb-2"
-            onclick="return confirm('Send a test notification to every subscriber?')">To everyone (<%= counts.subscriptions %>)</button>
+            data-confirm="Send a test notification to every subscriber?">To everyone (<%= counts.subscriptions %>)</button>
   </form>
   <script>
     // "To this browser" needs this browser's subscription endpoint, which only the page knows.

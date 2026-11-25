@@ -49,7 +49,7 @@
           </table>
         </div>
         <button type="submit" class="btn btn-danger"
-                onclick="return confirm('Delete <%= cull.due.length %> login(s) from Auth0? They are gone from Tameside\'s site too.')">
+                data-confirm="Delete <%= cull.due.length %> login(s) from Auth0? They are gone from Tameside's site too.">
           Delete <%= cull.due.length %> <%= cull.due.length === 1 ? 'login' : 'logins' %>
         </button>
         <span class="small text-muted ml-2">From Auth0, which Tameside's site shares, and as a player's login address here. Results are untouched.</span>

@@ -9,6 +9,45 @@ Close HARD-15 into this package rather than running both.
 build step for browser modules, `OBSERVED['script-src']` in `utils/securityHeaders.js`.
 **Source:** the 24 Oct 2026 "build it from scratch" review.
 
+## Progress
+
+**Steps 1 and 2 done, 25 Nov 2026, and widened to every handler outside the scorecard
+templates.** The `.backup` template is deleted. Nothing could render it: the one dynamic
+`res.render` builds `beta/messer-draw-*`, and Express reads `.backup` as an extension with
+no engine. That took the count from **166 to 114**; the brief's 159 → 107 was measured in
+October, and seven handlers have been added since. The other 12 then went too, leaving
+**102, all in the three scorecard templates** (`index-scorecard` 52, `messer-scorecard` 26,
+`populated-scorecard` 24), which wait for step 4:
+
+- **`static/beta/js/actions.js`**, loaded on every page by `footer.ejs`. It reads
+  `data-confirm` on a form (asks on submit) or a button (asks on click), and
+  `data-navigate` on a select (goes to the URL plus the value). That covered six
+  `confirm()` prompts (login cull, push test, homepage and junior-club deletes, the Messer
+  swap) and the team form's copy-from dropdown. The Messer swap and login-cull prompts had
+  team names, or `\'`, inside a JS string inside an attribute, so a name with an
+  apostrophe broke the prompt. An attribute value has no such problem.
+- **`elo-backfill` and `debugPanel`** use delegated listeners in their own script blocks
+  (`data-backfill`, `data-debug`). Those blocks move to files in step 5.
+- **`club-v2`'s Maps script is created from script** with `onerror` set there, instead of
+  `onerror="showMapFallback()"` on the tag. The CSP template scan in
+  `security-headers.test.js` now reads `x.src = '//host…'` as well as tags, since this was
+  the last place it could see `maps.googleapis.com`.
+
+**Held by** `__tests__/unit/no-inline-handlers.test.js`: zero outside the three
+scorecards, and a ceiling on each of those, to lower as they go. **Proved by**
+`e2e/inline-handlers.spec.js`, with no writes. Each case fails when its wiring is removed:
+a declined confirm sends nothing and an accepted one posts; the dropdown navigates; the
+backfill button asks for the selected season; the venue map shows its fallback within 2 s
+(not the 4 s timer) when Maps is blocked.
+
+Found on the way, not fixed here: the fixed footer covers the backfill page's
+"Recalculate Season" button in a 720 px-tall window. The pre-existing failure in
+`filter-toolbar.spec.js` ("the Columns dropdown hides a column and is not clipped") is
+unrelated; it fails with these changes stashed.
+
+Next: step 3 (esbuild) waits on the open decision about committing `dist/`. Step 5 (the
+non-scorecard `<script>` blocks) can go ahead without it.
+
 ## Why
 
 Two separate reasons, which happen to need the same piece of work.

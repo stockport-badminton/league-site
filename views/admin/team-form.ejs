@@ -9,7 +9,7 @@
   <% if (!isEdit && teams && teams.length) { %>
     <div class="form-group">
       <label for="copyFrom">Copy attributes from an existing team (optional)</label>
-      <select class="form-control" id="copyFrom" onchange="if(this.value){window.location.href='/admin/teams/create?copyFrom='+this.value}">
+      <select class="form-control" id="copyFrom" data-navigate="/admin/teams/create?copyFrom=">
         <option value="">— start blank —</option>
         <% teams.forEach(function(t){ %>
           <option value="<%= t.id %>" <%= copyFrom == t.id ? 'selected' : '' %>><%= t.name %></option>

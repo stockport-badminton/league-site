@@ -26,7 +26,7 @@
           <td>
             <a href="/admin/junior-clubs/<%= c.id %>">Edit</a>
             &nbsp;|&nbsp;
-            <form style="display:inline" method="post" action="/admin/junior-clubs/<%= c.id %>/delete" onsubmit="return confirm('Delete this junior club?');">
+            <form style="display:inline" method="post" action="/admin/junior-clubs/<%= c.id %>/delete" data-confirm="Delete this junior club?">
               <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
             </form>
           </td>
