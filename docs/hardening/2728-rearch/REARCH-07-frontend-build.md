@@ -168,6 +168,27 @@ Two bugs fixed alongside:
   the superadmin-only "Points rating" column, which DEV_MODE's mock superadmin sees. The
   test now expects 13 plus that column when it is present.
 
+**Step 6 begun, 25 Nov 2026: the inline-script policy, observed.** A second
+`Content-Security-Policy-Report-Only` line goes out on every page: `script-src` exactly as
+allowed, minus `'unsafe-inline'`, plus `'report-sample'`. Its reports go to
+`/csp-report?policy=inline` (Reporting API group `csp-inline`), and the collector logs them
+as `csp-report[inline]: <directive>` with the sample and line number, so they are not
+mixed up with the enforcing policy's reports. It is left off any response rendered from
+`INLINE_SCRIPT_VIEWS` in `utils/securityHeaders.js` (the three scorecard templates), keyed
+on the template because those render from ten places, POST re-renders included.
+`no-inline-handlers.test.js` checks that this list is exactly the templates still holding
+inline script. The enforcing policy is unchanged.
+
+Checked before shipping: 86 pages in a real browser (every parameterless GET, plus event,
+club, results and tables pages) raised no inline-script violation. The only reports were
+local artefacts: protocol-relative Maps and reCAPTCHA URLs become `http:` on the dev
+server, and both policies flag those alike. Headless Chromium did not deliver a report to
+the local collector even for a deliberately injected handler (the Reporting API batches
+and may not run headless), so **production's log is the real test.** Look for
+`csp-report[inline]` in Cloud Logging. A quiet week that includes a Tuesday and a
+Wednesday, with traffic on the pages concerned, is the evidence for taking
+`'unsafe-inline'` out of the enforcing policy on the pages outside `INLINE_SCRIPT_VIEWS`.
+
 **Decided 25 Nov 2026 (Neil): `dist/` is built in the Docker image, not committed.** The
 image installs with `npm ci --omit=dev`, so it needs a multi-stage Dockerfile: a build
 stage with every dependency runs the bundle, and the runtime stage copies in only

@@ -351,7 +351,7 @@ function reportingDirectives() {
 
 function reportingEndpointsHeader() {
   const uri = reportUri();
-  return uri ? `${REPORT_GROUP}="${uri}"` : null;
+  return uri ? `${REPORT_GROUP}="${uri}", ${INLINE_REPORT_GROUP}="${inlineReportUri()}"` : null;
 }
 
 // The observed policy carries the reporting directives; the enforced baseline does not,
@@ -375,6 +375,72 @@ function observedDirectives() {
   return isEnforcing() ? null : { ...OBSERVED, ...reportingDirectives() };
 }
 
+// ---------------------------------------------------------------------------
+// Observed: script-src without 'unsafe-inline' (REARCH-07 step 6)
+// ---------------------------------------------------------------------------
+//
+// REARCH-07 step 5 moved every inline <script> block and event handler out of views/,
+// except in the three scorecard templates (step 4, off-season). This second report-only
+// policy is script-src as above *minus* 'unsafe-inline', so a report from it means inline
+// script ran somewhere we think has none: a handler or block that came back, a
+// `javascript:` link, or a third-party loader that injects inline code at runtime. Those
+// are what dropping 'unsafe-inline' from the enforcing policy would break, so a quiet
+// week of these (step 6's acceptance criterion) is the evidence for doing it.
+//
+// Only script-src, so nothing else is mixed into these reports; the enforcing policy
+// already covers the other directives. 'report-sample' asks the browser to include the
+// first 40 characters of the offending script, which is what tells one inline block from
+// another. It goes out alongside the existing headers as a second
+// Content-Security-Policy-Report-Only line (when CSP_ENFORCE is unset there is already
+// one): each line is a separate policy, applied independently.
+//
+// Not sent on a page rendered from one of INLINE_SCRIPT_VIEWS, which still carry inline
+// script and would report on every load. Keyed on the template rather than the path
+// because those templates render from ten places, POST re-renders after a validation
+// error among them. no-inline-handlers.test.js checks that this list covers every
+// template that still has inline script; take a template off it when step 4 empties it.
+const INLINE_SCRIPT_VIEWS = ['index-scorecard', 'messer-scorecard', 'populated-scorecard'];
+const INLINE_REPORT_GROUP = 'csp-inline';
+const REPORT_ONLY = 'Content-Security-Policy-Report-Only';
+
+// Its own URL, so the collector can say which policy a report came from.
+function inlineReportUri() {
+  const uri = reportUri();
+  if (!uri) return null;
+  return uri + (uri.includes('?') ? '&' : '?') + 'policy=inline';
+}
+
+function inlineDirectives() {
+  const uri = inlineReportUri();
+  return {
+    'script-src': [...OBSERVED['script-src'].filter((s) => s !== "'unsafe-inline'"), "'report-sample'"],
+    ...(uri ? { 'report-uri': [uri], 'report-to': [INLINE_REPORT_GROUP] } : {}),
+  };
+}
+
+function inlinePolicyHeader() {
+  return Object.entries(inlineDirectives())
+    .map(([name, values]) => `${name} ${values.join(' ')}`)
+    .join('; ');
+}
+
+// Express middleware: adds the policy, and takes it off again if the response turns out
+// to be one of INLINE_SCRIPT_VIEWS. Headers can still change until render sends them.
+function inlineScriptReport(req, res, next) {
+  const value = inlinePolicyHeader();
+  res.append(REPORT_ONLY, value);
+  const render = res.render;
+  res.render = function (view, ...rest) {
+    if (INLINE_SCRIPT_VIEWS.includes(view)) {
+      const current = [].concat(res.getHeader(REPORT_ONLY) || []).filter((v) => v !== value);
+      if (current.length) res.setHeader(REPORT_ONLY, current);
+      else res.removeHeader(REPORT_ONLY);
+    }
+    return render.call(this, view, ...rest);
+  };
+  next();
+}
+
 module.exports = {
   ENFORCED,
   OBSERVED,
@@ -386,4 +452,10 @@ module.exports = {
   enforcedDirectives,
   observedDirectives,
   reportingEndpointsHeader,
+  INLINE_SCRIPT_VIEWS,
+  INLINE_REPORT_GROUP,
+  inlineReportUri,
+  inlineDirectives,
+  inlinePolicyHeader,
+  inlineScriptReport,
 };

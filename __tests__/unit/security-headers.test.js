@@ -64,7 +64,8 @@ describe('where reports are sent', () => {
   it('defaults to the collector in app.js', () => {
     delete process.env.CSP_REPORT_URI;
     expect(securityHeaders.reportUri()).toBe('/csp-report');
-    expect(securityHeaders.reportingEndpointsHeader()).toBe('csp-endpoint="/csp-report"');
+    expect(securityHeaders.reportingEndpointsHeader())
+      .toBe('csp-endpoint="/csp-report", csp-inline="/csp-report?policy=inline"');
   });
 
   it('can be pointed at Sentry, or anywhere else, without a code change', () => {
@@ -80,5 +81,42 @@ describe('where reports are sent', () => {
     expect(observed['report-uri']).toBeUndefined();
     expect(observed['report-to']).toBeUndefined();
     expect(securityHeaders.reportingEndpointsHeader()).toBeNull();
+  });
+});
+
+// REARCH-07 step 6: script-src without 'unsafe-inline', observed, so a report means inline
+// script ran on a page we think has none.
+describe('the inline-script policy', () => {
+  it("is script-src as allowed, without 'unsafe-inline', asking for a sample", () => {
+    delete process.env.CSP_REPORT_URI;
+    const d = securityHeaders.inlineDirectives();
+    expect(Object.keys(d).sort()).toEqual(['report-to', 'report-uri', 'script-src']);
+    expect(d['script-src']).not.toContain("'unsafe-inline'");
+    expect(d['script-src']).toContain("'report-sample'");
+    const hosts = securityHeaders.OBSERVED['script-src'].filter(s => s !== "'unsafe-inline'");
+    expect(d['script-src']).toEqual(expect.arrayContaining(hosts));
+    // The main policy keeps it until the scorecard templates are clean.
+    expect(securityHeaders.OBSERVED['script-src']).toContain("'unsafe-inline'");
+  });
+
+  it('reports to its own URL and group, so the collector can tell the two apart', () => {
+    delete process.env.CSP_REPORT_URI;
+    expect(securityHeaders.inlineDirectives()['report-uri']).toEqual(['/csp-report?policy=inline']);
+    expect(securityHeaders.inlineDirectives()['report-to']).toEqual(['csp-inline']);
+    process.env.CSP_REPORT_URI = 'https://example.ingest.de.sentry.io/api/1/security/?sentry_key=k';
+    expect(securityHeaders.inlineReportUri()).toBe(process.env.CSP_REPORT_URI + '&policy=inline');
+  });
+
+  it('reports nowhere when reporting is off', () => {
+    process.env.CSP_REPORT_URI = '';
+    expect(securityHeaders.inlineDirectives()['report-uri']).toBeUndefined();
+    expect(securityHeaders.inlinePolicyHeader()).toMatch(/^script-src [^;]+$/);
+  });
+
+  it('is sent whether or not the allowlist is enforced', () => {
+    for (const v of [undefined, 'true']) {
+      if (v) process.env.CSP_ENFORCE = v; else delete process.env.CSP_ENFORCE;
+      expect(securityHeaders.inlinePolicyHeader()).toMatch(/^script-src 'self' /);
+    }
   });
 });

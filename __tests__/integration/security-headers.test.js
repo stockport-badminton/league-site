@@ -243,6 +243,7 @@ describe('the report-only Content-Security-Policy', () => {
   it('declares the reporting endpoint Chrome needs alongside report-uri', async () => {
     const res = await homepage();
     expect(res.headers['reporting-endpoints']).toMatch(/^csp-endpoint="/);
+    expect(res.headers['reporting-endpoints']).toContain('csp-inline="/csp-report?policy=inline"');
   });
 });
 
@@ -308,7 +309,51 @@ describe('every CDN the templates actually reference is in the policy', () => {
   );
 });
 
+// REARCH-07 step 6. Separate header lines are separate policies; supertest joins them, so
+// read the raw lines.
+function reportOnlyLines(res) {
+  const out = [];
+  const raw = res.res.rawHeaders;
+  for (let i = 0; i < raw.length; i += 2) {
+    if (raw[i].toLowerCase() === 'content-security-policy-report-only') out.push(raw[i + 1]);
+  }
+  return out;
+}
+
+describe("script-src without 'unsafe-inline', observed", () => {
+  it('goes out on an ordinary page as its own policy, beside the allowlist', async () => {
+    const lines = reportOnlyLines(await homepage());
+    const inline = lines.filter(l => /^script-src /.test(l));
+    expect(inline).toHaveLength(1);
+    expect(inline[0]).not.toContain("'unsafe-inline'");
+    expect(inline[0]).toContain("'report-sample'");
+    expect(inline[0]).toContain('report-uri /csp-report?policy=inline');
+    // The allowlist's own report-only policy (CSP_ENFORCE is unset here) is untouched.
+    expect(lines.filter(l => /default-src 'self'/.test(l) && /'unsafe-inline'/.test(l))).toHaveLength(1);
+  });
+});
+
 describe('POST /csp-report', () => {
+  it('tags a report from the inline-script policy, with its sample and line', async () => {
+    const spy = captureLog(['warn']);
+    await request(app)
+      .post('/csp-report?policy=inline')
+      .set('Content-Type', 'application/csp-report')
+      .send(JSON.stringify({
+        'csp-report': {
+          'document-uri': 'https://stockport-badminton.co.uk/results',
+          'effective-directive': 'script-src-attr',
+          'blocked-uri': 'inline',
+          'line-number': 42,
+          'script-sample': 'doThing()',
+        }
+      }));
+    const logged = spy.strings().join(' ');
+    spy.restore();
+    expect(logged).toContain('csp-report[inline]: script-src-attr');
+    expect(logged).toContain('doThing()');
+  });
+
   it('accepts a report-uri violation and answers 204', async () => {
     const res = await request(app)
       .post('/csp-report')

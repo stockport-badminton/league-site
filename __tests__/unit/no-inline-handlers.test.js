@@ -101,3 +101,19 @@ describe('inline <script> blocks in views/', () => {
     expect(counts['index-scorecard.ejs']).toBeGreaterThan(0);
   });
 });
+
+// REARCH-07 step 6: the report-only policy without 'unsafe-inline' is left off the
+// templates in INLINE_SCRIPT_VIEWS. A template with inline script that is not on that
+// list would report on every load; one on it with none left is a page not being watched.
+describe("the inline-script policy's exemptions", () => {
+  const { INLINE_SCRIPT_VIEWS } = require('../../utils/securityHeaders');
+  const inline = templates(VIEWS)
+    .map(f => [path.relative(VIEWS, f).split(path.sep).join('/'), fs.readFileSync(f, 'utf8')])
+    .filter(([rel]) => !rel.startsWith('emails/'))
+    .filter(([, src]) => count(src) > 0 || blocks(src) > 0)
+    .map(([rel]) => rel.replace(/\.ejs$/, ''));
+
+  it('are exactly the templates that still have inline script', () => {
+    expect([...INLINE_SCRIPT_VIEWS].sort()).toEqual(inline.sort());
+  });
+});

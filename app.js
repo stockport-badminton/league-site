@@ -111,6 +111,10 @@ if (securityHeaders.observedDirectives()) {
   }));
 }
 
+// script-src without 'unsafe-inline', report-only, on every page but the three scorecard
+// templates (REARCH-07 step 6). After helmet's, which would overwrite it.
+app.use(securityHeaders.inlineScriptReport);
+
 // Past seasons for the History nav / archive, loaded from the DB at startup
 // (below). Default to empty so views always have an array to iterate.
 app.locals.pastSeasons = [];
@@ -327,16 +331,22 @@ app.post('/csp-report', access.public, require('./middleware/rateLimit').cspRepo
             directive: r.body && (r.body.effectiveDirective || r.body.violatedDirective),
             blocked: r.body && r.body.blockedURL,
             document: r.body && r.body.documentURL || r.url,
-            source: r.body && r.body.sourceFile
+            source: r.body && r.body.sourceFile,
+            line: r.body && r.body.lineNumber,
+            sample: r.body && r.body.sample
           };
         })
     : (body && body['csp-report'] ? [{
         directive: body['csp-report']['effective-directive'] || body['csp-report']['violated-directive'],
         blocked: body['csp-report']['blocked-uri'],
         document: body['csp-report']['document-uri'],
-        source: body['csp-report']['source-file']
+        source: body['csp-report']['source-file'],
+        line: body['csp-report']['line-number'],
+        sample: body['csp-report']['script-sample']
       }] : []);
 
+  // Which policy: the inline-script one reports to ?policy=inline (REARCH-07 step 6).
+  var policy = req.query && req.query.policy === 'inline' ? 'inline' : 'main';
   reports.forEach(function(r) {
     // Extension-injected scripts violate any policy on any site and are not ours to
     // fix. Left in, they are the overwhelming majority of the volume and the reason a
@@ -346,8 +356,11 @@ app.post('/csp-report', access.public, require('./middleware/rateLimit').cspRepo
       csp: {
         directive: logSafe(r.directive), blocked: logSafe(r.blocked),
         page: logSafe(r.document), source: logSafe(r.source),
+        line: typeof r.line === 'number' ? r.line : undefined,
+        sample: r.sample ? logSafe(r.sample) : undefined,
+        policy: policy,
       },
-    }, 'csp-report: ' + logSafe(r.directive));
+    }, 'csp-report' + (policy === 'inline' ? '[inline]' : '') + ': ' + logSafe(r.directive));
   });
 });
 

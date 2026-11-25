@@ -245,6 +245,20 @@ describe('GET /scorecard-beta', () => {
     expect(res.text).toContain('Division 1');
   });
 
+  // The wizard still has inline script (REARCH-07 step 4), so the inline-script report-only
+  // policy would report on every load; utils/securityHeaders.js leaves it off this template.
+  it("does not send the inline-script policy, and keeps the allowlist's", async () => {
+    Division.getAllByLeague.mockResolvedValue(mockDivisions);
+    const res = await request(app).get('/scorecard-beta');
+    const lines = [];
+    const raw = res.res.rawHeaders;
+    for (let i = 0; i < raw.length; i += 2) {
+      if (raw[i].toLowerCase() === 'content-security-policy-report-only') lines.push(raw[i + 1]);
+    }
+    expect(lines.some(l => /policy=inline/.test(l))).toBe(false);
+    expect(lines.some(l => /default-src 'self'/.test(l))).toBe(true);
+  });
+
   it('returns 500 when Division.getAllByLeague rejects', async () => {
     Division.getAllByLeague.mockRejectedValue(new Error('DB error'));
     const res = await request(app).get('/scorecard-beta');
