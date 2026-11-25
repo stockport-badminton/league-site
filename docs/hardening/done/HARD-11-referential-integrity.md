@@ -100,7 +100,7 @@ is deliberately left NULL rather than coalesced: it feeds
 NULL renders no bracket. A substituted number would invent an adjustment that never
 happened.
 
-Guarded at first by `__tests__/unit/player-history-join.test.js`, a source check, because
+Guarded at first by a source check (a unit test, since deleted), because
 Jest had no database then; the behavioural proof is the 256 → 716 above. Since 25 Nov
 2026 (REARCH-01) it is a behaviour test instead, in
 `__tests__/db/season-history-readers.test.js`: a game against a deleted team is kept, as
