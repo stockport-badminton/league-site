@@ -678,7 +678,7 @@ exports.distribution_list = async function(req,res,next) {
       let recipients = notification.receipt.recipients
       let stockportrecips = recipients.filter(row => row.indexOf('@stockport-badminton.co.uk') > -1 )
       
-      for (row of stockportrecips){
+      for (const row of stockportrecips){
         // row = row.substring(0,row.indexOf("@"))
         recipient += row.substring(0,row.indexOf("@"))
       }

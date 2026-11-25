@@ -32,7 +32,7 @@ exports.club_list_detail = async function(req, res, next) {
     let newClubElem = {}
     let prevRowElem = {}
     let teamElem = {}
-    for (row of result){
+    for (const row of result){
       if (row.clubId == prevRowElem.id ){
         teamElem = {}
         teamElem.name = row.teamName

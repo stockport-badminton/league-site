@@ -371,7 +371,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
   function buildGridData(result) {
     let divisionsArray = result.map(row => row.division).filter((division, index, arr) => arr.indexOf(division) == index)
     let griddedData = []
-    for (division of divisionsArray) {
+    for (const division of divisionsArray) {
       let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged' && row.id != 99999)
       gridFixtures.sort(function(x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
       let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
@@ -470,7 +470,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       const griddedData = buildGridData(result)
       let titleString = ""
       if (searchObj !== undefined) {
-        for (filter of ['season', 'division', 'club', 'team']) {
+        for (const filter of ['season', 'division', 'club', 'team']) {
           let sqlParams = Object.entries(searchObj).filter(obj => obj[0] === filter)
           if (sqlParams.length > 0) titleString += sqlParams[0][1] + " "
         }
