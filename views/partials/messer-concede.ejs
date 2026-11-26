@@ -5,7 +5,7 @@
 <% if (m && m.concedable) { %>
 <div class="messer-concede">
   <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
-          data-toggle="modal" data-target="#concedeModal"
+          data-toggle="modal" data-bs-toggle="modal" data-target="#concedeModal" data-bs-target="#concedeModal"
           data-match="<%= m.id %>" data-home="<%= m.homeTeam %>" data-away="<%= m.awayTeam %>"
           data-conceded="<%= m.concededBy || '' %>"
           title="<%= m.concededBy ? 'Change or undo the concession' : 'Record a concession' %>"

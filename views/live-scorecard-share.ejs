@@ -34,7 +34,7 @@
     <% [['home', ctx.homeTeamName, urls.home], ['away', ctx.awayTeamName, urls.away]].forEach(function(c) { %>
       <div class="live-captain">
         <div class="live-captain-name"><%= c[1] %> captain
-          <% if (card[c[0] + '_signed_at']) { %><span class="badge badge-success">Signed</span><% } %>
+          <% if (card[c[0] + '_signed_at']) { %><span class="badge badge-success text-bg-success">Signed</span><% } %>
         </div>
         <div class="live-link-row">
           <a class="btn btn-outline-primary btn-sm" href="<%= c[2] %>">Open as <%= c[0] %> captain</a>

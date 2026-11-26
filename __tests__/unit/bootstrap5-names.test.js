@@ -24,27 +24,9 @@ const ROOT = path.join(__dirname, '..', '..');
 const DIRS = ['views', 'static/beta/js'];
 
 const CEILING = {
-  'views/club-contact.ejs': 1,
-  'views/club-officers-index.ejs': 1,
-  'views/club-officers.ejs': 8,
   'views/index-scorecard.ejs': 7,
-  'views/junior-clubs.ejs': 1,
-  'views/live-scorecard-share.ejs': 1,
-  'views/messer-draw-a-section.ejs': 4,
-  'views/messer-result-detail.ejs': 11,
-  'views/messer-results-list.ejs': 1,
   'views/messer-scorecard.ejs': 4,
-  'views/missed-three-notice.ejs': 1,
-  'views/notifications-video.ejs': 1,
-  'views/notifications.ejs': 4,
-  'views/partials/messer-concede.ejs': 2,
-  'views/partials/messer-draw-match.ejs': 1,
-  'views/player-stats.ejs': 1,
   'views/populated-scorecard.ejs': 5,
-  'views/privacy.ejs': 1,
-  'views/roster-clubs.ejs': 5,
-  'views/roster-row.ejs': 2,
-  'views/viewScorecard.ejs': 4,
 };
 
 const BP = '((?:sm|md|lg|xl)-)?';

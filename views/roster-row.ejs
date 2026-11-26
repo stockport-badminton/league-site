@@ -39,14 +39,14 @@
     <span class="roster-contact">
       <% if (player.tel) { %>
         <a href="tel:<%= player.tel.replace(/[^0-9+]/g, '') %>" title="Call <%= player.name %> on <%= player.tel %>">
-          <%- icon('phone') %><span class="sr-only">Call <%= player.name %></span>
+          <%- icon('phone') %><span class="sr-only visually-hidden">Call <%= player.name %></span>
         </a>
       <% } else { %>
         <span class="missing" title="No phone number on file"><%- icon('phone') %></span>
       <% } %>
       <% if (player.email) { %>
         <a href="mailto:<%= player.email %>" title="Email <%= player.name %> at <%= player.email %>">
-          <%- icon('envelope') %><span class="sr-only">Email <%= player.name %></span>
+          <%- icon('envelope') %><span class="sr-only visually-hidden">Email <%= player.name %></span>
         </a>
       <% } else { %>
         <span class="missing" title="No email address on file"><%- icon('envelope') %></span>

@@ -5,7 +5,7 @@
   // The submitted values when this officer's form failed validation, else what is stored.
   const val = (p, field) => (data.playerId === p.id && data[field] !== undefined) ? data[field] : (p[field] || '');
 %>
-<div class="col-12 col-lg-10 text-left">
+<div class="col-12 col-lg-10 text-left text-start">
   <h1><%= club.name %> officers</h1>
   <p class="text-muted">
     Who holds each office at <%= club.name %>, and how to reach them. These are the details on the
@@ -25,8 +25,8 @@
     <form method="post" action="/club-officers/<%= club.id %>/contact" class="card mb-2" id="officer-<%= p.id %>">
       <div class="card-body py-2">
         <div class="mb-1">
-          <strong><%= nameOf(p) %></strong><% if (p.you) { %> <span class="badge badge-primary">you</span><% } %>
-          <% p.offices.forEach(function (o) { %><span class="badge badge-light ml-1"><%= o %></span><% }) %>
+          <strong><%= nameOf(p) %></strong><% if (p.you) { %> <span class="badge badge-primary text-bg-primary">you</span><% } %>
+          <% p.offices.forEach(function (o) { %><span class="badge badge-light text-bg-light ml-1 ms-1"><%= o %></span><% }) %>
         </div>
         <input type="hidden" name="playerId" value="<%= p.id %>">
         <div class="form-row align-items-end">
@@ -56,7 +56,7 @@
           <% if (!role.holders.length) { %><li class="text-muted small">None recorded</li><% } %>
           <% role.holders.forEach(function (p) { var self = p.id === youId; %>
             <li class="d-flex align-items-center mb-1">
-              <span class="mr-2"><%= nameOf(p) %><% if (self) { %> (you)<% } %></span>
+              <span class="mr-2 me-2"><%= nameOf(p) %><% if (self) { %> (you)<% } %></span>
               <form method="post" action="/club-officers/<%= club.id %>/secretary" class="mb-0"
                 <% if (self) { %>onsubmit="return confirm('Remove yourself as <%= role.label.toLowerCase() %>? If it is your only office here you will lose access to this page.')"<% } %>>
                 <input type="hidden" name="role" value="<%= role.key %>">
@@ -71,8 +71,8 @@
           <form method="post" action="/club-officers/<%= club.id %>/secretary" class="form-inline">
             <input type="hidden" name="role" value="<%= role.key %>">
             <input type="hidden" name="action" value="add">
-            <label class="sr-only" for="add-<%= role.key %>">Add a <%= role.label.toLowerCase() %></label>
-            <select class="form-control form-control-sm mr-2 mb-1" id="add-<%= role.key %>" name="playerId" required>
+            <label class="sr-only visually-hidden" for="add-<%= role.key %>">Add a <%= role.label.toLowerCase() %></label>
+            <select class="form-control form-control-sm mr-2 me-2 mb-1" id="add-<%= role.key %>" name="playerId" required>
               <option value="">Add a player…</option>
               <% role.candidates.forEach(function (p) { %><option value="<%= p.id %>"><%= nameOf(p) %></option><% }) %>
             </select>
@@ -90,7 +90,7 @@
   <% teams.forEach(function (t) { %>
     <form method="post" action="/club-officers/<%= club.id %>/captain" class="form-row align-items-center mb-2" id="team-<%= t.id %>">
       <input type="hidden" name="teamId" value="<%= t.id %>">
-      <div class="col-sm-3"><label class="mb-0 font-weight-bold" for="captain-<%= t.id %>"><%= t.name %></label></div>
+      <div class="col-sm-3"><label class="mb-0 font-weight-bold fw-bold" for="captain-<%= t.id %>"><%= t.name %></label></div>
       <div class="col-sm-6">
         <select class="form-control form-control-sm" id="captain-<%= t.id %>" name="playerId">
           <option value="" <%= t.captain ? '' : 'selected' %>>— no captain —</option>

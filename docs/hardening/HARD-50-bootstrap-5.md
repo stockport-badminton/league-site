@@ -116,6 +116,17 @@ matching at the cutover with nothing in the console (now `.js-rearrange-link` /
    for each batch (`npm pack bootstrap@5.3.x` for the files). The bundle registers its jQuery plugins and fires the `.bs.modal` events
    through jQuery, as the table above expects.
 
+   **Step 2 done 26 Nov 2026** for everything except the three scorecard templates (16
+   names between them, step 5): the pilot, then the public pages, the admin pages and the
+   member/Messer pages, each batch checked the same way and committed on its own. What the
+   checks say Bootstrap 5 will change by itself at the cutover, none of it from the markup:
+   grid gutters 30px → 24px, more padding on badges, dropdown items and card bodies, a
+   darker `bg-dark`, the navbar container (step 5), and the History menu's `me-3`, which
+   starts to apply. One trap found on the way: `no-gutters` on a **column**
+   (`viewScorecard.ejs`) did nothing to the column under 4 but zeroed its `col-*` children's
+   padding; `g-0` there would have zeroed the column's own padding under 5. It is now
+   `px-0` on the three child rows, which means the same under both.
+
 3. **Done 25 Nov 2026.** **Keep `form-group`, `form-row` and `form-inline` with rules in
    `custom.css`** rather than editing 600 uses. `form-inline` was going to become
    `d-flex flex-wrap align-items-center` with `w-auto` on the fields; a phone screenshot showed

@@ -26,7 +26,7 @@
             <td><strong><%= result.awayTeam %></strong></td>
             <td><a href="mailto:<%= result.email %>"><%= result.email %></a></td>
             <td>
-              <span class="badge badge-warning"><%= result.status %></span>
+              <span class="badge badge-warning text-bg-warning"><%= result.status %></span>
             </td>
             <td><small class="text-muted"><%= result.created_at ? new Date(result.created_at).toLocaleString() : '—' %></small></td>
             <td>

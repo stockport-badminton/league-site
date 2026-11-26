@@ -6,7 +6,7 @@
   Server: controllers/pushController.js. Ported from the Hyde club site's /notifications.
   Exactly one [data-state] block is shown at a time; the script picks it.
 %>
-<div class="roster-page container text-left">
+<div class="roster-page container text-left text-start">
   <h1><%- icon('bell') %> Notifications</h1>
   <p class="lead">
     Get a notification on this phone or computer when your team's result is published, and a
@@ -43,7 +43,7 @@
     </div>
 
     <div data-state="ready" hidden>
-      <p data-role="intro" class="font-weight-bold"></p>
+      <p data-role="intro" class="font-weight-bold fw-bold"></p>
 
       <div class="row">
         <fieldset class="col-md-8 mb-3">
@@ -52,7 +52,7 @@
                var open = club.teams.some(function (t) { return t.id === preselect; }); %>
             <details class="mb-1"<%= open ? ' open' : '' %>>
               <summary><%= club.name %> <span class="text-muted small" data-role="club-count"></span></summary>
-              <div class="pl-3 pt-1">
+              <div class="pl-3 ps-3 pt-1">
                 <% club.teams.forEach(function (t) { %>
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="push-team" id="team-<%= t.id %>"
@@ -80,7 +80,7 @@
         </fieldset>
       </div>
 
-      <button type="button" class="btn btn-primary mr-2 mb-2" data-action="subscribe"></button>
+      <button type="button" class="btn btn-primary mr-2 me-2 mb-2" data-action="subscribe"></button>
       <button type="button" class="btn btn-outline-secondary mb-2" data-action="unsubscribe" hidden>Turn off</button>
       <p data-role="status" class="mt-2 mb-0"></p>
     </div>

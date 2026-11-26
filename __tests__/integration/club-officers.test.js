@@ -51,7 +51,7 @@ describe('who gets in', () => {
     const res = await request(app).get(`/club-officers/${CLUB}`);
     expect(res.status).toBe(200);
     expect(res.text).toContain('Aardvark BC officers');
-    expect(res.text).toMatch(/<strong>Sam Secretary<\/strong> <span class="badge badge-primary">you<\/span>/);
+    expect(res.text).toMatch(/<strong>Sam Secretary<\/strong> <span class="badge badge-primary text-bg-primary">you<\/span>/);
     expect(res.text).toContain('value="0161 111 1111"');
     // The captain dropdown has the current captain selected.
     expect(res.text).toMatch(/<option value="12" selected>Cath Captain<\/option>/);

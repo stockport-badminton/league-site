@@ -18,8 +18,8 @@
       <thead>
         <tr>
           <th>Club</th>
-          <th class="text-right">Teams</th>
-          <th class="text-right">Players</th>
+          <th class="text-right text-end">Teams</th>
+          <th class="text-right text-end">Players</th>
           <th></th>
         </tr>
       </thead>
@@ -29,9 +29,9 @@
             <td>
               <a href="/manage-players/club-<%= encodeURIComponent(club.name) %>"><%= club.name %></a>
             </td>
-            <td class="text-right"><%= club.teams %></td>
-            <td class="text-right"><%= club.players %></td>
-            <td class="text-right text-nowrap">
+            <td class="text-right text-end"><%= club.teams %></td>
+            <td class="text-right text-end"><%= club.players %></td>
+            <td class="text-right text-end text-nowrap">
               <% if (club.teams > 0) { %>
                 <a class="btn btn-sm btn-outline-primary py-0"
                    href="/manage-players/club-<%= encodeURIComponent(club.name) %>/edit">Manage</a>
