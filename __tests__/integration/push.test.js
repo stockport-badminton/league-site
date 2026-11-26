@@ -188,7 +188,7 @@ describe('/admin/push', () => {
     const res = await request(app).get('/admin/push');
     expect(res.status).toBe(200);
     expect(res.text).toContain('3 devices subscribed.');
-    expect(res.text).toMatch(/<td>Northfield B<\/td><td class="text-right">2<\/td>/);
+    expect(res.text).toMatch(/<td>Northfield B<\/td><td class="text-right text-end">2<\/td>/);
     expect(res.text).toContain('<code>result-304</code>');
     expect(res.text).not.toContain('Not configured.');
   });

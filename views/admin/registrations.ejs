@@ -3,7 +3,7 @@
 
 <%# useRosterCss for the same reason the roster pages need it: roster.css undoes the
     global `.starter-template { text-align: center }`. %>
-<div class="roster-page container-fluid text-left">
+<div class="roster-page container-fluid text-left text-start">
 
   <h1>Player registrations <small class="text-muted"><%= seasonLabel %></small></h1>
 
@@ -30,7 +30,7 @@
         <th>First match</th>
         <th>Status</th>
         <th>Chased</th>
-        <th class="text-right">Actions</th>
+        <th class="text-right text-end">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -47,7 +47,7 @@
           <td>
             <strong><%= club.name %></strong>
             <% if (!club.officers.some(function (o) { return o.email; })) { %>
-              <span class="badge badge-danger">no contact</span>
+              <span class="badge badge-danger text-bg-danger">no contact</span>
             <% } %>
           </td>
           <td><%= club.teams %></td>
@@ -64,9 +64,9 @@
           </td>
           <td>
             <% if (club.received) { %>
-              <span class="badge badge-success">received</span>
+              <span class="badge badge-success text-bg-success">received</span>
             <% } else { %>
-              <span class="badge badge-secondary">outstanding</span>
+              <span class="badge badge-secondary text-bg-secondary">outstanding</span>
             <% } %>
           </td>
           <td>
@@ -80,7 +80,7 @@
               <span class="text-muted">&mdash;</span>
             <% } %>
           </td>
-          <td class="text-right text-nowrap">
+          <td class="text-right text-end text-nowrap">
             <% if (!club.received) { %>
               <form method="post" action="/admin/registrations/<%= club.id %>/chase" class="d-inline">
                 <button class="btn btn-sm btn-outline-primary" type="submit">

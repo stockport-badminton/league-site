@@ -41,13 +41,13 @@
     <table class="table table-sm" style="max-width: 40rem">
       <tr><th>Account</th>
           <td>@<%= row.username || '?' %> <span class="text-muted">(<%= row.accountId %>)</span>
-            <% if (wrongAccount) { %><span class="badge badge-danger">not the configured account</span><% } %>
+            <% if (wrongAccount) { %><span class="badge badge-danger text-bg-danger">not the configured account</span><% } %>
           </td></tr>
       <tr><th>Token issued</th><td><%= fmt(row.obtainedAt) %></td></tr>
       <tr><th>Expires</th>
           <td><%= fmt(row.expiresAt) %>
             <% if (daysLeft !== null) { %>
-              <span class="badge <%= daysLeft < 0 ? 'badge-danger' : daysLeft < 45 ? 'badge-warning' : 'badge-success' %>">
+              <span class="badge <%= daysLeft < 0 ? 'badge-danger text-bg-danger' : daysLeft < 45 ? 'badge-warning text-bg-warning' : 'badge-success text-bg-success' %>">
                 <%= daysLeft < 0 ? 'expired' : daysLeft + ' days left' %>
               </span>
             <% } %>

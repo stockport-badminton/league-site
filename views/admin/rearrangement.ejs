@@ -3,7 +3,7 @@
 
 <%# useRosterCss: roster.css undoes the global `.starter-template { text-align: center }`.
     No page script: Check re-renders with the form's choices (GET), Apply posts them. %>
-<div class="roster-page container-fluid text-left player-request rearrangement-request">
+<div class="roster-page container-fluid text-left text-start player-request rearrangement-request">
 
   <p class="mb-1"><a href="/admin/rearrangements">&larr; All rearrangement requests</a></p>
   <h1 class="h3"><%= request.subject || '(no subject)' %></h1>
@@ -84,9 +84,9 @@
                   <td><%= f.division || '' %></td>
                   <td>
                     <%= status %>
-                    <% if (f.id === proposedFixtureId) { %><span class="badge badge-info">best match</span><% } %>
+                    <% if (f.id === proposedFixtureId) { %><span class="badge badge-info text-bg-info">best match</span><% } %>
                     <% if (['outstanding', 'rearranging'].indexOf(status) >= 0) { %>
-                      <a class="small ml-1" href="/admin/gap-finder?fixture=S-<%= f.id %>" target="_blank" rel="noopener">find a date</a>
+                      <a class="small ml-1 ms-1" href="/admin/gap-finder?fixture=S-<%= f.id %>" target="_blank" rel="noopener">find a date</a>
                     <% } %>
                   </td>
                 </tr>
@@ -107,7 +107,7 @@
 
         <h2 class="h5 mt-4">New date</h2>
         <div class="form-group">
-          <label for="date" class="sr-only">New date</label>
+          <label for="date" class="sr-only visually-hidden">New date</label>
           <input type="date" class="form-control w-auto" id="date" name="date" value="<%= newDate || '' %>">
         </div>
         <div class="form-check mb-3">
@@ -117,7 +117,7 @@
 
         <% if (warnings.length) { %>
           <div class="alert alert-warning">
-            <ul class="mb-0 pl-3">
+            <ul class="mb-0 pl-3 ps-3">
               <% warnings.forEach(function (w) { %><li><%= w %></li><% }); %>
             </ul>
           </div>
@@ -126,9 +126,9 @@
         <% } %>
 
         <div class="d-flex flex-wrap">
-          <button class="btn btn-outline-secondary mr-2 mb-2" type="submit">Check</button>
+          <button class="btn btn-outline-secondary mr-2 me-2 mb-2" type="submit">Check</button>
           <% if (request.status === 'pending') { %>
-            <button class="btn btn-primary mr-2 mb-2" type="submit" formmethod="post"
+            <button class="btn btn-primary mr-2 me-2 mb-2" type="submit" formmethod="post"
                     formaction="/admin/rearrangements/<%= request.id %>/apply">Apply</button>
           <% } %>
         </div>
@@ -136,11 +136,11 @@
 
       <div class="d-flex flex-wrap mt-3">
         <% if (request.status === 'pending') { %>
-          <form method="post" action="/admin/rearrangements/<%= request.id %>/status" class="mr-2 mb-2">
+          <form method="post" action="/admin/rearrangements/<%= request.id %>/status" class="mr-2 me-2 mb-2">
             <input type="hidden" name="status" value="done">
             <button class="btn btn-sm btn-outline-secondary" type="submit">Mark done without applying</button>
           </form>
-          <form method="post" action="/admin/rearrangements/<%= request.id %>/status" class="mr-2 mb-2">
+          <form method="post" action="/admin/rearrangements/<%= request.id %>/status" class="mr-2 me-2 mb-2">
             <input type="hidden" name="status" value="dismissed">
             <button class="btn btn-sm btn-outline-secondary" type="submit">Dismiss &mdash; not a rearrangement</button>
           </form>

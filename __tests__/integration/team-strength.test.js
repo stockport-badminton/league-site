@@ -157,7 +157,7 @@ it('keeps a fixture whose date has passed without a result on this week\'s list,
   await runAndStore();
   const res = await request(app).get('/admin/team-strength');
   const block = res.text.match(/<div class="ts-fixture" data-fixture="76">([\s\S]*?)<div class="collapse"/)[1];
-  expect(block).toContain('<span class="badge badge-warning ts-overdue">Awaiting result</span> Thu 29 Oct');
+  expect(block).toContain('<span class="badge badge-warning text-bg-warning ts-overdue">Awaiting result</span> Thu 29 Oct');
 });
 
 it('fields the players who have been turning out, not only the nominated ones', async () => {
@@ -231,11 +231,11 @@ it('shows where each player has played on the card for their own team, from the 
   await runAndStore();
   const res = await request(app).get('/admin/team-strength');
   const playedAt = name => res.text.match(new RegExp(`<td>${name}</td>[\\s\\S]*?<td class="ts-num ts-played-at([^"]*)"[^>]*>([^<]*)`)).slice(1);
-  expect(playedAt('StrongM 1')).toEqual([' text-danger font-weight-bold', '3.0 ']);
+  expect(playedAt('StrongM 1')).toEqual([' text-danger font-weight-bold fw-bold', '3.0 ']);
   expect(playedAt('StrongM 2')).toEqual(['', '2.0 ']);
-  expect(playedAt('StrongM 3')).toEqual([' text-danger font-weight-bold', '1.0 ']);
+  expect(playedAt('StrongM 3')).toEqual([' text-danger font-weight-bold fw-bold', '1.0 ']);
   expect(playedAt('WeakM 1')).toEqual(['', '1.0 ']);
-  expect(res.text).toMatch(/<td>WeakM 1<\/td>[\s\S]*?ts-played-at[^>]*>1\.0 <span class="text-muted font-weight-normal">\(4\)<\/span>/);
+  expect(res.text).toMatch(/<td>WeakM 1<\/td>[\s\S]*?ts-played-at[^>]*>1\.0 <span class="text-muted font-weight-normal fw-normal">\(4\)<\/span>/);
 });
 
 it('lists each club with its team sheet ratings', async () => {

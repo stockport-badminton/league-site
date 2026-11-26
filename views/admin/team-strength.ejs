@@ -33,17 +33,17 @@
   <% } %>
   <form method="post" action="/admin/team-strength/run" class="mb-3">
     <button type="submit" class="btn btn-outline-primary btn-sm">Recalculate now</button>
-    <small class="text-muted ml-2">Takes a few seconds.</small>
+    <small class="text-muted ml-2 ms-2">Takes a few seconds.</small>
   </form>
 </div>
 
 <% if (data) { %>
 <div class="col-12 ts-page">
   <ul class="nav nav-tabs mb-3" role="tablist">
-    <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#week" role="tab">This week (<%= data.week.length %>)</a></li>
-    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tables" role="tab">Projected tables</a></li>
-    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#order" role="tab">Team order (<%= data.checks.reduce((a, c) => a + c.flags.length, 0) %>)</a></li>
-    <% if (data.linked) { %><li class="nav-item"><a class="nav-link" data-toggle="tab" href="#linked" role="tab">Linked players</a></li><% } %>
+    <li class="nav-item"><a class="nav-link active" data-toggle="tab" data-bs-toggle="tab" href="#week" role="tab">This week (<%= data.week.length %>)</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" data-bs-toggle="tab" href="#tables" role="tab">Projected tables</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" data-bs-toggle="tab" href="#order" role="tab">Team order (<%= data.checks.reduce((a, c) => a + c.flags.length, 0) %>)</a></li>
+    <% if (data.linked) { %><li class="nav-item"><a class="nav-link" data-toggle="tab" data-bs-toggle="tab" href="#linked" role="tab">Linked players</a></li><% } %>
   </ul>
 
   <div class="tab-content">
@@ -53,7 +53,7 @@
       <div class="ts-fixture" data-fixture="<%= f.id %>">
         <div class="d-flex flex-wrap justify-content-between">
           <div><strong><%= f.home %></strong> v <strong><%= f.away %></strong></div>
-          <div class="text-muted"><% if (f.overdue) { %><span class="badge badge-warning ts-overdue">Awaiting result</span> <% } %><%= f.dayLabel %> · <%= f.division %></div>
+          <div class="text-muted"><% if (f.overdue) { %><span class="badge badge-warning text-bg-warning ts-overdue">Awaiting result</span> <% } %><%= f.dayLabel %> · <%= f.division %></div>
         </div>
         <div class="ts-bar my-1" title="Home win <%= pct(f.pHome) %>, draw <%= pct(f.pDraw) %>, away win <%= pct(f.pAway) %>">
           <div class="ts-home" style="width: <%= (100 * f.pHome).toFixed(1) %>%"><%= pct(f.pHome) %></div>
@@ -63,7 +63,7 @@
         <div class="small">
           Most likely <strong class="ts-likely"><%= f.likely.home %>–<%= f.likely.away %></strong>,
           expected <%= f.expected.toFixed(1) %>–<%= (18 - f.expected).toFixed(1) %>.
-          <a data-toggle="collapse" href="#rubbers-<%= f.id %>">Game by game</a>
+          <a data-toggle="collapse" data-bs-toggle="collapse" href="#rubbers-<%= f.id %>">Game by game</a>
         </div>
         <div class="collapse" id="rubbers-<%= f.id %>">
           <table class="table table-sm small mt-2 mb-0">
@@ -138,16 +138,16 @@
           <% if (!c.flags.length) { %><p class="mb-2 text-success">Nothing flagged.</p><% } %>
           <ul class="list-unstyled mb-2">
           <% c.flags.forEach(function(f){ %>
-            <li class="mb-1"><span class="badge badge-<%= BADGE[f.kind] %>"><%= KIND[f.kind] %></span> <%= f.text %>
+            <li class="mb-1"><span class="badge badge-<%= BADGE[f.kind] %> text-bg-<%= BADGE[f.kind] %>"><%= KIND[f.kind] %></span> <%= f.text %>
               <span class="text-muted small">(<%= f.stronger %> v <%= f.weaker %>, <%= pct(f.p) %> sure)</span>
               <% if (f.strongerId && f.weakerId) { %><a class="small ts-case" href="/admin/team-strength/compare?a=<%= f.strongerId %>&amp;b=<%= f.weakerId %>">The results</a><% } %></li>
           <% }) %>
           </ul>
-          <a class="small" data-toggle="collapse" href="#sheets-<%= ci %>">Team sheets with ratings</a>
+          <a class="small" data-toggle="collapse" data-bs-toggle="collapse" href="#sheets-<%= ci %>">Team sheets with ratings</a>
           <div class="collapse" id="sheets-<%= ci %>"><div class="row mt-2">
           <% c.teams.forEach(function(t){ ['men', 'ladies'].forEach(function(g){ const sq = t[g]; if (!sq.nominated.length && !sq.reserves.length) return; %>
             <div class="col-lg-6">
-              <h4 class="h6"><%= t.name %> · <%= g === 'men' ? 'Men' : 'Ladies' %><% if (sq.unset) { %> <span class="badge badge-secondary">nominations not set</span><% } %></h4>
+              <h4 class="h6"><%= t.name %> · <%= g === 'men' ? 'Men' : 'Ladies' %><% if (sq.unset) { %> <span class="badge badge-secondary text-bg-secondary">nominations not set</span><% } %></h4>
               <table class="table table-sm small">
                 <thead><tr><th>#</th><th>Player</th><th class="ts-num">Rating</th><th class="ts-num">Mixed</th><th class="ts-num" title="Games in the last 12 months, in any of the three leagues">Games 12m</th><th class="ts-num" title="Average position on the card this season in the level doubles, playing for this team (playing up and the mixed left out), and over how many fixtures">Played at</th></tr></thead>
                 <tbody>
@@ -156,7 +156,7 @@
                     <td class="ts-num"><%= p.r == null ? 'no games' : p.r %><% if (p.se != null) { %> <span class="text-muted">±<%= p.se %></span><% } %></td>
                     <td class="ts-num"><%= p.r == null ? '' : (p.mixed > 0 ? '+' : '') + p.mixed %></td><td class="ts-num"><%= p.recent %></td>
                     <% const off = !mark && !sq.unset && p.rank <= 3 && p.pos != null && p.posN >= 2 && Math.abs(p.pos - p.rank) >= 1; %>
-                    <td class="ts-num ts-played-at<%= off ? ' text-danger font-weight-bold' : '' %>"<% if (off) { %> title="Nominated <%= p.rank %>, has played at <%= p.pos.toFixed(1) %>"<% } %>><%= p.pos == null ? '' : p.pos.toFixed(1) %><% if (p.pos != null) { %> <span class="text-muted font-weight-normal">(<%= p.posN %>)</span><% } %></td></tr>
+                    <td class="ts-num ts-played-at<%= off ? ' text-danger font-weight-bold fw-bold' : '' %>"<% if (off) { %> title="Nominated <%= p.rank %>, has played at <%= p.pos.toFixed(1) %>"<% } %>><%= p.pos == null ? '' : p.pos.toFixed(1) %><% if (p.pos != null) { %> <span class="text-muted font-weight-normal fw-normal">(<%= p.posN %>)</span><% } %></td></tr>
                 <% }) }) %>
                 </tbody>
               </table>

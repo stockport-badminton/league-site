@@ -2,7 +2,7 @@
 <%- include('../nav.ejs') %>
 
 <%# useRosterCss: roster.css undoes the global `.starter-template { text-align: center }`. %>
-<div class="roster-page container-fluid text-left player-request">
+<div class="roster-page container-fluid text-left text-start player-request">
 
   <p class="mb-1"><a href="/admin/player-requests">&larr; All requests</a></p>
   <h1 class="h3"><%= request.subject || '(no subject)' %></h1>
@@ -47,20 +47,20 @@
       <div id="request-people" aria-live="polite"></div>
 
       <form id="request-add" class="form-inline mt-3 mb-4" autocomplete="off">
-        <label class="sr-only" for="addFirst">First name</label>
-        <input class="form-control form-control-sm mr-2 mb-2" id="addFirst" placeholder="First name" maxlength="60">
-        <label class="sr-only" for="addFamily">Family name</label>
-        <input class="form-control form-control-sm mr-2 mb-2" id="addFamily" placeholder="Family name" maxlength="60">
+        <label class="sr-only visually-hidden" for="addFirst">First name</label>
+        <input class="form-control form-control-sm mr-2 me-2 mb-2" id="addFirst" placeholder="First name" maxlength="60">
+        <label class="sr-only visually-hidden" for="addFamily">Family name</label>
+        <input class="form-control form-control-sm mr-2 me-2 mb-2" id="addFamily" placeholder="Family name" maxlength="60">
         <button class="btn btn-sm btn-outline-secondary mb-2" type="submit">Add someone the email names</button>
       </form>
 
       <div class="d-flex flex-wrap">
         <% if (request.status === 'pending') { %>
-          <form method="post" action="/admin/player-requests/<%= request.id %>/status" class="mr-2 mb-2">
+          <form method="post" action="/admin/player-requests/<%= request.id %>/status" class="mr-2 me-2 mb-2">
             <input type="hidden" name="status" value="done">
             <button class="btn btn-primary" type="submit">Mark done</button>
           </form>
-          <form method="post" action="/admin/player-requests/<%= request.id %>/status" class="mr-2 mb-2">
+          <form method="post" action="/admin/player-requests/<%= request.id %>/status" class="mr-2 me-2 mb-2">
             <input type="hidden" name="status" value="dismissed">
             <button class="btn btn-outline-secondary" type="submit">Dismiss &mdash; not a registration</button>
           </form>

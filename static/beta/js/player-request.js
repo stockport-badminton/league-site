@@ -183,13 +183,13 @@
         matchesEl.appendChild(el('p', 'small mb-0', 'Nobody on file looks like this person.'));
         return;
       }
-      matchesEl.appendChild(el('p', 'small mb-1 font-weight-bold', 'Already on file?'));
+      matchesEl.appendChild(el('p', 'small mb-1 font-weight-bold fw-bold', 'Already on file?'));
       matches.forEach(function (m) {
         var line = el('div', 'd-flex align-items-center justify-content-between border-top py-1');
         var who = el('div');
         who.appendChild(el('span', null, m.name));
         var where = [m.clubName || 'No club', m.teamName].filter(Boolean).join(' · ');
-        who.appendChild(el('small', 'text-muted ml-2', where + ' · ' + m.gender +
+        who.appendChild(el('small', 'text-muted ml-2 ms-2', where + ' · ' + m.gender +
           (m.match === 'close' ? ' · similar name' : '')));
         line.appendChild(who);
         var btn = el('button', 'btn btn-sm btn-outline-success', 'Register this player');
@@ -221,7 +221,7 @@
     }
 
     var actions = el('div', 'd-flex flex-wrap');
-    var create = el('button', 'btn btn-sm btn-success mr-2 mb-1', 'Create as a new player');
+    var create = el('button', 'btn btn-sm btn-success mr-2 me-2 mb-1', 'Create as a new player');
     create.type = 'button';
     create.addEventListener('click', function () {
       var t = chosenTeam();
@@ -240,7 +240,7 @@
     });
     actions.appendChild(create);
 
-    var recheck = el('button', 'btn btn-sm btn-outline-secondary mr-2 mb-1', 'Check again');
+    var recheck = el('button', 'btn btn-sm btn-outline-secondary mr-2 me-2 mb-1', 'Check again');
     recheck.type = 'button';
     recheck.title = 'Match the name as edited above';
     recheck.addEventListener('click', function () {

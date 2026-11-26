@@ -5,9 +5,9 @@
   <h1>League Run-in <small class="text-muted"><%= season.slice(0, 4) %>/<%= season.slice(6) %></small></h1>
   <p>
     Two up and two down in each division, by where the teams stand now.
-    <span class="badge badge-warning">Winner</span> marks the top team,
-    <span class="badge badge-success">Up</span> the second and
-    <span class="badge badge-danger">Down</span> the bottom two.
+    <span class="badge badge-warning text-bg-warning">Winner</span> marks the top team,
+    <span class="badge badge-success text-bg-success">Up</span> the second and
+    <span class="badge badge-danger text-bg-danger">Down</span> the bottom two.
     A row's label says <strong>certain</strong> once no other team can catch it, assuming
     every remaining fixture is won <%= GAMES_PER_FIXTURE %>–0. The Premier has nobody to
     promote and the lowest division nobody to relegate. Ties are not resolved.
@@ -41,7 +41,7 @@
              if (t.zone === 'winner') label = t.certain.winner ? 'Winner, certain' : (t.certain.up ? 'Up, certain' : 'Winner');
              else if (t.zone === 'up') label = t.certain.up ? 'Up, certain' : 'Up';
              else if (t.zone === 'down') label = t.certain.down ? 'Down, certain' : 'Down';
-             var badge = { winner: 'badge-warning', up: 'badge-success', down: 'badge-danger' }[t.zone];
+             var badge = { winner: 'badge-warning text-bg-warning', up: 'badge-success text-bg-success', down: 'badge-danger text-bg-danger' }[t.zone];
         %>
         <tr class="<%= rowClass %>" data-zone="<%= t.zone || '' %>">
           <td><%= t.position %></td>
@@ -53,7 +53,7 @@
           <td><%= t.max %></td>
           <td>
             <% if (label) { %>
-              <span class="badge <%= badge %><%= /certain/.test(label) ? '' : ' badge-pill' %>"
+              <span class="badge <%= badge %><%= /certain/.test(label) ? '' : ' badge-pill rounded-pill' %>"
                     <% if (/certain/.test(label)) { %>style="font-size: 0.9em"<% } %>><%= label %></span>
             <% } %>
           </td>

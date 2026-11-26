@@ -3,7 +3,7 @@
 
 <%# controllers/pushController.js (adminPage, adminTest). docs/claude/push.md has the design.
     The alerts say height: auto because custom.css gives every .alert height: 100%. %>
-<div class="col-12 text-left">
+<div class="col-12 text-left text-start">
   <h1>Push Notifications</h1>
 
   <p>
@@ -25,7 +25,7 @@
   <h2 class="h4 mt-4">Send a test</h2>
   <form method="post" action="/admin/push/test" class="form-inline mb-2" id="push-test-form">
     <input type="hidden" name="endpoint" value="">
-    <button type="submit" name="to" value="me" class="btn btn-primary mr-2 mb-2">To this browser</button>
+    <button type="submit" name="to" value="me" class="btn btn-primary mr-2 me-2 mb-2">To this browser</button>
     <button type="submit" name="to" value="everyone" class="btn btn-outline-danger mb-2"
             data-confirm="Send a test notification to every subscriber?">To everyone (<%= counts.subscriptions %>)</button>
   </form>
@@ -35,10 +35,10 @@
   <p><%= counts.subscriptions %> device<%= counts.subscriptions === 1 ? '' : 's' %> subscribed.</p>
   <% if (counts.teams.length) { %>
     <table class="table table-sm" style="max-width: 30rem">
-      <thead><tr><th>Team</th><th class="text-right">Devices</th></tr></thead>
+      <thead><tr><th>Team</th><th class="text-right text-end">Devices</th></tr></thead>
       <tbody>
         <% counts.teams.forEach(function (t) { %>
-          <tr><td><%= t.name %></td><td class="text-right"><%= t.subscribers %></td></tr>
+          <tr><td><%= t.name %></td><td class="text-right text-end"><%= t.subscribers %></td></tr>
         <% }) %>
       </tbody>
     </table>
@@ -55,16 +55,16 @@
       };
     %>
     <table class="table table-sm">
-      <thead><tr><th>When</th><th>What</th><th class="text-right">Devices</th><th class="text-right">Sent</th><th class="text-right">Failed</th><th class="text-right">Removed</th></tr></thead>
+      <thead><tr><th>When</th><th>What</th><th class="text-right text-end">Devices</th><th class="text-right text-end">Sent</th><th class="text-right text-end">Failed</th><th class="text-right text-end">Removed</th></tr></thead>
       <tbody>
         <% sends.forEach(function (s) { var m = s.summary || {}; %>
           <tr>
             <td><%= fmt(s.sentAt) %></td>
             <td><code><%= s.key %></code><% if (m.skipped) { %> <span class="text-muted"><%= m.skipped %></span><% } %></td>
-            <td class="text-right"><%= m.subscribers != null ? m.subscribers : '—' %></td>
-            <td class="text-right"><%= m.sent != null ? m.sent : '—' %></td>
-            <td class="text-right"><%= m.failed || '' %></td>
-            <td class="text-right"><%= m.removed || '' %></td>
+            <td class="text-right text-end"><%= m.subscribers != null ? m.subscribers : '—' %></td>
+            <td class="text-right text-end"><%= m.sent != null ? m.sent : '—' %></td>
+            <td class="text-right text-end"><%= m.failed || '' %></td>
+            <td class="text-right text-end"><%= m.removed || '' %></td>
           </tr>
         <% }) %>
       </tbody>

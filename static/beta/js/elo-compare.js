@@ -92,13 +92,13 @@
     container.innerHTML = '';
     selectedPlayers.forEach(function(p, i) {
       var badge = document.createElement('div');
-      badge.className = 'badge badge-pill d-flex align-items-center justify-content-between mb-1 px-2 py-1';
+      badge.className = 'badge badge-pill rounded-pill d-flex align-items-center justify-content-between mb-1 px-2 py-1';
       badge.style.backgroundColor = colorFor(i);
       badge.style.color = '#fff';
       badge.style.fontSize = '0.8rem';
       badge.style.whiteSpace = 'normal';
       badge.style.wordBreak = 'break-word';
-      badge.innerHTML = '<span>' + p.name + '</span><button type="button" class="close ml-1" style="color:#fff;font-size:0.9rem;line-height:1;" data-id="' + p.id + '">&times;</button>';
+      badge.innerHTML = '<span>' + p.name + '</span><button type="button" class="close ml-1 ms-1" style="color:#fff;font-size:0.9rem;line-height:1;" data-id="' + p.id + '">&times;</button>';
       badge.querySelector('.close').addEventListener('click', function(e){
         removePlayer(parseInt(e.target.getAttribute('data-id'), 10));
       });

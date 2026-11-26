@@ -5,7 +5,7 @@
     failed, so nothing typed is lost. Every field but the name is optional and the
     public page shows only what is filled in. %>
 <% var v = function(k) { return data[k] == null ? '' : data[k]; }; %>
-<div class="col-12 text-left">
+<div class="col-12 text-left text-start">
   <h1><%= club ? 'Edit' : 'New' %> Junior Club</h1>
 
   <% if (errors.length) { %>

@@ -61,8 +61,8 @@
       + '<span class="small text-muted">' + (f.status === 'rearranging' ? 'postponed (was ' + esc(C.fmt(f.date)) + ')' : 'currently ' + esc(C.fmt(f.date)))
       + ' · home night ' + esc(c.night) + (c.nightAssumed ? ' (assumed)' : '') + '</span></div>'
       + '<div class="small mb-2">'
-      + '<label class="mr-3 mb-0"><input type="checkbox" id="optNight"' + (opts.onNightOnly ? ' checked' : '') + '> ' + esc(c.night) + 's only</label>'
-      + '<label class="mr-3 mb-0"><input type="checkbox" id="optClean"' + (opts.cleanOnly ? ' checked' : '') + '> hide dates with warnings</label>'
+      + '<label class="mr-3 me-3 mb-0"><input type="checkbox" id="optNight"' + (opts.onNightOnly ? ' checked' : '') + '> ' + esc(c.night) + 's only</label>'
+      + '<label class="mr-3 me-3 mb-0"><input type="checkbox" id="optClean"' + (opts.cleanOnly ? ' checked' : '') + '> hide dates with warnings</label>'
       + '<span class="text-muted">' + clean + ' clean · ' + list.length + ' shown · ' + esc(C.fmt(win.from)) + ' to ' + esc(C.fmt(win.to)) + '</span></div>'
       + (list.length ? list.map(slotHTML).join('')
         : '<p class="text-muted">No dates with these filters — try unticking "' + esc(c.night) + 's only".</p>');

@@ -159,7 +159,10 @@ matching at the cutover with nothing in the console (now `.js-rearrange-link` /
    Bootstrap 5 partner on the same element (or a name with no partner — `btn-block`,
    `jumbotron` — or a selector on `[data-toggle|target|dismiss`), in `views/` or
    `static/beta/js/`. Each file still to convert has a ceiling; it is the to-do list for
-   step 2, and stops new pages adding to it. At step 5 it becomes strict: fail on the
+   step 2, and stops new pages adding to it. Since batch 2 (26 Nov) it also reads class
+   strings kept in `<% … %>` code and colours filled in by EJS (`badge-<%= c %>` needs
+   `text-bg-<%= c %>`): three admin badges were built that way and would have lost their
+   colour at the cutover with the guard green. At step 5 it becomes strict: fail on the
    Bootstrap 4 name whether or not its partner is there, and add a `<select>` with
    `form-control` and `class="close"`, which cannot be doubled up and so are not checked
    in-season.

@@ -24,26 +24,6 @@ const ROOT = path.join(__dirname, '..', '..');
 const DIRS = ['views', 'static/beta/js'];
 
 const CEILING = {
-  'static/beta/js/elo-compare.js': 2,
-  'static/beta/js/gap-finder.js': 2,
-  'static/beta/js/player-request.js': 4,
-  'views/admin/gap-finder.ejs': 3,
-  'views/admin/hub.ejs': 3,
-  'views/admin/junior-club-form.ejs': 1,
-  'views/admin/league-run-in.ejs': 4,
-  'views/admin/login-cull.ejs': 1,
-  'views/admin/player-request.ejs': 7,
-  'views/admin/player-requests.ejs': 1,
-  'views/admin/push.ejs': 12,
-  'views/admin/rearrangement.ejs': 9,
-  'views/admin/rearrangements.ejs': 1,
-  'views/admin/registrations.ejs': 6,
-  'views/admin/spam.ejs': 7,
-  'views/admin/team-strength-compare.ejs': 1,
-  'views/admin/team-strength.ejs': 11,
-  'views/admin/threads.ejs': 4,
-  'views/admin/venue-form.ejs': 1,
-  'views/admin/venue-list.ejs': 1,
   'views/club-contact.ejs': 1,
   'views/club-officers-index.ejs': 1,
   'views/club-officers.ejs': 8,
@@ -80,6 +60,9 @@ const CLASS_RULES = [
   [/^(border|rounded)-(left|right)(-0)?$/, (m, what, side, zero = '') => `${what}-${side === 'left' ? 'start' : 'end'}${zero}`],
   [new RegExp(`^badge-(${COLOURS})$`), (m, c) => `text-bg-${c}`],
   [/^badge-pill$/, () => 'rounded-pill'],
+  // A colour filled in by EJS — class="badge badge-<%= colour %>" — tokenises to `badge-`;
+  // it needs `text-bg-<%= colour %>` beside it (team-strength.ejs, 26 Nov 2026).
+  [/^badge-$/, () => 'text-bg-'],
   [/^sr-only(-focusable)?$/, (m, f = '') => `visually-hidden${f}`],
   [/^font-weight-(bold|bolder|normal|light|lighter)$/, (m, w) => `fw-${w}`],
   [/^font-italic$/, () => 'fst-italic'],
@@ -103,9 +86,18 @@ const STRING = /(["'`])((?:\\.|(?!\1)[^\\\n])*)\1/g;
 // A tag, in a template or a JS string. `%>` does not end one, so EJS inside a tag is kept.
 const TAG = /<[a-zA-Z][\s\S]*?(?<!%)>/g;
 
+// In a template, the code blocks too (`<% … %>`, not `<%=`/`<%-` output or `<%#` comments):
+// a class kept in a variable there — `var badge = { up: 'badge-success' }[zone]` in
+// league-run-in.ejs — reaches the page without ever being in a class="…" of its own.
+const SCRIPTLET = /<%(?![=\-#])([\s\S]*?)%>/g;
+const classLists = (src, js) => js
+  ? [...src.matchAll(STRING)].map(m => m[2])
+  : [...src.matchAll(CLASS_LIST)].map(m => m[2])
+    .concat([...src.matchAll(SCRIPTLET)].flatMap(([, code]) => [...code.matchAll(STRING)].map(m => m[2])));
+
 function unpaired(src, { js = false } = {}) {
   const found = [];
-  for (const [, , list] of src.matchAll(js ? STRING : CLASS_LIST)) {
+  for (const list of classLists(src, js)) {
     // Tokens, so a class inside an EJS conditional — class="<%= x ? 'text-right' : '' %>" —
     // is still seen. Its partner has to be in the same class list.
     const tokens = new Set(list.split(/[^a-zA-Z0-9-]+/).filter(Boolean));
@@ -191,6 +183,11 @@ describe('Bootstrap 4 names without their Bootstrap 5 partner (HARD-50)', () => 
     expect(unpaired('<div data-toggle="<%= a > b ? 1 : 2 %>">')).toEqual(['data-toggle without data-bs-toggle']);
     expect(unpaired(`$('a[data-target="#exampleModal"]').click(f)`, { js: true })).toEqual(['selector [data-target']);
     expect(unpaired(`$('a.js-rearrange-link').click(f)`, { js: true })).toEqual([]);
+    expect(unpaired('<span class="badge badge-<%= colour %>">')).toEqual(['badge- without text-bg-']);
+    expect(unpaired('<span class="badge badge-<%= colour %> text-bg-<%= colour %>">')).toEqual([]);
+    expect(unpaired(`<% var badge = { up: 'badge-success', down: 'badge-danger text-bg-danger' }[z]; %>`))
+      .toEqual(['badge-success without text-bg-success']);
+    expect(unpaired(`<%# a comment naming 'badge-success' %><%= 'text-right' %>`)).toEqual([]);
     // The site's own data attributes and bootstrap-5-only names pass.
     expect(unpaired('<a data-content="x" data-placement="top" data-fixture-id="3" class="ms-2 text-end">')).toEqual([]);
     // Not a class list: CSS in a style attribute, and words in text.

@@ -70,7 +70,7 @@
   <ul class="list-unstyled">
   <% c.findings.forEach(function(f){ const [badge, label] = FAVOURS[f.favours]; %>
     <li class="mb-2" data-finding="<%= f.key %>" data-favours="<%= f.favours %>">
-      <span class="badge badge-<%= badge %>"><%= label %></span> <strong><%= f.title %>.</strong> <%= f.text %>
+      <span class="badge badge-<%= badge %> text-bg-<%= badge %>"><%= label %></span> <strong><%= f.title %>.</strong> <%= f.text %>
     </li>
   <% }) %>
   </ul>
@@ -93,7 +93,7 @@
       <tr><td><a href="/scorecard/fixture/<%= n.fixture %>"><%= n.date %></a></td><td><%= n.team %> v <%= n.opponent %></td>
         <td class="ts-num"><%= cell(n.a) %></td><td class="ts-num"><%= cell(n.b) %></td></tr>
     <% }) %>
-      <tr class="font-weight-bold"><td colspan="2">All</td><td class="ts-num"><%= cell(c.nightTotal.a) %></td><td class="ts-num"><%= cell(c.nightTotal.b) %></td></tr>
+      <tr class="font-weight-bold fw-bold"><td colspan="2">All</td><td class="ts-num"><%= cell(c.nightTotal.a) %></td><td class="ts-num"><%= cell(c.nightTotal.b) %></td></tr>
     </tbody>
   </table></div>
   <% } %>

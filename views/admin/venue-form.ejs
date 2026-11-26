@@ -4,7 +4,7 @@
 <%# `data` is what the fields show: the stored row, or what was submitted when a save
     failed, so nothing typed is lost. %>
 <% var v = function(k) { return data[k] == null ? '' : data[k]; }; %>
-<div class="col-12 text-left">
+<div class="col-12 text-left text-start">
   <h1><%= venue ? 'Edit' : 'New' %> Venue</h1>
 
   <% if (errors.length) { %>

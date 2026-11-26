@@ -30,7 +30,7 @@
   .gf .fx.past { opacity: .55; }
 </style>
 
-<div class="col-12 gf text-left">
+<div class="col-12 gf text-left text-start">
   <h1>Gap finder</h1>
   <p class="text-muted mb-2">
     Season <%= data.season.slice(0, 4) + '/' + data.season.slice(6) %>, read live from
@@ -45,8 +45,8 @@
   <% } %>
 
   <ul class="nav nav-tabs mb-3" role="tablist">
-    <li class="nav-item"><a class="nav-link active" id="tab-move" data-toggle="tab" href="#panel-move" role="tab">Move a match</a></li>
-    <li class="nav-item"><a class="nav-link" id="tab-cal" data-toggle="tab" href="#panel-cal" role="tab">Club calendar</a></li>
+    <li class="nav-item"><a class="nav-link active" id="tab-move" data-toggle="tab" data-bs-toggle="tab" href="#panel-move" role="tab">Move a match</a></li>
+    <li class="nav-item"><a class="nav-link" id="tab-cal" data-toggle="tab" data-bs-toggle="tab" href="#panel-cal" role="tab">Club calendar</a></li>
   </ul>
 
   <div class="tab-content">

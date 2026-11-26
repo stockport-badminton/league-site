@@ -3,7 +3,7 @@
 
 <%# useRosterCss for the same reason the roster pages need it: roster.css is what undoes
     the global `.starter-template { text-align: center }`. %>
-<div class="roster-page container-fluid text-left">
+<div class="roster-page container-fluid text-left text-start">
 
   <h1>Spam controls</h1>
 
@@ -53,16 +53,16 @@
       <table class="table table-sm">
         <thead><tr>
           <th>Verdict</th><th>Reason</th>
-          <th class="text-right">Last 24h</th><th class="text-right">Last 7 days</th><th class="text-right">All time</th>
+          <th class="text-right text-end">Last 24h</th><th class="text-right text-end">Last 7 days</th><th class="text-right text-end">All time</th>
         </tr></thead>
         <tbody>
           <% stats.forEach(function(s){ %>
             <tr class="<%= s.verdict === 'rejected' ? '' : 'table-success' %>">
               <td><%= s.verdict %></td>
               <td><%= s.reason || '—' %></td>
-              <td class="text-right"><%= s.last24h %></td>
-              <td class="text-right"><%= s.last7 %></td>
-              <td class="text-right"><%= s.n %></td>
+              <td class="text-right text-end"><%= s.last24h %></td>
+              <td class="text-right text-end"><%= s.last7 %></td>
+              <td class="text-right text-end"><%= s.n %></td>
             </tr>
           <% }) %>
         </tbody>

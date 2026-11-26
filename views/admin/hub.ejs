@@ -4,7 +4,7 @@
 <%# useRosterCss: roster.css undoes the global `.starter-template { text-align: center }`.
     The list itself is
     utils/adminTools.js — add a tool there, not here. %>
-<div class="roster-page container-fluid text-left admin-hub">
+<div class="roster-page container-fluid text-left text-start admin-hub">
 
   <h1>Admin</h1>
 
@@ -27,7 +27,7 @@
             <li>
               <a href="<%= tool.href %>"><%= tool.label %></a>
               <% if (label) { %>
-                <span class="badge <%= /pending|outstanding/.test(label) ? 'badge-warning' : 'badge-light' %>"><%= label %></span>
+                <span class="badge <%= /pending|outstanding/.test(label) ? 'badge-warning text-bg-warning' : 'badge-light text-bg-light' %>"><%= label %></span>
               <% } %>
               <div class="text-muted small"><%= tool.blurb %></div>
             </li>
