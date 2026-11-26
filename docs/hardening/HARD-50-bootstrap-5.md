@@ -10,6 +10,24 @@ scorecard templates (same files, same off-season); nothing for the rest
 **Source:** a deprecation warning in the build log, 29 Oct 2026, and the conversation that
 followed it.
 
+> **Planned window: the Christmas break, about 20 Dec 2026 – 2 Jan 2027** (agreed with Neil,
+> 26 Nov 2026). There are no league fixtures from 18 Dec to 4 Jan; production has two on
+> 17 Dec and the next on 5 Jan, and no Messer results fell in that stretch in 2025/26
+> or in 2026/27 so far. Results for 16–17 Dec should be filed and published by about the
+> 19th. The cutover (step 5) goes out **early** in the window, not on 2 Jan, so there are
+> days to put a fix or a revert out before captains file again on 5–6 Jan. Low traffic
+> limits who a bug reaches, but it also means nobody finds it until then, so before
+> deploying:
+> - the step-5 checks pass: e2e specs, the Bootstrap 4/5 page comparison;
+> - a draft has been filed end to end through the real wizard; the live-scorecard demo flow
+>   does that.
+>
+> This brings the cutover forward of REARCH-07 step 4. The order in "Blocked by" was there
+> so the scorecard templates are not edited twice, not for a technical reason. Taking it
+> first means also converting the 16 Bootstrap 4 names left in those three templates
+> (their `CEILING` lines in the guard), plus their `close` buttons and `<select>`s. REARCH-07
+> step 4 then rewrites markup that already uses Bootstrap 5 names.
+
 ## Why
 
 The site runs **Bootstrap 4.6.2** (`package.json` says `^4.1.1`; 4.6.2 is the last 4.x).
