@@ -159,6 +159,6 @@ describe('the ratings explainer', () => {
     mockCurrentUser = SUPERADMIN;
     res = await request(app).get(page);
     expect(res.text).toContain('Compare men with men, and ladies with ladies.');
-    expect(res.text).toMatch(/<td>Premier<\/td><td>Ladies<\/td><td class="text-right">55<\/td>\s*<td class="text-right">1391<\/td><td class="text-right"><strong>1721<\/strong><\/td><td class="text-right">1867<\/td>/);
+    expect(res.text).toMatch(/<td>Premier<\/td><td>Ladies<\/td><td class="text-right text-end">55<\/td>\s*<td class="text-right text-end">1391<\/td><td class="text-right text-end"><strong>1721<\/strong><\/td><td class="text-right text-end">1867<\/td>/);
   });
 });

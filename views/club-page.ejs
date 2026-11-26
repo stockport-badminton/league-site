@@ -9,7 +9,7 @@
   go through the league's contact form, and the club's own website is linked for
   anything else.
 %>
-<div class="roster-page container-fluid text-left">
+<div class="roster-page container-fluid text-left text-start">
 
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -77,7 +77,7 @@
               <td>
                 <%= t.name %>
                 <% if (t.divisionName) { %>
-                  <a href="/notifications?team=<%= t.id %>" class="text-muted ml-1"><%- icon('bell', { label: 'Notifications for ' + t.name }) %></a>
+                  <a href="/notifications?team=<%= t.id %>" class="text-muted ml-1 ms-1"><%- icon('bell', { label: 'Notifications for ' + t.name }) %></a>
                 <% } %>
               </td>
               <td>

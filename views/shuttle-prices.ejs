@@ -17,16 +17,16 @@
 
 <div class="container-fluid mt-4">
   <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
-    <h2 class="mb-0 mr-3">Feather Shuttle Prices</h2>
-    <form method="POST" action="/shuttle-prices/refresh" class="mb-0 mr-2">
+    <h2 class="mb-0 mr-3 me-3">Feather Shuttle Prices</h2>
+    <form method="POST" action="/shuttle-prices/refresh" class="mb-0 mr-2 me-2">
       <button type="submit" class="btn btn-sm btn-primary" id="refreshBtn">
-        <%- icon('arrows-rotate', { class: 'mr-1' }) %>Refresh prices
+        <%- icon('arrows-rotate', { class: 'mr-1 me-1' }) %>Refresh prices
       </button>
-      <template id="refreshBusy"><%- icon('spinner', { class: 'icon-spin mr-1' }) %>Scraping…</template>
+      <template id="refreshBusy"><%- icon('spinner', { class: 'icon-spin mr-1 me-1' }) %>Scraping…</template>
     </form>
     <% if (data) { %>
-      <a href="/shuttle-prices/export" class="btn btn-sm btn-success mr-2">
-        <%- icon('file-excel', { class: 'mr-1' }) %>Export xlsx
+      <a href="/shuttle-prices/export" class="btn btn-sm btn-success mr-2 me-2">
+        <%- icon('file-excel', { class: 'mr-1 me-1' }) %>Export xlsx
       </a>
     <% } %>
     <% if (data) { %>
@@ -94,11 +94,11 @@
             <th data-col="name">Product <span class="sort-arrow">▲</span></th>
             <th data-col="brand">Brand <span class="sort-arrow">▲</span></th>
             <th data-col="source">Source <span class="sort-arrow">▲</span></th>
-            <th data-col="p1" class="text-right">1 tube <span class="sort-arrow">▲</span></th>
-            <th data-col="p5" class="text-right">5 tubes <span class="sort-arrow">▲</span></th>
-            <th data-col="p14" class="text-right">14 tubes <span class="sort-arrow">▲</span></th>
-            <th data-col="p25" class="text-right">25 tubes <span class="sort-arrow">▲</span></th>
-            <th data-col="p50" class="text-right">50+ tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p1" class="text-right text-end">1 tube <span class="sort-arrow">▲</span></th>
+            <th data-col="p5" class="text-right text-end">5 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p14" class="text-right text-end">14 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p25" class="text-right text-end">25 tubes <span class="sort-arrow">▲</span></th>
+            <th data-col="p50" class="text-right text-end">50+ tubes <span class="sort-arrow">▲</span></th>
             <th>Link</th>
           </tr>
         </thead>
@@ -119,13 +119,13 @@
             >
               <td>
                 <% if (p.source === 'centralsports') { %>
-                  <span class="badge source-badge-cs mr-1">CS</span>
+                  <span class="badge source-badge-cs mr-1 me-1">CS</span>
                 <% } else { %>
-                  <span class="badge source-badge-db mr-1">DB</span>
+                  <span class="badge source-badge-db mr-1 me-1">DB</span>
                 <% } %>
                 <%= p.name %>
                 <% if (p.out_of_stock) { %>
-                  <span class="badge badge-secondary ml-1" style="font-size:0.65rem">out of stock</span>
+                  <span class="badge badge-secondary text-bg-secondary ml-1 ms-1" style="font-size:0.65rem">out of stock</span>
                 <% } %>
                 <% if (p.speed_variants && p.speed_variants.length > 1) { %>
                   <small class="text-muted d-block">
@@ -141,8 +141,8 @@
                   <span class="text-primary">Direct Badminton</span>
                 <% } %>
               </td>
-              <td class="text-right price-cell"><%= fmt(p1) %></td>
-              <td class="text-right price-cell">
+              <td class="text-right text-end price-cell"><%= fmt(p1) %></td>
+              <td class="text-right text-end price-cell">
                 <% if (p.has_volume_pricing) { %>
                   <%= fmt(p5) %>
                   <% if (p5 && p1 && p5 < p1) { %>
@@ -152,7 +152,7 @@
                   <span class="text-muted"><%= fmt(p1) %></span>
                 <% } %>
               </td>
-              <td class="text-right price-cell">
+              <td class="text-right text-end price-cell">
                 <% if (p.has_volume_pricing) { %>
                   <%= fmt(p14) %>
                   <% if (p14 && p1 && p14 < p1) { %>
@@ -162,7 +162,7 @@
                   <span class="text-muted"><%= fmt(p1) %></span>
                 <% } %>
               </td>
-              <td class="text-right price-cell">
+              <td class="text-right text-end price-cell">
                 <% if (p.has_volume_pricing) { %>
                   <%= fmt(p25) %>
                   <% if (p25 && p1 && p25 < p1) { %>
@@ -172,7 +172,7 @@
                   <span class="text-muted"><%= fmt(p1) %></span>
                 <% } %>
               </td>
-              <td class="text-right price-cell">
+              <td class="text-right text-end price-cell">
                 <% if (p.has_volume_pricing) { %>
                   <%= fmt(p50) %>
                   <% if (p50 && p1 && p50 < p1) { %>
@@ -188,7 +188,7 @@
               </td>
               <td>
                 <a href="<%= p.url %>" target="_blank" rel="noopener" class="btn btn-xs btn-outline-secondary" style="font-size:0.75rem;padding:2px 6px">
-                  View <%- icon('up-right-from-square', { class: 'ml-1', style: 'font-size:0.65rem' }) %>
+                  View <%- icon('up-right-from-square', { class: 'ml-1 ms-1', style: 'font-size:0.65rem' }) %>
                 </a>
               </td>
             </tr>

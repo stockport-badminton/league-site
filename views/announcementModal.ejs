@@ -5,11 +5,11 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <h4 class="modal-title"><%= a.title %></h4>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal">&times;</button>
       </div>
 
       <!-- Modal body -->
-      <div class="modal-body text-left">
+      <div class="modal-body text-left text-start">
         <% if (a.image_url) { %>
           <img class="d-block img-fluid" src="<%= a.image_url %>" sizes="100vw" width="100%" border="0" alt="" title=""/>
         <% } %>
@@ -18,7 +18,7 @@
 
       <!-- Modal footer -->
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
       </div>
 
     </div>

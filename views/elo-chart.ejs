@@ -7,14 +7,14 @@
 <p class="text-muted">Compare up to <%= maxPlayers %> players' ELO ratings over time.</p>
 <%- include('ratings-explainer.ejs', { showPoints: showStrength, bands: ratingBands }) %>
 
-<div class="row no-gutters" style="min-height:calc(100vh - 200px);">
+<div class="row no-gutters g-0" style="min-height:calc(100vh - 200px);">
 
   <!-- Left panel: filters + search + player badges -->
-  <div class="col-12 col-md-2 pr-md-2 mb-2 mb-md-0">
+  <div class="col-12 col-md-2 pr-md-2 pe-md-2 mb-2 mb-md-0">
     <div class="card h-100">
       <div class="card-body p-2">
 
-        <label class="small font-weight-bold mb-1">Filter</label>
+        <label class="small font-weight-bold fw-bold mb-1">Filter</label>
         <select class="form-control form-control-sm mb-1" id="filter-division">
           <option value="">All divisions</option>
           <% divisions.forEach(function(d){ %>
@@ -39,14 +39,14 @@
           <option value="Female">Female</option>
         </select>
 
-        <label for="player-search" class="small font-weight-bold mb-1">Search for a player</label>
+        <label for="player-search" class="small font-weight-bold fw-bold mb-1">Search for a player</label>
         <div style="position:relative;">
           <input type="text" id="player-search" class="form-control form-control-sm" placeholder="Type a name…" autocomplete="off">
           <div id="search-results" class="list-group mt-1" style="position:absolute;z-index:1000;width:100%;display:none;"></div>
         </div>
         <div id="selected-players" class="mt-2"></div>
         <% if (showStrength) { %>
-        <label for="rating-mode" class="small font-weight-bold mt-2 mb-1">Rating</label>
+        <label for="rating-mode" class="small font-weight-bold fw-bold mt-2 mb-1">Rating</label>
         <select class="form-control form-control-sm" id="rating-mode">
           <option value="elo">ELO</option>
           <option value="points">Points rating</option>

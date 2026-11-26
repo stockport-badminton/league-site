@@ -146,11 +146,11 @@
           <% if (typeof superadmin !== 'undefined' && superadmin) { %>
 
             <td><% if (row['status'] === 'outstanding' || row['status'] === 'rearranged' || row['status'] === 'rearranging') { %>
-                  <a class="js-rearrange-link" data-toggle="modal" data-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
+                  <a class="js-rearrange-link" data-toggle="modal" data-bs-toggle="modal" data-target="#exampleModal" data-bs-target="#exampleModal" data-club="<%= row['name'] %>" data-fixtureId="<%= row['id'] %>">Rearrange</a> 
                   <%# From 48 hours before the card is due (fixture + 5 days), overdue included,
                       and only while no draft is filed — row.reminderDue, utils/scorecardReminder.js. %>
                   <% if(row['reminderDue']){ %>
-                  <br /><a href="#" class="js-reminder-link" data-toggle="modal" data-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
+                  <br /><a href="#" class="js-reminder-link" data-toggle="modal" data-bs-toggle="modal" data-target="#reminderModal" data-bs-target="#reminderModal" data-fixture-id="<%= row['id'] %>" data-home-team="<%= row['homeTeam'] %>" data-away-team="<%= row['awayTeam'] %>">Send Reminder</a>
                 <% } } %>
                 <%# Mirrors Fixture.CONCEDABLE — and not 'rearranged', which is the superseded
                     original of a rearranged match. The server enforces it too. %>
@@ -199,7 +199,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">Rearrangement</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -216,7 +216,7 @@
             </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
           <button type="button" id="fixtureRearange" class="btn btn-primary">Submit</button>
         </div>
         </form>
@@ -229,7 +229,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="concedeModalLabel"><%- icon('flag') %> Concede fixture</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -240,7 +240,7 @@
           <div id="concedeMessage" class="alert alert-danger mt-3 mb-0" role="status" style="display:none"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
         </div>
       </div>
     </div>
@@ -251,7 +251,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="reminderModalLabel">Send scorecard reminder</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -262,17 +262,17 @@
                 with "Reminder sent!" and removed the Submit button, so after one send
                 every other fixture's popup opened on that message. %>
             <div id="reminderFields" class="form-group">
-              <p id="reminderFixture" class="mb-2 font-weight-bold"></p>
+              <p id="reminderFixture" class="mb-2 font-weight-bold fw-bold"></p>
               <label for="reminderRecipients">Send to</label>
               <input type="text" class="form-control" id="reminderRecipients" name="recipients" autocomplete="off" />
               <small class="form-text text-muted">Comma-separated. Pre-filled with the home club's secretary, match secretary and team captain.</small>
-              <ul id="reminderContacts" class="small text-muted mt-2 mb-0 pl-3"></ul>
+              <ul id="reminderContacts" class="small text-muted mt-2 mb-0 pl-3 ps-3"></ul>
               <input type="hidden" name="fixtureId" id="reminderFixtureId" value="" />
             </div>
             <div id="reminderMessage" class="alert mb-0" role="status" style="display:none"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
           <button type="button" id="remindFixture" class="btn btn-primary">Send</button>
         </div>
         </form>
