@@ -7,6 +7,7 @@ const team_controller = require('../controllers/teamController');
 const static_controller = require('../controllers/staticPagesController');
 const messer_scorecard_controller = require('../controllers/messer-scorecard-controller');
 const documents_controller = require('../controllers/documentsController');
+const league_event_controller = require('../controllers/leagueEventController');
 const { mediaLimiter } = require('../middleware/rateLimit');
 
 router.get('/messer-rules', access.public, static_controller.messer_rules);
@@ -36,5 +37,14 @@ router.post('/messer-result/:id/reject', access.messerAdmin, messer_scorecard_co
 router.get('/admin/messer-bracket', access.messerAdmin, messer_scorecard_controller.messer_bracket_landing);
 router.get('/admin/messer-bracket/:section', access.messerAdmin, messer_scorecard_controller.messer_bracket_edit);
 router.post('/admin/messer-bracket/:section', access.messerAdmin, messer_scorecard_controller.messer_bracket_save);
+
+// The Messer finals dates (and any other non-fixture date) on the fixtures list, kept by a
+// Messer admin each season rather than hard-coded (migrations/040_league_event.sql).
+router.get('/admin/league-events', access.messerAdmin, league_event_controller.admin_list);
+router.get('/admin/league-events/create', access.messerAdmin, league_event_controller.admin_createForm);
+router.post('/admin/league-events', access.messerAdmin, league_event_controller.admin_create);
+router.get('/admin/league-events/:id(\\d+)', access.messerAdmin, league_event_controller.admin_editForm);
+router.post('/admin/league-events/:id(\\d+)', access.messerAdmin, league_event_controller.admin_update);
+router.post('/admin/league-events/:id(\\d+)/delete', access.messerAdmin, league_event_controller.admin_delete);
 
 module.exports = router;

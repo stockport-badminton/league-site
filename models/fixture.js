@@ -445,12 +445,6 @@ exports.getFixtureDetails = async function(searchObj) {
   const seasonName = season || seasonModel.current()
   let [result] = await (await db.otherConnect()).query(sql, [seasonName, seasonName, seasonName, ...sqlArray])
 
-  if (fixtureObj.type == undefined || fixtureObj.type != 'eloSetting') {
-    result.push({ id: 99999, date: '2027-04-13T23:00:00.000Z', homeTeam: 'Messer A Section Final', homeClub: 'No Club', awayTeam: 'No Team', awayClub: 'No Club', division: 7, venueName: 'Ladybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX', venueLink: 'https://maps.app.goo.gl/svEEaaVQ8SERDrF6A', status: 'completed', homeScore: null, awayScore: null })
-    result.push({ id: 99999, date: '2027-04-20T23:00:00.000Z', homeTeam: 'Messer B Section Final', homeClub: 'No Club', awayTeam: 'No Team', awayClub: 'No Club', division: 7, venueName: 'Ladybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX', venueLink: 'https://maps.app.goo.gl/svEEaaVQ8SERDrF6A', status: 'completed', homeScore: null, awayScore: null })
-    result.push({ id: 99999, date: '2027-05-05T23:00:00.000Z', homeTeam: 'Messer Finals', homeClub: 'No Club', awayTeam: '@ Ladybridge Park Residents Club', awayClub: 'No Club', division: 7, venueName: 'Ladybridge Park Residents Club, Edenbridge Rd, Cheadle Hulme, Cheadle SK8 5PX', venueLink: 'https://maps.app.goo.gl/svEEaaVQ8SERDrF6A', status: 'outstanding', homeScore: null, awayScore: null })
-  }
-
   return result
 }
 

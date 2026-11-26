@@ -84,7 +84,7 @@ async function rerateFrom(fixtureId, opts = {}) {
   return db.withTransaction(async conn => {
     await conn.query('SELECT pg_advisory_xact_lock(?::bigint)', [LOCK_KEY])
 
-    const season = (await Fixture.getFixtureDetails({ status: 'complete' })).filter(f => f.id !== 99999)
+    const season = await Fixture.getFixtureDetails({ status: 'complete' })
     const start = season.findIndex(f => f.id == fixtureId)
     if (start < 0) return { fixtures: 0, games: 0, players: 0, skipped: 'not a complete fixture this season' }
     const chain = season.slice(start)

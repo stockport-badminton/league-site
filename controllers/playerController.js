@@ -641,62 +641,60 @@ exports.player_elo_populate = async function(req, res, next) {
       let subFixtures = rows.filter((el, i) => i >= start && i < start + subLoopLength)
       start += subLoopLength
       for (const fixture of subFixtures) {
-        if (fixture.id !== 99999) {
-          let fixtureDate = fixture.date
-          let fixtureRank = fixture.rank
+        let fixtureDate = fixture.date
+        let fixtureRank = fixture.rank
 
-          let fixturePlayers = {}
-          fixturePlayers[fixture.homeMan1] = {}
-          fixturePlayers[fixture.homeMan2] = {}
-          fixturePlayers[fixture.homeMan3] = {}
-          fixturePlayers[fixture.homeLady1] = {}
-          fixturePlayers[fixture.homeLady2] = {}
-          fixturePlayers[fixture.homeLady3] = {}
-          fixturePlayers[fixture.awayMan1] = {}
-          fixturePlayers[fixture.awayMan2] = {}
-          fixturePlayers[fixture.awayMan3] = {}
-          fixturePlayers[fixture.awayLady1] = {}
-          fixturePlayers[fixture.awayLady2] = {}
-          fixturePlayers[fixture.awayLady3] = {}
+        let fixturePlayers = {}
+        fixturePlayers[fixture.homeMan1] = {}
+        fixturePlayers[fixture.homeMan2] = {}
+        fixturePlayers[fixture.homeMan3] = {}
+        fixturePlayers[fixture.homeLady1] = {}
+        fixturePlayers[fixture.homeLady2] = {}
+        fixturePlayers[fixture.homeLady3] = {}
+        fixturePlayers[fixture.awayMan1] = {}
+        fixturePlayers[fixture.awayMan2] = {}
+        fixturePlayers[fixture.awayMan3] = {}
+        fixturePlayers[fixture.awayLady1] = {}
+        fixturePlayers[fixture.awayLady2] = {}
+        fixturePlayers[fixture.awayLady3] = {}
 
-          fixturePlayers = await Player.getPrevRating(fixtureDate, fixturePlayers, { fallbackRank: fixtureRank })
-          const results = await Game.getByFixture(fixture.id)
+        fixturePlayers = await Player.getPrevRating(fixtureDate, fixturePlayers, { fallbackRank: fixtureRank })
+        const results = await Game.getByFixture(fixture.id)
 
-          for (const game of results) {
-            const rateResult = Game.calculateRating(game, fixturePlayers, fixtureDate, fixtureRank)
-            if (rateResult && (game.homePlayer1 != 0 || game.homePlayer2 != 0 || game.awayPlayer1 != 0 || game.awayPlayer2 != 0)) {
-              fixturePlayers[game.homePlayer1].rating = rateResult.updateObj.homePlayer1End
-              fixturePlayers[game.homePlayer1].date = fixtureDate
-              fixturePlayers[game.homePlayer2].rating = rateResult.updateObj.homePlayer2End
-              fixturePlayers[game.homePlayer2].date = fixtureDate
-              fixturePlayers[game.awayPlayer1].rating = rateResult.updateObj.awayPlayer1End
-              fixturePlayers[game.awayPlayer1].date = fixtureDate
-              fixturePlayers[game.awayPlayer2].rating = rateResult.updateObj.awayPlayer2End
-              fixturePlayers[game.awayPlayer2].date = fixtureDate
-              try {
-                await Game.updateById(rateResult.updateObj, game.id)
-              } catch (ratingErr) {
-                log.error({ err: ratingErr }, `rating update failed for game ${game.id}`)
-              }
-              gamesprocessed++
-            }
-          }
-
-          let playerUpdate = {
-            tablename: "player",
-            data: [],
-            fields: ["id", "rating"]
-          }
-          for (const [index, player] of Object.entries(fixturePlayers)) {
-            playerUpdate.data.push([index, player.rating])
-          }
-          if (playerUpdate.data.length > 0) {
+        for (const game of results) {
+          const rateResult = Game.calculateRating(game, fixturePlayers, fixtureDate, fixtureRank)
+          if (rateResult && (game.homePlayer1 != 0 || game.homePlayer2 != 0 || game.awayPlayer1 != 0 || game.awayPlayer2 != 0)) {
+            fixturePlayers[game.homePlayer1].rating = rateResult.updateObj.homePlayer1End
+            fixturePlayers[game.homePlayer1].date = fixtureDate
+            fixturePlayers[game.homePlayer2].rating = rateResult.updateObj.homePlayer2End
+            fixturePlayers[game.homePlayer2].date = fixtureDate
+            fixturePlayers[game.awayPlayer1].rating = rateResult.updateObj.awayPlayer1End
+            fixturePlayers[game.awayPlayer1].date = fixtureDate
+            fixturePlayers[game.awayPlayer2].rating = rateResult.updateObj.awayPlayer2End
+            fixturePlayers[game.awayPlayer2].date = fixtureDate
             try {
-              await Player.updateBulk(playerUpdate)
-              log.info(`Player rankings updated again`)
-            } catch (playerErr) {
-              log.error({ err: playerErr }, 'player rating bulk update failed')
+              await Game.updateById(rateResult.updateObj, game.id)
+            } catch (ratingErr) {
+              log.error({ err: ratingErr }, `rating update failed for game ${game.id}`)
             }
+            gamesprocessed++
+          }
+        }
+
+        let playerUpdate = {
+          tablename: "player",
+          data: [],
+          fields: ["id", "rating"]
+        }
+        for (const [index, player] of Object.entries(fixturePlayers)) {
+          playerUpdate.data.push([index, player.rating])
+        }
+        if (playerUpdate.data.length > 0) {
+          try {
+            await Player.updateBulk(playerUpdate)
+            log.info(`Player rankings updated again`)
+          } catch (playerErr) {
+            log.error({ err: playerErr }, 'player rating bulk update failed')
           }
         }
       }
@@ -856,8 +854,6 @@ async function recalcSeasonElo(seasonParam, carryoverRatings = {}) {
   const knownRatings = { ...carryoverRatings }
 
   for (const fixture of rows) {
-    if (fixture.id === 99999) continue
-
     // Collect all player IDs for this fixture.
     let fixturePlayers = {}
     for (const key of ['homeMan1','homeMan2','homeMan3','homeLady1','homeLady2','homeLady3',

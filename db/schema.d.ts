@@ -262,6 +262,16 @@ export interface League {
   url: string | null;
 }
 
+export interface LeagueEvent {
+  created_at: Generated<Timestamp>;
+  date: Timestamp;
+  detail: string | null;
+  id: Generated<number>;
+  title: string;
+  updated_at: Generated<Timestamp>;
+  venue: number | null;
+}
+
 export interface LiveScorecard {
   away_signed_at: Timestamp | null;
   away_signed_by: string | null;
@@ -851,6 +861,7 @@ export interface DB {
   invoice_run: InvoiceRun;
   junior_club: JuniorClub;
   league: League;
+  league_event: LeagueEvent;
   live_scorecard: LiveScorecard;
   messer: Messer;
   messer_at: MesserAt;

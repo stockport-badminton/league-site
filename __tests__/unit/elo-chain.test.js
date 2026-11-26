@@ -95,7 +95,7 @@ function rateFromScratch(fixtures, games, skip = null) {
 // The fake database, answering the queries eloChain makes from `rows`.
 function serve(fixtures, rows) {
   const pos = Object.fromEntries(fixtures.map((f, i) => [f.id, i]));
-  Fixture.getFixtureDetails.mockResolvedValue([...fixtures, { id: 99999 }]);
+  Fixture.getFixtureDetails.mockResolvedValue(fixtures);
   Player.getSeasonRanks.mockResolvedValue({});
   Player.refreshRatings.mockResolvedValue();
   Player.getRatingStateBefore.mockImplementation(async (fixtureId, pids) => {

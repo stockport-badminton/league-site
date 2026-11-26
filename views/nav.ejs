@@ -110,6 +110,7 @@
                   if(locals.user._json['https://my-app.example.com/messeradmin']) { %>
                     <a class="dropdown-item" href="/messer-results">Messer Results</a>
                     <a class="dropdown-item" href="/admin/messer-bracket">Messer Bracket Setup</a>
+                    <a class="dropdown-item" href="/admin/league-events">Messer &amp; Event Dates</a>
                  <% }
                 %>
                 <%
@@ -118,7 +119,7 @@
                         23 tools, and the navbar is fixed-top, so a dropdown longer than
                         the window cannot be scrolled — the newest items were out of reach
                         on a laptop. The list and the reasoning are utils/adminTools.js.
-                        The Messer pair is not repeated here: a superadmin who is also a
+                        The Messer links are not repeated here: a superadmin who is also a
                         messer admin already has them above, and anyone else finds them on
                         /admin. %>
                     <div class="dropdown-divider"></div>

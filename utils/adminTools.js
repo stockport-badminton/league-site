@@ -42,6 +42,7 @@ const GROUPS = [
     tools: [
       { href: '/messer-results', label: 'Messer Results', blurb: 'Approve or reject submitted Messer results.' },
       { href: '/admin/messer-bracket', label: 'Messer Bracket Setup', blurb: 'Set up the Messer knockout bracket.' },
+      { href: '/admin/league-events', label: 'Event Dates', blurb: 'The Messer finals dates (and any other non-fixture date) on the fixtures list.' },
     ],
   },
   {

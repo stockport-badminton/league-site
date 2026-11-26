@@ -1,0 +1,47 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<div class="col-12">
+  <h1>Event Dates</h1>
+  <p>Dates shown on the fixtures list that are not league fixtures: the Messer section
+    finals, finals night and the like. Each appears on its season's list (all divisions,
+    and each division's), not on a club's or team's.</p>
+  <a class="btn btn-primary mb-3" href="/admin/league-events/create">+ New Event Date</a>
+
+  <% if (!events.length) { %>
+    <p>No dates yet.</p>
+  <% } else { %>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Title</th>
+        <th>Detail</th>
+        <th>Venue</th>
+        <th>Season</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% events.forEach(function(e){ var p = e.day.split('-'); %>
+        <tr>
+          <td><%= p[2] + '/' + p[1] + '/' + p[0] %></td>
+          <td><%= e.title %></td>
+          <td><%= e.detail || '' %></td>
+          <td><%= e.venueName || '' %></td>
+          <td><%= e.season ? e.season.slice(0, 4) + '/' + e.season.slice(6) : 'None: not shown' %></td>
+          <td>
+            <a href="/admin/league-events/<%= e.id %>">Edit</a>
+            &nbsp;|&nbsp;
+            <form style="display:inline" method="post" action="/admin/league-events/<%= e.id %>/delete" data-confirm="Delete this date?">
+              <button type="submit" class="btn btn-link btn-sm text-danger p-0">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<%- include('../footer.ejs') %>

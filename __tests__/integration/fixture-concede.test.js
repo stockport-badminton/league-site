@@ -16,6 +16,8 @@ jest.mock('../../middleware/secured', () => (req, res, next) => {
 });
 
 jest.mock('../../models/fixture');
+// The event dates the results pages add (fixtureController's withEvents): none here.
+jest.mock('../../models/leagueEvent', () => ({ getForSeason: jest.fn(async () => []) }));
 jest.mock('../../models/division');
 jest.mock('../../models/players');
 jest.mock('../../models/game');

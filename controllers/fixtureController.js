@@ -5,6 +5,7 @@ var seasonModel = require("../models/season");
 var Team = require('../models/teams');
 var Player = require('../models/players');
 var Fixture = require('../models/fixture');
+const LeagueEvent = require('../models/leagueEvent');
 var Game = require('../models/game');
 var HomepageContent = require('../models/homepageContent');
 var SiteSettings = require('../models/siteSettings');
@@ -165,6 +166,32 @@ function withoutLineup(row) {
   return out;
 }
 
+// The season's event dates (the Messer finals; /admin/league-events) merged into a fixture
+// list, in date order. Not on a club's, team's, one status's or a date range's list: an
+// event belongs to no club or team and has no result. They used to be pushed onto every result of
+// Fixture.getFixtureDetails, the ELO code included, with a fake id of 99999.
+//
+// Each is shaped like a fixture row, with isEvent set and id null, since the list view and
+// the JSON both read fixture rows. The date is midnight UTC: the server runs in UTC and
+// the view reads the day with local getters, which gives the same day in Europe/London.
+async function withEvents(rows, searchObj) {
+  if (['club', 'team', 'status', 'startDate', 'endDate'].some(k => searchObj[k] !== undefined)) return rows;
+  const season = seasonModel.isValidName(searchObj.season) ? searchObj.season : seasonModel.current();
+  const events = await LeagueEvent.getForSeason(season);
+  if (!events.length) return rows;
+  const asRows = events.map(e => ({
+    id: null, isEvent: true, eventId: e.id,
+    date: new Date(e.day + 'T00:00:00Z'),
+    homeTeam: e.title, homeClub: null, homeClubId: null,
+    awayTeam: e.detail || '', awayClub: null,
+    division: null, divisionName: null,
+    venueName: e.venueAddress, venueLink: e.gMapUrl,
+    status: 'event', homeScore: null, awayScore: null,
+  }));
+  // Array sort is stable, so fixtures on the same day keep the query's order.
+  return [...rows, ...asRows].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
 exports.fixture_event_detail = async function(req, res, next) {
   try {
     const row = await Fixture.getFixtureEventById(req.params.id);
@@ -320,9 +347,9 @@ exports.fixture_calendars = async function(req,res,next){
     }, {});
      //console.log(searchObj)
     try {
+      // No event dates (withEvents): a calendar is subscribed to for a club's or team's matches.
       let result = await Fixture.getFixtureDetails(searchObj);
       {
-          result = result.filter(row => row.homeClub.indexOf('No Club') == -1)
           let id = (searchObj.season != undefined ? searchObj.season:seasonModel.current()) + (searchObj.division != undefined ? searchObj.division:"") + (searchObj.club != undefined ? searchObj.club:"") + (searchObj.team != undefined ? searchObj.team:"")
 
           const jcal = new ICAL.Component('vcalendar');
@@ -369,10 +396,11 @@ exports.fixture_calendars = async function(req,res,next){
 // Display detail page for a specific Fixture
 exports.fixture_detail_byDivision = async function(req, res, next) {
   function buildGridData(result) {
-    let divisionsArray = result.map(row => row.division).filter((division, index, arr) => arr.indexOf(division) == index)
+    const fixtures = result.filter(row => !row.isEvent)
+    let divisionsArray = fixtures.map(row => row.division).filter((division, index, arr) => arr.indexOf(division) == index)
     let griddedData = []
     for (const division of divisionsArray) {
-      let gridFixtures = result.filter(row => row.division == division && row.status != 'rearranged' && row.id != 99999)
+      let gridFixtures = fixtures.filter(row => row.division == division && row.status != 'rearranged')
       gridFixtures.sort(function(x, y) { return x.homeTeam.localeCompare(y.homeTeam) || x.awayTeam.localeCompare(y.awayTeam); });
       let gridTeams = gridFixtures.map(p => p.homeTeam).filter((homeTeam, index, arr) => arr.indexOf(homeTeam) == index)
       let gridDataElem = {}
@@ -391,7 +419,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
       .map((row) => ({ "date": row.date, "diff": new Date(row.date) - today }))
       .filter(row => row.diff >= 0)
       .sort((a, b) => a.diff - b.diff)
-    if (nearestFixture.length == 0) nearestFixture.push(result[result.length - 1])
+    if (nearestFixture.length == 0 && result.length) nearestFixture.push(result[result.length - 1])
     return nearestFixture
   }
 
@@ -425,7 +453,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         searchObj = req.params
         searchObj.division = row[0].id
       }
-      const result = await Fixture.getFixtureDetails(searchObj);
+      const result = await withEvents(await Fixture.getFixtureDetails(searchObj), searchObj);
       const nearestFixture = getNearestFixture(result)
       var type = '';
       if (req.path.indexOf('results-grid') > -1) type = '-grid'
@@ -438,7 +466,10 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         jsonResult: griddedData,
         error: false,
         division: divisionString,
-        nearestDate: nearestFixture[0].date,
+        // Undefined for an empty list (a club or team with no fixtures that season), and
+        // datatables.ejs then opens the table at today. The list was never empty while
+        // getFixtureDetails appended the hard-coded Messer rows to every result.
+        nearestDate: nearestFixture.length ? nearestFixture[0].date : undefined,
         canonical: canonicalFor(req)
       }
       applyAdminRole(renderObject, req)
@@ -463,7 +494,7 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
           searchObj.club = req.user._json["https://my-app.example.com/club"]
         }
       }
-      const result = await Fixture.getFixtureDetails(searchObj);
+      const result = await withEvents(await Fixture.getFixtureDetails(searchObj), searchObj);
       const nearestFixture = getNearestFixture(result)
       var type = '';
       if (req.path.indexOf('results-grid') > -1) type = '-grid'
@@ -475,8 +506,9 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
           if (sqlParams.length > 0) titleString += sqlParams[0][1] + " "
         }
       }
-      let clubs = result.map(item => item.homeClub).filter((value, index, self) => self.indexOf(value) === index)
-      let teams = result.map(item => item.homeTeam).filter((value, index, self) => self.indexOf(value) === index)
+      const fixtures = result.filter(item => !item.isEvent)
+      let clubs = fixtures.map(item => item.homeClub).filter((value, index, self) => self.indexOf(value) === index)
+      let teams = fixtures.map(item => item.homeTeam).filter((value, index, self) => self.indexOf(value) === index)
       let renderObject = {
         path: req.path,
         user: req.user,
@@ -493,7 +525,10 @@ exports.fixture_detail_byDivision = async function(req, res, next) {
         division: divisionString,
         // This division's table for the same season. The nav's Tables link is all four.
         tablePath: divisionTablePath(divisionString, searchObj.season),
-        nearestDate: nearestFixture[0].date,
+        // Undefined for an empty list (a club or team with no fixtures that season), and
+        // datatables.ejs then opens the table at today. The list was never empty while
+        // getFixtureDetails appended the hard-coded Messer rows to every result.
+        nearestDate: nearestFixture.length ? nearestFixture[0].date : undefined,
         canonical: canonicalFor(req)
       }
       applyAdminRole(renderObject, req)

@@ -50,6 +50,20 @@
     <% var tournamentReminder = false %>
     <% var tournament2Reminder = false %>
     <% result.forEach(function(row){ %>
+      <%# An event date (the Messer finals; withEvents in fixtureController.js) is not a
+          fixture: no result, no admin links, and no id for them to act on. The same cells
+          as the header, which DataTables needs. Red, as the Messer rows always were. %>
+      <% if (row.isEvent) {
+           var ev = new Date(row['date']); %>
+      <tr class="table-danger league-event">
+        <td><%= ('0' + ev.getDate()).slice(-2) + '/' + ('0' + (ev.getMonth()+1)).slice(-2) + '/' + ev.getFullYear() %></td>
+        <td><% if (row['venueLink']) { %><a href="<%= row['venueLink'] %>" target="_blank"><%- icon('map-location-dot') %></a><% } %><%= row['homeTeam'] %></td>
+        <td><%= row['awayTeam'] %></td>
+        <td></td>
+        <% if (typeof admin !== 'undefined') { %><td></td><% } %>
+        <% if (typeof superadmin !== 'undefined' && superadmin) { %><td></td><td></td><% } %>
+      </tr>
+      <% return; } %>
       <%
         var rowClass = '';
         var resultValue = '';

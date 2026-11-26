@@ -1,0 +1,50 @@
+<%- include('../header.ejs') %>
+<%- include('../nav.ejs') %>
+
+<%# `data` is what the fields show: the stored row, or what was submitted when a save
+    failed, so nothing typed is lost. %>
+<% var v = function(k) { return data[k] == null ? '' : data[k]; }; %>
+<div class="col-12 text-left text-start">
+  <h1><%= event ? 'Edit' : 'New' %> Event Date</h1>
+
+  <% if (errors.length) { %>
+    <div class="alert alert-danger" role="alert">
+      <% errors.forEach(function(e){ %><div><%= e %></div><% }) %>
+    </div>
+  <% } %>
+
+  <form method="post" action="<%= event ? '/admin/league-events/' + event.id : '/admin/league-events' %>">
+    <div class="form-group mb-3">
+      <label for="date">Date</label>
+      <input type="date" class="form-control" id="date" name="date" value="<%= v('date') %>" required>
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="title">Title</label>
+      <input type="text" class="form-control" id="title" name="title" maxlength="100" value="<%= v('title') %>" placeholder="Messer A Section Final" required>
+      <small class="form-text text-muted">Shown in the Home Team column.</small>
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="detail">Detail</label>
+      <input type="text" class="form-control" id="detail" name="detail" maxlength="100" value="<%= v('detail') %>" placeholder="@ Ladybridge Park Residents Club">
+      <small class="form-text text-muted">Optional. Shown in the Away Team column.</small>
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="venue">Venue</label>
+      <select class="form-control form-select" id="venue" name="venue">
+        <option value="">— none —</option>
+        <% venues.forEach(function(ven){ %>
+          <option value="<%= ven.id %>" <%= data.venue == ven.id ? 'selected' : '' %>><%= ven.name %></option>
+        <% }) %>
+      </select>
+      <small class="form-text text-muted">Gives the row its map link.</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/admin/league-events" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+
+<%- include('../footer.ejs') %>
