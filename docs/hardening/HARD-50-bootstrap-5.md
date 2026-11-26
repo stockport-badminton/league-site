@@ -105,6 +105,17 @@ matching at the cutover with nothing in the console (now `.js-rearrange-link` /
    `form-select` on a select (under 5 the two fight), and leave the scorecard templates to
    step 5.
 
+   **Pilot done 26 Nov 2026:** `nav.ejs`, `roster-edit.ejs` and `generatedTournamentGallery.ejs`.
+   Checked by swapping Bootstrap 5.3.8's css and bundle in for 4's at the network layer
+   (Playwright `page.route`; nothing in the repo changes), against the same pages with the
+   change stashed as a control. With both names: under 4 the screenshots are byte-identical;
+   under 5 the nav dropdowns, the right-aligned Admin menu, the phone menu, the roster modals
+   (opened by `roster-edit.js`'s jQuery `.modal('show')`, closed by `data-bs-dismiss`), the
+   gallery carousel's controls and the hidden screen-reader text all work. Without them,
+   under 5, the dropdowns and the phone menu do nothing. Repeat that check
+   for each batch (`npm pack bootstrap@5.3.x` for the files). The bundle registers its jQuery plugins and fires the `.bs.modal` events
+   through jQuery, as the table above expects.
+
 3. **Done 25 Nov 2026.** **Keep `form-group`, `form-row` and `form-inline` with rules in
    `custom.css`** rather than editing 600 uses. `form-inline` was going to become
    `d-flex flex-wrap align-items-center` with `w-auto` on the fields; a phone screenshot showed
@@ -130,6 +141,11 @@ matching at the cutover with nothing in the console (now `.js-rearrange-link` /
    - the scorecard templates' markup, after REARCH-07 has moved their scripts, with the e2e
      specs as the net;
    - delete the Bootstrap 4 names that step 2 left alongside.
+   - wrap the contents of the `<nav class="navbar">` in `views/nav.ejs` in a
+     `<div class="container-fluid">`. Bootstrap 5's navbar takes its side padding from that
+     container, so without it the brand and the phone menu items sit against the left edge
+     (seen with 5.3.8 swapped in, 26 Nov 2026). It cannot go in early: under 4 a container
+     inside the navbar adds its own padding to the navbar's.
 
 6. **DataTables.** The bundle in `static/vendor/datatables/` is the **bs4** build of
    DataTables 1.10.20 (`datatables.min.js` names the builder URL). Its classes mostly exist

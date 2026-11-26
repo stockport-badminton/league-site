@@ -3,14 +3,14 @@
         <span class="d-lg-block d-none">Stockport &amp; District Badminton League</span>
         <span class="d-block d-lg-none">SDBL</span>
       </a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbarsExampleDefault" data-bs-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-        <ul class="navbar-nav mr-auto">
+        <ul class="navbar-nav mr-auto me-auto">
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Results</a>
+            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Results</a>
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <a class="dropdown-item" href="/tables/All">Tables</a>
               <a class="dropdown-item" href="/results/All">All Results</a>
@@ -21,7 +21,7 @@
             </div>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Messer</a>
+            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Messer</a>
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <a class="dropdown-item" href="/messer-rules">Rules</a>
               <a class="dropdown-item" href="/messer-draw/a-section">A Section</a>
@@ -30,7 +30,7 @@
             </div>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Tournaments</a>
+            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Tournaments</a>
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <!-- <a class="dropdown-item" href="<%= static_path %>/beta/docs/OpenEntryForm.doc" target="_blank">Open Entry Form</a>
               <a class="dropdown-item" href="<%= static_path %>/beta/docs/OpenClubEntryForm.doc" target="_blank">Open Club Entry Form</a>
@@ -44,7 +44,7 @@
             </div>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Useful Links</a>
+            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Useful Links</a>
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
               <a class="dropdown-item" href="/notifications">Notifications</a>
@@ -57,7 +57,7 @@
           <li class="nav-item"><a class="nav-link" href="/info/junior-clubs">Juniors</a></li>
           <li class="nav-item"><a class="nav-link" href="/rules">Rules</a></li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">History</a>
+            <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">History</a>
             <div class="dropdown-menu" aria-labelledby="dropdown01">
               <% (locals.pastSeasons || []).slice(0, 4).forEach(function(s){ %>
                 <div class="dropdown-item d-flex justify-content-between align-items-center">
@@ -76,10 +76,10 @@
           <li class="nav-item"><a class="nav-link" href="/gallery">Gallery</a></li>
           <% if(locals.user) { %>
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Admin</a>
+              <a class="nav-link dropdown-toggle" id="dropdown01" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Admin</a>
               <%# -right: this is the last item in the navbar, and a left-aligned menu ran
                   off the edge of the window, cutting every label short. %>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdown01">
+              <div class="dropdown-menu dropdown-menu-right dropdown-menu-end" aria-labelledby="dropdown01">
                 <a class="dropdown-item" href="/email-scorecard">Enter Result</a>
                 <a class="dropdown-item" href="/messer-scorecard-beta">Enter Messer Result</a>
                 <a class="dropdown-item" href="/admin/results/All">Results Detail</a>
@@ -123,9 +123,9 @@
                         /admin. %>
                     <div class="dropdown-divider"></div>
                     <% adminNavShortlist().forEach(function (tool) { %>
-                      <a class="dropdown-item" href="<%= tool.href %>"><%= tool.label %><% if (tool.href === '/admin/player-requests' && locals.navPendingRequests) { %> <span class="badge badge-warning"><%= locals.navPendingRequests %></span><% } %></a>
+                      <a class="dropdown-item" href="<%= tool.href %>"><%= tool.label %><% if (tool.href === '/admin/player-requests' && locals.navPendingRequests) { %> <span class="badge badge-warning text-bg-warning"><%= locals.navPendingRequests %></span><% } %></a>
                     <% }); %>
-                    <a class="dropdown-item font-weight-bold" href="/admin">All admin tools&hellip;</a>
+                    <a class="dropdown-item font-weight-bold fw-bold" href="/admin">All admin tools&hellip;</a>
                     <div class="dropdown-divider"></div>
                  <% }
                 %>

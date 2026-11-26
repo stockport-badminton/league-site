@@ -69,7 +69,7 @@ describe('the superadmin Admin menu', () => {
 
   it('shows the pending count on Registration Requests, and nothing at zero', () => {
     expect(renderNav('All', 'superadmin', { locals: { navPendingRequests: 3 } }))
-      .toMatch(/Registration Requests <span class="badge badge-warning">3<\/span>/);
+      .toMatch(/Registration Requests <span class="badge badge-warning text-bg-warning">3<\/span>/);
     expect(renderNav('All', 'superadmin', { locals: { navPendingRequests: 0 } }))
       .not.toMatch(/Registration Requests <span/);
   });

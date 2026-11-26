@@ -79,7 +79,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="rosterMoveTitle">Move player</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -105,7 +105,7 @@
         </p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="rosterMoveConfirm">Move player</button>
       </div>
     </div>
@@ -120,7 +120,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="rosterAddTitle">Add a player</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -149,11 +149,11 @@
           <h6>Or create a new player</h6>
           <div class="form-row">
             <div class="col-sm-5 mb-2">
-              <label class="sr-only" for="rosterNewFirst">First name</label>
+              <label class="sr-only visually-hidden" for="rosterNewFirst">First name</label>
               <input type="text" class="form-control" id="rosterNewFirst" placeholder="First name" maxlength="60">
             </div>
             <div class="col-sm-5 mb-2">
-              <label class="sr-only" for="rosterNewFamily">Family name</label>
+              <label class="sr-only visually-hidden" for="rosterNewFamily">Family name</label>
               <input type="text" class="form-control" id="rosterNewFamily" placeholder="Family name" maxlength="60">
             </div>
             <div class="col-sm-2 mb-2">
