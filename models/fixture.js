@@ -289,6 +289,10 @@ exports.getCardsDueToday = async function() {
 // the duplicate rows those joins produced for the four teams with two flagged
 // captains. The season join went for the same reason as before — it filtered on a
 // table the SELECT never touched.
+//
+// Only 'outstanding': it used to exclude just 'rearranged'/'rearranging', so Dome A's
+// voided fixtures (withdrawn Oct 2026) and conceded matches went on being advertised.
+// An allowlist, like the missing-scorecard email's, so a later status stays off.
 exports.getupComing = async function() {
   return kysely.selectFrom('fixture')
     .innerJoin('team as homeTeam', 'fixture.homeTeam', 'homeTeam.id')
@@ -303,7 +307,7 @@ exports.getupComing = async function() {
       'venue.Lat', 'venue.Lng', 'venue.name as venueName', 'venue.address as venueAddress',
       'venue.gMapUrl as venueLink', 'fixture.status', 'fixture.homeScore', 'fixture.awayScore'])
     .where('fixture.homeScore', 'is', null)
-    .where('fixture.status', 'not in', ['rearranged', 'rearranging'])
+    .where('fixture.status', '=', 'outstanding')
     .where(eb => eb.between('fixture.date', YESTERDAY, WEEK_AHEAD))
     .orderBy('fixture.date')
     .execute()

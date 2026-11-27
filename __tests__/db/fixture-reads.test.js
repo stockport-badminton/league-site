@@ -126,3 +126,19 @@ describe('getFixtureSummaryById', () => {
     expect(row).toMatchObject({ id: f.id, homeClub: f.homeClub, awayClub: f.awayClub });
   });
 });
+
+// The homepage's "Upcoming Fixtures". Only a match that is still going ahead belongs there:
+// it excluded just 'rearranged'/'rearranging', so Dome A's voided fixtures (Oct 2026) went
+// on being advertised. An allowlist, like the missing-scorecard email's.
+describe('getupComing', () => {
+  it('lists only outstanding fixtures', async () => {
+    const [h, a] = await run('SELECT id FROM team WHERE withdrawn IS NULL ORDER BY id LIMIT 2');
+    const statuses = ['outstanding', 'rearranging', 'rearranged', 'void', 'conceded'];
+    for (const [i, status] of statuses.entries()) {
+      await run(`INSERT INTO fixture (id, date, "homeTeam", "awayTeam", status)
+        VALUES (?, now() + interval '2 days', ?, ?, ?)`, [960001 + i, h.id, a.id, status]);
+    }
+    const ids = (await Fixture.getupComing()).map(r => r.id).filter(id => id >= 960001 && id <= 960005);
+    expect(ids).toEqual([960001]);
+  });
+});
