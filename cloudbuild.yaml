@@ -3,13 +3,18 @@ steps:
   # image, let alone a deployment.
   #
   # There was no test step at all until August 2026: 391 Jest tests that ran only when
-  # somebody remembered to run them. And until Sep 2026 this file itself never ran: the
-  # trigger was the one the Cloud Run console generates, with its own inline build (no
-  # tests, no cache, pushing to cloud-run-source-deploy). It now names this file. If a
-  # deploy ever skips the test step again, check the trigger before anything else:
-  #   gcloud builds triggers describe rmgpgab-league-site-europe-west2-stockport-badminton-league-hbz That works while the person deploying is the person
+  # somebody remembered to run them. That works while the person deploying is the person
   # who wrote them; the moment it isn't, the suite stops being a safety net and becomes
-  # documentation of what used to be checked.
+  # documentation of what used to be checked. And until Sep 2026 this file itself never
+  # ran: the trigger was the one the Cloud Run console generates, with its own inline
+  # build (no tests, no cache, pushing to cloud-run-source-deploy). If a deploy ever
+  # skips the test step again, check the trigger before anything else:
+  #   gcloud builds triggers describe league-site-master --region=europe-west2
+  #
+  # The trigger is regional (europe-west2, a 2nd-gen GitHub connection) since 27 Nov
+  # 2026. The global one it replaced ran builds in the global pool, so the `docker pull
+  # :latest` below was billed as Artifact Registry inter-region egress on every build.
+  # `gcloud builds list` without --region=europe-west2 no longer shows these builds.
   #
   # These need no database. `__tests__/setup.js` supplies the env they read and every
   # suite mocks db_connect, which is why this can run before anything else exists. The
